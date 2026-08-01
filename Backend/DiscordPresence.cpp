@@ -1,35 +1,39 @@
 #include "pch.h"
 #include "Backend/DiscordPresence.h"
-#include <vector>
+
+#include <algorithm>
+#include <array>
+#include <cmath>
 #include <cstdint>
 #include <cstring>
-#include <cstdio>
+#include <limits>
 #include <sstream>
-#include <algorithm>
-#include <cmath>
+#include <vector>
 
 // The Discord application client id is build-private. Official builds define it
 // in a gitignored Backend/AppSecrets.local.h; public builds compile with the
 // empty default below, which disables Discord Rich Presence. Copy
 // Backend/AppSecrets.example.h to AppSecrets.local.h and fill it in to enable.
-#if __has_include("Backend/AppSecrets.local.h")
+#if !defined(LMP_DISCORD_CLIENT_ID) && __has_include("Backend/AppSecrets.local.h")
 #include "Backend/AppSecrets.local.h"
 #endif
 #ifndef LMP_DISCORD_CLIENT_ID
 #define LMP_DISCORD_CLIENT_ID ""
 #endif
+#ifndef LMP_DISCORD_IPC_PIPE_PREFIX
+#define LMP_DISCORD_IPC_PIPE_PREFIX L"\\\\.\\pipe\\discord-ipc-"
+#endif
 
 namespace
 {
-    // Empty id (public builds) → Rich Presence disabled: Connect() short-circuits
-    // below, so the toggle and persisted preference still work but have no
-    // visible effect.
     constexpr char kDiscordClientId[] = LMP_DISCORD_CLIENT_ID;
-
-    // Minimum gap between SET_ACTIVITY sends. Discord throttles to roughly
-    // five updates per 20 seconds; staying above ~1.5 s lets seek scrubs
-    // and rapid play/pause coalesce without ever tripping the limit.
-    constexpr std::chrono::milliseconds kMinSendGap{ 1500 };
+    constexpr std::chrono::seconds kMinSendGap{ 4 };
+    constexpr std::chrono::seconds kReplyTimeout{ 3 };
+    constexpr std::chrono::seconds kHandshakeTimeout{ 3 };
+    constexpr std::chrono::milliseconds kPipeBusyWait{ 250 };
+    constexpr std::chrono::milliseconds kIdlePoll{ 25 };
+    constexpr std::chrono::milliseconds kReconnectMaximum{ 30'000 };
+    constexpr std::int32_t kMaxFrameBytes = 1024 * 1024;
 
     std::string ToUtf8(std::wstring const& text)
     {
@@ -80,27 +84,70 @@ namespace
         return out;
     }
 
-    // Used to suppress the banner-hover "album" tooltip when the provider
-    // hands back album == title (the common singles case). Compare case-
-    // insensitively and treat any whitespace run as a single space so
-    // "Piya  Tose - Qawwali Version" and "piya tose – qawwali version"
-    // still match.
-    bool EquivalentText(std::wstring const& a, std::wstring const& b)
+    std::optional<std::string> JsonStringField(std::string const& json, char const* field)
     {
-        auto normalize = [](std::wstring const& s) {
-            std::wstring out;
-            out.reserve(s.size());
-            for (wchar_t ch : s) {
-                if (iswspace(ch)) {
-                    if (!out.empty() && out.back() != L' ') out += L' ';
-                    continue;
-                }
-                out += static_cast<wchar_t>(towlower(ch));
+        std::string key = "\"" + std::string{ field } + "\"";
+        auto keyPos = json.find(key);
+        if (keyPos == std::string::npos)
+        {
+            return std::nullopt;
+        }
+
+        auto colon = json.find(':', keyPos + key.size());
+        if (colon == std::string::npos)
+        {
+            return std::nullopt;
+        }
+        auto valuePos = json.find_first_not_of(" \t\r\n", colon + 1);
+        if (valuePos == std::string::npos || json[valuePos] != '"')
+        {
+            return std::nullopt;
+        }
+
+        std::string value;
+        bool escaped = false;
+        for (size_t i = valuePos + 1; i < json.size(); ++i)
+        {
+            char ch = json[i];
+            if (escaped)
+            {
+                value += ch;
+                escaped = false;
             }
-            while (!out.empty() && out.back() == L' ') out.pop_back();
-            return out;
-        };
-        return normalize(a) == normalize(b);
+            else if (ch == '\\')
+            {
+                escaped = true;
+            }
+            else if (ch == '"')
+            {
+                return value;
+            }
+            else
+            {
+                value += ch;
+            }
+        }
+        return std::nullopt;
+    }
+
+    bool IsReadyFrame(std::string const& payload)
+    {
+        auto command = JsonStringField(payload, "cmd");
+        auto event = JsonStringField(payload, "evt");
+        return command && event && *command == "DISPATCH" && *event == "READY";
+    }
+
+    bool IsErrorFrame(std::string const& payload)
+    {
+        auto event = JsonStringField(payload, "evt");
+        return event && *event == "ERROR";
+    }
+
+    void TraceDiscord(char const* message)
+    {
+        OutputDebugStringA("Last Music Player Discord RPC: ");
+        OutputDebugStringA(message);
+        OutputDebugStringA("\n");
     }
 }
 
@@ -108,78 +155,144 @@ namespace LastMusicPlayer::Backend
 {
     DiscordPresence::~DiscordPresence()
     {
+        Disconnect();
+    }
+
+    bool DiscordPresence::IsConnected() const
+    {
+        std::scoped_lock lock{ m_mutex };
+        return m_ready;
+    }
+
+    void DiscordPresence::EnsureWorkerLocked()
+    {
+        if (!m_workerStarted)
+        {
+            m_workerStarted = true;
+            m_ioThread = std::thread{ &DiscordPresence::IoMain, this };
+        }
+    }
+
+    bool DiscordPresence::Connect()
+    {
+        bool ready = false;
         {
             std::scoped_lock lock{ m_mutex };
-            if (m_pendingTimer)
+            if (m_stopping || kDiscordClientId[0] == '\0')
             {
-                SetThreadpoolTimer(m_pendingTimer, nullptr, 0, 0);
-                WaitForThreadpoolTimerCallbacks(m_pendingTimer, TRUE);
-                CloseThreadpoolTimer(m_pendingTimer);
-                m_pendingTimer = nullptr;
+                return false;
             }
+            m_connectRequested = true;
+            EnsureWorkerLocked();
+            ready = m_ready;
         }
-        Disconnect();
+        m_wake.notify_all();
+        return ready;
+    }
+
+    void DiscordPresence::Disconnect()
+    {
+        std::thread worker;
+        {
+            std::scoped_lock lock{ m_mutex };
+            if (!m_workerStarted)
+            {
+                return;
+            }
+            m_stopping = true;
+            m_connectRequested = false;
+            m_clearRequested = false;
+            worker = std::move(m_ioThread);
+        }
+        m_wake.notify_all();
+        if (worker.joinable())
+        {
+            worker.join();
+        }
     }
 
     bool DiscordPresence::WriteFrame(int opcode, std::string const& payload)
     {
-        if (m_pipe == INVALID_HANDLE_VALUE)
+        if (m_pipe == INVALID_HANDLE_VALUE || payload.size() > static_cast<size_t>((std::numeric_limits<std::int32_t>::max)()))
         {
             return false;
         }
 
-        std::vector<char> frame;
-        frame.resize(8 + payload.size());
+        std::vector<char> frame(8 + payload.size());
         std::int32_t op = opcode;
         std::int32_t len = static_cast<std::int32_t>(payload.size());
-        std::memcpy(frame.data(), &op, 4);
-        std::memcpy(frame.data() + 4, &len, 4);
-        std::memcpy(frame.data() + 8, payload.data(), payload.size());
+        std::memcpy(frame.data(), &op, sizeof(op));
+        std::memcpy(frame.data() + 4, &len, sizeof(len));
+        if (!payload.empty())
+        {
+            std::memcpy(frame.data() + 8, payload.data(), payload.size());
+        }
 
         DWORD written = 0;
-        if (!WriteFile(m_pipe, frame.data(), static_cast<DWORD>(frame.size()), &written, nullptr))
+        if (!WriteFile(m_pipe, frame.data(), static_cast<DWORD>(frame.size()), &written, nullptr)
+            || written != frame.size())
         {
-            Disconnect();
+            TraceDiscord("pipe write failed");
             return false;
         }
         return true;
     }
 
-    bool DiscordPresence::Connect()
+    DiscordPresence::FrameReadResult DiscordPresence::TryReadFrame(int& opcode, std::string& payload)
     {
-        if (IsConnected())
+        opcode = 0;
+        payload.clear();
+        if (m_pipe == INVALID_HANDLE_VALUE)
         {
-            return true;
+            return FrameReadResult::Disconnected;
         }
 
-        // No client id compiled in (public builds) → don't attempt the IPC
-        // handshake at all; Rich Presence stays disabled.
-        if (kDiscordClientId[0] == '\0')
+        std::array<char, 8> header{};
+        DWORD available = 0;
+        if (!PeekNamedPipe(m_pipe, header.data(), static_cast<DWORD>(header.size()), nullptr, &available, nullptr))
         {
-            return false;
+            return FrameReadResult::Disconnected;
+        }
+        if (available < header.size())
+        {
+            return FrameReadResult::NoFrame;
         }
 
-        for (int i = 0; i < 10; ++i)
+        std::int32_t op = 0;
+        std::int32_t length = 0;
+        std::memcpy(&op, header.data(), sizeof(op));
+        std::memcpy(&length, header.data() + 4, sizeof(length));
+        if (length < 0 || length > kMaxFrameBytes || available < header.size() + static_cast<DWORD>(length))
         {
-            std::wstring path = L"\\\\.\\pipe\\discord-ipc-" + std::to_wstring(i);
-            HANDLE pipe = CreateFileW(path.c_str(), GENERIC_READ | GENERIC_WRITE,
-                0, nullptr, OPEN_EXISTING, 0, nullptr);
-            if (pipe != INVALID_HANDLE_VALUE)
+            if (length < 0 || length > kMaxFrameBytes)
             {
-                m_pipe = pipe;
-                std::string handshake =
-                    std::string("{\"v\":1,\"client_id\":\"") + kDiscordClientId + "\"}";
-                if (!WriteFrame(0, handshake))
-                {
-                    return false;
-                }
-                return true;
+                TraceDiscord("received invalid frame length");
+                return FrameReadResult::Disconnected;
+            }
+            return FrameReadResult::NoFrame;
+        }
+
+        DWORD read = 0;
+        if (!ReadFile(m_pipe, header.data(), static_cast<DWORD>(header.size()), &read, nullptr) || read != header.size())
+        {
+            return FrameReadResult::Disconnected;
+        }
+
+        payload.resize(static_cast<size_t>(length));
+        if (length > 0)
+        {
+            read = 0;
+            if (!ReadFile(m_pipe, payload.data(), static_cast<DWORD>(payload.size()), &read, nullptr)
+                || read != payload.size())
+            {
+                return FrameReadResult::Disconnected;
             }
         }
-        return false;
+        opcode = op;
+        return FrameReadResult::Frame;
     }
 
-    void DiscordPresence::Disconnect()
+    void DiscordPresence::ClosePipe()
     {
         if (m_pipe != INVALID_HANDLE_VALUE)
         {
@@ -188,40 +301,106 @@ namespace LastMusicPlayer::Backend
         }
     }
 
-    std::string DiscordPresence::BuildActivityJson(PresencePayload const& p) const
+    bool DiscordPresence::OpenAndHandshake()
     {
-        // Wall-clock timestamps for the progress bar. Discord renders the
-        // bar locally between start and end; we only re-send when the
-        // anchor needs to move (seek, pause/resume, track change).
+        for (int i = 0; i < 10; ++i)
+        {
+            std::wstring path = std::wstring{ LMP_DISCORD_IPC_PIPE_PREFIX } + std::to_wstring(i);
+            HANDLE pipe = CreateFileW(path.c_str(), GENERIC_READ | GENERIC_WRITE,
+                0, nullptr, OPEN_EXISTING, 0, nullptr);
+            if (pipe == INVALID_HANDLE_VALUE && GetLastError() == ERROR_PIPE_BUSY)
+            {
+                if (WaitNamedPipeW(path.c_str(), static_cast<DWORD>(kPipeBusyWait.count())))
+                {
+                    pipe = CreateFileW(path.c_str(), GENERIC_READ | GENERIC_WRITE,
+                        0, nullptr, OPEN_EXISTING, 0, nullptr);
+                }
+            }
+            if (pipe == INVALID_HANDLE_VALUE)
+            {
+                continue;
+            }
+
+            m_pipe = pipe;
+            std::string handshake =
+                std::string("{\"v\":1,\"client_id\":\"") + kDiscordClientId + "\"}";
+            if (!WriteFrame(0, handshake))
+            {
+                ClosePipe();
+                continue;
+            }
+
+            auto deadline = std::chrono::steady_clock::now() + kHandshakeTimeout;
+            while (std::chrono::steady_clock::now() < deadline)
+            {
+                {
+                    std::scoped_lock lock{ m_mutex };
+                    if (m_stopping)
+                    {
+                        ClosePipe();
+                        return false;
+                    }
+                }
+
+                int opcode = 0;
+                std::string payload;
+                auto result = TryReadFrame(opcode, payload);
+                if (result == FrameReadResult::Disconnected)
+                {
+                    ClosePipe();
+                    break;
+                }
+                if (result == FrameReadResult::Frame)
+                {
+                    if (opcode == 1 && IsReadyFrame(payload))
+                    {
+                        return true;
+                    }
+                    if (opcode == 3 && !WriteFrame(4, payload))
+                    {
+                        ClosePipe();
+                        break;
+                    }
+                    if (opcode == 2)
+                    {
+                        ClosePipe();
+                        break;
+                    }
+                }
+                std::this_thread::sleep_for(std::chrono::milliseconds(15));
+            }
+            ClosePipe();
+        }
+
+        TraceDiscord("Discord IPC handshake was not accepted");
+        return false;
+    }
+
+    std::string DiscordPresence::NextNonce(uint64_t sequence)
+    {
+        return std::to_string(GetTickCount64()) + "-" + std::to_string(sequence);
+    }
+
+    std::string DiscordPresence::BuildActivityJson(PresencePayload const& p, std::string const& nonce) const
+    {
         auto now = std::chrono::system_clock::now();
         long long nowMs = std::chrono::duration_cast<std::chrono::milliseconds>(
             now.time_since_epoch()).count();
         double position = (std::max)(0.0, p.positionSeconds);
         double duration = (std::max)(0.0, p.durationSeconds);
         long long startMs = nowMs - static_cast<long long>(position * 1000.0);
-        long long endMs   = nowMs + static_cast<long long>((std::max)(0.0, duration - position) * 1000.0);
+        long long endMs = nowMs + static_cast<long long>((std::max)(0.0, duration - position) * 1000.0);
 
         std::ostringstream os;
         os << "{\"cmd\":\"SET_ACTIVITY\",\"args\":{\"pid\":"
            << GetCurrentProcessId()
-           << ",\"activity\":{\"type\":2";
-
-        // `name` is what Discord renders as the activity header
-        // ("Listening to <name>"). Without it, Discord falls back to the
-        // dev-portal app name, which works for the basic card, but
-        // including an explicit name matches common music-app behaviour.
-        os << ",\"name\":\"Last Music\"";
+           << ",\"activity\":{\"type\":2,\"name\":\"Last Music\"";
 
         if (!p.title.empty())
         {
             os << ",\"details\":\"" << JsonEscape(p.title) << "\"";
         }
 
-        // State line: music-app style: just the artist, with " · Paused"
-        // appended on pause. The album lives only in the banner-hover
-        // tooltip below (and only when it's actually meaningful), so the
-        // state line stays clean even for singles where provider returns
-        // album == title.
         std::wstring state = p.artist;
         if (!p.isPlaying)
         {
@@ -233,24 +412,12 @@ namespace LastMusicPlayer::Backend
             os << ",\"state\":\"" << JsonEscape(state) << "\"";
         }
 
-        // Timestamps: only emit while playing so the bar freezes on pause.
-        // Need a positive duration too, else Discord renders an
-        // open-ended timer instead of a progress bar.
         if (p.isPlaying && duration > 0.5)
         {
             os << ",\"timestamps\":{\"start\":" << startMs
                << ",\"end\":" << endMs << "}";
         }
 
-        // Discord's RPC IPC `large_image` only accepts URLs from a small CDN
-        // whitelist; arbitrary HTTPS URLs are silently rejected — Discord still
-        // shows the activity card, but no banner renders. The provider supplies
-        // a whitelist-compatible cover URL asynchronously via SetArtworkProxyUrl.
-        // Until that resolves (or if none is found), p.artworkUrl is empty here
-        // and the assets field is omitted entirely.
-        //
-        // Also accepts bare asset keys (no slashes) for forward-compat
-        // with a future dev-portal-uploaded fallback.
         bool isHttpsUrl = p.artworkUrl.rfind(L"https://", 0) == 0;
         bool isDiscordExternalAsset = p.artworkUrl.rfind(L"mp:external/", 0) == 0;
         bool isBareAssetKey = !p.artworkUrl.empty()
@@ -258,129 +425,315 @@ namespace LastMusicPlayer::Backend
         if (isHttpsUrl || isDiscordExternalAsset || isBareAssetKey)
         {
             os << ",\"assets\":{\"large_image\":\"" << JsonEscape(p.artworkUrl) << "\"";
-            // Third-line label on the activity card. Always advertise the
-            // source ("Source: Local" or "Source: Remote") instead of an
-            // album — providers commonly return album == title or generic
-            // placeholders ("Imported Playlist", "Unknown Album"), so the
-            // source string is uniformly more informative.
             std::wstring sourceLabel = p.isLocal ? L"Source: Local" : L"Source: Remote Music API";
-            os << ",\"large_text\":\"" << JsonEscape(sourceLabel) << "\"";
-            os << "}";
+            os << ",\"large_text\":\"" << JsonEscape(sourceLabel) << "\"}";
         }
 
-        os << "}},\"nonce\":\"" << GetTickCount64() << "\"}";
+        os << "}},\"nonce\":\"" << nonce << "\"}";
         return os.str();
     }
 
-    void CALLBACK DiscordPresence::FlushCallback(PTP_CALLBACK_INSTANCE, PVOID context, PTP_TIMER)
+    std::string DiscordPresence::BuildActivityFingerprint(PresencePayload const& p)
     {
-        auto self = static_cast<DiscordPresence*>(context);
-        self->FlushPending();
+        auto append = [](std::ostringstream& out, std::wstring const& value) {
+            auto utf8 = ToUtf8(value);
+            out << utf8.size() << ':' << utf8 << '|';
+        };
+        auto milliseconds = [](double seconds) {
+            return static_cast<long long>(std::llround((std::max)(0.0, seconds) * 1000.0));
+        };
+
+        std::ostringstream os;
+        append(os, p.title);
+        append(os, p.artist);
+        append(os, p.artworkUrl);
+        os << milliseconds(p.durationSeconds) << '|'
+           << milliseconds(p.positionSeconds) << '|'
+           << p.isPlaying << '|' << p.isLocal;
+        return os.str();
     }
 
-    void DiscordPresence::FlushPending()
+    std::string DiscordPresence::BuildClearJson(std::string const& nonce)
     {
-        std::string json;
-        {
-            std::scoped_lock lock{ m_mutex };
-            m_pendingScheduled = false;
-            if (m_pendingJson.empty())
-            {
-                return;
-            }
-            json.swap(m_pendingJson);
-        }
-        // Use bypassGate=true: the timer already waited out the window.
-        SendOrDefer(json, /*bypassGate*/ true);
+        return "{\"cmd\":\"SET_ACTIVITY\",\"args\":{\"pid\":"
+            + std::to_string(GetCurrentProcessId())
+            + ",\"activity\":null},\"nonce\":\"" + nonce + "\"}";
     }
 
-    void DiscordPresence::SendOrDefer(std::string const& json, bool bypassGate)
+    void DiscordPresence::HandleIncomingFrame(int opcode, std::string const& payload)
     {
-        if (!IsConnected())
-        {
-            // Lazy reconnect: when Discord is restarted while Last Music
-            // is running, the pipe drops and every subsequent send used
-            // to be silently lost forever (no resume path until the user
-            // toggled the integration off + on). Attempt a single
-            // Connect() here, throttled so a missing-Discord state can't
-            // hammer the OS with CreateFile calls on every state change.
-            constexpr auto kReconnectBackoff = std::chrono::seconds(5);
-            auto now = std::chrono::steady_clock::now();
-            bool throttled =
-                m_lastReconnectAttempt.time_since_epoch().count() != 0 &&
-                (now - m_lastReconnectAttempt) < kReconnectBackoff;
-            if (throttled)
-            {
-                return;
-            }
-            m_lastReconnectAttempt = now;
-            if (!Connect())
-            {
-                return;
-            }
-        }
-
-        std::size_t hash = std::hash<std::string>{}(json);
-
-        std::scoped_lock lock{ m_mutex };
-
-        // Dedup: identical activity to the last successful send is a no-op.
-        if (hash == m_lastSentHash && !m_lastSentJson.empty())
+        if (opcode != 1)
         {
             return;
         }
 
-        if (!bypassGate)
+        auto nonce = JsonStringField(payload, "nonce");
+        if (!nonce)
         {
-            auto now = std::chrono::steady_clock::now();
-            auto elapsed = now - m_lastSendAt;
-            if (m_lastSendAt.time_since_epoch().count() != 0 && elapsed < kMinSendGap)
+            return;
+        }
+
+        bool wasError = IsErrorFrame(payload);
+        std::scoped_lock lock{ m_mutex };
+        if (!m_waitingForReply || *nonce != m_waitingNonce)
+        {
+            return;
+        }
+
+        if (wasError)
+        {
+            // The payload was accepted by the IPC server but rejected by
+            // Discord. Treat it as acknowledged so an invalid asset or
+            // unsupported client does not create an infinite resend loop;
+            // the next real playback change still produces a fresh payload.
+            TraceDiscord("Discord rejected a SET_ACTIVITY frame");
+        }
+        m_lastAcknowledgedFingerprint = m_waitingFingerprint;
+        bool clearComplete = m_waitingForClear;
+        m_waitingForReply = false;
+        m_waitingForClear = false;
+        m_waitingNonce.clear();
+        m_waitingFingerprint.clear();
+        if (clearComplete)
+        {
+            // A quick off/on toggle may have queued a new track while this
+            // clear was in flight. Only retire the connection when clear is
+            // still the latest desired state.
+            if (m_clearRequested)
             {
-                // Defer: stash latest json; schedule a one-shot threadpool
-                // timer if one isn't already running. A newer call simply
-                // overwrites m_pendingJson without rescheduling.
-                m_pendingJson = json;
-                if (!m_pendingScheduled)
+                m_clearRequested = false;
+                m_connectRequested = false;
+            }
+        }
+    }
+
+    bool DiscordPresence::DrainIncomingFrames()
+    {
+        for (int i = 0; i < 32; ++i)
+        {
+            int opcode = 0;
+            std::string payload;
+            auto result = TryReadFrame(opcode, payload);
+            if (result == FrameReadResult::NoFrame)
+            {
+                return true;
+            }
+            if (result == FrameReadResult::Disconnected)
+            {
+                return false;
+            }
+            if (opcode == 2)
+            {
+                TraceDiscord("Discord closed the IPC pipe");
+                return false;
+            }
+            if (opcode == 3)
+            {
+                if (!WriteFrame(4, payload))
                 {
-                    if (!m_pendingTimer)
-                    {
-                        m_pendingTimer = CreateThreadpoolTimer(&DiscordPresence::FlushCallback, this, nullptr);
-                    }
-                    if (m_pendingTimer)
-                    {
-                        auto wait = kMinSendGap - std::chrono::duration_cast<std::chrono::milliseconds>(elapsed);
-                        if (wait.count() < 0) wait = std::chrono::milliseconds(0);
-                        FILETIME ft{};
-                        ULARGE_INTEGER ul{};
-                        // SetThreadpoolTimer takes a negative relative time
-                        // in 100-ns units when used as a FILETIME pointer.
-                        long long relative = -static_cast<long long>(wait.count()) * 10000LL;
-                        ul.QuadPart = static_cast<ULONGLONG>(relative);
-                        ft.dwLowDateTime  = ul.LowPart;
-                        ft.dwHighDateTime = ul.HighPart;
-                        SetThreadpoolTimer(m_pendingTimer, &ft, 0, 0);
-                        m_pendingScheduled = true;
-                    }
+                    return false;
                 }
-                return;
+                continue;
+            }
+            HandleIncomingFrame(opcode, payload);
+        }
+        return true;
+    }
+
+    void DiscordPresence::MarkDisconnected()
+    {
+        ClosePipe();
+        std::scoped_lock lock{ m_mutex };
+        m_ready = false;
+        m_waitingForReply = false;
+        m_waitingForClear = false;
+        m_waitingNonce.clear();
+        m_waitingFingerprint.clear();
+        // Discord may have lost the activity even if it acknowledged an older
+        // update, so a successful reconnect must always re-send the latest one.
+        m_lastAcknowledgedFingerprint.clear();
+        if (m_clearRequested)
+        {
+            m_clearRequested = false;
+        }
+    }
+
+    void DiscordPresence::ScheduleReconnect()
+    {
+        std::scoped_lock lock{ m_mutex };
+        if (m_stopping || !m_connectRequested || !m_last)
+        {
+            return;
+        }
+        auto jitter = std::chrono::milliseconds(GetTickCount64() % 251);
+        m_nextReconnectAt = std::chrono::steady_clock::now() + m_reconnectDelay + jitter;
+        m_reconnectDelay = (std::min)(m_reconnectDelay * 2, kReconnectMaximum);
+    }
+
+    void DiscordPresence::IoMain()
+    {
+        for (;;)
+        {
+            bool ready = false;
+            bool shouldConnect = false;
+            std::chrono::steady_clock::time_point reconnectAt;
+            {
+                std::scoped_lock lock{ m_mutex };
+                if (m_stopping)
+                {
+                    break;
+                }
+                ready = m_ready;
+                shouldConnect = m_connectRequested && m_last.has_value();
+                reconnectAt = m_nextReconnectAt;
+            }
+
+            if (!ready)
+            {
+                auto now = std::chrono::steady_clock::now();
+                if (shouldConnect && (reconnectAt.time_since_epoch().count() == 0 || now >= reconnectAt))
+                {
+                    if (OpenAndHandshake())
+                    {
+                        std::scoped_lock lock{ m_mutex };
+                        if (!m_stopping)
+                        {
+                            m_ready = true;
+                            m_reconnectDelay = std::chrono::milliseconds(1000);
+                            m_nextReconnectAt = {};
+                            m_lastAcknowledgedFingerprint.clear();
+                        }
+                        else
+                        {
+                            ClosePipe();
+                        }
+                    }
+                    else
+                    {
+                        ScheduleReconnect();
+                    }
+                    continue;
+                }
+
+                std::unique_lock lock{ m_mutex };
+                if (m_stopping)
+                {
+                    break;
+                }
+                if (shouldConnect && reconnectAt.time_since_epoch().count() != 0)
+                {
+                    m_wake.wait_until(lock, reconnectAt);
+                }
+                else
+                {
+                    m_wake.wait(lock, [this] {
+                        return m_stopping || (m_connectRequested && m_last.has_value());
+                    });
+                }
+                continue;
+            }
+
+            if (!DrainIncomingFrames())
+            {
+                MarkDisconnected();
+                ScheduleReconnect();
+                continue;
+            }
+
+            std::optional<PresencePayload> activity;
+            bool clear = false;
+            bool waiting = false;
+            std::chrono::steady_clock::time_point replyDeadline;
+            std::string acknowledgedFingerprint;
+            {
+                std::scoped_lock lock{ m_mutex };
+                if (m_stopping)
+                {
+                    break;
+                }
+                clear = m_clearRequested;
+                activity = m_last;
+                waiting = m_waitingForReply;
+                replyDeadline = m_replyDeadline;
+                acknowledgedFingerprint = m_lastAcknowledgedFingerprint;
+                if (!m_connectRequested && !clear && !waiting)
+                {
+                    m_ready = false;
+                    ClosePipe();
+                    continue;
+                }
+            }
+
+            auto now = std::chrono::steady_clock::now();
+            if (waiting)
+            {
+                if (now >= replyDeadline)
+                {
+                    TraceDiscord("timed out waiting for Discord RPC reply");
+                    MarkDisconnected();
+                    ScheduleReconnect();
+                    continue;
+                }
+            }
+            else
+            {
+                std::string fingerprint;
+                std::string json;
+                bool isClear = false;
+                if (clear)
+                {
+                    fingerprint = "__clear__";
+                    isClear = true;
+                }
+                else if (activity)
+                {
+                    fingerprint = BuildActivityFingerprint(*activity);
+                }
+
+                bool hasCommand = !fingerprint.empty();
+                bool due = m_lastSendAt.time_since_epoch().count() == 0
+                    || now - m_lastSendAt >= kMinSendGap;
+                if (hasCommand && fingerprint != acknowledgedFingerprint && (isClear || due))
+                {
+                    std::string nonce;
+                    {
+                        std::scoped_lock lock{ m_mutex };
+                        nonce = NextNonce(++m_nextNonce);
+                    }
+                    json = isClear ? BuildClearJson(nonce) : BuildActivityJson(*activity, nonce);
+                    if (!WriteFrame(1, json))
+                    {
+                        MarkDisconnected();
+                        ScheduleReconnect();
+                        continue;
+                    }
+
+                    std::scoped_lock lock{ m_mutex };
+                    m_lastSendAt = std::chrono::steady_clock::now();
+                    m_waitingForReply = true;
+                    m_waitingForClear = isClear;
+                    m_waitingNonce = std::move(nonce);
+                    m_waitingFingerprint = std::move(fingerprint);
+                    m_replyDeadline = m_lastSendAt + kReplyTimeout;
+                }
+            }
+
+            std::unique_lock lock{ m_mutex };
+            if (!m_stopping)
+            {
+                auto wakeAt = m_waitingForReply
+                    ? m_replyDeadline
+                    : (m_lastSendAt.time_since_epoch().count() == 0
+                        ? std::chrono::steady_clock::now() + kIdlePoll
+                        : m_lastSendAt + kMinSendGap);
+                m_wake.wait_until(lock, wakeAt);
             }
         }
 
-        bool sent = WriteFrame(1, json);
-        if (!sent && Connect())
-        {
-            sent = WriteFrame(1, json);
-        }
-
-        if (sent)
-        {
-            m_lastSendAt   = std::chrono::steady_clock::now();
-            m_lastSentJson = json;
-            m_lastSentHash = hash;
-        }
-        else
-        {
-        }
+        ClosePipe();
+        std::scoped_lock lock{ m_mutex };
+        m_ready = false;
+        m_waitingForReply = false;
     }
 
     void DiscordPresence::SetNowPlaying(PresencePayload const& payload)
@@ -391,57 +744,42 @@ namespace LastMusicPlayer::Backend
             return;
         }
 
-        bool titleChanged = false;
         {
             std::scoped_lock lock{ m_mutex };
-            titleChanged = !m_last
-                || m_last->title != payload.title
-                || m_last->artist != payload.artist;
+            if (m_stopping || kDiscordClientId[0] == '\0')
+            {
+                return;
+            }
             m_last = payload;
+            m_clearRequested = false;
+            m_connectRequested = true;
+            EnsureWorkerLocked();
         }
-
-        std::string json = BuildActivityJson(payload);
-        // A new track is the one update the user notices most — let it
-        // jump the gate so it shows immediately.
-        SendOrDefer(json, /*bypassGate*/ titleChanged);
+        m_wake.notify_all();
     }
 
     void DiscordPresence::SetPlaybackState(bool isPlaying, double positionSeconds, double durationSeconds)
     {
-        PresencePayload snapshot;
         {
             std::scoped_lock lock{ m_mutex };
-            if (!m_last) return;
+            if (!m_last || m_stopping) return;
             m_last->isPlaying = isPlaying;
             m_last->positionSeconds = positionSeconds;
-            // Only overwrite the cached duration when the caller actually
-            // has one — many sources (MediaPlaybackSession on Opening /
-            // Buffering states, tracks loaded from the queue with stale
-            // DB metadata) return 0 here. A late NaturalDurationChanged
-            // calls SetDuration separately.
             if (durationSeconds > 0.5) m_last->durationSeconds = durationSeconds;
-            snapshot = *m_last;
         }
-        std::string json = BuildActivityJson(snapshot);
-        SendOrDefer(json, /*bypassGate*/ false);
+        m_wake.notify_all();
     }
 
     void DiscordPresence::SetDuration(double durationSeconds)
     {
         if (durationSeconds <= 0.5) return;
-        PresencePayload snapshot;
         {
             std::scoped_lock lock{ m_mutex };
-            if (!m_last) return;
-            // Don't churn if the cache already has the same duration to
-            // within one second (NaturalDurationChanged occasionally
-            // fires twice with the same value).
+            if (!m_last || m_stopping) return;
             if (std::abs(m_last->durationSeconds - durationSeconds) < 1.0) return;
             m_last->durationSeconds = durationSeconds;
-            snapshot = *m_last;
         }
-        std::string json = BuildActivityJson(snapshot);
-        SendOrDefer(json, /*bypassGate*/ false);
+        m_wake.notify_all();
     }
 
     void DiscordPresence::SetArtworkProxyUrl(
@@ -453,64 +791,43 @@ namespace LastMusicPlayer::Backend
         {
             return;
         }
-        PresencePayload snapshot;
         {
             std::scoped_lock lock{ m_mutex };
-            // Drop the update if the user has since skipped — Discord
-            // should never end up showing track B with track A's art.
-            if (!m_last)
-            {
-                return;
-            }
-            if (m_last->title != originalTitle)
-            {
-                return;
-            }
-            if (m_last->artist != originalArtist)
+            if (!m_last || m_stopping
+                || m_last->title != originalTitle
+                || m_last->artist != originalArtist)
             {
                 return;
             }
             m_last->artworkUrl = proxyUrl;
-            snapshot = *m_last;
         }
-        std::string json = BuildActivityJson(snapshot);
-        SendOrDefer(json, /*bypassGate*/ false);
+        m_wake.notify_all();
     }
 
     void DiscordPresence::SetPosition(double positionSeconds)
     {
-        PresencePayload snapshot;
         {
             std::scoped_lock lock{ m_mutex };
-            if (!m_last) return;
+            if (!m_last || m_stopping) return;
             m_last->positionSeconds = positionSeconds;
-            snapshot = *m_last;
         }
-        std::string json = BuildActivityJson(snapshot);
-        SendOrDefer(json, /*bypassGate*/ false);
+        m_wake.notify_all();
     }
 
     void DiscordPresence::Clear()
     {
         {
             std::scoped_lock lock{ m_mutex };
+            if (m_stopping) return;
             m_last.reset();
-            m_pendingJson.clear();
-            m_pendingScheduled = false;
+            // If a validated connection exists, clear it before the worker
+            // closes the pipe. If Discord is already gone there is no local
+            // activity to clean up, so do not revive the IPC client just to
+            // issue a stale clear.
+            m_clearRequested = m_ready;
+            m_connectRequested = false;
+            m_lastAcknowledgedFingerprint.clear();
         }
-        if (!IsConnected())
-        {
-            return;
-        }
-        std::string payload =
-            "{\"cmd\":\"SET_ACTIVITY\",\"args\":{\"pid\":" + std::to_string(GetCurrentProcessId()) +
-            ",\"activity\":null},\"nonce\":\"" + std::to_string(GetTickCount64()) + "\"}";
-        if (WriteFrame(1, payload))
-        {
-            std::scoped_lock lock{ m_mutex };
-            m_lastSendAt = std::chrono::steady_clock::now();
-            m_lastSentJson.clear();
-            m_lastSentHash = 0;
-        }
+        m_wake.notify_all();
     }
 }

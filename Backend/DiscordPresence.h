@@ -1,10 +1,13 @@
 #pragma once
 #include <windows.h>
 #include <chrono>
+#include <condition_variable>
 #include <cstddef>
+#include <cstdint>
 #include <mutex>
 #include <optional>
 #include <string>
+#include <thread>
 
 namespace LastMusicPlayer::Backend
 {
@@ -22,9 +25,8 @@ namespace LastMusicPlayer::Backend
     };
 
     // Discord Rich Presence client over the IPC named pipe
-    // (\\.\pipe\discord-ipc-N). Supports a music timeline with play/pause
-    // and artwork. SET_ACTIVITY sends are debounced (Discord throttles to
-    // ~5 / 20 s) and deduped.
+    // (\\.\pipe\discord-ipc-N). All IPC runs on a single worker so UI
+    // callbacks never race a pipe close/reconnect or block on Discord.
     class DiscordPresence
     {
     public:
@@ -36,7 +38,7 @@ namespace LastMusicPlayer::Backend
 
         bool Connect();
         void Disconnect();
-        bool IsConnected() const { return m_pipe != INVALID_HANDLE_VALUE; }
+        bool IsConnected() const;
 
         void SetNowPlaying(PresencePayload const& payload);
         // durationSeconds <= 0 keeps the cached value unchanged. Pass the
@@ -60,25 +62,50 @@ namespace LastMusicPlayer::Backend
         void Clear();
 
     private:
-        bool WriteFrame(int opcode, std::string const& payload);
-        std::string BuildActivityJson(PresencePayload const& p) const;
-        void SendOrDefer(std::string const& json, bool bypassGate);
-        void FlushPending();
-        static void CALLBACK FlushCallback(PTP_CALLBACK_INSTANCE, PVOID context, PTP_TIMER);
+        enum class FrameReadResult
+        {
+            NoFrame,
+            Frame,
+            Disconnected,
+        };
 
+        void EnsureWorkerLocked();
+        void IoMain();
+        bool OpenAndHandshake();
+        void ClosePipe();
+        bool WriteFrame(int opcode, std::string const& payload);
+        FrameReadResult TryReadFrame(int& opcode, std::string& payload);
+        bool DrainIncomingFrames();
+        void HandleIncomingFrame(int opcode, std::string const& payload);
+        void MarkDisconnected();
+        void ScheduleReconnect();
+        std::string BuildActivityJson(PresencePayload const& p, std::string const& nonce) const;
+        static std::string BuildActivityFingerprint(PresencePayload const& p);
+        static std::string BuildClearJson(std::string const& nonce);
+        static std::string NextNonce(uint64_t sequence);
+
+        // Owned exclusively by IoMain. Public callers observe m_ready under
+        // m_mutex rather than touching the HANDLE directly.
         HANDLE m_pipe{ INVALID_HANDLE_VALUE };
 
-        std::mutex m_mutex;
+        mutable std::mutex m_mutex;
+        std::condition_variable m_wake;
+        std::thread m_ioThread;
+        bool m_workerStarted{ false };
+        bool m_stopping{ false };
+        bool m_connectRequested{ false };
+        bool m_ready{ false };
+        bool m_clearRequested{ false };
         std::optional<PresencePayload> m_last;
-        std::string m_lastSentJson;
-        std::size_t m_lastSentHash{ 0 };
+        std::string m_lastAcknowledgedFingerprint;
         std::chrono::steady_clock::time_point m_lastSendAt{};
-        std::string m_pendingJson;
-        PTP_TIMER m_pendingTimer{ nullptr };
-        bool m_pendingScheduled{ false };
-        // Throttles lazy-reconnect attempts inside SendOrDefer so a
-        // Discord-not-running state doesn't spam CreateFile calls on
-        // every playback-state change.
-        std::chrono::steady_clock::time_point m_lastReconnectAttempt{};
+        std::chrono::steady_clock::time_point m_nextReconnectAt{};
+        std::chrono::milliseconds m_reconnectDelay{ 1000 };
+        bool m_waitingForReply{ false };
+        bool m_waitingForClear{ false };
+        std::string m_waitingNonce;
+        std::string m_waitingFingerprint;
+        std::chrono::steady_clock::time_point m_replyDeadline{};
+        uint64_t m_nextNonce{ 0 };
     };
 }
