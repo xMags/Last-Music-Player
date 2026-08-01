@@ -720,7 +720,6 @@ namespace winrt::Last_Music_Player::implementation
         else if (m_discord)
         {
             m_discord->Clear();
-            m_discord->Disconnect();
         }
     }
 
@@ -1122,7 +1121,6 @@ namespace winrt::Last_Music_Player::implementation
         if (m_discord)
         {
             m_discord->Clear();
-            m_discord->Disconnect();
         }
         try
         {
