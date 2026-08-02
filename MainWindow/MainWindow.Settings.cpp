@@ -2,15 +2,16 @@
 #include "MainWindow.xaml.h"
 #include "MainWindow.Internal.h"
 
+#include "Backend/AccountClient.h"
 #include "Backend/ProviderClient.h"
 #include "Backend/SettingsManager.h"
 #include "Backend/TrayIcon.h"
 #include "Backend/DiscordPresence.h"
+#include "Backend/HistoryImport.h"
 
 #include <windows.h>
 #include <winrt/Windows.Data.Json.h>
 #include <winrt/Windows.Devices.Enumeration.h>
-#include <winrt/Windows.Media.h>
 #include <winrt/Windows.Media.Devices.h>
 #include <winrt/Windows.Storage.h>
 #include <winrt/Windows.System.h>
@@ -18,6 +19,7 @@
 #include <winrt/Microsoft.UI.Xaml.Controls.Primitives.h>
 #include <winrt/Microsoft.UI.Xaml.Media.h>
 #include <winrt/Microsoft.UI.Text.h>
+#include <winrt/Microsoft.UI.Xaml.Media.Imaging.h>
 
 #include <algorithm>
 #include <array>
@@ -41,6 +43,55 @@ namespace winrt::Last_Music_Player::implementation
 {
     using namespace detail;
 
+    void MainWindow::InvalidateRemoteViewWork()
+    {
+        auto closeAccountDetail = IsAccountPlaylistDetail()
+            || m_libraryDetailAccountBinding.has_value();
+        ++m_homeHydration.HomeEpoch;
+        ++m_homeHydration.MixRefreshId;
+        ++m_songsHydrationEpoch;
+        ++m_libraryHydrationEpoch;
+        if (!closeAccountDetail)
+        {
+            ++m_libraryDetailHydrationEpoch;
+        }
+        ++m_searchDebounceId;
+        ++m_searchRequestId;
+        ++m_lyricsHydrationEpoch;
+        ++m_autoplay.Epoch;
+        ++m_discoverEpoch;
+        ++m_remotePlaybackResolveEpoch;
+        m_autoplay.InFlight = false;
+        m_autoplay.ResumeWhenReady = false;
+        m_remoteSearchCache.clear();
+        m_accountPlaylistBindings.clear();
+        if (closeAccountDetail)
+        {
+            HideLibraryDetail();
+        }
+        else
+        {
+            m_libraryDetailAccountBinding.reset();
+        }
+        MarkLibraryViewsDirty();
+        ClearCatalogArtworkCache();
+        if (m_lyricsHydrationTimer)
+        {
+            m_lyricsHydrationTimer.Stop();
+        }
+        if (m_lyricsService)
+        {
+            m_lyricsService->ClearCache();
+        }
+    }
+
+    void MainWindow::InvalidateRemoteScopeWork()
+    {
+        RemoteMusicServiceService().InvalidateScope();
+        InvalidateRemoteViewWork();
+        StreamCacheService().InvalidateInFlight();
+    }
+
     void MainWindow::SettingsSection_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
     {
         (void)args;
@@ -55,6 +106,44 @@ namespace winrt::Last_Music_Player::implementation
 
     namespace
     {
+        class UserDataAdmissionGuard final
+        {
+        public:
+            explicit UserDataAdmissionGuard(
+                LastMusicPlayer::Backend::UserDataOperationGate& gate) noexcept
+                : m_gate(&gate)
+            {
+            }
+
+            UserDataAdmissionGuard(UserDataAdmissionGuard const&) = delete;
+            UserDataAdmissionGuard& operator=(UserDataAdmissionGuard const&) = delete;
+
+            ~UserDataAdmissionGuard()
+            {
+                Reopen();
+            }
+
+            void Reopen() noexcept
+            {
+                if (!m_gate)
+                {
+                    return;
+                }
+
+                try
+                {
+                    m_gate->Reopen();
+                }
+                catch (...)
+                {
+                }
+                m_gate = nullptr;
+            }
+
+        private:
+            LastMusicPlayer::Backend::UserDataOperationGate* m_gate;
+        };
+
         winrt::hstring TrimDisplayName(winrt::hstring const& value)
         {
             std::wstring s{ value.c_str() };
@@ -62,6 +151,807 @@ namespace winrt::Last_Music_Player::implementation
             while (!s.empty() && std::iswspace(s.back()))  s.pop_back();
             return winrt::hstring{ s };
         }
+        std::wstring NormalizeLegacyPlayedAt(std::wstring value)
+        {
+            if (value.size() == 19 && value[4] == L'-' && value[7] == L'-'
+                && value[10] == L' ' && value[13] == L':' && value[16] == L':')
+            {
+                value[10] = L'T';
+                value.push_back(L'Z');
+                return value;
+            }
+            if (value.size() == 20 && value[10] == L'T' && value.back() == L'Z')
+            {
+                return value;
+            }
+            return {};
+        }
+
+        winrt::Last_Music_Player::TrackInfo ResolvedImportTrack(
+            winrt::hstring const& payload,
+            winrt::Last_Music_Player::TrackInfo const& legacy)
+        {
+            winrt::Windows::Data::Json::JsonObject root;
+            if (!winrt::Windows::Data::Json::JsonObject::TryParse(payload, root) || !root)
+            {
+                return nullptr;
+            }
+            auto result = root.GetNamedObject(L"result", nullptr);
+            if (!result)
+            {
+                return nullptr;
+            }
+            auto nested = result.GetNamedObject(L"track", nullptr);
+            auto trackObject = nested ? nested : result;
+            auto remoteId = trackObject.GetNamedString(
+                L"id",
+                trackObject.GetNamedString(L"remoteId", trackObject.GetNamedString(L"trackId", L"")));
+            auto sourceUrl = trackObject.GetNamedString(
+                L"sourceUrl",
+                trackObject.GetNamedString(L"url", L""));
+            if (remoteId.empty() || sourceUrl.empty())
+            {
+                return nullptr;
+            }
+
+            LastMusicPlayer::Backend::TrackInfo track;
+            track.RemoteId(remoteId);
+            track.SourceKind(L"remote");
+            track.Provider(trackObject.GetNamedString(L"provider", legacy.Provider()));
+            track.SourceLabel(L"Account");
+            track.SourceUrl(sourceUrl);
+            track.Title(trackObject.GetNamedString(L"title", trackObject.GetNamedString(L"name", legacy.Title())));
+            track.Artist(trackObject.GetNamedString(L"artist", legacy.Artist()));
+            track.Album(trackObject.GetNamedString(L"album", legacy.Album()));
+            auto durationSeconds = trackObject.GetNamedNumber(L"durationSeconds", legacy.DurationSeconds());
+            auto durationMs = trackObject.GetNamedNumber(L"durationMs", 0.0);
+            track.DurationSeconds(durationMs > 0.0 ? durationMs / 1000.0 : durationSeconds);
+            track.Duration(track.DurationSeconds() > 0.0
+                ? winrt::hstring(LastMusicPlayer::Frontend::UIHelpers::FormatTime(track.DurationSeconds()))
+                : legacy.Duration());
+            return IsCompatibleAccountRemoteTrack(track) ? track : nullptr;
+        }
+
+        bool IsSkippableLegacyResolveError(winrt::hresult_error const& error) noexcept
+        {
+            return error.code() == HRESULT_FROM_WIN32(ERROR_NOT_FOUND)
+                || error.code() == E_INVALIDARG
+                || error.code() == E_FAIL;
+        }
+
+    }
+
+    void MainWindow::RefreshAccountSettingsUi()
+    {
+        using LastMusicPlayer::Backend::AccountSessionStatus;
+        using LastMusicPlayer::Backend::RemoteAccessMode;
+        using winrt::Microsoft::UI::Xaml::Visibility;
+
+        auto& session = AccountSessionService();
+        auto& remoteMusic = RemoteMusicServiceService();
+        auto snapshot = session.Snapshot();
+        auto status = snapshot.Status;
+        auto profile = snapshot.Profile;
+        auto available = session.IsAccountIntegrationAvailable();
+        auto signedIn = status == AccountSessionStatus::Validated || status == AccountSessionStatus::Offline;
+
+        winrt::hstring statusText;
+        if (!available)
+        {
+            statusText = L"Account integration is unavailable in this build.";
+        }
+        else if (status == AccountSessionStatus::SigningIn)
+        {
+            statusText = L"Waiting for browser sign-in...";
+        }
+        else if (status == AccountSessionStatus::Validated)
+        {
+            statusText = L"Connected";
+        }
+        else if (status == AccountSessionStatus::Offline)
+        {
+            statusText = L"Offline. Showing the cached account library.";
+        }
+        else
+        {
+            statusText = snapshot.LastSafeError;
+            if (statusText.empty())
+            {
+                statusText = L"Not signed in";
+            }
+        }
+        AccountStatusText().Text(statusText);
+
+        AccountSignInButton().IsEnabled(available && status != AccountSessionStatus::SigningIn);
+        AccountSignInButton().Content(winrt::box_value(winrt::hstring{ L"Sign in" }));
+        AccountSignInButton().Visibility(signedIn ? Visibility::Collapsed : Visibility::Visible);
+        AccountSignOutButton().Visibility(signedIn ? Visibility::Visible : Visibility::Collapsed);
+        AccountSignOutButton().IsEnabled(signedIn);
+        AccountSyncButton().Visibility(signedIn ? Visibility::Visible : Visibility::Collapsed);
+        AccountSyncButton().IsEnabled(status == AccountSessionStatus::Validated && !MusicSyncServiceService().IsSyncing());
+        AccountProfilePanel().Visibility(signedIn ? Visibility::Visible : Visibility::Collapsed);
+        // Hidden rather than disabled when this build has no trusted frontend
+        // origin: there is nothing to manage and no page to send the user to.
+        AccountManageButton().Visibility(
+            signedIn && !LastMusicPlayer::Backend::AccountManagementUrl().empty()
+            ? Visibility::Visible
+            : Visibility::Collapsed);
+
+        auto displayName = profile.DisplayName.empty() ? profile.Username : profile.DisplayName;
+        AccountDisplayNameText().Text(displayName.empty() ? winrt::hstring{ L"Account" } : displayName);
+        AccountUsernameText().Text(profile.Username.empty()
+            ? winrt::hstring{}
+            : winrt::hstring(L"@" + std::wstring(profile.Username.c_str())));
+        AccountPlanText().Text(profile.PlanLabel.empty() ? winrt::hstring{ L"Account library" } : profile.PlanLabel);
+
+        AccountAvatarImage().Source(nullptr);
+        AccountAvatarImage().Visibility(Visibility::Collapsed);
+        AccountAvatarFallback().Visibility(Visibility::Visible);
+        if (status == AccountSessionStatus::Validated && !profile.AvatarUrl.empty())
+        {
+            try
+            {
+                winrt::Windows::Foundation::Uri avatarUri{ profile.AvatarUrl };
+                auto bitmap = winrt::Microsoft::UI::Xaml::Media::Imaging::BitmapImage{ avatarUri };
+                AccountAvatarImage().Source(bitmap);
+                AccountAvatarImage().Visibility(Visibility::Visible);
+                AccountAvatarFallback().Visibility(Visibility::Collapsed);
+            }
+            catch (...)
+            {
+            }
+        }
+
+        bool hasCachedData = false;
+        if (DatabaseService().IsInitialized() && !profile.Id.empty())
+        {
+            auto ownerId = std::wstring(profile.Id.c_str());
+            auto syncState = DatabaseService().LoadAccountSyncState(ownerId);
+            AccountLastSyncText().Text(syncState.LastSuccessfulSyncUtc.empty()
+                ? winrt::hstring{ L"Not synchronized yet" }
+                : winrt::hstring(L"Last synchronized " + syncState.LastSuccessfulSyncUtc));
+            auto cached = DatabaseService().LoadAccountLibrary(ownerId);
+            hasCachedData = cached && (!cached->Tracks.empty() || !cached->Playlists.empty())
+                || !DatabaseService().LoadPendingPlaybackEvents(ownerId, 1).empty()
+                || !DatabaseService().LoadPendingLikes(ownerId, 1).empty();
+        }
+        else
+        {
+            AccountLastSyncText().Text(L"Not synchronized yet");
+        }
+        AccountClearDataButton().IsEnabled(hasCachedData);
+
+        // Browse depends on both the mode and a live session, so it is refreshed
+        // from the same place as the rest of the mode-driven visibility.
+        UpdateDiscoverAvailability();
+
+        RemoteModeAccount().IsEnabled(available && signedIn);
+        // Keep configuration reachable without reading the provider credential
+        // while another mode is active. SetMode validates it on user selection.
+        RemoteModeApiKey().IsEnabled(true);
+        m_suppressRemoteModeChange = true;
+        switch (remoteMusic.Mode())
+        {
+        case RemoteAccessMode::Account:
+            RemoteModeSelector().SelectedIndex(1);
+            break;
+        case RemoteAccessMode::ApiKey:
+            RemoteModeSelector().SelectedIndex(2);
+            break;
+        default:
+            RemoteModeSelector().SelectedIndex(0);
+            break;
+        }
+        m_suppressRemoteModeChange = false;
+        if (LibraryScopeSelector())
+        {
+            auto checked = [](winrt::Microsoft::UI::Xaml::Controls::Primitives::ToggleButton const& button)
+            {
+                if (!button) return false;
+                auto value = button.IsChecked();
+                return value && value.Value();
+            };
+            auto scopedTab = checked(LibTabSongs()) || checked(LibTabHistory()) || checked(LibTabPlaylists());
+            LibraryScopeSelector().Visibility(
+                remoteMusic.Mode() == RemoteAccessMode::Account && signedIn && scopedTab
+                ? Visibility::Visible
+                : Visibility::Collapsed);
+        }
+    }
+
+    winrt::Windows::Foundation::IAsyncAction MainWindow::RestoreAccountIntegrationAsync()
+    {
+        auto lifetime = get_strong();
+        auto operationGeneration = UserDataOperationGateService().Generation();
+        auto dispatcher = DispatcherQueue();
+        co_await AccountSessionService().RestoreAsync();
+        co_await wil::resume_foreground(dispatcher);
+
+        auto operationLease = UserDataOperationGateService().TryEnter();
+        if (!operationLease || !UserDataOperationGateService().IsCurrent(operationGeneration))
+        {
+            RefreshAccountSettingsUi();
+            co_return;
+        }
+        auto snapshot = AccountSessionService().Snapshot();
+        if (snapshot.Status == LastMusicPlayer::Backend::AccountSessionStatus::SignedOut
+            && RemoteMusicServiceService().Mode() == LastMusicPlayer::Backend::RemoteAccessMode::Account)
+        {
+            RemoteMusicServiceService().SetMode(LastMusicPlayer::Backend::RemoteAccessMode::LocalOnly);
+            DatabaseService().SetRemoteLibraryContext(L"LocalOnly");
+        }
+        operationLease.reset();
+        if (snapshot.Status == LastMusicPlayer::Backend::AccountSessionStatus::Validated
+            && RemoteMusicServiceService().Mode() == LastMusicPlayer::Backend::RemoteAccessMode::Account)
+        {
+            co_await SynchronizeAccountLibraryAsync(false);
+        }
+        else
+        {
+            RefreshAccountSettingsUi();
+            MarkLibraryViewsDirty();
+            UpdateSongsScopeLabel();
+            co_await HydrateHomeAsync(false);
+        }
+    }
+
+    winrt::Windows::Foundation::IAsyncAction MainWindow::SynchronizeAccountLibraryAsync(bool showStatus)
+    {
+        auto lifetime = get_strong();
+        if (showStatus)
+        {
+            AccountStatusText().Text(L"Synchronizing account library...");
+        }
+        AccountSyncButton().IsEnabled(false);
+
+        auto synchronized = co_await MusicSyncServiceService().SyncAsync();
+        if (synchronized)
+        {
+            if (IsAccountPlaylistDetail() || m_libraryDetailAccountBinding)
+            {
+                HideLibraryDetail();
+            }
+            m_accountPlaylistBindings.clear();
+            MarkLibraryViewsDirty();
+            m_remoteSearchCache.clear();
+
+            auto remoteScope = RemoteMusicServiceService().CaptureScope();
+            auto accountSnapshot = AccountSessionService().Snapshot();
+            auto accountOwnerId = std::wstring(accountSnapshot.Profile.Id.c_str());
+            auto accountScopeCurrent = !accountOwnerId.empty()
+                && remoteScope.Mode == LastMusicPlayer::Backend::RemoteAccessMode::Account
+                && remoteScope.AccountGeneration == accountSnapshot.Generation
+                && DatabaseService().ActiveAccountId() == accountOwnerId
+                && RemoteMusicServiceService().IsCurrent(remoteScope);
+
+            m_sidebarPlaylists.Clear();
+            for (auto const& playlist : DatabaseService().LoadRecentPlaylists(4))
+            {
+                auto accountPlaylist = playlist.Provider() == L"account";
+                if (accountPlaylist && !accountScopeCurrent)
+                {
+                    continue;
+                }
+                auto copy = playlist;
+                ResolveArtworkPresentation(copy, L"playlist");
+                m_sidebarPlaylists.Append(copy);
+                if (accountPlaylist)
+                {
+                    BindAccountPlaylist(copy, remoteScope, accountOwnerId);
+                }
+            }
+
+            co_await HydrateHomeAsync(false);
+            co_await EnsureSongsHydratedAsync(true);
+
+            struct LibraryTabRow
+            {
+                winrt::Microsoft::UI::Xaml::Controls::Primitives::ToggleButton Button;
+                winrt::hstring Name;
+            };
+            LibraryTabRow tabs[] = {
+                { LibTabPlaylists(), L"Playlists" },
+                { LibTabAlbums(), L"Albums" },
+                { LibTabArtists(), L"Artists" },
+                { LibTabSongs(), L"Songs" },
+                { LibTabHistory(), L"History" },
+                { LibTabGenres(), L"Genres" },
+            };
+            for (auto const& tab : tabs)
+            {
+                auto checked = tab.Button.IsChecked();
+                if (checked && checked.Value())
+                {
+                    co_await HydrateLibraryTabAsync(tab.Name, true);
+                    break;
+                }
+            }
+            co_await OfferCompatibleHistoryImportAsync();
+        }
+
+        RefreshAccountSettingsUi();
+        if (showStatus)
+        {
+            AccountStatusText().Text(synchronized
+                ? winrt::hstring{ L"Account library synchronized" }
+                : MusicSyncServiceService().LastSafeError());
+        }
+    }
+    winrt::Windows::Foundation::IAsyncAction MainWindow::OfferCompatibleHistoryImportAsync()
+    {
+        auto lifetime = get_strong();
+        auto operationGeneration = UserDataOperationGateService().Generation();
+        auto remoteScope = RemoteMusicServiceService().CaptureScope();
+        auto accountSnapshot = AccountSessionService().Snapshot();
+        auto profile = accountSnapshot.Profile;
+        if (profile.Id.empty()
+            || accountSnapshot.Status != LastMusicPlayer::Backend::AccountSessionStatus::Validated
+            || remoteScope.Mode != LastMusicPlayer::Backend::RemoteAccessMode::Account
+            || remoteScope.AccountGeneration != accountSnapshot.Generation
+            || !RemoteMusicServiceService().IsCurrent(remoteScope))
+        {
+            co_return;
+        }
+
+        auto accountId = std::wstring(profile.Id.c_str());
+        auto accountStillCurrent = [&]()
+        {
+            auto current = AccountSessionService().Snapshot();
+            return current.Generation == accountSnapshot.Generation
+                && current.Profile.Id == winrt::hstring(accountId)
+                && current.Status == LastMusicPlayer::Backend::AccountSessionStatus::Validated
+                && UserDataOperationGateService().IsCurrent(operationGeneration)
+                && RemoteMusicServiceService().IsCurrent(remoteScope);
+        };
+
+        auto state = DatabaseService().LoadAccountSyncState(accountId);
+        if (state.LegacyHistoryImportState == L"declined" || state.LegacyHistoryImportState == L"completed")
+        {
+            co_return;
+        }
+
+        if (state.LegacyHistoryImportState.empty())
+        {
+            winrt::Microsoft::UI::Xaml::Controls::TextBlock message;
+            message.Text(
+                L"Import compatible listening history from this PC? Only remote listening entries that the account service can resolve will be uploaded. "
+                L"Local files and paths stay private, and historical desktop play counts remain on this PC.");
+            message.TextWrapping(winrt::Microsoft::UI::Xaml::TextWrapping::Wrap);
+
+            winrt::Microsoft::UI::Xaml::Controls::ContentDialog dialog;
+            dialog.Title(winrt::box_value(winrt::hstring(L"Import listening history")));
+            dialog.PrimaryButtonText(L"Import compatible history");
+            dialog.CloseButtonText(L"Don't import");
+            dialog.DefaultButton(winrt::Microsoft::UI::Xaml::Controls::ContentDialogButton::Close);
+            dialog.XamlRoot(this->Content().XamlRoot());
+
+            auto decision = co_await dialog.ShowAsync();
+            state.AccountId = accountId;
+            state.LegacyHistoryImportState = decision == winrt::Microsoft::UI::Xaml::Controls::ContentDialogResult::Primary
+                ? L"accepted"
+                : L"declined";
+            auto operationLease = UserDataOperationGateService().TryEnter();
+            if (!operationLease || !accountStillCurrent())
+            {
+                co_return;
+            }
+            auto stateSaved = DatabaseService().SaveAccountSyncState(state);
+            operationLease.reset();
+            if (!stateSaved || state.LegacyHistoryImportState == L"declined")
+            {
+                co_return;
+            }
+        }
+
+        auto candidates = DatabaseService().LoadLegacyRemoteHistoryImportCandidates();
+        std::size_t imported{};
+        std::size_t skipped{};
+        AccountStatusText().Text(L"Importing compatible listening history...");
+
+        for (auto const& candidate : candidates)
+        {
+            if (!accountStillCurrent())
+            {
+                co_return;
+            }
+
+            if (!IsCompatibleAccountRemoteTrack(candidate.Track, false))
+            {
+                ++skipped;
+                continue;
+            }
+
+            auto playedAt = NormalizeLegacyPlayedAt(candidate.LastPlayedUtc);
+            auto eventId = LastMusicPlayer::Backend::CreateHistoryImportEventId(accountId, candidate.SourceKey);
+            if (playedAt.empty() || eventId.empty())
+            {
+                ++skipped;
+                continue;
+            }
+
+            winrt::Last_Music_Player::TrackInfo resolved{ nullptr };
+            try
+            {
+                auto payload = co_await RemoteMusicServiceService().ResolveUrlAsync(candidate.Track.SourceUrl());
+                resolved = ResolvedImportTrack(payload, candidate.Track);
+            }
+            catch (winrt::hresult_error const& error)
+            {
+                if (IsSkippableLegacyResolveError(error))
+                {
+                    ++skipped;
+                    continue;
+                }
+                AccountStatusText().Text(L"History import paused. It will resume on the next synchronization.");
+                co_return;
+            }
+            catch (...)
+            {
+                AccountStatusText().Text(L"History import paused. It will resume on the next synchronization.");
+                co_return;
+            }
+            if (!accountStillCurrent())
+            {
+                co_return;
+            }
+
+
+            if (!resolved)
+            {
+                ++skipped;
+                continue;
+            }
+
+            LastMusicPlayer::Backend::PlaybackEventRecord event;
+            event.EventId = eventId;
+            event.AccountId = accountId;
+            event.RemoteTrackId = std::wstring(resolved.RemoteId().c_str());
+            event.Track = resolved;
+            event.PlayedAtUtc = playedAt;
+            event.PositionSeconds = 0.0;
+            auto operationLease = UserDataOperationGateService().TryEnter();
+            if (!operationLease || !accountStillCurrent())
+            {
+                co_return;
+            }
+            auto queued = DatabaseService().EnqueuePlaybackEvent(event);
+            operationLease.reset();
+            if (!queued)
+            {
+                AccountStatusText().Text(L"History import paused. It will resume on the next synchronization.");
+                co_return;
+            }
+            ++imported;
+        }
+
+        state = DatabaseService().LoadAccountSyncState(accountId);
+        state.AccountId = accountId;
+        state.LegacyHistoryImportState = L"completed";
+        auto operationLease = UserDataOperationGateService().TryEnter();
+        if (!operationLease || !accountStillCurrent())
+        {
+            co_return;
+        }
+        auto stateSaved = DatabaseService().SaveAccountSyncState(state);
+        operationLease.reset();
+        if (!stateSaved)
+        {
+            AccountStatusText().Text(L"History import paused. It will resume on the next synchronization.");
+            co_return;
+        }
+
+        if (imported > 0)
+        {
+            co_await MusicSyncServiceService().SyncAsync();
+            MarkLibraryViewsDirty();
+            co_await HydrateHomeAsync(false);
+        }
+
+        winrt::Microsoft::UI::Xaml::Controls::TextBlock summary;
+        summary.Text(winrt::hstring(
+            std::to_wstring(imported) + L" compatible track" + (imported == 1 ? L" was" : L"s were")
+            + L" queued for account history. " + std::to_wstring(skipped)
+            + L" local or unresolved entr" + (skipped == 1 ? L"y was" : L"ies were") + L" left on this PC."));
+        summary.TextWrapping(winrt::Microsoft::UI::Xaml::TextWrapping::Wrap);
+        winrt::Microsoft::UI::Xaml::Controls::ContentDialog resultDialog;
+        resultDialog.Title(winrt::box_value(winrt::hstring(L"History import complete")));
+        resultDialog.Content(summary);
+        resultDialog.CloseButtonText(L"Done");
+        resultDialog.XamlRoot(this->Content().XamlRoot());
+        co_await resultDialog.ShowAsync();
+    }
+
+
+    winrt::Windows::Foundation::IAsyncAction MainWindow::AccountSync_Click(
+        winrt::Windows::Foundation::IInspectable const& sender,
+        winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
+    {
+        (void)sender;
+        (void)args;
+        co_await SynchronizeAccountLibraryAsync(true);
+    }
+
+    winrt::Windows::Foundation::IAsyncAction MainWindow::AccountManage_Click(
+        winrt::Windows::Foundation::IInspectable const& sender,
+        winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
+    {
+        (void)sender;
+        (void)args;
+        auto lifetime = get_strong();
+        auto url = LastMusicPlayer::Backend::AccountManagementUrl();
+        if (url.empty())
+        {
+            co_return;
+        }
+        try
+        {
+            co_await winrt::Windows::System::Launcher::LaunchUriAsync(
+                winrt::Windows::Foundation::Uri{ url });
+        }
+        catch (...)
+        {
+        }
+    }
+
+    winrt::Windows::Foundation::IAsyncAction MainWindow::AccountSignIn_Click(
+        winrt::Windows::Foundation::IInspectable const& sender,
+        winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
+    {
+        (void)sender;
+        (void)args;
+        auto lifetime = get_strong();
+        auto operationGeneration = UserDataOperationGateService().Generation();
+        AccountSignInButton().IsEnabled(false);
+        AccountStatusText().Text(L"Opening browser sign-in...");
+
+        auto signedIn = co_await AccountSessionService().SignInAsync();
+        auto snapshot = AccountSessionService().Snapshot();
+        auto operationLease = UserDataOperationGateService().TryEnter();
+        if (!operationLease || !UserDataOperationGateService().IsCurrent(operationGeneration))
+        {
+            RefreshAccountSettingsUi();
+            co_return;
+        }
+        if (signedIn
+            && snapshot.Status == LastMusicPlayer::Backend::AccountSessionStatus::Validated
+            && !snapshot.Profile.Id.empty())
+        {
+            try
+            {
+                auto session = AccountSessionService().CaptureOperation();
+                if (session.Status != LastMusicPlayer::Backend::AccountSessionStatus::Validated
+                    || session.Generation != snapshot.Generation
+                    || session.OwnerId != snapshot.Profile.Id)
+                {
+                    throw winrt::hresult_canceled();
+                }
+                if (!RemoteMusicServiceService().SetMode(
+                    LastMusicPlayer::Backend::RemoteAccessMode::Account))
+                {
+                    throw winrt::hresult_error(E_NOT_VALID_STATE, L"Account mode is unavailable.");
+                }
+
+                InvalidateRemoteScopeWork();
+                auto context = RemoteMusicServiceService().CaptureAccountSyncContext();
+                auto remoteScope = RemoteMusicServiceService().CaptureScope();
+                if (context.OwnerId() != snapshot.Profile.Id
+                    || remoteScope.AccountGeneration != snapshot.Generation
+                    || !RemoteMusicServiceService().IsCurrent(context))
+                {
+                    throw winrt::hresult_canceled();
+                }
+                if (!DatabaseService().SetRemoteLibraryContext(
+                    L"Account",
+                    std::wstring(context.OwnerId().c_str())))
+                {
+                    throw winrt::hresult_error(E_FAIL, L"Could not activate the account library.");
+                }
+
+                UpdateSongsScopeLabel();
+                operationLease.reset();
+                co_await SynchronizeAccountLibraryAsync(true);
+            }
+            catch (winrt::hresult_canceled const&)
+            {
+                auto current = AccountSessionService().Snapshot();
+                if ((current.Status != LastMusicPlayer::Backend::AccountSessionStatus::Validated
+                        && current.Status != LastMusicPlayer::Backend::AccountSessionStatus::Offline)
+                    || current.Profile.Id.empty())
+                {
+                    RemoteMusicServiceService().SetMode(
+                        LastMusicPlayer::Backend::RemoteAccessMode::LocalOnly);
+                    InvalidateRemoteScopeWork();
+                    (void)DatabaseService().SetRemoteLibraryContext(L"LocalOnly");
+                }
+                RefreshAccountSettingsUi();
+                co_return;
+            }
+            catch (...)
+            {
+                RemoteMusicServiceService().SetMode(
+                    LastMusicPlayer::Backend::RemoteAccessMode::LocalOnly);
+                InvalidateRemoteScopeWork();
+                (void)DatabaseService().SetRemoteLibraryContext(L"LocalOnly");
+                operationLease.reset();
+                RefreshAccountSettingsUi();
+                AccountStatusText().Text(L"Could not activate the account library.");
+                co_return;
+            }
+        }
+        RefreshAccountSettingsUi();
+    }
+
+    winrt::Windows::Foundation::IAsyncAction MainWindow::AccountSignOut_Click(
+        winrt::Windows::Foundation::IInspectable const& sender,
+        winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
+    {
+        (void)sender;
+        (void)args;
+        auto lifetime = get_strong();
+        auto operationGeneration = UserDataOperationGateService().Generation();
+        AccountSignOutButton().IsEnabled(false);
+        AccountStatusText().Text(L"Signing out...");
+        auto signedOut = co_await AccountSessionService().LogoutAsync();
+        auto snapshot = AccountSessionService().Snapshot();
+        auto operationLease = UserDataOperationGateService().TryEnter();
+        if (!operationLease || !UserDataOperationGateService().IsCurrent(operationGeneration))
+        {
+            RefreshAccountSettingsUi();
+            co_return;
+        }
+        if (signedOut && snapshot.Status == LastMusicPlayer::Backend::AccountSessionStatus::SignedOut)
+        {
+            RemoteMusicServiceService().SetMode(LastMusicPlayer::Backend::RemoteAccessMode::LocalOnly);
+            InvalidateRemoteScopeWork();
+            DatabaseService().SetRemoteLibraryContext(L"LocalOnly");
+            m_libraryScope = L"All";
+            if (LibraryScopeSelector())
+            {
+                LibraryScopeSelector().SelectedIndex(0);
+            }
+            m_remoteSearchCache.clear();
+            MarkLibraryViewsDirty();
+            UpdateSongsScopeLabel();
+            operationLease.reset();
+            co_await HydrateHomeAsync(false);
+        }
+        RefreshAccountSettingsUi();
+    }
+
+    winrt::Windows::Foundation::IAsyncAction MainWindow::AccountClearData_Click(
+        winrt::Windows::Foundation::IInspectable const& sender,
+        winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
+    {
+        (void)sender;
+        (void)args;
+        auto lifetime = get_strong();
+        auto profile = AccountSessionService().Snapshot().Profile;
+        if (profile.Id.empty() || !DatabaseService().IsInitialized())
+        {
+            co_return;
+        }
+
+        winrt::Microsoft::UI::Xaml::Controls::ContentDialog dialog;
+        dialog.XamlRoot(Content().XamlRoot());
+        dialog.Title(winrt::box_value(L"Clear synced account data?"));
+        dialog.Content(winrt::box_value(L"This removes the cached account library and any likes or listening history waiting to upload from this PC. Local music files are not changed."));
+        dialog.PrimaryButtonText(L"Clear data");
+        dialog.CloseButtonText(L"Cancel");
+        dialog.DefaultButton(winrt::Microsoft::UI::Xaml::Controls::ContentDialogButton::Close);
+        if (co_await dialog.ShowAsync() != winrt::Microsoft::UI::Xaml::Controls::ContentDialogResult::Primary)
+        {
+            co_return;
+        }
+
+        auto dispatcher = DispatcherQueue();
+        auto ownerId = std::wstring(profile.Id.c_str());
+        if (!UserDataOperationGateService().CloseAdmissions())
+        {
+            AccountStatusText().Text(L"Another cleanup operation is already in progress.");
+            co_return;
+        }
+        UserDataAdmissionGuard admissionGuard{ UserDataOperationGateService() };
+        InvalidateRemoteViewWork();
+
+        co_await winrt::resume_background();
+        if (!UserDataOperationGateService().WaitForIdle(std::chrono::seconds(30)))
+        {
+            admissionGuard.Reopen();
+            co_await wil::resume_foreground(dispatcher);
+            AccountStatusText().Text(L"Could not stop a background operation. Try again shortly.");
+            co_return;
+        }
+
+        auto currentAccount = AccountSessionService().Snapshot();
+        if (currentAccount.Profile.Id != winrt::hstring(ownerId))
+        {
+            admissionGuard.Reopen();
+            co_await wil::resume_foreground(dispatcher);
+            AccountStatusText().Text(L"The active account changed. Nothing was cleared.");
+            RefreshAccountSettingsUi();
+            co_return;
+        }
+
+        auto keepActiveContext = RemoteMusicServiceService().Mode()
+                == LastMusicPlayer::Backend::RemoteAccessMode::Account
+            && (currentAccount.Status == LastMusicPlayer::Backend::AccountSessionStatus::Validated
+                || currentAccount.Status == LastMusicPlayer::Backend::AccountSessionStatus::Offline);
+        bool databaseCleared{};
+        try
+        {
+            databaseCleared = DatabaseService().ClearAccountData(
+                ownerId,
+                keepActiveContext
+                    ? LastMusicPlayer::Backend::AccountDataClearMode::RestoreActiveContext
+                    : LastMusicPlayer::Backend::AccountDataClearMode::LeaveInactive);
+        }
+        catch (...)
+        {
+            databaseCleared = false;
+        }
+        admissionGuard.Reopen();
+        co_await wil::resume_foreground(dispatcher);
+        if (!databaseCleared)
+        {
+            AccountStatusText().Text(L"Could not clear all synced account data.");
+            co_return;
+        }
+        MarkLibraryViewsDirty();
+        RefreshAccountSettingsUi();
+        co_await HydrateHomeAsync(false);
+    }
+
+    void MainWindow::RemoteMode_SelectionChanged(
+        winrt::Windows::Foundation::IInspectable const& sender,
+        winrt::Microsoft::UI::Xaml::Controls::SelectionChangedEventArgs const& args)
+    {
+        (void)sender;
+        (void)args;
+        if (m_suppressRemoteModeChange)
+        {
+            return;
+        }
+
+        auto selected = RemoteModeSelector().SelectedItem().try_as<winrt::Microsoft::UI::Xaml::Controls::RadioButton>();
+        if (!selected)
+        {
+            return;
+        }
+        auto tag = ReadTagString(selected.Tag());
+        auto mode = LastMusicPlayer::Backend::ParseRemoteAccessMode(tag);
+        if (!RemoteMusicServiceService().SetMode(mode))
+        {
+            RefreshAccountSettingsUi();
+            return;
+        }
+        InvalidateRemoteScopeWork();
+
+        if (mode == LastMusicPlayer::Backend::RemoteAccessMode::Account)
+        {
+            auto snapshot = AccountSessionService().Snapshot();
+            DatabaseService().SetRemoteLibraryContext(
+                L"Account",
+                std::wstring(snapshot.Profile.Id.c_str()));
+        }
+        else
+        {
+            DatabaseService().SetRemoteLibraryContext(std::wstring(LastMusicPlayer::Backend::RemoteAccessModeName(mode).c_str()));
+        }
+        if (mode != LastMusicPlayer::Backend::RemoteAccessMode::Account)
+        {
+            m_libraryScope = L"All";
+            if (LibraryScopeSelector())
+            {
+                LibraryScopeSelector().SelectedIndex(0);
+            }
+        }
+        m_remoteSearchCache.clear();
+        MarkLibraryViewsDirty();
+        UpdateSongsScopeLabel();
+        RefreshAccountSettingsUi();
+        RunDetached(mode == LastMusicPlayer::Backend::RemoteAccessMode::Account
+            ? SynchronizeAccountLibraryAsync(false)
+            : HydrateHomeAsync(false));
     }
 
     void MainWindow::DisplayNameBox_TextChanged(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::TextChangedEventArgs const& args)
@@ -120,6 +1010,7 @@ namespace winrt::Last_Music_Player::implementation
         ApplySettingsResponsiveLayout(args.NewSize().Width);
         ApplyRightRailWidth();
     }
+
 
     void MainWindow::UpdateSettingsSection(winrt::hstring const& key)
     {
@@ -625,6 +1516,7 @@ namespace winrt::Last_Music_Player::implementation
         m_trayIcon->Create(icon, L"Last Music Player");
     }
 
+
     winrt::Windows::Foundation::IAsyncAction MainWindow::PopulateOutputDevicesAsync()
     {
         auto lifetime = get_strong();
@@ -850,49 +1742,42 @@ namespace winrt::Last_Music_Player::implementation
         }
 
         LastMusicPlayer::Backend::PresencePayload payload;
-        payload.title     = std::wstring{ track.Title().c_str() };
-        payload.artist    = std::wstring{ track.Artist().c_str() };
-        payload.album     = std::wstring{ track.Album().c_str() };
-        payload.artworkUrl = std::wstring{ track.ArtworkUrl().c_str() };
+        payload.title = std::wstring{ track.Title().c_str() };
+        payload.artist = std::wstring{ track.Artist().c_str() };
+        payload.album = std::wstring{ track.Album().c_str() };
+        if (LastMusicPlayer::Backend::IsSafeRemoteUrl(
+            track.ArtworkUrl(),
+            LastMusicPlayer::Backend::RemoteUrlUse::Durable))
+        {
+            payload.artworkUrl = std::wstring{ track.ArtworkUrl().c_str() };
+        }
         payload.durationSeconds = track.DurationSeconds();
-        // SourceKind is "local" or "remote" — drives the third-line label on
-        // the Discord activity card ("Source: Local" vs "Source: Remote").
-        payload.isLocal = (std::wstring{ track.SourceKind().c_str() } == L"local");
+        payload.isLocal = std::wstring{ track.SourceKind().c_str() } == L"local";
 
-        // Prefer the active playback sink for duration + position. Local
-        // MediaPlayer enters Opening/Buffering during normal playback and is
-        // intentionally paused while casting, so Discord must not treat every
-        // non-Playing MediaPlayer state as user-paused.
         double position = 0.0;
         double duration = payload.durationSeconds;
         bool playing = true;
         SampleDiscordPlaybackSnapshot(playing, position, duration);
-        if (duration > 0.5) payload.durationSeconds = duration;
-
+        if (duration > 0.5)
+        {
+            payload.durationSeconds = duration;
+        }
         payload.positionSeconds = position;
         payload.isPlaying = playing;
 
         m_discord->SetNowPlaying(payload);
         m_discordPresenceRefreshMs = ::GetTickCount64();
 
-        if (!m_discord->IsConnected())
+        if (!m_discord->IsConnected()
+            || RemoteMusicServiceService().Mode() != LastMusicPlayer::Backend::RemoteAccessMode::ApiKey
+            || payload.title.empty())
         {
             return;
         }
 
-        // Discord's RPC IPC `large_image` field accepts URLs only from a small
-        // whitelist of CDNs; arbitrary domains are silently rejected. The
-        // provider resolves a Discord-renderable cover URL for the track and
-        // hands it back asynchronously. Resolution is fire-and-forget; once the
-        // URL arrives, SetArtworkProxyUrl re-emits the activity with the banner.
-        // The title acts as a race guard so a stale resolution can't paint
-        // artwork onto a track the user has since skipped.
-        if (!payload.title.empty())
-        {
-            ResolveDiscordArtworkAsync(
-                winrt::hstring{ payload.title },
-                winrt::hstring{ payload.artist });
-        }
+        ResolveDiscordArtworkAsync(
+            winrt::hstring{ payload.title },
+            winrt::hstring{ payload.artist });
     }
 
     winrt::Windows::Foundation::IAsyncAction MainWindow::ResolveDiscordArtworkAsync(
@@ -900,13 +1785,13 @@ namespace winrt::Last_Music_Player::implementation
     {
         auto lifetime = get_strong();
 
-        auto savedBaseUrl = ReadAppSettingString(L"ProviderBaseUrl");
-        auto savedApiKey = ReadAppSettingString(L"ProviderApiKey");
-        if (savedBaseUrl.empty())
+        if (RemoteMusicServiceService().Mode() != LastMusicPlayer::Backend::RemoteAccessMode::ApiKey)
         {
             co_return;
         }
-        if (trackTitle.empty() && trackArtist.empty())
+        auto savedBaseUrl = ReadAppSettingString(L"ProviderBaseUrl");
+        auto savedApiKey = CredentialStoreService().ReadProviderApiKey();
+        if (savedBaseUrl.empty() || trackTitle.empty() && trackArtist.empty())
         {
             co_return;
         }
@@ -920,21 +1805,21 @@ namespace winrt::Last_Music_Player::implementation
         {
             proxyUrl = co_await client.ResolveDiscordArtworkAsync(trackTitle, trackArtist);
         }
-        catch (winrt::hresult_error const&)
-        {
-            co_return;
-        }
         catch (...)
         {
             co_return;
         }
 
-        if (proxyUrl.empty())
-        {
-            co_return;
-        }
-
-        if (!m_discord || !m_discord->IsConnected())
+        if (proxyUrl.empty()
+            || RemoteMusicServiceService().Mode()
+                != LastMusicPlayer::Backend::RemoteAccessMode::ApiKey
+            || ReadAppSettingString(L"ProviderBaseUrl") != savedBaseUrl
+            || CredentialStoreService().ReadProviderApiKey() != savedApiKey
+            || !LastMusicPlayer::Backend::IsSafeRemoteUrl(
+                proxyUrl,
+                LastMusicPlayer::Backend::RemoteUrlUse::Durable)
+            || !m_discord
+            || !m_discord->IsConnected())
         {
             co_return;
         }
@@ -943,6 +1828,7 @@ namespace winrt::Last_Music_Player::implementation
             std::wstring{ trackTitle.c_str() },
             std::wstring{ trackArtist.c_str() });
     }
+
 
     void MainWindow::UpdateAboutStats()
     {
@@ -1016,6 +1902,11 @@ namespace winrt::Last_Music_Player::implementation
     {
         (void)sender;
         (void)args;
+        if (m_cleanupInProgress)
+        {
+            co_return;
+        }
+
         auto lifetime = get_strong();
         auto dispatcher = DispatcherQueue();
 
@@ -1053,11 +1944,49 @@ namespace winrt::Last_Music_Player::implementation
             {
             }
         };
+        m_cleanupInProgress = true;
+        if (!UserDataOperationGateService().CloseAdmissions())
+        {
+            m_cleanupInProgress = false;
+            setCleanupStatus(L"Another cleanup operation is already in progress.", true);
+            co_return;
+        }
+        UserDataAdmissionGuard admissionGuard{ UserDataOperationGateService() };
         setCleanupStatus(L"Cleaning up app data...");
         if (auto button = WipeAllDataButton())
         {
             button.IsEnabled(false);
         }
+        if (auto content = Content())
+        {
+            content.IsHitTestVisible(false);
+        }
+
+        auto finishCleanup = [this, &admissionGuard]()
+        {
+            admissionGuard.Reopen();
+            m_cleanupInProgress = false;
+            try
+            {
+                if (auto content = Content())
+                {
+                    content.IsHitTestVisible(true);
+                }
+            }
+            catch (...)
+            {
+            }
+            try
+            {
+                if (auto button = WipeAllDataButton())
+                {
+                    button.IsEnabled(true);
+                }
+            }
+            catch (...)
+            {
+            }
+        };
 
         if (m_libraryScan.InProgress)
         {
@@ -1069,7 +1998,7 @@ namespace winrt::Last_Music_Player::implementation
         ++m_homeHydration.StartupEpoch;
         ++m_homeHydration.HomeEpoch;
         ++m_homeHydration.MixRefreshId;
-        ++m_browseHydrationEpoch;
+        ++m_songsHydrationEpoch;
         ++m_libraryHydrationEpoch;
         ++m_libraryDetailHydrationEpoch;
         ++m_searchDebounceId;
@@ -1077,6 +2006,8 @@ namespace winrt::Last_Music_Player::implementation
         ++m_nowPlayingArtworkEpoch;
         ++m_lyricsHydrationEpoch;
         ++m_autoplay.Epoch;
+        ++m_discoverEpoch;
+        ++m_remotePlaybackResolveEpoch;
         m_homeHydration.InFlight = false;
         m_homeHydration.Pending = false;
         m_homeHydration.PendingRefresh = false;
@@ -1084,6 +2015,15 @@ namespace winrt::Last_Music_Player::implementation
         m_autoplay.ResumeWhenReady = false;
         m_autoplay.SeenKeys.clear();
         m_remoteSearchCache.clear();
+        m_playbackHistoryQualifier.Clear();
+        m_pendingPlaybackTrack = nullptr;
+        m_pendingPlaybackIdentity.clear();
+        m_pendingPlaybackEventId.clear();
+        m_pendingPlaybackOwnerId.clear();
+        m_pendingPlaybackRemoteId.clear();
+        m_streamRecoverAttempts = 0;
+        m_lastStreamRecoverTickMs = 0;
+        m_pendingResumeSeekSeconds = -1.0;
 
         if (m_lyricsHydrationTimer)
         {
@@ -1094,9 +2034,18 @@ namespace winrt::Last_Music_Player::implementation
             m_volumePersistTimer.Stop();
         }
         m_volumePersistQueued = false;
+        if (m_playbackNoticeTimer)
+        {
+            m_playbackNoticeTimer.Stop();
+        }
+        if (PlaybackNoticePanel())
+        {
+            PlaybackNoticePanel().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
+        }
 
         try
         {
+            m_cast.Stop();
             m_cast.Disconnect();
             ClearCastCallbacks();
         }
@@ -1138,11 +2087,49 @@ namespace winrt::Last_Music_Player::implementation
         {
         }
 
+        AccountSessionService().CancelSignIn();
+        StreamCacheService().InvalidateInFlight();
+
+        bool accountSessionCleared{};
+        bool providerCredentialCleared{};
         bool dbCleared = true;
         bool cacheCleared = true;
-        ClearSavedAppState();
+        bool appStateCleared = true;
+        bool settingsCleared = true;
 
         co_await winrt::resume_background();
+        if (!UserDataOperationGateService().WaitForIdle(std::chrono::seconds(30)))
+        {
+            co_await wil::resume_foreground(dispatcher);
+            finishCleanup();
+            setCleanupStatus(
+                L"Cleanup stopped because a background operation did not finish. Try again after it completes.",
+                true);
+            co_return;
+        }
+
+        accountSessionCleared = AccountSessionService().RemoveLocalSession();
+        providerCredentialCleared = CredentialStoreService().DeleteProviderApiKey();
+        try
+        {
+            settingsCleared = RemoteMusicServiceService().SetMode(
+                LastMusicPlayer::Backend::RemoteAccessMode::LocalOnly);
+            DatabaseService().SetRemoteLibraryContext(L"LocalOnly");
+        }
+        catch (...)
+        {
+            settingsCleared = false;
+        }
+
+        try
+        {
+            appStateCleared = ClearSavedAppState();
+        }
+        catch (...)
+        {
+            appStateCleared = false;
+        }
+
         try
         {
             if (!DatabaseService().IsInitialized())
@@ -1161,10 +2148,10 @@ namespace winrt::Last_Music_Player::implementation
 
         try
         {
-            StreamCacheService().Clear();
+            auto streamCacheCleared = StreamCacheService().Clear();
             std::error_code ec;
             std::filesystem::remove_all(AppDataDirectory() / L"thumbs", ec);
-            cacheCleared = !ec;
+            cacheCleared = streamCacheCleared && !ec;
         }
         catch (...)
         {
@@ -1176,7 +2163,7 @@ namespace winrt::Last_Music_Player::implementation
         bool uiResetSucceeded = true;
         try
         {
-            SettingsManagerService().Reset();
+            settingsCleared = SettingsManagerService().Reset() && settingsCleared;
             m_pendingResumeTrack = nullptr;
             m_homeRecentHistory.clear();
             m_homePlayCounts.clear();
@@ -1186,31 +2173,40 @@ namespace winrt::Last_Music_Player::implementation
             m_homeGenrePools.clear();
             m_homeMixGenres.clear();
             m_catalogTracks.clear();
-            m_browseAllResults.clear();
+            ClearCatalogArtworkCache();
+            m_discoverLoaded = false;
+            m_discoverStorefront = {};
+            m_discoverChartType = {};
+            m_discoverChartNextOffset = 0;
+            m_discoverChartHasMore = false;
+            m_discoverChartItems.Clear();
+            m_discoverDetailTracks.Clear();
+            m_songsAllResults.clear();
             m_librarySongAllResults.clear();
             m_libraryDetailAllResults.clear();
-            m_browseMatchedCount = 0;
-            m_browseMatchedSeconds = 0.0;
+            m_songsMatchedCount = 0;
+            m_songsMatchedSeconds = 0.0;
             m_librarySongsMatchedCount = 0;
             m_librarySongsMatchedSeconds = 0.0;
             m_libraryDetailMatchedCount = 0;
-            m_browsePageLoading = false;
+            m_songsPageLoading = false;
             m_librarySongsPageLoading = false;
             m_libraryDetailPageLoading = false;
-            ++m_browsePageLoadId;
+            ++m_songsPageLoadId;
             ++m_librarySongsPageLoadId;
             ++m_libraryDetailPageLoadId;
             m_libraryStats = {};
             m_catalogLoaded = true;
-            m_browseResultsValid = true;
+            m_songsResultsValid = true;
             m_homePlaySequence = 0;
             m_queue = {};
+            m_libraryScope = L"All";
 
             m_homeTracks.Clear();
             m_recentlyAddedTracks.Clear();
             m_homeMostPlayedTracks.Clear();
             m_homeLikedTracks.Clear();
-            m_browseTracks.Clear();
+            m_songsTracks.Clear();
             m_searchTracks.Clear();
             m_librarySongs.Clear();
             m_libraryGenres.Clear();
@@ -1224,14 +2220,14 @@ namespace winrt::Last_Music_Player::implementation
             HideLibraryDetail();
             RefreshAutoPlaylists();
             UpdateShuffleRepeatVisuals();
-            UpdateBrowseStats();
+            UpdateSongsStats();
             UpdateAboutStats();
             UpdateLibraryActionButtons();
 
             if (auto box = MusicFolderPathBox()) box.Text(L"");
             if (auto box = ProviderBaseUrlBox()) box.Text(L"");
             if (auto box = ProviderApiKeyBox()) box.Password(L"");
-            if (auto text = ProviderTestStatusText()) text.Text(L"Ready");
+            if (auto text = ProviderTestStatusText()) text.Text(L"Not configured");
             if (auto box = DisplayNameBox()) box.Text(L"");
             if (auto btn = DisplayNameSaveButton()) btn.IsEnabled(false);
 
@@ -1308,6 +2304,9 @@ namespace winrt::Last_Music_Player::implementation
             }
 
             LoadSettingsIntoUi();
+            RefreshAccountSettingsUi();
+            UpdateDiscoverAvailability();
+            UpdateSongsScopeLabel();
             ApplyUserDisplayName();
             m_loadingSettings = true;
             try
@@ -1325,16 +2324,20 @@ namespace winrt::Last_Music_Player::implementation
         }
         catch (...)
         {
+            settingsCleared = false;
             uiResetSucceeded = false;
         }
 
-        if (auto button = WipeAllDataButton())
-        {
-            button.IsEnabled(true);
-        }
-        if (dbCleared && cacheCleared && uiResetSucceeded)
+        finishCleanup();
+        if (dbCleared && cacheCleared && appStateCleared && settingsCleared
+            && accountSessionCleared && providerCredentialCleared
+            && uiResetSucceeded)
         {
             setCleanupStatus(L"Cleanup complete. Music files on disk were left untouched.");
+        }
+        else if (!accountSessionCleared || !providerCredentialCleared)
+        {
+            setCleanupStatus(L"UI reset, but one secure credential could not be removed.", true);
         }
         else if (!dbCleared)
         {
@@ -1342,7 +2345,15 @@ namespace winrt::Last_Music_Player::implementation
         }
         else if (!cacheCleared)
         {
-            setCleanupStatus(L"Cleanup complete, but one cache folder could not be fully removed.", true);
+            setCleanupStatus(L"Cleanup finished, but one cache folder could not be fully removed.", true);
+        }
+        else if (!appStateCleared)
+        {
+            setCleanupStatus(L"Cleanup finished, but the saved playback state could not be removed.", true);
+        }
+        else if (!settingsCleared)
+        {
+            setCleanupStatus(L"Cleanup finished, but the settings files could not be fully reset.", true);
         }
         else
         {
@@ -1418,8 +2429,8 @@ namespace winrt::Last_Music_Player::implementation
             bar.Value(0.0);
             bar.StepFrequency(1.0);
             bar.Height(132.0);
-            bar.HorizontalAlignment(winrt::Microsoft::UI::Xaml::HorizontalAlignment::Center);
             bar.IsEnabled(false);
+            bar.HorizontalAlignment(winrt::Microsoft::UI::Xaml::HorizontalAlignment::Center);
 
             int bandIndex = i;
             bar.ValueChanged([this, bandIndex](

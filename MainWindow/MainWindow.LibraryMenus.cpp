@@ -57,6 +57,10 @@ namespace winrt::Last_Music_Player::implementation
         auto albumsActive = isChecked(LibTabAlbums());
         auto playlistsActive = isChecked(LibTabPlaylists());
         auto manualPlaylistsActive = playlistsActive && m_libraryPlaylistFilter == L"Manual";
+        auto accountPlaylistScope = manualPlaylistsActive && m_libraryScope == L"Account";
+        auto accountMode = RemoteMusicServiceService().Mode() == LastMusicPlayer::Backend::RemoteAccessMode::Account;
+        auto accountPlaylistWritable = accountMode
+            && AccountSessionService().Status() == LastMusicPlayer::Backend::AccountSessionStatus::Validated;
 
         if (LibraryCreateAlbumButton())
         {
@@ -64,15 +68,17 @@ namespace winrt::Last_Music_Player::implementation
         }
         if (LibraryImportAlbumButton())
         {
-            LibraryImportAlbumButton().Visibility(!detailVisible && albumsActive ? V::Visible : V::Collapsed);
+            LibraryImportAlbumButton().Visibility(!detailVisible && albumsActive && !accountMode ? V::Visible : V::Collapsed);
         }
         if (LibraryCreatePlaylistButton())
         {
             LibraryCreatePlaylistButton().Visibility(!detailVisible && manualPlaylistsActive ? V::Visible : V::Collapsed);
+            LibraryCreatePlaylistButton().IsEnabled(!accountPlaylistScope || accountPlaylistWritable);
         }
         if (LibraryImportPlaylistButton())
         {
             LibraryImportPlaylistButton().Visibility(!detailVisible && manualPlaylistsActive ? V::Visible : V::Collapsed);
+            LibraryImportPlaylistButton().IsEnabled(!accountMode || (accountPlaylistScope && accountPlaylistWritable));
         }
         if (LibraryAddFolderButton())
         {
@@ -122,7 +128,14 @@ namespace winrt::Last_Music_Player::implementation
             return;
         }
 
-        PlayNextFromBrowse(track);
+        if (LibraryDetailContent().Visibility() == winrt::Microsoft::UI::Xaml::Visibility::Visible
+            && IsAccountPlaylistDetail()
+            && !CaptureAccountPlaylistDetailContext())
+        {
+            HideLibraryDetail();
+            return;
+        }
+        PlayNextFromSongs(track);
     }
 
     void MainWindow::LibraryRowMenuAddToQueue_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
@@ -131,6 +144,13 @@ namespace winrt::Last_Music_Player::implementation
         auto track = TrackFromActionSender(sender);
         if (!track || !IsPlayableHomeTrack(track))
         {
+            return;
+        }
+        if (LibraryDetailContent().Visibility() == winrt::Microsoft::UI::Xaml::Visibility::Visible
+            && IsAccountPlaylistDetail()
+            && !CaptureAccountPlaylistDetailContext())
+        {
+            HideLibraryDetail();
             return;
         }
 
@@ -148,7 +168,7 @@ namespace winrt::Last_Music_Player::implementation
             return;
         }
 
-        AddBrowseTrackToQueue(track);
+        AddSongsTrackToQueue(track);
     }
 
     winrt::Windows::Foundation::IAsyncAction MainWindow::LibraryRowMenuAddToPlaylist_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
@@ -157,29 +177,235 @@ namespace winrt::Last_Music_Player::implementation
         co_await AddTrackToPlaylistAsync(TrackFromActionSender(sender));
     }
 
-    void MainWindow::LibraryRowMenuRemoveFromPlaylist_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
+    winrt::Windows::Foundation::IAsyncAction MainWindow::LibraryRowMenuRemoveFromPlaylist_Click(
+        winrt::Windows::Foundation::IInspectable const& sender,
+        winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
     {
         (void)args;
         if (m_libraryDetailKind != L"playlist" || m_libraryDetailKey.empty() || !DatabaseService().IsInitialized())
         {
-            return;
+            co_return;
         }
 
         auto track = TrackFromActionSender(sender);
-        if (!track || track.CatalogId() <= 0)
+        auto title = LibraryDetailTitleText() ? LibraryDetailTitleText().Text() : winrt::hstring{};
+        auto subtitle = m_libraryDetailSubtitle;
+        static constexpr wchar_t accountPrefix[] = L"account-playlist|";
+        if (m_libraryDetailKey.starts_with(accountPrefix))
         {
-            return;
+            auto accountContext = CaptureAccountPlaylistDetailContext();
+            if (!track
+                || track.RemoteId().empty()
+                || !accountContext)
+            {
+                LibraryImportStatusText().Text(L"The account playlist changed. Refresh and try again.");
+                co_return;
+            }
+            auto tracks = DatabaseService().LoadAccountPlaylistTracks(
+                accountContext->Binding.OwnerId,
+                accountContext->PlaylistId);
+            std::vector<winrt::hstring> remoteIds;
+            remoteIds.reserve(tracks.size());
+            for (auto const& item : tracks)
+            {
+                if (!item.RemoteId().empty() && item.RemoteId() != track.RemoteId())
+                {
+                    remoteIds.push_back(item.RemoteId());
+                }
+            }
+            try
+            {
+                auto body = BuildAccountPlaylistUpdateJson(title, remoteIds);
+                auto operationLease = UserDataOperationGateService().TryEnter();
+                if (!operationLease)
+                {
+                    LibraryImportStatusText().Text(L"Cleanup is in progress");
+                    co_return;
+                }
+                co_await RemoteMusicServiceService().UpdateAccountPlaylistAsync(
+                    accountContext->Binding.Scope,
+                    winrt::hstring(accountContext->PlaylistId),
+                    body);
+                if (!IsCurrentAccountPlaylistBinding(accountContext->Binding))
+                {
+                    co_return;
+                }
+                co_await SynchronizeAccountLibraryAsync(false);
+                operationLease.reset();
+                if (!IsCurrentAccountPlaylistDetailContext(*accountContext))
+                {
+                    co_return;
+                }
+                ShowLibraryDetail(
+                    L"playlist",
+                    winrt::hstring(accountContext->DetailKey),
+                    title.empty() ? winrt::hstring(L"Playlist") : title,
+                    winrt::hstring(subtitle));
+                LibraryImportStatusText().Text(L"Removed from account playlist");
+            }
+            catch (...)
+            {
+                if (IsCurrentAccountPlaylistDetailContext(*accountContext))
+                {
+                    LibraryImportStatusText().Text(L"Could not update the account playlist");
+                }
+            }
+            co_return;
         }
 
+        if (!track || track.CatalogId() <= 0)
+        {
+            co_return;
+        }
+        auto operationLease = UserDataOperationGateService().TryEnter();
+        if (!operationLease)
+        {
+            LibraryImportStatusText().Text(L"Cleanup is in progress");
+            co_return;
+        }
         if (!DatabaseService().RemoveTrackFromPlaylist(m_libraryDetailKey, track.CatalogId()))
         {
-            return;
+            co_return;
         }
+
+        MarkLibraryViewsDirty();
+        operationLease.reset();
+        ShowLibraryDetail(L"playlist", winrt::hstring(m_libraryDetailKey), title.empty() ? winrt::hstring(L"Playlist") : title, winrt::hstring(subtitle));
+    }
+
+    winrt::Windows::Foundation::IAsyncAction MainWindow::LibraryRowMenuMoveInPlaylist_Click(
+        winrt::Windows::Foundation::IInspectable const& sender,
+        winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
+    {
+        (void)args;
+        if (m_libraryDetailKind != L"playlist" || m_libraryDetailKey.empty() || !DatabaseService().IsInitialized())
+        {
+            co_return;
+        }
+        auto track = TrackFromActionSender(sender);
+        auto item = sender.try_as<winrt::Microsoft::UI::Xaml::Controls::MenuFlyoutItem>();
+        auto direction = item ? ReadTagString(item.Tag()) : winrt::hstring{};
+        if (!track || (direction != L"Up" && direction != L"Down"))
+        {
+            co_return;
+        }
+
+        static constexpr wchar_t accountPrefix[] = L"account-playlist|";
+        auto accountPlaylist = m_libraryDetailKey.starts_with(accountPrefix);
+        auto accountContext = accountPlaylist
+            ? CaptureAccountPlaylistDetailContext()
+            : std::optional<AccountPlaylistDetailContext>{};
+        if (accountPlaylist && !accountContext)
+        {
+            LibraryImportStatusText().Text(L"The account playlist changed. Refresh and try again.");
+            co_return;
+        }
+        auto tracks = accountPlaylist
+            ? DatabaseService().LoadAccountPlaylistTracks(
+                accountContext->Binding.OwnerId,
+                accountContext->PlaylistId)
+            : DatabaseService().LoadTracksForGroup(L"playlist", m_libraryDetailKey);
+        auto found = std::find_if(tracks.begin(), tracks.end(), [&](auto const& candidate)
+        {
+            return accountPlaylist
+                ? candidate.RemoteId() == track.RemoteId()
+                : candidate.CatalogId() == track.CatalogId();
+        });
+        if (found == tracks.end())
+        {
+            co_return;
+        }
+        auto index = static_cast<std::size_t>(std::distance(tracks.begin(), found));
+        auto target = direction == L"Up" ? (index == 0 ? index : index - 1)
+            : ((index + 1 >= tracks.size()) ? index : index + 1);
+        if (target == index)
+        {
+            co_return;
+        }
+        std::swap(tracks[index], tracks[target]);
 
         auto title = LibraryDetailTitleText() ? LibraryDetailTitleText().Text() : winrt::hstring{};
         auto subtitle = m_libraryDetailSubtitle;
-        MarkLibraryViewsDirty();
-        ShowLibraryDetail(L"playlist", winrt::hstring(m_libraryDetailKey), title.empty() ? winrt::hstring(L"Playlist") : title, winrt::hstring(subtitle));
+        if (accountPlaylist)
+        {
+            if (!accountContext
+                || !IsCurrentAccountPlaylistDetailContext(*accountContext))
+            {
+                LibraryImportStatusText().Text(L"The account playlist changed. Refresh and try again.");
+                co_return;
+            }
+            std::vector<winrt::hstring> remoteIds;
+            remoteIds.reserve(tracks.size());
+            for (auto const& candidate : tracks)
+            {
+                remoteIds.push_back(candidate.RemoteId());
+            }
+            try
+            {
+                auto body = BuildAccountPlaylistUpdateJson(title, remoteIds);
+                auto operationLease = UserDataOperationGateService().TryEnter();
+                if (!operationLease)
+                {
+                    LibraryImportStatusText().Text(L"Cleanup is in progress");
+                    co_return;
+                }
+                co_await RemoteMusicServiceService().UpdateAccountPlaylistAsync(
+                    accountContext->Binding.Scope,
+                    winrt::hstring(accountContext->PlaylistId),
+                    body);
+                if (!IsCurrentAccountPlaylistBinding(accountContext->Binding))
+                {
+                    co_return;
+                }
+                co_await SynchronizeAccountLibraryAsync(false);
+                operationLease.reset();
+                if (!IsCurrentAccountPlaylistDetailContext(*accountContext))
+                {
+                    co_return;
+                }
+            }
+            catch (...)
+            {
+                if (accountContext
+                    && IsCurrentAccountPlaylistDetailContext(*accountContext))
+                {
+                    LibraryImportStatusText().Text(L"Could not reorder the account playlist");
+                }
+                co_return;
+            }
+        }
+        else
+        {
+            std::vector<int64_t> trackIds;
+            trackIds.reserve(tracks.size());
+            for (auto const& candidate : tracks)
+            {
+                trackIds.push_back(candidate.CatalogId());
+            }
+            auto operationLease = UserDataOperationGateService().TryEnter();
+            if (!operationLease)
+            {
+                LibraryImportStatusText().Text(L"Cleanup is in progress");
+                co_return;
+            }
+            if (!DatabaseService().ReorderPlaylistTracks(m_libraryDetailKey, trackIds))
+            {
+                LibraryImportStatusText().Text(L"Could not reorder the playlist");
+                co_return;
+            }
+            MarkLibraryViewsDirty();
+            operationLease.reset();
+        }
+
+        auto refreshKey = accountPlaylist
+            ? accountContext->DetailKey
+            : m_libraryDetailKey;
+        ShowLibraryDetail(
+            L"playlist",
+            winrt::hstring(refreshKey),
+            title.empty() ? winrt::hstring(L"Playlist") : title,
+            winrt::hstring(subtitle));
+        LibraryImportStatusText().Text(L"Playlist order updated");
     }
 
     void MainWindow::LibraryRowMenuAlbum_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
@@ -191,7 +417,7 @@ namespace winrt::Last_Music_Player::implementation
             return;
         }
 
-        OpenBrowseTrackAlbum(TrackFromActionSender(sender));
+        OpenSongsTrackAlbum(TrackFromActionSender(sender));
     }
 
 
@@ -256,7 +482,7 @@ namespace winrt::Last_Music_Player::implementation
             QueueAndPlayVisible(tracks, tracks.front());
             return;
         }
-        PlayNextFromBrowseBulk(tracks);
+        PlayNextFromSongsBulk(tracks);
     }
 
     void MainWindow::LibraryGroupMenuAddToQueue_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
@@ -268,7 +494,7 @@ namespace winrt::Last_Music_Player::implementation
         {
             return;
         }
-        AddBrowseTracksToQueueBulk(tracks);
+        AddSongsTracksToQueueBulk(tracks);
     }
 
     void MainWindow::LibraryGroupMenuShuffle_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)

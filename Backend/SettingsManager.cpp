@@ -85,7 +85,7 @@ namespace
         }
     }
 
-    void WriteSettingsText(winrt::hstring const& value)
+    bool WriteSettingsText(winrt::hstring const& value)
     {
         try
         {
@@ -100,7 +100,7 @@ namespace
             if (!file)
             {
                 std::filesystem::remove(tempPath);
-                return;
+                return false;
             }
             if (!::MoveFileExW(
                 tempPath.c_str(),
@@ -108,10 +108,13 @@ namespace
                 MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH))
             {
                 std::filesystem::remove(tempPath);
+                return false;
             }
+            return true;
         }
         catch (...)
         {
+            return false;
         }
     }
 }
@@ -146,6 +149,46 @@ namespace LastMusicPlayer::Backend
             }
             catch (...)
             {
+            }
+        }
+
+        bool RemoveSettingsRecoveryFiles()
+        {
+            try
+            {
+                auto settingsPath = SettingsFilePath();
+                auto parent = settingsPath.parent_path();
+                auto corruptPrefix = settingsPath.filename().wstring() + L".corrupt-";
+
+                std::error_code existsError;
+                if (!std::filesystem::exists(parent, existsError))
+                {
+                    return !existsError;
+                }
+
+                for (auto const& entry : std::filesystem::directory_iterator(parent))
+                {
+                    auto name = entry.path().filename().wstring();
+                    if (name.rfind(corruptPrefix, 0) != 0)
+                    {
+                        continue;
+                    }
+
+                    std::error_code removeError;
+                    std::filesystem::remove_all(entry.path(), removeError);
+                    if (removeError)
+                    {
+                        return false;
+                    }
+                }
+
+                std::error_code tempError;
+                std::filesystem::remove(settingsPath.wstring() + L".tmp", tempError);
+                return !tempError;
+            }
+            catch (...)
+            {
+                return false;
             }
         }
 
@@ -215,11 +258,11 @@ namespace LastMusicPlayer::Backend
         m_loaded = true;
     }
 
-    void SettingsManager::Persist()
+    bool SettingsManager::Persist()
     {
         if (m_json == nullptr)
         {
-            return;
+            return false;
         }
         // After a corruption-recovery load, refuse to overwrite until the
         // in-memory object actually carries user keys. Otherwise an app
@@ -227,16 +270,16 @@ namespace LastMusicPlayer::Backend
         // setting with a SchemaVersion-only document.
         if (m_recoveredFromCorruption && !HasUserKeys(m_json))
         {
-            return;
+            return false;
         }
-        WriteSettingsText(m_json.Stringify());
-        // Successful write with real keys means we're past the recovery
-        // window — clear the flag so future "empty" states (e.g. user
-        // intentionally clearing a setting) aren't blocked.
-        if (m_recoveredFromCorruption)
+        if (!WriteSettingsText(m_json.Stringify()))
         {
-            m_recoveredFromCorruption = false;
+            return false;
         }
+        // Successful write with real keys means we're past the recovery
+        // window. Clear the flag so future intentionally empty states work.
+        m_recoveredFromCorruption = false;
+        return true;
     }
 
     void SettingsManager::Load()
@@ -253,9 +296,15 @@ namespace LastMusicPlayer::Backend
         Persist();
     }
 
-    void SettingsManager::Reset()
+    bool SettingsManager::Reset()
     {
         std::lock_guard<std::recursive_mutex> guard{ m_mutex };
+
+        auto previousJson = m_json;
+        auto previousLoaded = m_loaded;
+        auto previousRecovered = m_recoveredFromCorruption;
+        auto previousVolume = m_volume;
+
         auto obj = json::JsonObject{};
         obj.Insert(L"SchemaVersion",
             json::JsonValue::CreateNumberValue(static_cast<double>(CurrentSchemaVersion)));
@@ -263,7 +312,17 @@ namespace LastMusicPlayer::Backend
         m_loaded = true;
         m_recoveredFromCorruption = false;
         m_volume = 0.7;
-        Persist();
+
+        if (!Persist())
+        {
+            m_json = previousJson;
+            m_loaded = previousLoaded;
+            m_recoveredFromCorruption = previousRecovered;
+            m_volume = previousVolume;
+            return false;
+        }
+
+        return RemoveSettingsRecoveryFiles();
     }
 
     void SettingsManager::SetVolume(double volume)
@@ -304,6 +363,26 @@ namespace LastMusicPlayer::Backend
         EnsureLoaded();
         m_json.Insert(key, json::JsonValue::CreateStringValue(value));
         Persist();
+    }
+
+    bool SettingsManager::Remove(winrt::hstring const& key)
+    {
+        std::lock_guard<std::recursive_mutex> guard{ m_mutex };
+        EnsureLoaded();
+        if (!m_json.HasKey(key))
+        {
+            return true;
+        }
+
+        auto previous = m_json.Lookup(key);
+        m_json.Remove(key);
+        if (Persist())
+        {
+            return true;
+        }
+
+        m_json.Insert(key, previous);
+        return false;
     }
 
     bool SettingsManager::GetBool(winrt::hstring const& key, bool def) const

@@ -19,8 +19,8 @@ namespace LastMusicPlayer::Backend
         }
 
         static constexpr char kSql[] =
-            "SELECT Id, SourceKind, Provider, SourceUrl, FilePath, Title, Artist, Album, Genre, DurationSeconds, ArtworkUrl, DateAddedSortKey, DateAddedText, DurationText, IsLiked "
-            "FROM Tracks "
+            "SELECT Id, SourceKind, Provider, SourceUrl, FilePath, Title, Artist, Album, Genre, DurationSeconds, ArtworkUrl, DateAddedSortKey, DateAddedText, DurationText, IsLiked, RemoteId "
+            "FROM EffectiveTracks "
             "WHERE (?1=1 OR SourceKind='local') AND (?2=0 OR IsActive=1) "
             "ORDER BY DateAddedSortKey DESC, Title COLLATE NOCASE ASC;";
 
@@ -49,8 +49,8 @@ namespace LastMusicPlayer::Backend
         }
 
         static constexpr char kSql[] =
-            "SELECT Id, SourceKind, Provider, SourceUrl, FilePath, Title, Artist, Album, Genre, DurationSeconds, ArtworkUrl, DateAddedSortKey, DateAddedText, DurationText, IsLiked "
-            "FROM Tracks "
+            "SELECT Id, SourceKind, Provider, SourceUrl, FilePath, Title, Artist, Album, Genre, DurationSeconds, ArtworkUrl, DateAddedSortKey, DateAddedText, DurationText, IsLiked, RemoteId "
+            "FROM EffectiveTracks "
             "WHERE (?1=1 OR SourceKind='local') AND (?2=0 OR IsActive=1) AND COALESCE(LastPlayedOrder,0)>0 "
             "ORDER BY LastPlayedOrder DESC, Title COLLATE NOCASE ASC;";
 
@@ -68,6 +68,41 @@ namespace LastMusicPlayer::Backend
         }
         return tracks;
     }
+    std::vector<LegacyHistoryImportCandidate> DatabaseEngine::LoadLegacyRemoteHistoryImportCandidates() const
+    {
+        std::scoped_lock lock{ m_mutex };
+        std::vector<LegacyHistoryImportCandidate> candidates;
+        if (!m_db)
+        {
+            return candidates;
+        }
+
+        static constexpr char kSql[] =
+            "SELECT Id, SourceKind, Provider, SourceUrl, FilePath, Title, Artist, Album, Genre, DurationSeconds, ArtworkUrl, "
+            "DateAddedSortKey, DateAddedText, DurationText, IsLiked, RemoteId, SourceKey, LastPlayed "
+            "FROM Tracks WHERE SourceKind='remote' AND COALESCE(PlayCount,0)>0 AND COALESCE(LastPlayedExact,0)=1 "
+            "AND COALESCE(SourceUrl,'')<>'' AND COALESCE(LastPlayed,'')<>'' "
+            "ORDER BY LastPlayed DESC, Id DESC;";
+        Statement stmt{ m_db, kSql };
+        if (!stmt)
+        {
+            return candidates;
+        }
+
+        while (sqlite3_step(stmt.value) == SQLITE_ROW)
+        {
+            LegacyHistoryImportCandidate candidate;
+            candidate.Track = TrackFromStatement(stmt.value);
+            candidate.SourceKey = ColumnText(stmt.value, 16);
+            candidate.LastPlayedUtc = ColumnText(stmt.value, 17);
+            if (candidate.Track && !candidate.SourceKey.empty() && !candidate.LastPlayedUtc.empty())
+            {
+                candidates.push_back(std::move(candidate));
+            }
+        }
+        return candidates;
+    }
+
 
     std::vector<TrackInfo> DatabaseEngine::LoadMostPlayedTracks(bool includeRemote, bool activeOnly) const
     {
@@ -79,8 +114,8 @@ namespace LastMusicPlayer::Backend
         }
 
         static constexpr char kSql[] =
-            "SELECT Id, SourceKind, Provider, SourceUrl, FilePath, Title, Artist, Album, Genre, DurationSeconds, ArtworkUrl, DateAddedSortKey, DateAddedText, DurationText, IsLiked "
-            "FROM Tracks "
+            "SELECT Id, SourceKind, Provider, SourceUrl, FilePath, Title, Artist, Album, Genre, DurationSeconds, ArtworkUrl, DateAddedSortKey, DateAddedText, DurationText, IsLiked, RemoteId "
+            "FROM EffectiveTracks "
             "WHERE (?1=1 OR SourceKind='local') AND (?2=0 OR IsActive=1) AND COALESCE(PlayCount,0)>0 "
             "ORDER BY PlayCount DESC, LastPlayedOrder DESC, Title COLLATE NOCASE ASC;";
 
@@ -186,6 +221,34 @@ namespace LastMusicPlayer::Backend
             return page;
         }
 
+        static constexpr wchar_t kAccountPlaylistPrefix[] = L"account-playlist|";
+        if (groupKind == L"playlist" && query.GroupKey.starts_with(kAccountPlaylistPrefix))
+        {
+            if (query.AccountOwnerId.empty())
+            {
+                return page;
+            }
+            auto playlistId = query.GroupKey.substr(std::size(kAccountPlaylistPrefix) - 1);
+            auto tracks = LoadAccountPlaylistTracks(query.AccountOwnerId, playlistId);
+            page.TotalCount = static_cast<int>(tracks.size());
+            for (auto const& track : tracks)
+            {
+                page.TotalSeconds += track.DurationSeconds();
+            }
+
+            auto begin = static_cast<size_t>((std::min)(offset, page.TotalCount));
+            auto end = tracks.size();
+            if (limit > 0)
+            {
+                end = (std::min)(end, begin + static_cast<size_t>(limit));
+            }
+            page.Tracks.assign(tracks.begin() + begin, tracks.begin() + end);
+            for (size_t index = 0; index < page.Tracks.size(); ++index)
+            {
+                page.Tracks[index].Index(static_cast<int32_t>(begin + index + 1));
+            }
+            return page;
+        }
         if (groupKind == L"playlist")
         {
             auto countSql =
@@ -220,10 +283,18 @@ namespace LastMusicPlayer::Backend
         }
 
         std::string where =
-            "FROM Tracks "
+            "FROM EffectiveTracks "
             "WHERE (?1=1 OR SourceKind='local') AND (?2=0 OR IsActive=1)";
         where += TrackFilterClause(query.Filter);
         auto groupFilter = GroupFilterClause(query.GroupKind);
+        if (query.Scope == L"Account")
+        {
+            where += " AND Provider='account'";
+        }
+        else if (query.Scope == L"OnThisPc")
+        {
+            where += " AND Provider<>'account'";
+        }
         where += groupFilter;
 
         auto countSql = std::string("SELECT COUNT(*), COALESCE(SUM(DurationSeconds),0) ") + where;
@@ -287,7 +358,7 @@ namespace LastMusicPlayer::Backend
             "MIN(CASE WHEN Artist IS NULL OR Artist='' THEN 'Unknown Artist' ELSE Artist END),"
             "MAX(CASE WHEN ArtworkUrl IS NULL THEN '' ELSE ArtworkUrl END),"
             "COUNT(*), SUM(CASE WHEN SourceKind='remote' THEN 1 ELSE 0 END) "
-            "FROM Tracks WHERE IsActive=1 AND Id NOT IN (SELECT at.TrackId FROM AlbumTracks at JOIN Albums a ON a.Id=at.AlbumId WHERE a.SourceKind<>'manual') GROUP BY GroupTitle ORDER BY GroupTitle COLLATE NOCASE ASC;";
+            "FROM EffectiveTracks WHERE IsActive=1 AND Id NOT IN (SELECT at.TrackId FROM AlbumTracks at JOIN Albums a ON a.Id=at.AlbumId WHERE a.SourceKind<>'manual') GROUP BY GroupTitle ORDER BY GroupTitle COLLATE NOCASE ASC;";
 
         Statement collections{ m_db,
             "SELECT Id, AlbumKey, Title, Artist, ArtworkUrl, SourceKind, SourceUrl, SourceLabel, "
@@ -332,7 +403,7 @@ namespace LastMusicPlayer::Backend
             group.TrackCount(count);
             group.SourceKind(L"album");
             group.SourceUrl(group.Title());
-            group.SourceLabel(remoteCount == 0 ? L"Local" : (remoteCount == count ? L"Music API" : L"Mixed"));
+            group.SourceLabel(remoteCount == 0 ? L"Local" : (remoteCount == count ? L"Remote" : L"Mixed"));
             groups.push_back(group);
         }
         return groups;
@@ -365,9 +436,39 @@ namespace LastMusicPlayer::Backend
             ApplyArtworkUrl(group, winrt::hstring(ColumnText(stmt.value, 4)));
             group.Provider(winrt::hstring(ColumnText(stmt.value, 6)));
             group.SourceKind(L"playlist");
-            group.SourceLabel(sourceLabel.empty() ? winrt::hstring{ L"Manual" } : winrt::hstring(sourceLabel));
+            group.SourceLabel(L"On this PC");
             group.TrackCount(count);
             groups.push_back(group);
+        }
+
+        Statement accountStmt{ m_db,
+            "SELECT p.PlaylistId, p.Name, p.Description, p.SourceUrl, "
+            "(SELECT COUNT(*) FROM AccountPlaylistTracks pt WHERE pt.AccountId=p.AccountId AND pt.PlaylistId=p.PlaylistId), "
+            "COALESCE((SELECT t.ArtworkUrl FROM AccountPlaylistTracks pt JOIN AccountTracks t ON t.AccountId=pt.AccountId AND t.RemoteId=pt.RemoteId "
+            "WHERE pt.AccountId=p.AccountId AND pt.PlaylistId=p.PlaylistId ORDER BY pt.TrackOrder LIMIT 1),'') "
+            "FROM AccountPlaylists p JOIN ActiveAccountContext c ON c.SingletonId=1 AND c.AccountId=p.AccountId "
+            "ORDER BY p.UpdatedAtUtc DESC, p.Name COLLATE NOCASE ASC;" };
+        if (accountStmt)
+        {
+            while (sqlite3_step(accountStmt.value) == SQLITE_ROW)
+            {
+                TrackInfo group;
+                auto playlistId = ColumnText(accountStmt.value, 0);
+                auto count = sqlite3_column_int(accountStmt.value, 4);
+                auto description = ColumnText(accountStmt.value, 2);
+                group.RemoteId(winrt::hstring(playlistId));
+                group.SourceUrl(winrt::hstring(L"account-playlist|" + playlistId));
+                group.Title(winrt::hstring(ColumnText(accountStmt.value, 1)));
+                group.Artist(winrt::hstring(description.empty()
+                    ? (std::to_wstring(count) + (count == 1 ? L" song" : L" songs"))
+                    : description));
+                ApplyArtworkUrl(group, winrt::hstring(ColumnText(accountStmt.value, 5)));
+                group.Provider(L"account");
+                group.SourceKind(L"playlist");
+                group.SourceLabel(L"Synced");
+                group.TrackCount(count);
+                groups.push_back(group);
+            }
         }
         return groups;
     }
@@ -375,34 +476,24 @@ namespace LastMusicPlayer::Backend
     std::vector<TrackInfo> DatabaseEngine::LoadRecentPlaylists(int limit) const
     {
         std::scoped_lock lock{ m_mutex };
-        std::vector<TrackInfo> groups;
-        if (!m_db || limit <= 0) return groups;
-
-        Statement stmt{ m_db,
-            "SELECT Id, PlaylistKey, Title, Description, ArtworkUrl, SourceKind, Provider, SourceUrl, SourceLabel, "
-            "(SELECT COUNT(*) FROM PlaylistTracks WHERE PlaylistId=Playlists.Id) "
-            "FROM Playlists ORDER BY UpdatedAt DESC, Title COLLATE NOCASE ASC LIMIT ?;" };
-        if (!stmt) return groups;
-        sqlite3_bind_int(stmt.value, 1, limit);
-
-        while (sqlite3_step(stmt.value) == SQLITE_ROW)
+        auto groups = LoadPlaylists();
+        std::stable_sort(groups.begin(), groups.end(), [](TrackInfo const& left, TrackInfo const& right)
         {
-            TrackInfo group;
-            auto count = sqlite3_column_int(stmt.value, 9);
-            auto description = ColumnText(stmt.value, 3);
-            auto sourceLabel = ColumnText(stmt.value, 8);
-            group.CatalogId(sqlite3_column_int64(stmt.value, 0));
-            group.SourceUrl(winrt::hstring(ColumnText(stmt.value, 1)));
-            group.Title(winrt::hstring(ColumnText(stmt.value, 2)));
-            group.Artist(winrt::hstring(description.empty()
-                ? (std::to_wstring(count) + (count == 1 ? L" song" : L" songs"))
-                : description));
-            ApplyArtworkUrl(group, winrt::hstring(ColumnText(stmt.value, 4)));
-            group.Provider(winrt::hstring(ColumnText(stmt.value, 6)));
-            group.SourceKind(L"playlist");
-            group.SourceLabel(sourceLabel.empty() ? winrt::hstring{ L"Manual" } : winrt::hstring(sourceLabel));
-            group.TrackCount(count);
-            groups.push_back(group);
+            auto leftAccount = left.Provider() == L"account";
+            auto rightAccount = right.Provider() == L"account";
+            if (leftAccount != rightAccount)
+            {
+                return leftAccount;
+            }
+            return left.Title() < right.Title();
+        });
+        if (limit <= 0)
+        {
+            return {};
+        }
+        if (groups.size() > static_cast<size_t>(limit))
+        {
+            groups.resize(static_cast<size_t>(limit));
         }
         return groups;
     }
@@ -418,7 +509,7 @@ namespace LastMusicPlayer::Backend
             "COUNT(*), COUNT(DISTINCT CASE WHEN Album IS NULL OR Album='' THEN 'Unknown Album' ELSE Album END),"
             "MAX(CASE WHEN ArtworkUrl IS NULL THEN '' ELSE ArtworkUrl END),"
             "SUM(CASE WHEN SourceKind='remote' THEN 1 ELSE 0 END) "
-            "FROM Tracks WHERE IsActive=1 GROUP BY GroupTitle ORDER BY GroupTitle COLLATE NOCASE ASC;";
+            "FROM EffectiveTracks WHERE IsActive=1 GROUP BY GroupTitle ORDER BY GroupTitle COLLATE NOCASE ASC;";
 
         Statement stmt{ m_db, kSql };
         if (!stmt) return groups;
@@ -434,7 +525,7 @@ namespace LastMusicPlayer::Backend
             group.TrackCount(count);
             group.SourceKind(L"artist");
             group.SourceUrl(group.Title());
-            group.SourceLabel(remoteCount == 0 ? L"Local" : (remoteCount == count ? L"Music API" : L"Mixed"));
+            group.SourceLabel(remoteCount == 0 ? L"Local" : (remoteCount == count ? L"Remote" : L"Mixed"));
             groups.push_back(group);
         }
         return groups;
@@ -449,7 +540,7 @@ namespace LastMusicPlayer::Backend
         static constexpr char kSql[] =
             "SELECT CASE WHEN Genre IS NULL OR Genre='' THEN 'Unknown Genre' ELSE Genre END AS GroupTitle,"
             "COUNT(*), SUM(CASE WHEN SourceKind='remote' THEN 1 ELSE 0 END) "
-            "FROM Tracks WHERE IsActive=1 GROUP BY GroupTitle ORDER BY GroupTitle COLLATE NOCASE ASC;";
+            "FROM EffectiveTracks WHERE IsActive=1 GROUP BY GroupTitle ORDER BY GroupTitle COLLATE NOCASE ASC;";
 
         Statement stmt{ m_db, kSql };
         if (!stmt) return groups;
@@ -463,7 +554,7 @@ namespace LastMusicPlayer::Backend
             group.TrackCount(count);
             group.SourceKind(L"genre");
             group.SourceUrl(group.Title());
-            group.SourceLabel(remoteCount == 0 ? L"Local" : (remoteCount == count ? L"Music API" : L"Mixed"));
+            group.SourceLabel(remoteCount == 0 ? L"Local" : (remoteCount == count ? L"Remote" : L"Mixed"));
             groups.push_back(group);
         }
         return groups;
@@ -482,18 +573,13 @@ namespace LastMusicPlayer::Backend
         // size so a brand-new library with no plays still yields the user's
         // biggest genres rather than nothing. Untagged tracks (empty Genre) are
         // excluded via HAVING so a Daily Mix is never "Unknown Genre".
-        //
-        // Provider-sourced tracks frequently carry a *category* in the Genre
-        // column ("Music", "People & Blogs", "Entertainment", …) rather than a
-        // real musical genre. Those make terrible mix labels, so they're
-        // filtered out here (case-insensitive); a library that only has such
-        // tags simply yields no genres and the Daily Mixes fall back to
-        // artist-clustering. Keep this list in sync with the provider's category
-        // set plus the common placeholder values.
+        // Remote metadata can contain broad media categories rather than musical
+        // genres. Exclude those generic categories from mix labels; libraries
+        // without useful genre tags fall back to artist clustering.
         static constexpr char kSql[] =
             "SELECT CASE WHEN Genre IS NULL OR Genre='' THEN '' ELSE Genre END AS G,"
             "SUM(PlayCount) AS Plays, COUNT(*) AS Cnt "
-            "FROM Tracks WHERE IsActive=1 "
+            "FROM EffectiveTracks WHERE IsActive=1 "
             "GROUP BY G HAVING G <> '' AND LOWER(TRIM(G)) NOT IN ("
             "'music','people & blogs','entertainment','news & politics','education',"
             "'film & animation','gaming','howto & style','science & technology','sports',"
@@ -573,8 +659,8 @@ namespace LastMusicPlayer::Backend
         }
 
         char const* sql =
-            "SELECT Id, SourceKind, Provider, SourceUrl, FilePath, Title, Artist, Album, Genre, DurationSeconds, ArtworkUrl, DateAddedSortKey, DateAddedText, DurationText, IsLiked "
-            "FROM Tracks WHERE IsActive=1 AND "
+            "SELECT Id, SourceKind, Provider, SourceUrl, FilePath, Title, Artist, Album, Genre, DurationSeconds, ArtworkUrl, DateAddedSortKey, DateAddedText, DurationText, IsLiked, RemoteId "
+            "FROM EffectiveTracks WHERE IsActive=1 AND "
             "CASE ?1 "
             "WHEN 'album' THEN CASE WHEN Album IS NULL OR Album='' THEN CASE WHEN SourceKind='remote' THEN 'Remote Singles' ELSE 'Unknown Album' END ELSE Album END "
             "WHEN 'artist' THEN CASE WHEN Artist IS NULL OR Artist='' THEN 'Unknown Artist' ELSE Artist END "
@@ -610,7 +696,7 @@ namespace LastMusicPlayer::Backend
             "(SELECT COUNT(*) FROM Albums) + COUNT(DISTINCT CASE WHEN Id NOT IN (SELECT at.TrackId FROM AlbumTracks at JOIN Albums a ON a.Id=at.AlbumId WHERE a.SourceKind<>'manual') THEN CASE WHEN Album IS NULL OR Album='' THEN CASE WHEN SourceKind='remote' THEN 'Remote Singles' ELSE 'Unknown Album' END ELSE Album END END), "
             "COUNT(DISTINCT CASE WHEN Artist IS NULL OR Artist='' THEN 'Unknown Artist' ELSE Artist END), "
             "COUNT(DISTINCT CASE WHEN Genre IS NULL OR Genre='' THEN 'Unknown Genre' ELSE Genre END), "
-            "COALESCE(SUM(DurationSeconds),0) FROM Tracks WHERE IsActive=1;" };
+            "COALESCE(SUM(DurationSeconds),0) FROM EffectiveTracks WHERE IsActive=1;" };
         if (totals && sqlite3_step(totals.value) == SQLITE_ROW)
         {
             stats.SongCount = sqlite3_column_int(totals.value, 0);
@@ -620,5 +706,34 @@ namespace LastMusicPlayer::Backend
             stats.TotalSeconds = sqlite3_column_double(totals.value, 4);
         }
         return stats;
+    }
+
+    std::vector<PlaybackStatSnapshot> DatabaseEngine::LoadPlaybackStats() const
+    {
+        std::scoped_lock lock{ m_mutex };
+        std::vector<PlaybackStatSnapshot> result;
+        if (!m_db)
+        {
+            return result;
+        }
+
+        auto sql = std::string("SELECT ") + kTrackColumns +
+            ", SourceKey, COALESCE(PlayCount,0), COALESCE(LastPlayedOrder,0) FROM EffectiveTracks "
+            "WHERE IsActive=1 AND (COALESCE(PlayCount,0)>0 OR COALESCE(LastPlayedOrder,0)>0);";
+        Statement stmt{ m_db, sql.c_str() };
+        if (!stmt)
+        {
+            return result;
+        }
+        while (sqlite3_step(stmt.value) == SQLITE_ROW)
+        {
+            PlaybackStatSnapshot stat;
+            stat.Track = TrackFromStatement(stmt.value);
+            stat.SourceKey = ColumnText(stmt.value, 16);
+            stat.PlayCount = static_cast<uint32_t>((std::max)(0, sqlite3_column_int(stmt.value, 17)));
+            stat.LastPlayedOrder = static_cast<uint64_t>((std::max)(sqlite3_int64{ 0 }, sqlite3_column_int64(stmt.value, 18)));
+            result.push_back(std::move(stat));
+        }
+        return result;
     }
 }

@@ -1,4 +1,6 @@
 const { spawn } = require("child_process");
+const os = require("os");
+const path = require("path");
 
 const pid = Number(process.argv[2]);
 if (!pid) {
@@ -6,8 +8,18 @@ if (!pid) {
   process.exit(2);
 }
 
-const vsdbg = "C:\\Program Files\\Microsoft Visual Studio\\18\\Professional\\Common7\\IDE\\vsdbg\\vsdbg.exe";
-const logPath = "C:\\Users\\Dev\\AppData\\Local\\Temp\\vsdbg-lmp.log";
+const programFiles = process.env.ProgramFiles || "C:\\Program Files";
+const vsdbg = process.env.VSDBG_PATH || path.join(
+  programFiles,
+  "Microsoft Visual Studio",
+  "18",
+  "Professional",
+  "Common7",
+  "IDE",
+  "vsdbg",
+  "vsdbg.exe",
+);
+const logPath = path.join(os.tmpdir(), "vsdbg-lmp.log");
 
 function dapMessage(obj) {
   const body = JSON.stringify(obj);

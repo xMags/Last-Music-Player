@@ -171,7 +171,7 @@ namespace winrt::Last_Music_Player::implementation
             PlayHomeMix(mixId);
             return;
         }
-        PlayNextFromBrowseBulk(it->second);
+        PlayNextFromSongsBulk(it->second);
     }
 
     void MainWindow::HomeMixMenuAddToQueue_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
@@ -187,7 +187,7 @@ namespace winrt::Last_Music_Player::implementation
         {
             return;
         }
-        AddBrowseTracksToQueueBulk(it->second);
+        AddSongsTracksToQueueBulk(it->second);
     }
 
     void MainWindow::HomeMixMenuShuffle_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
@@ -250,10 +250,7 @@ namespace winrt::Last_Music_Player::implementation
 
         MusicListView().SelectedItem(clickedTrack);
 
-        // Listen Again is an ephemeral home carousel; clicking a tile
-        // plays that one track rather than dragging the whole strip
-        // into the queue. Matches the single-track-on-click semantics
-        // used by common music-app home tiles.
+        // Home tiles play only the selected track rather than queueing the shelf.
         std::vector<winrt::Last_Music_Player::TrackInfo> homeQueue{ clickedTrack };
         SetPlaybackQueue(homeQueue, 0);
         PlayTrack(clickedTrack);
@@ -273,7 +270,7 @@ namespace winrt::Last_Music_Player::implementation
 
         // Recently Added is a home carousel, not a durable collection —
         // single-track click semantics, same rationale as Listen Again
-        // and search. Browse view still queues its full filtered query.
+        // and search. Songs view still queues its full filtered query.
         std::vector<winrt::Last_Music_Player::TrackInfo> recentQueue{ clickedTrack };
         SetPlaybackQueue(recentQueue, 0);
         PlayTrack(clickedTrack);
@@ -293,7 +290,7 @@ namespace winrt::Last_Music_Player::implementation
         // Same single-track-on-click semantics the Home carousels use (see
         // HomeRecentGridView_ItemClick): a Home card is an ephemeral tile, so
         // "Play now" queues just this track rather than the whole strip. The
-        // Browse/Library "Play now" instead loads its filtered query as the
+        // Songs/Library "Play now" instead loads its filtered query as the
         // queue context, which would be the wrong context on Home.
         std::vector<winrt::Last_Music_Player::TrackInfo> homeQueue{ track };
         SetPlaybackQueue(homeQueue, 0);
@@ -302,9 +299,9 @@ namespace winrt::Last_Music_Player::implementation
 
     void MainWindow::HomeListenAll_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
     {
-        // "See all" on Listen Again -> full library Browse view.
-        BrowseButton_Click(sender, args);
-        SelectBrowseFilter(L"All");
+        // "See all" on Listen Again -> full library Songs view.
+        SongsButton_Click(sender, args);
+        SelectSongsFilter(L"All");
     }
 
     winrt::Windows::Foundation::IAsyncAction MainWindow::HomeMostPlayed_ItemClick(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::ItemClickEventArgs const& args)
@@ -340,19 +337,19 @@ namespace winrt::Last_Music_Player::implementation
 
     void MainWindow::HomeLikedSeeAll_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
     {
-        // "See all" on Your Liked Songs -> Browse view with the Favourites
+        // "See all" on Your Liked Songs -> Songs view with the Favourites
         // chip pre-selected. ChipFav uses Tag="Fav" so the filter string
         // is L"Fav" (see MainWindow.xaml:1418).
-        BrowseButton_Click(sender, args);
-        SelectBrowseFilter(L"Fav");
+        SongsButton_Click(sender, args);
+        SelectSongsFilter(L"Fav");
     }
 
     void MainWindow::HomeMostPlayedSeeAll_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
     {
-        // "See all" on Most Played -> Browse view with the Most played
+        // "See all" on Most Played -> Songs view with the Most played
         // chip pre-selected. ChipMost uses Tag="Most" (MainWindow.xaml:1417).
-        BrowseButton_Click(sender, args);
-        SelectBrowseFilter(L"Most");
+        SongsButton_Click(sender, args);
+        SelectSongsFilter(L"Most");
     }
 
     namespace
@@ -417,6 +414,7 @@ namespace winrt::Last_Music_Player::implementation
         LibraryButton_Click(sender, args);
     }
 
+
     void MainWindow::QueueStartupDataLoad(winrt::hstring savedLibraryPath)
     {
         RunDetached(HydrateStartupAsync(savedLibraryPath));
@@ -427,6 +425,7 @@ namespace winrt::Last_Music_Player::implementation
         auto lifetime = get_strong();
         auto dispatcher = this->DispatcherQueue();
         auto epoch = ++m_homeHydration.StartupEpoch;
+
 
         m_homeLoadState = LoadState::Loading;
         if (ListenAgainEmptyText())
@@ -447,34 +446,46 @@ namespace winrt::Last_Music_Player::implementation
         bool appStateLoaded = false;
         if (!dbReady)
         {
+
             dbReady = DatabaseService().Initialize();
+
         }
 
         LastMusicPlayer::Backend::LibraryStats stats{};
         uint64_t maxPlayedOrder = 0;
         std::vector<winrt::Last_Music_Player::TrackInfo> sidebarPlaylists;
+        std::vector<winrt::Last_Music_Player::TrackInfo> startupHistory;
+        std::vector<LastMusicPlayer::Backend::PlaybackStatSnapshot> playbackStats;
         if (dbReady)
         {
             // Deactivate local tracks whose files were deleted off disk (e.g. the
             // whole music folder was removed) before reading any stats/pages, so
             // every IsActive-filtered surface below reflects the pruned library.
+
             PruneMissingLocalTracks();
+
             stats = DatabaseService().GetLibraryStats();
             maxPlayedOrder = DatabaseService().MaxLastPlayedOrder();
             sidebarPlaylists = DatabaseService().LoadRecentPlaylists(4);
+            startupHistory = DatabaseService().LoadHistoryTracks(true, true);
+            playbackStats = DatabaseService().LoadPlaybackStats();
+
         }
 
         try
         {
+
             auto jsonPayload = ReadTextFile(StateFilePath());
             if (!jsonPayload.empty())
             {
                 appStateSnapshot = MainWindow::ParseAppStateSnapshot(jsonPayload);
                 appStateLoaded = true;
             }
+
         }
         catch (...)
         {
+
         }
 
         co_await wil::resume_foreground(dispatcher);
@@ -486,6 +497,20 @@ namespace winrt::Last_Music_Player::implementation
         m_catalogLoaded = dbReady;
         m_libraryStats = stats;
         m_homePlaySequence = (std::max)(m_homePlaySequence, maxPlayedOrder);
+        m_homeRecentHistory = std::move(startupHistory);
+        m_homePlayCounts.clear();
+        m_homeLastPlayedOrder.clear();
+        for (auto const& playback : playbackStats)
+        {
+            auto key = playback.Track ? HomeQueueDedupeKey(playback.Track) : std::wstring{};
+            if (key.empty())
+            {
+                continue;
+            }
+            m_homePlayCounts[key] = playback.PlayCount;
+            m_homeLastPlayedOrder[key] = playback.LastPlayedOrder;
+            m_homePlaySequence = (std::max)(m_homePlaySequence, playback.LastPlayedOrder);
+        }
         MarkLibraryViewsDirty();
         m_sidebarPlaylists.Clear();
         for (auto const& playlist : sidebarPlaylists)
@@ -494,13 +519,18 @@ namespace winrt::Last_Music_Player::implementation
             ResolveArtworkPresentation(copy, L"playlist");
             m_sidebarPlaylists.Append(copy);
         }
-        UpdateBrowseScopeLabel();
+        UpdateSongsScopeLabel();
+
+
 
         if (appStateLoaded)
         {
             ApplyAppStateSnapshot(appStateSnapshot);
         }
+        SaveAppState();
+
         co_await HydrateHomeAsync(false);
+
 
     }
 
@@ -526,6 +556,7 @@ namespace winrt::Last_Music_Player::implementation
 
         auto epoch = ++m_homeHydration.HomeEpoch;
         m_homeLoadState = LoadState::Loading;
+
 
         co_await winrt::resume_background();
 
@@ -561,7 +592,7 @@ namespace winrt::Last_Music_Player::implementation
             mostPlayed = DatabaseService().LoadMostPlayedTracks(true, true);
 
             // User-liked tracks — drives the Liked Songs Highlights carousel.
-            // Reuses the same "Liked" filter the Browse view exposes.
+            // Reuses the same "Liked" filter the Songs view exposes.
             LastMusicPlayer::Backend::TrackQuery likedQuery;
             likedQuery.Filter = L"Liked";
             likedQuery.Sort = L"DateAdded";
@@ -688,7 +719,9 @@ namespace winrt::Last_Music_Player::implementation
             m_homeLikedTracks.Append(copy);
         }
 
+
         BuildHomeMixes();
+
 
         using winrt::Microsoft::UI::Xaml::Visibility;
         bool hasListenAgain = m_homeTracks.Size() > 0;
@@ -723,8 +756,10 @@ namespace winrt::Last_Music_Player::implementation
         ApplyUserDisplayName();
         m_homeLoadState = LoadState::Loaded;
 
+
         auto weakThis = get_weak();
         auto autoPlaylistEpoch = epoch;
+
         dispatcher.TryEnqueue([weakThis, autoPlaylistEpoch]()
         {
             if (auto self = weakThis.get())
@@ -733,13 +768,16 @@ namespace winrt::Last_Music_Player::implementation
                 {
                     return;
                 }
+
                 self->RefreshAutoPlaylists();
+
             }
         });
 
         if (refreshProvider)
         {
             auto refreshId = ++m_homeHydration.MixRefreshId;
+
             dispatcher.TryEnqueue([weakThis, refreshId]()
             {
                 if (auto self = weakThis.get())
@@ -766,6 +804,7 @@ namespace winrt::Last_Music_Player::implementation
             RunDetached(HydrateHomeAsync(wantRefresh));
         }
     }
+
 
     void MainWindow::PopulateHomeFromLibrary()
     {
@@ -890,7 +929,13 @@ namespace winrt::Last_Music_Player::implementation
 
     void MainWindow::BuildHomeMixes()
     {
+        auto smartLiked = std::move(m_homeMixes[L"smart-liked"]);
+        auto smartMostPlayed = std::move(m_homeMixes[L"smart-most"]);
+        auto smartRecentlyAdded = std::move(m_homeMixes[L"smart-recent"]);
         m_homeMixes.clear();
+        m_homeMixes[L"smart-liked"] = std::move(smartLiked);
+        m_homeMixes[L"smart-most"] = std::move(smartMostPlayed);
+        m_homeMixes[L"smart-recent"] = std::move(smartRecentlyAdded);
 
         auto resolveTrack = [this](winrt::Last_Music_Player::TrackInfo const& source)
         {
@@ -1290,16 +1335,15 @@ namespace winrt::Last_Music_Player::implementation
     winrt::Windows::Foundation::IAsyncAction MainWindow::RefreshHomeProviderMixesAsync(uint64_t refreshId)
     {
         auto lifetime = get_strong();
-        auto savedBaseUrl = ReadAppSettingString(L"ProviderBaseUrl");
-        auto savedApiKey = ReadAppSettingString(L"ProviderApiKey");
-        if (savedBaseUrl.empty())
+        auto& remoteMusic = RemoteMusicServiceService();
+        auto remoteScope = remoteMusic.CaptureScope();
+        if (remoteScope.Mode == LastMusicPlayer::Backend::RemoteAccessMode::LocalOnly
+            || !remoteMusic.IsModeAvailable(remoteScope.Mode)
+            || !remoteMusic.IsCurrent(remoteScope))
         {
             co_return;
         }
-
-        LastMusicPlayer::Backend::ProviderClient providerClient;
-        providerClient.SetBaseUrl(savedBaseUrl);
-        providerClient.SetBearerToken(savedApiKey);
+        auto cacheScope = LastMusicPlayer::Backend::RemoteScopeCacheKey(remoteScope);
 
         auto topArtists = RankedHomeArtists(m_queue.CurrentPlaylist, m_homePlayCounts);
         auto artistOr = [&](size_t index, wchar_t const* fallback)
@@ -1345,17 +1389,22 @@ namespace winrt::Last_Music_Player::implementation
 
             try
             {
-                auto cacheKey = std::wstring(savedBaseUrl.c_str()) + L"\nhome\n" + std::wstring(request.query.c_str());
+                auto cacheKey = cacheScope + L"\nhome\n" + std::wstring(request.query.c_str());
                 std::vector<winrt::Last_Music_Player::TrackInfo> remoteTracks;
                 auto cached = m_remoteSearchCache.find(cacheKey);
                 if (cached != m_remoteSearchCache.end())
                 {
+                    if (!remoteMusic.IsCurrent(remoteScope))
+                    {
+                        co_return;
+                    }
                     remoteTracks = cached->second;
                 }
                 else
                 {
-                    auto payload = co_await providerClient.SearchAsync(request.query);
-                    if (refreshId != m_homeHydration.MixRefreshId)
+                    auto payload = co_await remoteMusic.SearchAsync(remoteScope, request.query);
+                    if (refreshId != m_homeHydration.MixRefreshId
+                        || !remoteMusic.IsCurrent(remoteScope))
                     {
                         co_return;
                     }
@@ -1367,6 +1416,10 @@ namespace winrt::Last_Music_Player::implementation
                     m_remoteSearchCache[cacheKey] = remoteTracks;
                 }
 
+                if (!remoteMusic.IsCurrent(remoteScope))
+                {
+                    co_return;
+                }
                 auto& mix = m_homeMixes[request.id];
                 std::vector<winrt::Last_Music_Player::TrackInfo> merged;
                 merged.reserve(mix.size() + remoteTracks.size());
@@ -1400,7 +1453,15 @@ namespace winrt::Last_Music_Player::implementation
                     for (auto const& track : remoteTracks) append(track);
                 }
 
+                if (!remoteMusic.IsCurrent(remoteScope))
+                {
+                    co_return;
+                }
                 mix = std::move(merged);
+            }
+            catch (winrt::hresult_canceled const&)
+            {
+                co_return;
             }
             catch (...)
             {
@@ -1408,7 +1469,8 @@ namespace winrt::Last_Music_Player::implementation
             }
         }
 
-        if (refreshId == m_homeHydration.MixRefreshId)
+        if (refreshId == m_homeHydration.MixRefreshId
+            && remoteMusic.IsCurrent(remoteScope))
         {
             RefreshAutoPlaylists();
         }

@@ -143,7 +143,17 @@ namespace winrt::Last_Music_Player::implementation
         if (auto t = FsLyricsTrackTitle()) t.Text(winrt::hstring{ headerTitle });
         if (auto t = FsLyricsTrackArtist()) t.Text(winrt::hstring{ headerArtist });
 
-        auto sourceLabel = result.Source.empty() ? std::wstring{} : std::wstring{ L"Source: Music API" };
+        std::wstring sourceLabel;
+        auto source = ToLowerCopy(winrt::hstring{ result.Source });
+        if (source == L"lyrics" || source == L"provider" || source == L"music-api")
+        {
+            sourceLabel = L"Source: Music API";
+        }
+        else if (source == L"account")
+        {
+            sourceLabel = L"Source: Account";
+        }
+
         auto applySource = [&](TextBlock const& tag)
         {
             if (!tag) return;
@@ -168,7 +178,7 @@ namespace winrt::Last_Music_Player::implementation
 
         if (result.Instrumental && result.Synced.empty() && result.Plain.empty())
         {
-            ResetLyricsViewToEmpty(L"Instrumental — no vocals.");
+            ResetLyricsViewToEmpty(L"Instrumental. No vocals.");
             return;
         }
 
@@ -277,9 +287,7 @@ namespace winrt::Last_Music_Player::implementation
         {
             m_lyricsService = std::make_shared<LastMusicPlayer::Backend::LyricsService>();
         }
-        m_lyricsService->SetProviderEndpoint(
-            CurrentProviderBaseUrl(),
-            ReadAppSettingString(L"ProviderApiKey"));
+        m_lyricsService->SetRemoteMusicService(&RemoteMusicServiceService());
 
         auto epoch = ++m_lyricsHydrationEpoch;
         auto durationMs = static_cast<int64_t>(track.DurationSeconds() * 1000.0);

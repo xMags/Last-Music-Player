@@ -69,9 +69,17 @@ namespace winrt::Last_Music_Player::implementation
             title = L"Untitled Album";
         }
 
+        auto operationLease = UserDataOperationGateService().TryEnter();
+        if (!operationLease)
+        {
+            LibraryImportStatusText().Text(L"Cleanup is in progress");
+            co_return;
+        }
+
         auto albumId = DatabaseService().CreateAlbumCollection(std::wstring(title.c_str()));
         (void)albumId;
         MarkLibraryViewsDirty();
+        operationLease.reset();
         co_await HydrateLibraryTabAsync(L"Albums", true);
         LibraryImportStatusText().Text(L"Album created");
     }
@@ -108,16 +116,20 @@ namespace winrt::Last_Music_Player::implementation
         {
             co_return;
         }
+        if (RemoteMusicServiceService().Mode() == LastMusicPlayer::Backend::RemoteAccessMode::Account)
+        {
+            LibraryImportStatusText().Text(L"Account mode supports playlist imports from the Playlists view");
+            co_return;
+        }
+
 
         try
         {
             LibraryImportStatusText().Text(L"Importing album...");
 
-            auto baseUrl = ReadAppSettingString(L"ProviderBaseUrl");
-            LastMusicPlayer::Backend::ProviderClient client(baseUrl.empty() ? winrt::hstring{ L"http://127.0.0.1:4527" } : baseUrl);
-            client.SetBearerToken(ReadAppSettingString(L"ProviderApiKey"));
-
-            auto payload = co_await client.ImportAlbumAsync(url);
+            auto& remoteMusic = RemoteMusicServiceService();
+            auto remoteScope = remoteMusic.CaptureScope();
+            auto payload = co_await remoteMusic.ImportAsync(remoteScope, url);
             auto root = winrt::Windows::Data::Json::JsonObject::Parse(payload);
             auto albumObject = root.GetNamedObject(L"album");
             auto trackArray = root.GetNamedArray(L"tracks");
@@ -135,6 +147,21 @@ namespace winrt::Last_Music_Player::implementation
             auto artworkUrl = albumObject.GetNamedString(L"artworkUrl", L"");
             auto sourceLabel = albumObject.GetNamedString(L"sourceLabel", L"Music API");
             auto collectionKind = ToLowerCopy(albumObject.GetNamedString(L"collectionKind", L"album"));
+            if (!remoteMusic.IsCurrent(remoteScope))
+            {
+                co_return;
+            }
+            auto operationLease = UserDataOperationGateService().TryEnter();
+            if (!operationLease)
+            {
+                LibraryImportStatusText().Text(L"Cleanup is in progress");
+                co_return;
+            }
+            if (!remoteMusic.IsCurrent(remoteScope))
+            {
+                co_return;
+            }
+
             if (collectionKind == L"playlist")
             {
                 sourceUrl = CanonicalProviderCollectionSourceUrl(sourceUrl);
@@ -178,6 +205,7 @@ namespace winrt::Last_Music_Player::implementation
 
                 DatabaseService().ReplacePlaylistTracks(playlistId, trackIds);
                 MarkLibraryViewsDirty();
+                operationLease.reset();
                 if (LibTabPlaylists())
                 {
                     LibTabPlaylists().IsChecked(true);
@@ -237,6 +265,7 @@ namespace winrt::Last_Music_Player::implementation
 
             DatabaseService().ReplaceAlbumCollectionTracks(albumId, trackIds);
             MarkLibraryViewsDirty();
+            operationLease.reset();
             co_await HydrateLibraryTabAsync(L"Albums", true);
             LibraryImportStatusText().Text(winrt::hstring(std::wstring(L"Imported ") + std::to_wstring(trackIds.size()) + L" songs"));
             winrt::Microsoft::UI::Xaml::Media::ImageSource detailArt{ nullptr };
@@ -250,6 +279,10 @@ namespace winrt::Last_Music_Player::implementation
                 }
             }
             ShowLibraryDetail(L"album-collection", winrt::hstring(albumKey), albumTitle, albumArtist, detailArt);
+        }
+        catch (winrt::hresult_canceled const&)
+        {
+            co_return;
         }
         catch (winrt::hresult_error const& ex)
         {
@@ -270,6 +303,7 @@ namespace winrt::Last_Music_Player::implementation
         {
             co_return;
         }
+        auto remoteScope = RemoteMusicServiceService().CaptureScope();
 
         winrt::Microsoft::UI::Xaml::Controls::TextBox nameBox;
         nameBox.Header(winrt::box_value(winrt::hstring(L"Playlist name")));
@@ -295,9 +329,51 @@ namespace winrt::Last_Music_Player::implementation
         {
             title = L"Untitled Playlist";
         }
+        if (m_libraryScope == L"Account")
+        {
+            if (remoteScope.Mode != LastMusicPlayer::Backend::RemoteAccessMode::Account
+                || !RemoteMusicServiceService().IsCurrent(remoteScope)
+                || AccountSessionService().Status() != LastMusicPlayer::Backend::AccountSessionStatus::Validated)
+            {
+                LibraryImportStatusText().Text(L"Account playlists require an online signed-in account");
+                co_return;
+            }
+            try
+            {
+                auto body = BuildAccountPlaylistJson(title);
+                if (body.empty())
+                {
+                    LibraryImportStatusText().Text(L"Playlist name is invalid");
+                    co_return;
+                }
+                auto operationLease = UserDataOperationGateService().TryEnter();
+                if (!operationLease)
+                {
+                    LibraryImportStatusText().Text(L"Cleanup is in progress");
+                    co_return;
+                }
+                co_await RemoteMusicServiceService().CreateAccountPlaylistAsync(remoteScope, body);
+                co_await SynchronizeAccountLibraryAsync(false);
+                operationLease.reset();
+                LibraryImportStatusText().Text(L"Account playlist created");
+            }
+            catch (...)
+            {
+                LibraryImportStatusText().Text(L"Account playlist could not be created");
+            }
+            co_return;
+        }
 
+
+        auto operationLease = UserDataOperationGateService().TryEnter();
+        if (!operationLease)
+        {
+            LibraryImportStatusText().Text(L"Cleanup is in progress");
+            co_return;
+        }
         auto playlistId = DatabaseService().CreatePlaylist(std::wstring(title.c_str()));
         MarkLibraryViewsDirty();
+        operationLease.reset();
         co_await HydrateLibraryTabAsync(L"Playlists", true);
         LibraryImportStatusText().Text(L"Playlist created");
 
@@ -345,15 +421,46 @@ namespace winrt::Last_Music_Player::implementation
         {
             co_return;
         }
+        auto& remoteMusic = RemoteMusicServiceService();
+        auto remoteScope = remoteMusic.CaptureScope();
+        auto accountMode = remoteScope.Mode == LastMusicPlayer::Backend::RemoteAccessMode::Account;
+        if (accountMode && m_libraryScope != L"Account")
+        {
+            LibraryImportStatusText().Text(L"Select the Account scope before importing an account playlist");
+            co_return;
+        }
+
 
         try
         {
-            LibraryImportStatusText().Text(L"Importing playlist...");
+            LibraryImportStatusText().Text(accountMode ? L"Importing account playlist..." : L"Importing playlist...");
+            if (accountMode)
+            {
+                if (AccountSessionService().Status() != LastMusicPlayer::Backend::AccountSessionStatus::Validated)
+                {
+                    LibraryImportStatusText().Text(L"Account playlists can only be imported while online");
+                    co_return;
+                }
+                auto body = BuildAccountPlaylistImportJson(url);
+                if (body.empty())
+                {
+                    LibraryImportStatusText().Text(L"That playlist link is not supported");
+                    co_return;
+                }
+                auto operationLease = UserDataOperationGateService().TryEnter();
+                if (!operationLease)
+                {
+                    LibraryImportStatusText().Text(L"Cleanup is in progress");
+                    co_return;
+                }
+                co_await remoteMusic.CreateAccountPlaylistAsync(remoteScope, body);
+                co_await SynchronizeAccountLibraryAsync(false);
+                operationLease.reset();
+                LibraryImportStatusText().Text(L"Account playlist imported");
+                co_return;
+            }
 
-            auto baseUrl = ReadAppSettingString(L"ProviderBaseUrl");
-            LastMusicPlayer::Backend::ProviderClient client(baseUrl.empty() ? winrt::hstring{ L"http://127.0.0.1:4527" } : baseUrl);
-            client.SetBearerToken(ReadAppSettingString(L"ProviderApiKey"));
-            auto payload = co_await client.ImportAlbumAsync(url);
+            auto payload = co_await remoteMusic.ImportAsync(remoteScope, url);
 
             auto root = winrt::Windows::Data::Json::JsonObject::Parse(payload);
             auto albumObject = root.GetNamedObject(L"album");
@@ -371,6 +478,20 @@ namespace winrt::Last_Music_Player::implementation
             auto playlistCaption = albumObject.GetNamedString(L"artist", L"Music API");
             auto artworkUrl = albumObject.GetNamedString(L"artworkUrl", L"");
             auto sourceLabel = albumObject.GetNamedString(L"sourceLabel", L"Music API");
+            if (!remoteMusic.IsCurrent(remoteScope))
+            {
+                co_return;
+            }
+            auto operationLease = UserDataOperationGateService().TryEnter();
+            if (!operationLease)
+            {
+                LibraryImportStatusText().Text(L"Cleanup is in progress");
+                co_return;
+            }
+            if (!remoteMusic.IsCurrent(remoteScope))
+            {
+                co_return;
+            }
             auto playlistKey = L"import-playlist|" + ToLowerCopy(provider) + L"|" + std::wstring(sourceUrl.c_str());
 
             LastMusicPlayer::Backend::TrackInfo playlist;
@@ -411,6 +532,7 @@ namespace winrt::Last_Music_Player::implementation
 
             DatabaseService().ReplacePlaylistTracks(playlistId, trackIds);
             MarkLibraryViewsDirty();
+            operationLease.reset();
             co_await HydrateLibraryTabAsync(L"Playlists", true);
             LibraryImportStatusText().Text(winrt::hstring(std::wstring(L"Imported playlist with ") + std::to_wstring(trackIds.size()) + L" songs"));
 
@@ -423,6 +545,10 @@ namespace winrt::Last_Music_Player::implementation
                     break;
                 }
             }
+        }
+        catch (winrt::hresult_canceled const&)
+        {
+            co_return;
         }
         catch (winrt::hresult_error const& ex)
         {
@@ -442,6 +568,9 @@ namespace winrt::Last_Music_Player::implementation
         {
             co_return;
         }
+        auto accountBinding = playlist.Provider() == L"account"
+            ? AccountPlaylistBindingFor(playlist)
+            : std::optional<AccountPlaylistBinding>{};
 
         winrt::Microsoft::UI::Xaml::Controls::TextBox nameBox;
         nameBox.Header(winrt::box_value(winrt::hstring(L"Playlist name")));
@@ -468,6 +597,45 @@ namespace winrt::Last_Music_Player::implementation
             title = L"Untitled Playlist";
         }
 
+        if (playlist.Provider() == L"account")
+        {
+            if (!accountBinding
+                || !IsCurrentAccountPlaylistBinding(*accountBinding)
+                || playlist.RemoteId().empty())
+            {
+                LibraryImportStatusText().Text(L"The account playlist changed. Refresh and try again.");
+                co_return;
+            }
+            try
+            {
+                auto body = BuildAccountPlaylistJson(title);
+                auto operationLease = UserDataOperationGateService().TryEnter();
+                if (!operationLease)
+                {
+                    LibraryImportStatusText().Text(L"Cleanup is in progress");
+                    co_return;
+                }
+                co_await RemoteMusicServiceService().UpdateAccountPlaylistAsync(
+                    accountBinding->Scope,
+                    playlist.RemoteId(),
+                    body);
+                co_await SynchronizeAccountLibraryAsync(false);
+                operationLease.reset();
+                LibraryImportStatusText().Text(L"Account playlist renamed");
+            }
+            catch (...)
+            {
+                LibraryImportStatusText().Text(L"Account playlist rename failed");
+            }
+            co_return;
+        }
+
+        auto operationLease = UserDataOperationGateService().TryEnter();
+        if (!operationLease)
+        {
+            LibraryImportStatusText().Text(L"Cleanup is in progress");
+            co_return;
+        }
         if (!DatabaseService().RenamePlaylist(std::wstring(playlist.SourceUrl().c_str()), std::wstring(title.c_str())))
         {
             LibraryImportStatusText().Text(L"Playlist rename failed");
@@ -475,6 +643,7 @@ namespace winrt::Last_Music_Player::implementation
         }
 
         MarkLibraryViewsDirty();
+        operationLease.reset();
         co_await HydrateLibraryTabAsync(L"Playlists", true);
         LibraryImportStatusText().Text(L"Playlist renamed");
     }
@@ -487,6 +656,9 @@ namespace winrt::Last_Music_Player::implementation
         {
             co_return;
         }
+        auto accountBinding = playlist.Provider() == L"account"
+            ? AccountPlaylistBindingFor(playlist)
+            : std::optional<AccountPlaylistBinding>{};
 
         winrt::Microsoft::UI::Xaml::Controls::TextBlock message;
         message.Text(L"This removes the playlist. Songs stay in your library.");
@@ -506,6 +678,49 @@ namespace winrt::Last_Music_Player::implementation
             co_return;
         }
 
+        if (playlist.Provider() == L"account")
+        {
+            if (!accountBinding
+                || !IsCurrentAccountPlaylistBinding(*accountBinding)
+                || playlist.RemoteId().empty())
+            {
+                LibraryImportStatusText().Text(L"The account playlist changed. Refresh and try again.");
+                co_return;
+            }
+            try
+            {
+                auto operationLease = UserDataOperationGateService().TryEnter();
+                if (!operationLease)
+                {
+                    LibraryImportStatusText().Text(L"Cleanup is in progress");
+                    co_return;
+                }
+                co_await RemoteMusicServiceService().DeleteAccountPlaylistAsync(
+                    accountBinding->Scope,
+                    playlist.RemoteId());
+                if (LibraryDetailContent().Visibility() == winrt::Microsoft::UI::Xaml::Visibility::Visible
+                    && m_libraryDetailKind == L"playlist"
+                    && m_libraryDetailKey == std::wstring(playlist.SourceUrl().c_str()))
+                {
+                    HideLibraryDetail();
+                }
+                co_await SynchronizeAccountLibraryAsync(false);
+                operationLease.reset();
+                LibraryImportStatusText().Text(L"Account playlist deleted");
+            }
+            catch (...)
+            {
+                LibraryImportStatusText().Text(L"Account playlist delete failed");
+            }
+            co_return;
+        }
+
+        auto operationLease = UserDataOperationGateService().TryEnter();
+        if (!operationLease)
+        {
+            LibraryImportStatusText().Text(L"Cleanup is in progress");
+            co_return;
+        }
         auto playlistKey = std::wstring(playlist.SourceUrl().c_str());
         if (!DatabaseService().DeletePlaylist(playlistKey))
         {
@@ -521,6 +736,7 @@ namespace winrt::Last_Music_Player::implementation
         }
 
         MarkLibraryViewsDirty();
+        operationLease.reset();
         co_await HydrateLibraryTabAsync(L"Playlists", true);
         LibraryImportStatusText().Text(L"Playlist deleted");
     }
@@ -560,6 +776,12 @@ namespace winrt::Last_Music_Player::implementation
             co_return;
         }
 
+        auto operationLease = UserDataOperationGateService().TryEnter();
+        if (!operationLease)
+        {
+            LibraryImportStatusText().Text(L"Cleanup is in progress");
+            co_return;
+        }
         auto albumKey = std::wstring(album.SourceUrl().c_str());
         if (!DatabaseService().DeleteAlbumCollection(albumKey))
         {
@@ -575,6 +797,7 @@ namespace winrt::Last_Music_Player::implementation
         }
 
         MarkLibraryViewsDirty();
+        operationLease.reset();
         co_await HydrateLibraryTabAsync(L"Albums", true);
         LibraryImportStatusText().Text(L"Album deleted");
     }

@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Backend/LyricsService.h"
-#include "Backend/ProviderClient.h"
+#include "Backend/RemoteMusicService.h"
 
 #include <winrt/Windows.Data.Json.h>
 
@@ -103,13 +103,17 @@ namespace LastMusicPlayer::Backend
 
     LyricsService::LyricsService() = default;
 
-    void LyricsService::SetProviderEndpoint(winrt::hstring const& baseUrl, winrt::hstring const& bearerToken)
+    void LyricsService::SetRemoteMusicService(RemoteMusicService* service)
     {
-        if (!baseUrl.empty())
+        if (m_remoteMusicService != service)
         {
-            m_baseUrl = baseUrl;
+            m_remoteMusicService = service;
+            ClearCache();
         }
-        m_token = bearerToken;
+    }
+
+    void LyricsService::ClearCache() noexcept
+    {
         m_cache.clear();
         m_cacheOrder.clear();
     }
@@ -121,27 +125,36 @@ namespace LastMusicPlayer::Backend
         int64_t durationMs,
         winrt::hstring sourceUrl)
     {
-        auto key = MakeCacheKey(artist, title, durationMs, sourceUrl);
+        auto service = m_remoteMusicService;
+        if (!service)
+        {
+            co_return winrt::hstring{};
+        }
+
+        auto scope = service->CaptureScope();
+        auto key = RemoteScopeCacheKey(scope) + L"|"
+            + MakeCacheKey(artist, title, durationMs, sourceUrl);
 
         winrt::hstring cached;
         if (TryGetCachedPayload(key, cached))
         {
-            co_return cached;
+            co_return service->IsCurrent(scope) ? cached : winrt::hstring{};
         }
-
-        auto baseUrl = m_baseUrl;
-        auto token = m_token;
 
         winrt::hstring payload;
         try
         {
-            ProviderClient client{ baseUrl };
-            client.SetBearerToken(token);
-            payload = co_await client.GetLyricsAsync(artist, title, album, durationMs, sourceUrl);
+            payload = co_await service->GetLyricsAsync(
+                artist, title, album, durationMs, sourceUrl);
         }
         catch (...)
         {
-            payload = winrt::hstring{};
+            co_return winrt::hstring{};
+        }
+
+        if (!service->IsCurrent(scope) || payload.empty())
+        {
+            co_return winrt::hstring{};
         }
 
         StoreCachedPayload(key, payload);

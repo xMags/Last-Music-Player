@@ -127,10 +127,17 @@ namespace winrt::Last_Music_Player::implementation
         winrt::Windows::Storage::StorageFolder folder = co_await picker.PickSingleFolderAsync();
         if (folder)
         {
+            auto lease = UserDataOperationGateService().TryEnter();
+            if (!lease)
+            {
+                co_return;
+            }
+
             WriteAppSettingString(L"MusicLibraryPath", folder.Path());
 
             // Update the Settings TextBox
             MusicFolderPathBox().Text(folder.Path());
+            lease.reset();
 
             co_await ScanLibraryAsync(folder);
         }
@@ -166,6 +173,12 @@ namespace winrt::Last_Music_Player::implementation
 
     void MainWindow::PruneMissingLocalTracks()
     {
+        auto lease = UserDataOperationGateService().TryEnter();
+        if (!lease)
+        {
+            return;
+        }
+
         // Local tracks are only deactivated during an explicit folder scan, and
         // that scan no-ops when the saved folder was deleted (GetFolderFromPath
         // throws). So without this, music removed from disk lingers forever in
@@ -214,7 +227,7 @@ namespace winrt::Last_Music_Player::implementation
         co_await HydrateLibraryTabAsync(L"Playlists", true);
     }
 
-    winrt::Windows::Foundation::IAsyncAction MainWindow::BrowseRescan_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
+    winrt::Windows::Foundation::IAsyncAction MainWindow::SongsRescan_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
     {
         (void)sender;
         (void)args;
@@ -251,15 +264,15 @@ namespace winrt::Last_Music_Player::implementation
 
         bool controlsEnabled = !visible;
         if (ScanMusicButton()) ScanMusicButton().IsEnabled(controlsEnabled);
-        if (BrowseRescanButton()) BrowseRescanButton().IsEnabled(controlsEnabled);
+        if (SongsRescanButton()) SongsRescanButton().IsEnabled(controlsEnabled);
         if (ChangeFolderButton()) ChangeFolderButton().IsEnabled(controlsEnabled);
-        if (visible && BrowseViewContainer().Visibility() == winrt::Microsoft::UI::Xaml::Visibility::Visible && !status.empty())
+        if (visible && SongsViewContainer().Visibility() == winrt::Microsoft::UI::Xaml::Visibility::Visible && !status.empty())
         {
-            BrowseSubtitle().Text(status);
+            SongsSubtitle().Text(status);
         }
-        else if (!visible && BrowseViewContainer().Visibility() == winrt::Microsoft::UI::Xaml::Visibility::Visible)
+        else if (!visible && SongsViewContainer().Visibility() == winrt::Microsoft::UI::Xaml::Visibility::Visible)
         {
-            UpdateBrowseStats();
+            UpdateSongsStats();
         }
     }
 
@@ -268,6 +281,12 @@ namespace winrt::Last_Music_Player::implementation
         auto lifetime = get_strong();
         auto dispatcher = DispatcherQueue();
         if (!folder)
+        {
+            co_return false;
+        }
+
+        auto operationLease = UserDataOperationGateService().TryEnter();
+        if (!operationLease)
         {
             co_return false;
         }
@@ -296,7 +315,6 @@ namespace winrt::Last_Music_Player::implementation
             std::wstring text = L"Scanning " + std::to_wstring(done) + L" / " + std::to_wstring(total) + L" tracks...";
             SetLibraryScanUi(true, winrt::hstring{ text }, true);
         };
-        uint32_t skippedCount = 0;
 
         try
         {
@@ -337,19 +355,6 @@ namespace winrt::Last_Music_Player::implementation
                 }
                 catch (...)
                 {
-                    // Most common cause: another process (antivirus,
-                    // Windows Search indexer, OneDrive) holds the file
-                    // open. Pre-fix we just silently dropped the track
-                    // and the user had no way to know N tracks went
-                    // missing. Log the path so it shows up in the
-                    // startup trace and count it so the final summary
-                    // can mention how many were skipped.
-                    try
-                    {
-                        std::string msg = "scan skipped (locked / props failed): " + ToUtf8(file.Path());
-                    }
-                    catch (...) {}
-                    ++skippedCount;
                     ++scannedCount;
                     continue;
                 }
@@ -448,15 +453,6 @@ namespace winrt::Last_Music_Player::implementation
                 {
                     updateProgress(scannedCount, totalCount);
                 }
-                // Trace breadcrumb every 50 files so an intermittent
-                // crash deep in the scan loop pinpoints which file
-                // batch was last alive when the process died.
-                if (scannedCount % 50 == 0)
-                {
-                    std::string crumb = "scan progress: " + std::to_string(scannedCount)
-                        + "/" + std::to_string(totalCount)
-                        + " skipped=" + std::to_string(skippedCount);
-                }
             }
 
             if (isCancelled())
@@ -464,6 +460,7 @@ namespace winrt::Last_Music_Player::implementation
                 finishScan();
                 co_return false;
             }
+
 
             SetLibraryScanUi(true, L"Updating library database...", false);
             auto persistedLibrary = std::move(newLibrary);
@@ -492,6 +489,7 @@ namespace winrt::Last_Music_Player::implementation
             }
             co_await wil::resume_foreground(dispatcher);
 
+
             if (!dbSucceeded || isCancelled())
             {
                 finishScan();
@@ -499,6 +497,7 @@ namespace winrt::Last_Music_Player::implementation
             }
 
             newLibrary = std::move(persistedLibrary);
+
             winrt::Last_Music_Player::TrackInfo currentTrack{ nullptr };
             try { currentTrack = AudioPlayerService().GetCurrentTrack(); } catch (...) {}
             std::wstring currentKey;
@@ -526,37 +525,40 @@ namespace winrt::Last_Music_Player::implementation
                 }
                 catch (...) {}
             }
-            if (currentTrack && currentIndex >= 0 && m_queue.Queue.empty())
+
+            try
             {
-                try
-                {
-                    m_queue.CurrentPlaylist = newLibrary;
-                    m_queue.CurrentTrackIndex = currentIndex;
-                    RebuildUpNextQueue();
-                }
-                catch (...) {}
+                m_queue.CurrentPlaylist = newLibrary;
+                m_queue.CurrentTrackIndex = currentIndex;
             }
+            catch (...) {}
+            if (m_queue.Queue.empty())
+            {
+
+                try { RebuildUpNextQueue(); } catch (...) {}
+
+            }
+
             try { MarkLibraryViewsDirty(); } catch (...) {}
+
             try { co_await HydrateHomeAsync(false); } catch (...) {}
+
             if (isCancelled())
             {
                 finishScan();
                 co_return false;
             }
-            if (BrowseViewContainer().Visibility() == winrt::Microsoft::UI::Xaml::Visibility::Visible)
+            if (SongsViewContainer().Visibility() == winrt::Microsoft::UI::Xaml::Visibility::Visible)
             {
-                try { ApplyBrowseFilterSort(); } catch (...) {}
+
+                try { ApplySongsFilterSort(); } catch (...) {}
+
             }
             if (LibraryViewContainer().Visibility() == winrt::Microsoft::UI::Xaml::Visibility::Visible)
             {
+
                 try { co_await HydrateLibraryTabAsync(L"Playlists", true); } catch (...) {}
-            }
-            // Surface scan totals (including the previously-invisible
-            // skipped count). Per-track skip reasons are already in
-            // the trace file from the catch block; this is the summary.
-            {
-                std::string summary = "scan complete: kept=" + std::to_string(newLibrary.size())
-                    + " skipped=" + std::to_string(skippedCount);
+
             }
             finishScan();
             co_return true;

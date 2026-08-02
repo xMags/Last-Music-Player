@@ -51,10 +51,24 @@ namespace winrt::Last_Music_Player::implementation
             co_return;
         }
 
+        std::optional<AccountPlaylistDetailContext> accountContext;
+        if (IsAccountPlaylistDetail())
+        {
+            accountContext = CaptureAccountPlaylistDetailContext();
+            if (!accountContext)
+            {
+                HideLibraryDetail();
+                co_return;
+            }
+        }
+
         auto dispatcher = this->DispatcherQueue();
-        auto epoch = ++m_libraryDetailHydrationEpoch;
+        auto epoch = m_libraryDetailHydrationEpoch;
         auto offset = static_cast<uint32_t>(m_libraryDetailAllResults.size());
-        auto query = CurrentLibraryDetailQuery(offset, kLibrarySongPageSize);
+        auto query = CurrentLibraryDetailQuery(
+            offset,
+            kLibrarySongPageSize,
+            accountContext ? accountContext->Binding.OwnerId : std::wstring{});
         m_libraryDetailPageLoading = true;
         auto pageLoadId = ++m_libraryDetailPageLoadId;
 
@@ -68,6 +82,11 @@ namespace winrt::Last_Music_Player::implementation
             {
                 m_libraryDetailPageLoading = false;
             }
+            co_return;
+        }
+        if (accountContext && !IsCurrentAccountPlaylistDetailContext(*accountContext))
+        {
+            HideLibraryDetail();
             co_return;
         }
 
@@ -126,15 +145,29 @@ namespace winrt::Last_Music_Player::implementation
     {
         auto lifetime = get_strong();
         auto dispatcher = this->DispatcherQueue();
-        std::vector<winrt::Last_Music_Player::TrackInfo> tracks;
+        auto epoch = m_libraryDetailHydrationEpoch;
+        std::optional<AccountPlaylistDetailContext> accountContext;
+        if (IsAccountPlaylistDetail())
+        {
+            accountContext = CaptureAccountPlaylistDetailContext();
+            if (!accountContext)
+            {
+                HideLibraryDetail();
+                co_return;
+            }
+        }
 
+        std::vector<winrt::Last_Music_Player::TrackInfo> tracks;
         if (m_libraryDetailKind == L"auto-playlist")
         {
             tracks = m_libraryDetailAllResults;
         }
         else if (DatabaseService().IsInitialized())
         {
-            auto query = CurrentLibraryDetailQuery(0, 0);
+            auto query = CurrentLibraryDetailQuery(
+                0,
+                0,
+                accountContext ? accountContext->Binding.OwnerId : std::wstring{});
             co_await winrt::resume_background();
             tracks = DatabaseService().LoadTracksForQuery(query);
             co_await wil::resume_foreground(dispatcher);
@@ -144,14 +177,38 @@ namespace winrt::Last_Music_Player::implementation
             tracks = m_libraryDetailAllResults;
         }
 
-        if (!tracks.empty())
+        if (epoch != m_libraryDetailHydrationEpoch)
         {
-            if (!clickedTrack)
-            {
-                clickedTrack = tracks.front();
-            }
-            QueueAndPlayVisible(tracks, clickedTrack);
+            co_return;
         }
+        if (accountContext && !IsCurrentAccountPlaylistDetailContext(*accountContext))
+        {
+            HideLibraryDetail();
+            co_return;
+        }
+        if (tracks.empty())
+        {
+            co_return;
+        }
+
+        if (accountContext && clickedTrack)
+        {
+            auto clickedRemoteId = clickedTrack.RemoteId();
+            auto found = std::find_if(tracks.begin(), tracks.end(), [&](auto const& track)
+            {
+                return !clickedRemoteId.empty() && track.RemoteId() == clickedRemoteId;
+            });
+            if (found == tracks.end())
+            {
+                co_return;
+            }
+            clickedTrack = *found;
+        }
+        else if (!clickedTrack)
+        {
+            clickedTrack = tracks.front();
+        }
+        QueueAndPlayVisible(tracks, clickedTrack);
     }
 
 
@@ -179,6 +236,126 @@ namespace winrt::Last_Music_Player::implementation
 
 
 
+    void MainWindow::BindAccountPlaylist(
+        winrt::Last_Music_Player::TrackInfo const& playlist,
+        LastMusicPlayer::Backend::RemoteScopeSnapshot const& scope,
+        std::wstring const& ownerId)
+    {
+        if (!playlist
+            || playlist.Provider() != L"account"
+            || playlist.RemoteId().empty()
+            || scope.Mode != LastMusicPlayer::Backend::RemoteAccessMode::Account
+            || ownerId.empty())
+        {
+            return;
+        }
+
+        auto existing = std::find_if(
+            m_accountPlaylistBindings.begin(),
+            m_accountPlaylistBindings.end(),
+            [&](AccountPlaylistBinding const& binding)
+            {
+                return binding.Playlist == playlist;
+            });
+        if (existing != m_accountPlaylistBindings.end())
+        {
+            existing->Scope = scope;
+            existing->OwnerId = ownerId;
+            return;
+        }
+        m_accountPlaylistBindings.push_back({ playlist, scope, ownerId });
+    }
+
+    std::optional<MainWindow::AccountPlaylistBinding> MainWindow::AccountPlaylistBindingFor(
+        winrt::Last_Music_Player::TrackInfo const& playlist) const
+    {
+        if (!playlist)
+        {
+            return std::nullopt;
+        }
+        auto found = std::find_if(
+            m_accountPlaylistBindings.begin(),
+            m_accountPlaylistBindings.end(),
+            [&](AccountPlaylistBinding const& binding)
+            {
+                return binding.Playlist == playlist;
+            });
+        if (found == m_accountPlaylistBindings.end())
+        {
+            return std::nullopt;
+        }
+        return *found;
+    }
+
+    bool MainWindow::IsCurrentAccountPlaylistBinding(AccountPlaylistBinding const& binding)
+    {
+        auto snapshot = AccountSessionService().Snapshot();
+        return binding.Playlist
+            && !binding.OwnerId.empty()
+            && binding.Scope.Mode == LastMusicPlayer::Backend::RemoteAccessMode::Account
+            && snapshot.Status == LastMusicPlayer::Backend::AccountSessionStatus::Validated
+            && snapshot.Generation == binding.Scope.AccountGeneration
+            && snapshot.Profile.Id == winrt::hstring(binding.OwnerId)
+            && DatabaseService().ActiveAccountId() == binding.OwnerId
+            && RemoteMusicServiceService().IsCurrent(binding.Scope);
+    }
+
+    bool MainWindow::IsAccountPlaylistDetail() const noexcept
+    {
+        static constexpr wchar_t accountPrefix[] = L"account-playlist|";
+        return m_libraryDetailKind == L"playlist"
+            && m_libraryDetailKey.starts_with(accountPrefix);
+    }
+
+    std::optional<MainWindow::AccountPlaylistDetailContext>
+        MainWindow::CaptureAccountPlaylistDetailContext()
+    {
+        if (!IsAccountPlaylistDetail() || !m_libraryDetailAccountBinding)
+        {
+            return std::nullopt;
+        }
+
+        static constexpr wchar_t accountPrefix[] = L"account-playlist|";
+        auto playlistId = m_libraryDetailKey.substr(std::size(accountPrefix) - 1);
+        auto binding = *m_libraryDetailAccountBinding;
+        if (playlistId.empty()
+            || !IsCurrentAccountPlaylistBinding(binding)
+            || binding.Playlist.RemoteId() != winrt::hstring(playlistId))
+        {
+            return std::nullopt;
+        }
+
+        return AccountPlaylistDetailContext{
+            std::move(binding),
+            m_libraryDetailKey,
+            std::move(playlistId),
+            m_libraryDetailHydrationEpoch
+        };
+    }
+
+    bool MainWindow::IsCurrentAccountPlaylistDetailContext(
+        AccountPlaylistDetailContext const& context)
+    {
+        if (context.DetailEpoch != m_libraryDetailHydrationEpoch
+            || context.DetailKey != m_libraryDetailKey
+            || context.PlaylistId.empty()
+            || !IsAccountPlaylistDetail()
+            || !m_libraryDetailAccountBinding)
+        {
+            return false;
+        }
+
+        auto const& current = *m_libraryDetailAccountBinding;
+        return current.Playlist == context.Binding.Playlist
+            && current.OwnerId == context.Binding.OwnerId
+            && current.Scope.Mode == context.Binding.Scope.Mode
+            && current.Scope.Generation == context.Binding.Scope.Generation
+            && current.Scope.AccountGeneration == context.Binding.Scope.AccountGeneration
+            && current.Scope.CachePartition == context.Binding.Scope.CachePartition
+            && current.Playlist.RemoteId() == winrt::hstring(context.PlaylistId)
+            && IsCurrentAccountPlaylistBinding(current);
+    }
+
     winrt::Windows::Foundation::IAsyncAction MainWindow::LibraryGroup_ItemClick(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::ItemClickEventArgs const& args)
     {
         (void)sender;
@@ -193,8 +370,24 @@ namespace winrt::Last_Music_Player::implementation
         {
             kind = L"album";
         }
+        if (kind == L"playlist" && group.Provider() == L"account")
+        {
+            auto binding = AccountPlaylistBindingFor(group);
+            if (!binding || !IsCurrentAccountPlaylistBinding(*binding))
+            {
+                MarkLibraryViewsDirty();
+                co_await HydrateLibraryTabAsync(L"Playlists", true);
+                co_return;
+            }
+        }
         auto subtitle = (kind == L"album" || kind == L"album-collection" || kind == L"playlist" || kind == L"auto-playlist") ? group.Artist() : winrt::hstring{};
-        ShowLibraryDetail(kind, group.SourceUrl().empty() ? group.Title() : group.SourceUrl(), group.Title(), subtitle, ApprovedDetailArtwork(group, kind));
+        ShowLibraryDetail(
+            kind,
+            group.SourceUrl().empty() ? group.Title() : group.SourceUrl(),
+            group.Title(),
+            subtitle,
+            ApprovedDetailArtwork(group, kind),
+            group);
         co_return;
     }
 
@@ -206,6 +399,16 @@ namespace winrt::Last_Music_Player::implementation
         {
             co_return;
         }
+        if (playlist.Provider() == L"account")
+        {
+            auto binding = AccountPlaylistBindingFor(playlist);
+            if (!binding || !IsCurrentAccountPlaylistBinding(*binding))
+            {
+                MarkLibraryViewsDirty();
+                co_await HydrateLibraryTabAsync(L"Playlists", true);
+                co_return;
+            }
+        }
 
         LibraryButton_Click(nullptr, nullptr);
         if (LibTabPlaylists())
@@ -213,7 +416,13 @@ namespace winrt::Last_Music_Player::implementation
             LibTabPlaylists().IsChecked(true);
             LibraryTab_Checked(LibTabPlaylists(), nullptr);
         }
-        ShowLibraryDetail(L"playlist", playlist.SourceUrl(), playlist.Title(), playlist.Artist(), ApprovedDetailArtwork(playlist, L"playlist"));
+        ShowLibraryDetail(
+            L"playlist",
+            playlist.SourceUrl(),
+            playlist.Title(),
+            playlist.Artist(),
+            ApprovedDetailArtwork(playlist, L"playlist"),
+            playlist);
         co_return;
     }
 
@@ -222,10 +431,57 @@ namespace winrt::Last_Music_Player::implementation
         winrt::hstring const& key,
         winrt::hstring const& title,
         winrt::hstring const& subtitle,
-        winrt::Microsoft::UI::Xaml::Media::ImageSource const& fallbackArt)
+        winrt::Microsoft::UI::Xaml::Media::ImageSource const& fallbackArt,
+        winrt::Last_Music_Player::TrackInfo const& sourceGroup)
     {
         auto previousKind = m_libraryDetailKind;
         auto previousKey = m_libraryDetailKey;
+        auto requestedKind = std::wstring(kind.c_str());
+        auto requestedKey = std::wstring(key.c_str());
+        auto sameDetail = previousKind == requestedKind
+            && previousKey == requestedKey;
+        static constexpr wchar_t accountPrefix[] = L"account-playlist|";
+        auto accountDetail = requestedKind == L"playlist"
+            && requestedKey.starts_with(accountPrefix);
+        if (sourceGroup && sourceGroup.Provider() == L"account" && !accountDetail)
+        {
+            return;
+        }
+        if (accountDetail)
+        {
+            std::optional<AccountPlaylistBinding> binding;
+            if (sourceGroup)
+            {
+                if (sourceGroup.Provider() != L"account")
+                {
+                    return;
+                }
+                binding = AccountPlaylistBindingFor(sourceGroup);
+            }
+            else if (sameDetail)
+            {
+                binding = m_libraryDetailAccountBinding;
+            }
+
+            auto playlistId = requestedKey.substr(std::size(accountPrefix) - 1);
+            if (!binding
+                || playlistId.empty()
+                || !IsCurrentAccountPlaylistBinding(*binding)
+                || binding->Playlist.RemoteId() != winrt::hstring(playlistId))
+            {
+                if (sameDetail && IsAccountPlaylistDetail())
+                {
+                    HideLibraryDetail();
+                }
+                return;
+            }
+            m_libraryDetailAccountBinding = std::move(binding);
+        }
+        else if (requestedKind != L"playlist" || !sameDetail)
+        {
+            m_libraryDetailAccountBinding.reset();
+        }
+
         auto detailFallbackArt = fallbackArt;
         auto checkedLoadedGroupArt = false;
         auto matchesDetailGroup = [&](winrt::Last_Music_Player::TrackInfo const& group)
@@ -290,9 +546,10 @@ namespace winrt::Last_Music_Player::implementation
             m_libraryDetailFallbackArt = nullptr;
         }
 
-        m_libraryDetailKind = std::wstring(kind.c_str());
-        m_libraryDetailKey = std::wstring(key.c_str());
+        m_libraryDetailKind = std::move(requestedKind);
+        m_libraryDetailKey = std::move(requestedKey);
         m_libraryDetailSubtitle = std::wstring(subtitle.c_str());
+        ++m_libraryDetailHydrationEpoch;
 
         m_libraryDetailTracks.Clear();
         m_libraryDetailAllResults.clear();
@@ -433,6 +690,7 @@ namespace winrt::Last_Music_Player::implementation
         m_libraryDetailKind.clear();
         m_libraryDetailKey.clear();
         m_libraryDetailSubtitle.clear();
+        m_libraryDetailAccountBinding.reset();
         m_libraryDetailFallbackArt = nullptr;
         m_libraryDetailTracks.Clear();
         m_libraryDetailAllResults.clear();
@@ -489,6 +747,18 @@ namespace winrt::Last_Music_Player::implementation
     {
         auto lifetime = get_strong();
         auto dispatcher = this->DispatcherQueue();
+        auto epoch = m_libraryDetailHydrationEpoch;
+        std::optional<AccountPlaylistDetailContext> accountContext;
+        if (IsAccountPlaylistDetail())
+        {
+            accountContext = CaptureAccountPlaylistDetailContext();
+            if (!accountContext)
+            {
+                HideLibraryDetail();
+                co_return;
+            }
+        }
+
         std::vector<winrt::Last_Music_Player::TrackInfo> tracks;
 
         // Same source-resolution as LoadLibraryDetailQueueAndPlayAsync —
@@ -500,7 +770,10 @@ namespace winrt::Last_Music_Player::implementation
         }
         else if (DatabaseService().IsInitialized())
         {
-            auto query = CurrentLibraryDetailQuery(0, 0);
+            auto query = CurrentLibraryDetailQuery(
+                0,
+                0,
+                accountContext ? accountContext->Binding.OwnerId : std::wstring{});
             co_await winrt::resume_background();
             tracks = DatabaseService().LoadTracksForQuery(query);
             co_await wil::resume_foreground(dispatcher);
@@ -510,6 +783,15 @@ namespace winrt::Last_Music_Player::implementation
             tracks = m_libraryDetailAllResults;
         }
 
+        if (epoch != m_libraryDetailHydrationEpoch)
+        {
+            co_return;
+        }
+        if (accountContext && !IsCurrentAccountPlaylistDetailContext(*accountContext))
+        {
+            HideLibraryDetail();
+            co_return;
+        }
         if (tracks.empty())
         {
             co_return;

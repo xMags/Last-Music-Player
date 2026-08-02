@@ -41,6 +41,7 @@
 #include <winrt/Microsoft.UI.Text.h>
 #include <string>
 #include <memory>
+#include <mutex>
 #include <shobjidl.h> // For IInitializeWithWindow
 #include <vector>
 #include <chrono>
@@ -69,17 +70,19 @@ namespace winrt::Last_Music_Player::implementation
     namespace
     {
         std::atomic<uint64_t> g_appStateSaveVersion{ 0 };
+        std::mutex g_appStateFileMutex;
 
-        winrt::fire_and_forget WriteLatestAppStateAsync(winrt::hstring payload, uint64_t version)
+        winrt::fire_and_forget WriteLatestAppStateAsync(
+            winrt::hstring payload,
+            uint64_t version,
+            LastMusicPlayer::Backend::UserDataOperationGate::Lease lease)
         {
+            (void)lease;
             co_await winrt::resume_background();
-            if (g_appStateSaveVersion.load(std::memory_order_acquire) != version)
-            {
-                co_return;
-            }
 
             try
             {
+                std::lock_guard lock{ g_appStateFileMutex };
                 if (g_appStateSaveVersion.load(std::memory_order_acquire) == version)
                 {
                     WriteTextFile(StateFilePath(), payload);
@@ -109,8 +112,8 @@ namespace winrt::Last_Music_Player::implementation
         HomeRecentGridView().ItemsSource(m_homeTracks);
         HomeMostPlayedGridView().ItemsSource(m_homeMostPlayedTracks);
         HomeLikedGridView().ItemsSource(m_homeLikedTracks);
-        MusicListView().ItemsSource(m_browseTracks);
-        BrowseGridView().ItemsSource(m_browseTracks);
+        MusicListView().ItemsSource(m_songsTracks);
+        SongsGridView().ItemsSource(m_songsTracks);
         SearchSongsListView().ItemsSource(m_searchTracks);
         UpNextListView().ItemsSource(m_upNextQueue);
         FsUpNext().ItemsSource(m_upNextQueue);
@@ -257,8 +260,6 @@ namespace winrt::Last_Music_Player::implementation
         m_audioPlayer.GetMediaPlayer().MediaFailed({ this, &MainWindow::OnMediaFailed });
         m_audioPlayer.GetMediaPlayer().MediaOpened({ this, &MainWindow::OnMediaOpened });
         m_audioPlayer.GetPlaybackList().CurrentItemChanged({ this, &MainWindow::OnPlaybackListCurrentItemChanged });
-        // Clear interrupted-download leftovers and enforce the cache size cap.
-        StreamCacheService().PruneOnStartup();
         ApplyGaplessSetting();
 
         // Wire Media Player events to the UI
@@ -531,20 +532,81 @@ namespace winrt::Last_Music_Player::implementation
 
         // Load previously saved music library
         auto savedProviderBaseUrl = ReadAppSettingString(L"ProviderBaseUrl");
-        auto savedProviderApiKey = ReadAppSettingString(L"ProviderApiKey");
+        auto credentialMigration = LastMusicPlayer::Backend::MigrateLegacyProviderApiKey(
+            SettingsManagerService(), CredentialStoreService());
+        auto initialRemoteMode = RemoteMusicServiceService().Mode();
+        auto savedProviderApiKey = initialRemoteMode == LastMusicPlayer::Backend::RemoteAccessMode::ApiKey
+            ? CredentialStoreService().ReadProviderApiKey()
+            : winrt::hstring{};
+        if (initialRemoteMode == LastMusicPlayer::Backend::RemoteAccessMode::ApiKey)
+        {
+            // Stream-cache maintenance is part of API-key mode. LocalOnly and
+            // Account startup do not inspect or mutate this provider-owned cache.
+            StreamCacheService().PruneOnStartup();
+        }
         if (!savedProviderBaseUrl.empty())
         {
             ProviderBaseUrlBox().Text(savedProviderBaseUrl);
         }
-        if (!savedProviderApiKey.empty())
+        ProviderApiKeyBox().Password(L"");
+        auto migrationMessage = LastMusicPlayer::Backend::CredentialMigrationMessage(credentialMigration);
+        if (!migrationMessage.empty())
         {
-            ProviderApiKeyBox().Password(savedProviderApiKey);
+            ProviderTestStatusText().Text(migrationMessage);
         }
-        if (!ProviderBaseUrlBox().Text().empty())
+        else
         {
-            ProviderTestStatusText().Text(L"Configured");
+            ProviderTestStatusText().Text(
+                !savedProviderBaseUrl.empty() && !savedProviderApiKey.empty()
+                    ? L"Configured"
+                    : L"Not configured");
         }
-        UpdateBrowseScopeLabel();
+        if (!DatabaseService().IsInitialized())
+        {
+            DatabaseService().Initialize();
+        }
+        auto weakWindow = get_weak();
+        AccountSessionService().SetOwnerChangedCallback([weakWindow](winrt::hstring const& ownerId)
+        {
+            RemoteMusicServiceService().InvalidateScope();
+            if (DatabaseService().IsInitialized())
+            {
+                auto mode = RemoteMusicServiceService().Mode();
+                if (mode == LastMusicPlayer::Backend::RemoteAccessMode::Account && ownerId.empty())
+                {
+                    RemoteMusicServiceService().SetMode(LastMusicPlayer::Backend::RemoteAccessMode::LocalOnly);
+                    mode = LastMusicPlayer::Backend::RemoteAccessMode::LocalOnly;
+                }
+                auto accountMode = mode == LastMusicPlayer::Backend::RemoteAccessMode::Account && !ownerId.empty();
+                auto modeName = accountMode
+                    ? winrt::hstring{ L"Account" }
+                    : LastMusicPlayer::Backend::RemoteAccessModeName(mode == LastMusicPlayer::Backend::RemoteAccessMode::Account
+                        ? LastMusicPlayer::Backend::RemoteAccessMode::LocalOnly
+                        : mode);
+                DatabaseService().SetRemoteLibraryContext(
+                    std::wstring(modeName.c_str()),
+                    accountMode ? std::wstring(ownerId.c_str()) : std::wstring{});
+            }
+            if (auto window = weakWindow.get())
+            {
+                window->DispatcherQueue().TryEnqueue([weakWindow]()
+                {
+                    if (auto current = weakWindow.get())
+                    {
+                        current->InvalidateRemoteScopeWork();
+                        current->RefreshAccountSettingsUi();
+                    }
+                });
+            }
+        });
+        DatabaseService().SetRemoteLibraryContext(
+            initialRemoteMode == LastMusicPlayer::Backend::RemoteAccessMode::ApiKey ? L"ApiKey" : L"LocalOnly");
+        RefreshAccountSettingsUi();
+        if (initialRemoteMode == LastMusicPlayer::Backend::RemoteAccessMode::Account)
+        {
+            RunDetached(RestoreAccountIntegrationAsync());
+        }
+        UpdateSongsScopeLabel();
         auto savedLibraryPath = ReadAppSettingString(L"MusicLibraryPath");
         if (!savedLibraryPath.empty())
         {
@@ -566,6 +628,7 @@ namespace winrt::Last_Music_Player::implementation
         (void)args;
         HomeViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Visible);
         SettingsViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
+        SongsViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
         BrowseViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
         LibraryViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
         ExitSearchMode();
@@ -578,6 +641,7 @@ namespace winrt::Last_Music_Player::implementation
         (void)args;
         HomeViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
         SettingsViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Visible);
+        SongsViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
         BrowseViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
         LibraryViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
         ExitSearchMode();
@@ -592,83 +656,60 @@ namespace winrt::Last_Music_Player::implementation
         UpdateAboutStats();
     }
 
+    void MainWindow::SongsButton_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
+    {
+        (void)sender;
+        (void)args;
+        HomeViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
+        SettingsViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
+        SongsViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Visible);
+        BrowseViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
+        LibraryViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
+        ExitSearchMode();
+        if (!m_songsResultsValid)
+        {
+            ApplySongsFilterSort();
+        }
+        UpdateNavSelection(L"Songs");
+    }
+
     void MainWindow::BrowseButton_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
     {
         (void)sender;
         (void)args;
         HomeViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
         SettingsViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
+        SongsViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
         BrowseViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Visible);
         LibraryViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
         ExitSearchMode();
-        if (!m_browseResultsValid)
-        {
-            ApplyBrowseFilterSort();
-        }
         UpdateNavSelection(L"Browse");
+        ShowDiscoverShelvesPage();
+        RunDetached(HydrateDiscoverAsync(false));
     }
 
-    MainWindow::AppStateTrackSnapshot MainWindow::MakeAppStateTrackSnapshot(
-        winrt::Last_Music_Player::TrackInfo const& track,
-        winrt::hstring const& key,
-        uint32_t playCount,
-        uint64_t lastPlayedOrder)
-    {
-        AppStateTrackSnapshot snapshot;
-        snapshot.Title = track.Title();
-        snapshot.Artist = track.Artist();
-        snapshot.Album = track.Album();
-        snapshot.Genre = track.Genre();
-        snapshot.FilePath = track.FilePath();
-        snapshot.ArtworkUrl = track.ArtworkUrl();
-        snapshot.DateAdded = track.DateAdded();
-        snapshot.Duration = track.Duration();
-        snapshot.SourceKind = track.SourceKind();
-        snapshot.Provider = track.Provider();
-        snapshot.SourceUrl = track.SourceUrl();
-        snapshot.SourceLabel = track.SourceLabel();
-        snapshot.Key = key;
-        snapshot.DurationSeconds = track.DurationSeconds();
-        snapshot.DateAddedSortKey = track.DateAddedSortKey();
-        snapshot.IsLiked = track.IsLiked();
-        snapshot.PlayCount = playCount;
-        snapshot.LastPlayedOrder = lastPlayedOrder;
-        return snapshot;
-    }
 
     MainWindow::AppStateSnapshot MainWindow::BuildAppStateSnapshot()
     {
         AppStateSnapshot snapshot;
 
         auto currentTrack = AudioPlayerService().GetCurrentTrack();
-        snapshot.LastTrackPath = currentTrack ? currentTrack.FilePath() : winrt::hstring{};
-        snapshot.Volume = AudioPlayerService().GetVolume();
-        snapshot.HomePlaySequence = m_homePlaySequence;
-
-        size_t savedHistoryCount = 0;
-        snapshot.HomeHistory.reserve((std::min)(m_homeRecentHistory.size(), static_cast<size_t>(50)));
-        for (auto const& track : m_homeRecentHistory)
+        if (currentTrack)
         {
-            if (savedHistoryCount >= 50)
+            if (!currentTrack.FilePath().empty() && !IsHttpUrl(currentTrack.FilePath()))
             {
-                break;
+                snapshot.LastTrackPath = currentTrack.FilePath();
             }
-
-            auto key = HomeQueueDedupeKey(track);
-            if (key.empty())
+            else if (!currentTrack.RemoteId().empty())
             {
-                continue;
+                snapshot.LastTrackPath = winrt::hstring(L"remote-id:" + std::wstring(currentTrack.RemoteId().c_str()));
             }
-
-            auto playIt = m_homePlayCounts.find(key);
-            auto orderIt = m_homeLastPlayedOrder.find(key);
-            snapshot.HomeHistory.push_back(MakeAppStateTrackSnapshot(
-                track,
-                winrt::hstring(key),
-                playIt == m_homePlayCounts.end() ? 0u : playIt->second,
-                orderIt == m_homeLastPlayedOrder.end() ? 0ull : orderIt->second));
-            ++savedHistoryCount;
+            else
+            {
+                snapshot.LastTrackPath = winrt::hstring(L"source:" + CatalogSourceKey(currentTrack));
+            }
         }
+        snapshot.Volume = AudioPlayerService().GetVolume();
 
         return snapshot;
     }
@@ -678,33 +719,6 @@ namespace winrt::Last_Music_Player::implementation
         winrt::Windows::Data::Json::JsonObject stateJson;
         stateJson.Insert(L"LastTrack", winrt::Windows::Data::Json::JsonValue::CreateStringValue(snapshot.LastTrackPath));
         stateJson.Insert(L"Volume", winrt::Windows::Data::Json::JsonValue::CreateNumberValue(snapshot.Volume));
-        stateJson.Insert(L"HomePlaySequence", winrt::Windows::Data::Json::JsonValue::CreateNumberValue(static_cast<double>(snapshot.HomePlaySequence)));
-
-        winrt::Windows::Data::Json::JsonArray historyArray;
-        for (auto const& track : snapshot.HomeHistory)
-        {
-            winrt::Windows::Data::Json::JsonObject object;
-            InsertJsonString(object, L"title", track.Title);
-            InsertJsonString(object, L"artist", track.Artist);
-            InsertJsonString(object, L"album", track.Album);
-            InsertJsonString(object, L"genre", track.Genre);
-            InsertJsonString(object, L"filePath", track.FilePath);
-            InsertJsonString(object, L"artworkUrl", track.ArtworkUrl);
-            InsertJsonString(object, L"dateAdded", track.DateAdded);
-            InsertJsonString(object, L"duration", track.Duration);
-            InsertJsonString(object, L"sourceKind", track.SourceKind);
-            InsertJsonString(object, L"provider", track.Provider);
-            InsertJsonString(object, L"sourceUrl", track.SourceUrl);
-            InsertJsonString(object, L"sourceLabel", track.SourceLabel);
-            InsertJsonString(object, L"key", track.Key);
-            object.Insert(L"durationSeconds", winrt::Windows::Data::Json::JsonValue::CreateNumberValue(track.DurationSeconds));
-            object.Insert(L"dateAddedSortKey", winrt::Windows::Data::Json::JsonValue::CreateNumberValue(track.DateAddedSortKey));
-            object.Insert(L"isLiked", winrt::Windows::Data::Json::JsonValue::CreateBooleanValue(track.IsLiked));
-            object.Insert(L"playCount", winrt::Windows::Data::Json::JsonValue::CreateNumberValue(static_cast<double>(track.PlayCount)));
-            object.Insert(L"lastPlayedOrder", winrt::Windows::Data::Json::JsonValue::CreateNumberValue(static_cast<double>(track.LastPlayedOrder)));
-            historyArray.Append(object);
-        }
-        stateJson.Insert(L"HomeHistory", historyArray);
 
         return stateJson.Stringify();
     }
@@ -746,7 +760,7 @@ namespace winrt::Last_Music_Player::implementation
             track.SourceKind = object.GetNamedString(L"sourceKind", IsHttpUrl(track.FilePath) ? L"remote" : L"local");
             track.Provider = object.GetNamedString(L"provider", L"");
             track.SourceUrl = object.GetNamedString(L"sourceUrl", L"");
-            track.SourceLabel = object.GetNamedString(L"sourceLabel", track.SourceKind == L"remote" ? L"Music API" : L"Local");
+            track.SourceLabel = object.GetNamedString(L"sourceLabel", track.SourceKind == L"remote" ? L"Remote" : L"Local");
             track.Key = object.GetNamedString(L"key", L"");
             track.DurationSeconds = object.GetNamedNumber(L"durationSeconds", 0.0);
             track.DateAddedSortKey = object.GetNamedNumber(L"dateAddedSortKey", 0.0);
@@ -773,7 +787,7 @@ namespace winrt::Last_Music_Player::implementation
         track.SourceKind(snapshot.SourceKind.empty() ? (IsHttpUrl(snapshot.FilePath) ? L"remote" : L"local") : snapshot.SourceKind);
         track.Provider(snapshot.Provider);
         track.SourceUrl(snapshot.SourceUrl);
-        track.SourceLabel(snapshot.SourceLabel.empty() ? (track.SourceKind() == L"remote" ? L"Music API" : L"Local") : snapshot.SourceLabel);
+        track.SourceLabel(snapshot.SourceLabel.empty() ? (track.SourceKind() == L"remote" ? L"Remote" : L"Local") : snapshot.SourceLabel);
         track.IsLiked(snapshot.IsLiked);
         track.DurationSeconds(snapshot.DurationSeconds);
         track.DateAddedSortKey(snapshot.DateAddedSortKey);
@@ -784,6 +798,12 @@ namespace winrt::Last_Music_Player::implementation
 
     void MainWindow::SaveAppState()
     {
+        auto lease = UserDataOperationGateService().TryEnter();
+        if (!lease)
+        {
+            return;
+        }
+
         auto const version = g_appStateSaveVersion.fetch_add(1, std::memory_order_relaxed) + 1;
 
         winrt::hstring payload;
@@ -796,18 +816,21 @@ namespace winrt::Last_Music_Player::implementation
             return;
         }
 
-        WriteLatestAppStateAsync(std::move(payload), version);
+        WriteLatestAppStateAsync(std::move(payload), version, std::move(*lease));
     }
 
-    void MainWindow::ClearSavedAppState()
+    bool MainWindow::ClearSavedAppState()
     {
-        g_appStateSaveVersion.fetch_add(1, std::memory_order_acq_rel);
-        std::error_code ec;
+        std::lock_guard lock{ g_appStateFileMutex };
+        g_appStateSaveVersion.fetch_add(1, std::memory_order_release);
+
         auto path = StateFilePath();
-        std::filesystem::remove(path, ec);
-        auto tempPath = path;
-        tempPath += L".tmp";
-        std::filesystem::remove(tempPath, ec);
+        std::error_code stateError;
+        std::filesystem::remove(path, stateError);
+
+        std::error_code tempError;
+        std::filesystem::remove(path.wstring() + L".tmp", tempError);
+        return !stateError && !tempError;
     }
 
     void MainWindow::ApplyAppStateSnapshot(AppStateSnapshot const& snapshot)
@@ -818,52 +841,58 @@ namespace winrt::Last_Music_Player::implementation
             // source of truth); the legacy app-state copy is ignored here
             // so it can't override the persisted setting on a 0-100 slider.
 
-            m_homeRecentHistory.clear();
-            m_homePlayCounts.clear();
-            m_homeLastPlayedOrder.clear();
-            m_homePlaySequence = (std::max)(m_homePlaySequence, snapshot.HomePlaySequence);
-
-            std::unordered_set<std::wstring> seenKeys;
-            for (auto const& savedTrack : snapshot.HomeHistory)
+            auto legacyHistoryMigrated = SettingsManagerService().GetBool(L"LegacyHomeHistoryMigrated", false);
+            if (!legacyHistoryMigrated)
             {
-                auto track = MainWindow::TrackFromAppStateSnapshot(savedTrack);
-                std::wstring key = savedTrack.Key.empty() ? HomeQueueDedupeKey(track) : std::wstring(savedTrack.Key.c_str());
-                if (key.empty() || seenKeys.find(key) != seenKeys.end())
+                m_homePlaySequence = (std::max)(m_homePlaySequence, snapshot.HomePlaySequence);
+
+                std::unordered_set<std::wstring> seenKeys;
+                for (auto const& existing : m_homeRecentHistory)
                 {
-                    continue;
+                    auto key = HomeQueueDedupeKey(existing);
+                    if (!key.empty())
+                    {
+                        seenKeys.insert(std::move(key));
+                    }
                 }
 
-                // Drop local history entries whose file was deleted off disk:
-                // otherwise they'd linger in Listen Again and the UpsertLocalTrack
-                // below would reactivate (IsActive=1) the very rows the startup
-                // prune just deactivated. Remote/streaming history is unaffected.
-                if (LocalFileMissing(track))
+                for (auto const& savedTrack : snapshot.HomeHistory)
                 {
-                    continue;
-                }
+                    auto track = MainWindow::TrackFromAppStateSnapshot(savedTrack);
+                    std::wstring key = savedTrack.Key.empty() ? HomeQueueDedupeKey(track) : std::wstring(savedTrack.Key.c_str());
+                    if (key.empty() || seenKeys.find(key) != seenKeys.end() || LocalFileMissing(track))
+                    {
+                        continue;
+                    }
 
-                m_homePlayCounts[key] = savedTrack.PlayCount;
-                m_homeLastPlayedOrder[key] = savedTrack.LastPlayedOrder;
-                m_homePlaySequence = (std::max)(m_homePlaySequence, savedTrack.LastPlayedOrder);
-                m_homeRecentHistory.push_back(track);
-                seenKeys.insert(std::move(key));
+                    m_homePlayCounts[key] = (std::max)(m_homePlayCounts[key], savedTrack.PlayCount);
+                    m_homeLastPlayedOrder[key] = (std::max)(m_homeLastPlayedOrder[key], savedTrack.LastPlayedOrder);
+                    m_homePlaySequence = (std::max)(m_homePlaySequence, savedTrack.LastPlayedOrder);
+                    m_homeRecentHistory.push_back(track);
+                    seenKeys.insert(key);
+
+                    if (DatabaseService().IsInitialized())
+                    {
+                        auto catalogKey = CatalogSourceKey(track);
+                        if (!catalogKey.empty())
+                        {
+                            auto remote = ToLowerCopy(track.SourceKind()) == L"remote" || (!track.File() && IsHttpUrl(track.FilePath()));
+                            if (remote)
+                            {
+                                DatabaseService().UpsertRemoteTrack(track, catalogKey);
+                            }
+                            else if (!track.FilePath().empty())
+                            {
+                                DatabaseService().UpsertLocalTrack(track, catalogKey);
+                            }
+                            DatabaseService().MergePlaybackStats(catalogKey, savedTrack.PlayCount, savedTrack.LastPlayedOrder);
+                        }
+                    }
+                }
 
                 if (DatabaseService().IsInitialized())
                 {
-                    auto catalogKey = CatalogSourceKey(track);
-                    if (!catalogKey.empty())
-                    {
-                        auto remote = ToLowerCopy(track.SourceKind()) == L"remote" || (!track.File() && IsHttpUrl(track.FilePath()));
-                        if (remote)
-                        {
-                            DatabaseService().UpsertRemoteTrack(track, catalogKey);
-                        }
-                        else if (!track.FilePath().empty())
-                        {
-                            DatabaseService().UpsertLocalTrack(track, catalogKey);
-                        }
-                        DatabaseService().MergePlaybackStats(catalogKey, savedTrack.PlayCount, savedTrack.LastPlayedOrder);
-                    }
+                    SettingsManagerService().SetBool(L"LegacyHomeHistoryMigrated", true);
                 }
             }
 
@@ -933,6 +962,7 @@ namespace winrt::Last_Music_Player::implementation
 
         NavRow rows[] = {
             { HomeButton(), HomeGlyph(), HomeLabel(), L"Home" },
+            { SongsButton(), SongsGlyph(), SongsLabel(), L"Songs" },
             { BrowseButton(), BrowseGlyph(), BrowseLabel(), L"Browse" },
             { LibraryButton(), LibraryGlyph(), LibraryLabel(), L"Library" },
             { SettingsButton(), SettingsGlyph(), SettingsLabel(), L"Settings" },

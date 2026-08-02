@@ -25,7 +25,13 @@ namespace Last_Music_Player
         Double DateAddedSortKey;
         String Duration;
         Int32 Index;
+        // Local database row id. Not a catalog identifier: account tracks store a
+        // negated row id here. The catalog ids below are the remote ones.
         Int64 CatalogId;
+        String RemoteId;
+        String RemoteCatalogId;
+        String AlbumCatalogId;
+        String ArtistCatalogId;
         String SourceKind;
         String Provider;
         String SourceUrl;

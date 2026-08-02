@@ -45,6 +45,7 @@ namespace winrt::Last_Music_Player::implementation
         (void)args;
         HomeViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
         SettingsViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
+        SongsViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
         BrowseViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
         LibraryViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Visible);
         ExitSearchMode();
@@ -72,7 +73,7 @@ namespace winrt::Last_Music_Player::implementation
         }
         // Single-select: uncheck every other tab.
         winrt::Microsoft::UI::Xaml::Controls::Primitives::ToggleButton tabs[] = {
-            LibTabAlbums(), LibTabArtists(), LibTabSongs(), LibTabGenres(), LibTabPlaylists()
+            LibTabAlbums(), LibTabArtists(), LibTabSongs(), LibTabHistory(), LibTabGenres(), LibTabPlaylists()
         };
         for (auto const& t : tabs)
         {
@@ -98,9 +99,25 @@ namespace winrt::Last_Music_Player::implementation
         };
         setVisibility(LibAlbumsGrid(), tag == L"Albums" ? V::Visible : V::Collapsed);
         setVisibility(LibArtistsGrid(), tag == L"Artists" ? V::Visible : V::Collapsed);
-        setVisibility(LibSongsPanel(), tag == L"Songs" ? V::Visible : V::Collapsed);
+        setVisibility(LibSongsPanel(), (tag == L"Songs" || tag == L"History") ? V::Visible : V::Collapsed);
         setVisibility(LibGenresPanel(), tag == L"Genres" ? V::Visible : V::Collapsed);
         setVisibility(LibPlaylistsPanel(), tag == L"Playlists" ? V::Visible : V::Collapsed);
+        auto scopedTab = tag == L"Songs" || tag == L"History" || tag == L"Playlists";
+        auto accountScopeAvailable = RemoteMusicServiceService().Mode() == LastMusicPlayer::Backend::RemoteAccessMode::Account
+            && RemoteMusicServiceService().IsModeAvailable(LastMusicPlayer::Backend::RemoteAccessMode::Account);
+        if (LibraryScopeSelector())
+        {
+            LibraryScopeSelector().Visibility(scopedTab && accountScopeAvailable ? V::Visible : V::Collapsed);
+        }
+        if (tag == L"Songs" || tag == L"History")
+        {
+            auto nextFilter = tag == L"History" ? std::wstring{ L"History" } : std::wstring{ L"All" };
+            if (m_librarySongsFilter != nextFilter)
+            {
+                m_librarySongsFilter = std::move(nextFilter);
+                m_librarySongsState = LoadState::Dirty;
+            }
+        }
         UpdateLibraryActionButtons();
         if (LibraryViewContainer() && LibraryViewContainer().Visibility() == V::Visible)
         {
@@ -139,6 +156,44 @@ namespace winrt::Last_Music_Player::implementation
         LibManualPlaylistsGrid().Visibility(m_libraryPlaylistFilter == L"Manual" ? V::Visible : V::Collapsed);
         LibAutoPlaylistsGrid().Visibility(m_libraryPlaylistFilter == L"Auto" ? V::Visible : V::Collapsed);
         UpdateLibraryActionButtons();
+    }
+
+    void MainWindow::LibraryScope_SelectionChanged(
+        winrt::Windows::Foundation::IInspectable const& sender,
+        winrt::Microsoft::UI::Xaml::Controls::SelectionChangedEventArgs const& args)
+    {
+        (void)sender;
+        (void)args;
+        if (!m_xamlReadyForEvents || !LibraryScopeSelector())
+        {
+            return;
+        }
+
+        auto selected = LibraryScopeSelector().SelectedItem().try_as<winrt::Microsoft::UI::Xaml::Controls::ComboBoxItem>();
+        auto scope = selected ? ReadTagString(selected.Tag()) : winrt::hstring{ L"All" };
+        auto nextScope = scope == L"Account" ? std::wstring{ L"Account" }
+            : (scope == L"OnThisPc" ? std::wstring{ L"OnThisPc" } : std::wstring{ L"All" });
+        if (m_libraryScope == nextScope)
+        {
+            return;
+        }
+
+        m_libraryScope = std::move(nextScope);
+        m_librarySongsState = LoadState::Dirty;
+        m_libraryPlaylistsState = LoadState::Dirty;
+        UpdateLibraryActionButtons();
+        if (!LibraryViewContainer() || LibraryViewContainer().Visibility() != winrt::Microsoft::UI::Xaml::Visibility::Visible)
+        {
+            return;
+        }
+        if (LibSongsPanel().Visibility() == winrt::Microsoft::UI::Xaml::Visibility::Visible)
+        {
+            RunDetached(HydrateLibraryTabAsync(winrt::hstring(m_librarySongsFilter == L"History" ? L"History" : L"Songs"), true));
+        }
+        else if (LibPlaylistsPanel().Visibility() == winrt::Microsoft::UI::Xaml::Visibility::Visible)
+        {
+            RunDetached(HydrateLibraryTabAsync(L"Playlists", true));
+        }
     }
 
 

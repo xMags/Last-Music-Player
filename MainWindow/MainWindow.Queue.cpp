@@ -502,7 +502,7 @@ namespace winrt::Last_Music_Player::implementation
         // 2. Context items after the currently playing one. This is the
         //    "Next Up from <wherever the user was browsing>" segment —
         //    auto-derived from whatever surface seeded the playback
-        //    context (Browse query, Library, Playlist).
+        //    context (Songs query, Library, Playlist).
         auto const& queue = m_queue.Queue.empty() ? m_queue.CurrentPlaylist : m_queue.Queue;
         auto currentIndex = m_queue.Queue.empty() ? m_queue.CurrentTrackIndex : m_queue.QueueIndex;
 
@@ -524,33 +524,13 @@ namespace winrt::Last_Music_Player::implementation
             return;
         }
 
-        auto appendTrack = [this, &queue](size_t index)
+        auto selectedIndex = static_cast<size_t>(currentIndex);
+        for (size_t offset = 1; offset < queue.size(); ++offset)
         {
-            auto copy = queue[index];
+            auto nextIndex = (selectedIndex + offset) % queue.size();
+            auto copy = queue[nextIndex];
             ResolveArtworkPresentation(copy, L"track");
             m_upNextQueue.Append(copy);
-        };
-
-        auto selectedIndex = static_cast<size_t>(currentIndex);
-        if (m_queue.RepeatMode == 1)
-        {
-            // Repeat All is the only mode whose visible queue wraps back to
-            // the beginning after the final track.
-            for (size_t offset = 1; offset < queue.size(); ++offset)
-            {
-                appendTrack((selectedIndex + offset) % queue.size());
-            }
-        }
-        else
-        {
-            // Repeat Off and Repeat One keep the visible context finite.
-            // Previously modulo arithmetic always appended tracks before the
-            // current index, making an offline library look infinitely queued
-            // even though auto-advance correctly stopped at the end.
-            for (size_t nextIndex = selectedIndex + 1; nextIndex < queue.size(); ++nextIndex)
-            {
-                appendTrack(nextIndex);
-            }
         }
 
         PrefetchUpcomingStreams();
@@ -562,7 +542,11 @@ namespace winrt::Last_Music_Player::implementation
         // itself, server-side. Prefetch a small lookahead so the next couple of
         // tracks are fully on disk by the time the user reaches them, and so
         // play from a local file (no live network) immune to connection jitter.
-        if (m_sink != PlaybackSink::Local)
+        auto& remoteMusic = RemoteMusicServiceService();
+        auto remoteScope = remoteMusic.CaptureScope();
+        if (m_sink != PlaybackSink::Local
+            || remoteScope.Mode != LastMusicPlayer::Backend::RemoteAccessMode::ApiKey
+            || !remoteMusic.IsCurrent(remoteScope))
         {
             return;
         }
@@ -576,7 +560,7 @@ namespace winrt::Last_Music_Player::implementation
             {
                 continue;  // local file: nothing to prefetch
             }
-            std::wstring key{ track.SourceUrl().c_str() };
+            auto key = ApiKeyStreamCacheKey(remoteScope, track);
             if (key.empty())
             {
                 continue;
@@ -586,13 +570,17 @@ namespace winrt::Last_Music_Player::implementation
             {
                 continue;
             }
+            if (!remoteMusic.IsCurrent(remoteScope))
+            {
+                return;
+            }
             StreamCacheService().Prefetch(key, std::wstring{ streamUrl.c_str() });
         }
     }
 
     void MainWindow::MaybeExtendAutoplayQueue()
     {
-        // Gated by the user setting; defaults on (radio-style autoplay).
+        // Gated by the user setting and enabled by default.
         if (!SettingsManagerService().GetBool(L"Autoplay", true))
         {
             return;
@@ -655,23 +643,18 @@ namespace winrt::Last_Music_Player::implementation
 
         auto seedSourceUrl = seed.SourceUrl();
         auto seedArtist = seed.Artist();
-        auto baseUrl = ReadAppSettingString(L"ProviderBaseUrl");
-        auto apiKey = ReadAppSettingString(L"ProviderApiKey");
+        auto& remoteMusic = RemoteMusicServiceService();
 
         bool seedIsRemote = !seedSourceUrl.empty() && IsHttpUrl(seedSourceUrl);
-        if (baseUrl.empty() || (!seedIsRemote && seedArtist.empty()))
+        if (!remoteMusic.HasRemoteAccess() || (!seedIsRemote && seedArtist.empty()))
         {
             m_autoplay.InFlight = false;
             co_return;
         }
 
-        LastMusicPlayer::Backend::ProviderClient providerClient;
-        providerClient.SetBaseUrl(baseUrl);
-        providerClient.SetBearerToken(apiKey);
-
         std::vector<winrt::Last_Music_Player::TrackInfo> candidates;
 
-        // Primary fetch: provider radio for remote seeds, artist search
+        // Primary fetch: real YT-Music radio for remote seeds, artist search
         // for local ones. Parse on the UI thread (track build touches XAML
         // bitmap objects), so only the network call runs on the background.
         {
@@ -680,8 +663,8 @@ namespace winrt::Last_Music_Player::implementation
             try
             {
                 payload = seedIsRemote
-                    ? co_await providerClient.GetRelatedAsync(seedSourceUrl)
-                    : co_await providerClient.SearchAsync(seedArtist);
+                    ? co_await remoteMusic.GetRelatedAsync(seedSourceUrl)
+                    : co_await remoteMusic.SearchAsync(seedArtist);
             }
             catch (...)
             {
@@ -705,7 +688,7 @@ namespace winrt::Last_Music_Player::implementation
         {
             co_await winrt::resume_background();
             winrt::hstring payload;
-            try { payload = co_await providerClient.SearchAsync(seedArtist); }
+            try { payload = co_await remoteMusic.SearchAsync(seedArtist); }
             catch (...) { payload = {}; }
 
             co_await wil::resume_foreground(dispatcher);
@@ -796,7 +779,7 @@ namespace winrt::Last_Music_Player::implementation
         // The visible queue is derived from m_queue.Queue when present,
         // else from m_queue.CurrentPlaylist. Any queue mutation needs the
         // authoritative m_queue.Queue materialized first. Mirrors the
-        // seeding already done by AddBrowseTrackToQueue / PlayNextFromBrowse.
+        // seeding already done by AddSongsTrackToQueue / PlayNextFromSongs.
         if (!m_queue.Queue.empty())
         {
             return;
@@ -954,13 +937,13 @@ namespace winrt::Last_Music_Player::implementation
     void MainWindow::QueuePlayNow_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
     {
         (void)args;
-        PlayBrowseTrack(TrackFromActionSender(sender));
+        PlaySongsTrack(TrackFromActionSender(sender));
     }
 
     void MainWindow::QueuePlayNext_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
     {
         (void)args;
-        PlayNextFromBrowse(TrackFromActionSender(sender));
+        PlayNextFromSongs(TrackFromActionSender(sender));
     }
 
     void MainWindow::QueueMoveUp_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)

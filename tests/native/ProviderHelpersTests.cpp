@@ -34,6 +34,13 @@ namespace
         return ToWide(value).rfind(expected, 0) == 0;
     }
 
+    std::wstring MediaToken(wchar_t const* scope, long long offsetMs)
+    {
+        auto nowMs = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::system_clock::now().time_since_epoch()).count();
+        return std::wstring{ scope } + L"." + std::to_wstring(nowMs + offsetMs) + L".signature";
+    }
+
     void Expect(bool condition, char const* message)
     {
         if (!condition)
@@ -138,6 +145,115 @@ namespace
         Expect(!Contains(fallback, L"access_token="), "legacy access token from file path should not be reused in new fallback stream URLs");
         Expect(provider::BuildProviderStreamUrl(L"", L"custom-scheme://track/1", L"unsupported", L"", L"", L"").empty(), "unsupported sources should not build stream URLs");
         Expect(provider::BuildProviderStreamUrl(L"", L"file:///C:/Music/a.mp3", L"direct", L"", L"", L"").empty(), "non-HTTP sources should not build stream URLs");
+    }
+
+    void TestSignedStreamUrl()
+    {
+        auto token = MediaToken(L"stream", 5 * 60 * 1000);
+        auto existing = winrt::hstring{
+            L"https://provider.example.test/v1/stream/direct%3A1?s=opaque&access_token=legacy-secret&media_token="
+            + token
+            + L"#lmp=123" };
+        auto stream = provider::BuildProviderStreamUrl(existing, L"https://provider.example.test");
+
+        Expect(!stream.empty(), "current provider stream URL should be accepted");
+        Expect(Contains(stream, L"s=opaque"), "opaque source token should be preserved");
+        Expect(Contains(stream, L"media_token=stream."), "signed media token should be preserved");
+        Expect(!Contains(stream, L"access_token="), "legacy query credential should be removed");
+        Expect(!Contains(stream, L"#lmp="), "database-only fragment should not reach the media component");
+
+        Expect(provider::BuildProviderStreamUrl(existing, L"https://other.example.test").empty(),
+            "stream URL from a different provider host should be refreshed");
+        Expect(provider::BuildProviderStreamUrl(
+            L"https://cdn.example.test/song.mp3", L"https://provider.example.test").empty(),
+            "raw source URL should not bypass the provider contract");
+    }
+
+    void TestMediaTokenRefresh()
+    {
+        auto future = winrt::hstring{
+            L"https://provider.example.test/v1/stream/direct%3A1?media_token="
+            + MediaToken(L"stream", 5 * 60 * 1000) };
+        auto expired = winrt::hstring{
+            L"https://provider.example.test/v1/stream/direct%3A1?media_token="
+            + MediaToken(L"stream", -60 * 1000) };
+        auto nowMs = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::system_clock::now().time_since_epoch()).count();
+        auto emptySignature = winrt::hstring{
+            L"https://provider.example.test/v1/stream/direct%3A1?media_token=stream."
+            + std::to_wstring(nowMs + 5 * 60 * 1000)
+            + L"." };
+
+        Expect(!provider::ProviderMediaUrlNeedsRefresh(future, L"stream", true),
+            "fresh signed stream should not refresh");
+        Expect(provider::ProviderMediaUrlNeedsRefresh(expired, L"stream", true),
+            "expired signed stream should refresh");
+        Expect(provider::ProviderMediaUrlNeedsRefresh(
+            L"https://provider.example.test/v1/stream/direct%3A1", L"stream", true),
+            "missing signed token should refresh");
+        Expect(provider::ProviderMediaUrlNeedsRefresh(
+            L"https://provider.example.test/v1/stream/direct%3A1?media_token=broken", L"stream", true),
+            "malformed signed token should refresh");
+        Expect(provider::ProviderMediaUrlNeedsRefresh(emptySignature, L"stream", true),
+            "signed token with an empty signature should refresh");
+        Expect(provider::ProviderMediaUrlNeedsRefresh(future, L"unsupported", true),
+            "unsupported signed token scope should refresh");
+        Expect(!provider::ProviderMediaUrlNeedsRefresh(
+            L"https://provider.example.test/v1/stream/direct%3A1", L"stream", false),
+            "open local provider should not require a token");
+        Expect(!provider::ProviderMediaUrlNeedsRefresh(
+            L"https://images.example.test/cover.jpg", L"artwork", true),
+            "external artwork should not use provider token rules");
+    }
+
+    void TestSignedArtworkUrl()
+    {
+        auto external = winrt::hstring{ L"https://images.example.test/cover.jpg" };
+        Expect(provider::BuildProviderArtworkUrl(external, L"https://provider.example.test") == external,
+            "external artwork URL should pass through unchanged");
+
+        auto signedArtwork = winrt::hstring{
+            L"https://provider.example.test/v1/artwork?url=opaque&access_token=legacy-secret&media_token="
+            + MediaToken(L"artwork", 5 * 60 * 1000) };
+        auto safeArtwork = provider::BuildProviderArtworkUrl(
+            signedArtwork, L"https://provider.example.test");
+        Expect(!safeArtwork.empty(), "current signed artwork URL should be accepted");
+        Expect(Contains(safeArtwork, L"media_token=artwork."), "artwork token should be preserved");
+        Expect(!Contains(safeArtwork, L"access_token="), "artwork URL should not contain a query credential");
+        Expect(provider::BuildProviderArtworkUrl(
+            signedArtwork, L"https://other.example.test").empty(),
+            "artwork URL from a different provider host should be refreshed");
+    }
+
+    void TestRemoteUrlSafety()
+    {
+        Expect(provider::IsSafeRemoteUrl(
+            L"https://catalog.example.test/watch?id=stable", provider::RemoteUrlUse::Durable),
+            "stable HTTPS URL should be durable");
+        Expect(provider::IsSafeRemoteUrl(
+            L"https://catalog.example.test/watch?monkey=value", provider::RemoteUrlUse::Durable),
+            "benign parameter names containing a credential suffix should remain durable");
+        Expect(provider::IsSafeRemoteUrl(
+            L"http://127.0.0.1:4527/watch?id=stable", provider::RemoteUrlUse::Durable),
+            "loopback HTTP URL should be durable");
+        Expect(!provider::IsSafeRemoteUrl(
+            L"http://catalog.example.test/watch?id=stable", provider::RemoteUrlUse::Durable),
+            "non-loopback HTTP URL should be rejected");
+        Expect(!provider::IsSafeRemoteUrl(
+            L"https://user:secret@catalog.example.test/watch?id=stable", provider::RemoteUrlUse::EphemeralMedia),
+            "URL user information should be rejected");
+        Expect(!provider::IsSafeRemoteUrl(
+            L"https://catalog.example.test/watch?access_token=secret", provider::RemoteUrlUse::EphemeralMedia),
+            "long-lived credential query should be rejected");
+        Expect(provider::IsSafeRemoteUrl(
+            L"https://cdn.example.test/song?media_token=stream.1.signature", provider::RemoteUrlUse::EphemeralMedia),
+            "signed media URL should be allowed ephemerally");
+        Expect(!provider::IsSafeRemoteUrl(
+            L"https://cdn.example.test/song?media_token=stream.1.signature", provider::RemoteUrlUse::Durable),
+            "signed media URL should not be durable");
+        Expect(!provider::IsSafeRemoteUrl(
+            L"https://catalog.example.test/watch#session=secret", provider::RemoteUrlUse::Durable),
+            "credential-bearing fragment should not be durable");
     }
 
     constexpr wchar_t kDiscordTestPipe[] = L"\\\\.\\pipe\\lmp-discord-test-0";
@@ -375,6 +491,10 @@ int wmain()
         TestPersistedImportedStreamUrl();
         TestDirectStreamUrl();
         TestFallbackTokenAndUnsupportedSources();
+        TestSignedStreamUrl();
+        TestMediaTokenRefresh();
+        TestSignedArtworkUrl();
+        TestRemoteUrlSafety();
         TestDiscordReadyAckAndClear();
         TestDiscordDisconnectWithOutstandingReply();
         std::wcout << L"ProviderHelpersTests passed" << std::endl;

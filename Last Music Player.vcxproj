@@ -100,6 +100,9 @@
       <PrecompiledHeaderOutputFile>$(IntDir)pch.pch</PrecompiledHeaderOutputFile>
       <WarningLevel>Level4</WarningLevel>
       <PreprocessorDefinitions>DISABLE_XAML_GENERATED_MAIN;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(LastMusicAccountApiOrigin)'!=''">LAST_MUSIC_ACCOUNT_API_ORIGIN=L&quot;$(LastMusicAccountApiOrigin)&quot;;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(LastMusicAccountFrontendOrigin)'!=''">LAST_MUSIC_ACCOUNT_FRONTEND_ORIGIN=L&quot;$(LastMusicAccountFrontendOrigin)&quot;;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(LastMusicAccountMediaOrigin)'!=''">LAST_MUSIC_ACCOUNT_MEDIA_ORIGIN=L&quot;$(LastMusicAccountMediaOrigin)&quot;;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <LanguageStandard Condition="'$(VisualStudioVersion)' &gt;= '18.0'">stdcpp20</LanguageStandard>
       <LanguageStandard Condition="'$(VisualStudioVersion)' &lt; '18.0'">stdcpp17</LanguageStandard>
       <AdditionalIncludeDirectories>$(ProjectDir);$(GeneratedFilesDir);$(IntDir);$(IntDir)MainWindow;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -107,6 +110,7 @@
     </ClCompile>
     <Link>
       <AdditionalDependencies>$(ProjectDir)packages\Microsoft.WindowsAppSDK.Foundation.1.8.260203002\lib\native\$(Platform)\Microsoft.WindowsAppRuntime.Bootstrap.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Bcrypt.lib;Ws2_32.lib;Advapi32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
@@ -117,10 +121,12 @@
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
     <ClCompile>
       <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalOptions>%(AdditionalOptions) /d1trimfile:&quot;$(MSBuildProjectDirectory)&quot;</AdditionalOptions>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalOptions>%(AdditionalOptions) /PDBALTPATH:%_PDB%</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup Condition="'$(WindowsPackageType)'!='None' and Exists('Package.appxmanifest')">
@@ -156,9 +162,25 @@
     <ClInclude Include="Backend\AudioPlayer.h" />
     <ClInclude Include="Backend\PlaylistManager.h" />
     <ClInclude Include="Backend\SettingsManager.h" />
+    <ClInclude Include="Backend\CredentialStore.h" />
+    <ClInclude Include="Backend\BuildConfig.h" />
+    <ClInclude Include="Backend\Pkce.h" />
+    <ClInclude Include="Backend\LoopbackCallback.h" />
+    <ClInclude Include="Backend\AccountClient.h" />
+    <ClInclude Include="Backend\AccountSessionGateway.h" />
+    <ClInclude Include="Backend\AccountSyncTransport.h" />
+    <ClInclude Include="Backend\AccountSessionService.h" />
+    <ClInclude Include="Backend\RemoteMusicService.h" />
+    <ClInclude Include="Backend\MusicSyncService.h" />
+    <ClInclude Include="Backend\UserDataOperationGate.h" />
+    <ClInclude Include="Backend\CatalogModels.h" />
+    <ClInclude Include="Backend\CatalogParser.h" />
+    <ClInclude Include="Backend\PlaybackHistoryQualifier.h" />
+    <ClInclude Include="Backend\HistoryImport.h" />
     <ClInclude Include="Backend\StreamCache.h" />
     <ClInclude Include="Backend\DatabaseEngine.h" />
     <ClInclude Include="Backend\DatabaseEngine.Internal.h" />
+    <ClInclude Include="Backend\DatabaseAccountSchema.h" />
     <ClInclude Include="Backend\ProviderClient.h" />
     <ClInclude Include="Backend\ProviderHelpers.h" />
     <ClInclude Include="Backend\CastEngine.h" />
@@ -191,7 +213,8 @@
     <ClCompile Include="MainWindow\MainWindow.Internal.cpp" />
     <ClCompile Include="MainWindow\MainWindow.Home.cpp" />
     <ClCompile Include="MainWindow\MainWindow.Search.cpp" />
-    <ClCompile Include="MainWindow\MainWindow.Browse.cpp" />
+    <ClCompile Include="MainWindow\MainWindow.Songs.cpp" />
+    <ClCompile Include="MainWindow\MainWindow.Discover.cpp" />
     <ClCompile Include="MainWindow\MainWindow.Library.cpp" />
     <ClCompile Include="MainWindow\MainWindow.LibraryHydration.cpp" />
     <ClCompile Include="MainWindow\MainWindow.LibraryCollections.cpp" />
@@ -215,6 +238,17 @@
     <ClCompile Include="Backend\AudioPlayer.cpp" />
     <ClCompile Include="Backend\PlaylistManager.cpp" />
     <ClCompile Include="Backend\SettingsManager.cpp" />
+    <ClCompile Include="Backend\CredentialStore.cpp" />
+    <ClCompile Include="Backend\Pkce.cpp" />
+    <ClCompile Include="Backend\LoopbackCallback.cpp" />
+    <ClCompile Include="Backend\AccountClient.cpp" />
+    <ClCompile Include="Backend\AccountSessionGateway.cpp" />
+    <ClCompile Include="Backend\AccountSessionService.cpp" />
+    <ClCompile Include="Backend\RemoteMusicService.cpp" />
+    <ClCompile Include="Backend\HistoryImport.cpp" />
+    <ClCompile Include="Backend\MusicSyncService.cpp" />
+    <ClCompile Include="Backend\UserDataOperationGate.cpp" />
+    <ClCompile Include="Backend\CatalogParser.cpp" />
     <ClCompile Include="Backend\StreamCache.cpp" />
     <ClCompile Include="Backend\DatabaseEngine.cpp" />
     <ClCompile Include="Backend\DatabaseEngine.Internal.cpp" />
@@ -222,6 +256,7 @@
     <ClCompile Include="Backend\DatabaseEngine.Tracks.cpp" />
     <ClCompile Include="Backend\DatabaseEngine.Collections.cpp" />
     <ClCompile Include="Backend\DatabaseEngine.Queries.cpp" />
+    <ClCompile Include="Backend\DatabaseEngine.Account.cpp" />
     <ClCompile Include="Backend\ProviderClient.cpp" />
     <ClCompile Include="Backend\ProviderHelpers.cpp" />
     <ClCompile Include="Backend\LyricsService.cpp" />

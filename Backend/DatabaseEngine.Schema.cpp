@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Backend/DatabaseEngine.h"
 #include "Backend/DatabaseEngine.Internal.h"
+#include "Backend/DatabaseAccountSchema.h"
 
 #include <utility>
 #include <vector>
@@ -33,7 +34,9 @@ namespace LastMusicPlayer::Backend
             "IsLiked INTEGER DEFAULT 0,"
             "IsActive INTEGER DEFAULT 1,"
             "UpdatedAt INTEGER DEFAULT 0,"
-            "LastPlayed DATETIME);";
+            "LastPlayed DATETIME,"
+            "LastPlayedExact INTEGER DEFAULT 0,"
+            "RemoteId TEXT);";
 
         if (!Exec(m_db, kCreateTracksTableSql))
         {
@@ -97,12 +100,17 @@ namespace LastMusicPlayer::Backend
             return false;
         }
 
+        if (!Exec(m_db, DatabaseAccountSchema::CreateTablesSql))
+        {
+            return false;
+        }
+
         // Schema migration gate: the heavy one-time data migration below used
         // to run on EVERY launch because PRAGMA user_version was written but
         // never read (~46s startup on a real library). Run it only when the
         // DB predates kSchemaVersion. Index creation stays unconditional —
         // it is idempotent (IF NOT EXISTS) and must also cover fresh DBs.
-        static constexpr int kSchemaVersion = 6;
+        static constexpr int kSchemaVersion = 9;
         int userVersion = 0;
         {
             Statement versionStmt{ m_db, "PRAGMA user_version;" };
@@ -112,6 +120,35 @@ namespace LastMusicPlayer::Backend
             }
         }
         const bool migrationNeeded = userVersion < kSchemaVersion;
+
+        if (migrationNeeded && userVersion < 9)
+        {
+            TryExec(m_db, "ALTER TABLE Tracks ADD COLUMN LastPlayedExact INTEGER DEFAULT 0;");
+            // Existing LastPlayed values were written by the pre-v9 playback path.
+            // Mark them exact before the separate app-state migration can merge
+            // aggregate-only history using approximate migration timestamps.
+            TryExec(m_db, "UPDATE Tracks SET LastPlayedExact=1 WHERE COALESCE(LastPlayed,'')<>'';");
+        }
+
+        if (migrationNeeded && userVersion < 8)
+        {
+            TryExec(m_db, "ALTER TABLE ActiveAccountContext ADD COLUMN RemoteMode TEXT NOT NULL DEFAULT 'LocalOnly';");
+        }
+
+        if (migrationNeeded && userVersion < 7)
+        {
+            TryExec(m_db, "ALTER TABLE Tracks ADD COLUMN RemoteId TEXT;");
+        }
+
+        if (migrationNeeded && userVersion < 6)
+        {
+            // V5 to V6: normalize legacy imported-collection labels without
+            // retaining a provider-specific identifier in the public client.
+            TryExec(m_db, "UPDATE Albums SET Artist='Music API' WHERE SourceKind<>'manual' AND COALESCE(SourceUrl,'')<>'' AND Artist=SourceLabel;");
+            TryExec(m_db, "UPDATE Albums SET SourceLabel='Music API' WHERE SourceKind<>'manual' AND COALESCE(SourceUrl,'')<>'' AND COALESCE(SourceLabel,'')<>'';");
+            TryExec(m_db, "UPDATE Playlists SET Description='Music API' WHERE COALESCE(Provider,'')<>'' AND COALESCE(SourceUrl,'')<>'' AND Description=SourceLabel || ' import';");
+            TryExec(m_db, "UPDATE Playlists SET SourceLabel='Music API' WHERE COALESCE(Provider,'')<>'' AND COALESCE(SourceUrl,'')<>'' AND COALESCE(SourceLabel,'')<>'';");
+        }
 
         if (migrationNeeded && userVersion < 4)
         {
@@ -125,13 +162,8 @@ namespace LastMusicPlayer::Backend
 
         if (migrationNeeded && userVersion < 5)
         {
-            // V4 → V5: rebrand the user-visible source label for remote
-            // tracks. Previously DateAddedText held the underlying provider
-            // name, which leaked through to the Now Playing chrome + card
-            // subtitles. New tracks land with "Music API" already; this UPDATE
-            // catches the existing rows.
-            // SourceKind filter scopes the rewrite to remote rows so a
-            // local track's actual added-date string is left intact.
+            // V4 to V5: normalize legacy remote labels that could appear in Now
+            // Playing or collection captions while preserving local added dates.
             TryExec(m_db, "UPDATE Tracks SET DateAddedText='Music API' WHERE SourceKind='remote';");
         }
 
@@ -178,6 +210,19 @@ namespace LastMusicPlayer::Backend
                 return false;
             }
         }
+        // Account playback belongs in AccountTracks. Remove rows written by
+        // pre-cutover desktop builds so API-key mode cannot expose another
+        // account's cached playback.
+        if (!Exec(m_db, DatabaseAccountSchema::RemoveLegacyGenericAccountTracksSql))
+        {
+            return false;
+        }
+        if (!Exec(m_db, DatabaseAccountSchema::RemoveTransientRemoteUrlsSql))
+        {
+            return false;
+        }
+
+
 
         if (!Exec(m_db, "CREATE UNIQUE INDEX IF NOT EXISTS IX_Tracks_SourceKey ON Tracks(SourceKey);"))
         {
@@ -192,6 +237,17 @@ namespace LastMusicPlayer::Backend
         TryExec(m_db, "CREATE INDEX IF NOT EXISTS IX_AlbumTracks_Order ON AlbumTracks(AlbumId, TrackOrder);");
         TryExec(m_db, "CREATE INDEX IF NOT EXISTS IX_PlaylistTracks_TrackId ON PlaylistTracks(TrackId);");
         TryExec(m_db, "CREATE INDEX IF NOT EXISTS IX_PlaylistTracks_Order ON PlaylistTracks(PlaylistId, TrackOrder);");
+        TryExec(m_db, "CREATE INDEX IF NOT EXISTS IX_Tracks_RemoteId ON Tracks(RemoteId);");
+        TryExec(m_db, "CREATE INDEX IF NOT EXISTS IX_AccountTracks_Liked ON AccountTracks(AccountId, IsLiked);");
+        TryExec(m_db, "CREATE INDEX IF NOT EXISTS IX_AccountTracks_History ON AccountTracks(AccountId, LastPlayedAtUtc DESC);");
+        TryExec(m_db, "CREATE INDEX IF NOT EXISTS IX_AccountPlaylistTracks_Order ON AccountPlaylistTracks(AccountId, PlaylistId, TrackOrder);");
+        TryExec(m_db, "CREATE INDEX IF NOT EXISTS IX_PlaybackEvents_Account ON PlaybackEvents(AccountId, PlayedAtUtc);");
+        TryExec(m_db, "CREATE INDEX IF NOT EXISTS IX_PendingLikes_Account ON PendingLikes(AccountId, UpdatedAtUtc);");
+
+        if (!Exec(m_db, DatabaseAccountSchema::CreateEffectiveTracksViewSql))
+        {
+            return false;
+        }
 
         if (migrationNeeded)
         {
@@ -199,7 +255,7 @@ namespace LastMusicPlayer::Backend
             {
                 return false;
             }
-            if (!Exec(m_db, "PRAGMA user_version=6;"))
+            if (!Exec(m_db, "PRAGMA user_version=9;"))
             {
                 return false;
             }

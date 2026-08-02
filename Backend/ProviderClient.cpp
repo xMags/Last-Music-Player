@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Backend/ProviderClient.h"
 
+#include <windows.h>
 #include <winrt/Windows.Data.Json.h>
 #include <winrt/Windows.System.Threading.h>
 #include <winrt/Windows.Storage.Streams.h>
@@ -240,7 +241,7 @@ namespace LastMusicPlayer::Backend
         winrt::hstring title, winrt::hstring artist)
     {
         winrt::Windows::Data::Json::JsonObject payload;
-        payload.Insert(L"title",  winrt::Windows::Data::Json::JsonValue::CreateStringValue(title));
+        payload.Insert(L"title", winrt::Windows::Data::Json::JsonValue::CreateStringValue(title));
         payload.Insert(L"artist", winrt::Windows::Data::Json::JsonValue::CreateStringValue(artist));
 
         winrt::Windows::Web::Http::HttpStringContent content{
@@ -256,11 +257,8 @@ namespace LastMusicPlayer::Backend
 
         auto body = co_await response.Content().ReadAsStringAsync();
         winrt::Windows::Data::Json::JsonObject obj{ nullptr };
-        if (!winrt::Windows::Data::Json::JsonObject::TryParse(body, obj))
-        {
-            co_return winrt::hstring{};
-        }
-        if (!obj.HasKey(L"url"))
+        if (!winrt::Windows::Data::Json::JsonObject::TryParse(body, obj)
+            || !obj.HasKey(L"url"))
         {
             co_return winrt::hstring{};
         }

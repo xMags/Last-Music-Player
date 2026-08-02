@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Backend/DatabaseEngine.h"
 #include "Backend/DatabaseEngine.Internal.h"
+#include "Backend/ProviderHelpers.h"
 
 namespace LastMusicPlayer::Backend
 {
@@ -46,7 +47,13 @@ namespace LastMusicPlayer::Backend
         BindText(stmt.value, 1, albumKey);
         BindText(stmt.value, 2, std::wstring(album.Title().c_str()));
         BindText(stmt.value, 3, std::wstring(album.Artist().c_str()));
-        BindText(stmt.value, 4, std::wstring(album.ArtworkUrl().c_str()));
+        auto artworkUrl = std::wstring(album.ArtworkUrl().c_str());
+        if (sourceKind != L"manual"
+            && !IsSafeRemoteUrl(winrt::hstring(artworkUrl), RemoteUrlUse::Durable))
+        {
+            artworkUrl.clear();
+        }
+        BindText(stmt.value, 4, artworkUrl);
         BindText(stmt.value, 5, sourceKind.empty() ? std::wstring{ L"manual" } : sourceKind);
         BindText(stmt.value, 6, std::wstring(album.SourceUrl().c_str()));
         BindText(stmt.value, 7, sourceLabel.empty() ? std::wstring{ L"Album" } : sourceLabel);
@@ -262,7 +269,13 @@ namespace LastMusicPlayer::Backend
         BindText(stmt.value, 1, playlistKey);
         BindText(stmt.value, 2, std::wstring(playlist.Title().c_str()));
         BindText(stmt.value, 3, std::wstring(playlist.Artist().c_str()));
-        BindText(stmt.value, 4, std::wstring(playlist.ArtworkUrl().c_str()));
+        auto artworkUrl = std::wstring(playlist.ArtworkUrl().c_str());
+        if (provider != L"manual"
+            && !IsSafeRemoteUrl(winrt::hstring(artworkUrl), RemoteUrlUse::Durable))
+        {
+            artworkUrl.clear();
+        }
+        BindText(stmt.value, 4, artworkUrl);
         BindText(stmt.value, 5, sourceKind.empty() ? std::wstring{ L"manual" } : sourceKind);
         BindText(stmt.value, 6, provider.empty() ? std::wstring{ L"manual" } : provider);
         BindText(stmt.value, 7, std::wstring(playlist.SourceUrl().c_str()));
@@ -350,6 +363,47 @@ namespace LastMusicPlayer::Backend
             TryExec(m_db, "ROLLBACK;");
         }
     }
+    bool DatabaseEngine::ReorderPlaylistTracks(
+        std::wstring const& playlistKey,
+        std::vector<int64_t> const& trackIds)
+    {
+        std::scoped_lock lock{ m_mutex };
+        if (!m_db || playlistKey.empty())
+        {
+            return false;
+        }
+
+        Statement lookup{ m_db, "SELECT Id FROM Playlists WHERE PlaylistKey=?;" };
+        if (!lookup)
+        {
+            return false;
+        }
+        BindText(lookup.value, 1, playlistKey);
+        if (sqlite3_step(lookup.value) != SQLITE_ROW)
+        {
+            return false;
+        }
+        auto playlistId = sqlite3_column_int64(lookup.value, 0);
+        ReplacePlaylistTracks(playlistId, trackIds);
+
+        Statement verify{ m_db, "SELECT TrackId FROM PlaylistTracks WHERE PlaylistId=? ORDER BY TrackOrder;" };
+        if (!verify)
+        {
+            return false;
+        }
+        sqlite3_bind_int64(verify.value, 1, playlistId);
+        std::size_t index{};
+        while (sqlite3_step(verify.value) == SQLITE_ROW)
+        {
+            if (index >= trackIds.size() || sqlite3_column_int64(verify.value, 0) != trackIds[index])
+            {
+                return false;
+            }
+            ++index;
+        }
+        return index == trackIds.size();
+    }
+
 
     bool DatabaseEngine::AddTrackToPlaylist(std::wstring const& playlistKey, int64_t trackId)
     {

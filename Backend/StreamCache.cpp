@@ -10,7 +10,9 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cwctype>
+#include <stdexcept>
 #include <system_error>
+#include <utility>
 #include <vector>
 
 namespace LastMusicPlayer::Backend
@@ -33,6 +35,114 @@ namespace LastMusicPlayer::Backend
             if (t.find(L"flac") != std::wstring::npos) return L".flac";
             return L".bin";
         }
+
+        class DownloadCompletionGuard final
+        {
+        public:
+            DownloadCompletionGuard(
+                std::atomic_uint32_t& active,
+                UserDataOperationGate::Lease operationLease) noexcept
+                : m_active(active),
+                  m_operationLease(std::move(operationLease))
+            {
+            }
+
+            DownloadCompletionGuard(DownloadCompletionGuard const&) = delete;
+            DownloadCompletionGuard& operator=(DownloadCompletionGuard const&) = delete;
+
+            ~DownloadCompletionGuard()
+            {
+                // Clear() checks the active count after WaitForIdle(). Publish the
+                // count first, then let the lease member release and signal idle.
+                m_active.fetch_sub(1, std::memory_order_release);
+            }
+
+        private:
+            std::atomic_uint32_t& m_active;
+            UserDataOperationGate::Lease m_operationLease;
+        };
+
+        class HttpStreamCacheTransport final : public IStreamCacheTransport
+        {
+        public:
+            winrt::Windows::Foundation::IAsyncOperation<winrt::hstring> DownloadAsync(
+                std::wstring streamUrl,
+                std::filesystem::path partPath) override
+            {
+                namespace WWH = winrt::Windows::Web::Http;
+                WWH::HttpClient client;
+                auto uri = winrt::Windows::Foundation::Uri{ winrt::hstring{ streamUrl } };
+                auto response = co_await client.GetAsync(
+                    uri,
+                    WWH::HttpCompletionOption::ResponseHeadersRead);
+                if (!response.IsSuccessStatusCode())
+                {
+                    co_return winrt::hstring{};
+                }
+
+                std::wstring extension = L".bin";
+                try
+                {
+                    auto contentType = response.Content().Headers().ContentType();
+                    if (contentType)
+                    {
+                        extension = ExtensionForContentType(contentType.MediaType());
+                    }
+                }
+                catch (...)
+                {
+                }
+
+                auto input = co_await response.Content().ReadAsInputStreamAsync();
+                auto folder = co_await winrt::Windows::Storage::StorageFolder::GetFolderFromPathAsync(
+                    winrt::hstring{ partPath.parent_path().wstring() });
+                auto file = co_await folder.CreateFileAsync(
+                    winrt::hstring{ partPath.filename().wstring() },
+                    winrt::Windows::Storage::CreationCollisionOption::ReplaceExisting);
+                auto output = co_await file.OpenAsync(
+                    winrt::Windows::Storage::FileAccessMode::ReadWrite);
+                co_await winrt::Windows::Storage::Streams::RandomAccessStream::CopyAsync(
+                    input,
+                    output.GetOutputStreamAt(0));
+                co_await output.FlushAsync();
+                output.Close();
+                input.Close();
+                co_return winrt::hstring{ extension };
+            }
+        };
+    }
+
+    struct StreamCache::SharedState final
+    {
+        explicit SharedState(std::shared_ptr<IStreamCacheTransport> cacheTransport)
+            : Transport(std::move(cacheTransport))
+        {
+        }
+
+        std::shared_ptr<IStreamCacheTransport> Transport;
+        std::mutex Mutex;
+        std::unordered_map<std::wstring, Entry> Entries;
+        std::vector<winrt::Windows::Foundation::IAsyncAction> RetiredActions;
+        std::atomic_uint32_t ActiveDownloads{ 0 };
+        std::uint64_t Generation{ 0 };
+        std::uint64_t NextAttemptId{ 1 };
+    };
+
+    StreamCache::StreamCache(UserDataOperationGate& operationGate)
+        : StreamCache(operationGate, std::make_shared<HttpStreamCacheTransport>())
+    {
+    }
+
+    StreamCache::StreamCache(
+        UserDataOperationGate& operationGate,
+        std::shared_ptr<IStreamCacheTransport> transport)
+        : m_operationGate(operationGate),
+          m_state(std::make_shared<SharedState>(std::move(transport)))
+    {
+        if (!m_state->Transport)
+        {
+            throw std::invalid_argument("Stream cache transport is required.");
+        }
     }
 
     std::filesystem::path StreamCache::CacheDir()
@@ -50,7 +160,12 @@ namespace LastMusicPlayer::Backend
         }
         std::free(localAppData);
 
-        auto dir = base / L"stream-cache";
+        return base / L"stream-cache";
+    }
+
+    std::filesystem::path StreamCache::EnsureCacheDir()
+    {
+        auto dir = CacheDir();
         std::error_code ec;
         std::filesystem::create_directories(dir, ec);
         return dir;
@@ -79,167 +194,328 @@ namespace LastMusicPlayer::Backend
     {
         std::error_code ec;
         auto dir = CacheDir();
+        std::wstring newestPath;
+        std::filesystem::file_time_type newestWriteTime{};
+        bool found{};
         for (auto const& entry : std::filesystem::directory_iterator(dir, ec))
         {
             if (ec) break;
             std::error_code fe;
             if (!entry.is_regular_file(fe)) continue;
-            if (entry.path().stem().wstring() == hash && entry.path().extension() != L".part")
+
+            auto filename = entry.path().filename().wstring();
+            if (!filename.starts_with(hash + L".")
+                || entry.path().extension() == L".part")
             {
-                return entry.path().wstring();
+                continue;
+            }
+
+            auto writeTime = entry.last_write_time(fe);
+            if (fe) continue;
+            if (!found || writeTime > newestWriteTime)
+            {
+                newestPath = entry.path().wstring();
+                newestWriteTime = writeTime;
+                found = true;
             }
         }
-        return {};
+        return newestPath;
     }
 
     std::wstring StreamCache::ReadyPath(std::wstring const& sourceKey)
     {
         if (sourceKey.empty()) return {};
+
+        std::uint64_t generation{};
+        std::uint64_t attemptId{};
+        std::wstring readyPath;
         {
-            std::lock_guard<std::mutex> lock(m_mutex);
-            auto it = m_entries.find(sourceKey);
-            if (it != m_entries.end())
+            std::lock_guard<std::mutex> lock(m_state->Mutex);
+            generation = m_state->Generation;
+            auto it = m_state->Entries.find(sourceKey);
+            if (it != m_state->Entries.end())
             {
-                if (it->second.status == Status::Ready) return it->second.path;
-                if (it->second.status == Status::InFlight) return {};  // still downloading
+                if (it->second.status == Status::Ready)
+                {
+                    readyPath = it->second.path;
+                    attemptId = it->second.attemptId;
+                }
+                else if (it->second.status == Status::InFlight
+                    || it->second.status == Status::Publishing)
+                {
+                    return {};
+                }
                 // Failed -> fall through and re-check disk (a prior session may
                 // have a file even though this session's attempt failed).
             }
         }
-        auto onDisk = FindOnDisk(HashKey(sourceKey));
-        if (!onDisk.empty())
+
+        if (!readyPath.empty())
         {
-            std::lock_guard<std::mutex> lock(m_mutex);
-            m_entries[sourceKey] = Entry{ Status::Ready, onDisk };
-            return onDisk;
+            std::error_code existsError;
+            auto exists = std::filesystem::is_regular_file(readyPath, existsError);
+            std::lock_guard<std::mutex> lock(m_state->Mutex);
+            auto it = m_state->Entries.find(sourceKey);
+            if (generation != m_state->Generation
+                || it == m_state->Entries.end()
+                || it->second.status != Status::Ready
+                || it->second.attemptId != attemptId
+                || it->second.path != readyPath)
+            {
+                return {};
+            }
+            if (exists)
+            {
+                return readyPath;
+            }
+            m_state->Entries.erase(it);
         }
-        return {};
+
+        auto onDisk = FindOnDisk(HashKey(sourceKey));
+        if (onDisk.empty())
+        {
+            return {};
+        }
+
+        std::lock_guard<std::mutex> lock(m_state->Mutex);
+        if (generation != m_state->Generation)
+        {
+            return {};
+        }
+        auto it = m_state->Entries.find(sourceKey);
+        if (it != m_state->Entries.end()
+            && it->second.status != Status::Failed)
+        {
+            return {};
+        }
+        m_state->Entries[sourceKey] = Entry{ Status::Ready, onDisk };
+        return onDisk;
     }
 
     void StreamCache::Prefetch(std::wstring const& sourceKey, std::wstring const& streamUrl)
     {
         if (sourceKey.empty() || streamUrl.empty()) return;
 
-        // A previously-downloaded file (this or a prior session) means nothing
-        // to do — adopt it and bail before reserving an in-flight slot.
-        auto existing = FindOnDisk(HashKey(sourceKey));
-        if (!existing.empty())
+        auto operationLease = m_operationGate.TryEnter();
+        if (!operationLease)
         {
-            std::lock_guard<std::mutex> lock(m_mutex);
-            m_entries[sourceKey] = Entry{ Status::Ready, existing };
             return;
         }
 
-        uint64_t generation = 0;
+        // A previously-downloaded file (this or a prior session) means nothing
+        // to do. Revalidate the cache generation after the disk lookup so a
+        // concurrent scope invalidation cannot adopt a stale lookup result.
+        std::uint64_t lookupGeneration{};
         {
-            std::lock_guard<std::mutex> lock(m_mutex);
-            auto it = m_entries.find(sourceKey);
-            if (it != m_entries.end() && (it->second.status == Status::Ready || it->second.status == Status::InFlight))
+            std::lock_guard<std::mutex> lock(m_state->Mutex);
+            lookupGeneration = m_state->Generation;
+        }
+        auto existing = FindOnDisk(HashKey(sourceKey));
+        if (!existing.empty())
+        {
+            std::lock_guard<std::mutex> lock(m_state->Mutex);
+            if (lookupGeneration != m_state->Generation)
             {
-                return;  // already cached or downloading (this exact key)
+                return;
             }
-            // Concurrency cap counts only downloads that are still fresh, so a
-            // hung connection ages out and can't permanently block new ones.
-            auto now = ::GetTickCount64();
-            int active = 0;
-            for (auto const& kv : m_entries)
+            auto it = m_state->Entries.find(sourceKey);
+            if (it == m_state->Entries.end()
+                || it->second.status == Status::Failed)
             {
-                if (kv.second.status == Status::InFlight && now - kv.second.startTick < kMaxInFlightAgeMs)
-                {
-                    ++active;
-                }
+                m_state->Entries[sourceKey] = Entry{ Status::Ready, existing };
             }
-            if (active >= kMaxInFlight) return;  // back off; a later Up Next rebuild retries
-            m_entries[sourceKey] = Entry{ Status::InFlight, {}, now };
-            generation = m_generation;
+            return;
         }
 
-        DownloadAsync(sourceKey, streamUrl, generation);
+        std::uint64_t generation{};
+        std::uint64_t attemptId{};
+        {
+            std::lock_guard<std::mutex> lock(m_state->Mutex);
+            if (lookupGeneration != m_state->Generation)
+            {
+                return;
+            }
+            auto it = m_state->Entries.find(sourceKey);
+            if (it != m_state->Entries.end()
+                && (it->second.status == Status::Ready
+                    || it->second.status == Status::InFlight
+                    || it->second.status == Status::Publishing))
+            {
+                return;
+            }
+
+            if (m_state->ActiveDownloads.load(std::memory_order_acquire) >= kMaxInFlight)
+            {
+                return;
+            }
+
+            generation = m_state->Generation;
+            attemptId = m_state->NextAttemptId++;
+            m_state->ActiveDownloads.fetch_add(1, std::memory_order_acq_rel);
+            m_state->Entries[sourceKey] = Entry{ Status::InFlight, {}, attemptId };
+        }
+
+        winrt::Windows::Foundation::IAsyncAction action{ nullptr };
+        try
+        {
+            action = DownloadAsync(
+                m_state,
+                sourceKey,
+                streamUrl,
+                generation,
+                attemptId,
+                std::move(*operationLease));
+        }
+        catch (...)
+        {
+            m_state->ActiveDownloads.fetch_sub(1, std::memory_order_release);
+            std::lock_guard<std::mutex> lock(m_state->Mutex);
+            auto it = m_state->Entries.find(sourceKey);
+            if (it != m_state->Entries.end() && it->second.attemptId == attemptId)
+            {
+                it->second = Entry{ Status::Failed };
+            }
+            return;
+        }
+
+        {
+            std::lock_guard<std::mutex> lock(m_state->Mutex);
+            auto it = m_state->Entries.find(sourceKey);
+            if (it != m_state->Entries.end()
+                && it->second.status == Status::InFlight
+                && it->second.attemptId == attemptId
+                && generation == m_state->Generation)
+            {
+                it->second.action = action;
+            }
+            else
+            {
+                m_state->RetiredActions.push_back(action);
+            }
+        }
     }
 
-    winrt::Windows::Foundation::IAsyncAction StreamCache::DownloadAsync(std::wstring sourceKey, std::wstring streamUrl, uint64_t generation)
+    winrt::Windows::Foundation::IAsyncAction StreamCache::DownloadAsync(
+        std::shared_ptr<SharedState> state,
+        std::wstring sourceKey,
+        std::wstring streamUrl,
+        std::uint64_t generation,
+        std::uint64_t attemptId,
+        UserDataOperationGate::Lease operationLease)
     {
+        DownloadCompletionGuard completion{
+            state->ActiveDownloads,
+            std::move(operationLease)
+        };
         co_await winrt::resume_background();
 
+        {
+            std::lock_guard<std::mutex> lock(state->Mutex);
+            auto it = state->Entries.find(sourceKey);
+            if (generation != state->Generation
+                || it == state->Entries.end()
+                || it->second.status != Status::InFlight
+                || it->second.attemptId != attemptId)
+            {
+                co_return;
+            }
+        }
+
         auto hash = HashKey(sourceKey);
-        auto dir = CacheDir();
-        auto partPath = (dir / (hash + L".part")).wstring();
-        bool ok = false;
+        auto attemptSuffix = L"." + std::to_wstring(generation)
+            + L"." + std::to_wstring(attemptId);
+        auto partName = hash + attemptSuffix + L".part";
+        auto dir = EnsureCacheDir();
+        auto partPath = dir / partName;
+        std::wstring extension;
         std::wstring finalPath;
+        bool transferComplete{};
+        bool publicationReserved{};
+        bool renamed{};
+        bool published{};
 
         try
         {
-            namespace WWH = winrt::Windows::Web::Http;
-            WWH::HttpClient client;
-            auto uri = winrt::Windows::Foundation::Uri{ winrt::hstring{ streamUrl } };
-            auto response = co_await client.GetAsync(uri, WWH::HttpCompletionOption::ResponseHeadersRead);
-            if (response.IsSuccessStatusCode())
+            auto downloadedExtension = co_await state->Transport->DownloadAsync(streamUrl, partPath);
+            if (!downloadedExtension.empty())
             {
-                std::wstring ext = L".bin";
-                try
-                {
-                    auto ct = response.Content().Headers().ContentType();
-                    if (ct) ext = ExtensionForContentType(ct.MediaType());
-                }
-                catch (...) {}
-
-                auto inStream = co_await response.Content().ReadAsInputStreamAsync();
-                auto folder = co_await winrt::Windows::Storage::StorageFolder::GetFolderFromPathAsync(winrt::hstring{ dir.wstring() });
-                auto file = co_await folder.CreateFileAsync(
-                    winrt::hstring{ hash + L".part" },
-                    winrt::Windows::Storage::CreationCollisionOption::ReplaceExisting);
-
-                auto outStream = co_await file.OpenAsync(winrt::Windows::Storage::FileAccessMode::ReadWrite);
-                co_await winrt::Windows::Storage::Streams::RandomAccessStream::CopyAsync(inStream, outStream.GetOutputStreamAt(0));
-                co_await outStream.FlushAsync();
-                outStream.Close();
-                inStream.Close();
-
-                finalPath = (dir / (hash + ext)).wstring();
-                std::error_code ec;
-                std::filesystem::rename(partPath, finalPath, ec);
-                if (ec)
-                {
-                    // A stale final file can block the rename; replace it.
-                    std::filesystem::remove(finalPath, ec);
-                    std::filesystem::rename(partPath, finalPath, ec);
-                }
-                ok = !ec;
+                extension = downloadedExtension.c_str();
+                transferComplete = true;
             }
         }
         catch (...)
         {
-            ok = false;
+            transferComplete = false;
         }
 
-        if (!ok)
+        if (transferComplete)
         {
-            std::error_code ec;
-            std::filesystem::remove(partPath, ec);
-        }
-
-        {
-            std::lock_guard<std::mutex> lock(m_mutex);
-            if (generation != m_generation)
             {
-                std::error_code ec;
-                std::filesystem::remove(partPath, ec);
-                if (!finalPath.empty())
+                std::lock_guard<std::mutex> lock(state->Mutex);
+                auto it = state->Entries.find(sourceKey);
+                if (generation == state->Generation
+                    && it != state->Entries.end()
+                    && it->second.status == Status::InFlight
+                    && it->second.attemptId == attemptId)
                 {
-                    std::filesystem::remove(finalPath, ec);
+                    it->second.status = Status::Publishing;
+                    publicationReserved = true;
                 }
-                co_return;
             }
-            m_entries[sourceKey] = ok ? Entry{ Status::Ready, finalPath } : Entry{ Status::Failed, {} };
+
+            if (publicationReserved)
+            {
+                finalPath = (dir / (hash + attemptSuffix + extension)).wstring();
+                std::error_code renameError;
+                std::filesystem::rename(partPath, finalPath, renameError);
+                renamed = !renameError;
+
+                if (renamed)
+                {
+                    std::lock_guard<std::mutex> lock(state->Mutex);
+                    auto it = state->Entries.find(sourceKey);
+                    if (generation == state->Generation
+                        && it != state->Entries.end()
+                        && it->second.status == Status::Publishing
+                        && it->second.attemptId == attemptId)
+                    {
+                        auto action = it->second.action;
+                        it->second = Entry{ Status::Ready, finalPath, attemptId, action };
+                        published = true;
+                    }
+                }
+            }
         }
 
-        if (ok)
+        if (!published)
         {
-            TrimToCap();
+            std::error_code removeError;
+            std::filesystem::remove(partPath, removeError);
+            if (renamed)
+            {
+                removeError.clear();
+                std::filesystem::remove(finalPath, removeError);
+            }
+
+            std::lock_guard<std::mutex> lock(state->Mutex);
+            auto it = state->Entries.find(sourceKey);
+            if (generation == state->Generation
+                && it != state->Entries.end()
+                && (it->second.status == Status::InFlight
+                    || it->second.status == Status::Publishing)
+                && it->second.attemptId == attemptId)
+            {
+                auto action = it->second.action;
+                it->second = Entry{ Status::Failed, {}, attemptId, action };
+            }
+        }
+        else
+        {
+            TrimToCap(state);
         }
     }
 
-    void StreamCache::TrimToCap()
+    void StreamCache::TrimToCap(std::shared_ptr<SharedState> const& state)
     {
         std::error_code ec;
         auto dir = CacheDir();
@@ -279,10 +555,10 @@ namespace LastMusicPlayer::Backend
 
             // Forget any in-memory entry that pointed at this file so a later
             // ReadyPath misses and the track gets re-prefetched if needed.
-            std::lock_guard<std::mutex> lock(m_mutex);
-            for (auto it = m_entries.begin(); it != m_entries.end(); )
+            std::lock_guard<std::mutex> lock(state->Mutex);
+            for (auto it = state->Entries.begin(); it != state->Entries.end(); )
             {
-                if (it->second.path == f.path.wstring()) it = m_entries.erase(it);
+                if (it->second.path == f.path.wstring()) it = state->Entries.erase(it);
                 else ++it;
             }
         }
@@ -302,28 +578,86 @@ namespace LastMusicPlayer::Backend
                 std::filesystem::remove(entry.path(), re);
             }
         }
-        TrimToCap();
+        TrimToCap(m_state);
     }
 
-    void StreamCache::Clear()
+    void StreamCache::InvalidateInFlight()
     {
+        std::vector<winrt::Windows::Foundation::IAsyncAction> retiredActions;
+        {
+            std::lock_guard<std::mutex> lock(m_state->Mutex);
+            ++m_state->Generation;
+            retiredActions.swap(m_state->RetiredActions);
+            for (auto const& item : m_state->Entries)
+            {
+                if ((item.second.status == Status::InFlight
+                        || item.second.status == Status::Publishing)
+                    && item.second.action)
+                {
+                    retiredActions.push_back(item.second.action);
+                }
+            }
+            m_state->Entries.clear();
+        }
+
+        retiredActions.erase(
+            std::remove_if(
+                retiredActions.begin(),
+                retiredActions.end(),
+                [](winrt::Windows::Foundation::IAsyncAction const& action)
+                {
+                    try
+                    {
+                        return !action
+                            || action.Status()
+                                != winrt::Windows::Foundation::AsyncStatus::Started;
+                    }
+                    catch (...)
+                    {
+                        return true;
+                    }
+                }),
+            retiredActions.end());
+
+        if (!retiredActions.empty())
+        {
+            std::lock_guard<std::mutex> lock(m_state->Mutex);
+            m_state->RetiredActions.insert(
+                m_state->RetiredActions.end(),
+                retiredActions.begin(),
+                retiredActions.end());
+        }
+    }
+
+    bool StreamCache::Clear()
+    {
+        if (m_state->ActiveDownloads.load(std::memory_order_acquire) != 0)
+        {
+            return false;
+        }
+
         std::filesystem::path dir;
         {
-            std::lock_guard<std::mutex> lock(m_mutex);
-            ++m_generation;
-            m_entries.clear();
+            std::lock_guard<std::mutex> lock(m_state->Mutex);
+            if (m_state->ActiveDownloads.load(std::memory_order_acquire) != 0)
+            {
+                return false;
+            }
+            ++m_state->Generation;
+            m_state->Entries.clear();
+            m_state->RetiredActions.clear();
             dir = CacheDir();
         }
 
         std::error_code ec;
-        for (auto const& entry : std::filesystem::directory_iterator(dir, ec))
+        std::filesystem::remove_all(dir, ec);
+        if (ec)
         {
-            if (ec)
-            {
-                break;
-            }
-            std::error_code removeError;
-            std::filesystem::remove_all(entry.path(), removeError);
+            return false;
         }
+
+        std::error_code existsError;
+        auto remains = std::filesystem::exists(dir, existsError);
+        return !existsError && !remains;
     }
 }

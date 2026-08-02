@@ -4,7 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <!--
-        Last Music Player — Design Tokens
+        Last Music Player: Design Tokens
         Theme-varying brushes/colors live in ThemeDictionaries (Light/Dark) and are
         consumed via {ThemeResource}. Theme-independent values (radii, sizes, text
         styles, control styles) live in the root dictionary below.

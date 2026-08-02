@@ -4,10 +4,10 @@
 ; app folder), so this installer just packs the Release output.
 ;
 ; Compile:  ISCC.exe installer\LastMusicPlayer.iss
-; Output:   installer\Output\LastMusicPlayer-1.0.0-Setup.exe
+; Output:   installer\Output\LastMusicPlayer-1.1.0-Setup.exe
 
 #define MyAppName "Last Music Player"
-#define MyAppVersion "1.0.0"
+#define MyAppVersion "1.1.0"
 #define MyAppPublisher "Debashis Das (Last Projects)"
 #define MyAppURL "https://lastprojects.com/"
 #define MyAppExeName "Last_Music_Player.exe"

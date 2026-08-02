@@ -66,6 +66,19 @@ namespace winrt::Last_Music_Player::implementation
 
         int64_t CatalogId() { return m_catalogId; }
         void CatalogId(int64_t value) { m_catalogId = value; }
+        hstring RemoteId() { return m_remoteId; }
+        void RemoteId(hstring const& value) { m_remoteId = value; }
+
+        // Remote catalog identifiers, empty for anything that did not come from
+        // the catalog. Distinct from CatalogId, which is a local row id.
+        hstring RemoteCatalogId() { return m_remoteCatalogId; }
+        void RemoteCatalogId(hstring const& value) { m_remoteCatalogId = value; }
+
+        hstring AlbumCatalogId() { return m_albumCatalogId; }
+        void AlbumCatalogId(hstring const& value) { m_albumCatalogId = value; }
+
+        hstring ArtistCatalogId() { return m_artistCatalogId; }
+        void ArtistCatalogId(hstring const& value) { m_artistCatalogId = value; }
 
         hstring SourceKind() { return m_sourceKind; }
         void SourceKind(hstring const& value) { m_sourceKind = value; }
@@ -76,14 +89,7 @@ namespace winrt::Last_Music_Player::implementation
         hstring SourceUrl() { return m_sourceUrl; }
         void SourceUrl(hstring const& value) { m_sourceUrl = value; }
 
-        hstring SourceLabel()
-        {
-            if (UsesExternalProvider())
-            {
-                return L"Music API";
-            }
-            return m_sourceLabel;
-        }
+        hstring SourceLabel() { return m_sourceLabel; }
         void SourceLabel(hstring const& value) { m_sourceLabel = value; }
 
         bool IsLiked() { return m_isLiked; }
@@ -95,12 +101,6 @@ namespace winrt::Last_Music_Player::implementation
         void TrackCount(int32_t value) { m_trackCount = value; }
 
     private:
-        bool UsesExternalProvider() const
-        {
-            return m_sourceKind == L"remote"
-                || (!m_provider.empty() && m_provider != L"manual" && m_provider != L"auto");
-        }
-
         hstring m_title;
         hstring m_artist;
         winrt::Microsoft::UI::Xaml::Media::Imaging::BitmapImage m_albumArt{ nullptr };
@@ -121,6 +121,10 @@ namespace winrt::Last_Music_Player::implementation
         hstring m_duration;
         int32_t m_index{ 0 };
         int64_t m_catalogId{ 0 };
+        hstring m_remoteId;
+        hstring m_remoteCatalogId;
+        hstring m_albumCatalogId;
+        hstring m_artistCatalogId;
         hstring m_sourceKind;
         hstring m_provider;
         hstring m_sourceUrl;
