@@ -47,6 +47,12 @@ namespace LastMusicPlayer::Backend
             return false;
         }
 
+        if (!Exec(m_db, "INSERT INTO ActiveAccountContext (SingletonId, RemoteMode, AccountId) VALUES (1, 'LocalOnly', '') ON CONFLICT(SingletonId) DO UPDATE SET RemoteMode='LocalOnly', AccountId='';"))
+        {
+            Close();
+            return false;
+        }
+
         return true;
     }
 

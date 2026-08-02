@@ -2,6 +2,7 @@
 #include "MainWindow.xaml.h"
 #include "MainWindow.Internal.h"
 
+#include "Backend/BuildConfig.h"
 #include "Backend/ProviderClient.h"
 #include "Backend/DiscordPresence.h"
 
@@ -31,21 +32,197 @@ using namespace Microsoft::UI::Xaml;
 namespace winrt::Last_Music_Player::implementation
 {
     using namespace detail;
+    namespace
+    {
+
+        std::wstring NewPlaybackEventId()
+        {
+            GUID id{};
+            if (FAILED(::CoCreateGuid(&id)))
+            {
+                return {};
+            }
+            wchar_t value[40]{};
+            if (::StringFromGUID2(id, value, static_cast<int>(std::size(value))) <= 0)
+            {
+                return {};
+            }
+            auto result = std::wstring(value);
+            if (result.size() >= 2 && result.front() == L'{' && result.back() == L'}')
+            {
+                result = result.substr(1, result.size() - 2);
+            }
+            return result;
+        }
+
+        std::wstring PlaybackTimestampNow()
+        {
+            SYSTEMTIME now{};
+            ::GetSystemTime(&now);
+            wchar_t value[40]{};
+            swprintf_s(value, L"%04u-%02u-%02uT%02u:%02u:%02uZ",
+                now.wYear, now.wMonth, now.wDay, now.wHour, now.wMinute, now.wSecond);
+            return value;
+        }
+    }
+
+    void MainWindow::BeginPlaybackQualification(winrt::Last_Music_Player::TrackInfo const& track)
+    {
+        m_playbackHistoryQualifier.Clear();
+        m_pendingPlaybackTrack = nullptr;
+        m_pendingPlaybackIdentity.clear();
+        m_pendingPlaybackEventId.clear();
+        m_pendingPlaybackOwnerId.clear();
+        m_pendingPlaybackRemoteId.clear();
+        m_pendingPlaybackAccountGeneration = 0;
+
+        auto identity = CatalogSourceKey(track);
+        auto eventId = NewPlaybackEventId();
+        if (!track || identity.empty() || eventId.empty())
+        {
+            return;
+        }
+
+        m_pendingPlaybackTrack = track;
+        m_pendingPlaybackEventId = std::move(eventId);
+        m_pendingPlaybackIdentity = m_pendingPlaybackEventId + L"|" + identity;
+        m_playbackHistoryQualifier.Reset(m_pendingPlaybackIdentity);
+
+        if (RemoteMusicServiceService().Mode() != LastMusicPlayer::Backend::RemoteAccessMode::Account
+            || !IsCompatibleAccountRemoteTrack(track))
+        {
+            return;
+        }
+
+        auto snapshot = AccountSessionService().Snapshot();
+        if ((snapshot.Status == LastMusicPlayer::Backend::AccountSessionStatus::Validated
+                || snapshot.Status == LastMusicPlayer::Backend::AccountSessionStatus::Offline)
+            && !snapshot.Profile.Id.empty())
+        {
+            m_pendingPlaybackOwnerId = std::wstring(snapshot.Profile.Id.c_str());
+            m_pendingPlaybackRemoteId = std::wstring(track.RemoteId().c_str());
+            m_pendingPlaybackAccountGeneration = snapshot.Generation;
+        }
+    }
+
+    void MainWindow::ObservePlaybackQualification(bool playing, double positionSeconds)
+    {
+        if (!m_pendingPlaybackTrack || m_pendingPlaybackIdentity.empty())
+        {
+            return;
+        }
+
+        auto current = AudioPlayerService().GetCurrentTrack();
+        if (!current || CatalogSourceKey(current) != CatalogSourceKey(m_pendingPlaybackTrack))
+        {
+            m_playbackHistoryQualifier.Clear();
+            m_pendingPlaybackTrack = nullptr;
+            m_pendingPlaybackIdentity.clear();
+            m_pendingPlaybackEventId.clear();
+            m_pendingPlaybackOwnerId.clear();
+            m_pendingPlaybackRemoteId.clear();
+            m_pendingPlaybackAccountGeneration = 0;
+            return;
+        }
+
+        if (!m_playbackHistoryQualifier.Observe(m_pendingPlaybackIdentity, playing, ::GetTickCount64()))
+        {
+            return;
+        }
+
+        auto operationLease = UserDataOperationGateService().TryEnter();
+        if (!operationLease)
+        {
+            m_playbackHistoryQualifier.MarkCompleted();
+            return;
+        }
+
+        bool queuedAccountEvent = false;
+        std::wstring playbackAccountOwner;
+        uint64_t playbackAccountGeneration{};
+        if (!m_pendingPlaybackOwnerId.empty() && !m_pendingPlaybackRemoteId.empty())
+        {
+            auto snapshot = AccountSessionService().Snapshot();
+            auto accountStillCurrent = snapshot.Profile.Id == winrt::hstring(m_pendingPlaybackOwnerId)
+                && snapshot.Generation == m_pendingPlaybackAccountGeneration
+                && (snapshot.Status == LastMusicPlayer::Backend::AccountSessionStatus::Validated
+                    || snapshot.Status == LastMusicPlayer::Backend::AccountSessionStatus::Offline)
+                && RemoteMusicServiceService().Mode() == LastMusicPlayer::Backend::RemoteAccessMode::Account
+                && IsCompatibleAccountRemoteTrack(current);
+            if (accountStillCurrent)
+            {
+                LastMusicPlayer::Backend::PlaybackEventRecord event;
+                event.EventId = m_pendingPlaybackEventId;
+                event.AccountId = m_pendingPlaybackOwnerId;
+                event.RemoteTrackId = m_pendingPlaybackRemoteId;
+                event.Track = current;
+                event.PlayedAtUtc = PlaybackTimestampNow();
+                event.PositionSeconds = (std::max)(0.0, positionSeconds);
+                if (!DatabaseService().EnqueuePlaybackEvent(event))
+                {
+                    return;
+                }
+                queuedAccountEvent = true;
+                playbackAccountOwner = m_pendingPlaybackOwnerId;
+                playbackAccountGeneration = m_pendingPlaybackAccountGeneration;
+            }
+        }
+
+        RecordHomePlayback(current);
+        PersistTrackPlayback(
+            current,
+            positionSeconds,
+            playbackAccountOwner,
+            playbackAccountGeneration);
+        RunDetached(HydrateHomeAsync(false));
+        m_songsLoadState = LoadState::Dirty;
+        m_librarySongsState = LoadState::Dirty;
+        m_libraryPlaylistsState = LoadState::Dirty;
+        SaveAppState();
+        m_playbackHistoryQualifier.MarkCompleted();
+        operationLease.reset();
+
+        auto snapshot = AccountSessionService().Snapshot();
+        if (queuedAccountEvent
+            && snapshot.Status == LastMusicPlayer::Backend::AccountSessionStatus::Validated
+            && snapshot.Generation == playbackAccountGeneration
+            && snapshot.Profile.Id == winrt::hstring(playbackAccountOwner))
+        {
+            RunDetached(SynchronizeAccountLibraryAsync(false));
+        }
+    }
+
     winrt::Windows::Media::Core::MediaSource MainWindow::BuildMediaSourceForTrack(winrt::Last_Music_Player::TrackInfo const& track)
     {
         try
         {
             auto file = track.File();
             auto filePath = track.FilePath();
-            auto providerStreamUrl = ProviderStreamUrlFor(track);
-            if (!providerStreamUrl.empty())
+            auto& remoteMusic = RemoteMusicServiceService();
+            auto remoteScope = remoteMusic.CaptureScope();
+            auto remoteMode = remoteScope.Mode;
+            auto remote = !file && (IsHttpUrl(filePath) || IsHttpUrl(track.SourceUrl()));
+            if (remote && remoteMode == LastMusicPlayer::Backend::RemoteAccessMode::LocalOnly)
             {
-                // Prefer a fully prefetched local copy when one exists: it plays
-                // from disk with no live network, so connection jitter can't
-                // stall it (the cause of the brief mid-song rebuffer pauses).
-                // Falls back to the live stream URL on a cache miss.
-                auto cached = StreamCacheService().ReadyPath(std::wstring{ track.SourceUrl().c_str() });
-                filePath = cached.empty() ? providerStreamUrl : winrt::hstring{ cached };
+                return nullptr;
+            }
+
+            auto providerStreamUrl = ProviderStreamUrlFor(track);
+            auto cacheKey = ApiKeyStreamCacheKey(remoteScope, track);
+            auto cached = !cacheKey.empty() && remoteMusic.IsCurrent(remoteScope)
+                ? StreamCacheService().ReadyPath(cacheKey)
+                : std::wstring{};
+            if (!cached.empty())
+            {
+                filePath = winrt::hstring{ cached };
+            }
+            else if (!providerStreamUrl.empty())
+            {
+                filePath = providerStreamUrl;
+            }
+            else if (remote)
+            {
+                return nullptr;
             }
             // Always prefer a URI-backed MediaSource. CreateFromStorageFile
             // sources fail to play silently when wrapped in MediaPlaybackItem
@@ -53,8 +230,8 @@ namespace winrt::Last_Music_Player::implementation
             // local and remote, so we use them as the single entry point.
             if (!filePath.empty())
             {
-                auto remote = IsHttpUrl(filePath);
-                auto uri = remote
+                auto remoteUri = IsHttpUrl(filePath);
+                auto uri = remoteUri
                     ? winrt::Windows::Foundation::Uri(filePath)
                     : winrt::Windows::Foundation::Uri(winrt::hstring(FilePathToUri(filePath)));
                 return winrt::Windows::Media::Core::MediaSource::CreateFromUri(uri);
@@ -80,9 +257,24 @@ namespace winrt::Last_Music_Player::implementation
         }
 
         winrt::Last_Music_Player::TrackInfo match{ nullptr };
+        auto savedIdentity = std::wstring(snapshot.LastTrackPath.c_str());
         for (auto const& candidate : m_homeRecentHistory)
         {
-            if (candidate && candidate.FilePath() == snapshot.LastTrackPath)
+            if (!candidate)
+            {
+                continue;
+            }
+
+            auto matches = candidate.FilePath() == snapshot.LastTrackPath;
+            if (!matches && savedIdentity.starts_with(L"remote-id:"))
+            {
+                matches = std::wstring(candidate.RemoteId().c_str()) == savedIdentity.substr(10);
+            }
+            if (!matches && savedIdentity.starts_with(L"source:"))
+            {
+                matches = CatalogSourceKey(candidate) == savedIdentity.substr(7);
+            }
+            if (matches)
             {
                 match = candidate;
                 break;
@@ -126,8 +318,8 @@ namespace winrt::Last_Music_Player::implementation
             if (FsGeneratedGlyph()) FsGeneratedGlyph().Glyph(track.ArtworkGlyph());
         }
 
-        NpMetaAlbum().Text(track.Album().empty() ? (remote ? L"Provider" : L"Local Library") : track.Album());
-        NpMetaYear().Text(track.SourceLabel().empty() ? (remote ? L"Music API" : L"Local") : track.SourceLabel());
+        NpMetaAlbum().Text(track.Album().empty() ? (remote ? L"Remote music" : L"Local Library") : track.Album());
+        NpMetaYear().Text(track.SourceLabel().empty() ? (remote ? L"Remote" : L"Local") : track.SourceLabel());
         NpMetaFormat().Text(remote ? L"Stream" : L"File");
 
         bool hasImage = track.ImageArtworkOpacity() > 0.0 && track.AlbumArt() != nullptr;
@@ -156,46 +348,91 @@ namespace winrt::Last_Music_Player::implementation
     {
         // Any explicit play supersedes a pending resume restore.
         m_pendingResumeTrack = nullptr;
+        auto resolveEpoch = ++m_remotePlaybackResolveEpoch;
         try
         {
         auto file = track.File();
         auto filePath = track.FilePath();
+        auto& remoteMusic = RemoteMusicServiceService();
+        auto remoteScope = remoteMusic.CaptureScope();
+        auto remoteMode = remoteScope.Mode;
+        bool accountMode = remoteMode == LastMusicPlayer::Backend::RemoteAccessMode::Account;
         auto providerStreamUrl = ProviderStreamUrlFor(track);
+        auto rawArtworkUrl = track.ArtworkUrl();
+        if (!accountMode && ToLowerCopy(rawArtworkUrl).find(L"/v1/artwork") != std::wstring::npos)
+        {
+            track.ArtworkUrl(ProviderArtworkUrlFor(rawArtworkUrl));
+        }
+        auto remote = !file && (IsHttpUrl(filePath) || IsHttpUrl(track.SourceUrl()));
+        if (remote && remoteMode == LastMusicPlayer::Backend::RemoteAccessMode::LocalOnly)
+        {
+            ShowPlaybackNotice(L"Select a remote integration to play this track.");
+            return false;
+        }
+
+        auto cacheKey = ApiKeyStreamCacheKey(remoteScope, track);
+        auto cachedFilePath = m_sink == PlaybackSink::Local
+            && remote
+            && !cacheKey.empty()
+            && remoteMusic.IsCurrent(remoteScope)
+            ? StreamCacheService().ReadyPath(cacheKey)
+            : std::wstring{};
+        bool requiresResolve = cachedFilePath.empty() && (accountMode
+            ? !LastMusicPlayer::Backend::IsSafeEphemeralMediaUrl(providerStreamUrl)
+            : providerStreamUrl.empty());
+        if (!gaplessTransitioned && remote && IsHttpUrl(track.SourceUrl()) && requiresResolve)
+        {
+            RunDetached(ResolveRemotePlaybackAsync(
+                track,
+                true,
+                gaplessTransitioned,
+                0.0,
+                resolveEpoch));
+            return true;
+        }
         if (!providerStreamUrl.empty())
         {
             filePath = providerStreamUrl;
+            if (track.FilePath() != providerStreamUrl)
+            {
+                track.FilePath(providerStreamUrl);
+            }
         }
-        auto remote = !file && IsHttpUrl(filePath);
 
-        if (m_sink == PlaybackSink::Cast && providerStreamUrl.empty())
+        auto apiKeyCastBlocked = m_sink == PlaybackSink::Cast
+            && remoteMode == LastMusicPlayer::Backend::RemoteAccessMode::ApiKey;
+        if (m_sink == PlaybackSink::Cast
+            && (apiKeyCastBlocked || !IsHttpUrl(providerStreamUrl)))
         {
-            // Chromecast cannot fetch a file that only exists on this PC.
-            // Leave the cast session before loading the local source so the
-            // transport controls continue to operate the engine that is
-            // actually producing audio.
+            // A Cast receiver must receive the media URL. API-key URLs carry the
+            // user's credential, while local-only sources are not receiver-
+            // reachable, so both cases fail closed to local playback.
+            m_cast.Stop();
             m_cast.Disconnect();
             m_sink = PlaybackSink::Local;
-            m_castSession.DeviceId = L"";
-            m_castSession.DeviceName = L"";
-            m_castSession.IsPlaying = false;
-            m_castSession.CurrentSeconds = 0.0;
-            m_castSession.DurationSeconds = 0.0;
-            m_castSession.ProgressStampMs = 0;
-            m_castSession.LastStatusRequestMs = 0;
+            m_castSession = {};
             EnsureAccentBrushes();
             if (CastIcon()) CastIcon().Foreground(m_brushGlyphIdle);
+            if (apiKeyCastBlocked)
+            {
+                ShowPlaybackNotice(L"Casting API-key tracks is disabled to keep the API key on this PC.");
+            }
         }
 
         if (!gaplessTransitioned && m_sink == PlaybackSink::Cast && !providerStreamUrl.empty())
         {
-            // The Chromecast fetches the stream directly from the provider
-            // (a public provider URL in production); the app only sends control.
+            // The receiver fetches the provider-issued signed media URL
+            // directly; the app sends only playback controls.
             m_castSession.CurrentSeconds = 0.0;
             m_castSession.DurationSeconds = track.DurationSeconds();
             m_castSession.ProgressStampMs = ::GetTickCount64();
             m_castSession.LastStatusRequestMs = 0;
             ApplyPlaybackProgress(0.0, m_castSession.DurationSeconds);
-            m_cast.LoadAsync(providerStreamUrl, track.Title(), track.Artist(), track.ArtworkUrl());
+            m_cast.LoadAsync(
+                providerStreamUrl,
+                track.Title(),
+                track.Artist(),
+                accountMode ? winrt::hstring{} : ProviderArtworkUrlFor(track.ArtworkUrl()));
             m_castSession.IsPlaying = true;
             m_cast.RequestStatus();
             AudioPlayerService().GetMediaPlayer().Pause();
@@ -291,14 +528,11 @@ namespace winrt::Last_Music_Player::implementation
                 {
                     auto bitmap = CreateMusicArtworkBitmap();
                     auto normalizedArtworkUrl = NormalizeMusicArtworkUrl(artworkUrl);
-                    // Re-token provider-proxied artwork URLs (1-hour
-                    // media_token TTL); external artwork URLs pass
-                    // through untouched. See BuildProviderArtworkUrl.
+                    // Use only the provider-issued signed artwork URL. External
+                    // image hosts pass through unchanged; expired provider art
+                    // falls back to the generated placeholder without exposing
+                    // any long-lived credential in a URL.
                     auto freshArtworkUrl = ProviderArtworkUrlFor(normalizedArtworkUrl);
-                    if (freshArtworkUrl.empty())
-                    {
-                        freshArtworkUrl = normalizedArtworkUrl;
-                    }
                     if (!bitmap || freshArtworkUrl.empty())
                     {
                         showGeneratedArtwork();
@@ -367,21 +601,15 @@ namespace winrt::Last_Music_Player::implementation
         // Honor the "Show album art on player bar" preference.
         ApplyShowAlbumArt();
 
-        NpMetaAlbum().Text(track.Album().empty() ? (remote ? L"Provider" : L"Local Library") : track.Album());
-        NpMetaYear().Text(track.SourceLabel().empty() ? (remote ? L"Music API" : L"Local") : track.SourceLabel());
+        NpMetaAlbum().Text(track.Album().empty() ? (remote ? L"Remote music" : L"Local Library") : track.Album());
+        NpMetaYear().Text(track.SourceLabel().empty() ? (remote ? L"Remote" : L"Local") : track.SourceLabel());
         NpMetaFormat().Text(remote ? L"Stream" : L"File");
 
         UpdateSMTCMetadata(track);
         UpdateDiscordNowPlaying(track);
         PlayPauseIcon().Glyph(L"\xE769");
-        RecordHomePlayback(track);
-        PersistTrackPlayback(track);
-        RunDetached(HydrateHomeAsync(false));
-        m_browseLoadState = LoadState::Dirty;
-        m_librarySongsState = LoadState::Dirty;
-        m_libraryPlaylistsState = LoadState::Dirty;
+        BeginPlaybackQualification(track);
         UpdateLikeButton(track);
-        SaveAppState();
 
         // A fresh, user-or-queue-initiated play resets the stream auto-recovery
         // budget and position tracking. (The recovery path re-opens the source
@@ -396,6 +624,158 @@ namespace winrt::Last_Music_Player::implementation
         {
             return false;
         }
+    }
+
+    winrt::Windows::Foundation::IAsyncAction MainWindow::ResolveRemotePlaybackAsync(
+        winrt::Last_Music_Player::TrackInfo track,
+        bool startAsNewPlay,
+        bool gaplessTransitioned,
+        double resumeSeconds,
+        uint64_t resolveEpoch)
+    {
+        auto lifetime = get_strong();
+        auto dispatcher = DispatcherQueue();
+        if (!track || !IsHttpUrl(track.SourceUrl()))
+        {
+            co_return;
+        }
+
+        auto& remoteMusic = RemoteMusicServiceService();
+        auto remoteScope = remoteMusic.CaptureScope();
+        auto remoteMode = remoteScope.Mode;
+        bool accountMode = remoteMode == LastMusicPlayer::Backend::RemoteAccessMode::Account;
+        auto baseUrl = accountMode ? winrt::hstring{} : CurrentProviderBaseUrl();
+        auto apiKey = accountMode ? winrt::hstring{} : CredentialStoreService().ReadProviderApiKey();
+        winrt::hstring payload;
+        try
+        {
+            payload = co_await remoteMusic.ResolveUrlAsync(track.SourceUrl());
+        }
+        catch (...)
+        {
+        }
+
+        winrt::hstring streamUrl;
+        winrt::hstring artworkUrl;
+        if (!payload.empty())
+        {
+            try
+            {
+                auto root = winrt::Windows::Data::Json::JsonObject::Parse(payload);
+                auto result = root.GetNamedObject(L"result", nullptr);
+                if (result)
+                {
+                    streamUrl = result.GetNamedString(L"streamUrl", L"");
+                    artworkUrl = result.GetNamedString(L"artworkUrl", L"");
+                }
+            }
+            catch (...)
+            {
+            }
+        }
+
+        // Every failure from here on leaves safeStreamUrl empty and is reported
+        // once by the common tail below, on the UI thread. Returning silently
+        // instead would strand the queue on a track that never starts, which is
+        // easy to hit now that catalog-origin tracks reach playback and the
+        // mirror occasionally has no match for one.
+        winrt::hstring safeStreamUrl;
+        winrt::hstring safeArtworkUrl;
+        if (accountMode)
+        {
+            safeStreamUrl = LastMusicPlayer::Backend::IsTrustedAccountMediaUrl(
+                streamUrl,
+                LastMusicPlayer::Backend::BuildConfig::AccountMediaOrigin,
+                L"stream")
+                ? streamUrl
+                : winrt::hstring{};
+        }
+        else
+        {
+            safeStreamUrl = LastMusicPlayer::Backend::BuildProviderStreamUrl(
+                streamUrl,
+                track.SourceUrl(),
+                track.Provider(),
+                artworkUrl,
+                baseUrl,
+                apiKey);
+            safeArtworkUrl = LastMusicPlayer::Backend::BuildProviderArtworkUrl(
+                artworkUrl,
+                baseUrl,
+                apiKey);
+        }
+
+        co_await wil::resume_foreground(dispatcher);
+        if (resolveEpoch != m_remotePlaybackResolveEpoch
+            || !remoteMusic.IsCurrent(remoteScope))
+        {
+            co_return;
+        }
+        if (remoteMode == LastMusicPlayer::Backend::RemoteAccessMode::ApiKey
+            && (CurrentProviderBaseUrl() != baseUrl
+                || CredentialStoreService().ReadProviderApiKey() != apiKey))
+        {
+            co_return;
+        }
+        if (safeStreamUrl.empty())
+        {
+            HandleRemoteResolveFailure(track, startAsNewPlay, resolveEpoch);
+            co_return;
+        }
+        m_remoteResolveFailures = 0;
+
+        auto target = track;
+        if (!startAsNewPlay)
+        {
+            auto current = AudioPlayerService().GetCurrentTrack();
+            if (!current || CatalogSourceKey(current) != CatalogSourceKey(track))
+            {
+                co_return;
+            }
+            target = current;
+        }
+
+        target.FilePath(safeStreamUrl);
+        if (!safeArtworkUrl.empty())
+        {
+            ApplyMusicArtwork(target, safeArtworkUrl, L"track");
+        }
+
+        auto sourceKey = CatalogSourceKey(target);
+        auto cacheKey = ApiKeyStreamCacheKey(remoteScope, track);
+        if (!cacheKey.empty() && remoteMusic.IsCurrent(remoteScope))
+        {
+            StreamCacheService().Prefetch(
+                cacheKey,
+                std::wstring{ safeStreamUrl.c_str() });
+        }
+        if (DatabaseService().IsInitialized() && !sourceKey.empty() && !accountMode)
+        {
+            DatabaseService().UpsertRemoteTrack(target, sourceKey);
+        }
+
+        if (startAsNewPlay)
+        {
+            PlayTrack(target, gaplessTransitioned);
+            co_return;
+        }
+
+        auto source = BuildMediaSourceForTrack(target);
+        if (!source)
+        {
+            HandleRemoteResolveFailure(track, startAsNewPlay, resolveEpoch);
+            co_return;
+        }
+        m_pendingResumeSeekSeconds = resumeSeconds;
+        AudioPlayerService().PlayGaplessCurrent(source);
+        AudioPlayerService().LoadTrack(target);
+
+        double baseVolume = SettingsManagerService().GetVolume();
+        if (baseVolume < 0.0) baseVolume = 0.0;
+        if (baseVolume > 1.0) baseVolume = 1.0;
+        AudioPlayerService().GetMediaPlayer().Volume(baseVolume);
+        PlayPauseIcon().Glyph(L"\xE769");
+        if (FsPlayPauseIcon()) FsPlayPauseIcon().Glyph(L"\xE769");
     }
 
     void MainWindow::OnMediaFailed(
@@ -418,17 +798,15 @@ namespace winrt::Last_Music_Player::implementation
                 return;
             }
 
-            // Only auto-recover network-backed playback. A failing local file is
-            // a genuine error (missing/corrupt) that re-opening can't fix.
-            bool remote = (!current.File() && IsHttpUrl(current.FilePath()))
-                || !ProviderStreamUrlFor(current).empty();
+            bool remote = ToLowerCopy(current.SourceKind()) == L"remote"
+                || (!current.File() && IsHttpUrl(current.FilePath()));
             if (!remote)
             {
                 return;
             }
 
-            // Bounded retry within a rolling window so a truly unplayable source
-            // can't loop forever; reset the budget after a quiet spell.
+            // Bounded retry within a rolling window so a genuinely unavailable
+            // source cannot trigger an endless resolve/reopen loop.
             auto now = ::GetTickCount64();
             if (m_lastStreamRecoverTickMs == 0 || now - m_lastStreamRecoverTickMs > 20000)
             {
@@ -442,23 +820,37 @@ namespace winrt::Last_Music_Player::implementation
             }
             ++m_streamRecoverAttempts;
 
-            // Rebuild a *fresh* source. BuildMediaSourceForTrack prefers a
-            // completed prefetch (so a dropped live stream transparently
-            // switches to the on-disk copy), and ProviderStreamUrlFor reissues a
-            // current token (which also fixes 401-on-expiry failures). Resume
-            // near where we dropped — the seek lands in OnMediaOpened.
-            auto source = BuildMediaSourceForTrack(current);
-            if (!source)
+            // Prefer a complete local prefetch if one became ready while the
+            // live stream was playing. It needs no network or credentials.
+            auto& remoteMusic = RemoteMusicServiceService();
+            auto remoteScope = remoteMusic.CaptureScope();
+            auto sourceKey = ApiKeyStreamCacheKey(remoteScope, current);
+            if (!sourceKey.empty()
+                && remoteMusic.IsCurrent(remoteScope)
+                && !StreamCacheService().ReadyPath(sourceKey).empty())
             {
+                auto source = BuildMediaSourceForTrack(current);
+                if (source)
+                {
+                    m_pendingResumeSeekSeconds = m_lastPlaybackPositionSeconds;
+                    AudioPlayerService().PlayGaplessCurrent(source);
+                    return;
+                }
+            }
+
+            if (!IsHttpUrl(current.SourceUrl()))
+            {
+                TransportPause();
                 return;
             }
-            m_pendingResumeSeekSeconds = m_lastPlaybackPositionSeconds;
-            AudioPlayerService().PlayGaplessCurrent(source);
 
-            double base = SettingsManagerService().GetVolume();
-            if (base < 0.0) base = 0.0;
-            if (base > 1.0) base = 1.0;
-            AudioPlayerService().GetMediaPlayer().Volume(base);
+            auto resolveEpoch = ++m_remotePlaybackResolveEpoch;
+            RunDetached(ResolveRemotePlaybackAsync(
+                current,
+                false,
+                false,
+                m_lastPlaybackPositionSeconds,
+                resolveEpoch));
         });
     }
 
@@ -579,10 +971,29 @@ namespace winrt::Last_Music_Player::implementation
         // honored when MediaPlaybackList playback is restored.
     }
 
-    void MainWindow::PersistTrackPlayback(winrt::Last_Music_Player::TrackInfo const& track)
+    void MainWindow::PersistTrackPlayback(
+        winrt::Last_Music_Player::TrackInfo const& track,
+        double positionSeconds,
+        std::wstring const& accountOwnerId,
+        uint64_t accountGeneration)
     {
         if (!DatabaseService().IsInitialized())
         {
+            return;
+        }
+
+        if (RemoteMusicServiceService().Mode() == LastMusicPlayer::Backend::RemoteAccessMode::Account)
+        {
+            auto snapshot = AccountSessionService().Snapshot();
+            if (!accountOwnerId.empty()
+                && snapshot.Generation == accountGeneration
+                && snapshot.Profile.Id == winrt::hstring(accountOwnerId)
+                && (snapshot.Status == LastMusicPlayer::Backend::AccountSessionStatus::Validated
+                    || snapshot.Status == LastMusicPlayer::Backend::AccountSessionStatus::Offline)
+                && IsCompatibleAccountRemoteTrack(track))
+            {
+                DatabaseService().RecordAccountPlayback(accountOwnerId, track, positionSeconds);
+            }
             return;
         }
 
@@ -676,6 +1087,74 @@ namespace winrt::Last_Music_Player::implementation
             PlayPauseIcon().Glyph(L"\xE769"); // Pause icon
             if (FsPlayPauseIcon()) FsPlayPauseIcon().Glyph(L"\xE769");
         }
+    }
+
+    void MainWindow::ShowPlaybackNotice(winrt::hstring const& message)
+    {
+        if (!PlaybackNoticePanel() || message.empty())
+        {
+            return;
+        }
+
+        PlaybackNoticeText().Text(message);
+        PlaybackNoticePanel().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Visible);
+
+        if (!m_playbackNoticeTimer)
+        {
+            m_playbackNoticeTimer = winrt::Microsoft::UI::Xaml::DispatcherTimer();
+            m_playbackNoticeTimer.Interval(std::chrono::seconds(5));
+            m_playbackNoticeTimer.Tick([this](winrt::Windows::Foundation::IInspectable const&, winrt::Windows::Foundation::IInspectable const&)
+            {
+                m_playbackNoticeTimer.Stop();
+                if (PlaybackNoticePanel())
+                {
+                    PlaybackNoticePanel().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
+                }
+            });
+        }
+
+        // Restart so a second notice gets its own full dwell time.
+        m_playbackNoticeTimer.Stop();
+        m_playbackNoticeTimer.Start();
+    }
+
+    void MainWindow::HandleRemoteResolveFailure(
+        winrt::Last_Music_Player::TrackInfo const& track,
+        bool startAsNewPlay,
+        uint64_t resolveEpoch)
+    {
+        // A newer play superseded this resolve; its own outcome owns the UI.
+        if (resolveEpoch != m_remotePlaybackResolveEpoch)
+        {
+            return;
+        }
+
+        auto title = track ? track.Title() : winrt::hstring{};
+        ShowPlaybackNotice(title.empty()
+            ? winrt::hstring{ L"No playable source for this track." }
+            : winrt::hstring{ L"No playable source for \"" + std::wstring{ title.c_str() } + L"\"." });
+
+        if (!startAsNewPlay)
+        {
+            // Mid-stream recovery: the track was playing a moment ago, so stay on
+            // it and let the user retry rather than jumping somewhere else.
+            TransportPause();
+            return;
+        }
+
+        // PlayTrack returns true as soon as it hands a remote track to the
+        // resolver, so AdvanceQueue already counted this as a successful play and
+        // cleared its own failure counter. Without a separate bound here, a queue
+        // of unresolvable tracks would advance forever, one network round trip per
+        // step.
+        if (++m_remoteResolveFailures >= 3)
+        {
+            m_remoteResolveFailures = 0;
+            ShowPlaybackNotice(L"Could not play the next few tracks. Playback stopped.");
+            TransportPause();
+            return;
+        }
+        AdvanceQueue(+1, true);
     }
 
     void MainWindow::QueueVolumePersist(double volume)
@@ -993,6 +1472,11 @@ namespace winrt::Last_Music_Player::implementation
                 currentSeconds += static_cast<double>(now - m_castSession.ProgressStampMs) / 1000.0;
             }
             ApplyPlaybackProgress(currentSeconds, m_castSession.DurationSeconds);
+            ObservePlaybackQualification(m_castSession.IsPlaying, currentSeconds);
+            RefreshDiscordPresenceIfNeeded(
+                m_castSession.IsPlaying,
+                currentSeconds,
+                m_castSession.DurationSeconds);
 
             auto glyph = m_castSession.IsPlaying ? L"\xE769" : L"\xE768";
             if (auto icon = PlayPauseIcon())
@@ -1003,10 +1487,6 @@ namespace winrt::Last_Music_Player::implementation
             {
                 icon.Glyph(glyph);
             }
-            RefreshDiscordPresenceIfNeeded(
-                m_castSession.IsPlaying,
-                currentSeconds,
-                m_castSession.DurationSeconds);
             return;
         }
 
@@ -1037,6 +1517,9 @@ namespace winrt::Last_Music_Player::implementation
         }
 
         auto state = session.PlaybackState();
+        ObservePlaybackQualification(
+            state == winrt::Windows::Media::Playback::MediaPlaybackState::Playing,
+            currentSeconds);
         RefreshDiscordPresenceIfNeeded(
             IsDiscordPlaybackActive(state),
             currentSeconds,
@@ -1110,22 +1593,48 @@ namespace winrt::Last_Music_Player::implementation
             ProviderTestStatusText().Text(L"Missing provider URL");
             co_return;
         }
+        if (apiKey.empty())
+        {
+            ProviderTestStatusText().Text(L"Enter a new API key");
+            co_return;
+        }
+
         ProviderTestStatusText().Text(L"Connecting...");
 
         try
         {
-            LastMusicPlayer::Backend::ProviderClient providerClient;
-            providerClient.SetBaseUrl(baseUrl);
-            providerClient.SetBearerToken(apiKey);
-
-            auto status = co_await providerClient.GetProvidersStatusAsync();
+            auto status = co_await RemoteMusicServiceService().TestApiKeyAsync(baseUrl, apiKey);
             if (status == 200)
             {
+                auto operationLease = UserDataOperationGateService().TryEnter();
+                if (!operationLease)
+                {
+                    ProviderTestStatusText().Text(L"Cleanup is in progress");
+                    co_return;
+                }
+                if (ProviderBaseUrlBox().Text() != baseUrl
+                    || ProviderApiKeyBox().Password() != apiKey)
+                {
+                    ProviderTestStatusText().Text(L"Provider settings changed. Try again.");
+                    co_return;
+                }
+
+                if (!CredentialStoreService().WriteProviderApiKey(apiKey)
+                    || CredentialStoreService().ReadProviderApiKey() != apiKey)
+                {
+                    ProviderTestStatusText().Text(L"Could not store API key");
+                    co_return;
+                }
                 WriteAppSettingString(L"ProviderBaseUrl", baseUrl);
-                WriteAppSettingString(L"ProviderApiKey", apiKey);
+                RemoteMusicServiceService().SetMode(LastMusicPlayer::Backend::RemoteAccessMode::ApiKey);
+                InvalidateRemoteScopeWork();
+                DatabaseService().SetRemoteLibraryContext(L"ApiKey");
+                ProviderApiKeyBox().Password(L"");
                 m_remoteSearchCache.clear();
-                ProviderTestStatusText().Text(L"Connected");
-                UpdateBrowseScopeLabel();
+                ProviderTestStatusText().Text(L"Configured");
+                UpdateSongsScopeLabel();
+                RefreshAccountSettingsUi();
+                operationLease.reset();
                 co_await HydrateHomeAsync(true);
             }
             else if (status == 401)
@@ -1146,5 +1655,40 @@ namespace winrt::Last_Music_Player::implementation
             ProviderTestStatusText().Text(L"Provider unavailable");
         }
     }
+    void MainWindow::DisconnectProvider_Click(
+        winrt::Windows::Foundation::IInspectable const& sender,
+        winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
+    {
+        (void)sender;
+        (void)args;
+
+        auto operationLease = UserDataOperationGateService().TryEnter();
+        if (!operationLease)
+        {
+            ProviderTestStatusText().Text(L"Cleanup is in progress");
+            return;
+        }
+
+        if (!CredentialStoreService().DeleteProviderApiKey())
+        {
+            ProviderTestStatusText().Text(L"Could not remove API key");
+            return;
+        }
+
+        auto urlRemoved = SettingsManagerService().Remove(L"ProviderBaseUrl");
+        if (RemoteMusicServiceService().Mode() == LastMusicPlayer::Backend::RemoteAccessMode::ApiKey)
+        {
+            RemoteMusicServiceService().SetMode(LastMusicPlayer::Backend::RemoteAccessMode::LocalOnly);
+            DatabaseService().SetRemoteLibraryContext(L"LocalOnly");
+        }
+        InvalidateRemoteScopeWork();
+        ProviderBaseUrlBox().Text(L"");
+        ProviderApiKeyBox().Password(L"");
+        m_remoteSearchCache.clear();
+        ProviderTestStatusText().Text(urlRemoved ? L"Not configured" : L"API key removed; provider URL cleanup failed");
+        RefreshAccountSettingsUi();
+        UpdateSongsScopeLabel();
+    }
+
 
 }

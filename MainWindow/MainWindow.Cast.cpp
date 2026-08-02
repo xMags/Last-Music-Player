@@ -31,6 +31,25 @@ namespace winrt::Last_Music_Player::implementation
 {
     using namespace detail;
 
+    namespace
+    {
+        bool CanCastTrack(winrt::Last_Music_Player::TrackInfo const& track)
+        {
+            if (!track
+                || RemoteMusicServiceService().Mode()
+                    != LastMusicPlayer::Backend::RemoteAccessMode::Account)
+            {
+                return false;
+            }
+            if (!ProviderStreamUrlFor(track).empty())
+            {
+                return true;
+            }
+
+            return IsHttpUrl(track.SourceUrl());
+        }
+    }
+
     void MainWindow::ClearCastCallbacks()
     {
         m_cast.StatusChanged = {};
@@ -126,13 +145,17 @@ namespace winrt::Last_Music_Player::implementation
 
         using namespace winrt::Microsoft::UI::Xaml::Controls;
         auto current = AudioPlayerService().GetCurrentTrack();
-        if (!current || ProviderStreamUrlFor(current).empty())
+        if (!CanCastTrack(current))
         {
             MenuFlyout unavailable;
             MenuFlyoutItem message;
-            message.Text(current
-                ? L"Local files cannot be cast. Play a Music API track first."
-                : L"Play a Music API track before connecting a Cast device.");
+            auto apiKeyMode = RemoteMusicServiceService().Mode()
+                == LastMusicPlayer::Backend::RemoteAccessMode::ApiKey;
+            message.Text(apiKeyMode && current
+                ? L"Casting API-key tracks is disabled to keep the API key on this PC."
+                : (current
+                    ? L"This track cannot be cast. Play an account track with an available source first."
+                    : L"Play an account track before connecting a Cast device."));
             message.IsEnabled(false);
             unavailable.Items().Append(message);
             unavailable.ShowAt(CastButton());
@@ -215,7 +238,7 @@ namespace winrt::Last_Music_Player::implementation
         winrt::hstring connectError;
 
         auto currentBeforeConnect = AudioPlayerService().GetCurrentTrack();
-        if (!currentBeforeConnect || ProviderStreamUrlFor(currentBeforeConnect).empty())
+        if (!CanCastTrack(currentBeforeConnect))
         {
             co_return;
         }
@@ -269,7 +292,7 @@ namespace winrt::Last_Music_Player::implementation
         }
 
         auto current = AudioPlayerService().GetCurrentTrack();
-        if (!current || ProviderStreamUrlFor(current).empty())
+        if (!CanCastTrack(current))
         {
             m_cast.Disconnect();
             m_sink = PlaybackSink::Local;
@@ -278,7 +301,7 @@ namespace winrt::Last_Music_Player::implementation
 
             winrt::Microsoft::UI::Xaml::Controls::MenuFlyout unavailable;
             winrt::Microsoft::UI::Xaml::Controls::MenuFlyoutItem message;
-            message.Text(L"The track changed to a local file, so casting was cancelled.");
+            message.Text(L"The track changed to one that cannot be cast, so casting was cancelled.");
             message.IsEnabled(false);
             unavailable.Items().Append(message);
             unavailable.ShowAt(CastButton());
@@ -300,6 +323,7 @@ namespace winrt::Last_Music_Player::implementation
     {
         bool wasCastPlaying = m_castSession.IsPlaying;
         auto current = AudioPlayerService().GetCurrentTrack();
+        m_cast.Stop();
         m_cast.Disconnect();
         m_sink = PlaybackSink::Local;
         m_castSession.DeviceId = L"";

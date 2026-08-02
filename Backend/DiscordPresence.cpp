@@ -425,7 +425,7 @@ namespace LastMusicPlayer::Backend
         if (isHttpsUrl || isDiscordExternalAsset || isBareAssetKey)
         {
             os << ",\"assets\":{\"large_image\":\"" << JsonEscape(p.artworkUrl) << "\"";
-            std::wstring sourceLabel = p.isLocal ? L"Source: Local" : L"Source: Remote Music API";
+            std::wstring sourceLabel = p.isLocal ? L"Source: Local" : L"Source: Remote";
             os << ",\"large_text\":\"" << JsonEscape(sourceLabel) << "\"}";
         }
 

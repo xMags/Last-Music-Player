@@ -48,7 +48,7 @@ namespace winrt::Last_Music_Player::implementation
         }
 
         MusicListView().SelectedItem(clickedTrack);
-        co_await LoadBrowseQueueAndPlayAsync(clickedTrack);
+        co_await LoadSongsQueueAndPlayAsync(clickedTrack);
         co_return;
     }
 
@@ -59,6 +59,7 @@ namespace winrt::Last_Music_Player::implementation
     // ---- Full-screen Now Playing view --------------------------------------
 
     // ---- Chromecast --------------------------------------------------------
+
 
     void MainWindow::AppendTrackPage(
         std::vector<winrt::Last_Music_Player::TrackInfo> const& source,
@@ -82,37 +83,38 @@ namespace winrt::Last_Music_Player::implementation
         }
     }
 
-    void MainWindow::AppendBrowsePage()
+    void MainWindow::AppendSongsPage()
     {
         AppendTrackPage(
-            m_browseAllResults,
-            m_browseTracks,
-            m_browseGridMode ? kBrowseGridPageSize : kBrowseListPageSize);
-        UpdateBrowseStats();
+            m_songsAllResults,
+            m_songsTracks,
+            m_songsGridMode ? kSongsGridPageSize : kSongsListPageSize);
+        UpdateSongsStats();
     }
 
-    void MainWindow::MaybeAppendBrowsePage(uint32_t itemIndex)
+    void MainWindow::MaybeAppendSongsPage(uint32_t itemIndex)
     {
-        auto total = m_browseMatchedCount > 0 ? static_cast<uint32_t>(m_browseMatchedCount) : static_cast<uint32_t>(m_browseAllResults.size());
-        if (m_browseTracks.Size() < total &&
-            itemIndex + kPageAppendThreshold >= m_browseTracks.Size())
+        auto total = m_songsMatchedCount > 0 ? static_cast<uint32_t>(m_songsMatchedCount) : static_cast<uint32_t>(m_songsAllResults.size());
+        if (m_songsTracks.Size() < total &&
+            itemIndex + kPageAppendThreshold >= m_songsTracks.Size())
         {
             if (DatabaseService().IsInitialized())
             {
-                RunDetached(AppendBrowsePageAsync());
+                RunDetached(AppendSongsPageAsync());
             }
             else
             {
-                AppendBrowsePage();
+                AppendSongsPage();
             }
         }
     }
 
-    LastMusicPlayer::Backend::TrackQuery MainWindow::CurrentBrowseQuery(uint32_t offset, uint32_t limit) const
+
+    LastMusicPlayer::Backend::TrackQuery MainWindow::CurrentSongsQuery(uint32_t offset, uint32_t limit) const
     {
         LastMusicPlayer::Backend::TrackQuery query;
-        query.Filter = m_browseFilter;
-        query.Sort = m_browseSort;
+        query.Filter = m_songsFilter;
+        query.Sort = m_songsSort;
         query.Offset = static_cast<int>(offset);
         query.Limit = static_cast<int>(limit);
         query.IncludeRemote = true;
@@ -120,27 +122,28 @@ namespace winrt::Last_Music_Player::implementation
         return query;
     }
 
-    void MainWindow::ApplyBrowseFilterSort()
+
+    void MainWindow::ApplySongsFilterSort()
     {
-        BrowseSortButton().IsEnabled(m_browseFilter != L"History" && m_browseFilter != L"Most");
-        m_browseAllResults.clear();
-        m_browseTracks.Clear();
-        m_browseMatchedCount = 0;
-        m_browseMatchedSeconds = 0.0;
-        m_browsePageLoading = false;
-        ++m_browsePageLoadId;
-        m_browseResultsValid = false;
-        m_browseLoadState = LoadState::Loading;
-        BrowseSubtitle().Text(L"Loading tracks...");
-        UpdateBrowseStats();
-        RunDetached(EnsureBrowseHydratedAsync(true));
+        SongsSortButton().IsEnabled(m_songsFilter != L"History" && m_songsFilter != L"Most");
+        m_songsAllResults.clear();
+        m_songsTracks.Clear();
+        m_songsMatchedCount = 0;
+        m_songsMatchedSeconds = 0.0;
+        m_songsPageLoading = false;
+        ++m_songsPageLoadId;
+        m_songsResultsValid = false;
+        m_songsLoadState = LoadState::Loading;
+        SongsSubtitle().Text(L"Loading tracks...");
+        UpdateSongsStats();
+        RunDetached(EnsureSongsHydratedAsync(true));
     }
 
-    winrt::Windows::Foundation::IAsyncAction MainWindow::EnsureBrowseHydratedAsync(bool reset)
+    winrt::Windows::Foundation::IAsyncAction MainWindow::EnsureSongsHydratedAsync(bool reset)
     {
         auto lifetime = get_strong();
         auto dispatcher = this->DispatcherQueue();
-        auto epoch = reset ? ++m_browseHydrationEpoch : m_browseHydrationEpoch;
+        auto epoch = reset ? ++m_songsHydrationEpoch : m_songsHydrationEpoch;
 
         if (reset)
         {
@@ -148,83 +151,83 @@ namespace winrt::Last_Music_Player::implementation
 
         if (!DatabaseService().IsInitialized())
         {
-            m_browseAllResults.clear();
-            m_browseTracks.Clear();
-            m_browseMatchedCount = static_cast<int>(m_queue.CurrentPlaylist.size());
-            m_browseMatchedSeconds = 0.0;
+            m_songsAllResults.clear();
+            m_songsTracks.Clear();
+            m_songsMatchedCount = static_cast<int>(m_queue.CurrentPlaylist.size());
+            m_songsMatchedSeconds = 0.0;
             for (auto const& track : m_queue.CurrentPlaylist)
             {
-                m_browseMatchedSeconds += track.DurationSeconds();
+                m_songsMatchedSeconds += track.DurationSeconds();
                 auto copy = track;
-                copy.Index(static_cast<int32_t>(m_browseAllResults.size() + 1));
-                m_browseAllResults.push_back(copy);
+                copy.Index(static_cast<int32_t>(m_songsAllResults.size() + 1));
+                m_songsAllResults.push_back(copy);
             }
-            AppendBrowsePage();
-            m_browseLoadState = LoadState::Loaded;
-            m_browseResultsValid = true;
-            UpdateBrowseStats();
+            AppendSongsPage();
+            m_songsLoadState = LoadState::Loaded;
+            m_songsResultsValid = true;
+            UpdateSongsStats();
             co_return;
         }
 
-        co_await AppendBrowsePageAsync();
-        if (epoch == m_browseHydrationEpoch)
+        co_await AppendSongsPageAsync();
+        if (epoch == m_songsHydrationEpoch)
         {
-            m_browseLoadState = LoadState::Loaded;
-            m_browseResultsValid = true;
+            m_songsLoadState = LoadState::Loaded;
+            m_songsResultsValid = true;
         }
     }
 
-    winrt::Windows::Foundation::IAsyncAction MainWindow::AppendBrowsePageAsync()
+    winrt::Windows::Foundation::IAsyncAction MainWindow::AppendSongsPageAsync()
     {
         auto lifetime = get_strong();
-        if (m_browsePageLoading)
+        if (m_songsPageLoading)
         {
             co_return;
         }
-        if (m_browseMatchedCount > 0 && static_cast<int>(m_browseAllResults.size()) >= m_browseMatchedCount)
+        if (m_songsMatchedCount > 0 && static_cast<int>(m_songsAllResults.size()) >= m_songsMatchedCount)
         {
             co_return;
         }
 
         auto dispatcher = this->DispatcherQueue();
-        auto epoch = m_browseHydrationEpoch;
-        auto offset = static_cast<uint32_t>(m_browseAllResults.size());
-        auto limit = m_browseGridMode ? kBrowseGridPageSize : kBrowseListPageSize;
-        auto query = CurrentBrowseQuery(offset, limit);
-        m_browsePageLoading = true;
-        auto pageLoadId = ++m_browsePageLoadId;
+        auto epoch = m_songsHydrationEpoch;
+        auto offset = static_cast<uint32_t>(m_songsAllResults.size());
+        auto limit = m_songsGridMode ? kSongsGridPageSize : kSongsListPageSize;
+        auto query = CurrentSongsQuery(offset, limit);
+        m_songsPageLoading = true;
+        auto pageLoadId = ++m_songsPageLoadId;
 
         co_await winrt::resume_background();
         auto page = DatabaseService().LoadTrackPage(query);
 
         co_await wil::resume_foreground(dispatcher);
-        if (epoch != m_browseHydrationEpoch || pageLoadId != m_browsePageLoadId)
+        if (epoch != m_songsHydrationEpoch || pageLoadId != m_songsPageLoadId)
         {
-            if (pageLoadId == m_browsePageLoadId)
+            if (pageLoadId == m_songsPageLoadId)
             {
-                m_browsePageLoading = false;
+                m_songsPageLoading = false;
             }
             co_return;
         }
 
-        m_browseMatchedCount = page.TotalCount;
-        m_browseMatchedSeconds = page.TotalSeconds;
+        m_songsMatchedCount = page.TotalCount;
+        m_songsMatchedSeconds = page.TotalSeconds;
         for (auto const& source : page.Tracks)
         {
             auto copy = source;
-            copy.Index(static_cast<int32_t>(m_browseAllResults.size() + 1));
+            copy.Index(static_cast<int32_t>(m_songsAllResults.size() + 1));
             ResolveArtworkPresentation(copy, L"track");
-            m_browseAllResults.push_back(copy);
-            m_browseTracks.Append(copy);
+            m_songsAllResults.push_back(copy);
+            m_songsTracks.Append(copy);
         }
-        if (pageLoadId == m_browsePageLoadId)
+        if (pageLoadId == m_songsPageLoadId)
         {
-            m_browsePageLoading = false;
+            m_songsPageLoading = false;
         }
-        UpdateBrowseStats();
+        UpdateSongsStats();
     }
 
-    winrt::Windows::Foundation::IAsyncAction MainWindow::LoadBrowseQueueAndPlayAsync(winrt::Last_Music_Player::TrackInfo clickedTrack)
+    winrt::Windows::Foundation::IAsyncAction MainWindow::LoadSongsQueueAndPlayAsync(winrt::Last_Music_Player::TrackInfo clickedTrack)
     {
         auto lifetime = get_strong();
         auto dispatcher = this->DispatcherQueue();
@@ -232,14 +235,14 @@ namespace winrt::Last_Music_Player::implementation
         std::vector<winrt::Last_Music_Player::TrackInfo> queue;
         if (DatabaseService().IsInitialized())
         {
-            auto query = CurrentBrowseQuery(0, 0);
+            auto query = CurrentSongsQuery(0, 0);
             co_await winrt::resume_background();
             queue = DatabaseService().LoadTracksForQuery(query);
             co_await wil::resume_foreground(dispatcher);
         }
         else
         {
-            queue = m_browseAllResults;
+            queue = m_songsAllResults;
         }
 
         if (queue.empty())
@@ -253,40 +256,40 @@ namespace winrt::Last_Music_Player::implementation
         QueueAndPlayVisible(queue, clickedTrack);
     }
 
-    void MainWindow::SetBrowseGridMode(bool gridMode)
+    void MainWindow::SetSongsGridMode(bool gridMode)
     {
-        m_browseGridMode = gridMode;
+        m_songsGridMode = gridMode;
         EnsureAccentBrushes();
         using V = winrt::Microsoft::UI::Xaml::Visibility;
         MusicListView().Visibility(gridMode ? V::Collapsed : V::Visible);
-        BrowseListHeader().Visibility(gridMode ? V::Collapsed : V::Visible);
-        BrowseGridView().Visibility(gridMode ? V::Visible : V::Collapsed);
+        SongsListHeader().Visibility(gridMode ? V::Collapsed : V::Visible);
+        SongsGridView().Visibility(gridMode ? V::Visible : V::Collapsed);
 
-        BrowseListViewButton().Background(gridMode ? m_brushTransparent : m_brushAccentSoft);
-        BrowseGridViewButton().Background(gridMode ? m_brushAccentSoft : m_brushTransparent);
+        SongsListViewButton().Background(gridMode ? m_brushTransparent : m_brushAccentSoft);
+        SongsGridViewButton().Background(gridMode ? m_brushAccentSoft : m_brushTransparent);
 
-        auto total = m_browseMatchedCount > 0 ? static_cast<size_t>(m_browseMatchedCount) : m_browseAllResults.size();
-        if (!gridMode && m_browseTracks.Size() < (std::min)(static_cast<size_t>(kBrowseListPageSize), total))
+        auto total = m_songsMatchedCount > 0 ? static_cast<size_t>(m_songsMatchedCount) : m_songsAllResults.size();
+        if (!gridMode && m_songsTracks.Size() < (std::min)(static_cast<size_t>(kSongsListPageSize), total))
         {
             if (DatabaseService().IsInitialized())
             {
-                RunDetached(AppendBrowsePageAsync());
+                RunDetached(AppendSongsPageAsync());
             }
             else
             {
-                AppendBrowsePage();
+                AppendSongsPage();
             }
         }
     }
 
-    void MainWindow::UpdateBrowseScopeLabel()
+    void MainWindow::UpdateSongsScopeLabel()
     {
         if (!m_xamlReadyForEvents)
         {
             return;
         }
 
-        bool hasRemote = !ReadAppSettingString(L"ProviderBaseUrl").empty();
+        bool hasRemote = RemoteMusicServiceService().HasRemoteAccess();
         if (!hasRemote)
         {
             for (auto const& track : m_catalogTracks)
@@ -299,18 +302,18 @@ namespace winrt::Last_Music_Player::implementation
             }
         }
 
-        BrowseScopeLabel().Text(hasRemote ? L"Local and Remote Library" : L"Local Library");
+        SongsScopeLabel().Text(hasRemote ? L"Local and Remote Library" : L"Local Library");
     }
 
-    void MainWindow::UpdateBrowseStats()
+    void MainWindow::UpdateSongsStats()
     {
-        UpdateBrowseScopeLabel();
+        UpdateSongsScopeLabel();
         size_t count = DatabaseService().IsInitialized()
             ? static_cast<size_t>(m_libraryStats.SongCount)
             : m_queue.CurrentPlaylist.size();
-        size_t loadedCount = m_browseTracks.Size();
-        size_t matchedCount = m_browseMatchedCount > 0 ? static_cast<size_t>(m_browseMatchedCount) : m_browseAllResults.size();
-        double totalSeconds = m_browseMatchedSeconds;
+        size_t loadedCount = m_songsTracks.Size();
+        size_t matchedCount = m_songsMatchedCount > 0 ? static_cast<size_t>(m_songsMatchedCount) : m_songsAllResults.size();
+        double totalSeconds = m_songsMatchedSeconds;
         if (totalSeconds <= 0.0 && !DatabaseService().IsInitialized())
         {
             for (auto const& t : m_queue.CurrentPlaylist)
@@ -331,31 +334,31 @@ namespace winrt::Last_Music_Player::implementation
                 + std::to_wstring(count) + L" tracks \x00B7 "
                 + std::to_wstring(mins) + L" min total";
         }
-        BrowseSubtitle().Text(winrt::hstring(s));
+        SongsSubtitle().Text(winrt::hstring(s));
     }
 
-    void MainWindow::BrowsePlayAll_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
+    void MainWindow::SongsPlayAll_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
     {
         (void)sender;
         (void)args;
-        if (m_browseAllResults.empty() && m_browseMatchedCount == 0)
+        if (m_songsAllResults.empty() && m_songsMatchedCount == 0)
         {
             return;
         }
 
-        RunDetached(LoadBrowseQueueAndPlayAsync(winrt::Last_Music_Player::TrackInfo{ nullptr }));
+        RunDetached(LoadSongsQueueAndPlayAsync(winrt::Last_Music_Player::TrackInfo{ nullptr }));
     }
 
-    void MainWindow::SelectBrowseFilter(std::wstring const& filter)
+    void MainWindow::SelectSongsFilter(std::wstring const& filter)
     {
         auto nextFilter = filter.empty() ? std::wstring{ L"All" } : filter;
-        if (m_browseFilter == nextFilter && m_browseResultsValid)
+        if (m_songsFilter == nextFilter && m_songsResultsValid)
         {
             return;
         }
 
-        m_browseFilter = nextFilter;
-        m_updatingBrowseChips = true;
+        m_songsFilter = nextFilter;
+        m_updatingSongsChips = true;
 
         winrt::Microsoft::UI::Xaml::Controls::Primitives::ToggleButton chips[] = {
             ChipAll(), ChipHistory(), ChipMost(), ChipFav()
@@ -364,15 +367,15 @@ namespace winrt::Last_Music_Player::implementation
         for (auto const& chip : chips)
         {
             auto tag = ReadTagString(chip.Tag());
-            auto selected = std::wstring(tag.c_str()) == m_browseFilter;
+            auto selected = std::wstring(tag.c_str()) == m_songsFilter;
             chip.IsChecked(selected);
         }
 
-        m_updatingBrowseChips = false;
-        ApplyBrowseFilterSort();
+        m_updatingSongsChips = false;
+        ApplySongsFilterSort();
     }
 
-    void MainWindow::BrowseChip_Checked(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
+    void MainWindow::SongsChip_Checked(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
     {
         (void)args;
         if (!m_xamlReadyForEvents)
@@ -380,7 +383,7 @@ namespace winrt::Last_Music_Player::implementation
             return;
         }
 
-        if (m_updatingBrowseChips)
+        if (m_updatingSongsChips)
         {
             return;
         }
@@ -392,14 +395,14 @@ namespace winrt::Last_Music_Player::implementation
         }
 
         auto tag = ReadTagString(clicked.Tag());
-        SelectBrowseFilter(tag.empty() ? L"All" : std::wstring(tag.c_str()));
+        SelectSongsFilter(tag.empty() ? L"All" : std::wstring(tag.c_str()));
     }
 
-    void MainWindow::BrowseChip_Unchecked(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
+    void MainWindow::SongsChip_Unchecked(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
     {
         (void)sender;
         (void)args;
-        if (!m_xamlReadyForEvents || m_updatingBrowseChips)
+        if (!m_xamlReadyForEvents || m_updatingSongsChips)
         {
             return;
         }
@@ -419,39 +422,40 @@ namespace winrt::Last_Music_Player::implementation
             }
         }
 
-        SelectBrowseFilter(m_browseFilter);
+        SelectSongsFilter(m_songsFilter);
     }
 
-    winrt::Windows::Foundation::IAsyncAction MainWindow::BrowseGridView_ItemClick(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::ItemClickEventArgs const& args)
+    winrt::Windows::Foundation::IAsyncAction MainWindow::SongsGridView_ItemClick(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::ItemClickEventArgs const& args)
     {
         (void)sender;
         auto clickedTrack = args.ClickedItem().try_as<winrt::Last_Music_Player::TrackInfo>();
         if (clickedTrack)
         {
-            RunDetached(LoadBrowseQueueAndPlayAsync(clickedTrack));
+            RunDetached(LoadSongsQueueAndPlayAsync(clickedTrack));
         }
         co_return;
     }
 
-    void MainWindow::BrowseList_ContainerContentChanging(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::ContainerContentChangingEventArgs const& args)
+    void MainWindow::SongsList_ContainerContentChanging(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::ContainerContentChangingEventArgs const& args)
     {
         (void)sender;
         if (!args.InRecycleQueue())
         {
-            MaybeAppendBrowsePage(args.ItemIndex());
+            MaybeAppendSongsPage(args.ItemIndex());
         }
     }
 
-    void MainWindow::BrowseGrid_ContainerContentChanging(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::ContainerContentChangingEventArgs const& args)
+    void MainWindow::SongsGrid_ContainerContentChanging(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::ContainerContentChangingEventArgs const& args)
     {
         (void)sender;
         if (!args.InRecycleQueue())
         {
-            MaybeAppendBrowsePage(args.ItemIndex());
+            MaybeAppendSongsPage(args.ItemIndex());
         }
     }
 
-    void MainWindow::PlayBrowseTrack(winrt::Last_Music_Player::TrackInfo const& track)
+
+    void MainWindow::PlaySongsTrack(winrt::Last_Music_Player::TrackInfo const& track)
     {
         if (!track)
         {
@@ -459,10 +463,10 @@ namespace winrt::Last_Music_Player::implementation
         }
 
         MusicListView().SelectedItem(track);
-        RunDetached(LoadBrowseQueueAndPlayAsync(track));
+        RunDetached(LoadSongsQueueAndPlayAsync(track));
     }
 
-    void MainWindow::PlayNextFromBrowse(winrt::Last_Music_Player::TrackInfo const& track)
+    void MainWindow::PlayNextFromSongs(winrt::Last_Music_Player::TrackInfo const& track)
     {
         if (!track || !IsPlayableHomeTrack(track))
         {
@@ -479,7 +483,7 @@ namespace winrt::Last_Music_Player::implementation
         auto current = AudioPlayerService().GetCurrentTrack();
         if (!current)
         {
-            PlayBrowseTrack(track);
+            PlaySongsTrack(track);
             return;
         }
 
@@ -494,15 +498,12 @@ namespace winrt::Last_Music_Player::implementation
             }
         }
 
-        // Push to the front of UserQueue so this track plays as soon as the
-        // current one ends. UserQueue is the user's explicit Up Next; it
-        // survives tile clicks elsewhere in the app (context replaces,
-        // user queue persists).
+        // Explicit Up Next survives when another tile replaces the playback context.
         m_queue.UserQueue.insert(m_queue.UserQueue.begin(), track);
         RebuildUpNextQueue();
     }
 
-    void MainWindow::AddBrowseTrackToQueue(winrt::Last_Music_Player::TrackInfo const& track)
+    void MainWindow::AddSongsTrackToQueue(winrt::Last_Music_Player::TrackInfo const& track)
     {
         if (!track || !IsPlayableHomeTrack(track))
         {
@@ -531,7 +532,7 @@ namespace winrt::Last_Music_Player::implementation
         RebuildUpNextQueue();
     }
 
-    void MainWindow::PlayNextFromBrowseBulk(std::vector<winrt::Last_Music_Player::TrackInfo> const& tracks)
+    void MainWindow::PlayNextFromSongsBulk(std::vector<winrt::Last_Music_Player::TrackInfo> const& tracks)
     {
         if (tracks.empty())
         {
@@ -548,7 +549,7 @@ namespace winrt::Last_Music_Player::implementation
 
         // Build the prefix in input order, dedup'd against UserQueue and
         // itself, then insert as a single block so the original ordering
-        // survives. Per-track PlayNextFromBrowse would reverse the list.
+        // survives. Per-track PlayNextFromSongs would reverse the list.
         std::vector<winrt::Last_Music_Player::TrackInfo> toInsert;
         toInsert.reserve(tracks.size());
         for (auto const& track : tracks)
@@ -571,7 +572,7 @@ namespace winrt::Last_Music_Player::implementation
         RebuildUpNextQueue();
     }
 
-    void MainWindow::AddBrowseTracksToQueueBulk(std::vector<winrt::Last_Music_Player::TrackInfo> const& tracks)
+    void MainWindow::AddSongsTracksToQueueBulk(std::vector<winrt::Last_Music_Player::TrackInfo> const& tracks)
     {
         if (tracks.empty())
         {
@@ -604,28 +605,29 @@ namespace winrt::Last_Music_Player::implementation
         }
     }
 
-    void MainWindow::BrowseRowPlay_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
+
+    void MainWindow::SongsRowPlay_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
     {
         (void)args;
-        PlayBrowseTrack(TrackFromActionSender(sender));
+        PlaySongsTrack(TrackFromActionSender(sender));
     }
 
     void MainWindow::BrowseRowMenuPlayNow_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
     {
         (void)args;
-        PlayBrowseTrack(TrackFromActionSender(sender));
+        PlaySongsTrack(TrackFromActionSender(sender));
     }
 
     void MainWindow::BrowseRowMenuPlayNext_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
     {
         (void)args;
-        PlayNextFromBrowse(TrackFromActionSender(sender));
+        PlayNextFromSongs(TrackFromActionSender(sender));
     }
 
     void MainWindow::BrowseRowMenuAddToQueue_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
     {
         (void)args;
-        AddBrowseTrackToQueue(TrackFromActionSender(sender));
+        AddSongsTrackToQueue(TrackFromActionSender(sender));
     }
 
     void MainWindow::BrowseRowMenuLike_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
@@ -637,30 +639,30 @@ namespace winrt::Last_Music_Player::implementation
     void MainWindow::BrowseRowMenuArtist_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
     {
         (void)args;
-        OpenBrowseTrackArtist(TrackFromActionSender(sender));
+        OpenSongsTrackArtist(TrackFromActionSender(sender));
     }
 
     void MainWindow::BrowseRowMenuAlbum_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
     {
         (void)args;
-        OpenBrowseTrackAlbum(TrackFromActionSender(sender));
+        OpenSongsTrackAlbum(TrackFromActionSender(sender));
     }
 
-    void MainWindow::BrowseListView_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
+    void MainWindow::SongsListView_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
     {
         (void)sender;
         (void)args;
-        SetBrowseGridMode(false);
+        SetSongsGridMode(false);
     }
 
-    void MainWindow::BrowseGridView_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
+    void MainWindow::SongsGridView_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
     {
         (void)sender;
         (void)args;
-        SetBrowseGridMode(true);
+        SetSongsGridMode(true);
     }
 
-    void MainWindow::BrowseSort_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
+    void MainWindow::SongsSort_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
     {
         (void)args;
         auto item = sender.try_as<winrt::Microsoft::UI::Xaml::Controls::MenuFlyoutItem>();
@@ -672,9 +674,9 @@ namespace winrt::Last_Music_Player::implementation
         auto tag = ReadTagString(item.Tag());
         if (!tag.empty())
         {
-            m_browseSort = std::wstring(tag.c_str());
-            BrowseSortLabel().Text(item.Text());
-            ApplyBrowseFilterSort();
+            m_songsSort = std::wstring(tag.c_str());
+            SongsSortLabel().Text(item.Text());
+            ApplySongsFilterSort();
         }
     }
 

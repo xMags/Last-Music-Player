@@ -4,11 +4,11 @@
   <h1>Last Music Player</h1>
 
   <p>
-    <strong>A fast native Windows music player for local libraries, with optional remote playback through your own Music API.</strong>
+    <strong>A fast native Windows music player for local libraries, with optional remote playback through a build-configured account service or your own Music API.</strong>
   </p>
 
   <p>
-    Offline playback comes first. Remote search, radio, lyrics, and imports stay behind a small provider contract you control.
+    Offline playback comes first. Remote features stay behind either a private build configuration or a small provider contract you control.
   </p>
 
   <p>
@@ -31,6 +31,7 @@
     <a href="#features">Features</a> -
     <a href="#architecture">Architecture</a> -
     <a href="#music-api-provider">Music API Provider</a> -
+    <a href="#account-integration">Account Integration</a> -
     <a href="#development">Development</a> -
     <a href="#license">License</a>
   </p>
@@ -41,7 +42,7 @@
 </p>
 
 > [!NOTE]
-> This repository ships the Windows client only. Without a configured Music API provider, Last Music Player remains a fully functional local music player; remote features simply stay unavailable.
+> This repository ships the Windows client only. Without account-service build configuration or a user-configured Music API provider, Last Music Player remains a fully functional local music player; remote features simply stay unavailable.
 
 ## Quick Start
 
@@ -69,6 +70,7 @@ The app is configured for self-contained deployment, so the Windows App SDK runt
 - Queue tracks, play next, shuffle, repeat, and resume smoothly.
 - Equalizer controls are visible but disabled while the audio effect is being refined.
 - Show time-synced lyrics when a Music API provider is configured.
+- Optionally synchronize an owner-scoped account library and playlists for offline browsing.
 - Integrate with Windows media keys, SMTC, and the volume flyout.
 - Use optional Discord Rich Presence and Google Cast output.
 - Store the library locally in SQLite.
@@ -81,6 +83,8 @@ flowchart LR
     shell["Windows shell<br/>SMTC + media keys"] <--> app
     app --> audio["Native playback<br/>queue + media controls"]
     app --> db["SQLite library<br/>tracks + playlists"]
+    app -.->|optional build config| account["Account service<br/>not included"]
+    account -.-> synced["Owner-scoped library<br/>short-lived media URLs"]
     app -.->|optional| api["Music API provider<br/>user supplied"]
     api -.-> remote["Remote catalog<br/>streams + lyrics"]
     app -.->|optional| cast["Google Cast"]
@@ -92,7 +96,7 @@ Project layout:
 ```text
 App.xaml*                  App startup and shell wiring
 MainWindow/                WinUI views, player UI, search, library, settings
-Backend/                   Playback, database, Music API client, playlists
+Backend/                   Playback, database, account/provider clients, playlists
 Frontend/                  Navigation and UI helpers
 Assets/ Styles/ Resources/ Icons, themes, and app resources
 ThirdParty/sqlite/         Vendored SQLite amalgamation
@@ -107,10 +111,16 @@ Remote features are intentionally client-side only in this repository. Search, s
 To enable remote playback:
 
 1. Run a provider that implements the documented endpoints.
-2. Open **Settings -> Provider** in the app.
-3. Enter the provider base URL and API key.
+2. Open **Settings -> Integrations** in the app.
+3. Select **API key**, then enter the provider base URL and API key.
 
 Your provider decides how identifiers are resolved, how auth works, and where audio comes from. The public client only knows the generic Music API contract.
+
+## Account Integration
+
+Account mode is optional and disabled in public builds by default. Configured builds supply the account API and frontend origins through the `LastMusicAccountApiOrigin` and `LastMusicAccountFrontendOrigin` MSBuild properties. If media is delivered from a separate trusted origin, builds can also set `LastMusicAccountMediaOrigin`; otherwise it inherits the account API origin. The public source leaves these values blank, so the settings UI reports that account integration is unavailable.
+
+The client uses the system browser with PKCE and an ephemeral loopback callback. Account sessions are stored in Windows Credential Manager, synchronized database rows are owner-scoped, and short-lived media URLs are not persisted. The account-service implementation is maintained separately and is not included in this repository.
 
 ## Development
 
@@ -118,6 +128,7 @@ Useful commands:
 
 ```powershell
 tools\Run-NativeProviderHelperTests.ps1
+tools\Run-NativeAccountSyncTests.ps1
 ```
 
 For command-line builds, use the Visual Studio MSBuild toolchain and build the `x64` platform:

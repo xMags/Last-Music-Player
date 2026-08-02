@@ -44,15 +44,18 @@ namespace LastMusicPlayer::Backend
         // Legacy generic key/value API (now backed by Settings.json string values).
         void Set(const std::wstring& key, const std::wstring& value);
         std::wstring Get(const std::wstring& key, const std::wstring& defaultValue = L"") const;
+        // Removes a key and returns true only when the sanitized document was
+        // durably written. A failed write restores the in-memory value.
+        bool Remove(winrt::hstring const& key);
 
         // Persistence.
         void Load();   // (re)load from disk into memory
         void Save();   // force flush current in-memory state to disk
-        void Reset();  // clear user settings and persist a schema-only file
+        [[nodiscard]] bool Reset();  // clear settings and quarantine files durably
 
     private:
         void EnsureLoaded() const;
-        void Persist();
+        bool Persist();
 
         mutable std::recursive_mutex m_mutex;
         mutable bool m_loaded{ false };

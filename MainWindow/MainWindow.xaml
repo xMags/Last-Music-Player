@@ -264,10 +264,22 @@
                             </Grid>
                         </Button>
 
-                        <Button x:Name="BrowseButton" Click="BrowseButton_Click" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Background="Transparent" BorderThickness="0" CornerRadius="{StaticResource RadiusLg}" Height="42" Padding="12,0">
+                        <Button x:Name="SongsButton" Click="SongsButton_Click" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Background="Transparent" BorderThickness="0" CornerRadius="{StaticResource RadiusLg}" Height="42" Padding="12,0">
                             <Grid>
                                 <StackPanel Orientation="Horizontal" Spacing="20" VerticalAlignment="Center">
-                                    <FontIcon x:Name="BrowseGlyph" Glyph="&#xE721;" Foreground="{ThemeResource TextSecondaryBrush}" FontSize="16"/>
+                                    <FontIcon x:Name="SongsGlyph" Glyph="&#xE721;" Foreground="{ThemeResource TextSecondaryBrush}" FontSize="16"/>
+                                    <TextBlock x:Name="SongsLabel" Text="Songs" Foreground="{ThemeResource TextPrimaryBrush}" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Grid>
+                        </Button>
+
+                        <!-- Catalog discovery. Hidden outside Account mode: every catalog
+                             endpoint needs an account session, and an API-key provider has
+                             no catalog contract to browse. -->
+                        <Button x:Name="BrowseButton" Click="BrowseButton_Click" Visibility="Collapsed" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Background="Transparent" BorderThickness="0" CornerRadius="{StaticResource RadiusLg}" Height="42" Padding="12,0">
+                            <Grid>
+                                <StackPanel Orientation="Horizontal" Spacing="20" VerticalAlignment="Center">
+                                    <FontIcon x:Name="BrowseGlyph" Glyph="&#xE909;" Foreground="{ThemeResource TextSecondaryBrush}" FontSize="16"/>
                                     <TextBlock x:Name="BrowseLabel" Text="Browse" Foreground="{ThemeResource TextPrimaryBrush}" VerticalAlignment="Center" />
                                 </StackPanel>
                             </Grid>
@@ -1528,12 +1540,9 @@
                                         </StackPanel>
                                     </Border>
 
-                                    <StackPanel Orientation="Horizontal" Spacing="10">
-                                        <TextBlock Text="Equalizer" Style="{StaticResource TitleH3}" TextWrapping="Wrap" />
-                                        <TextBlock Text="Coming soon" Style="{StaticResource CaptionText}" FontWeight="SemiBold" Foreground="{ThemeResource AccentBrush}" VerticalAlignment="Center" />
-                                    </StackPanel>
-                                    <TextBlock Text="Temporarily unavailable while audio processing is being revised." Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
-                                    <Border Style="{StaticResource SettingsCard}" Opacity="0.5">
+                                    <TextBlock Text="Equalizer" Style="{StaticResource TitleH3}" TextWrapping="Wrap" />
+                                    <TextBlock Text="Applies to local playback only. Cast playback uses the device's own audio processing." Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
+                                    <Border Style="{StaticResource SettingsCard}">
                                         <StackPanel Spacing="16">
                                             <StackPanel Orientation="Vertical" Spacing="8">
                                                 <StackPanel Orientation="Horizontal" Spacing="8">
@@ -1634,6 +1643,67 @@
                                 <StackPanel x:Name="SetSecIntegrations" Visibility="Collapsed" Spacing="20">
                                     <TextBlock Text="Integrations" Style="{StaticResource TitleH3}" TextWrapping="Wrap" />
                                     <Border Style="{StaticResource SettingsCard}">
+                                        <StackPanel Spacing="16">
+                                            <Grid ColumnSpacing="16">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <StackPanel Spacing="4">
+                                                    <TextBlock Text="Account" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" />
+                                                    <TextBlock x:Name="AccountStatusText" Text="Checking account status..." Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                                    <Button x:Name="AccountSignInButton" Click="AccountSignIn_Click" CornerRadius="{StaticResource RadiusMd}" Padding="16,7" Content="Sign in" />
+                                                    <Button x:Name="AccountSyncButton" Click="AccountSync_Click" CornerRadius="{StaticResource RadiusMd}" Padding="16,7" Content="Sync now" Visibility="Collapsed" />
+                                                    <Button x:Name="AccountSignOutButton" Click="AccountSignOut_Click" CornerRadius="{StaticResource RadiusMd}" Padding="16,7" Content="Sign out" Visibility="Collapsed" />
+                                                </StackPanel>
+                                            </Grid>
+                                            <Grid x:Name="AccountProfilePanel" Visibility="Collapsed" ColumnSpacing="12">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="44" />
+                                                    <ColumnDefinition Width="*" />
+                                                </Grid.ColumnDefinitions>
+                                                <Border Width="44" Height="44" CornerRadius="22" Background="{ThemeResource ControlFillColorSecondaryBrush}">
+                                                    <Grid>
+                                                        <Image x:Name="AccountAvatarImage" Stretch="UniformToFill" Visibility="Collapsed" />
+                                                        <FontIcon x:Name="AccountAvatarFallback" Glyph="&#xE77B;" FontSize="20" Foreground="{ThemeResource TextSecondaryBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                    </Grid>
+                                                </Border>
+                                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                                                    <TextBlock x:Name="AccountDisplayNameText" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" />
+                                                    <TextBlock x:Name="AccountUsernameText" Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
+                                                    <TextBlock x:Name="AccountPlanText" Style="{StaticResource CaptionText}" Foreground="{ThemeResource TextTertiaryBrush}" TextWrapping="Wrap" />
+                                                    <HyperlinkButton x:Name="AccountManageButton" Click="AccountManage_Click" Content="Manage account" Padding="0" MinHeight="0" HorizontalAlignment="Left" Visibility="Collapsed" />
+                                                </StackPanel>
+                                            </Grid>
+                                            <Grid ColumnSpacing="16">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <StackPanel Spacing="2">
+                                                    <TextBlock Text="Account library on this PC" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" />
+                                                    <TextBlock x:Name="AccountLastSyncText" Text="Not synchronized yet" Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
+                                                </StackPanel>
+                                                <Button x:Name="AccountClearDataButton" Grid.Column="1" Click="AccountClearData_Click" CornerRadius="{StaticResource RadiusMd}" Padding="12,6" Content="Clear synced data" IsEnabled="False" />
+                                            </Grid>
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Style="{StaticResource SettingsCard}">
+                                        <StackPanel Spacing="12">
+                                            <StackPanel Spacing="4">
+                                                <TextBlock Text="Music source" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" />
+                                                <TextBlock Text="Choose one remote source. Local files remain available in every mode." Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
+                                            </StackPanel>
+                                            <RadioButtons x:Name="RemoteModeSelector" SelectionChanged="RemoteMode_SelectionChanged">
+                                                <RadioButton x:Name="RemoteModeLocal" Content="Local files only" Tag="LocalOnly" />
+                                                <RadioButton x:Name="RemoteModeAccount" Content="Account" Tag="Account" />
+                                                <RadioButton x:Name="RemoteModeApiKey" Content="API key" Tag="ApiKey" />
+                                            </RadioButtons>
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Style="{StaticResource SettingsCard}">
                                         <Grid ColumnSpacing="16">
                                             <Grid.RowDefinitions>
                                                 <RowDefinition Height="Auto" />
@@ -1645,15 +1715,18 @@
                                                 <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
                                             <StackPanel Grid.Row="0" Grid.Column="0" Spacing="4">
-                                                <TextBlock Text="Music Provider" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" />
+                                                <TextBlock Text="API key connection" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" />
                                                 <TextBlock x:Name="ProviderTestStatusText" Text="Ready" Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
                                             </StackPanel>
-                                            <Button x:Name="ProviderTestButton" Grid.Row="0" Grid.Column="1" Click="PlayProviderTest_Click" CornerRadius="{StaticResource RadiusMd}" Padding="16,7" VerticalAlignment="Center">
-                                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                                    <FontIcon Glyph="&#xE8FB;" FontSize="13" />
-                                                    <TextBlock Text="Test connection" FontSize="12" FontWeight="SemiBold" />
-                                                </StackPanel>
-                                            </Button>
+                                            <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                                <Button x:Name="ProviderTestButton" Click="PlayProviderTest_Click" CornerRadius="{StaticResource RadiusMd}" Padding="16,7">
+                                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                                        <FontIcon Glyph="&#xE8FB;" FontSize="13" />
+                                                        <TextBlock Text="Connect" FontSize="12" FontWeight="SemiBold" />
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button x:Name="ProviderDisconnectButton" Click="DisconnectProvider_Click" CornerRadius="{StaticResource RadiusMd}" Padding="16,7" Content="Disconnect" />
+                                            </StackPanel>
                                             <TextBox x:Name="ProviderBaseUrlBox" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Text="http://127.0.0.1:4527" Header="Provider URL" Margin="0,12,0,0" />
                                             <PasswordBox x:Name="ProviderApiKeyBox" Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Header="API key" PasswordRevealMode="Peek" Margin="0,8,0,0" />
                                         </Grid>
@@ -1751,7 +1824,7 @@
                                                 </Border>
                                                 <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="4">
                                                     <TextBlock Text="Clean up everything" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" />
-                                                    <TextBlock Text="Wipe library, playback history, queues, settings, provider config and caches." Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
+                                                    <TextBlock Text="Wipe library, account cache, playback history, queues, settings, provider credentials and app caches." Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
                                                     <TextBlock x:Name="WipeAllDataStatusText" Style="{StaticResource CaptionText}" TextWrapping="Wrap" Visibility="Collapsed" />
                                                 </StackPanel>
                                                 <Button x:Name="WipeAllDataButton" Grid.Column="2" Click="WipeAllData_Click" Background="{ThemeResource DangerBrush}" Foreground="White" BorderThickness="0" CornerRadius="{StaticResource RadiusMd}" Padding="16,8" VerticalAlignment="Center">
@@ -1768,7 +1841,7 @@
                 </Grid>
 
                 <!-- ========== BROWSE VIEW ========== -->
-                <Grid x:Name="BrowseViewContainer"
+                <Grid x:Name="SongsViewContainer"
                       Visibility="Collapsed">
                 <Grid Padding="0,16,8,24">
                     <Grid.Resources>
@@ -1791,18 +1864,18 @@
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <StackPanel Grid.Column="0" Spacing="4">
-                            <TextBlock x:Name="BrowseScopeLabel" Text="Local Library" Style="{StaticResource EyebrowText}" />
-                            <TextBlock Text="Browse" Style="{StaticResource TitleH1}" />
-                            <TextBlock x:Name="BrowseSubtitle" Text="No tracks scanned yet" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" />
+                            <TextBlock x:Name="SongsScopeLabel" Text="Local Library" Style="{StaticResource EyebrowText}" />
+                            <TextBlock Text="Songs" Style="{StaticResource TitleH1}" />
+                            <TextBlock x:Name="SongsSubtitle" Text="No tracks scanned yet" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" />
                         </StackPanel>
                         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-                            <Button x:Name="BrowseRescanButton" Click="BrowseRescan_Click" CornerRadius="{StaticResource RadiusLg}" Padding="14,8">
+                            <Button x:Name="SongsRescanButton" Click="SongsRescan_Click" CornerRadius="{StaticResource RadiusLg}" Padding="14,8">
                                 <StackPanel Orientation="Horizontal" Spacing="8">
                                     <FontIcon Glyph="&#xE149;" FontSize="14" />
                                     <TextBlock Text="Rescan" />
                                 </StackPanel>
                             </Button>
-                            <Button x:Name="BrowsePlayAllButton" Click="BrowsePlayAll_Click" Style="{StaticResource AccentButtonStyle}" CornerRadius="{StaticResource RadiusLg}" Padding="16,8">
+                            <Button x:Name="SongsPlayAllButton" Click="SongsPlayAll_Click" Style="{StaticResource AccentButtonStyle}" CornerRadius="{StaticResource RadiusLg}" Padding="16,8">
                                 <StackPanel Orientation="Horizontal" Spacing="8">
                                     <FontIcon Glyph="&#xE768;" FontSize="14" />
                                     <TextBlock Text="Play all" />
@@ -1818,33 +1891,33 @@
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                            <ToggleButton x:Name="ChipAll" Tag="All" Content="All" IsChecked="True" Style="{StaticResource ChipToggle}" Checked="BrowseChip_Checked" Unchecked="BrowseChip_Unchecked" />
-                            <ToggleButton x:Name="ChipHistory" Tag="History" Content="History" Style="{StaticResource ChipToggle}" Checked="BrowseChip_Checked" Unchecked="BrowseChip_Unchecked" />
-                            <ToggleButton x:Name="ChipMost" Tag="Most" Content="Most played" Style="{StaticResource ChipToggle}" Checked="BrowseChip_Checked" Unchecked="BrowseChip_Unchecked" />
-                            <ToggleButton x:Name="ChipFav" Tag="Fav" Content="Favourites" Style="{StaticResource ChipToggle}" Checked="BrowseChip_Checked" Unchecked="BrowseChip_Unchecked" />
+                            <ToggleButton x:Name="ChipAll" Tag="All" Content="All" IsChecked="True" Style="{StaticResource ChipToggle}" Checked="SongsChip_Checked" Unchecked="SongsChip_Unchecked" />
+                            <ToggleButton x:Name="ChipHistory" Tag="History" Content="History" Style="{StaticResource ChipToggle}" Checked="SongsChip_Checked" Unchecked="SongsChip_Unchecked" />
+                            <ToggleButton x:Name="ChipMost" Tag="Most" Content="Most played" Style="{StaticResource ChipToggle}" Checked="SongsChip_Checked" Unchecked="SongsChip_Unchecked" />
+                            <ToggleButton x:Name="ChipFav" Tag="Fav" Content="Favourites" Style="{StaticResource ChipToggle}" Checked="SongsChip_Checked" Unchecked="SongsChip_Unchecked" />
                         </StackPanel>
                         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
                             <Border CornerRadius="{StaticResource RadiusMd}" Background="{ThemeResource NeutralFillBrush}" Padding="3">
                                 <StackPanel Orientation="Horizontal">
-                                    <Button x:Name="BrowseListViewButton" Click="BrowseListView_Click" Background="{ThemeResource SurfaceBrush}" BorderBrush="{ThemeResource StrokeBrush}" BorderThickness="1" CornerRadius="{StaticResource RadiusSm}" Padding="8,5" AutomationProperties.Name="List view">
+                                    <Button x:Name="SongsListViewButton" Click="SongsListView_Click" Background="{ThemeResource SurfaceBrush}" BorderBrush="{ThemeResource StrokeBrush}" BorderThickness="1" CornerRadius="{StaticResource RadiusSm}" Padding="8,5" AutomationProperties.Name="List view">
                                         <FontIcon Glyph="&#xEA37;" FontSize="14" Foreground="{ThemeResource TextPrimaryBrush}" />
                                     </Button>
-                                    <Button x:Name="BrowseGridViewButton" Click="BrowseGridView_Click" Background="Transparent" BorderThickness="0" CornerRadius="{StaticResource RadiusSm}" Padding="8,5" AutomationProperties.Name="Grid view">
+                                    <Button x:Name="SongsGridViewButton" Click="SongsGridView_Click" Background="Transparent" BorderThickness="0" CornerRadius="{StaticResource RadiusSm}" Padding="8,5" AutomationProperties.Name="Grid view">
                                         <FontIcon Glyph="&#xE80A;" FontSize="14" Foreground="{ThemeResource TextTertiaryBrush}" />
                                     </Button>
                                 </StackPanel>
                             </Border>
-                            <DropDownButton x:Name="BrowseSortButton" CornerRadius="{StaticResource RadiusMd}" Padding="12,7">
+                            <DropDownButton x:Name="SongsSortButton" CornerRadius="{StaticResource RadiusMd}" Padding="12,7">
                                 <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <TextBlock x:Name="BrowseSortLabel" Text="Date added" FontSize="12" FontWeight="SemiBold" />
+                                    <TextBlock x:Name="SongsSortLabel" Text="Date added" FontSize="12" FontWeight="SemiBold" />
                                 </StackPanel>
                                 <DropDownButton.Flyout>
                                     <MenuFlyout>
-                                        <MenuFlyoutItem Text="Date added" Tag="DateAdded" Click="BrowseSort_Click" />
-                                        <MenuFlyoutItem Text="Title" Tag="Title" Click="BrowseSort_Click" />
-                                        <MenuFlyoutItem Text="Artist" Tag="Artist" Click="BrowseSort_Click" />
-                                        <MenuFlyoutItem Text="Duration" Tag="Duration" Click="BrowseSort_Click" />
-                                        <MenuFlyoutItem Text="Most played" Tag="MostPlayed" Click="BrowseSort_Click" />
+                                        <MenuFlyoutItem Text="Date added" Tag="DateAdded" Click="SongsSort_Click" />
+                                        <MenuFlyoutItem Text="Title" Tag="Title" Click="SongsSort_Click" />
+                                        <MenuFlyoutItem Text="Artist" Tag="Artist" Click="SongsSort_Click" />
+                                        <MenuFlyoutItem Text="Duration" Tag="Duration" Click="SongsSort_Click" />
+                                        <MenuFlyoutItem Text="Most played" Tag="MostPlayed" Click="SongsSort_Click" />
                                     </MenuFlyout>
                                 </DropDownButton.Flyout>
                             </DropDownButton>
@@ -1852,7 +1925,7 @@
                     </Grid>
 
                     <!-- Header row -->
-                    <Grid x:Name="BrowseListHeader" Grid.Row="2" Padding="16,9" ColumnSpacing="10"
+                    <Grid x:Name="SongsListHeader" Grid.Row="2" Padding="16,9" ColumnSpacing="10"
                           Background="{ThemeResource SurfaceAltBrush}"
                           BorderBrush="{ThemeResource DividerBrush}" BorderThickness="0,0,0,1">
                         <Grid.ColumnDefinitions>
@@ -1875,7 +1948,7 @@
                     <ListView x:Name="MusicListView" Grid.Row="3"
                               IsItemClickEnabled="True"
                               ItemClick="MusicListView_ItemClick"
-                              ContainerContentChanging="BrowseList_ContainerContentChanging"
+                              ContainerContentChanging="SongsList_ContainerContentChanging"
                               SelectionMode="Single"
                               VerticalAlignment="Stretch"
                               ScrollViewer.VerticalScrollMode="Enabled"
@@ -1913,7 +1986,7 @@
                                         <TextBlock x:Name="RowNum" Text="{x:Bind Index}" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{ThemeResource TextTertiaryBrush}" FontSize="13" />
                                         <Button x:Name="RowPlay"
                                                 Tag="{x:Bind}"
-                                                Click="BrowseRowPlay_Click"
+                                                Click="SongsRowPlay_Click"
                                                 Visibility="Collapsed"
                                                 Background="Transparent"
                                                 BorderThickness="0"
@@ -1975,13 +2048,13 @@
                         </ListView.ItemTemplate>
                     </ListView>
 
-                    <GridView x:Name="BrowseGridView" Grid.Row="3"
+                    <GridView x:Name="SongsGridView" Grid.Row="3"
                               Visibility="Collapsed"
                               SelectionMode="None"
                               IsItemClickEnabled="True"
-                              ItemClick="BrowseGridView_ItemClick"
+                              ItemClick="SongsGridView_ItemClick"
                               ItemContainerStyle="{StaticResource CardTileContainerStyle}"
-                              ContainerContentChanging="BrowseGrid_ContainerContentChanging"
+                              ContainerContentChanging="SongsGrid_ContainerContentChanging"
                               Padding="0,4,8,24"
                               VerticalAlignment="Stretch"
                               ScrollViewer.VerticalScrollMode="Enabled"
@@ -2000,7 +2073,7 @@
                         </GridView.ItemsPanel>
                         <GridView.ItemTemplate>
                             <DataTemplate x:DataType="local:TrackInfo">
-                                <!-- Browse tiles had no hover affordance of their own and
+                                <!-- Songs tiles had no hover affordance of their own and
                                      leaned on the stock GridViewItem fill. Now that the
                                      container chrome is stripped (CardTileContainerStyle),
                                      give them the same -2px "lift" the other card grids use
@@ -2035,6 +2108,205 @@
                         </GridView.ItemTemplate>
                     </GridView>
                 </Grid>
+                </Grid>
+
+                <!-- ===== BROWSE (CATALOG DISCOVERY) VIEW =====
+                     Three mutually exclusive pages: the shelf list, a paged
+                     chart, and album/playlist detail. Shelves are built in code
+                     because their count and titles come from the service, so
+                     the tile template lives here as a resource and every shelf
+                     GridView shares it. -->
+                <Grid x:Name="BrowseViewContainer" Visibility="Collapsed" Padding="0,16,8,0">
+                    <Grid.Resources>
+                        <DataTemplate x:Key="CatalogTileTemplate" x:DataType="local:TrackInfo">
+                            <Grid Width="156" Margin="0,0,20,0" VerticalAlignment="Top"
+                                  PointerEntered="Card_PointerEntered" PointerExited="Card_PointerExited">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="156" />
+                                    <RowDefinition Height="12" />
+                                    <RowDefinition Height="40" />
+                                    <RowDefinition Height="18" />
+                                </Grid.RowDefinitions>
+                                <Grid Grid.Row="0" Width="156" Height="156">
+                                    <Border CornerRadius="{StaticResource Radius2xl}" Translation="0,0,16">
+                                        <Border.Background>
+                                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                                <GradientStop Color="#14A8BC" Offset="0" />
+                                                <GradientStop Color="#7F6CFF" Offset="1" />
+                                            </LinearGradientBrush>
+                                        </Border.Background>
+                                        <Border.Shadow>
+                                            <ThemeShadow />
+                                        </Border.Shadow>
+                                        <FontIcon Glyph="&#xE8D6;" FontSize="36" Foreground="White" Opacity="0.55" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </Border>
+                                    <!-- Artwork is fetched per container rather than bound: it needs
+                                         the account session, and a container only realizes when its
+                                         tile scrolls into view. -->
+                                    <Image Stretch="UniformToFill" Loaded="CatalogTileArt_Loaded" />
+                                </Grid>
+                                <TextBlock Grid.Row="2" Text="{x:Bind Title}" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" VerticalAlignment="Top" />
+                                <TextBlock Grid.Row="3" Text="{x:Bind Artist}" Style="{StaticResource CaptionText}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                            </Grid>
+                        </DataTemplate>
+                    </Grid.Resources>
+
+                    <!-- Shelf list -->
+                    <Grid x:Name="DiscoverShelvesPage">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <Grid Grid.Row="0" Margin="0,0,0,20">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" Spacing="4">
+                                <TextBlock Text="Catalog" Style="{StaticResource EyebrowText}" />
+                                <TextBlock Text="Browse" Style="{StaticResource TitleH1}" />
+                                <TextBlock x:Name="DiscoverSubtitle" Text="Charts and playlists from around the world" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                                <TextBlock Text="Region" Style="{StaticResource CaptionText}" VerticalAlignment="Center" />
+                                <ComboBox x:Name="DiscoverStorefrontSelector" MinWidth="180" SelectionChanged="DiscoverStorefront_SelectionChanged" />
+                            </StackPanel>
+                        </Grid>
+
+                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" VerticalScrollMode="Enabled">
+                            <StackPanel Spacing="8">
+                                <StackPanel x:Name="DiscoverShelvesPanel" Spacing="8" />
+                                <!-- Empty and error states are distinct messages: "not signed
+                                     in", "nothing for this region", and "request failed" are
+                                     very different problems and one blank panel for all three
+                                     is unhelpful. -->
+                                <TextBlock x:Name="DiscoverStatusText" Text="Loading..." Margin="0,24,0,24" FontSize="13" Foreground="{ThemeResource TextTertiaryBrush}" TextWrapping="Wrap" />
+                                <Button x:Name="DiscoverRetryButton" Content="Try again" Click="DiscoverRetry_Click" Visibility="Collapsed" HorizontalAlignment="Left" CornerRadius="{StaticResource RadiusLg}" Padding="14,8" Margin="0,0,0,24" />
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Grid>
+
+                    <!-- Chart page -->
+                    <Grid x:Name="DiscoverChartPage" Visibility="Collapsed">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        <StackPanel Grid.Row="0" Spacing="12" Margin="0,0,0,20">
+                            <Button Click="DiscoverBack_Click" CornerRadius="{StaticResource RadiusLg}" Padding="12,7" HorizontalAlignment="Left">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon Glyph="&#xE72B;" FontSize="13" />
+                                    <TextBlock Text="Back" />
+                                </StackPanel>
+                            </Button>
+                            <StackPanel Spacing="4">
+                                <TextBlock x:Name="DiscoverChartKindText" Text="Chart" Style="{StaticResource EyebrowText}" />
+                                <TextBlock x:Name="DiscoverChartTitleText" Text="Top Songs" Style="{StaticResource TitleH1}" />
+                            </StackPanel>
+                        </StackPanel>
+                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" VerticalScrollMode="Enabled">
+                            <StackPanel>
+                                <GridView x:Name="DiscoverChartGridView"
+                                          IsItemClickEnabled="True"
+                                          ItemClick="DiscoverItem_ItemClick"
+                                          ItemContainerStyle="{StaticResource CardTileContainerStyle}"
+                                          ItemTemplate="{StaticResource CatalogTileTemplate}"
+                                          SelectionMode="None"
+                                          ScrollViewer.VerticalScrollMode="Disabled"
+                                          ScrollViewer.VerticalScrollBarVisibility="Disabled" />
+                                <Button x:Name="DiscoverChartMoreButton" Content="Load more" Click="DiscoverChartMore_Click" Visibility="Collapsed" HorizontalAlignment="Center" CornerRadius="{StaticResource RadiusLg}" Padding="18,9" Margin="0,16,0,32" />
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Grid>
+
+                    <!-- Album / playlist detail -->
+                    <Grid x:Name="DiscoverDetailPage" Visibility="Collapsed">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        <StackPanel Grid.Row="0" Spacing="20" Margin="0,0,0,20">
+                            <Button Click="DiscoverBack_Click" CornerRadius="{StaticResource RadiusLg}" Padding="12,7" HorizontalAlignment="Left">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon Glyph="&#xE72B;" FontSize="13" />
+                                    <TextBlock Text="Back" />
+                                </StackPanel>
+                            </Button>
+                            <Grid ColumnSpacing="24">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Border Grid.Column="0" Width="180" Height="180" CornerRadius="{StaticResource Radius2xl}" Background="{ThemeResource NeutralFillBrush}">
+                                    <Grid>
+                                        <FontIcon Glyph="&#xE8D6;" FontSize="58" Foreground="{ThemeResource PlaceholderGlyphBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                        <Image x:Name="DiscoverDetailArt" Stretch="UniformToFill" />
+                                    </Grid>
+                                </Border>
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="8">
+                                    <TextBlock x:Name="DiscoverDetailKindText" Text="Album" Style="{StaticResource EyebrowText}" />
+                                    <TextBlock x:Name="DiscoverDetailTitleText" Text="Collection" FontSize="38" FontWeight="Bold" Foreground="{ThemeResource TextPrimaryBrush}" TextTrimming="WordEllipsis" TextWrapping="Wrap" MaxLines="2" />
+                                    <TextBlock x:Name="DiscoverDetailSubtitleText" Text="" FontSize="14" Foreground="{ThemeResource TextSecondaryBrush}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                                    <TextBlock x:Name="DiscoverDetailDescriptionText" Text="" FontSize="12.5" Foreground="{ThemeResource TextTertiaryBrush}" TextWrapping="Wrap" MaxLines="3" TextTrimming="WordEllipsis" />
+                                    <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,8,0,0">
+                                        <Button x:Name="DiscoverDetailPlayButton" Click="DiscoverDetailPlay_Click" Style="{StaticResource AccentButtonStyle}" CornerRadius="{StaticResource RadiusLg}" Padding="20,11">
+                                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                                <FontIcon Glyph="&#xE768;" FontSize="14" />
+                                                <TextBlock Text="Play" />
+                                            </StackPanel>
+                                        </Button>
+                                        <Button x:Name="DiscoverDetailQueueButton" Click="DiscoverDetailQueue_Click" CornerRadius="{StaticResource RadiusLg}" Padding="18,11">
+                                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                                <FontIcon Glyph="&#xE710;" FontSize="14" />
+                                                <TextBlock Text="Add to queue" />
+                                            </StackPanel>
+                                        </Button>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Grid>
+                        </StackPanel>
+                        <ListView x:Name="DiscoverDetailTracksListView"
+                                  Grid.Row="1"
+                                  IsItemClickEnabled="True"
+                                  ItemClick="DiscoverDetailTrack_ItemClick"
+                                  ScrollViewer.VerticalScrollMode="Enabled"
+                                  ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                  SelectionMode="Single">
+                            <ListView.ItemContainerStyle>
+                                <Style TargetType="ListViewItem">
+                                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                    <Setter Property="Padding" Value="0" />
+                                    <Setter Property="MinHeight" Value="52" />
+                                    <Setter Property="Margin" Value="0" />
+                                </Style>
+                            </ListView.ItemContainerStyle>
+                            <ListView.ItemTemplate>
+                                <DataTemplate x:DataType="local:TrackInfo">
+                                    <Grid Height="52" ColumnSpacing="12" Padding="10,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="34" />
+                                            <ColumnDefinition Width="44" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="52" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="{x:Bind Index}" Foreground="{ThemeResource TextTertiaryBrush}" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                        <Border Grid.Column="1" Width="38" Height="38" CornerRadius="{StaticResource RadiusMd}" Background="{ThemeResource NeutralFillBrush}">
+                                            <Grid>
+                                                <FontIcon Glyph="&#xE8D6;" FontSize="15" Foreground="{ThemeResource PlaceholderGlyphBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                <Image Stretch="UniformToFill" Loaded="CatalogTileArt_Loaded" />
+                                            </Grid>
+                                        </Border>
+                                        <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                                            <TextBlock Text="{x:Bind Title}" Style="{StaticResource BodyStrong}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                                            <TextBlock Text="{x:Bind Artist}" Style="{StaticResource CaptionText}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                                        </StackPanel>
+                                        <TextBlock Grid.Column="3" Text="{x:Bind Duration}" Foreground="{ThemeResource TextTertiaryBrush}" FontSize="12" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
+                    </Grid>
                 </Grid>
 
                 <!-- ========== LIBRARY VIEW ========== -->
@@ -2105,20 +2377,28 @@
                             <ToggleButton x:Name="LibTabAlbums" Tag="Albums" Content="Albums" Style="{StaticResource ChipToggle}" Checked="LibraryTab_Checked" />
                             <ToggleButton x:Name="LibTabArtists" Tag="Artists" Content="Artists" Style="{StaticResource ChipToggle}" Checked="LibraryTab_Checked" />
                             <ToggleButton x:Name="LibTabSongs" Tag="Songs" Content="Songs" Style="{StaticResource ChipToggle}" Checked="LibraryTab_Checked" />
+                            <ToggleButton x:Name="LibTabHistory" Tag="History" Content="History" Style="{StaticResource ChipToggle}" Checked="LibraryTab_Checked" />
                             <ToggleButton x:Name="LibTabGenres" Tag="Genres" Content="Genres" Style="{StaticResource ChipToggle}" Checked="LibraryTab_Checked" />
                         </StackPanel>
-                        <DropDownButton Grid.Column="1" CornerRadius="{StaticResource RadiusMd}" Padding="12,7" VerticalAlignment="Center">
-                            <StackPanel Orientation="Horizontal" Spacing="8">
-                                <TextBlock Text="Recently added" FontSize="12" FontWeight="SemiBold" />
-                            </StackPanel>
-                            <DropDownButton.Flyout>
-                                <MenuFlyout>
-                                    <MenuFlyoutItem Text="Recently added" />
-                                    <MenuFlyoutItem Text="Name" />
-                                    <MenuFlyoutItem Text="Artist" />
-                                </MenuFlyout>
-                            </DropDownButton.Flyout>
-                        </DropDownButton>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                            <ComboBox x:Name="LibraryScopeSelector" Width="132" SelectedIndex="0" Visibility="Collapsed" SelectionChanged="LibraryScope_SelectionChanged">
+                                <ComboBoxItem Content="All" Tag="All" />
+                                <ComboBoxItem Content="Account" Tag="Account" />
+                                <ComboBoxItem Content="On this PC" Tag="OnThisPc" />
+                            </ComboBox>
+                            <DropDownButton CornerRadius="{StaticResource RadiusMd}" Padding="12,7" VerticalAlignment="Center">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <TextBlock Text="Recently added" FontSize="12" FontWeight="SemiBold" />
+                                </StackPanel>
+                                <DropDownButton.Flyout>
+                                    <MenuFlyout>
+                                        <MenuFlyoutItem Text="Recently added" />
+                                        <MenuFlyoutItem Text="Name" />
+                                        <MenuFlyoutItem Text="Artist" />
+                                    </MenuFlyout>
+                                </DropDownButton.Flyout>
+                            </DropDownButton>
+                        </StackPanel>
                     </Grid>
 
                     <!-- Content: Albums / Artists / Songs / Genres -->
@@ -2308,11 +2588,11 @@
                                 <RowDefinition Height="*" />
                             </Grid.RowDefinitions>
                             <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,0,0,16">
-                                <ToggleButton x:Name="LibPlaylistManualFilter" Tag="Manual" Content="Manual" IsChecked="True" Style="{StaticResource ChipToggle}" Checked="LibraryPlaylistFilter_Checked" />
-                                <ToggleButton x:Name="LibPlaylistAutoFilter" Tag="Auto" Content="Auto" Style="{StaticResource ChipToggle}" Checked="LibraryPlaylistFilter_Checked" />
+                                <ToggleButton x:Name="LibPlaylistAutoFilter" Tag="Auto" Content="Smart" IsChecked="True" Style="{StaticResource ChipToggle}" Checked="LibraryPlaylistFilter_Checked" />
+                                <ToggleButton x:Name="LibPlaylistManualFilter" Tag="Manual" Content="Editable" Style="{StaticResource ChipToggle}" Checked="LibraryPlaylistFilter_Checked" />
                             </StackPanel>
                             <Grid Grid.Row="1">
-                                <GridView x:Name="LibManualPlaylistsGrid" SelectionMode="None" IsItemClickEnabled="True" ItemClick="LibraryGroup_ItemClick" ItemContainerStyle="{StaticResource CardTileContainerStyle}" Padding="0,0,0,24"
+                                <GridView x:Name="LibManualPlaylistsGrid" Visibility="Collapsed" SelectionMode="None" IsItemClickEnabled="True" ItemClick="LibraryGroup_ItemClick" ItemContainerStyle="{StaticResource CardTileContainerStyle}" Padding="0,0,0,24"
                                           ScrollViewer.HorizontalScrollMode="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                                     <GridView.ItemTemplate>
                                         <DataTemplate x:DataType="local:TrackInfo">
@@ -2350,7 +2630,7 @@
                                         </DataTemplate>
                                     </GridView.ItemTemplate>
                                 </GridView>
-                                <GridView x:Name="LibAutoPlaylistsGrid" Visibility="Collapsed" SelectionMode="None" IsItemClickEnabled="True" ItemClick="LibraryGroup_ItemClick" ItemContainerStyle="{StaticResource CardTileContainerStyle}" Padding="0,0,0,24"
+                                <GridView x:Name="LibAutoPlaylistsGrid" SelectionMode="None" IsItemClickEnabled="True" ItemClick="LibraryGroup_ItemClick" ItemContainerStyle="{StaticResource CardTileContainerStyle}" Padding="0,0,0,24"
                                           ScrollViewer.HorizontalScrollMode="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                                     <GridView.ItemTemplate>
                                         <DataTemplate x:DataType="local:TrackInfo">
@@ -2515,6 +2795,8 @@
                                                 <MenuFlyoutItem Text="Play next" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="LibraryRowMenuPlayNext_Click" />
                                                 <MenuFlyoutItem Text="Add to queue" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="LibraryRowMenuAddToQueue_Click" />
                                                 <MenuFlyoutItem Text="Add to playlist" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="LibraryRowMenuAddToPlaylist_Click" />
+                                                <MenuFlyoutItem Text="Move up" Tag="Up" CommandParameter="{x:Bind}" Click="LibraryRowMenuMoveInPlaylist_Click" />
+                                                <MenuFlyoutItem Text="Move down" Tag="Down" CommandParameter="{x:Bind}" Click="LibraryRowMenuMoveInPlaylist_Click" />
                                                 <MenuFlyoutItem Text="Remove from playlist" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="LibraryRowMenuRemoveFromPlaylist_Click" />
                                                 <MenuFlyoutSeparator />
                                                 <MenuFlyoutItem Text="{x:Bind LikeActionText}" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuLike_Click" />
@@ -2553,6 +2835,8 @@
                                                     <MenuFlyoutItem Text="Play next" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="LibraryRowMenuPlayNext_Click" />
                                                     <MenuFlyoutItem Text="Add to queue" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="LibraryRowMenuAddToQueue_Click" />
                                                     <MenuFlyoutItem Text="Add to playlist" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="LibraryRowMenuAddToPlaylist_Click" />
+                                                    <MenuFlyoutItem Text="Move up" Tag="Up" CommandParameter="{x:Bind}" Click="LibraryRowMenuMoveInPlaylist_Click" />
+                                                    <MenuFlyoutItem Text="Move down" Tag="Down" CommandParameter="{x:Bind}" Click="LibraryRowMenuMoveInPlaylist_Click" />
                                                     <MenuFlyoutItem Text="Remove from playlist" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="LibraryRowMenuRemoveFromPlaylist_Click" />
                                                     <MenuFlyoutSeparator />
                                                     <MenuFlyoutItem Text="{x:Bind LikeActionText}" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuLike_Click" />
@@ -2911,7 +3195,7 @@
             </StackPanel>
         </Grid>
 
-        <!-- Full-screen Now Playing overlay -->
+        <!-- Full-screen immersive Now Playing overlay -->
         <Grid x:Name="NowPlayingFullScreen" Grid.Row="0" Grid.RowSpan="2" Visibility="Collapsed"
               Background="{ThemeResource ApplicationPageBackgroundThemeBrush}" Canvas.ZIndex="50">
             <Grid Margin="40,24,40,40">
@@ -3127,6 +3411,17 @@
                 </Grid>
             </Grid>
         </Grid>
+
+        <!-- Transient playback notice. Declared last so it draws over the body and
+             the fullscreen now-playing view, and anchored to the bottom of row 0 so
+             showing it never shifts the transport controls in the player bar. -->
+        <Border x:Name="PlaybackNoticePanel" Grid.Row="0" Visibility="Collapsed"
+                HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,16"
+                Background="{ThemeResource SurfaceBrush}" BorderBrush="{ThemeResource DividerBrush}"
+                BorderThickness="1" CornerRadius="{StaticResource RadiusMd}" Padding="16,10" IsHitTestVisible="False">
+            <TextBlock x:Name="PlaybackNoticeText" FontSize="12.5" Foreground="{ThemeResource TextSecondaryBrush}"
+                       MaxWidth="420" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" />
+        </Border>
 
     </Grid>
 </Window>

@@ -11,6 +11,7 @@
 
 namespace LastMusicPlayer::Backend
 {
+    class RemoteMusicService;
     struct LyricLine
     {
         int64_t TimeMs{ 0 };
@@ -33,7 +34,8 @@ namespace LastMusicPlayer::Backend
     public:
         LyricsService();
 
-        void SetProviderEndpoint(winrt::hstring const& baseUrl, winrt::hstring const& bearerToken);
+        void SetRemoteMusicService(RemoteMusicService* service);
+        void ClearCache() noexcept;
 
         // Returns the raw JSON payload from /v1/lyrics. Returns empty hstring on
         // any network failure so callers can render the "No lyrics found" state
@@ -64,8 +66,7 @@ namespace LastMusicPlayer::Backend
         bool TryGetCachedPayload(std::wstring const& key, winrt::hstring& outPayload) const;
         void StoreCachedPayload(std::wstring const& key, winrt::hstring const& payload);
 
-        winrt::hstring m_baseUrl{ L"http://127.0.0.1:4527" };
-        winrt::hstring m_token;
+        RemoteMusicService* m_remoteMusicService{};
         mutable std::unordered_map<std::wstring, winrt::hstring> m_cache;
         mutable std::deque<std::wstring> m_cacheOrder;
         static constexpr size_t kCacheCapacity = 32;

@@ -158,10 +158,30 @@
     <ClInclude Include="Backend\SettingsManager.h">
       <Filter>Backend</Filter>
     </ClInclude>
+    <ClInclude Include="Backend\CredentialStore.h">
+      <Filter>Backend</Filter>
+    </ClInclude>
+    <ClInclude Include="Backend\BuildConfig.h"><Filter>Backend</Filter></ClInclude>
+    <ClInclude Include="Backend\Pkce.h"><Filter>Backend</Filter></ClInclude>
+    <ClInclude Include="Backend\LoopbackCallback.h"><Filter>Backend</Filter></ClInclude>
+    <ClInclude Include="Backend\AccountClient.h"><Filter>Backend</Filter></ClInclude>
+    <ClInclude Include="Backend\AccountSessionGateway.h"><Filter>Backend</Filter></ClInclude>
+    <ClInclude Include="Backend\AccountSyncTransport.h"><Filter>Backend</Filter></ClInclude>
+    <ClInclude Include="Backend\AccountSessionService.h"><Filter>Backend</Filter></ClInclude>
+    <ClInclude Include="Backend\RemoteMusicService.h"><Filter>Backend</Filter></ClInclude>
+    <ClInclude Include="Backend\MusicSyncService.h"><Filter>Backend</Filter></ClInclude>
+    <ClInclude Include="Backend\UserDataOperationGate.h"><Filter>Backend</Filter></ClInclude>
+    <ClInclude Include="Backend\CatalogModels.h"><Filter>Backend</Filter></ClInclude>
+    <ClInclude Include="Backend\CatalogParser.h"><Filter>Backend</Filter></ClInclude>
+    <ClInclude Include="Backend\PlaybackHistoryQualifier.h"><Filter>Backend</Filter></ClInclude>
+    <ClInclude Include="Backend\HistoryImport.h"><Filter>Backend</Filter></ClInclude>
     <ClInclude Include="Backend\DatabaseEngine.h">
       <Filter>Backend</Filter>
     </ClInclude>
     <ClInclude Include="Backend\DatabaseEngine.Internal.h">
+      <Filter>Backend</Filter>
+    </ClInclude>
+    <ClInclude Include="Backend\DatabaseAccountSchema.h">
       <Filter>Backend</Filter>
     </ClInclude>
     <ClInclude Include="Backend\ProviderClient.h">
@@ -197,7 +217,10 @@
     <ClCompile Include="MainWindow\MainWindow.Search.cpp">
       <Filter>MainWindow</Filter>
     </ClCompile>
-    <ClCompile Include="MainWindow\MainWindow.Browse.cpp">
+    <ClCompile Include="MainWindow\MainWindow.Songs.cpp">
+      <Filter>MainWindow</Filter>
+    </ClCompile>
+    <ClCompile Include="MainWindow\MainWindow.Discover.cpp">
       <Filter>MainWindow</Filter>
     </ClCompile>
     <ClCompile Include="MainWindow\MainWindow.Library.cpp">
@@ -252,6 +275,19 @@
     <ClCompile Include="Backend\SettingsManager.cpp">
       <Filter>Backend</Filter>
     </ClCompile>
+    <ClCompile Include="Backend\CredentialStore.cpp">
+      <Filter>Backend</Filter>
+    </ClCompile>
+    <ClCompile Include="Backend\Pkce.cpp"><Filter>Backend</Filter></ClCompile>
+    <ClCompile Include="Backend\LoopbackCallback.cpp"><Filter>Backend</Filter></ClCompile>
+    <ClCompile Include="Backend\AccountClient.cpp"><Filter>Backend</Filter></ClCompile>
+    <ClCompile Include="Backend\AccountSessionGateway.cpp"><Filter>Backend</Filter></ClCompile>
+    <ClCompile Include="Backend\AccountSessionService.cpp"><Filter>Backend</Filter></ClCompile>
+    <ClCompile Include="Backend\RemoteMusicService.cpp"><Filter>Backend</Filter></ClCompile>
+    <ClCompile Include="Backend\HistoryImport.cpp"><Filter>Backend</Filter></ClCompile>
+    <ClCompile Include="Backend\MusicSyncService.cpp"><Filter>Backend</Filter></ClCompile>
+    <ClCompile Include="Backend\UserDataOperationGate.cpp"><Filter>Backend</Filter></ClCompile>
+    <ClCompile Include="Backend\CatalogParser.cpp"><Filter>Backend</Filter></ClCompile>
     <ClCompile Include="Backend\DatabaseEngine.cpp">
       <Filter>Backend</Filter>
     </ClCompile>
@@ -268,6 +304,9 @@
       <Filter>Backend</Filter>
     </ClCompile>
     <ClCompile Include="Backend\DatabaseEngine.Queries.cpp">
+      <Filter>Backend</Filter>
+    </ClCompile>
+    <ClCompile Include="Backend\DatabaseEngine.Account.cpp">
       <Filter>Backend</Filter>
     </ClCompile>
     <ClCompile Include="Backend\ProviderClient.cpp">

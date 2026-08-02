@@ -7,4 +7,5 @@
   <Project Path="Last Music Player.vcxproj" Id="f28e2c51-ba9f-4770-b6a7-3d222137b26c">
     <Deploy />
   </Project>
+  <Project Path="tests\native\NativeAccountSyncTests.vcxproj" Id="8f9f47d7-b9d4-43b9-89da-d50c4a551f5f" />
 </Solution>

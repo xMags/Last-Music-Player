@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/DatabaseEngine.Internal.h"
+#include "Backend/ProviderHelpers.h"
 
 #include <algorithm>
 #include <chrono>
@@ -173,9 +174,11 @@ namespace LastMusicPlayer::Backend::DatabaseDetail
             "IsLiked INTEGER DEFAULT 0,"
             "IsActive INTEGER DEFAULT 1,"
             "UpdatedAt INTEGER DEFAULT 0,"
-            "LastPlayed DATETIME);"
-            "INSERT INTO Tracks_rebuild (Id, SourceKey, SourceKind, Provider, SourceUrl, FilePath, Title, Artist, Album, Genre, DurationSeconds, ArtworkUrl, DateAddedSortKey, DateAddedText, DurationText, PlayCount, LastPlayedOrder, IsLiked, IsActive, UpdatedAt, LastPlayed) "
-            "SELECT Id, SourceKey, SourceKind, Provider, SourceUrl, FilePath, Title, Artist, Album, Genre, DurationSeconds, ArtworkUrl, DateAddedSortKey, DateAddedText, DurationText, PlayCount, LastPlayedOrder, IsLiked, IsActive, UpdatedAt, LastPlayed FROM Tracks;"
+            "LastPlayed DATETIME,"
+            "LastPlayedExact INTEGER DEFAULT 0,"
+            "RemoteId TEXT);"
+            "INSERT INTO Tracks_rebuild (Id, SourceKey, SourceKind, Provider, SourceUrl, FilePath, Title, Artist, Album, Genre, DurationSeconds, ArtworkUrl, DateAddedSortKey, DateAddedText, DurationText, PlayCount, LastPlayedOrder, IsLiked, IsActive, UpdatedAt, LastPlayed, LastPlayedExact, RemoteId) "
+            "SELECT Id, SourceKey, SourceKind, Provider, SourceUrl, FilePath, Title, Artist, Album, Genre, DurationSeconds, ArtworkUrl, DateAddedSortKey, DateAddedText, DurationText, PlayCount, LastPlayedOrder, IsLiked, IsActive, UpdatedAt, LastPlayed, COALESCE(LastPlayedExact,0), RemoteId FROM Tracks;"
             "DROP TABLE Tracks;"
             "ALTER TABLE Tracks_rebuild RENAME TO Tracks;";
 
@@ -271,26 +274,17 @@ namespace LastMusicPlayer::Backend::DatabaseDetail
 
     std::wstring StoredFilePathFor(TrackInfo const& track, std::wstring const& sourceKind, std::wstring const& sourceKey)
     {
-        auto filePath = std::wstring(track.FilePath().c_str());
-        if (sourceKind != L"remote" || filePath.empty())
+        (void)sourceKey;
+        if (sourceKind == L"remote")
         {
-            return filePath;
+            return {};
         }
-
-        auto fragment = filePath.find(L'#');
-        if (fragment != std::wstring::npos)
-        {
-            filePath.resize(fragment);
-        }
-
-        filePath += L"#lmp=";
-        filePath += std::to_wstring(std::hash<std::wstring>{}(sourceKey));
-        return filePath;
+        return std::wstring(RemoveLegacyProviderUrlCredential(track.FilePath()).c_str());
     }
 
     winrt::hstring SourceLabelFor(std::wstring const& sourceKind)
     {
-        return sourceKind == L"remote" ? winrt::hstring{ L"Music API" } : winrt::hstring{ L"Local" };
+        return sourceKind == L"remote" ? winrt::hstring{ L"Remote" } : winrt::hstring{ L"Local" };
     }
 
     void ApplyArtworkUrl(TrackInfo& track, winrt::hstring const& artworkUrl)
@@ -306,30 +300,31 @@ namespace LastMusicPlayer::Backend::DatabaseDetail
         track.SourceKind(winrt::hstring(sourceKind));
         track.Provider(winrt::hstring(ColumnText(stmt, 2)));
         track.SourceUrl(winrt::hstring(ColumnText(stmt, 3)));
-        track.FilePath(winrt::hstring(ColumnText(stmt, 4)));
+        track.FilePath(RemoveLegacyProviderUrlCredential(winrt::hstring(ColumnText(stmt, 4))));
         track.Title(winrt::hstring(ColumnText(stmt, 5)));
         track.Artist(winrt::hstring(ColumnText(stmt, 6)));
         track.Album(winrt::hstring(ColumnText(stmt, 7)));
         track.Genre(winrt::hstring(ColumnText(stmt, 8)));
         track.DurationSeconds(sqlite3_column_double(stmt, 9));
-        ApplyArtworkUrl(track, winrt::hstring(ColumnText(stmt, 10)));
+        ApplyArtworkUrl(track, RemoveLegacyProviderUrlCredential(winrt::hstring(ColumnText(stmt, 10))));
         track.DateAddedSortKey(sqlite3_column_double(stmt, 11));
         track.DateAdded(winrt::hstring(ColumnText(stmt, 12)));
         track.Duration(winrt::hstring(ColumnText(stmt, 13)));
         track.IsLiked(sqlite3_column_int(stmt, 14) != 0);
         track.SourceLabel(SourceLabelFor(sourceKind));
-        if (sourceKind == L"remote" && track.FilePath().empty())
+        if (sourceKind == L"remote" && track.FilePath().empty() && ColumnText(stmt, 2) != L"account")
         {
             track.FilePath(track.SourceUrl());
         }
+        track.RemoteId(winrt::hstring(ColumnText(stmt, 15)));
         return track;
     }
 
     extern char const kTrackColumns[] =
-        "Id, SourceKind, Provider, SourceUrl, FilePath, Title, Artist, Album, Genre, DurationSeconds, ArtworkUrl, DateAddedSortKey, DateAddedText, DurationText, IsLiked";
+        "Id, SourceKind, Provider, SourceUrl, FilePath, Title, Artist, Album, Genre, DurationSeconds, ArtworkUrl, DateAddedSortKey, DateAddedText, DurationText, IsLiked, RemoteId";
 
     extern char const kJoinedTrackColumns[] =
-        "t.Id, t.SourceKind, t.Provider, t.SourceUrl, t.FilePath, t.Title, t.Artist, t.Album, t.Genre, t.DurationSeconds, t.ArtworkUrl, t.DateAddedSortKey, t.DateAddedText, t.DurationText, t.IsLiked";
+        "t.Id, t.SourceKind, t.Provider, t.SourceUrl, t.FilePath, t.Title, t.Artist, t.Album, t.Genre, t.DurationSeconds, t.ArtworkUrl, t.DateAddedSortKey, t.DateAddedText, t.DurationText, t.IsLiked, t.RemoteId";
 
     std::string TrackOrderClause(std::wstring const& filter, std::wstring const& sort)
     {

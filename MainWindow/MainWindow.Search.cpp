@@ -276,77 +276,87 @@ namespace winrt::Last_Music_Player::implementation
         }
 
         size_t remoteMatches = 0;
-        auto savedBaseUrl = ReadAppSettingString(L"ProviderBaseUrl");
-        auto savedApiKey = ReadAppSettingString(L"ProviderApiKey");
-        if (savedBaseUrl.empty())
+        auto& remoteMusic = RemoteMusicServiceService();
+        auto remoteScope = remoteMusic.CaptureScope();
+        if (remoteScope.Mode == LastMusicPlayer::Backend::RemoteAccessMode::LocalOnly
+            || !remoteMusic.IsModeAvailable(remoteScope.Mode)
+            || !remoteMusic.IsCurrent(remoteScope))
         {
             SearchStatusText().Text(m_searchTracks.Size() > 0 ? L"Local only" : L"Remote unavailable");
             co_return;
         }
+        auto cacheScope = LastMusicPlayer::Backend::RemoteScopeCacheKey(remoteScope);
 
         try
         {
             bool const isUrlQuery = LooksLikeUrlQuery(query);
-            auto cacheKey = std::wstring(savedBaseUrl.c_str()) + L"\n" + std::wstring(query.c_str());
+            auto cacheKey = cacheScope + L"\n" + std::wstring(query.c_str());
+            std::vector<winrt::Last_Music_Player::TrackInfo> remoteTracks;
+            bool loadedFromCache{};
+
             // Pasted links bypass the cache entirely (see LooksLikeUrlQuery).
             auto cached = isUrlQuery ? m_remoteSearchCache.end() : m_remoteSearchCache.find(cacheKey);
             if (cached != m_remoteSearchCache.end())
             {
-                for (auto const& track : cached->second)
-                {
-                    if (appendVisibleTrack(track))
-                    {
-                        ++remoteMatches;
-                    }
-                }
+                remoteTracks = cached->second;
+                loadedFromCache = true;
             }
             else
             {
-                LastMusicPlayer::Backend::ProviderClient providerClient;
-                providerClient.SetBaseUrl(savedBaseUrl);
-                providerClient.SetBearerToken(savedApiKey);
-
-                std::vector<winrt::Last_Music_Player::TrackInfo> remoteTracks;
-                auto payload = co_await providerClient.SearchAsync(query);
-                if (requestId != m_searchRequestId || !m_isSearchMode)
+                auto payload = co_await remoteMusic.SearchAsync(remoteScope, query);
+                if (requestId != m_searchRequestId
+                    || !m_isSearchMode
+                    || !remoteMusic.IsCurrent(remoteScope))
                 {
                     co_return;
                 }
 
-                // Accept everything the provider returns (it already caps the
-                // result count). Earlier hard cap of 15 was truncating useful
-                // results — long search queries especially benefited from
-                // seeing the full set.
+                // Accept the provider's bounded result set. A smaller client-side
+                // cap previously truncated useful matches for longer queries.
                 remoteTracks = ParseProviderTracks(payload, 60);
-                for (auto const& track : remoteTracks)
+            }
+
+            if (!remoteMusic.IsCurrent(remoteScope))
+            {
+                co_return;
+            }
+            for (auto const& track : remoteTracks)
+            {
+                if (appendVisibleTrack(track))
                 {
-                    if (appendVisibleTrack(track))
-                    {
-                        ++remoteMatches;
-                    }
-                    if (remoteMatches >= 60)
-                    {
-                        break;
-                    }
+                    ++remoteMatches;
                 }
-                // URL lookups are intentionally not cached, so re-pasting the
-                // same link always reflects the latest server-side resolution.
-                if (!isUrlQuery)
+                if (remoteMatches >= 60)
                 {
-                    if (remoteTracks.empty())
-                    {
-                        m_remoteSearchCache.erase(cacheKey);
-                    }
-                    else
-                    {
-                        if (m_remoteSearchCache.size() >= kRemoteSearchCacheLimit)
-                        {
-                            m_remoteSearchCache.clear();
-                        }
-                        m_remoteSearchCache[cacheKey] = remoteTracks;
-                    }
+                    break;
                 }
             }
+            if (!remoteMusic.IsCurrent(remoteScope))
+            {
+                co_return;
+            }
+
+            // URL lookups are intentionally not cached, so re-pasting the same
+            // link always reflects the latest server-side resolution.
+            if (!loadedFromCache && !isUrlQuery)
+            {
+                if (remoteTracks.empty())
+                {
+                    m_remoteSearchCache.erase(cacheKey);
+                }
+                else
+                {
+                    if (m_remoteSearchCache.size() >= kRemoteSearchCacheLimit)
+                    {
+                        m_remoteSearchCache.clear();
+                    }
+                    m_remoteSearchCache[cacheKey] = remoteTracks;
+                }
+            }
+        }
+        catch (winrt::hresult_canceled const&)
+        {
+            co_return;
         }
         catch (winrt::hresult_error const&)
         {
@@ -378,13 +388,8 @@ namespace winrt::Last_Music_Player::implementation
 
         MusicListView().SelectedItem(clickedTrack);
 
-        // Search results are an ephemeral context — they're whatever the
-        // user's last query happened to return, not a durable collection
-        // like a playlist or library view. Clicking one result plays just
-        // that track; queueing every visible search hit (most music apps
-        // avoid that) drags unrelated tracks into the user's Up Next.
-        // Multi-track add stays available via right-
-        // click → Add to queue / Play next.
+        // Search is not a durable collection. Clicking a result plays only that
+        // track; multi-track queueing stays an explicit action.
         std::vector<winrt::Last_Music_Player::TrackInfo> searchQueue{ clickedTrack };
         SetPlaybackQueue(searchQueue, 0);
         PlayTrack(clickedTrack);

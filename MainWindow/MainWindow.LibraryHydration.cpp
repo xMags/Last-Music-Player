@@ -51,9 +51,9 @@ namespace winrt::Last_Music_Player::implementation
         }
 
         m_catalogLoaded = true;
-        m_browseResultsValid = false;
+        m_songsResultsValid = false;
         RefreshLibraryCatalogViews();
-        ApplyBrowseFilterSort();
+        ApplySongsFilterSort();
     }
 
     void MainWindow::RefreshLibraryCatalogViews()
@@ -120,11 +120,18 @@ namespace winrt::Last_Music_Player::implementation
         };
 
         static constexpr AutoPlaylistDef kAutoPlaylists[] = {
+            { L"smart-liked", L"Favourites", L"Every song you've liked." },
+            { L"smart-most", L"Most Played", L"Your most-played songs." },
+            { L"smart-recent", L"Recently Added", L"The newest songs in your library." },
             { L"daily1", L"Daily Mix 1", L"Built from recent listening." },
             { L"daily2", L"Daily Mix 2", L"A second lane through your library." },
             { L"daily3", L"Daily Mix 3", L"Balanced across your artists." },
+            { L"daily4", L"Daily Mix 4", L"More from a genre you love." },
+            { L"daily5", L"Daily Mix 5", L"Another route through your favourites." },
             { L"repeat", L"On Repeat", L"Songs you keep coming back to." },
             { L"discover", L"Discover Weekly", L"A fresh pass through your tracks." },
+            { L"timecapsule", L"Time Capsule", L"Older additions worth revisiting." },
+            { L"fresh", L"Fresh Finds", L"Your newest library additions." },
         };
 
         for (auto const& def : kAutoPlaylists)
@@ -134,11 +141,11 @@ namespace winrt::Last_Music_Player::implementation
 
             LastMusicPlayer::Backend::TrackInfo playlist;
             playlist.Title(def.Title);
-            playlist.Artist(winrt::hstring(std::to_wstring(count) + (count == 1 ? L" song - Auto mix" : L" songs - Auto mix")));
+            playlist.Artist(winrt::hstring(std::to_wstring(count) + (count == 1 ? L" song - Smart playlist" : L" songs - Smart playlist")));
             playlist.SourceKind(L"auto-playlist");
             playlist.Provider(L"auto");
             playlist.SourceUrl(def.Key);
-            playlist.SourceLabel(L"Auto");
+            playlist.SourceLabel(L"Smart");
             playlist.TrackCount(count);
             playlist.ArtworkCaption(def.Caption);
             ResolveArtworkPresentation(playlist, L"auto-playlist");
@@ -165,8 +172,9 @@ namespace winrt::Last_Music_Player::implementation
             }
         };
 
-        if (key == L"Songs")
+        if (key == L"Songs" || key == L"History")
         {
+            m_librarySongsFilter = key == L"History" ? L"History" : L"All";
             if (!shouldLoad(m_librarySongsState) && !m_librarySongsPageLoading)
             {
                 co_return;
@@ -179,7 +187,7 @@ namespace winrt::Last_Music_Player::implementation
             m_librarySongs.Clear();
             m_librarySongsMatchedCount = 0;
             m_librarySongsMatchedSeconds = 0.0;
-            LibraryImportStatusText().Text(L"Loading songs...");
+            LibraryImportStatusText().Text(key == L"History" ? L"Loading history..." : L"Loading songs...");
             co_await AppendLibrarySongsPageAsync();
             if (epoch == m_libraryHydrationEpoch)
             {
@@ -202,29 +210,102 @@ namespace winrt::Last_Music_Player::implementation
             auto epoch = ++m_libraryHydrationEpoch;
             m_libraryPlaylistsState = LoadState::Loading;
             LibraryImportStatusText().Text(L"Loading playlists...");
+            auto scope = m_libraryScope;
+            auto remoteScope = RemoteMusicServiceService().CaptureScope();
+            auto accountSnapshot = AccountSessionService().Snapshot();
+            std::wstring accountOwnerId;
+            if (remoteScope.Mode == LastMusicPlayer::Backend::RemoteAccessMode::Account
+                && remoteScope.AccountGeneration == accountSnapshot.Generation
+                && (accountSnapshot.Status == LastMusicPlayer::Backend::AccountSessionStatus::Validated
+                    || accountSnapshot.Status == LastMusicPlayer::Backend::AccountSessionStatus::Offline))
+            {
+                accountOwnerId = std::wstring(accountSnapshot.Profile.Id.c_str());
+            }
+            std::vector<winrt::Last_Music_Player::TrackInfo> smartLiked;
+            std::vector<winrt::Last_Music_Player::TrackInfo> smartMostPlayed;
+            std::vector<winrt::Last_Music_Player::TrackInfo> smartRecentlyAdded;
             co_await winrt::resume_background();
-            auto playlists = DatabaseService().IsInitialized() ? DatabaseService().LoadPlaylists() : std::vector<winrt::Last_Music_Player::TrackInfo>{};
-            auto sidebar = DatabaseService().IsInitialized() ? DatabaseService().LoadRecentPlaylists(4) : std::vector<winrt::Last_Music_Player::TrackInfo>{};
+            std::vector<winrt::Last_Music_Player::TrackInfo> playlists;
+            std::vector<winrt::Last_Music_Player::TrackInfo> sidebar;
+            if (DatabaseService().IsInitialized())
+            {
+                playlists = DatabaseService().LoadPlaylists();
+                sidebar = DatabaseService().LoadRecentPlaylists(4);
+                LastMusicPlayer::Backend::TrackQuery query;
+                query.Scope = scope;
+                query.Filter = L"Liked";
+                query.Sort = L"DateAdded";
+                smartLiked = DatabaseService().LoadTracksForQuery(query);
+                query.Filter = L"Most";
+                query.Sort = L"MostPlayed";
+                smartMostPlayed = DatabaseService().LoadTracksForQuery(query);
+                query.Filter = L"All";
+                query.Sort = L"DateAdded";
+                smartRecentlyAdded = DatabaseService().LoadTracksForQuery(query);
+            }
             co_await wil::resume_foreground(dispatcher);
             if (epoch != m_libraryHydrationEpoch)
             {
                 markStaleLoad(m_libraryPlaylistsState);
                 co_return;
             }
+            auto accountScopeCurrent = !accountOwnerId.empty()
+                && DatabaseService().ActiveAccountId() == accountOwnerId
+                && RemoteMusicServiceService().IsCurrent(remoteScope);
+            if (scope == L"Account" && !accountScopeCurrent)
+            {
+                markStaleLoad(m_libraryPlaylistsState);
+                co_return;
+            }
+
+            m_accountPlaylistBindings.clear();
             m_manualPlaylists.Clear();
             for (auto const& playlist : playlists)
             {
+                auto accountPlaylist = playlist.Provider() == L"account";
+                if ((scope == L"Account" && !accountPlaylist)
+                    || (scope == L"OnThisPc" && accountPlaylist)
+                    || (accountPlaylist && !accountScopeCurrent))
+                {
+                    continue;
+                }
                 auto copy = playlist;
                 ResolveArtworkPresentation(copy, L"playlist");
                 m_manualPlaylists.Append(copy);
+                if (accountPlaylist)
+                {
+                    BindAccountPlaylist(copy, remoteScope, accountOwnerId);
+                }
             }
             m_sidebarPlaylists.Clear();
             for (auto const& playlist : sidebar)
             {
+                auto accountPlaylist = playlist.Provider() == L"account";
+                if (accountPlaylist && !accountScopeCurrent)
+                {
+                    continue;
+                }
                 auto copy = playlist;
                 ResolveArtworkPresentation(copy, L"playlist");
                 m_sidebarPlaylists.Append(copy);
+                if (accountPlaylist)
+                {
+                    BindAccountPlaylist(copy, remoteScope, accountOwnerId);
+                }
             }
+            auto prepareSmart = [this](std::vector<winrt::Last_Music_Player::TrackInfo>& tracks)
+            {
+                for (auto& track : tracks)
+                {
+                    ResolveArtworkPresentation(track, L"track");
+                }
+            };
+            prepareSmart(smartLiked);
+            prepareSmart(smartMostPlayed);
+            prepareSmart(smartRecentlyAdded);
+            m_homeMixes[L"smart-liked"] = std::move(smartLiked);
+            m_homeMixes[L"smart-most"] = std::move(smartMostPlayed);
+            m_homeMixes[L"smart-recent"] = std::move(smartRecentlyAdded);
             RefreshAutoPlaylists();
             m_libraryPlaylistsState = LoadState::Loaded;
             LibraryImportStatusText().Text(L"");
@@ -393,8 +474,8 @@ namespace winrt::Last_Music_Player::implementation
 
     void MainWindow::MarkLibraryViewsDirty()
     {
-        m_browseLoadState = LoadState::Dirty;
-        m_browseResultsValid = false;
+        m_songsLoadState = LoadState::Dirty;
+        m_songsResultsValid = false;
         m_libraryAlbumsState = LoadState::Dirty;
         m_libraryArtistsState = LoadState::Dirty;
         m_librarySongsState = LoadState::Dirty;
@@ -407,8 +488,9 @@ namespace winrt::Last_Music_Player::implementation
     LastMusicPlayer::Backend::TrackQuery MainWindow::CurrentLibrarySongsQuery(uint32_t offset, uint32_t limit) const
     {
         LastMusicPlayer::Backend::TrackQuery query;
-        query.Filter = L"All";
-        query.Sort = L"DateAdded";
+        query.Filter = m_librarySongsFilter;
+        query.Sort = m_librarySongsFilter == L"History" ? L"MostPlayed" : L"DateAdded";
+        query.Scope = m_libraryScope;
         query.Offset = static_cast<int>(offset);
         query.Limit = static_cast<int>(limit);
         query.IncludeRemote = true;
@@ -416,13 +498,17 @@ namespace winrt::Last_Music_Player::implementation
         return query;
     }
 
-    LastMusicPlayer::Backend::TrackQuery MainWindow::CurrentLibraryDetailQuery(uint32_t offset, uint32_t limit) const
+    LastMusicPlayer::Backend::TrackQuery MainWindow::CurrentLibraryDetailQuery(
+        uint32_t offset,
+        uint32_t limit,
+        std::wstring const& accountOwnerId) const
     {
         LastMusicPlayer::Backend::TrackQuery query;
         query.Filter = L"All";
         query.Sort = L"DateAdded";
         query.GroupKind = m_libraryDetailKind;
         query.GroupKey = m_libraryDetailKey;
+        query.AccountOwnerId = accountOwnerId;
         query.Offset = static_cast<int>(offset);
         query.Limit = static_cast<int>(limit);
         query.IncludeRemote = true;

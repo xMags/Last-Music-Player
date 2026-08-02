@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "MainWindow.Internal.h"
 
+#include "Backend/BuildConfig.h"
+
 #include <winrt/Windows.Data.Json.h>
 #include <winrt/Microsoft.UI.Xaml.Media.Imaging.h>
 
@@ -79,6 +81,64 @@ namespace winrt::Last_Music_Player::implementation::detail
         static LastMusicPlayer::Backend::SettingsManager service;
         return service;
     }
+    LastMusicPlayer::Backend::CredentialStore& CredentialStoreService()
+    {
+        static LastMusicPlayer::Backend::CredentialStore service;
+        return service;
+    }
+
+    LastMusicPlayer::Backend::UserDataOperationGate& UserDataOperationGateService()
+    {
+        static LastMusicPlayer::Backend::UserDataOperationGate service;
+        return service;
+    }
+
+    LastMusicPlayer::Backend::AccountClient& AccountClientService()
+    {
+        static LastMusicPlayer::Backend::AccountClient service;
+        return service;
+    }
+
+    LastMusicPlayer::Backend::IAccountSessionGateway& AccountSessionGatewayService()
+    {
+        static auto service = LastMusicPlayer::Backend::CreateAccountSessionGateway(AccountClientService());
+        return *service;
+    }
+
+    LastMusicPlayer::Backend::AccountSessionService& AccountSessionService()
+    {
+        static LastMusicPlayer::Backend::AccountSessionService service{
+            SettingsManagerService(),
+            CredentialStoreService(),
+            AccountSessionGatewayService(),
+            UserDataOperationGateService()
+        };
+        return service;
+    }
+
+    LastMusicPlayer::Backend::RemoteMusicService& RemoteMusicServiceService()
+    {
+        static LastMusicPlayer::Backend::RemoteMusicService service{
+            SettingsManagerService(),
+            CredentialStoreService(),
+            AccountSessionService(),
+            AccountClientService(),
+            AccountClientService()
+        };
+        return service;
+    }
+
+    LastMusicPlayer::Backend::MusicSyncService& MusicSyncServiceService()
+    {
+        static LastMusicPlayer::Backend::MusicSyncService service{
+            RemoteMusicServiceService(),
+            DatabaseService(),
+            UserDataOperationGateService()
+        };
+        return service;
+    }
+
+
 
     LastMusicPlayer::Backend::DatabaseEngine& DatabaseService()
     {
@@ -88,7 +148,9 @@ namespace winrt::Last_Music_Player::implementation::detail
 
     LastMusicPlayer::Backend::StreamCache& StreamCacheService()
     {
-        static LastMusicPlayer::Backend::StreamCache service;
+        static LastMusicPlayer::Backend::StreamCache service{
+            UserDataOperationGateService()
+        };
         return service;
     }
 
@@ -129,42 +191,11 @@ namespace winrt::Last_Music_Player::implementation::detail
         return text.rfind(L"http://", 0) == 0 || text.rfind(L"https://", 0) == 0;
     }
 
-    std::wstring QueryValue(std::wstring const& url, std::wstring const& name)
-    {
-        auto queryStart = url.find(L'?');
-        if (queryStart == std::wstring::npos)
-        {
-            return {};
-        }
-
-        auto queryEnd = url.find(L'#', queryStart + 1);
-        auto query = url.substr(queryStart + 1, queryEnd == std::wstring::npos ? std::wstring::npos : queryEnd - queryStart - 1);
-        auto cursor = size_t{ 0 };
-        while (cursor <= query.size())
-        {
-            auto next = query.find(L'&', cursor);
-            auto part = query.substr(cursor, next == std::wstring::npos ? std::wstring::npos : next - cursor);
-            auto eq = part.find(L'=');
-            auto key = eq == std::wstring::npos ? part : part.substr(0, eq);
-            if (key == name)
-            {
-                return eq == std::wstring::npos ? std::wstring{} : part.substr(eq + 1);
-            }
-            if (next == std::wstring::npos)
-            {
-                break;
-            }
-            cursor = next + 1;
-        }
-        return {};
-    }
 
     winrt::hstring CanonicalProviderCollectionSourceUrl(winrt::hstring const& value)
     {
-        // A collection (album/playlist) is identified by its source URL with
-        // volatile query parameters trimmed off. The provider defines the
-        // canonical form of its own URLs.
-        return TrimQuery(value);
+        auto trimmed = TrimQuery(value);
+        return IsHttpUrl(trimmed) ? trimmed : winrt::hstring{};
     }
 
     std::wstring CanonicalQueueText(winrt::hstring const& value)
@@ -266,11 +297,9 @@ namespace winrt::Last_Music_Player::implementation::detail
             return {};
         }
 
-        // Some album-art URLs encode their requested crop in the URL
-        // (`=w60-h60-l90-rj`). Normalize legacy/current URLs to the same square
-        // music-art contract; XAML still owns the visible UniformToFill crop.
-        // The encoded variant catches persisted provider proxy URLs whose nested
-        // source URL is held in `/v1/artwork?url=...`.
+        // Some remote artwork URLs encode their requested crop in the URL.
+        // Normalize known encoded sizes to the same square artwork contract;
+        // XAML still owns the visible UniformToFill crop.
         TryReplaceMusicArtworkSize(text, L"=w", L"=w512-h512-l90-rj")
             || TryReplaceMusicArtworkSize(text, L"%3dw", L"%3Dw512-h512-l90-rj");
         return winrt::hstring{ text };
@@ -296,13 +325,14 @@ namespace winrt::Last_Music_Player::implementation::detail
             return nullptr;
         }
 
-        // Provider `/v1/artwork?url=...` URLs can carry short-lived
-        // media tokens. After expiry the provider 401s and BitmapImage
-        // silently fails, so refresh the URL from the current ProviderApiKey.
+        // Provider-proxied artwork is usable only with the short-lived signed
+        // media URL returned by the authenticated API. Never place the API key
+        // in an image URL; expired artwork safely falls back to the generated
+        // placeholder until the track is refreshed.
         auto fresh = ProviderArtworkUrlFor(normalized);
         if (fresh.empty())
         {
-            fresh = normalized;
+            return nullptr;
         }
 
         try
@@ -412,19 +442,40 @@ namespace winrt::Last_Music_Player::implementation::detail
     std::wstring HomeQueueDedupeKey(winrt::Last_Music_Player::TrackInfo const& track)
     {
         auto filePath = track.FilePath();
-        auto remote = !track.File() && IsHttpUrl(filePath);
+        auto remote = ToLowerCopy(track.SourceKind()) == L"remote" ||
+            (!track.File() && (IsHttpUrl(filePath) || IsHttpUrl(track.SourceUrl())));
         if (!remote)
         {
             return L"local|" + std::wstring(filePath.c_str()) + L"|" + CanonicalQueueText(track.Title()) + L"|" + CanonicalQueueText(track.Artist());
         }
 
+        if (!track.RemoteId().empty())
+        {
+            return L"remote-id|" + std::wstring(track.RemoteId().c_str());
+        }
+        if (!track.SourceUrl().empty())
+        {
+            return L"remote-url|" + std::wstring(track.SourceUrl().c_str());
+        }
         auto title = CanonicalQueueText(track.Title());
         auto artist = CanonicalQueueText(track.Artist());
-        if (title.empty())
+        return title.empty()
+            ? L"remote-url|" + std::wstring(filePath.c_str())
+            : L"remote|" + title + L"|" + artist;
+    }
+
+    bool IsCompatibleAccountRemoteTrack(
+        winrt::Last_Music_Player::TrackInfo const& track,
+        bool requireRemoteId)
+    {
+        if (!track || ToLowerCopy(track.SourceKind()) != L"remote"
+            || (requireRemoteId && track.RemoteId().empty()))
         {
-            return L"remote-url|" + std::wstring(filePath.c_str());
+            return false;
         }
-        return L"remote|" + title + L"|" + artist;
+
+        return LastMusicPlayer::Backend::IsSafeRemoteUrl(
+            track.SourceUrl(), LastMusicPlayer::Backend::RemoteUrlUse::Durable);
     }
 
     std::wstring CatalogSourceKey(winrt::Last_Music_Player::TrackInfo const& track)
@@ -456,6 +507,23 @@ namespace winrt::Last_Music_Player::implementation::detail
             return static_cast<wchar_t>(std::towlower(ch));
         });
         return path.empty() ? HomeQueueDedupeKey(track) : (L"local|" + path);
+    }
+
+    std::wstring ApiKeyStreamCacheKey(
+        LastMusicPlayer::Backend::RemoteScopeSnapshot const& scope,
+        winrt::Last_Music_Player::TrackInfo const& track)
+    {
+        if (!track
+            || scope.Mode != LastMusicPlayer::Backend::RemoteAccessMode::ApiKey
+            || track.SourceUrl().empty())
+        {
+            return {};
+        }
+
+        auto key = LastMusicPlayer::Backend::RemoteScopeCacheKey(scope);
+        key += L"\n";
+        key += track.SourceUrl().c_str();
+        return key;
     }
 
     std::wstring FilePathToUri(winrt::hstring const& filePath)
@@ -623,21 +691,50 @@ namespace winrt::Last_Music_Player::implementation::detail
             return {};
         }
 
-        return LastMusicPlayer::Backend::BuildProviderStreamUrl(
-            track.FilePath(),
-            track.SourceUrl(),
-            track.Provider(),
-            track.ArtworkUrl(),
-            CurrentProviderBaseUrl(),
-            ReadAppSettingString(L"ProviderApiKey"));
+        switch (RemoteMusicServiceService().Mode())
+        {
+        case LastMusicPlayer::Backend::RemoteAccessMode::LocalOnly:
+            return {};
+        case LastMusicPlayer::Backend::RemoteAccessMode::Account:
+        {
+            auto signedUrl = LastMusicPlayer::Backend::BuildProviderStreamUrl(
+                track.FilePath(),
+                LastMusicPlayer::Backend::BuildConfig::AccountMediaOrigin);
+            return LastMusicPlayer::Backend::IsTrustedAccountMediaUrl(
+                signedUrl,
+                LastMusicPlayer::Backend::BuildConfig::AccountMediaOrigin,
+                L"stream")
+                ? signedUrl
+                : winrt::hstring{};
+        }
+        case LastMusicPlayer::Backend::RemoteAccessMode::ApiKey:
+            return LastMusicPlayer::Backend::BuildProviderStreamUrl(
+                track.FilePath(),
+                track.SourceUrl(),
+                track.Provider(),
+                track.ArtworkUrl(),
+                CurrentProviderBaseUrl(),
+                CredentialStoreService().ReadProviderApiKey());
+        default:
+            return {};
+        }
     }
 
     winrt::hstring ProviderArtworkUrlFor(winrt::hstring const& artworkUrl)
     {
-        return LastMusicPlayer::Backend::BuildProviderArtworkUrl(
-            artworkUrl,
-            CurrentProviderBaseUrl(),
-            ReadAppSettingString(L"ProviderApiKey"));
+        switch (RemoteMusicServiceService().Mode())
+        {
+        case LastMusicPlayer::Backend::RemoteAccessMode::LocalOnly:
+        case LastMusicPlayer::Backend::RemoteAccessMode::Account:
+            return {};
+        case LastMusicPlayer::Backend::RemoteAccessMode::ApiKey:
+            return LastMusicPlayer::Backend::BuildProviderArtworkUrl(
+                artworkUrl,
+                CurrentProviderBaseUrl(),
+                CredentialStoreService().ReadProviderApiKey());
+        default:
+            return {};
+        }
     }
 
     void ApplyMusicArtwork(winrt::Last_Music_Player::TrackInfo const& track, winrt::hstring const& artworkUrl, winrt::hstring const& context)
@@ -685,13 +782,78 @@ namespace winrt::Last_Music_Player::implementation::detail
             return {};
         }
     }
+    winrt::hstring BuildAccountTrackJson(winrt::Last_Music_Player::TrackInfo const& track)
+    {
+        if (!IsCompatibleAccountRemoteTrack(track))
+        {
+            return {};
+        }
+        winrt::Windows::Data::Json::JsonObject object;
+        InsertJsonString(object, L"id", track.RemoteId());
+        InsertJsonString(object, L"title", track.Title());
+        InsertJsonString(object, L"artist", track.Artist());
+        InsertJsonString(object, L"album", track.Album());
+        InsertJsonString(object, L"sourceUrl", track.SourceUrl());
+        object.Insert(L"durationMs", winrt::Windows::Data::Json::JsonValue::CreateNumberValue(
+            (std::max)(0.0, track.DurationSeconds()) * 1000.0));
+        return object.Stringify();
+    }
+
+    winrt::hstring BuildAccountPlaylistJson(winrt::hstring const& name)
+    {
+        auto title = TrimQuery(name);
+        if (title.empty())
+        {
+            return {};
+        }
+        winrt::Windows::Data::Json::JsonObject object;
+        InsertJsonString(object, L"name", title);
+        return object.Stringify();
+    }
+    winrt::hstring BuildAccountPlaylistImportJson(winrt::hstring const& sourceUrl)
+    {
+        auto canonical = CanonicalProviderCollectionSourceUrl(sourceUrl);
+        if (canonical.empty())
+        {
+            return {};
+        }
+        winrt::Windows::Data::Json::JsonObject object;
+        InsertJsonString(object, L"sourceUrl", canonical);
+        return object.Stringify();
+    }
+
+    winrt::hstring BuildAccountPlaylistUpdateJson(
+        winrt::hstring const& name,
+        std::vector<winrt::hstring> const& remoteTrackIds)
+    {
+        winrt::Windows::Data::Json::JsonObject object;
+        auto title = TrimQuery(name);
+        if (!title.empty())
+        {
+            InsertJsonString(object, L"name", title);
+        }
+        winrt::Windows::Data::Json::JsonArray trackIds;
+        for (auto const& remoteId : remoteTrackIds)
+        {
+            if (!remoteId.empty())
+            {
+                trackIds.Append(winrt::Windows::Data::Json::JsonValue::CreateStringValue(remoteId));
+            }
+        }
+        object.Insert(L"trackIds", trackIds);
+        return object.Stringify();
+    }
+
+
+
 
     bool IsPlayableHomeTrack(winrt::Last_Music_Player::TrackInfo const& track)
     {
-        // A track is playable if it has a local file/path, or it is a remote
-        // catalog track whose provider stream URL can be rebuilt from its
-        // persisted SourceUrl (so durable remote tracks survive restarts).
-        return track.File() || !track.FilePath().empty() || !ProviderStreamUrlFor(track).empty();
+        // Durable remote tracks remain visible and selectable even while offline;
+        // playback resolves a fresh ephemeral URL when connectivity returns.
+        auto remote = ToLowerCopy(track.SourceKind()) == L"remote";
+        return track.File() || !track.FilePath().empty() ||
+            (remote && !track.SourceUrl().empty()) || !ProviderStreamUrlFor(track).empty();
     }
 
     bool LocalFileMissing(winrt::Last_Music_Player::TrackInfo const& track)
@@ -718,19 +880,37 @@ namespace winrt::Last_Music_Player::implementation::detail
 
     winrt::Windows::Data::Json::JsonObject TrackSnapshotToJson(winrt::Last_Music_Player::TrackInfo const& track)
     {
+        auto remote = ToLowerCopy(track.SourceKind()) == L"remote";
+        auto safeFilePath = remote ? winrt::hstring{} : track.FilePath();
+        auto safeArtworkUrl = track.ArtworkUrl();
+        auto safeSourceUrl = track.SourceUrl();
+        if (remote)
+        {
+            if (!LastMusicPlayer::Backend::IsSafeRemoteUrl(
+                safeArtworkUrl, LastMusicPlayer::Backend::RemoteUrlUse::Durable))
+            {
+                safeArtworkUrl = {};
+            }
+            if (!LastMusicPlayer::Backend::IsSafeRemoteUrl(
+                safeSourceUrl, LastMusicPlayer::Backend::RemoteUrlUse::Durable))
+            {
+                safeSourceUrl = {};
+            }
+        }
         winrt::Windows::Data::Json::JsonObject object;
         InsertJsonString(object, L"title", track.Title());
         InsertJsonString(object, L"artist", track.Artist());
         InsertJsonString(object, L"album", track.Album());
         InsertJsonString(object, L"genre", track.Genre());
-        InsertJsonString(object, L"filePath", track.FilePath());
-        InsertJsonString(object, L"artworkUrl", track.ArtworkUrl());
+        InsertJsonString(object, L"filePath", safeFilePath);
+        InsertJsonString(object, L"artworkUrl", safeArtworkUrl);
         InsertJsonString(object, L"dateAdded", track.DateAdded());
         InsertJsonString(object, L"duration", track.Duration());
         InsertJsonString(object, L"sourceKind", track.SourceKind());
         InsertJsonString(object, L"provider", track.Provider());
-        InsertJsonString(object, L"sourceUrl", track.SourceUrl());
+        InsertJsonString(object, L"sourceUrl", safeSourceUrl);
         InsertJsonString(object, L"sourceLabel", track.SourceLabel());
+        InsertJsonString(object, L"remoteId", track.RemoteId());
         object.Insert(L"durationSeconds", winrt::Windows::Data::Json::JsonValue::CreateNumberValue(track.DurationSeconds()));
         object.Insert(L"dateAddedSortKey", winrt::Windows::Data::Json::JsonValue::CreateNumberValue(track.DateAddedSortKey()));
         object.Insert(L"isLiked", winrt::Windows::Data::Json::JsonValue::CreateBooleanValue(track.IsLiked()));
@@ -751,7 +931,8 @@ namespace winrt::Last_Music_Player::implementation::detail
         track.SourceKind(object.GetNamedString(L"sourceKind", IsHttpUrl(track.FilePath()) ? L"remote" : L"local"));
         track.Provider(object.GetNamedString(L"provider", L""));
         track.SourceUrl(object.GetNamedString(L"sourceUrl", L""));
-        track.SourceLabel(object.GetNamedString(L"sourceLabel", track.SourceKind() == L"remote" ? L"Music API" : L"Local"));
+        track.RemoteId(object.GetNamedString(L"remoteId", L""));
+        track.SourceLabel(object.GetNamedString(L"sourceLabel", track.SourceKind() == L"remote" ? L"Remote" : L"Local"));
         track.IsLiked(object.GetNamedBoolean(L"isLiked", false));
         track.DurationSeconds(object.GetNamedNumber(L"durationSeconds", 0.0));
         track.DateAddedSortKey(object.GetNamedNumber(L"dateAddedSortKey", 0.0));
@@ -781,6 +962,7 @@ namespace winrt::Last_Music_Player::implementation::detail
         track.Genre(L"Remote");
         track.FilePath(streamUrl);
         track.SourceUrl(item.GetNamedString(L"sourceUrl", L""));
+        track.RemoteId(item.GetNamedString(L"id", L""));
         if (track.SourceUrl().empty())
         {
             track.SourceUrl(streamUrl);
@@ -788,10 +970,8 @@ namespace winrt::Last_Music_Player::implementation::detail
         track.SourceKind(L"remote");
         track.Provider(provider);
         track.SourceLabel(L"Music API");
-        // Generic on-brand label so the UI never reveals which backend serves
-        // the stream. The actual provider stays in track.Provider() +
-        // track.SourceUrl() for stream resolution; this field only drives the
-        // user-visible "year/date" caption.
+        // Keep the visible label provider-neutral. Routing identity remains in
+        // the internal provider and source fields used by remote resolution.
         track.DateAdded(L"Music API");
         auto durationMs = item.GetNamedNumber(L"durationMs", 0.0);
         track.DurationSeconds(durationMs > 0.0 ? durationMs / 1000.0 : 0.0);
@@ -878,6 +1058,8 @@ namespace winrt::Last_Music_Player::implementation::detail
         }
         return artists;
     }
+
+
 
     std::wstring GetAppAssetPath(wchar_t const* relativePath)
     {

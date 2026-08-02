@@ -1,33 +1,29 @@
 #include "pch.h"
 #include "Backend/DatabaseEngine.h"
 #include "Backend/DatabaseEngine.Internal.h"
+#include "Backend/ProviderHelpers.h"
 
 namespace LastMusicPlayer::Backend
 {
     using namespace DatabaseDetail;
 
-    void DatabaseEngine::BeginLocalScan()
-    {
-        std::scoped_lock lock{ m_mutex };
-        // Scan completion now flips inactive rows after metadata has been read
-        // and new rows have been upserted, so interrupted scans keep the old
-        // local library visible on the next launch.
-    }
-
     bool DatabaseEngine::ClearAllUserData()
     {
         std::scoped_lock lock{ m_mutex };
-        if (!m_db)
-        {
-            return false;
-        }
-
-        if (!Exec(m_db, "BEGIN IMMEDIATE;"))
+        if (!m_db || !Exec(m_db, "BEGIN IMMEDIATE;"))
         {
             return false;
         }
 
         bool ok =
+            Exec(m_db, "UPDATE ActiveAccountContext SET RemoteMode='LocalOnly', AccountId='' WHERE SingletonId=1;") &&
+            Exec(m_db, "DELETE FROM AccountPlaylistTracks;") &&
+            Exec(m_db, "DELETE FROM PlaybackEvents;") &&
+            Exec(m_db, "DELETE FROM PendingLikes;") &&
+            Exec(m_db, "DELETE FROM AccountSyncState;") &&
+            Exec(m_db, "DELETE FROM AccountPlaylists;") &&
+            Exec(m_db, "DELETE FROM AccountTracks;") &&
+            Exec(m_db, "DELETE FROM AccountProfiles;") &&
             Exec(m_db, "DELETE FROM AlbumTracks;") &&
             Exec(m_db, "DELETE FROM PlaylistTracks;") &&
             Exec(m_db, "DELETE FROM Albums;") &&
@@ -46,9 +42,16 @@ namespace LastMusicPlayer::Backend
             return false;
         }
 
-        TryExec(m_db, "PRAGMA wal_checkpoint(TRUNCATE);");
-        TryExec(m_db, "VACUUM;");
-        return true;
+        return Exec(m_db, "PRAGMA wal_checkpoint(TRUNCATE);")
+            && Exec(m_db, "VACUUM;");
+    }
+
+    void DatabaseEngine::BeginLocalScan()
+    {
+        std::scoped_lock lock{ m_mutex };
+        // Scan completion now flips inactive rows after metadata has been read
+        // and new rows have been upserted, so interrupted scans keep the old
+        // local library visible on the next launch.
     }
 
     void DatabaseEngine::CompleteLocalScan(std::vector<std::wstring> const& activeSourceKeys)
@@ -129,13 +132,13 @@ namespace LastMusicPlayer::Backend
         }
 
         static constexpr char kSql[] =
-            "INSERT INTO Tracks (SourceKey, SourceKind, Provider, SourceUrl, FilePath, Title, Artist, Album, Genre, DurationSeconds, ArtworkUrl, DateAddedSortKey, DateAddedText, DurationText, IsActive, UpdatedAt) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, strftime('%s','now')) "
+            "INSERT INTO Tracks (SourceKey, SourceKind, Provider, SourceUrl, FilePath, Title, Artist, Album, Genre, DurationSeconds, ArtworkUrl, DateAddedSortKey, DateAddedText, DurationText, IsActive, RemoteId, UpdatedAt) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, strftime('%s','now')) "
             "ON CONFLICT(SourceKey) DO UPDATE SET "
             "SourceKind=excluded.SourceKind, Provider=excluded.Provider, SourceUrl=excluded.SourceUrl, FilePath=excluded.FilePath, "
             "Title=excluded.Title, Artist=excluded.Artist, Album=excluded.Album, Genre=excluded.Genre, DurationSeconds=excluded.DurationSeconds, "
             "ArtworkUrl=excluded.ArtworkUrl, DateAddedSortKey=excluded.DateAddedSortKey, DateAddedText=excluded.DateAddedText, DurationText=excluded.DurationText, "
-            "IsActive=excluded.IsActive, "
+            "IsActive=excluded.IsActive, RemoteId=excluded.RemoteId, "
             "UpdatedAt=excluded.UpdatedAt;";
 
         Statement stmt{ m_db, kSql };
@@ -149,6 +152,11 @@ namespace LastMusicPlayer::Backend
         {
             sourceUrl = std::wstring(track.FilePath().c_str());
         }
+        if (sourceKind == L"remote"
+            && !IsSafeRemoteUrl(winrt::hstring(sourceUrl), RemoteUrlUse::Durable))
+        {
+            sourceUrl.clear();
+        }
 
         BindText(stmt.value, 1, sourceKey);
         BindText(stmt.value, 2, sourceKind);
@@ -160,11 +168,18 @@ namespace LastMusicPlayer::Backend
         BindText(stmt.value, 8, std::wstring(track.Album().c_str()));
         BindText(stmt.value, 9, std::wstring(track.Genre().c_str()));
         sqlite3_bind_double(stmt.value, 10, track.DurationSeconds());
-        BindText(stmt.value, 11, std::wstring(track.ArtworkUrl().c_str()));
+        auto artworkUrl = std::wstring(track.ArtworkUrl().c_str());
+        if (sourceKind == L"remote"
+            && !IsSafeRemoteUrl(winrt::hstring(artworkUrl), RemoteUrlUse::Durable))
+        {
+            artworkUrl.clear();
+        }
+        BindText(stmt.value, 11, artworkUrl);
         sqlite3_bind_double(stmt.value, 12, track.DateAddedSortKey());
         BindText(stmt.value, 13, std::wstring(track.DateAdded().c_str()));
         BindText(stmt.value, 14, std::wstring(track.Duration().c_str()));
         sqlite3_bind_int(stmt.value, 15, active ? 1 : 0);
+        BindText(stmt.value, 16, std::wstring(track.RemoteId().c_str()));
 
         if (sqlite3_step(stmt.value) != SQLITE_DONE)
         {
@@ -193,7 +208,7 @@ namespace LastMusicPlayer::Backend
             return;
         }
 
-        Statement stmt{ m_db, "UPDATE Tracks SET PlayCount=COALESCE(PlayCount,0)+1, LastPlayedOrder=?, LastPlayed=datetime('now') WHERE SourceKey=?;" };
+        Statement stmt{ m_db, "UPDATE Tracks SET PlayCount=COALESCE(PlayCount,0)+1, LastPlayedOrder=?, LastPlayed=datetime('now'), LastPlayedExact=1 WHERE SourceKey=?;" };
         if (!stmt) return;
         sqlite3_bind_int64(stmt.value, 1, static_cast<sqlite3_int64>(playOrder));
         BindText(stmt.value, 2, sourceKey);

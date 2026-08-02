@@ -23,8 +23,7 @@ namespace LastMusicPlayer::Backend
         uint16_t port{ 8009 };
     };
 
-    // Self-contained Google Cast v2 client (discovery + control) running inside
-    // the desktop app — no external Cast sender or local sidecar is needed.
+    // Self-contained Cast v2 discovery and control client. No local sidecar is required.
     class CastEngine
     {
     public:
