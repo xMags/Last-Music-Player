@@ -4,6 +4,7 @@
 
 #include "Backend/CatalogParser.h"
 #include "Backend/CatalogPresentation.h"
+#include "Frontend/RoundedCornerClip.h"
 
 #include <winrt/Windows.Storage.Streams.h>
 #include <winrt/Microsoft.UI.Xaml.Controls.h>
@@ -402,6 +403,17 @@ namespace winrt::Last_Music_Player::implementation
         ++m_accountArtworkRequestId;
     }
 
+    void MainWindow::ArtworkImage_Loaded(
+        winrt::Windows::Foundation::IInspectable const& sender,
+        winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
+    {
+        (void)args;
+        if (auto element = sender.try_as<winrt::Microsoft::UI::Xaml::FrameworkElement>())
+        {
+            LastMusicPlayer::Frontend::ApplyRoundedCornerClip(element);
+        }
+    }
+
     void MainWindow::AccountArtwork_Loaded(
         winrt::Windows::Foundation::IInspectable const& sender,
         winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
@@ -412,6 +424,10 @@ namespace winrt::Last_Music_Player::implementation
         {
             return;
         }
+
+        // Round the surface whether or not it ends up with artwork to fetch, so
+        // a template that only ever binds AlbumArt is still clipped.
+        LastMusicPlayer::Frontend::ApplyRoundedCornerClip(image);
 
         auto track = image.DataContext().try_as<winrt::Last_Music_Player::TrackInfo>();
         if (!track)

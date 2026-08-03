@@ -1685,7 +1685,7 @@
                                                 </Grid.ColumnDefinitions>
                                                 <Border Width="44" Height="44" CornerRadius="22" Background="{ThemeResource ControlFillColorSecondaryBrush}">
                                                     <Grid>
-                                                        <Image x:Name="AccountAvatarImage" Stretch="UniformToFill" Visibility="Collapsed" />
+                                                        <Image x:Name="AccountAvatarImage" Loaded="ArtworkImage_Loaded" Stretch="UniformToFill" Visibility="Collapsed" />
                                                         <FontIcon x:Name="AccountAvatarFallback" Glyph="&#xE77B;" FontSize="20" Foreground="{ThemeResource TextSecondaryBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
                                                     </Grid>
                                                 </Border>
@@ -2258,7 +2258,7 @@
                                 <Border Grid.Column="0" Width="180" Height="180" CornerRadius="{StaticResource Radius2xl}" Background="{ThemeResource NeutralFillBrush}">
                                     <Grid>
                                         <FontIcon Glyph="&#xE8D6;" FontSize="58" Foreground="{ThemeResource PlaceholderGlyphBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                        <Image x:Name="DiscoverDetailArt" Stretch="UniformToFill" />
+                                        <Image x:Name="DiscoverDetailArt" Loaded="ArtworkImage_Loaded" Stretch="UniformToFill" />
                                     </Grid>
                                 </Border>
                                 <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="8">
@@ -2744,12 +2744,12 @@
                                                 <ColumnDefinition Width="*" />
                                                 <ColumnDefinition Width="*" />
                                             </Grid.ColumnDefinitions>
-                                            <Image x:Name="LibraryDetailCollageArt0" Grid.Row="0" Grid.Column="0" Stretch="UniformToFill" />
-                                            <Image x:Name="LibraryDetailCollageArt1" Grid.Row="0" Grid.Column="1" Stretch="UniformToFill" />
-                                            <Image x:Name="LibraryDetailCollageArt2" Grid.Row="1" Grid.Column="0" Stretch="UniformToFill" />
-                                            <Image x:Name="LibraryDetailCollageArt3" Grid.Row="1" Grid.Column="1" Stretch="UniformToFill" />
+                                            <Image x:Name="LibraryDetailCollageArt0" Loaded="ArtworkImage_Loaded" Grid.Row="0" Grid.Column="0" Stretch="UniformToFill" />
+                                            <Image x:Name="LibraryDetailCollageArt1" Loaded="ArtworkImage_Loaded" Grid.Row="0" Grid.Column="1" Stretch="UniformToFill" />
+                                            <Image x:Name="LibraryDetailCollageArt2" Loaded="ArtworkImage_Loaded" Grid.Row="1" Grid.Column="0" Stretch="UniformToFill" />
+                                            <Image x:Name="LibraryDetailCollageArt3" Loaded="ArtworkImage_Loaded" Grid.Row="1" Grid.Column="1" Stretch="UniformToFill" />
                                         </Grid>
-                                        <Image x:Name="LibraryDetailArt" Stretch="UniformToFill" />
+                                        <Image x:Name="LibraryDetailArt" Loaded="ArtworkImage_Loaded" Stretch="UniformToFill" />
                                         <Border IsHitTestVisible="False" CornerRadius="{StaticResource Radius2xl}">
                                             <Border.Background>
                                                 <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
@@ -2932,7 +2932,7 @@
                                 </Grid>
                             </Border>
                             <Border CornerRadius="{StaticResource Radius2xl}">
-                                <Image x:Name="RightPanelArt" Stretch="UniformToFill" HorizontalAlignment="Center" VerticalAlignment="Center" Source="{x:Null}" />
+                                <Image x:Name="RightPanelArt" Loaded="ArtworkImage_Loaded" Stretch="UniformToFill" HorizontalAlignment="Center" VerticalAlignment="Center" Source="{x:Null}" />
                             </Border>
                         </Grid>
 
@@ -3077,7 +3077,7 @@
                         </Grid>
                     </Border>
                     <Border CornerRadius="{StaticResource RadiusLg}">
-                        <Image x:Name="BottomPlayerArt" Stretch="UniformToFill" HorizontalAlignment="Center" VerticalAlignment="Center" Source="{x:Null}" />
+                        <Image x:Name="BottomPlayerArt" Loaded="ArtworkImage_Loaded" Stretch="UniformToFill" HorizontalAlignment="Center" VerticalAlignment="Center" Source="{x:Null}" />
                     </Border>
                 </Grid>
 
@@ -3251,7 +3251,7 @@
                             </Grid>
                         </Border>
                         <Border CornerRadius="{StaticResource RadiusXl}">
-                            <Image x:Name="FsArt" Stretch="UniformToFill" Source="{x:Null}" />
+                            <Image x:Name="FsArt" Loaded="ArtworkImage_Loaded" Stretch="UniformToFill" Source="{x:Null}" />
                         </Border>
                     </Grid>
 
