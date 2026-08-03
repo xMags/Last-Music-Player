@@ -273,18 +273,6 @@
                             </Grid>
                         </Button>
 
-                        <!-- Catalog discovery. Hidden outside Account mode: every catalog
-                             endpoint needs an account session, and an API-key provider has
-                             no catalog contract to browse. -->
-                        <Button x:Name="BrowseButton" Click="BrowseButton_Click" Visibility="Collapsed" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Background="Transparent" BorderThickness="0" CornerRadius="{StaticResource RadiusLg}" Height="42" Padding="12,0">
-                            <Grid>
-                                <StackPanel Orientation="Horizontal" Spacing="20" VerticalAlignment="Center">
-                                    <FontIcon x:Name="BrowseGlyph" Glyph="&#xE909;" Foreground="{ThemeResource TextSecondaryBrush}" FontSize="16"/>
-                                    <TextBlock x:Name="BrowseLabel" Text="Browse" Foreground="{ThemeResource TextPrimaryBrush}" VerticalAlignment="Center" />
-                                </StackPanel>
-                            </Grid>
-                        </Button>
-
                         <Button x:Name="LibraryButton" Click="LibraryButton_Click" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Background="Transparent" BorderThickness="0" CornerRadius="{StaticResource RadiusLg}" Height="42" Padding="12,0">
                             <Grid>
                                 <StackPanel Orientation="Horizontal" Spacing="20" VerticalAlignment="Center">
@@ -502,7 +490,7 @@
                                                     </Border.Shadow>
                                                     <FontIcon Glyph="&#xE8D6;" FontSize="36" Foreground="White" Opacity="0.55" HorizontalAlignment="Center" VerticalAlignment="Center" />
                                                 </Border>
-                                                <Image Source="{x:Bind AlbumArt}" Stretch="UniformToFill" />
+                                                <Image Source="{x:Bind AlbumArt}" Stretch="UniformToFill" Loaded="AccountArtwork_Loaded" />
                                             </Grid>
                                             <TextBlock Grid.Row="2" Text="{x:Bind Title}" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" VerticalAlignment="Top" />
                                             <TextBlock Grid.Row="3" Text="{x:Bind Artist}" Style="{StaticResource CaptionText}" TextTrimming="CharacterEllipsis" />
@@ -519,6 +507,33 @@
                                        Margin="0,4,0,24"
                                        FontSize="13"
                                        Foreground="{ThemeResource TextTertiaryBrush}" />
+                        </StackPanel>
+
+                        <!-- Signed-in catalog discovery. Personal Home content remains
+                             usable while this independent feed loads or retries. -->
+                        <StackPanel x:Name="HomeCatalogPrimaryContainer" Visibility="Collapsed" Spacing="20">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="APPLE MUSIC CATALOG" Style="{StaticResource EyebrowText}" VerticalAlignment="Center" />
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                                    <TextBlock Text="Region" Style="{StaticResource CaptionText}" VerticalAlignment="Center" />
+                                    <ComboBox x:Name="DiscoverStorefrontSelector" MinWidth="180" SelectionChanged="DiscoverStorefront_SelectionChanged" />
+                                </StackPanel>
+                            </Grid>
+                            <Grid x:Name="HomeCatalogStatusPanel" Visibility="Collapsed">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <ProgressRing x:Name="HomeCatalogProgressRing" Width="18" Height="18" IsActive="False" VerticalAlignment="Center" Margin="0,0,10,0" />
+                                <TextBlock x:Name="HomeCatalogStatusText" Grid.Column="1" Style="{StaticResource CaptionText}" VerticalAlignment="Center" TextWrapping="Wrap" />
+                                <Button x:Name="HomeCatalogRetryButton" Grid.Column="2" Content="Retry" Click="HomeCatalogRetry_Click" Visibility="Collapsed" Background="Transparent" BorderThickness="0" Padding="8,4" Foreground="{ThemeResource AccentBrush}" FontWeight="SemiBold" />
+                            </Grid>
+                            <StackPanel x:Name="HomeCatalogPrimaryPanel" Spacing="32" />
                         </StackPanel>
 
                         <!-- Made for <UserDisplayName> Section -->
@@ -891,6 +906,10 @@
                             </ScrollViewer>
                         </StackPanel>
 
+                        <!-- Matches the web and Android ordering: mood collections
+                             follow personal mixes and precede personal highlights. -->
+                        <StackPanel x:Name="HomeCatalogMoodPanel" Visibility="Collapsed" />
+
                         <!-- Most Played Section. Populated from LoadMostPlayedTracks
                              (ordered by PlayCount). Section is initially collapsed and
                              revealed in C++ only when the user has at least a few
@@ -961,7 +980,7 @@
                                                     </Border.Shadow>
                                                     <FontIcon Glyph="&#xE8D6;" FontSize="36" Foreground="White" Opacity="0.55" HorizontalAlignment="Center" VerticalAlignment="Center" />
                                                 </Border>
-                                                <Image Source="{x:Bind AlbumArt}" Stretch="UniformToFill" />
+                                                <Image Source="{x:Bind AlbumArt}" Stretch="UniformToFill" Loaded="AccountArtwork_Loaded" />
                                             </Grid>
                                             <TextBlock Grid.Row="2" Text="{x:Bind Title}" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" VerticalAlignment="Top" />
                                             <TextBlock Grid.Row="3" Text="{x:Bind Artist}" Style="{StaticResource CaptionText}" TextTrimming="CharacterEllipsis" />
@@ -1036,7 +1055,7 @@
                                                     </Border.Shadow>
                                                     <FontIcon Glyph="&#xEB52;" FontSize="36" Foreground="White" Opacity="0.55" HorizontalAlignment="Center" VerticalAlignment="Center" />
                                                 </Border>
-                                                <Image Source="{x:Bind AlbumArt}" Stretch="UniformToFill" />
+                                                <Image Source="{x:Bind AlbumArt}" Stretch="UniformToFill" Loaded="AccountArtwork_Loaded" />
                                             </Grid>
                                             <TextBlock Grid.Row="2" Text="{x:Bind Title}" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" VerticalAlignment="Top" />
                                             <TextBlock Grid.Row="3" Text="{x:Bind Artist}" Style="{StaticResource CaptionText}" TextTrimming="CharacterEllipsis" />
@@ -1111,7 +1130,7 @@
                                                     </Border.Background>
                                                     <FontIcon Glyph="&#xE8D6;" FontSize="16" Foreground="White" Opacity="0.6" HorizontalAlignment="Center" VerticalAlignment="Center" />
                                                 </Border>
-                                                <Image Source="{x:Bind AlbumArt}" Stretch="UniformToFill" />
+                                                <Image Source="{x:Bind AlbumArt}" Stretch="UniformToFill" Loaded="AccountArtwork_Loaded" />
                                             </Grid>
                                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                                 <TextBlock Text="{x:Bind Title}" FontSize="13" FontWeight="SemiBold" Foreground="{ThemeResource TextPrimaryBrush}" TextTrimming="CharacterEllipsis" MaxLines="1" />
@@ -1208,7 +1227,7 @@
                                                     </Border.Shadow>
                                                     <FontIcon Glyph="&#xE8D6;" FontSize="32" Foreground="{ThemeResource PlaceholderGlyphBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
                                                 </Border>
-                                                <Image Source="{x:Bind AlbumArt}" Stretch="UniformToFill" />
+                                                <Image Source="{x:Bind AlbumArt}" Stretch="UniformToFill" Loaded="AccountArtwork_Loaded" />
                                             </Grid>
                                             <TextBlock Grid.Row="2" Text="{x:Bind Title}" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" VerticalAlignment="Top" />
                                             <TextBlock Grid.Row="3" Text="{x:Bind Artist}" Style="{StaticResource CaptionText}" TextTrimming="CharacterEllipsis" />
@@ -2011,7 +2030,7 @@
                                             <Grid>
                                                 <FontIcon Glyph="&#xE8D6;" FontSize="14" Foreground="{ThemeResource PlaceholderGlyphBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"
                                                           IsHitTestVisible="False" AutomationProperties.AccessibilityView="Raw" />
-                                                    <Image Source="{x:Bind AlbumArt}" Stretch="UniformToFill" />
+                                                    <Image Source="{x:Bind AlbumArt}" Stretch="UniformToFill" Loaded="AccountArtwork_Loaded" />
                                             </Grid>
                                         </Border>
                                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
@@ -2097,7 +2116,7 @@
                                         <Grid>
                                             <FontIcon Glyph="&#xE8D6;" FontSize="40" Foreground="{ThemeResource PlaceholderGlyphBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"
                                                       IsHitTestVisible="False" AutomationProperties.AccessibilityView="Raw" />
-                                            <Image Source="{x:Bind AlbumArt}" Stretch="UniformToFill" />
+                                            <Image Source="{x:Bind AlbumArt}" Stretch="UniformToFill" Loaded="AccountArtwork_Loaded" />
                                         </Grid>
                                     </Border>
                                     <TextBlock Text="{x:Bind Title}" Style="{StaticResource BodyStrong}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
@@ -2110,13 +2129,10 @@
                 </Grid>
                 </Grid>
 
-                <!-- ===== BROWSE (CATALOG DISCOVERY) VIEW =====
-                     Three mutually exclusive pages: the shelf list, a paged
-                     chart, and album/playlist detail. Shelves are built in code
-                     because their count and titles come from the service, so
-                     the tile template lives here as a resource and every shelf
-                     GridView shares it. -->
-                <Grid x:Name="BrowseViewContainer" Visibility="Collapsed" Padding="0,16,8,0">
+                <!-- Full-size catalog subviews reached from Home. The catalog landing
+                     content and region selector live directly in Home; this container
+                     only owns chart, gallery, album, and playlist depth pages. -->
+                <Grid x:Name="HomeCatalogViewContainer" Visibility="Collapsed" Padding="0,16,8,0">
                     <Grid.Resources>
                         <DataTemplate x:Key="CatalogTileTemplate" x:DataType="local:TrackInfo">
                             <Grid Width="156" Margin="0,0,20,0" VerticalAlignment="Top"
@@ -2127,6 +2143,19 @@
                                     <RowDefinition Height="40" />
                                     <RowDefinition Height="18" />
                                 </Grid.RowDefinitions>
+                                <Grid.ContextFlyout>
+                                    <MenuFlyout>
+                                        <MenuFlyoutItem Text="Play now" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="HomeRowMenuPlayNow_Click" />
+                                        <MenuFlyoutItem Text="Play next" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuPlayNext_Click" />
+                                        <MenuFlyoutItem Text="Add to queue" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuAddToQueue_Click" />
+                                        <MenuFlyoutItem Text="Add to playlist" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="LibraryRowMenuAddToPlaylist_Click" />
+                                        <MenuFlyoutSeparator />
+                                        <MenuFlyoutItem Text="{x:Bind LikeActionText}" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuLike_Click" />
+                                        <MenuFlyoutSeparator />
+                                        <MenuFlyoutItem Text="Go to artist" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuArtist_Click" />
+                                        <MenuFlyoutItem Text="Go to album" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuAlbum_Click" />
+                                    </MenuFlyout>
+                                </Grid.ContextFlyout>
                                 <Grid Grid.Row="0" Width="156" Height="156">
                                     <Border CornerRadius="{StaticResource Radius2xl}" Translation="0,0,16">
                                         <Border.Background>
@@ -2143,7 +2172,7 @@
                                     <!-- Artwork is fetched per container rather than bound: it needs
                                          the account session, and a container only realizes when its
                                          tile scrolls into view. -->
-                                    <Image Stretch="UniformToFill" Loaded="CatalogTileArt_Loaded" />
+                                    <Image Stretch="UniformToFill" Loaded="AccountArtwork_Loaded" />
                                 </Grid>
                                 <TextBlock Grid.Row="2" Text="{x:Bind Title}" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" VerticalAlignment="Top" />
                                 <TextBlock Grid.Row="3" Text="{x:Bind Artist}" Style="{StaticResource CaptionText}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
@@ -2151,39 +2180,27 @@
                         </DataTemplate>
                     </Grid.Resources>
 
-                    <!-- Shelf list -->
-                    <Grid x:Name="DiscoverShelvesPage">
+                    <!-- Full Explore Charts / City Charts gallery reached from Home. -->
+                    <Grid x:Name="DiscoverChartGalleryPage" Visibility="Collapsed">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="*" />
                         </Grid.RowDefinitions>
-
-                        <Grid Grid.Row="0" Margin="0,0,0,20">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <StackPanel Grid.Column="0" Spacing="4">
-                                <TextBlock Text="Catalog" Style="{StaticResource EyebrowText}" />
-                                <TextBlock Text="Browse" Style="{StaticResource TitleH1}" />
-                                <TextBlock x:Name="DiscoverSubtitle" Text="Charts and playlists from around the world" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" />
+                        <StackPanel Grid.Row="0" Spacing="12" Margin="0,0,0,20">
+                            <Button Click="DiscoverBack_Click" CornerRadius="{StaticResource RadiusLg}" Padding="12,7" HorizontalAlignment="Left">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon Glyph="&#xE72B;" FontSize="13" />
+                                    <TextBlock Text="Back" />
+                                </StackPanel>
+                            </Button>
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="Apple Music" Style="{StaticResource EyebrowText}" />
+                                <TextBlock x:Name="DiscoverChartGalleryTitle" Text="Explore charts" Style="{StaticResource TitleH1}" />
+                                <TextBlock x:Name="DiscoverChartGalleryStatus" Style="{StaticResource CaptionText}" Visibility="Collapsed" />
                             </StackPanel>
-                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-                                <TextBlock Text="Region" Style="{StaticResource CaptionText}" VerticalAlignment="Center" />
-                                <ComboBox x:Name="DiscoverStorefrontSelector" MinWidth="180" SelectionChanged="DiscoverStorefront_SelectionChanged" />
-                            </StackPanel>
-                        </Grid>
-
+                        </StackPanel>
                         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" VerticalScrollMode="Enabled">
-                            <StackPanel Spacing="8">
-                                <StackPanel x:Name="DiscoverShelvesPanel" Spacing="8" />
-                                <!-- Empty and error states are distinct messages: "not signed
-                                     in", "nothing for this region", and "request failed" are
-                                     very different problems and one blank panel for all three
-                                     is unhelpful. -->
-                                <TextBlock x:Name="DiscoverStatusText" Text="Loading..." Margin="0,24,0,24" FontSize="13" Foreground="{ThemeResource TextTertiaryBrush}" TextWrapping="Wrap" />
-                                <Button x:Name="DiscoverRetryButton" Content="Try again" Click="DiscoverRetry_Click" Visibility="Collapsed" HorizontalAlignment="Left" CornerRadius="{StaticResource RadiusLg}" Padding="14,8" Margin="0,0,0,24" />
-                            </StackPanel>
+                            <VariableSizedWrapGrid x:Name="DiscoverChartGalleryPanel" Orientation="Horizontal" ItemWidth="184" ItemHeight="236" MaximumRowsOrColumns="20" />
                         </ScrollViewer>
                     </Grid>
 
@@ -2294,7 +2311,7 @@
                                         <Border Grid.Column="1" Width="38" Height="38" CornerRadius="{StaticResource RadiusMd}" Background="{ThemeResource NeutralFillBrush}">
                                             <Grid>
                                                 <FontIcon Glyph="&#xE8D6;" FontSize="15" Foreground="{ThemeResource PlaceholderGlyphBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                                <Image Stretch="UniformToFill" Loaded="CatalogTileArt_Loaded" />
+                                                <Image Stretch="UniformToFill" Loaded="AccountArtwork_Loaded" />
                                             </Grid>
                                         </Border>
                                         <StackPanel Grid.Column="2" VerticalAlignment="Center">
@@ -2439,7 +2456,7 @@
                                                 </Border>
                                                 <TextBlock Text="{x:Bind ArtworkTitle}" FontSize="11" FontWeight="Bold" CharacterSpacing="180" Foreground="White" Opacity="{x:Bind GeneratedArtworkOpacity}" VerticalAlignment="Top" Margin="14" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
                                                 <TextBlock Text="{x:Bind ArtworkCaption}" FontSize="12" FontWeight="Medium" Foreground="White" Opacity="{x:Bind GeneratedArtworkOpacity}" TextWrapping="Wrap" LineHeight="17" VerticalAlignment="Bottom" Margin="14" MaxLines="3" TextTrimming="WordEllipsis" />
-                                                <Image Source="{x:Bind AlbumArt}" Stretch="UniformToFill" Opacity="{x:Bind ImageArtworkOpacity}" />
+                                                <Image Source="{x:Bind AlbumArt}" Stretch="UniformToFill" Loaded="AccountArtwork_Loaded" Opacity="{x:Bind ImageArtworkOpacity}" />
                                             </Grid>
                                         </Border>
                                         <TextBlock Text="{x:Bind Title}" Style="{StaticResource BodyStrong}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
@@ -2468,7 +2485,7 @@
                                             <Border.Shadow><ThemeShadow /></Border.Shadow>
                                             <Grid>
                                                 <FontIcon Glyph="&#xE77B;" FontSize="44" Foreground="{ThemeResource PlaceholderGlyphBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                                <Image Source="{x:Bind AlbumArt}" Stretch="UniformToFill" />
+                                                <Image Source="{x:Bind AlbumArt}" Stretch="UniformToFill" Loaded="AccountArtwork_Loaded" />
                                             </Grid>
                                         </Border>
                                         <TextBlock Text="{x:Bind Title}" Style="{StaticResource BodyStrong}" HorizontalAlignment="Center" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
@@ -2527,7 +2544,7 @@
                                             <Border Width="42" Height="42" CornerRadius="{StaticResource RadiusMd}" Background="{ThemeResource NeutralFillBrush}">
                                                 <Grid>
                                                     <FontIcon Glyph="&#xE8D6;" FontSize="15" Foreground="{ThemeResource PlaceholderGlyphBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                                    <Image Source="{x:Bind AlbumArt}" Stretch="UniformToFill" />
+                                                    <Image Source="{x:Bind AlbumArt}" Stretch="UniformToFill" Loaded="AccountArtwork_Loaded" />
                                                 </Grid>
                                             </Border>
                                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
@@ -2620,7 +2637,7 @@
                                                         <FontIcon Glyph="{x:Bind ArtworkGlyph}" FontSize="90" Foreground="White" Opacity="0.22" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-8,-8,0" IsHitTestVisible="False" />
                                                         <TextBlock Text="{x:Bind ArtworkTitle}" FontSize="11" FontWeight="Bold" CharacterSpacing="180" Foreground="White" Opacity="{x:Bind GeneratedArtworkOpacity}" VerticalAlignment="Top" Margin="14" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
                                                         <TextBlock Text="{x:Bind ArtworkCaption}" FontSize="12" FontWeight="Medium" Foreground="White" Opacity="{x:Bind GeneratedArtworkOpacity}" TextWrapping="Wrap" LineHeight="17" VerticalAlignment="Bottom" Margin="14" MaxLines="3" TextTrimming="WordEllipsis" />
-                                                        <Image Source="{x:Bind AlbumArt}" Stretch="UniformToFill" Opacity="{x:Bind ImageArtworkOpacity}" />
+                                                        <Image Source="{x:Bind AlbumArt}" Stretch="UniformToFill" Loaded="AccountArtwork_Loaded" Opacity="{x:Bind ImageArtworkOpacity}" />
                                                     </Grid>
                                                 </Border>
                                                 <TextBlock Text="{x:Bind Title}" Style="{StaticResource BodyStrong}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
@@ -2816,7 +2833,7 @@
                                         <Border Grid.Column="1" Width="38" Height="38" CornerRadius="{StaticResource RadiusMd}" Background="{ThemeResource NeutralFillBrush}">
                                             <Grid>
                                                 <FontIcon Glyph="&#xE8D6;" FontSize="15" Foreground="{ThemeResource PlaceholderGlyphBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                                <Image Source="{x:Bind AlbumArt}" Stretch="UniformToFill" />
+                                                <Image Source="{x:Bind AlbumArt}" Stretch="UniformToFill" Loaded="AccountArtwork_Loaded" />
                                             </Grid>
                                         </Border>
                                         <StackPanel Grid.Column="2" VerticalAlignment="Center">
@@ -2977,7 +2994,7 @@
                                         <Border Grid.Column="0" Width="38" Height="38" CornerRadius="{StaticResource RadiusMd}" Background="{ThemeResource NeutralFillBrush}">
                                             <Grid>
                                                 <FontIcon Glyph="&#xE8D6;" FontSize="16" Foreground="{ThemeResource PlaceholderGlyphBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                                <Image Source="{x:Bind AlbumArt}" Stretch="UniformToFill" />
+                                                <Image Source="{x:Bind AlbumArt}" Stretch="UniformToFill" Loaded="AccountArtwork_Loaded" />
                                             </Grid>
                                         </Border>
 
@@ -3371,7 +3388,7 @@
                                     <Border Grid.Column="0" Width="38" Height="38" CornerRadius="{StaticResource RadiusMd}" Background="{ThemeResource NeutralFillBrush}">
                                         <Grid>
                                             <FontIcon Glyph="&#xE8D6;" FontSize="16" Foreground="{ThemeResource PlaceholderGlyphBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                            <Image Source="{x:Bind AlbumArt}" Stretch="UniformToFill" />
+                                            <Image Source="{x:Bind AlbumArt}" Stretch="UniformToFill" Loaded="AccountArtwork_Loaded" />
                                         </Grid>
                                     </Border>
                                     <StackPanel Grid.Column="1" VerticalAlignment="Center">

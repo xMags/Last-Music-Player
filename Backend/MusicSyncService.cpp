@@ -221,6 +221,11 @@ namespace LastMusicPlayer::Backend
                 auto remoteId = RemoteIdFrom(wrapper, object);
                 auto sourceUrl = FirstString(object, { L"sourceUrl", L"url" });
                 auto title = FirstString(object, { L"title", L"name" });
+                auto artworkUrl = FirstString(object, { L"artworkUrl", L"imageUrl" });
+                if (artworkUrl.empty() && object != wrapper)
+                {
+                    artworkUrl = FirstString(wrapper, { L"artworkUrl", L"imageUrl" });
+                }
                 if (remoteId.empty() || title.empty() || sourceUrl.empty() || !IsCompatibleSource(object, sourceUrl))
                 {
                     return {};
@@ -248,7 +253,7 @@ namespace LastMusicPlayer::Backend
                     }
                     track.DurationSeconds((std::max)(0.0, durationSeconds));
                     track.Duration(FormatDuration(track.DurationSeconds()));
-                    track.ArtworkUrl(FirstString(object, { L"artworkUrl", L"imageUrl" }));
+                    track.ArtworkUrl(artworkUrl);
                     track.DateAdded(L"Synced");
                     auto dateSort = JsonNumber(object, L"dateAddedSortKey", 0.0);
                     track.DateAddedSortKey(dateSort > 0.0 ? dateSort : -static_cast<double>(sequence++));
@@ -271,6 +276,10 @@ namespace LastMusicPlayer::Backend
 
                 auto& existing = parsed.Snapshot.Tracks[found->second];
                 existing.Track.IsLiked(existing.Track.IsLiked() || liked || JsonBoolean(object, L"isLiked", false));
+                if (existing.Track.ArtworkUrl().empty() && !artworkUrl.empty())
+                {
+                    existing.Track.ArtworkUrl(artworkUrl);
+                }
                 existing.PlayCount = (std::max)(existing.PlayCount,
                     static_cast<int64_t>((std::max)(0.0, JsonNumber(stats, L"playCount", JsonNumber(wrapper, L"playCount", 0.0)))));
                 auto lastPlayed = FirstString(stats, { L"lastPlayedAt", L"playedAt", L"playedAtUtc" });

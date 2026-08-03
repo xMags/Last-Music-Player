@@ -14,6 +14,7 @@
 #include <optional>
 #include <sstream>
 #include <string>
+#include <utility>
 #include <vector>
 
 #pragma comment(lib, "Ws2_32.lib")
@@ -24,6 +25,9 @@ namespace LastMusicPlayer::Backend
     {
         constexpr std::uintptr_t InvalidSocketValue = static_cast<std::uintptr_t>(INVALID_SOCKET);
         constexpr std::size_t MaxRequestBytes = 8192;
+        constexpr std::size_t MaxInvalidRequests = 8;
+        constexpr auto AcceptedReadTimeout = std::chrono::seconds(2);
+        constexpr auto CancellationPollInterval = std::chrono::milliseconds(50);
 
         bool EnsureWinsock()
         {
@@ -111,6 +115,9 @@ namespace LastMusicPlayer::Backend
                 "HTTP/1.1 200 OK\r\n"
                 "Content-Type: text/html; charset=utf-8\r\n"
                 "Cache-Control: no-store\r\n"
+                "Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline'\r\n"
+                "Referrer-Policy: no-referrer\r\n"
+                "X-Content-Type-Options: nosniff\r\n"
                 "Connection: close\r\n\r\n"
                 "<!doctype html><html><head><meta charset=\"utf-8\"><title>Sign-in complete</title></head>"
                 "<body><main><h1>Sign-in complete</h1><p>You can return to Last Music Player.</p></main></body></html>";
@@ -118,6 +125,9 @@ namespace LastMusicPlayer::Backend
                 "HTTP/1.1 400 Bad Request\r\n"
                 "Content-Type: text/html; charset=utf-8\r\n"
                 "Cache-Control: no-store\r\n"
+                "Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline'\r\n"
+                "Referrer-Policy: no-referrer\r\n"
+                "X-Content-Type-Options: nosniff\r\n"
                 "Connection: close\r\n\r\n"
                 "<!doctype html><html><head><meta charset=\"utf-8\"><title>Sign-in stopped</title></head>"
                 "<body><main><h1>Sign-in stopped</h1><p>Return to Last Music Player and try again.</p></main></body></html>";
@@ -129,6 +139,32 @@ namespace LastMusicPlayer::Backend
         SOCKET ToSocket(std::uintptr_t value)
         {
             return static_cast<SOCKET>(value);
+        }
+
+        void CloseNativeSocket(std::uintptr_t value) noexcept
+        {
+            if (value == InvalidSocketValue)
+            {
+                return;
+            }
+
+            auto socket = ToSocket(value);
+            ::shutdown(socket, SD_BOTH);
+            ::closesocket(socket);
+        }
+
+        std::string CallbackPathAscii()
+        {
+            std::string path;
+            for (auto character : std::wstring_view{ BuildConfig::DesktopCallbackPath })
+            {
+                if (character > 0x7f)
+                {
+                    return {};
+                }
+                path.push_back(static_cast<char>(character));
+            }
+            return path;
         }
     }
 
@@ -277,6 +313,7 @@ namespace LastMusicPlayer::Backend
     bool LoopbackCallback::Start()
     {
         Cancel();
+        m_canceled.store(false, std::memory_order_release);
         m_port = 0;
         m_ipv6 = false;
         if (!EnsureWinsock())
@@ -339,6 +376,12 @@ namespace LastMusicPlayer::Backend
                 ::closesocket(listener);
                 return INVALID_SOCKET;
             }
+            u_long nonBlocking = 1;
+            if (::ioctlsocket(listener, FIONBIO, &nonBlocking) != 0)
+            {
+                ::closesocket(listener);
+                return INVALID_SOCKET;
+            }
             return listener;
         };
 
@@ -376,18 +419,60 @@ namespace LastMusicPlayer::Backend
             m_port = ntohs(address.sin_port);
         }
 
-        m_socket.store(static_cast<std::uintptr_t>(listener));
+        {
+            std::lock_guard guard{ m_socketMutex };
+            m_socket = static_cast<std::uintptr_t>(listener);
+        }
         return m_port != 0;
+    }
+
+    void LoopbackCallback::CloseListener() noexcept
+    {
+        std::uintptr_t listener{ InvalidSocketValue };
+        {
+            std::lock_guard guard{ m_socketMutex };
+            listener = std::exchange(m_socket, InvalidSocketValue);
+        }
+        CloseNativeSocket(listener);
+    }
+
+    void LoopbackCallback::CloseAcceptedSocket(
+        std::uintptr_t expected) noexcept
+    {
+        bool ownsSocket{};
+        {
+            std::lock_guard guard{ m_socketMutex };
+            if (m_acceptedSocket == expected)
+            {
+                m_acceptedSocket = InvalidSocketValue;
+                ownsSocket = true;
+            }
+        }
+        if (ownsSocket)
+        {
+            CloseNativeSocket(expected);
+        }
     }
 
     void LoopbackCallback::Cancel() noexcept
     {
-        auto value = m_socket.exchange(InvalidSocketValue);
-        if (value != InvalidSocketValue)
+        m_canceled.store(true, std::memory_order_release);
+
+        std::uintptr_t listener{ InvalidSocketValue };
         {
-            ::closesocket(ToSocket(value));
+            std::lock_guard guard{ m_socketMutex };
+            listener = std::exchange(m_socket, InvalidSocketValue);
         }
+        CloseNativeSocket(listener);
     }
+
+#ifdef LAST_MUSIC_NATIVE_ACCOUNT_TESTS
+    bool LoopbackCallback::HasAcceptedClientForTesting() noexcept
+    {
+        std::lock_guard guard{ m_socketMutex };
+        return m_acceptedSocket != InvalidSocketValue;
+    }
+#endif
 
     winrt::hstring LoopbackCallback::RedirectUri() const
     {
@@ -405,17 +490,52 @@ namespace LastMusicPlayer::Backend
         winrt::hstring const& expectedState,
         std::chrono::steady_clock::time_point deadline)
     {
-        auto listenerValue = m_socket.load();
+        std::uintptr_t listenerValue{ InvalidSocketValue };
+        {
+            std::lock_guard guard{ m_socketMutex };
+            listenerValue = m_socket;
+        }
         if (listenerValue == InvalidSocketValue || m_port == 0)
         {
-            return { LoopbackCallbackStatus::TransportError, {} };
+            return {
+                m_canceled.load(std::memory_order_acquire)
+                    ? LoopbackCallbackStatus::Canceled
+                    : LoopbackCallbackStatus::TransportError,
+                {}
+            };
         }
         auto listener = ToSocket(listenerValue);
 
-        while (std::chrono::steady_clock::now() < deadline)
+        auto callbackPath = CallbackPathAscii();
+        std::string state;
+        state.reserve(expectedState.size());
+        for (auto character : expectedState)
         {
+            if (character > 0x7f)
+            {
+                CloseListener();
+                return { LoopbackCallbackStatus::InvalidRequest, {} };
+            }
+            state.push_back(static_cast<char>(character));
+        }
+        if (callbackPath.empty() || state.empty())
+        {
+            CloseListener();
+            return { LoopbackCallbackStatus::InvalidRequest, {} };
+        }
+
+        std::size_t invalidRequests{};
+        for (;;)
+        {
+            auto now = std::chrono::steady_clock::now();
+            if (now >= deadline)
+            {
+                CloseListener();
+                return { LoopbackCallbackStatus::TimedOut, {} };
+            }
+
             auto remaining = std::chrono::duration_cast<std::chrono::milliseconds>(
-                deadline - std::chrono::steady_clock::now());
+                deadline - now);
             timeval timeout{};
             timeout.tv_sec = static_cast<long>(remaining.count() / 1000);
             timeout.tv_usec = static_cast<long>((remaining.count() % 1000) * 1000);
@@ -425,61 +545,211 @@ namespace LastMusicPlayer::Backend
             auto selected = ::select(0, &readSet, nullptr, nullptr, &timeout);
             if (selected == 0)
             {
-                Cancel();
-                return { LoopbackCallbackStatus::TimedOut, {} };
+                auto canceled = m_canceled.load(std::memory_order_acquire);
+                CloseListener();
+                return {
+                    canceled
+                        ? LoopbackCallbackStatus::Canceled
+                        : LoopbackCallbackStatus::TimedOut,
+                    {}
+                };
             }
             if (selected < 0)
             {
-                auto canceled = m_socket.load() == InvalidSocketValue;
-                Cancel();
-                return { canceled ? LoopbackCallbackStatus::Canceled : LoopbackCallbackStatus::TransportError, {} };
+                auto canceled = m_canceled.load(std::memory_order_acquire);
+                CloseListener();
+                return {
+                    canceled
+                        ? LoopbackCallbackStatus::Canceled
+                        : LoopbackCallbackStatus::TransportError,
+                    {}
+                };
             }
 
-            auto accepted = ::accept(listener, nullptr, nullptr);
-            Cancel();
+            SOCKET accepted{ INVALID_SOCKET };
+            int acceptError{};
+            {
+                std::lock_guard guard{ m_socketMutex };
+                if (m_canceled.load(std::memory_order_acquire)
+                    || m_socket != listenerValue)
+                {
+                    return { LoopbackCallbackStatus::Canceled, {} };
+                }
+
+                accepted = ::accept(listener, nullptr, nullptr);
+                if (accepted == INVALID_SOCKET)
+                {
+                    acceptError = ::WSAGetLastError();
+                }
+                else
+                {
+                    u_long nonBlocking = 1;
+                    if (::ioctlsocket(accepted, FIONBIO, &nonBlocking) != 0)
+                    {
+                        acceptError = ::WSAGetLastError();
+                    }
+                    else
+                    {
+                        m_acceptedSocket = static_cast<std::uintptr_t>(accepted);
+                    }
+                }
+            }
+
             if (accepted == INVALID_SOCKET)
             {
+                if (acceptError == WSAEWOULDBLOCK)
+                {
+                    continue;
+                }
+                auto canceled = m_canceled.load(std::memory_order_acquire);
+                CloseListener();
+                return {
+                    canceled
+                        ? LoopbackCallbackStatus::Canceled
+                        : LoopbackCallbackStatus::TransportError,
+                    {}
+                };
+            }
+
+            auto acceptedValue = static_cast<std::uintptr_t>(accepted);
+            if (acceptError != 0)
+            {
+                CloseNativeSocket(acceptedValue);
+                CloseListener();
                 return { LoopbackCallbackStatus::TransportError, {} };
             }
 
+            now = std::chrono::steady_clock::now();
+            if (now >= deadline)
+            {
+                CloseAcceptedSocket(acceptedValue);
+                CloseListener();
+                return { LoopbackCallbackStatus::TimedOut, {} };
+            }
+            auto acceptedDeadline = (std::min)(
+                deadline,
+                now + AcceptedReadTimeout);
+
+            bool overallDeadlineReached{};
             std::string request;
             request.reserve(2048);
             std::array<char, 1024> buffer{};
-            while (request.size() < MaxRequestBytes && request.find("\r\n\r\n") == std::string::npos)
+            while (request.size() < MaxRequestBytes
+                && request.find("\r\n\r\n") == std::string::npos)
             {
-                auto received = ::recv(accepted, buffer.data(), static_cast<int>(buffer.size()), 0);
-                if (received <= 0)
+                if (m_canceled.load(std::memory_order_acquire))
                 {
                     break;
                 }
-                request.append(buffer.data(), static_cast<std::size_t>(received));
+
+                now = std::chrono::steady_clock::now();
+                if (now >= acceptedDeadline)
+                {
+                    overallDeadlineReached = acceptedDeadline == deadline;
+                    break;
+                }
+
+                auto waitBudget = (std::min)(
+                    std::chrono::duration_cast<std::chrono::milliseconds>(
+                        acceptedDeadline - now),
+                    CancellationPollInterval);
+                auto waitMilliseconds = (std::max<std::int64_t>)(
+                    1,
+                    waitBudget.count());
+                timeval readTimeout{};
+                readTimeout.tv_sec = static_cast<long>(waitMilliseconds / 1000);
+                readTimeout.tv_usec = static_cast<long>(
+                    (waitMilliseconds % 1000) * 1000);
+                fd_set acceptedReadSet;
+                FD_ZERO(&acceptedReadSet);
+                FD_SET(accepted, &acceptedReadSet);
+                auto readable = ::select(
+                    0,
+                    &acceptedReadSet,
+                    nullptr,
+                    nullptr,
+                    &readTimeout);
+                if (readable < 0)
+                {
+                    break;
+                }
+                if (readable == 0)
+                {
+                    continue;
+                }
+
+                auto available = (std::min)(
+                    buffer.size(),
+                    MaxRequestBytes - request.size());
+                auto received = ::recv(
+                    accepted,
+                    buffer.data(),
+                    static_cast<int>(available),
+                    0);
+                if (received > 0)
+                {
+                    request.append(
+                        buffer.data(),
+                        static_cast<std::size_t>(received));
+                    continue;
+                }
+                if (received < 0 && ::WSAGetLastError() == WSAEWOULDBLOCK)
+                {
+                    continue;
+                }
+                break;
+            }
+
+            if (m_canceled.load(std::memory_order_acquire))
+            {
+                CloseAcceptedSocket(acceptedValue);
+                CloseListener();
+                return { LoopbackCallbackStatus::Canceled, {} };
+            }
+            if (overallDeadlineReached)
+            {
+                CloseAcceptedSocket(acceptedValue);
+                CloseListener();
+                return { LoopbackCallbackStatus::TimedOut, {} };
             }
 
             std::string authority = m_ipv6 ? "[::1]:" : "127.0.0.1:";
             authority += std::to_string(m_port);
-            std::string state;
-            state.reserve(expectedState.size());
-            for (auto character : expectedState)
-            {
-                if (character > 0x7f)
-                {
-                    ::closesocket(accepted);
-                    return { LoopbackCallbackStatus::InvalidRequest, {} };
-                }
-                state.push_back(static_cast<char>(character));
-            }
             auto result = ParseLoopbackHttpRequest(
                 request,
                 authority,
-                "/callback",
+                callbackPath,
                 state);
-            SendPage(accepted, result.Status == LoopbackCallbackStatus::Success);
-            ::shutdown(accepted, SD_BOTH);
-            ::closesocket(accepted);
-            return result;
-        }
+            if (m_canceled.load(std::memory_order_acquire))
+            {
+                CloseAcceptedSocket(acceptedValue);
+                CloseListener();
+                return { LoopbackCallbackStatus::Canceled, {} };
+            }
+            SendPage(
+                accepted,
+                result.Status == LoopbackCallbackStatus::Success);
+            auto canceled = m_canceled.load(std::memory_order_acquire);
+            CloseAcceptedSocket(acceptedValue);
+            if (canceled)
+            {
+                CloseListener();
+                return { LoopbackCallbackStatus::Canceled, {} };
+            }
 
-        Cancel();
-        return { LoopbackCallbackStatus::TimedOut, {} };
+            if (result.Status == LoopbackCallbackStatus::Success
+                || result.Status == LoopbackCallbackStatus::Canceled)
+            {
+                CloseListener();
+                return result;
+            }
+
+            ++invalidRequests;
+            if (invalidRequests >= MaxInvalidRequests)
+            {
+                CloseListener();
+                return { LoopbackCallbackStatus::InvalidRequest, {} };
+            }
+        }
     }
 }

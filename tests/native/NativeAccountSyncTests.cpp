@@ -1,12 +1,16 @@
 #include "pch.h"
 
+#include <winsock2.h>
+#include <ws2tcpip.h>
 #include <windows.h>
 #include <wincred.h>
 
 #include "Backend/CredentialStore.h"
 #include "Backend/SettingsManager.h"
 #include "Backend/AccountClient.h"
+#include "Backend/AccountSessionGateway.h"
 #include "Backend/AccountSessionService.h"
+#include "Backend/BuildConfig.h"
 #include "Backend/RemoteMusicService.h"
 #include "Backend/LoopbackCallback.h"
 #include "Backend/Pkce.h"
@@ -14,17 +18,23 @@
 #include "Backend/PlaybackHistoryQualifier.h"
 #include "Backend/ProviderHelpers.h"
 #include "Backend/CatalogParser.h"
+#include "Backend/CatalogPresentation.h"
 #include "Backend/HistoryImport.h"
 #include "Backend/StreamCache.h"
 #include "Backend/UserDataOperationGate.h"
 #include "ThirdParty/sqlite/sqlite3.h"
 
+#include <algorithm>
+#include <array>
+#include <atomic>
+#include <cctype>
 #include <chrono>
 #include <condition_variable>
 #include <deque>
 #include <filesystem>
 #include <cstdlib>
 #include <fstream>
+#include <functional>
 #include <future>
 #include <iostream>
 #include <map>
@@ -33,6 +43,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <thread>
 #include <vector>
 
@@ -46,6 +57,302 @@ namespace
         {
             throw std::runtime_error(message);
         }
+    }
+
+    bool EnsureTestWinsock()
+    {
+        static std::once_flag flag;
+        static bool initialized{};
+        std::call_once(flag, []
+        {
+            WSADATA data{};
+            initialized = ::WSAStartup(MAKEWORD(2, 2), &data) == 0;
+        });
+        return initialized;
+    }
+
+    bool SendAll(SOCKET socket, std::string_view payload)
+    {
+        std::size_t sent{};
+        while (sent < payload.size())
+        {
+            auto written = ::send(
+                socket,
+                payload.data() + sent,
+                static_cast<int>(payload.size() - sent),
+                0);
+            if (written <= 0)
+            {
+                return false;
+            }
+            sent += static_cast<std::size_t>(written);
+        }
+        return true;
+    }
+
+    class TestHttpServer final
+    {
+    public:
+        explicit TestHttpServer(
+            std::string response,
+            std::chrono::milliseconds acceptTimeout = std::chrono::milliseconds(1500))
+            : m_response(std::move(response)),
+              m_acceptTimeout(acceptTimeout)
+        {
+            Expect(EnsureTestWinsock(), "test HTTP server could not initialize Winsock");
+
+            auto listener = ::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+            Expect(listener != INVALID_SOCKET, "test HTTP server could not create a listener");
+
+            BOOL exclusive = TRUE;
+            if (::setsockopt(
+                    listener,
+                    SOL_SOCKET,
+                    SO_EXCLUSIVEADDRUSE,
+                    reinterpret_cast<char const*>(&exclusive),
+                    sizeof(exclusive)) != 0)
+            {
+                ::closesocket(listener);
+                throw std::runtime_error("test HTTP server could not reserve its port");
+            }
+
+            sockaddr_in address{};
+            address.sin_family = AF_INET;
+            address.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+            address.sin_port = 0;
+            if (::bind(
+                    listener,
+                    reinterpret_cast<sockaddr*>(&address),
+                    sizeof(address)) != 0
+                || ::listen(listener, 1) != 0)
+            {
+                ::closesocket(listener);
+                throw std::runtime_error("test HTTP server could not bind its listener");
+            }
+
+            int length = sizeof(address);
+            if (::getsockname(
+                    listener,
+                    reinterpret_cast<sockaddr*>(&address),
+                    &length) != 0)
+            {
+                ::closesocket(listener);
+                throw std::runtime_error("test HTTP server could not read its port");
+            }
+
+            m_port = ntohs(address.sin_port);
+            m_listener.store(static_cast<std::uintptr_t>(listener));
+            m_thread = std::thread([this]
+            {
+                Run();
+            });
+        }
+
+        ~TestHttpServer()
+        {
+            Stop();
+            Join();
+        }
+
+        std::wstring Url() const
+        {
+            return L"http://127.0.0.1:" + std::to_wstring(m_port);
+        }
+
+        bool WasCalled() const noexcept
+        {
+            return m_called.load();
+        }
+
+        std::string Request() const
+        {
+            std::lock_guard guard{ m_mutex };
+            return m_request;
+        }
+
+        void Join()
+        {
+            if (m_thread.joinable())
+            {
+                m_thread.join();
+            }
+        }
+
+    private:
+        static constexpr std::uintptr_t InvalidSocket =
+            static_cast<std::uintptr_t>(INVALID_SOCKET);
+
+        void Stop() noexcept
+        {
+            auto value = m_listener.exchange(InvalidSocket);
+            if (value != InvalidSocket)
+            {
+                auto listener = static_cast<SOCKET>(value);
+                ::shutdown(listener, SD_BOTH);
+                ::closesocket(listener);
+            }
+        }
+
+        void Run()
+        {
+            auto value = m_listener.load();
+            if (value == InvalidSocket)
+            {
+                return;
+            }
+            auto listener = static_cast<SOCKET>(value);
+
+            timeval timeout{};
+            timeout.tv_sec = static_cast<long>(m_acceptTimeout.count() / 1000);
+            timeout.tv_usec = static_cast<long>((m_acceptTimeout.count() % 1000) * 1000);
+            fd_set readSet;
+            FD_ZERO(&readSet);
+            FD_SET(listener, &readSet);
+            auto selected = ::select(0, &readSet, nullptr, nullptr, &timeout);
+            if (selected <= 0)
+            {
+                Stop();
+                return;
+            }
+
+            auto accepted = ::accept(listener, nullptr, nullptr);
+            Stop();
+            if (accepted == INVALID_SOCKET)
+            {
+                return;
+            }
+
+            DWORD receiveTimeout = 1500;
+            ::setsockopt(
+                accepted,
+                SOL_SOCKET,
+                SO_RCVTIMEO,
+                reinterpret_cast<char const*>(&receiveTimeout),
+                sizeof(receiveTimeout));
+
+            std::string request;
+            std::array<char, 1024> buffer{};
+            while (request.size() < 16 * 1024
+                && request.find("\r\n\r\n") == std::string::npos)
+            {
+                auto received = ::recv(
+                    accepted,
+                    buffer.data(),
+                    static_cast<int>(buffer.size()),
+                    0);
+                if (received <= 0)
+                {
+                    break;
+                }
+                request.append(buffer.data(), static_cast<std::size_t>(received));
+            }
+
+            {
+                std::lock_guard guard{ m_mutex };
+                m_request = std::move(request);
+            }
+            m_called.store(true);
+            SendAll(accepted, m_response);
+            ::shutdown(accepted, SD_BOTH);
+            ::closesocket(accepted);
+        }
+
+        std::string m_response;
+        std::chrono::milliseconds m_acceptTimeout;
+        std::atomic<std::uintptr_t> m_listener{ InvalidSocket };
+        std::uint16_t m_port{};
+        mutable std::mutex m_mutex;
+        std::string m_request;
+        std::atomic<bool> m_called{};
+        std::thread m_thread;
+    };
+
+    SOCKET ConnectToLoopback(winrt::hstring const& redirectUri)
+    {
+        Expect(EnsureTestWinsock(), "callback client could not initialize Winsock");
+        winrt::Windows::Foundation::Uri uri{ redirectUri };
+        auto ipv6 = uri.Host() == L"::1" || uri.Host() == L"[::1]";
+        auto socket = ::socket(
+            ipv6 ? AF_INET6 : AF_INET,
+            SOCK_STREAM,
+            IPPROTO_TCP);
+        Expect(socket != INVALID_SOCKET, "callback client could not create a socket");
+
+        int connected{};
+        if (ipv6)
+        {
+            sockaddr_in6 address{};
+            address.sin6_family = AF_INET6;
+            address.sin6_port = htons(static_cast<u_short>(uri.Port()));
+            address.sin6_addr = in6addr_loopback;
+            connected = ::connect(
+                socket,
+                reinterpret_cast<sockaddr*>(&address),
+                sizeof(address));
+        }
+        else
+        {
+            sockaddr_in address{};
+            address.sin_family = AF_INET;
+            address.sin_port = htons(static_cast<u_short>(uri.Port()));
+            address.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+            connected = ::connect(
+                socket,
+                reinterpret_cast<sockaddr*>(&address),
+                sizeof(address));
+        }
+        if (connected != 0)
+        {
+            ::closesocket(socket);
+            throw std::runtime_error("callback client could not connect");
+        }
+        return socket;
+    }
+
+    std::string CallbackAuthority(winrt::hstring const& redirectUri)
+    {
+        winrt::Windows::Foundation::Uri uri{ redirectUri };
+        std::wstring authority = uri.Host() == L"::1" || uri.Host() == L"[::1]"
+            ? L"[::1]"
+            : L"127.0.0.1";
+        authority += L":" + std::to_wstring(uri.Port());
+        return winrt::to_string(authority);
+    }
+
+    std::string SendCallbackRequest(
+        winrt::hstring const& redirectUri,
+        std::string const& target)
+    {
+        auto socket = ConnectToLoopback(redirectUri);
+        auto request = "GET " + target + " HTTP/1.1\r\nHost: "
+            + CallbackAuthority(redirectUri)
+            + "\r\nConnection: close\r\n\r\n";
+        Expect(SendAll(socket, request), "callback client could not send its request");
+
+        DWORD receiveTimeout = 2500;
+        ::setsockopt(
+            socket,
+            SOL_SOCKET,
+            SO_RCVTIMEO,
+            reinterpret_cast<char const*>(&receiveTimeout),
+            sizeof(receiveTimeout));
+        std::string response;
+        std::array<char, 1024> buffer{};
+        for (;;)
+        {
+            auto received = ::recv(
+                socket,
+                buffer.data(),
+                static_cast<int>(buffer.size()),
+                0);
+            if (received <= 0)
+            {
+                break;
+            }
+            response.append(buffer.data(), static_cast<std::size_t>(received));
+        }
+        ::closesocket(socket);
+        return response;
     }
 
     struct FakeCredentialApi final : account::ICredentialApi
@@ -772,10 +1079,340 @@ namespace
         Expect(canceled.Status == account::LoopbackCallbackStatus::Canceled, "authorization cancellation was not recognized");
     }
 
+    void TestConfiguredAccountBuild()
+    {
+        winrt::hstring apiOrigin{ account::BuildConfig::AccountApiOrigin };
+        winrt::hstring frontendOrigin{ account::BuildConfig::AccountFrontendOrigin };
+        winrt::hstring mediaOrigin{ account::BuildConfig::AccountMediaOrigin };
+
+        account::AccountClient client;
+        auto configured = !apiOrigin.empty();
+        Expect(client.IsConfigured() == configured,
+            "default account client did not match the build configuration");
+#ifdef LAST_MUSIC_ACCOUNT_TEST_EXPECT_BLANK
+        Expect(apiOrigin.empty() && frontendOrigin.empty() && mediaOrigin.empty(),
+            "blank account test variant received an account origin");
+#elif defined(LAST_MUSIC_ACCOUNT_TEST_EXPECT_API_ONLY)
+        Expect(apiOrigin == L"https://api.account.example.test"
+            && frontendOrigin.empty()
+            && mediaOrigin == apiOrigin,
+            "API-only account test variant received incorrect origins");
+#elif defined(LAST_MUSIC_ACCOUNT_TEST_EXPECT_FULL)
+        Expect(apiOrigin == L"https://api.account.example.test"
+            && frontendOrigin == L"https://account.example.test"
+            && mediaOrigin == L"https://media.account.example.test",
+            "full account test variant received incorrect origins");
+#endif
+        if (!configured)
+        {
+            Expect(frontendOrigin.empty(),
+                "blank account build unexpectedly configured a frontend origin");
+            Expect(mediaOrigin.empty(),
+                "blank account build unexpectedly configured a media origin");
+            Expect(account::AccountManagementUrl().empty(),
+                "blank account build exposed a management URL");
+            return;
+        }
+
+        Expect(account::IsTrustedAccountOrigin(apiOrigin),
+            "configured account API origin was not trusted");
+        Expect(client.BaseOrigin() == account::NormalizeTrustedAccountOrigin(apiOrigin),
+            "default account client did not normalize its configured origin");
+        Expect(!mediaOrigin.empty(),
+            "configured account build did not inherit or supply a media origin");
+        Expect(account::IsTrustedAccountOrigin(mediaOrigin),
+            "configured account media origin was not trusted");
+
+        auto managementUrl = account::AccountManagementUrl();
+        if (frontendOrigin.empty())
+        {
+            Expect(managementUrl.empty(),
+                "API-only account build exposed a management URL");
+        }
+        else
+        {
+            std::wstring expectedManagementUrl{
+                account::NormalizeTrustedAccountOrigin(frontendOrigin).c_str() };
+            expectedManagementUrl += L"/account";
+            Expect(managementUrl == winrt::hstring{ expectedManagementUrl },
+                "configured frontend origin produced the wrong management URL");
+        }
+    }
+
+    void TestAccountGatewayProtocol()
+    {
+        account::AccountClient client{ L"https://api.account.example.test/" };
+        account::PkceTransaction transaction{
+            L"verifier-must-not-appear",
+            L"challenge value",
+            L"state value"
+        };
+        auto authorize = account::BuildAccountAuthorizeUri(
+            client,
+            L"http://127.0.0.1:49152/callback",
+            transaction);
+        std::wstring authorizeText{ authorize.c_str() };
+        Expect(authorizeText.rfind(
+            L"https://api.account.example.test/v1/sso/authorize?",
+            0) == 0,
+            "authorization URL used the wrong account endpoint");
+        Expect(authorizeText.find(L"client_id=last-music-desktop") != std::wstring::npos,
+            "authorization URL omitted the desktop client id");
+        Expect(authorizeText.find(L"redirect_uri=http%3A%2F%2F127.0.0.1%3A49152%2Fcallback") != std::wstring::npos,
+            "authorization URL did not escape the loopback redirect");
+        Expect(authorizeText.find(L"state=state%20value") != std::wstring::npos,
+            "authorization URL did not escape state");
+        Expect(authorizeText.find(L"code_challenge=challenge%20value") != std::wstring::npos,
+            "authorization URL did not escape the PKCE challenge");
+        Expect(authorizeText.find(L"code_challenge_method=S256") != std::wstring::npos,
+            "authorization URL omitted the PKCE method");
+        Expect(authorizeText.find(L"verifier-must-not-appear") == std::wstring::npos,
+            "authorization URL exposed the PKCE verifier");
+
+        Expect(account::ParseAccountBearerSession(
+            LR"({"access_token":"opaque-session"})") == L"opaque-session",
+            "valid account token response was rejected");
+        Expect(account::ParseAccountBearerSession(
+            LR"({"access_token":"opaque-session==","token_type":"bearer"})")
+                == L"opaque-session==",
+            "case-insensitive Bearer token type was rejected");
+        Expect(account::ParseAccountBearerSession(
+            LR"({"access_token":"opaque-session","token_type":"DPoP"})").empty(),
+            "non-Bearer account token type was accepted");
+        Expect(account::ParseAccountBearerSession(
+            LR"({"access_token":"opaque-session","token_type":7})").empty(),
+            "non-string account token type was accepted");
+        Expect(account::ParseAccountBearerSession(
+            LR"({"access_token":"abc,def"})").empty(),
+            "invalid bearer-token punctuation was accepted");
+        Expect(account::ParseAccountBearerSession(
+            LR"({"access_token":"abc=def"})").empty(),
+            "bearer-token data after padding was accepted");
+        Expect(account::ParseAccountBearerSession(
+            LR"({"access_token":7})").empty(),
+            "non-string account token was accepted");
+        Expect(account::ParseAccountBearerSession(
+            LR"({"access_token":"line\nbreak"})").empty(),
+            "control-bearing account token was accepted");
+        Expect(account::ParseAccountBearerSession(
+            LR"({"access_token":"two words"})").empty(),
+            "whitespace-bearing account token was accepted");
+        std::wstring oversizedToken(16 * 1024 + 1, L'a');
+        Expect(account::ParseAccountBearerSession(
+            winrt::hstring{ L"{\"access_token\":\"" + oversizedToken + L"\"}" }).empty(),
+            "oversized account token was accepted");
+
+        auto direct = account::ParseAccountProfile(LR"({
+          "id":"owner-1",
+          "displayName":"Example User",
+          "username":"example",
+          "plan":"Test",
+          "avatarUrl":"https://cdn.example.test/avatar.png?size=128"
+        })");
+        Expect(direct.Id == L"owner-1", "direct account profile id was not parsed");
+        Expect(direct.DisplayName == L"Example User", "account display name was not parsed");
+        Expect(direct.AvatarUrl == L"https://cdn.example.test/avatar.png?size=128",
+            "safe account avatar was rejected");
+
+        auto nested = account::ParseAccountProfile(LR"({
+          "user":{"id":"owner-2","fullName":"Fallback Name","username":"nested"}
+        })");
+        Expect(nested.Id == L"owner-2" && nested.DisplayName == L"Fallback Name",
+            "nested account profile fallback was not parsed");
+
+        Expect(account::ParseAccountProfile(
+            LR"({"id":"owner with spaces"})").Id.empty(),
+            "whitespace-bearing owner id was accepted");
+        Expect(account::ParseAccountProfile(
+            LR"({"id":"owner\n2"})").Id.empty(),
+            "control-bearing owner id was accepted");
+
+        std::wstring oversizedName(257, L'n');
+        auto bounded = account::ParseAccountProfile(winrt::hstring{
+            L"{\"id\":\"owner-3\",\"displayName\":\""
+            + oversizedName
+            + L"\",\"username\":\"valid\"}"
+        });
+        Expect(bounded.Id == L"owner-3" && bounded.DisplayName.empty()
+            && bounded.Username == L"valid",
+            "invalid optional profile text corrupted the profile");
+
+        auto unsafeAvatar = account::ParseAccountProfile(
+            LR"({"id":"owner-4","avatarUrl":"file:///C:/private.png"})");
+        Expect(unsafeAvatar.AvatarUrl.empty(),
+            "unsupported account avatar scheme was accepted");
+        unsafeAvatar = account::ParseAccountProfile(
+            LR"({"id":"owner-4","avatarUrl":"https://cdn.example.test/avatar.png?access_token=secret"})");
+        Expect(unsafeAvatar.AvatarUrl.empty(),
+            "credential-bearing account avatar was accepted");
+        unsafeAvatar = account::ParseAccountProfile(
+            LR"({"id":"owner-4","avatarUrl":"https://cdn.example.test/avatar.png#fragment"})");
+        Expect(unsafeAvatar.AvatarUrl.empty(),
+            "fragment-bearing account avatar was accepted");
+    }
+
+    void TestLoopbackListenerLifecycle()
+    {
+        {
+            account::LoopbackCallback callback;
+            Expect(callback.Start(), "loopback callback could not start");
+            auto redirectUri = callback.RedirectUri();
+            auto result = std::async(std::launch::async, [&callback]
+            {
+                return callback.WaitForCallback(
+                    L"expected-state",
+                    std::chrono::steady_clock::now() + std::chrono::seconds(5));
+            });
+
+            auto invalidResponse = SendCallbackRequest(
+                redirectUri,
+                "/wrong?code=ignored&state=expected-state");
+            Expect(invalidResponse.find("400 Bad Request") != std::string::npos,
+                "invalid callback did not receive a failure page");
+
+            auto target = winrt::to_string(account::BuildConfig::DesktopCallbackPath);
+            target += "?code=accepted-code&state=expected-state";
+            auto successResponse = SendCallbackRequest(redirectUri, target);
+            auto callbackResult = result.get();
+            Expect(successResponse.find("200 OK") != std::string::npos,
+                "valid callback did not receive a success page");
+            Expect(callbackResult.Status == account::LoopbackCallbackStatus::Success
+                && callbackResult.Code == L"accepted-code",
+                "listener did not accept a valid callback after an invalid probe");
+        }
+
+        {
+            account::LoopbackCallback callback;
+            Expect(callback.Start(), "cancel callback could not start");
+            auto redirectUri = callback.RedirectUri();
+            auto result = std::async(std::launch::async, [&callback]
+            {
+                return callback.WaitForCallback(
+                    L"cancel-state",
+                    std::chrono::steady_clock::now() + std::chrono::seconds(5));
+            });
+            auto stalledClient = ConnectToLoopback(redirectUri);
+            Expect(SendAll(stalledClient, "G"),
+                "stalled callback client could not send a partial request");
+            auto acceptDeadline = std::chrono::steady_clock::now()
+                + std::chrono::seconds(2);
+            while (!callback.HasAcceptedClientForTesting()
+                && std::chrono::steady_clock::now() < acceptDeadline)
+            {
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            }
+            Expect(callback.HasAcceptedClientForTesting(),
+                "listener did not enter an accepted-client read");
+            auto started = std::chrono::steady_clock::now();
+            callback.Cancel();
+            auto callbackResult = result.get();
+            auto elapsed = std::chrono::steady_clock::now() - started;
+            ::closesocket(stalledClient);
+            Expect(callbackResult.Status == account::LoopbackCallbackStatus::Canceled,
+                "canceling a stalled callback did not report cancellation");
+            if (elapsed >= std::chrono::seconds(1))
+            {
+                auto elapsedMilliseconds = std::chrono::duration_cast<
+                    std::chrono::milliseconds>(elapsed).count();
+                throw std::runtime_error(
+                    "canceling a stalled callback took "
+                    + std::to_string(elapsedMilliseconds)
+                    + " ms");
+            }
+        }
+
+        {
+            account::LoopbackCallback callback;
+            Expect(callback.Start(), "stalled-timeout callback could not start");
+            auto redirectUri = callback.RedirectUri();
+            auto started = std::chrono::steady_clock::now();
+            auto result = std::async(std::launch::async, [&callback]
+            {
+                return callback.WaitForCallback(
+                    L"timeout-state",
+                    std::chrono::steady_clock::now() + std::chrono::milliseconds(200));
+            });
+            auto stalledClient = ConnectToLoopback(redirectUri);
+            Expect(SendAll(stalledClient, "G"),
+                "timeout callback client could not send a partial request");
+            auto acceptDeadline = std::chrono::steady_clock::now()
+                + std::chrono::seconds(2);
+            while (!callback.HasAcceptedClientForTesting()
+                && std::chrono::steady_clock::now() < acceptDeadline)
+            {
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            }
+            Expect(callback.HasAcceptedClientForTesting(),
+                "timeout listener did not enter an accepted-client read");
+            auto callbackResult = result.get();
+            auto elapsed = std::chrono::steady_clock::now() - started;
+            ::closesocket(stalledClient);
+            Expect(callbackResult.Status == account::LoopbackCallbackStatus::TimedOut,
+                "stalled callback deadline did not report a timeout");
+            Expect(elapsed < std::chrono::seconds(1),
+                "stalled callback exceeded its overall deadline");
+        }
+
+        {
+            account::LoopbackCallback callback;
+            Expect(callback.Start(), "timeout callback could not start");
+            auto result = callback.WaitForCallback(
+                L"timeout-state",
+                std::chrono::steady_clock::now() + std::chrono::milliseconds(150));
+            Expect(result.Status == account::LoopbackCallbackStatus::TimedOut,
+                "callback deadline did not report a timeout");
+            Expect(callback.Start(), "callback could not restart after timeout");
+            callback.Cancel();
+        }
+    }
+
+    void TestAccountRedirectProtection()
+    {
+#ifdef _DEBUG
+        TestHttpServer target{
+            "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 2\r\nConnection: close\r\n\r\n{}"
+        };
+        auto targetUrl = winrt::to_string(target.Url());
+        auto redirectResponse = "HTTP/1.1 302 Found\r\nLocation: "
+            + targetUrl
+            + "/capture\r\nContent-Length: 0\r\nConnection: close\r\n\r\n";
+        TestHttpServer redirect{ std::move(redirectResponse) };
+
+        account::AccountClient client{ winrt::hstring{ redirect.Url() } };
+        bool failed{};
+        try
+        {
+            (void)client.GetMeAsync(L"redirect-secret").get();
+        }
+        catch (winrt::hresult_error const&)
+        {
+            failed = true;
+        }
+        redirect.Join();
+        target.Join();
+
+        Expect(failed, "account client accepted an authenticated redirect");
+        Expect(redirect.WasCalled(), "redirect test account server was not called");
+        auto request = redirect.Request();
+        std::transform(request.begin(), request.end(), request.begin(), [](unsigned char character)
+        {
+            return static_cast<char>(std::tolower(character));
+        });
+        Expect(request.find("authorization: bearer redirect-secret") != std::string::npos,
+            "account request did not carry its bearer to the configured origin");
+        Expect(!target.WasCalled(),
+            "account client followed a redirect to another origin");
+#endif
+    }
+
     void TestAccountOriginAndSafeErrors()
     {
         Expect(account::IsTrustedAccountOrigin(L"https://account.example"), "HTTPS account origin was rejected");
+#ifdef _DEBUG
         Expect(account::IsTrustedAccountOrigin(L"http://127.0.0.1:8787"), "loopback development origin was rejected");
+#else
+        Expect(!account::IsTrustedAccountOrigin(L"http://127.0.0.1:8787"), "Release accepted a loopback HTTP account origin");
+#endif
         Expect(!account::IsTrustedAccountOrigin(L"http://account.example"), "public HTTP account origin was accepted");
         Expect(!account::IsTrustedAccountOrigin(L"https://account.example/path"), "account origin path was accepted");
         Expect(!account::IsTrustedAccountOrigin(L"https://account.example/?token=secret"), "account origin query was accepted");
@@ -784,12 +1421,21 @@ namespace
         // Public builds intentionally leave the account origin blank. If a
         // distributor supplies one, the derived management link must remain
         // HTTPS and target the account page.
-        std::wstring manageUrl{ account::AccountManagementUrl().c_str() };
+        auto managementUrl = account::AccountManagementUrl();
+        std::wstring manageUrl{ managementUrl.c_str() };
         if (!manageUrl.empty())
         {
-            Expect(manageUrl.rfind(L"https://", 0) == 0, "account management URL was not HTTPS");
-            Expect(manageUrl.size() > 8 && manageUrl.compare(manageUrl.size() - 8, 8, L"/account") == 0,
+            constexpr std::wstring_view AccountPath{ L"/account" };
+            Expect(manageUrl.size() > AccountPath.size()
+                && manageUrl.compare(
+                    manageUrl.size() - AccountPath.size(),
+                    AccountPath.size(),
+                    AccountPath.data(),
+                    AccountPath.size()) == 0,
                 "account management URL did not target the account page");
+            auto origin = manageUrl.substr(0, manageUrl.size() - AccountPath.size());
+            Expect(account::IsTrustedAccountOrigin(winrt::hstring{ origin }),
+                "account management URL used an untrusted origin");
         }
 
         for (auto status : { 400u, 401u, 403u, 404u, 409u, 429u, 500u })
@@ -841,6 +1487,7 @@ namespace
     // instead of producing empty shelves on a user's machine.
     constexpr wchar_t kDiscoveryFixture[] = LR"({
       "storefront": "in",
+      "storefrontName": "India",
       "shelves": [
         {
           "id": "top-songs",
@@ -896,14 +1543,45 @@ namespace
           "items": []
         }
       ],
-      "charts": [],
+      "charts": [
+        { "kind": "global", "id": "top-songs", "name": "India", "title": "Top Songs in India", "subtitle": "Current music region", "resourceType": "song" },
+        { "kind": "genre", "id": "14", "name": "Pop", "title": "Top Pop Songs", "subtitle": "Genre chart", "resourceType": "song" },
+        { "kind": "city", "id": "city-mumbai", "name": "Mumbai", "title": "Top Songs in Mumbai", "subtitle": "Mumbai city chart", "resourceType": "song" },
+        { "kind": "nearby", "id": "unsafe", "name": "Ignored", "title": "Ignored", "resourceType": "song" }
+      ],
+      "cityChartGroups": {
+        "indian": {
+          "charts": [
+            { "storefront": "in", "storefrontName": "India", "kind": "city", "id": "city-mumbai", "name": "Mumbai", "title": "Top Songs in Mumbai", "resourceType": "song", "artworkUrl": "https://cdn.example.test/mumbai.jpg" },
+            { "kind": "city", "id": "city-pune", "name": "Pune", "title": "Top Songs in Pune", "resourceType": "song" }
+          ],
+          "partial": false
+        },
+        "international": {
+          "charts": [
+            { "storefront": "gb", "storefrontName": "United Kingdom", "kind": "city", "id": "city-london", "name": "London", "title": "Top Songs in London", "resourceType": "song" }
+          ],
+          "partial": true
+        }
+      },
+      "moodActivityShelf": {
+        "id": "moods-activities",
+        "title": "Moods & Activities",
+        "resourceType": "playlist",
+        "items": [
+          { "catalogId": "mood-focus", "resourceType": "playlist", "name": "Pure Focus", "curatorName": "Apple Music" }
+        ]
+      },
+      "stale": true,
       "fetchedAt": "2026-08-01T00:00:00.000Z"
     })";
 
     void TestCatalogDiscoveryParsing()
     {
-        auto discovery = account::ParseCatalogDiscovery(kDiscoveryFixture);
+        auto discovery = account::ParseCatalogDiscovery(kDiscoveryFixture, L"in");
         Expect(discovery.Storefront == L"in", "discovery storefront was not read");
+        Expect(discovery.StorefrontName == L"India", "discovery storefront name was not read");
+        Expect(discovery.Stale, "discovery stale state was not read");
         Expect(discovery.FetchedAt == L"2026-08-01T00:00:00.000Z", "discovery fetchedAt was not read");
         // The empty shelf is dropped: an titled shelf with no tiles is noise.
         Expect(discovery.Shelves.size() == 2, "discovery shelves were not parsed as expected");
@@ -912,13 +1590,16 @@ namespace
         Expect(songs.Id == L"top-songs", "song shelf id was not read");
         Expect(songs.Title == L"Top Songs", "song shelf title was not read");
         Expect(songs.ItemType == account::CatalogResourceType::Song, "song shelf type was not read");
-        Expect(songs.ChartId == L"top-songs", "song shelf chart id was not read");
+        Expect(songs.Chart.has_value(), "song shelf chart identity was not read");
+        Expect(songs.Chart->Kind == account::CatalogChartKind::Global, "song shelf chart kind was not read");
+        Expect(songs.Chart->Id == L"top-songs", "song shelf chart id was not read");
         // The second item has no title and cannot be rendered.
         Expect(songs.Items.size() == 1, "untitled shelf items were not dropped");
 
         auto const& song = songs.Items[0];
         Expect(song.Type == account::CatalogResourceType::Song, "song item type was not read");
         Expect(song.CatalogId == L"1811023667", "song catalog id was not read");
+        Expect(song.RemoteId == L"example-catalog:1811023667", "stable song remote id was not read");
         Expect(song.Title == L"Sample Song", "song title was not read");
         Expect(song.Subtitle == L"Sample Artist", "song artist was not read");
         Expect(song.AlbumName == L"Sample Album", "song album name was not read");
@@ -940,10 +1621,30 @@ namespace
         Expect(playlists.Items[0].Title == L"Sample Playlist", "playlist name was not read");
         Expect(playlists.Items[0].Subtitle == L"Example Curator", "playlist curator was not read");
         Expect(playlists.Items[0].Description == L"A sample playlist.", "playlist description was not read");
+
+        Expect(discovery.Charts.size() == 3, "valid global, genre, and city charts were not retained");
+        Expect(discovery.Charts[0].Ref.Kind == account::CatalogChartKind::Global, "global chart kind was not parsed");
+        Expect(discovery.Charts[1].Ref.Kind == account::CatalogChartKind::Genre, "genre chart kind was not parsed");
+        Expect(discovery.Charts[2].Ref.Kind == account::CatalogChartKind::City, "city chart kind was not parsed");
+        Expect(discovery.CityChartGroups.has_value(), "grouped city charts were not parsed");
+        Expect(discovery.CityChartGroups->Indian.Charts.size() == 1,
+            "grouped city chart without an explicit storefront was not dropped");
+        Expect(discovery.CityChartGroups->International.Charts.size() == 1,
+            "international city chart was not parsed");
+        Expect(discovery.CityChartGroups->International.Charts[0].Ref.Storefront == L"gb",
+            "international city storefront was lost");
+        Expect(discovery.CityChartGroups->International.Partial,
+            "partial international city state was not parsed");
+        Expect(discovery.MoodActivityShelf.has_value(), "mood and activity shelf was not parsed");
+        Expect(discovery.MoodActivityShelf->Items.size() == 1,
+            "mood and activity shelf items were not parsed");
     }
 
     void TestCatalogChartAndDetailParsing()
     {
+        account::CatalogChartRef topSongs{
+            L"in", account::CatalogChartKind::Global, L"top-songs", account::CatalogResourceType::Song
+        };
         auto page = account::ParseCatalogChartPage(LR"({
           "storefront": "in",
           "type": "songs",
@@ -955,17 +1656,29 @@ namespace
             { "catalogId": "2", "resourceType": "song", "title": "Two", "artistName": "B" }
           ],
           "nextOffset": 50
-        })");
+        })", topSongs);
         Expect(page.Title == L"Top Songs in India", "chart title was not read");
         Expect(page.ItemType == account::CatalogResourceType::Song, "chart resource type was not read");
         Expect(page.Items.size() == 2, "chart items were not parsed");
         Expect(page.HasNextOffset && page.NextOffset == 50, "chart next offset was not read");
 
+        auto mismatchedGlobal = account::ParseCatalogChartPage(LR"({
+          "storefront": "in", "type": "albums", "id": "global:top-albums", "items": []
+        })", topSongs);
+        Expect(!mismatchedGlobal.Descriptor.has_value() && mismatchedGlobal.Items.empty(),
+            "mismatched global chart response was accepted");
+
+        auto invalidResponseStorefront = account::ParseCatalogChartPage(LR"({
+          "storefront": "india", "type": "songs", "id": "global:top-songs", "items": []
+        })", topSongs);
+        Expect(!invalidResponseStorefront.Descriptor.has_value() && invalidResponseStorefront.Items.empty(),
+            "invalid response storefront was accepted");
+
         // A null nextOffset is the service saying this is the last page.
         auto lastPage = account::ParseCatalogChartPage(LR"({
           "storefront": "in", "type": "songs", "resourceType": "song",
           "items": [], "nextOffset": null
-        })");
+        })", topSongs);
         Expect(!lastPage.HasNextOffset, "a null next offset was treated as another page");
 
         auto album = account::ParseCatalogResourceDetail(LR"({
@@ -1010,6 +1723,168 @@ namespace
         Expect(storefronts[1].Name == L"us", "a nameless storefront did not fall back to its code");
     }
 
+    void TestCatalogTrustBoundaryValidation()
+    {
+        using account::CatalogChartKind;
+        using account::CatalogChartRef;
+        using account::CatalogResourceType;
+
+        auto validGenre = CatalogChartRef{ L"in", CatalogChartKind::Genre, L"14", CatalogResourceType::Song };
+        Expect(account::IsValidCatalogChartRef(validGenre), "valid genre chart was rejected");
+        Expect(!account::IsValidCatalogChartRef({ L"india", CatalogChartKind::Genre, L"14", CatalogResourceType::Song }),
+            "invalid storefront was accepted");
+        Expect(!account::IsValidCatalogChartRef({ L"in", CatalogChartKind::Genre, L"14/../etc", CatalogResourceType::Song }),
+            "unsafe chart id was accepted");
+        Expect(!account::IsValidCatalogChartRef({ L"in", CatalogChartKind::Global, L"top-artists", CatalogResourceType::Artist }),
+            "artist chart was accepted");
+        Expect(!account::IsValidCatalogChartRef({ L"in", CatalogChartKind::City, L"city-mumbai", CatalogResourceType::Album }),
+            "non-song city chart was accepted");
+        Expect(!account::IsValidCatalogChartRef({ L"in", CatalogChartKind::Genre, L"14", CatalogResourceType::Playlist }),
+            "non-song genre chart was accepted");
+        Expect(!account::IsValidCatalogChartRef({ L"in", CatalogChartKind::Global, L"top-hits", CatalogResourceType::Song }),
+            "non-canonical global chart was accepted");
+
+        auto mismatch = account::ParseCatalogDiscovery(kDiscoveryFixture, L"us");
+        Expect(mismatch.Storefront.empty() && mismatch.Shelves.empty(),
+            "discovery from a different storefront was accepted");
+
+        auto unsafeArtwork = account::ParseCatalogDiscovery(LR"json({
+          "storefront":"in",
+          "shelves":[{"id":"top-songs","title":"Top Songs","resourceType":"song","items":[
+            {"catalogId":"1","resourceType":"song","title":"One","artworkUrl":"javascript:alert(1)"}
+          ]}],
+          "charts":[{"kind":"genre","id":"14","name":"Pop","title":"Pop","resourceType":"song","artworkUrl":"/relative.jpg"}]
+        })json", L"in");
+        Expect(unsafeArtwork.Shelves[0].Items[0].ArtworkUrl.empty(), "unsafe item artwork URL was retained");
+        Expect(unsafeArtwork.Charts[0].ArtworkUrl.empty(), "unsafe chart artwork URL was retained");
+
+        auto cityRequest = CatalogChartRef{ L"in", CatalogChartKind::City, L"city-mumbai", CatalogResourceType::Song };
+        auto wrongChart = account::ParseCatalogChartPage(LR"({
+          "storefront":"in",
+          "descriptor":{"storefront":"in","kind":"city","id":"city-pune","name":"Pune","title":"Top Songs in Pune","resourceType":"song"},
+          "items":[{"catalogId":"1","resourceType":"song","title":"One"}]
+        })", cityRequest);
+        Expect(!wrongChart.Descriptor.has_value() && wrongChart.Items.empty(),
+            "response for a different city chart was accepted");
+
+        auto wrongStorefront = account::ParseCatalogChartPage(LR"({
+          "storefront":"gb",
+          "descriptor":{"storefront":"in","kind":"city","id":"city-mumbai","name":"Mumbai","title":"Top Songs in Mumbai","resourceType":"song"},
+          "items":[{"catalogId":"1","resourceType":"song","title":"One"}]
+        })", cityRequest);
+        Expect(!wrongStorefront.Descriptor.has_value() && wrongStorefront.Items.empty(),
+            "chart response from a different storefront was accepted");
+
+        auto legacy = account::ParseCatalogDiscovery(LR"({
+          "storefront":"in",
+          "shelves":[{"id":"top-albums","title":"Top Albums","resourceType":"album","items":[
+            {"catalogId":"a1","resourceType":"album","name":"Album"}
+          ]}]
+        })", L"in");
+        Expect(legacy.Shelves.size() == 1 && legacy.Shelves[0].Chart.has_value(),
+            "legacy top shelf did not infer its global chart");
+        Expect(legacy.Shelves[0].Chart->Id == L"top-albums", "legacy chart inference used the wrong id");
+    }
+
+    void TestCatalogChartRequestConstruction()
+    {
+#ifdef _DEBUG
+        auto response = std::string{
+            "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 2\r\nConnection: close\r\n\r\n{}"
+        };
+        auto requestPath = [&](account::CatalogChartRequest const& request)
+        {
+            TestHttpServer server{ response };
+            account::AccountClient client{ winrt::hstring{ server.Url() } };
+            (void)client.GetCatalogChartAsync(L"catalog-token", request).get();
+            server.Join();
+            return server.Request();
+        };
+
+        {
+            TestHttpServer server{ response };
+            account::AccountClient client{ winrt::hstring{ server.Url() } };
+            (void)client.GetCatalogDiscoveryAsync(L"catalog-token", L"IN").get();
+            server.Join();
+            auto discovery = server.Request();
+            Expect(discovery.find("GET /v1/music/catalog/discovery?storefront=in&includeCityChartGroups=true ") != std::string::npos,
+                "discovery request did not normalize storefront or request grouped cities");
+        }
+
+        auto global = requestPath({
+            { L"in", account::CatalogChartKind::Global, L"top-albums", account::CatalogResourceType::Album },
+            25,
+            10
+        });
+        Expect(global.find("GET /v1/music/catalog/charts?storefront=in&type=albums&limit=25&offset=10 ") != std::string::npos,
+            "global chart request URL was incorrect");
+
+        auto city = requestPath({
+            { L"gb", account::CatalogChartKind::City, L"city-london", account::CatalogResourceType::Song },
+            50,
+            0
+        });
+        Expect(city.find("&cityId=city-london ") != std::string::npos,
+            "city chart request did not carry the city id");
+
+        auto genre = requestPath({
+            { L"in", account::CatalogChartKind::Genre, L"14", account::CatalogResourceType::Song },
+            500,
+            -3
+        });
+        Expect(genre.find("&limit=100&offset=0&genreId=14 ") != std::string::npos,
+            "genre chart request did not clamp paging or carry the genre id");
+#endif
+    }
+
+    void TestCatalogPresentationRules()
+    {
+        auto discovery = account::ParseCatalogDiscovery(kDiscoveryFixture, L"in");
+        auto sections = account::BuildCatalogChartSections(discovery);
+        Expect(sections.size() == 2, "catalog charts did not split into explore and city sections");
+        Expect(sections[0].Id == L"explore" && sections[0].Charts.size() == 2,
+            "explore charts contained the wrong chart kinds");
+        Expect(sections[1].Id == L"cities" && sections[1].Charts.size() == 2,
+            "grouped city charts did not replace the legacy city list");
+        Expect(sections[1].Charts[0].Ref.Storefront == L"in"
+            && sections[1].Charts[1].Ref.Storefront == L"gb",
+            "city charts were not ordered home-region first");
+        Expect(sections[1].Partial, "partial city group state was not carried to presentation");
+
+        auto legacy = discovery;
+        legacy.CityChartGroups.reset();
+        auto legacySections = account::BuildCatalogChartSections(legacy);
+        Expect(legacySections.size() == 2 && legacySections[1].Charts.size() == 1,
+            "legacy city chart fallback was not preserved");
+
+        Expect(account::CatalogChartPreviewCount(25) == 18, "home chart preview exceeded 18 cards");
+        Expect(account::CatalogChartPreviewCount(3) == 3, "short chart preview was truncated");
+        Expect(account::CatalogMoodPreviewCount(25) == 12, "mood preview exceeded 12 items");
+        Expect(!account::CatalogChartSectionShowsSeeAll(4), "four chart cards incorrectly showed See all");
+        Expect(account::CatalogChartSectionShowsSeeAll(5), "five chart cards did not show See all");
+
+        account::CatalogResourceDetail albumDetail;
+        albumDetail.Resource.Type = account::CatalogResourceType::Album;
+        albumDetail.Resource.ArtworkUrl = L"https://is1-ssl.mzstatic.com/album/1200x1200bb.jpg";
+        account::CatalogItem missingArtwork;
+        account::CatalogItem explicitArtwork;
+        explicitArtwork.ArtworkUrl = L"https://artist.example.test/single.jpg";
+        albumDetail.Tracks = { missingArtwork, explicitArtwork };
+        account::ApplyCatalogDetailTrackArtwork(albumDetail);
+        Expect(albumDetail.Tracks[0].ArtworkUrl == albumDetail.Resource.ArtworkUrl,
+            "an album track without artwork did not inherit the album cover");
+        Expect(albumDetail.Tracks[1].ArtworkUrl == albumDetail.Resource.ArtworkUrl,
+            "provider track artwork overrode the authoritative album cover");
+
+        account::CatalogResourceDetail playlistDetail;
+        playlistDetail.Resource.Type = account::CatalogResourceType::Playlist;
+        playlistDetail.Resource.ArtworkUrl = L"https://images.example.test/playlist.jpg";
+        playlistDetail.Tracks = { missingArtwork };
+        account::ApplyCatalogDetailTrackArtwork(playlistDetail);
+        Expect(playlistDetail.Tracks[0].ArtworkUrl.empty(),
+            "playlist artwork incorrectly replaced an individual track cover");
+    }
+
     void TestCatalogParsingSurvivesBadInput()
     {
         // The payload crosses a service boundary, so malformed input is an
@@ -1033,7 +1908,9 @@ namespace
                 "malformed discovery input produced shelves");
             Expect(account::ParseCatalogStorefronts(json).empty(),
                 "malformed storefront input produced storefronts");
-            auto page = account::ParseCatalogChartPage(json);
+            auto page = account::ParseCatalogChartPage(
+                json,
+                { L"in", account::CatalogChartKind::Global, L"top-songs", account::CatalogResourceType::Song });
             Expect(page.Items.empty() && !page.HasNextOffset,
                 "malformed chart input produced items");
             Expect(account::ParseCatalogResourceDetail(json, L"albums").Tracks.empty(),
@@ -1951,10 +2828,17 @@ int wmain()
         TestSuccessfulLegacyMigration(localAppData);
         TestPkce();
         TestLoopbackRequestParsing();
+        TestConfiguredAccountBuild();
+        TestAccountGatewayProtocol();
+        TestLoopbackListenerLifecycle();
+        TestAccountRedirectProtection();
         TestAccountOriginAndSafeErrors();
         TestSyncableRemoteSources();
         TestCatalogDiscoveryParsing();
         TestCatalogChartAndDetailParsing();
+        TestCatalogTrustBoundaryValidation();
+        TestCatalogChartRequestConstruction();
+        TestCatalogPresentationRules();
         TestCatalogParsingSurvivesBadInput();
         TestFailedSecureWritePreservesLegacySource(localAppData);
         TestFailedVerificationPreservesLegacySource();

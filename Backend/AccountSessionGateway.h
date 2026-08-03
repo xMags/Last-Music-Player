@@ -9,6 +9,7 @@
 namespace LastMusicPlayer::Backend
 {
     class AccountClient;
+    struct PkceTransaction;
 
     struct AccountProfile
     {
@@ -19,6 +20,11 @@ namespace LastMusicPlayer::Backend
         winrt::hstring PlanLabel;
     };
 
+    winrt::hstring BuildAccountAuthorizeUri(
+        AccountClient const& client,
+        winrt::hstring const& redirectUri,
+        PkceTransaction const& transaction);
+    winrt::hstring ParseAccountBearerSession(winrt::hstring const& payload);
     AccountProfile ParseAccountProfile(winrt::hstring const& payload);
 
     // Owns the browser, callback, and transport mechanics required by the

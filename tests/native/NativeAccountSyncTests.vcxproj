@@ -40,6 +40,7 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="Exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
+  <Import Project="..\..\build\AccountIntegration.props" />
   <PropertyGroup>
     <RepoRoot>$(MSBuildThisFileDirectory)..\..</RepoRoot>
     <OutDir>$(MSBuildThisFileDirectory)$(Platform)\$(Configuration)\</OutDir>
@@ -61,6 +62,21 @@
       <SubSystem>Console</SubSystem>
       <AdditionalDependencies>windowsapp.lib;Advapi32.lib;Bcrypt.lib;Ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(LastMusicAccountTestExpectation)'=='Blank'">
+    <ClCompile>
+      <PreprocessorDefinitions>LAST_MUSIC_ACCOUNT_TEST_EXPECT_BLANK;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(LastMusicAccountTestExpectation)'=='ApiOnly'">
+    <ClCompile>
+      <PreprocessorDefinitions>LAST_MUSIC_ACCOUNT_TEST_EXPECT_API_ONLY;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(LastMusicAccountTestExpectation)'=='Full'">
+    <ClCompile>
+      <PreprocessorDefinitions>LAST_MUSIC_ACCOUNT_TEST_EXPECT_FULL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
     <ClCompile>
@@ -86,6 +102,8 @@
     <ClCompile Include="..\..\Backend\Pkce.cpp" />
     <ClCompile Include="..\..\Backend\LoopbackCallback.cpp" />
     <ClCompile Include="..\..\Backend\AccountClient.cpp" />
+    <ClCompile Include="..\..\Backend\AccountUrlPolicy.cpp" />
+    <ClCompile Include="..\..\Backend\AccountSessionGateway.cpp" />
     <ClCompile Include="..\..\Backend\AccountSessionService.cpp" />
     <ClCompile Include="..\..\Backend\RemoteMusicService.cpp" />
     <ClCompile Include="..\..\Backend\ProviderClient.cpp" />
@@ -94,6 +112,7 @@
     <ClCompile Include="..\..\Backend\UserDataOperationGate.cpp" />
     <ClCompile Include="..\..\Backend\ProviderHelpers.cpp" />
     <ClCompile Include="..\..\Backend\CatalogParser.cpp" />
+    <ClCompile Include="..\..\Backend\CatalogPresentation.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\ThirdParty\sqlite\sqlite3.c">

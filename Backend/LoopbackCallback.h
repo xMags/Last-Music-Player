@@ -3,6 +3,7 @@
 #include <atomic>
 #include <chrono>
 #include <cstdint>
+#include <mutex>
 #include <string>
 #include <string_view>
 
@@ -45,9 +46,18 @@ namespace LastMusicPlayer::Backend
         LoopbackCallbackResult WaitForCallback(
             winrt::hstring const& expectedState,
             std::chrono::steady_clock::time_point deadline);
+#ifdef LAST_MUSIC_NATIVE_ACCOUNT_TESTS
+        bool HasAcceptedClientForTesting() noexcept;
+#endif
 
     private:
-        std::atomic<std::uintptr_t> m_socket{ static_cast<std::uintptr_t>(-1) };
+        void CloseListener() noexcept;
+        void CloseAcceptedSocket(std::uintptr_t expected) noexcept;
+
+        std::atomic<bool> m_canceled{};
+        std::mutex m_socketMutex;
+        std::uintptr_t m_socket{ static_cast<std::uintptr_t>(-1) };
+        std::uintptr_t m_acceptedSocket{ static_cast<std::uintptr_t>(-1) };
         std::uint16_t m_port{};
         bool m_ipv6{};
     };

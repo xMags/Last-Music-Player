@@ -119,10 +119,7 @@ namespace LastMusicPlayer::Backend
         winrt::Windows::Foundation::IAsyncOperation<winrt::hstring> GetCatalogDiscoveryAsync(
             winrt::hstring const& storefront);
         winrt::Windows::Foundation::IAsyncOperation<winrt::hstring> GetCatalogChartAsync(
-            winrt::hstring const& storefront,
-            winrt::hstring const& type,
-            std::int32_t limit,
-            std::int32_t offset);
+            CatalogChartRequest const& request);
         winrt::Windows::Foundation::IAsyncOperation<winrt::hstring> GetCatalogResourceAsync(
             winrt::hstring const& kind,
             winrt::hstring const& id,

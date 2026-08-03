@@ -6,9 +6,17 @@
 #include "Backend/LoopbackCallback.h"
 #include "Backend/Pkce.h"
 
+#include <windows.h>
+#ifdef GetObject
+#undef GetObject
+#endif
+
+#include <algorithm>
 #include <chrono>
+#include <cwctype>
 #include <mutex>
 #include <string>
+#include <string_view>
 #include <utility>
 
 #include <winrt/Windows.Data.Json.h>
@@ -32,7 +40,79 @@ namespace LastMusicPlayer::Backend
                 : winrt::hstring{};
         }
 
-        winrt::hstring AuthorizeUri(
+        bool ContainsControlCharacter(winrt::hstring const& value) noexcept
+        {
+            return std::any_of(value.begin(), value.end(), [](wchar_t character)
+            {
+                return character < 0x20
+                    || (character >= 0x7f && character <= 0x9f);
+            });
+        }
+
+        bool EqualsAsciiCaseInsensitive(
+            winrt::hstring const& value,
+            std::wstring_view expected) noexcept
+        {
+            if (value.size() != expected.size())
+            {
+                return false;
+            }
+            for (decltype(value.size()) index{}; index < value.size(); ++index)
+            {
+                if (std::towlower(value[index])
+                    != std::towlower(expected[index]))
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        bool IsValidBearerToken(winrt::hstring const& value) noexcept
+        {
+            bool sawDataCharacter{};
+            bool sawPadding{};
+            for (auto character : value)
+            {
+                if (character == L'=')
+                {
+                    sawPadding = true;
+                    continue;
+                }
+                if (sawPadding)
+                {
+                    return false;
+                }
+
+                auto allowed = (character >= L'a' && character <= L'z')
+                    || (character >= L'A' && character <= L'Z')
+                    || (character >= L'0' && character <= L'9')
+                    || character == L'-'
+                    || character == L'.'
+                    || character == L'_'
+                    || character == L'~'
+                    || character == L'+'
+                    || character == L'/';
+                if (!allowed)
+                {
+                    return false;
+                }
+                sawDataCharacter = true;
+            }
+            return sawDataCharacter;
+        }
+
+        winrt::hstring BoundedProfileText(
+            winrt::hstring const& value,
+            std::size_t maximumCharacters)
+        {
+            return value.size() <= maximumCharacters
+                && !ContainsControlCharacter(value)
+                ? value
+                : winrt::hstring{};
+        }
+
+        winrt::hstring BuildAuthorizeUriUnchecked(
             AccountClient const& client,
             winrt::hstring const& redirectUri,
             PkceTransaction const& transaction)
@@ -109,10 +189,18 @@ namespace LastMusicPlayer::Backend
                 {
                     auto transaction = CreatePkceTransaction();
                     auto redirectUri = callback->RedirectUri();
+                    auto authorizeUri = BuildAccountAuthorizeUri(
+                        m_client,
+                        redirectUri,
+                        transaction);
+                    if (authorizeUri.empty())
+                    {
+                        throw winrt::hresult_error(
+                            E_FAIL,
+                            L"Account sign-in configuration is invalid.");
+                    }
                     auto launched = co_await winrt::Windows::System::Launcher::LaunchUriAsync(
-                        winrt::Windows::Foundation::Uri{
-                            AuthorizeUri(m_client, redirectUri, transaction)
-                        });
+                        winrt::Windows::Foundation::Uri{ authorizeUri });
                     if (!launched)
                     {
                         callback->Cancel();
@@ -141,15 +229,12 @@ namespace LastMusicPlayer::Backend
                         result.Code,
                         redirectUri,
                         transaction.Verifier);
-                    winrt::Windows::Data::Json::JsonObject root{ nullptr };
-                    if (!winrt::Windows::Data::Json::JsonObject::TryParse(exchange, root) || !root)
-                    {
-                        throw winrt::hresult_error(E_FAIL, L"Account sign-in returned an invalid response.");
-                    }
-                    auto bearer = JsonString(root, L"access_token");
+                    auto bearer = ParseAccountBearerSession(exchange);
                     if (bearer.empty())
                     {
-                        throw winrt::hresult_error(E_FAIL, L"Account sign-in did not return a session.");
+                        throw winrt::hresult_error(
+                            E_FAIL,
+                            L"Account sign-in did not return a valid session.");
                     }
                     co_return bearer;
                 }
@@ -219,11 +304,70 @@ namespace LastMusicPlayer::Backend
         };
     }
 
+    winrt::hstring BuildAccountAuthorizeUri(
+        AccountClient const& client,
+        winrt::hstring const& redirectUri,
+        PkceTransaction const& transaction)
+    {
+        if (!client.IsConfigured()
+            || redirectUri.empty()
+            || transaction.State.empty()
+            || transaction.Challenge.empty())
+        {
+            return {};
+        }
+        return BuildAuthorizeUriUnchecked(
+            client,
+            redirectUri,
+            transaction);
+    }
+
+    winrt::hstring ParseAccountBearerSession(winrt::hstring const& payload)
+    {
+        constexpr std::size_t MaxBearerCharacters = 16 * 1024;
+
+        winrt::Windows::Data::Json::JsonObject root{ nullptr };
+        if (!winrt::Windows::Data::Json::JsonObject::TryParse(payload, root)
+            || !root)
+        {
+            return {};
+        }
+
+        if (root.HasKey(L"token_type"))
+        {
+            auto tokenTypeValue = root.GetNamedValue(L"token_type");
+            if (tokenTypeValue.ValueType()
+                    != winrt::Windows::Data::Json::JsonValueType::String
+                || !EqualsAsciiCaseInsensitive(
+                    tokenTypeValue.GetString(),
+                    L"Bearer"))
+            {
+                return {};
+            }
+        }
+
+        auto bearer = JsonString(root, L"access_token");
+        if (bearer.empty()
+            || bearer.size() > MaxBearerCharacters
+            || ContainsControlCharacter(bearer)
+            || !IsValidBearerToken(bearer))
+        {
+            return {};
+        }
+        return bearer;
+    }
+
     AccountProfile ParseAccountProfile(winrt::hstring const& payload)
     {
+        constexpr std::size_t MaxOwnerIdCharacters = 256;
+        constexpr std::size_t MaxDisplayNameCharacters = 256;
+        constexpr std::size_t MaxUsernameCharacters = 128;
+        constexpr std::size_t MaxPlanCharacters = 128;
+
         AccountProfile profile;
         winrt::Windows::Data::Json::JsonObject root{ nullptr };
-        if (!winrt::Windows::Data::Json::JsonObject::TryParse(payload, root) || !root)
+        if (!winrt::Windows::Data::Json::JsonObject::TryParse(payload, root)
+            || !root)
         {
             return profile;
         }
@@ -232,22 +376,47 @@ namespace LastMusicPlayer::Backend
         if (root.HasKey(L"user"))
         {
             auto value = root.GetNamedValue(L"user");
-            if (value.ValueType() != winrt::Windows::Data::Json::JsonValueType::Object)
+            if (value.ValueType()
+                != winrt::Windows::Data::Json::JsonValueType::Object)
             {
                 return profile;
             }
             user = value.GetObject();
         }
 
-        profile.Id = JsonString(user, L"id");
-        profile.DisplayName = JsonString(user, L"displayName");
+        profile.Id = BoundedProfileText(
+            JsonString(user, L"id"),
+            MaxOwnerIdCharacters);
+        if (profile.Id.empty()
+            || std::any_of(profile.Id.begin(), profile.Id.end(), [](wchar_t character)
+            {
+                return std::iswspace(character) != 0;
+            }))
+        {
+            return {};
+        }
+
+        profile.DisplayName = BoundedProfileText(
+            JsonString(user, L"displayName"),
+            MaxDisplayNameCharacters);
         if (profile.DisplayName.empty())
         {
-            profile.DisplayName = JsonString(user, L"fullName");
+            profile.DisplayName = BoundedProfileText(
+                JsonString(user, L"fullName"),
+                MaxDisplayNameCharacters);
         }
-        profile.Username = JsonString(user, L"username");
-        profile.AvatarUrl = JsonString(user, L"avatarUrl");
-        profile.PlanLabel = JsonString(user, L"plan");
+        profile.Username = BoundedProfileText(
+            JsonString(user, L"username"),
+            MaxUsernameCharacters);
+        profile.PlanLabel = BoundedProfileText(
+            JsonString(user, L"plan"),
+            MaxPlanCharacters);
+
+        auto avatarUrl = JsonString(user, L"avatarUrl");
+        if (IsSafeAccountProfileUrl(avatarUrl))
+        {
+            profile.AvatarUrl = avatarUrl;
+        }
         return profile;
     }
 

@@ -624,10 +624,7 @@ namespace LastMusicPlayer::Backend
     }
 
     winrt::Windows::Foundation::IAsyncOperation<winrt::hstring> RemoteMusicService::GetCatalogChartAsync(
-        winrt::hstring const& storefront,
-        winrt::hstring const& type,
-        std::int32_t limit,
-        std::int32_t offset)
+        CatalogChartRequest const& request)
     {
         RequireMode(Mode(), RemoteAccessMode::Account);
         auto context = CaptureAccountSyncContext();
@@ -636,10 +633,7 @@ namespace LastMusicPlayer::Backend
         {
             auto payload = co_await m_accountClient.GetCatalogChartAsync(
                 context.m_session.BearerSession,
-                storefront,
-                type,
-                limit,
-                offset);
+                request);
             CheckCurrent(context);
             co_return payload;
         }

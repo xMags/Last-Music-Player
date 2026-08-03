@@ -11,6 +11,7 @@
 #include <exception>
 #include <functional>
 #include <iostream>
+#include <stdexcept>
 #include <string>
 #include <thread>
 
@@ -54,6 +55,30 @@ namespace
         Expect(provider::NormalizeProviderBaseUrl(L"") == L"http://127.0.0.1:4527", "empty base URL should use the local default");
         Expect(provider::NormalizeProviderBaseUrl(L"https://music.example.test///") == L"https://music.example.test", "base URL should trim trailing slashes");
         Expect(provider::NormalizeProviderBaseUrl(L"https://music.example.test\\") == L"https://music.example.test", "base URL should trim trailing backslashes");
+    }
+
+    void TestNormalizeArtworkUrlForDisplay()
+    {
+        Expect(provider::NormalizeArtworkUrlForDisplay(
+            L" https://lh3.googleusercontent.com/cover=w60-h60-l90-rj ")
+            == L"https://lh3.googleusercontent.com/cover=w1200-h1200-l90-rj",
+            "Google artwork was not upgraded to the desktop display size");
+        Expect(provider::NormalizeArtworkUrlForDisplay(
+            L"https://provider.example/v1/artwork?url=https%3A%2F%2Flh3.googleusercontent.com%2Fcover%3Dw120-h120-l90-rj&media_token=artwork.1.signature")
+            == L"https://provider.example/v1/artwork?url=https%3A%2F%2Flh3.googleusercontent.com%2Fcover%3Dw1200-h1200-l90-rj&media_token=artwork.1.signature",
+            "encoded Google artwork was not upgraded without disturbing its relay token");
+        Expect(provider::NormalizeArtworkUrlForDisplay(
+            L"https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/cover.jpg/100x100bb.jpg")
+            == L"https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/cover.jpg/1200x1200bb.jpg",
+            "Apple album artwork was not upgraded to 1200 pixels");
+        Expect(provider::NormalizeArtworkUrlForDisplay(
+            L"https://relay.example/v1/artwork?url=https%3A%2F%2Fis1-ssl.mzstatic.com%2Fimage%2Fthumb%2Fcover%2F300x300cc.webp&x=1")
+            == L"https://relay.example/v1/artwork?url=https%3A%2F%2Fis1-ssl.mzstatic.com%2Fimage%2Fthumb%2Fcover%2F1200x1200cc.webp&x=1",
+            "encoded Apple artwork was not upgraded inside a relay URL");
+        Expect(provider::NormalizeArtworkUrlForDisplay(
+            L"https://images.example.test/100x100bb.jpg")
+            == L"https://images.example.test/100x100bb.jpg",
+            "an unrelated image host was rewritten as Apple artwork");
     }
 
     void TestExistingStreamUrlIsStable()
@@ -223,6 +248,115 @@ namespace
         Expect(provider::BuildProviderArtworkUrl(
             signedArtwork, L"https://other.example.test").empty(),
             "artwork URL from a different provider host should be refreshed");
+    }
+
+    void TestAccountMediaUrlBoundary()
+    {
+        auto nowMs = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::system_clock::now().time_since_epoch()).count();
+        auto future = std::to_wstring(nowMs + 5 * 60 * 1000);
+        auto expired = std::to_wstring(nowMs - 60 * 1000);
+        auto streamToken = L"stream." + future + L".signature";
+        auto artworkToken = L"artwork." + future + L".signature";
+        auto streamUrl = L"https://media.example.test/v1/stream/direct%3A1?media_token="
+            + streamToken;
+        auto explicitHttpsPort = L"https://media.example.test:443/v1/stream/direct%3A1?media_token="
+            + streamToken;
+
+        Expect(provider::IsTrustedAccountMediaUrl(
+            winrt::hstring{ streamUrl },
+            L"https://media.example.test",
+            L"stream"),
+            "valid account stream URL was rejected");
+        Expect(provider::IsTrustedAccountMediaUrl(
+            winrt::hstring{ explicitHttpsPort },
+            L"https://media.example.test",
+            L"stream"),
+            "equivalent explicit HTTPS port was rejected");
+        Expect(!provider::IsTrustedAccountMediaUrl(
+            winrt::hstring{ L"https://other.example.test/v1/stream/direct%3A1?media_token=" + streamToken },
+            L"https://media.example.test",
+            L"stream"),
+            "account stream from a different host was accepted");
+        Expect(!provider::IsTrustedAccountMediaUrl(
+            winrt::hstring{ L"https://media.example.test.attacker.test/v1/stream/direct%3A1?media_token=" + streamToken },
+            L"https://media.example.test",
+            L"stream"),
+            "account stream host-prefix confusion was accepted");
+        Expect(!provider::IsTrustedAccountMediaUrl(
+            winrt::hstring{ L"https://media.example.test:444/v1/stream/direct%3A1?media_token=" + streamToken },
+            L"https://media.example.test",
+            L"stream"),
+            "account stream from a different port was accepted");
+        Expect(!provider::IsTrustedAccountMediaUrl(
+            winrt::hstring{ L"https://media.example.test/v1/not-stream/direct%3A1?media_token=" + streamToken },
+            L"https://media.example.test",
+            L"stream"),
+            "account stream from the wrong relay path was accepted");
+        Expect(!provider::IsTrustedAccountMediaUrl(
+            winrt::hstring{ L"https://media.example.test/v1/stream/direct%3A1?media_token=" + artworkToken },
+            L"https://media.example.test",
+            L"stream"),
+            "account stream with an artwork token was accepted");
+        Expect(!provider::IsTrustedAccountMediaUrl(
+            L"https://media.example.test/v1/stream/direct%3A1",
+            L"https://media.example.test",
+            L"stream"),
+            "unsigned account stream was accepted");
+        Expect(!provider::IsTrustedAccountMediaUrl(
+            winrt::hstring{ L"https://media.example.test/v1/stream/direct%3A1?media_token=stream." + expired + L".signature" },
+            L"https://media.example.test",
+            L"stream"),
+            "expired account stream was accepted");
+        Expect(!provider::IsTrustedAccountMediaUrl(
+            winrt::hstring{ L"https://media.example.test/v1/stream/direct%3A1?media_token=stream." + future + L"." },
+            L"https://media.example.test",
+            L"stream"),
+            "account stream with an empty signature was accepted");
+        Expect(!provider::IsTrustedAccountMediaUrl(
+            winrt::hstring{ L"https://user:secret@media.example.test/v1/stream/direct%3A1?media_token=" + streamToken },
+            L"https://media.example.test",
+            L"stream"),
+            "account stream with user information was accepted");
+        Expect(!provider::IsTrustedAccountMediaUrl(
+            winrt::hstring{ L"http://media.example.test/v1/stream/direct%3A1?media_token=" + streamToken },
+            L"http://media.example.test",
+            L"stream"),
+            "public HTTP account stream was accepted");
+        Expect(!provider::IsTrustedAccountMediaUrl(
+            winrt::hstring{ streamUrl },
+            L"https://media.example.test/path",
+            L"stream"),
+            "invalid configured account media origin was accepted");
+
+        auto artworkUrl = winrt::hstring{
+            L"https://media.example.test/v1/artwork?media_token=" + artworkToken };
+        Expect(provider::IsTrustedAccountMediaUrl(
+            artworkUrl,
+            L"https://media.example.test",
+            L"artwork"),
+            "valid account artwork URL was rejected");
+        Expect(!provider::IsTrustedAccountMediaUrl(
+            winrt::hstring{ L"https://media.example.test/v1/artwork-untrusted?media_token=" + artworkToken },
+            L"https://media.example.test",
+            L"artwork"),
+            "account artwork path-prefix confusion was accepted");
+
+        auto loopbackUrl = winrt::hstring{
+            L"http://127.0.0.1:8787/v1/stream/direct%3A1?media_token=" + streamToken };
+#ifdef _DEBUG
+        Expect(provider::IsTrustedAccountMediaUrl(
+            loopbackUrl,
+            L"http://127.0.0.1:8787",
+            L"stream"),
+            "Debug rejected a loopback account stream");
+#else
+        Expect(!provider::IsTrustedAccountMediaUrl(
+            loopbackUrl,
+            L"http://127.0.0.1:8787",
+            L"stream"),
+            "Release accepted a loopback HTTP account stream");
+#endif
     }
 
     void TestRemoteUrlSafety()
@@ -485,6 +619,7 @@ int wmain()
     {
         winrt::init_apartment();
         TestNormalizeBaseUrl();
+        TestNormalizeArtworkUrlForDisplay();
         TestExistingStreamUrlIsStable();
         TestProviderStreamUrl();
         TestReturnedStreamUrlWins();
@@ -494,6 +629,7 @@ int wmain()
         TestSignedStreamUrl();
         TestMediaTokenRefresh();
         TestSignedArtworkUrl();
+        TestAccountMediaUrlBoundary();
         TestRemoteUrlSafety();
         TestDiscordReadyAckAndClear();
         TestDiscordDisconnectWithOutstandingReply();

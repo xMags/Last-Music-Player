@@ -463,6 +463,17 @@ namespace winrt::Last_Music_Player::implementation
         patchObservable(m_librarySongs);
         patchObservable(m_libraryDetailTracks);
         patchObservable(m_upNextQueue);
+        patchObservable(m_discoverChartItems);
+        patchObservable(m_discoverDetailTracks);
+
+        if (accountTrack)
+        {
+            m_catalogLikeOverrides.insert_or_assign(std::wstring{ track.RemoteId().c_str() }, liked);
+            if (m_discoverLoaded)
+            {
+                RebuildCatalogSurfaces();
+            }
+        }
 
         auto detailKind = m_libraryDetailKind;
         auto detailKey = m_libraryDetailKey;
@@ -502,7 +513,7 @@ namespace winrt::Last_Music_Player::implementation
         HomeViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
         SettingsViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
         SongsViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
-        BrowseViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
+        HomeCatalogViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
         LibraryViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Visible);
         ExitSearchMode();
         UpdateNavSelection(L"Library");
@@ -524,11 +535,11 @@ namespace winrt::Last_Music_Player::implementation
         HomeViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
         SettingsViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
         SongsViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
-        BrowseViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
+        HomeCatalogViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
         LibraryViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Visible);
         ExitSearchMode();
         UpdateNavSelection(L"Library");
-        ShowLibraryDetail(L"album", album, album, track.Artist(), ApprovedDetailArtwork(track, L"album"));
+        ShowLibraryDetail(L"album", album, album, track.Artist(), ApprovedDetailArtwork(track, L"album"), track);
     }
 
 
