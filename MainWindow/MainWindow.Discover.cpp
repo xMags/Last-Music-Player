@@ -566,6 +566,13 @@ namespace winrt::Last_Music_Player::implementation
         bool available = RemoteMusicServiceService().Mode() == RemoteAccessMode::Account
             && (status == AccountSessionStatus::Validated || status == AccountSessionStatus::Offline);
 
+        // The region picker configures the catalog, so it is only shown while
+        // there is a catalog to configure.
+        if (auto regionCard = SettingsCatalogRegionCard())
+        {
+            regionCard.Visibility(available ? Visibility::Visible : Visibility::Collapsed);
+        }
+
         if (available)
         {
             if (HomeViewContainer().Visibility() == Visibility::Visible)
@@ -1453,7 +1460,21 @@ namespace winrt::Last_Music_Player::implementation
         HomeCatalogPrimaryPanel().Children().Clear();
         HomeCatalogMoodPanel().Children().Clear();
         HomeCatalogMoodPanel().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
-        ShowCatalogSurface(CatalogSurface::Home, false);
+
+        // A chart or detail page open for the previous region no longer has
+        // anything behind it, so fall back to the catalog home when one is
+        // showing. Otherwise only the navigation epoch advances, so that
+        // in-flight work for the old region cannot land while the user stays
+        // where they are: this picker lives in Settings, and changing the region
+        // there must not throw them back to Home.
+        if (m_catalogSurface != CatalogSurface::Home)
+        {
+            ShowCatalogSurface(CatalogSurface::Home, false);
+        }
+        else
+        {
+            ++m_discoverNavigationEpoch;
+        }
         co_await HydrateDiscoverAsync(false);
     }
 
