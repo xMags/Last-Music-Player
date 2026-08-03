@@ -24,6 +24,10 @@ namespace LastMusicPlayer::Backend
 
     winrt::hstring NormalizeProviderBaseUrl(winrt::hstring const& savedBase);
 
+    // Request artwork large enough for high-DPI desktop presentation while
+    // preserving the provider URL shape and authentication parameters.
+    winrt::hstring NormalizeArtworkUrlForDisplay(winrt::hstring const& artworkUrl);
+
     // Remove obsolete access_token query credentials from provider-shaped
     // stream or artwork URLs. Other URL shapes are left untouched.
     winrt::hstring RemoveLegacyProviderUrlCredential(winrt::hstring const& url);

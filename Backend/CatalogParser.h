@@ -14,8 +14,12 @@ namespace LastMusicPlayer::Backend
     // by whether the request itself threw.
 
     std::vector<CatalogStorefront> ParseCatalogStorefronts(winrt::hstring const& json) noexcept;
-    CatalogDiscovery ParseCatalogDiscovery(winrt::hstring const& json) noexcept;
-    CatalogChartPage ParseCatalogChartPage(winrt::hstring const& json) noexcept;
+    CatalogDiscovery ParseCatalogDiscovery(
+        winrt::hstring const& json,
+        winrt::hstring const& requestedStorefront = {}) noexcept;
+    CatalogChartPage ParseCatalogChartPage(
+        winrt::hstring const& json,
+        CatalogChartRef const& requestedChart) noexcept;
     // kind selects which header key is read: "albums" reads `album`,
     // "playlists" reads `playlist`.
     CatalogResourceDetail ParseCatalogResourceDetail(

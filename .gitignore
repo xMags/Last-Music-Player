@@ -39,6 +39,13 @@ node_modules/
 .env
 .env.local
 Backend/AppSecrets.local.h
+build/AccountIntegration.local.props
+build/*.local.targets
+build/*.local.rsp
+
+# MIDL output that lands in the repo root instead of the build directory
+/MainWindow.h
+/MainWindow.winmd
 
 # OS/editor noise
 Thumbs.db

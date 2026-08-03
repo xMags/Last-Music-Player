@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "Backend/ProviderHelpers.h"
 
+#include "Backend/AccountUrlPolicy.h"
+
 #include <algorithm>
 #include <chrono>
 #include <cstdint>
@@ -8,6 +10,7 @@
 #include <cwctype>
 #include <initializer_list>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace LastMusicPlayer::Backend
@@ -84,6 +87,107 @@ namespace LastMusicPlayer::Backend
                 text.resize(fragment);
             }
             return winrt::hstring{ text };
+        }
+
+        bool TryReplaceGoogleArtworkSize(
+            std::wstring& text,
+            std::wstring_view marker,
+            std::wstring_view replacement)
+        {
+            auto lowered = Lowercase(text);
+            auto position = lowered.find(marker);
+            while (position != std::wstring::npos)
+            {
+                auto cursor = position + marker.size();
+                auto widthStart = cursor;
+                while (cursor < lowered.size() && std::iswdigit(lowered[cursor]))
+                {
+                    ++cursor;
+                }
+                if (cursor == widthStart
+                    || cursor + 2 > lowered.size()
+                    || lowered.compare(cursor, 2, L"-h") != 0)
+                {
+                    position = lowered.find(marker, position + marker.size());
+                    continue;
+                }
+
+                cursor += 2;
+                auto heightStart = cursor;
+                while (cursor < lowered.size() && std::iswdigit(lowered[cursor]))
+                {
+                    ++cursor;
+                }
+                if (cursor == heightStart)
+                {
+                    position = lowered.find(marker, position + marker.size());
+                    continue;
+                }
+
+                auto end = cursor;
+                while (end < text.size()
+                    && text[end] != L'?'
+                    && text[end] != L'&'
+                    && text[end] != L'#')
+                {
+                    ++end;
+                }
+                text.replace(position, end - position, replacement);
+                return true;
+            }
+            return false;
+        }
+
+        bool TryReplaceAppleArtworkSize(std::wstring& text)
+        {
+            auto lowered = Lowercase(text);
+            if (lowered.find(L".mzstatic.com") == std::wstring::npos)
+            {
+                return false;
+            }
+
+            auto suffix = lowered.rfind(L"bb.");
+            auto alternateSuffix = lowered.rfind(L"cc.");
+            if (alternateSuffix != std::wstring::npos
+                && (suffix == std::wstring::npos || alternateSuffix > suffix))
+            {
+                suffix = alternateSuffix;
+            }
+            if (suffix == std::wstring::npos)
+            {
+                return false;
+            }
+
+            auto heightStart = suffix;
+            while (heightStart > 0 && std::iswdigit(lowered[heightStart - 1]))
+            {
+                --heightStart;
+            }
+            if (heightStart == suffix || heightStart == 0 || lowered[heightStart - 1] != L'x')
+            {
+                return false;
+            }
+
+            auto widthStart = heightStart - 1;
+            while (widthStart > 0 && std::iswdigit(lowered[widthStart - 1]))
+            {
+                --widthStart;
+            }
+            if (widthStart == heightStart - 1)
+            {
+                return false;
+            }
+
+            auto directSegment = widthStart > 0 && lowered[widthStart - 1] == L'/';
+            auto encodedSegment = widthStart >= 3
+                && lowered.compare(widthStart - 3, 3, L"%2f") == 0;
+            if (!directSegment && !encodedSegment)
+            {
+                return false;
+            }
+
+            text.replace(widthStart, suffix - widthStart, L"1200x1200");
+            return true;
         }
 
         winrt::hstring StripQueryParams(
@@ -295,6 +399,28 @@ namespace LastMusicPlayer::Backend
             prefix += path;
             return loweredUrl.rfind(prefix, 0) == 0;
         }
+
+        bool HasExpectedUrlPath(
+            winrt::hstring const& url,
+            wchar_t const* expectedPath)
+        {
+            try
+            {
+                winrt::Windows::Foundation::Uri uri{ url };
+                auto path = ToLowerCopy(uri.Path());
+                std::wstring_view expected{ expectedPath };
+                if (!expected.empty() && expected.back() == L'/')
+                {
+                    return path.size() > expected.size()
+                        && path.rfind(expected, 0) == 0;
+                }
+                return path == expected;
+            }
+            catch (...)
+            {
+                return false;
+            }
+        }
     }
 
     bool IsSafeRemoteUrl(winrt::hstring const& url, RemoteUrlUse use) noexcept
@@ -378,6 +504,28 @@ namespace LastMusicPlayer::Backend
             base.pop_back();
         }
         return winrt::hstring{ base };
+    }
+
+    winrt::hstring NormalizeArtworkUrlForDisplay(winrt::hstring const& artworkUrl)
+    {
+        std::wstring text{ artworkUrl.c_str() };
+        text.erase(text.begin(), std::find_if(text.begin(), text.end(), [](wchar_t character)
+        {
+            return !std::iswspace(character);
+        }));
+        text.erase(std::find_if(text.rbegin(), text.rend(), [](wchar_t character)
+        {
+            return !std::iswspace(character);
+        }).base(), text.end());
+        if (text.empty())
+        {
+            return {};
+        }
+
+        TryReplaceGoogleArtworkSize(text, L"=w", L"=w1200-h1200-l90-rj")
+            || TryReplaceGoogleArtworkSize(text, L"%3dw", L"%3Dw1200-h1200-l90-rj");
+        TryReplaceAppleArtworkSize(text);
+        return winrt::hstring{ text };
     }
 
     winrt::hstring RemoveLegacyProviderUrlCredential(winrt::hstring const& url)
@@ -553,7 +701,8 @@ namespace LastMusicPlayer::Backend
             }
 
             auto expectedPath = scope == L"stream" ? L"/v1/stream/" : L"/v1/artwork";
-            return IsCurrentProviderPath(mediaUrl, accountMediaOrigin, expectedPath)
+            return IsUrlFromTrustedAccountOrigin(mediaUrl, accountMediaOrigin)
+                && HasExpectedUrlPath(mediaUrl, expectedPath)
                 && !ProviderMediaUrlNeedsRefresh(mediaUrl, expectedScope, true);
         }
         catch (...)

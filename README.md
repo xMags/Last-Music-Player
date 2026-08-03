@@ -118,9 +118,47 @@ Your provider decides how identifiers are resolved, how auth works, and where au
 
 ## Account Integration
 
-Account mode is optional and disabled in public builds by default. Configured builds supply the account API and frontend origins through the `LastMusicAccountApiOrigin` and `LastMusicAccountFrontendOrigin` MSBuild properties. If media is delivered from a separate trusted origin, builds can also set `LastMusicAccountMediaOrigin`; otherwise it inherits the account API origin. The public source leaves these values blank, so the settings UI reports that account integration is unavailable.
+Account mode is optional and disabled in public builds by default. The public source leaves every account origin blank, so **Settings -> Integrations** reports that account integration is unavailable until a distributor supplies build-time configuration.
 
-The client uses the system browser with PKCE and an ephemeral loopback callback. Account sessions are stored in Windows Credential Manager, synchronized database rows are owner-scoped, and short-lived media URLs are not persisted. The account-service implementation is maintained separately and is not included in this repository.
+| MSBuild property | Requirement | Purpose |
+| --- | --- | --- |
+| `LastMusicAccountApiOrigin` | Required to enable account login | Browser authorization, session exchange, profile, synchronization, logout, and account catalog requests |
+| `LastMusicAccountFrontendOrigin` | Optional | Enables the **Manage account** link. Omitting it does not disable login. |
+| `LastMusicAccountMediaOrigin` | Optional | Trust boundary for signed stream and artwork URLs. It inherits the API origin when omitted. |
+
+Use the validated build script for a configured build:
+
+```powershell
+.\tools\Build-WithAccountIntegration.ps1 `
+    -ApiOrigin "https://api.account.example.test" `
+    -FrontendOrigin "https://account.example.test" `
+    -MediaOrigin "https://media.account.example.test" `
+    -Configuration Release
+```
+
+Only the API origin is required:
+
+```powershell
+.\tools\Build-WithAccountIntegration.ps1 `
+    -ApiOrigin "https://api.account.example.test" `
+    -Configuration Release
+```
+
+A direct MSBuild invocation uses the same properties:
+
+```powershell
+& MSBuild.exe ".\Last Music Player.vcxproj" /t:Rebuild `
+    /p:Configuration=Release /p:Platform=x64 `
+    /p:LastMusicAccountApiOrigin=https://api.account.example.test `
+    /p:LastMusicAccountFrontendOrigin=https://account.example.test `
+    /p:LastMusicAccountMediaOrigin=https://media.account.example.test
+```
+
+Each value must be an absolute origin containing only a scheme, host, and optional port. A trailing `/` is allowed. Paths, query strings, fragments, user information, whitespace, quotes, and backslashes are rejected by the supported build script. Release builds require HTTPS. Debug builds additionally permit HTTP only for `localhost`, `127.0.0.1`, or `::1`, which supports local protocol testing without allowing public cleartext account traffic. Runtime validation remains authoritative and fails closed if a configured origin is unsafe.
+
+The client uses the system browser with PKCE and an ephemeral loopback callback. Account sessions are stored in Windows Credential Manager, synchronized database rows are owner-scoped, and short-lived media URLs are not persisted. Authenticated account HTTP requests do not follow redirects, so service endpoints must respond directly rather than redirecting bearer-authenticated requests.
+
+Account origins are embedded in the compiled binary and are not secrets. Never supply passwords, bearer tokens, API keys, signing keys, or other credentials as MSBuild properties. This repository includes no production origin, account-service implementation, private deployment configuration, or account credentials.
 
 ## Development
 
@@ -129,7 +167,11 @@ Useful commands:
 ```powershell
 tools\Run-NativeProviderHelperTests.ps1
 tools\Run-NativeAccountSyncTests.ps1
+tools\Run-NativeAccountSyncTests.ps1 -Configuration Debug -ConfiguredMatrix
+tools\Run-NativeAccountSyncTests.ps1 -Configuration Release -ConfiguredMatrix
 ```
+
+The configured matrix rebuilds isolated blank, API-only, and full account variants with reserved test origins. It also verifies that invalid property combinations and unsafe build-script inputs are rejected.
 
 For command-line builds, use the Visual Studio MSBuild toolchain and build the `x64` platform:
 

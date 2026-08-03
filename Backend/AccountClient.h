@@ -1,6 +1,8 @@
 #pragma once
 
 #include "Backend/AccountSyncTransport.h"
+#include "Backend/AccountUrlPolicy.h"
+#include "Backend/CatalogModels.h"
 
 #include <cstdint>
 
@@ -14,7 +16,6 @@ namespace LastMusicPlayer::Backend
     // default, so an unconfigured client and the service agree on what it sees.
     inline constexpr wchar_t DefaultCatalogStorefront[] = L"in";
 
-    bool IsTrustedAccountOrigin(winrt::hstring const& origin) noexcept;
     // Absolute URL of the hosted account management page, or an empty string when
     // this build has no trusted frontend origin configured.
     winrt::hstring AccountManagementUrl() noexcept;
@@ -67,10 +68,7 @@ namespace LastMusicPlayer::Backend
             winrt::hstring const& storefront);
         winrt::Windows::Foundation::IAsyncOperation<winrt::hstring> GetCatalogChartAsync(
             winrt::hstring const& bearerSession,
-            winrt::hstring const& storefront,
-            winrt::hstring const& type,
-            std::int32_t limit,
-            std::int32_t offset);
+            CatalogChartRequest const& request);
         // kind is "albums" or "playlists"; anything else is rejected before a
         // request is built.
         winrt::Windows::Foundation::IAsyncOperation<winrt::hstring> GetCatalogResourceAsync(

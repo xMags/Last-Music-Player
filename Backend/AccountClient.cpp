@@ -7,6 +7,7 @@
 #include <winrt/Windows.Data.Json.h>
 #include <winrt/Windows.Storage.Streams.h>
 #include <winrt/Windows.System.Threading.h>
+#include <winrt/Windows.Web.Http.Filters.h>
 #include <winrt/Windows.Web.Http.Headers.h>
 
 #include <algorithm>
@@ -21,14 +22,11 @@ namespace LastMusicPlayer::Backend
         constexpr HRESULT AccountUnauthorizedHresult = HRESULT_FROM_WIN32(ERROR_LOGON_FAILURE);
         constexpr std::uint64_t MaxArtworkBytes = 12ull * 1024ull * 1024ull;
 
-        winrt::hstring TrimOrigin(winrt::hstring const& origin)
+        winrt::Windows::Web::Http::HttpClient CreateAccountHttpClient()
         {
-            std::wstring value{ origin.c_str() };
-            while (!value.empty() && value.back() == L'/')
-            {
-                value.pop_back();
-            }
-            return winrt::hstring{ value };
+            winrt::Windows::Web::Http::Filters::HttpBaseProtocolFilter filter;
+            filter.AllowAutoRedirect(false);
+            return winrt::Windows::Web::Http::HttpClient{ filter };
         }
 
         // Storefront codes are ISO-3166-style two-letter regions. Anything else
@@ -47,15 +45,6 @@ namespace LastMusicPlayer::Backend
                     return ch >= L'a' && ch <= L'z';
                 });
             return valid ? winrt::hstring{ value } : winrt::hstring{ DefaultCatalogStorefront };
-        }
-
-        winrt::hstring NormalizeChartType(winrt::hstring const& type)
-        {
-            if (type == L"albums" || type == L"playlists")
-            {
-                return type;
-            }
-            return winrt::hstring{ L"songs" };
         }
 
         HRESULT StatusHresult(std::uint32_t status)
@@ -119,52 +108,17 @@ namespace LastMusicPlayer::Backend
         }
     }
 
-    bool IsTrustedAccountOrigin(winrt::hstring const& origin) noexcept
-    {
-        try
-        {
-            if (origin.empty()) return false;
-            auto normalized = TrimOrigin(origin);
-            winrt::Windows::Foundation::Uri uri{ normalized };
-            if (uri.Query() != L"" || uri.Fragment() != L"" || uri.UserName() != L"" || uri.Password() != L"")
-            {
-                return false;
-            }
-            auto path = uri.Path();
-            if (!path.empty() && path != L"/")
-            {
-                return false;
-            }
-            auto host = uri.Host();
-            if (uri.SchemeName() == L"https")
-            {
-                return !host.empty();
-            }
-            if (uri.SchemeName() != L"http")
-            {
-                return false;
-            }
-            return host == L"127.0.0.1"
-                || host == L"::1"
-                || host == L"[::1]"
-                || host == L"localhost";
-        }
-        catch (...)
-        {
-            return false;
-        }
-    }
-
     winrt::hstring AccountManagementUrl() noexcept
     {
         try
         {
-            winrt::hstring origin{ BuildConfig::AccountFrontendOrigin };
-            if (!IsTrustedAccountOrigin(origin))
+            auto origin = NormalizeTrustedAccountOrigin(
+                BuildConfig::AccountFrontendOrigin);
+            if (origin.empty())
             {
                 return {};
             }
-            return winrt::hstring{ std::wstring{ TrimOrigin(origin).c_str() } + L"/account" };
+            return winrt::hstring{ std::wstring{ origin.c_str() } + L"/account" };
         }
         catch (...)
         {
@@ -206,11 +160,9 @@ namespace LastMusicPlayer::Backend
     }
 
     AccountClient::AccountClient(winrt::hstring const& baseOrigin)
+        : m_baseOrigin(NormalizeTrustedAccountOrigin(baseOrigin)),
+          m_httpClient(CreateAccountHttpClient())
     {
-        if (IsTrustedAccountOrigin(baseOrigin))
-        {
-            m_baseOrigin = TrimOrigin(baseOrigin);
-        }
     }
 
     bool AccountClient::IsConfigured() const noexcept
@@ -512,27 +464,40 @@ namespace LastMusicPlayer::Backend
         co_return co_await SendJsonAsync(
             winrt::Windows::Web::Http::HttpMethod::Get(),
             L"/v1/music/catalog/discovery?storefront="
-                + winrt::Windows::Foundation::Uri::EscapeComponent(NormalizeStorefront(storefront)),
+                + winrt::Windows::Foundation::Uri::EscapeComponent(NormalizeStorefront(storefront))
+                + L"&includeCityChartGroups=true",
             bearerSession);
     }
 
     winrt::Windows::Foundation::IAsyncOperation<winrt::hstring> AccountClient::GetCatalogChartAsync(
         winrt::hstring const& bearerSession,
-        winrt::hstring const& storefront,
-        winrt::hstring const& type,
-        std::int32_t limit,
-        std::int32_t offset)
+        CatalogChartRequest const& request)
     {
+        if (!IsValidCatalogChartRef(request.Ref))
+        {
+            throw winrt::hresult_invalid_argument(L"Catalog chart identity is invalid.");
+        }
         // The service clamps these too, but sending a sane page keeps a
         // mistyped caller from asking for an enormous response.
-        auto safeLimit = std::clamp(limit, 1, 100);
-        auto safeOffset = std::clamp(offset, 0, 10000);
+        auto safeLimit = std::clamp(request.Limit, 1, 100);
+        auto safeOffset = std::clamp(request.Offset, 0, 10000);
         std::wstring path{ L"/v1/music/catalog/charts?storefront=" };
-        path += winrt::Windows::Foundation::Uri::EscapeComponent(NormalizeStorefront(storefront)).c_str();
+        path += winrt::Windows::Foundation::Uri::EscapeComponent(request.Ref.Storefront).c_str();
         path += L"&type=";
-        path += winrt::Windows::Foundation::Uri::EscapeComponent(NormalizeChartType(type)).c_str();
+        path += CatalogResourceTypeName(request.Ref.ResourceType).c_str();
+        path += L"s";
         path += L"&limit=" + std::to_wstring(safeLimit);
         path += L"&offset=" + std::to_wstring(safeOffset);
+        if (request.Ref.Kind == CatalogChartKind::City)
+        {
+            path += L"&cityId=";
+            path += winrt::Windows::Foundation::Uri::EscapeComponent(request.Ref.Id).c_str();
+        }
+        else if (request.Ref.Kind == CatalogChartKind::Genre)
+        {
+            path += L"&genreId=";
+            path += winrt::Windows::Foundation::Uri::EscapeComponent(request.Ref.Id).c_str();
+        }
         co_return co_await SendJsonAsync(
             winrt::Windows::Web::Http::HttpMethod::Get(),
             winrt::hstring{ path },
@@ -600,6 +565,7 @@ namespace LastMusicPlayer::Backend
             bearerSession,
             L"",
             winrt::Windows::Web::Http::HttpCompletionOption::ResponseHeadersRead);
+        EnsureAccountSuccess(response);
         co_return static_cast<std::uint32_t>(response.StatusCode());
     }
 }

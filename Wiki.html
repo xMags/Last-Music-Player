@@ -1,0 +1,2236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Last Music Player Documentation Hub</title>
+  
+  <!-- Modern Premium Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <!-- FontAwesome for Premium Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    /* Premium CSS Variables & Custom Theme */
+    :root {
+      --bg-color: #07080e;
+      --surface-color: #0d0e17;
+      --card-bg: rgba(18, 20, 32, 0.65);
+      --card-border: rgba(255, 255, 255, 0.07);
+      --glass-glow: rgba(139, 92, 246, 0.15);
+      
+      --text-primary: #f3f4f6;
+      --text-secondary: #9ca3af;
+      --text-muted: #6b7280;
+      
+      --accent-primary: #8b5cf6; /* Indigo-Purple */
+      --accent-secondary: #3b82f6; /* Electric Blue */
+      --accent-tertiary: #ec4899; /* Vibrant Pink */
+      --accent-gradient: linear-gradient(135deg, #8b5cf6 0%, #3b82f6 50%, #ec4899 100%);
+      
+      --tag-get: #10b981;
+      --tag-post: #3b82f6;
+      --tag-put: #f59e0b;
+      --tag-delete: #ef4444;
+      
+      --code-bg: #090a0f;
+      --code-text: #ec4899;
+      --font-sans: 'Outfit', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+      
+      --sidebar-width: 320px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+    }
+
+    /* Scrollbars */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      display: flex;
+      min-height: 100vh;
+      overflow-x: hidden;
+      line-height: 1.6;
+    }
+
+    /* Ambient Background Glows */
+    .glow-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: -2;
+      overflow: hidden;
+      pointer-events: none;
+    }
+    .glow-ball {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(150px);
+      opacity: 0.25;
+    }
+    .glow-1 {
+      top: -10%;
+      right: 10%;
+      width: 500px;
+      height: 500px;
+      background: var(--accent-primary);
+      animation: float-slow 20s infinite alternate;
+    }
+    .glow-2 {
+      bottom: -10%;
+      left: 20%;
+      width: 600px;
+      height: 600px;
+      background: var(--accent-secondary);
+      animation: float-slow 25s infinite alternate-reverse;
+    }
+
+    @keyframes float-slow {
+      0% { transform: translate(0, 0) scale(1); }
+      100% { transform: translate(40px, -40px) scale(1.1); }
+    }
+
+    /* Sidebar Styling */
+    aside {
+      width: var(--sidebar-width);
+      background: rgba(13, 14, 23, 0.95);
+      border-right: 1px solid var(--card-border);
+      position: fixed;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      backdrop-filter: blur(20px);
+      transition: transform 0.3s ease;
+    }
+
+    .sidebar-header {
+      padding: 24px;
+      border-bottom: 1px solid var(--card-border);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .sidebar-logo {
+      width: 42px;
+      height: 42px;
+      object-fit: contain;
+      border-radius: 8px;
+    }
+
+    .sidebar-title-container h1 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      background: var(--accent-gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .sidebar-title-container span {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .search-wrapper {
+      padding: 16px 24px;
+      position: relative;
+    }
+
+    .search-input-container {
+      position: relative;
+    }
+
+    .search-input-container i {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    .search-input-container input {
+      width: 100%;
+      background: var(--code-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 10px 12px 10px 38px;
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      font-size: 0.9rem;
+      transition: all 0.3s ease;
+    }
+
+    .search-input-container input:focus {
+      outline: none;
+      border-color: var(--accent-primary);
+      box-shadow: 0 0 10px rgba(139, 92, 246, 0.2);
+    }
+
+    .sidebar-nav {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 24px;
+    }
+
+    .nav-category {
+      margin-bottom: 20px;
+    }
+
+    .nav-category-title {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      margin-bottom: 8px;
+      padding-left: 8px;
+    }
+
+    .nav-link {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 12px;
+      color: var(--text-secondary);
+      text-decoration: none;
+      border-radius: 8px;
+      font-size: 0.92rem;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+
+    .nav-link:hover {
+      color: var(--text-primary);
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .nav-link.active {
+      color: var(--text-primary);
+      background: rgba(139, 92, 246, 0.15);
+      border-left: 3px solid var(--accent-primary);
+      padding-left: 9px;
+    }
+
+    .sidebar-footer {
+      padding: 16px 24px;
+      border-top: 1px solid var(--card-border);
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      text-align: center;
+    }
+
+    .sidebar-footer a {
+      color: var(--accent-secondary);
+      text-decoration: none;
+    }
+
+    .sidebar-footer a:hover {
+      text-decoration: underline;
+    }
+
+    /* Hamburger Menu for Mobile */
+    .menu-toggle {
+      display: none;
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      width: 44px;
+      height: 44px;
+      background: var(--surface-color);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      z-index: 1001;
+      justify-content: center;
+      align-items: center;
+      color: var(--text-primary);
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    /* Main Workspace Styling */
+    main {
+      margin-left: var(--sidebar-width);
+      flex: 1;
+      padding: 40px 50px 80px 50px;
+      max-width: 1200px;
+      transition: all 0.3s ease;
+    }
+
+    /* Header Panel */
+    .header-panel {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 40px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--card-border);
+    }
+
+    .header-intro h2 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      background: linear-gradient(to right, #ffffff, var(--text-secondary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .header-intro p {
+      color: var(--text-secondary);
+      margin-top: 4px;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 12px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      cursor: pointer;
+    }
+
+    .btn-primary {
+      background: var(--accent-gradient);
+      color: #ffffff;
+      border: none;
+      box-shadow: 0 4px 14px rgba(139, 92, 246, 0.3);
+    }
+
+    .btn-primary:hover {
+      box-shadow: 0 6px 20px rgba(139, 92, 246, 0.5);
+      transform: translateY(-2px);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text-primary);
+      border: 1px solid var(--card-border);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.15);
+      transform: translateY(-2px);
+    }
+
+    /* Content Cards Section */
+    section {
+      margin-bottom: 60px;
+      scroll-margin-top: 40px;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 32px;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Corner Highlight glow to cards */
+    .card::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 150px;
+      height: 150px;
+      background: radial-gradient(circle, var(--glass-glow) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .card-title-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 20px;
+      background: rgba(139, 92, 246, 0.1);
+      border: 1px solid rgba(139, 92, 246, 0.2);
+      color: var(--accent-primary);
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 12px;
+    }
+
+    section h3 {
+      font-size: 1.8rem;
+      font-weight: 700;
+      margin-bottom: 20px;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    section h3 i {
+      color: var(--accent-primary);
+    }
+
+    section p {
+      color: var(--text-secondary);
+      margin-bottom: 20px;
+      font-size: 1.05rem;
+      max-width: 850px;
+    }
+
+    /* Badges Layout */
+    .badge-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+
+    .tech-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      font-size: 0.85rem;
+      color: var(--text-primary);
+      font-weight: 500;
+    }
+
+    .tech-badge.platform { border-color: #0078D4; }
+    .tech-badge.ui { border-color: #5E5CE6; }
+    .tech-badge.lang { border-color: #00599C; }
+    .tech-badge.data { border-color: #0F766E; }
+
+    /* Visual preview */
+    .preview-box {
+      margin: 24px 0;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid var(--card-border);
+      background: var(--code-bg);
+      position: relative;
+    }
+
+    .preview-box img {
+      width: 100%;
+      height: auto;
+      display: block;
+      transition: transform 0.5s ease;
+    }
+
+    .preview-box:hover img {
+      transform: scale(1.02);
+    }
+
+    /* Grid layout specs */
+    .specs-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 20px;
+      margin-top: 24px;
+    }
+
+    .spec-card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      border-radius: 10px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .spec-card span:first-child {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 600;
+    }
+
+    .spec-card span:last-child {
+      font-size: 1rem;
+      color: var(--text-primary);
+      font-weight: 500;
+    }
+
+    /* Bullet Point Custom Styling */
+    ul.custom-list {
+      list-style: none;
+      margin-bottom: 24px;
+    }
+
+    ul.custom-list li {
+      position: relative;
+      padding-left: 28px;
+      margin-bottom: 12px;
+      color: var(--text-secondary);
+      font-size: 1rem;
+    }
+
+    ul.custom-list li::before {
+      content: '\f00c';
+      font-family: 'Font Awesome 6 Free';
+      font-weight: 900;
+      position: absolute;
+      left: 4px;
+      top: 2px;
+      color: var(--accent-primary);
+      font-size: 0.9rem;
+    }
+
+    ol.custom-list {
+      margin-bottom: 24px;
+      padding-left: 24px;
+      color: var(--text-secondary);
+    }
+
+    ol.custom-list li {
+      margin-bottom: 12px;
+      font-size: 1rem;
+      padding-left: 8px;
+    }
+
+    ol.custom-list li::marker {
+      color: var(--accent-primary);
+      font-weight: 700;
+      font-family: var(--font-sans);
+    }
+
+    /* Warnings/Alerts */
+    .alert-box {
+      border-radius: 10px;
+      padding: 16px;
+      margin: 20px 0;
+      display: flex;
+      gap: 14px;
+      border: 1px solid transparent;
+      font-size: 0.95rem;
+    }
+
+    .alert-box i {
+      font-size: 1.2rem;
+      margin-top: 2px;
+    }
+
+    .alert-box.info {
+      background: rgba(59, 130, 246, 0.08);
+      border-color: rgba(59, 130, 246, 0.2);
+      color: #93c5fd;
+    }
+
+    .alert-box.warning {
+      background: rgba(245, 158, 11, 0.08);
+      border-color: rgba(245, 158, 11, 0.2);
+      color: #fde047;
+    }
+
+    /* Dynamic Interactive Flowchart */
+    .arch-diagram {
+      background: rgba(9, 10, 15, 0.5);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 30px;
+      margin: 30px 0;
+    }
+
+    .flow-node {
+      background: var(--code-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      padding: 12px 16px;
+      width: 100%;
+      height: 100%;
+      text-align: center;
+      position: relative;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .flow-node:hover {
+      transform: translateY(-3px);
+      border-color: var(--accent-primary);
+      box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
+    }
+
+    .flow-node h4 {
+      font-size: 0.92rem;
+      margin-bottom: 4px;
+      font-weight: 600;
+      color: var(--text-primary);
+      line-height: 1.2;
+    }
+
+    .flow-node p {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-bottom: 0;
+      line-height: 1.2;
+    }
+
+    .flow-node.highlighted {
+      background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(59, 130, 246, 0.1) 100%);
+      border-color: var(--accent-primary);
+      box-shadow: 0 0 15px rgba(139, 92, 246, 0.2);
+    }
+
+    .flow-line {
+      stroke-dasharray: 6, 4;
+      animation: flow-dash 25s linear infinite;
+    }
+
+    @keyframes flow-dash {
+      to {
+        stroke-dashoffset: -500;
+      }
+    }
+
+    /* Database Schema Interactive Viewer */
+    .db-schema-explorer {
+      display: grid;
+      grid-template-columns: 200px 1fr;
+      gap: 24px;
+      margin-top: 24px;
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      background: var(--code-bg);
+      overflow: hidden;
+      min-height: 400px;
+    }
+
+    .db-sidebar {
+      background: rgba(255, 255, 255, 0.01);
+      border-right: 1px solid var(--card-border);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .db-tab-btn {
+      text-align: left;
+      padding: 10px 14px;
+      background: transparent;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      color: var(--text-secondary);
+      font-family: var(--font-sans);
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: all 0.2s ease;
+    }
+
+    .db-tab-btn:hover {
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text-primary);
+    }
+
+    .db-tab-btn.active {
+      background: rgba(139, 92, 246, 0.12);
+      border-color: rgba(139, 92, 246, 0.2);
+      color: var(--accent-primary);
+      font-weight: 600;
+    }
+
+    .db-tab-btn .badge-rows {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      background: rgba(255, 255, 255, 0.05);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    .db-content {
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      overflow-y: auto;
+    }
+
+    .db-content-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      padding-bottom: 12px;
+    }
+
+    .db-table-title {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .db-table-description {
+      font-size: 0.95rem;
+      color: var(--text-secondary);
+    }
+
+    .table-container {
+      width: 100%;
+      overflow-x: auto;
+    }
+
+    .info-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+      text-align: left;
+    }
+
+    .info-table th {
+      background: rgba(255, 255, 255, 0.02);
+      border-bottom: 2px solid var(--card-border);
+      padding: 12px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .info-table td {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      padding: 12px;
+      color: var(--text-secondary);
+      vertical-align: top;
+    }
+
+    .info-table tr:hover td {
+      color: var(--text-primary);
+      background: rgba(255, 255, 255, 0.01);
+    }
+
+    .font-mono-tag {
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--accent-tertiary);
+    }
+
+    .font-mono-type {
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      color: var(--accent-secondary);
+    }
+
+    /* API Explorer Widget */
+    .api-explorer {
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      background: var(--code-bg);
+      overflow: hidden;
+      margin-top: 24px;
+    }
+
+    .api-endpoints-bar {
+      display: flex;
+      overflow-x: auto;
+      border-bottom: 1px solid var(--card-border);
+      background: rgba(255, 255, 255, 0.01);
+    }
+
+    .api-endpoint-btn {
+      padding: 14px 20px;
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      font-family: var(--font-sans);
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+      transition: all 0.2s ease;
+      border-bottom: 2px solid transparent;
+    }
+
+    .api-endpoint-btn:hover {
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text-primary);
+    }
+
+    .api-endpoint-btn.active {
+      color: var(--text-primary);
+      border-bottom-color: var(--accent-primary);
+      background: rgba(139, 92, 246, 0.05);
+    }
+
+    .method-tag {
+      font-size: 0.72rem;
+      font-weight: 800;
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #fff;
+    }
+
+    .method-tag.get { background: var(--tag-get); }
+    .method-tag.post { background: var(--tag-post); }
+
+    .api-details-pane {
+      padding: 24px;
+    }
+
+    .api-path-bar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-family: var(--font-mono);
+      font-size: 0.95rem;
+      margin-bottom: 20px;
+    }
+
+    .api-path-bar .method-tag {
+      font-size: 0.8rem;
+      padding: 4px 8px;
+    }
+
+    .api-auth-badge {
+      margin-left: auto;
+      font-size: 0.78rem;
+      font-weight: 500;
+      padding: 4px 8px;
+      border-radius: 4px;
+      border: 1px solid var(--card-border);
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-secondary);
+      font-family: var(--font-sans);
+    }
+
+    .api-auth-badge.bearer {
+      border-color: rgba(139, 92, 246, 0.3);
+      color: var(--accent-primary);
+      background: rgba(139, 92, 246, 0.05);
+    }
+
+    .api-layout-cols {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+
+    @media (max-width: 900px) {
+      .api-layout-cols {
+        grid-template-columns: 1fr;
+      }
+      .db-schema-explorer {
+        grid-template-columns: 1fr;
+      }
+      .db-sidebar {
+        border-right: none;
+        border-bottom: 1px solid var(--card-border);
+      }
+    }
+
+    .api-section-title {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      margin-bottom: 12px;
+    }
+
+    /* Tabs inside API explorer */
+    .code-tabs {
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      background: var(--code-bg);
+      overflow: hidden;
+    }
+
+    .code-tabs-header {
+      display: flex;
+      background: rgba(255, 255, 255, 0.02);
+      border-bottom: 1px solid var(--card-border);
+    }
+
+    .code-tab-btn {
+      padding: 10px 16px;
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      font-family: var(--font-sans);
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .code-tab-btn:hover {
+      color: var(--text-primary);
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .code-tab-btn.active {
+      color: var(--text-primary);
+      background: rgba(255, 255, 255, 0.05);
+      border-bottom: 2px solid var(--accent-secondary);
+    }
+
+    /* Code Block styling with Copy Button */
+    .code-block-wrapper {
+      position: relative;
+    }
+
+    .code-block-wrapper:hover .copy-btn {
+      opacity: 1;
+    }
+
+    pre {
+      background: var(--code-bg);
+      padding: 16px;
+      border-radius: 8px;
+      overflow-x: auto;
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      margin: 0;
+    }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: 0.88rem;
+      color: var(--text-primary);
+      line-height: 1.5;
+    }
+
+    .copy-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 6px;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-secondary);
+      cursor: pointer;
+      opacity: 0;
+      transition: all 0.2s ease;
+      z-index: 10;
+    }
+
+    .copy-btn:hover {
+      background: rgba(255, 255, 255, 0.15);
+      color: var(--text-primary);
+      transform: scale(1.05);
+    }
+
+    .copy-btn.copied {
+      background: rgba(16, 185, 129, 0.15);
+      border-color: rgba(16, 185, 129, 0.3);
+      color: #34d399;
+      opacity: 1;
+    }
+
+    /* FAQ List styling */
+    .faq-container {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      margin-top: 24px;
+    }
+
+    .faq-item {
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.01);
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .faq-header {
+      padding: 18px 24px;
+      font-weight: 600;
+      font-size: 1rem;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      user-select: none;
+    }
+
+    .faq-header:hover {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .faq-header i {
+      color: var(--accent-primary);
+      transition: transform 0.3s ease;
+    }
+
+    .faq-item.active {
+      border-color: rgba(139, 92, 246, 0.2);
+      background: rgba(139, 92, 246, 0.02);
+    }
+
+    .faq-item.active .faq-header i {
+      transform: rotate(180deg);
+    }
+
+    .faq-content {
+      padding: 0 24px;
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s cubic-bezier(0, 1, 0, 1), padding 0.3s ease;
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+    }
+
+    .faq-item.active .faq-content {
+      max-height: 1000px;
+      padding: 0 24px 20px 24px;
+      transition: max-height 0.3s cubic-bezier(1, 0, 1, 0), padding 0.3s ease;
+    }
+
+    /* Global Typography Helpers */
+    a.in-doc-link {
+      color: var(--accent-secondary);
+      text-decoration: none;
+      border-bottom: 1px dashed rgba(59, 130, 246, 0.4);
+      transition: all 0.2s ease;
+    }
+
+    a.in-doc-link:hover {
+      color: #60a5fa;
+      border-bottom-color: #60a5fa;
+    }
+
+    strong {
+      color: var(--text-primary);
+    }
+
+    /* Table key styling */
+    table.compact-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0;
+      font-size: 0.92rem;
+    }
+
+    table.compact-table th {
+      text-align: left;
+      padding: 8px 12px;
+      border-bottom: 2px solid var(--card-border);
+      color: var(--text-primary);
+    }
+
+    table.compact-table td {
+      padding: 8px 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      color: var(--text-secondary);
+    }
+
+    /* Responsive Queries */
+    @media (max-width: 1100px) {
+      aside {
+        transform: translateX(calc(-1 * var(--sidebar-width)));
+      }
+      aside.open {
+        transform: translateX(0);
+      }
+      .menu-toggle {
+        display: flex;
+      }
+      main {
+        margin-left: 0;
+        padding: 80px 24px 40px 24px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Ambient Glow -->
+  <div class="glow-container">
+    <div class="glow-ball glow-1"></div>
+    <div class="glow-ball glow-2"></div>
+  </div>
+
+  <!-- Sidebar Hamburger Menu Toggle (Mobile) -->
+  <div class="menu-toggle" id="menu-toggle-btn" aria-label="Toggle Navigation Menu">
+    <i class="fa-solid fa-bars"></i>
+  </div>
+
+  <!-- Sidebar -->
+  <aside id="sidebar-panel">
+    <div class="sidebar-header">
+      <img src="Assets/Square150x150Logo.scale-200.png" alt="Last Music Player Logo" class="sidebar-logo">
+      <div class="sidebar-title-container">
+        <h1>Last Music Player</h1>
+        <span>Docs Hub</span>
+      </div>
+    </div>
+
+    <div class="search-wrapper">
+      <div class="search-input-container">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input type="text" id="search-input" placeholder="Quick search..." autocomplete="off">
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-category" id="nav-category-guide">
+        <div class="nav-category-title">Guide</div>
+        <a class="nav-link active" data-target="overview"><i class="fa-solid fa-circle-info"></i> Overview</a>
+        <a class="nav-link" data-target="quickstart"><i class="fa-solid fa-circle-play"></i> Quick Start</a>
+        <a class="nav-link" data-target="secrets"><i class="fa-solid fa-key"></i> Custom Secrets</a>
+        <a class="nav-link" data-target="architecture"><i class="fa-solid fa-network-wired"></i> Architecture</a>
+      </div>
+
+      <div class="nav-category" id="nav-category-specs">
+        <div class="nav-category-title">Technical Specifications</div>
+        <a class="nav-link" data-target="database"><i class="fa-solid fa-database"></i> SQLite Database</a>
+        <a class="nav-link" data-target="api-contract"><i class="fa-solid fa-code"></i> Provider API Contract</a>
+      </div>
+
+      <div class="nav-category" id="nav-category-meta">
+        <div class="nav-category-title">Meta</div>
+        <a class="nav-link" data-target="troubleshooting"><i class="fa-solid fa-bug-slash"></i> Troubleshooting</a>
+        <a class="nav-link" data-target="license"><i class="fa-solid fa-scale-balanced"></i> Terms & License</a>
+      </div>
+    </nav>
+
+    <div class="sidebar-footer">
+      Licensed under <br><strong>Last Projects 1.0</strong>
+    </div>
+  </aside>
+
+  <!-- Main Work area -->
+  <main>
+    
+    <!-- Top Header Panel -->
+    <div class="header-panel">
+      <div class="header-intro">
+        <h2 id="hub-main-title">Developer & Integrations Wiki</h2>
+        <p>Comprehensive guide to hacking, compiling, and integrating with Last Music Player.</p>
+      </div>
+      <div class="header-actions">
+        <a href="https://github.com/MrDevFX/Last-Music-Player" target="_blank" class="btn btn-secondary">
+          <i class="fa-brands fa-github"></i> GitHub
+        </a>
+        <a href="https://github.com/MrDevFX/Last-Music-Player/releases/latest" target="_blank" class="btn btn-primary">
+          <i class="fa-solid fa-download"></i> Get App
+        </a>
+      </div>
+    </div>
+
+    <!-- Section 1: Overview -->
+    <section id="overview">
+      <div class="card">
+        <span class="card-title-badge">Guide</span>
+        <h3><i class="fa-solid fa-music"></i> Overview</h3>
+        <p>
+          <strong>Last Music Player</strong> is a high-performance, native Windows music player built specifically for local music enthusiasts. It features native integration with the Windows Shell, seamless playback management, SQLite-backed library indexing, and a contract-driven structure allowing users to hook up external audio streaming servers (Music APIs) via plain HTTP endpoints.
+        </p>
+
+        <div class="badge-grid">
+          <div class="tech-badge platform"><i class="fa-brands fa-windows"></i> Windows 10/11</div>
+          <div class="tech-badge ui"><i class="fa-solid fa-desktop"></i> WinUI 3 / WASDK</div>
+          <div class="tech-badge lang"><i class="fa-solid fa-c"></i> C++/WinRT</div>
+          <div class="tech-badge data"><i class="fa-solid fa-database"></i> SQLite 3</div>
+        </div>
+
+        <div class="preview-box">
+          <img src="Assets/LastMusicPlayerPreviewClean.png" alt="Last Music Player Home Screen showing music lists, custom local mixes, playback control, and library views.">
+        </div>
+
+        <h4 style="margin-bottom: 12px; font-weight:600;">Core Highlights</h4>
+        <ul class="custom-list">
+          <li><strong>Local-First:</strong> Play standard local formats (MP3, FLAC, M4A, WAV, Opus) with a blazing-fast startup time.</li>
+          <li><strong>Gapless Engine:</strong> Multi-source native queue manager fetches the next song block in advance for zero gap clicks.</li>
+          <li><strong>Optional Provider System:</strong> Add your own remote catalog (Radio, Lyrics, Streaming, Resolving Links) by meeting a simple HTTP API.</li>
+          <li><strong>Windows Shell Sync:</strong> Integrates natively with SMTC (System Media Transport Controls), media keys, and system flyouts.</li>
+          <li><strong>Extras Support:</strong> Optional Google Cast output engine, Discord Rich Presence, and system tray minimization.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- Section 2: Quick Start -->
+    <section id="quickstart">
+      <div class="card">
+        <span class="card-title-badge">Guide</span>
+        <h3><i class="fa-solid fa-circle-play"></i> Quick Start & Installation</h3>
+        <p>
+          To compile and build the client application, ensure your environment meets the modern Windows developer specification stack.
+        </p>
+
+        <div class="specs-grid">
+          <div class="spec-card">
+            <span>Operating System</span>
+            <span>Windows 10 (2004+) / Windows 11</span>
+          </div>
+          <div class="spec-card">
+            <span>IDE</span>
+            <span>Visual Studio 2022</span>
+          </div>
+          <div class="spec-card">
+            <span>Compiler Workload</span>
+            <span>C++ Desktop Development</span>
+          </div>
+          <div class="spec-card">
+            <span>SDKs Required</span>
+            <span>Windows App SDK + Windows 11 SDK</span>
+          </div>
+        </div>
+
+        <h4 style="margin: 24px 0 12px 0; font-weight: 600;">Building from Visual Studio</h4>
+        <ol class="custom-list">
+          <li style="padding-left: 8px;">Clone the repository recursively to fetch submodules: `git clone --recursive`.</li>
+          <li style="padding-left: 8px;">Open <code class="font-mono-tag">Last Music Player.slnx</code> in Visual Studio 2022.</li>
+          <li style="padding-left: 8px;">NuGet packages should restore automatically. If not, right-click the solution and choose <strong>Restore NuGet Packages</strong>.</li>
+          <li style="padding-left: 8px;">Set the active architecture configuration to <strong>x64</strong> (Debug or Release).</li>
+          <li style="padding-left: 8px;">Build and run. The output binaries and self-contained DLL packaging will write to the build directories.</li>
+        </ol>
+
+        <h4 style="margin: 24px 0 12px 0; font-weight: 600;">Building from Command Line</h4>
+        <p>Use the MSBuild toolchain from the Visual Studio Developer Command Prompt to compile the project headless:</p>
+        
+        <div class="code-block-wrapper">
+          <button class="copy-btn" title="Copy to clipboard"><i class="fa-regular fa-copy"></i></button>
+          <pre><code>MSBuild.exe "Last Music Player.vcxproj" /t:Build /p:Configuration=Release /p:Platform=x64</code></pre>
+        </div>
+
+        <p style="margin-top: 14px;">The release binaries will write directly to:</p>
+        <div class="code-block-wrapper">
+          <pre><code>x64/Release/Last_Music_Player.exe</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 3: Custom Secrets -->
+    <section id="secrets">
+      <div class="card">
+        <span class="card-title-badge">Guide</span>
+        <h3><i class="fa-solid fa-key"></i> Custom Secrets (`AppSecrets`)</h3>
+        <p>
+          For optional features like Discord Rich Presence, the developer API secrets are excluded from Git to prevent leakage. You can configure them locally for custom builds.
+        </p>
+
+        <div class="alert-box info">
+          <i class="fa-solid fa-circle-info"></i>
+          <div>
+            <strong>Note:</strong> If <code class="font-mono-tag">AppSecrets.local.h</code> is absent during compilation, the client falls back to <code class="font-mono-tag">AppSecrets.example.h</code> and automatically disables Discord integrations.
+          </div>
+        </div>
+
+        <h4 style="margin-bottom: 12px; font-weight: 600;">Configuration Steps</h4>
+        <ol class="custom-list">
+          <li style="padding-left: 8px;">Navigate to the <code class="font-mono-tag">Backend/</code> directory.</li>
+          <li style="padding-left: 8px;">Copy the template file <code class="font-mono-tag">AppSecrets.example.h</code> and name the new file <code class="font-mono-tag">AppSecrets.local.h</code>.</li>
+          <li style="padding-left: 8px;">Open <code class="font-mono-tag">AppSecrets.local.h</code> and insert your custom API client IDs.</li>
+        </ol>
+
+        <div class="code-block-wrapper">
+          <button class="copy-btn" title="Copy to clipboard"><i class="fa-regular fa-copy"></i></button>
+          <pre><code>#pragma once
+
+// Discord Application Client ID for Rich Presence integrations.
+// Replace with your custom Discord Developer Portal Application ID.
+#define LMP_DISCORD_CLIENT_ID "your-discord-app-id-here"</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 4: Architecture -->
+    <section id="architecture">
+      <div class="card">
+        <span class="card-title-badge">Guide</span>
+        <h3><i class="fa-solid fa-network-wired"></i> Architecture & Component Layout</h3>
+        <p>
+          Last Music Player separates components into distinct native layers. The Frontend manages the WinUI 3 presentation structure, while the Backend handles state, cache, hardware playback queues, and SQLite interactions.
+        </p>
+
+        <!-- Interactive Architecture diagram -->
+        <div class="arch-diagram" style="padding: 20px; overflow: hidden;">
+          <div class="arch-diagram-wrapper" style="width: 100%; overflow-x: auto; padding-bottom: 10px; -webkit-overflow-scrolling: touch;">
+            <svg viewBox="0 0 800 420" width="800" height="420" style="display: block; min-width: 800px; margin: 0 auto; overflow: visible;">
+              <defs>
+                <!-- Double sided Arrow Marker -->
+                <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                  <path d="M 2 2 L 2 8 L 8 5 z" fill="var(--accent-primary)"/>
+                </marker>
+              </defs>
+
+              <!-- Connector Lines -->
+              <!-- WinUI 3 Frontend -> AudioPlayer -->
+              <path d="M 400 85 v 35 H 130 v 44" fill="none" stroke="rgba(139, 92, 246, 0.4)" stroke-width="2.5" class="flow-line" marker-end="url(#arrow)"/>
+              
+              <!-- WinUI 3 Frontend -> DatabaseEngine -->
+              <path d="M 400 85 v 79" fill="none" stroke="rgba(139, 92, 246, 0.4)" stroke-width="2.5" class="flow-line" marker-end="url(#arrow)"/>
+              
+              <!-- WinUI 3 Frontend -> ProviderClient -->
+              <path d="M 400 85 v 35 H 670 v 44" fill="none" stroke="rgba(139, 92, 246, 0.4)" stroke-width="2.5" class="flow-line" marker-end="url(#arrow)"/>
+              
+              <!-- AudioPlayer <-> Windows SMTC (Bidirectional) -->
+              <path d="M 130 251 v 73" fill="none" stroke="rgba(139, 92, 246, 0.4)" stroke-width="2.5" class="flow-line" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
+              
+              <!-- ProviderClient <-> User Provider Server (Bidirectional) -->
+              <path d="M 670 251 v 73" fill="none" stroke="rgba(139, 92, 246, 0.4)" stroke-width="2.5" class="flow-line" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
+
+              <!-- Nodes Group -->
+              <!-- Top Level: Frontend -->
+              <foreignObject x="290" y="10" width="220" height="75">
+                <div class="flow-node" data-ref="ui-layer" style="margin: 0;">
+                  <h4>WinUI 3 Frontend</h4>
+                  <p>MainWindow.xaml / Navigation</p>
+                </div>
+              </foreignObject>
+
+              <!-- Middle Level: AudioPlayer -->
+              <foreignObject x="40" y="170" width="180" height="75">
+                <div class="flow-node highlighted" data-ref="audio-layer" style="margin: 0;">
+                  <h4>AudioPlayer</h4>
+                  <p>MediaPlayer / Gapless engine</p>
+                </div>
+              </foreignObject>
+
+              <!-- Middle Level: DatabaseEngine -->
+              <foreignObject x="310" y="170" width="180" height="75">
+                <div class="flow-node" data-ref="db-layer" style="margin: 0;">
+                  <h4>DatabaseEngine</h4>
+                  <p>SQLite local storage & cache</p>
+                </div>
+              </foreignObject>
+
+              <!-- Middle Level: ProviderClient -->
+              <foreignObject x="580" y="170" width="180" height="75">
+                <div class="flow-node" data-ref="provider-layer" style="margin: 0;">
+                  <h4>ProviderClient</h4>
+                  <p>HTTP Music API Client</p>
+                </div>
+              </foreignObject>
+
+              <!-- Bottom Level: Windows SMTC -->
+              <foreignObject x="40" y="330" width="180" height="75">
+                <div class="flow-node" data-ref="external-shell" style="margin: 0;">
+                  <h4>Windows SMTC</h4>
+                  <p>System Media Keys & Flyouts</p>
+                </div>
+              </foreignObject>
+
+              <!-- Bottom Level: User Provider Server -->
+              <foreignObject x="580" y="330" width="180" height="75">
+                <div class="flow-node" data-ref="external-service" style="margin: 0;">
+                  <h4>User Provider Server</h4>
+                  <p>Remote Streams & Lyrics</p>
+                </div>
+              </foreignObject>
+            </svg>
+          </div>
+        </div>
+
+        <h4 style="margin-bottom: 12px; font-weight: 600;">Core Code Directory Structure</h4>
+        <table class="compact-table">
+          <thead>
+            <tr>
+              <th style="width: 250px;">Directory</th>
+              <th>Responsibility & Module Info</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code class="font-mono-tag">App.xaml*</code></td>
+              <td>Main entry-point, WinUI life-cycle management, shell configuration, and application boot.</td>
+            </tr>
+            <tr>
+              <td><a href="#architecture" class="in-doc-link">MainWindow/</a></td>
+              <td>Views, library browsers, playlists, now playing controls, queue visuals, and settings UI panels.</td>
+            </tr>
+            <tr>
+              <td><a href="#architecture" class="in-doc-link">Backend/</a></td>
+              <td>Audio playback engine, SQLite integration, Google Cast client, Discord RPC client, settings, and lyrics services.</td>
+            </tr>
+            <tr>
+              <td><code class="font-mono-tag">Frontend/</code></td>
+              <td>Navigation logic wrappers and converters, visual and layout helpers.</td>
+            </tr>
+            <tr>
+              <td><code class="font-mono-tag">ThirdParty/sqlite/</code></td>
+              <td>Vendored SQLite database engine (amalgamated source).</td>
+            </tr>
+            <tr>
+              <td><code class="font-mono-tag">installer/</code></td>
+              <td>Setup packaging configuration written for Inno Setup.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h4 style="margin: 24px 0 12px 0; font-weight: 600;">Gapless Playback Engine Flow</h4>
+        <p>
+          The <code class="font-mono-tag">AudioPlayer.cpp</code> class manages smooth transitions by utilizing the native <code class="font-mono-tag">Windows.Media.Playback.MediaPlaybackList</code> API. When gapless playback is enabled:
+        </p>
+        <ul class="custom-list">
+          <li>The currently playing track sits at index 0 of the playlist queue.</li>
+          <li>A lookahead worker pre-loads the next song, configuring the audio stream into index 1 of the list in advance.</li>
+          <li>When the current song terminates, the player transitions to the next track instantly without closing and reopening the audio channel.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- Section 5: Database Schema -->
+    <section id="database">
+      <div class="card">
+        <span class="card-title-badge">Specifications</span>
+        <h3><i class="fa-solid fa-database"></i> SQLite Database Schema</h3>
+        <p>
+          Last Music Player manages the library metadata and user interactions locally using SQLite. The database stores local tracks scanned from disk, remote tracks resolving from the Provider API, local playlists, and configuration logs.
+        </p>
+
+        <!-- Interactive DB Schema Browser -->
+        <div class="db-schema-explorer">
+          <div class="db-sidebar" id="db-sidebar-list">
+            <!-- Populated dynamically via JS -->
+          </div>
+          <div class="db-content">
+            <div class="db-content-header">
+              <span class="db-table-title" id="db-table-title">Table Name</span>
+              <span class="db-table-description" id="db-table-desc">Table description.</span>
+            </div>
+            
+            <div class="table-container">
+              <table class="info-table" id="db-fields-table">
+                <thead>
+                  <tr>
+                    <th>Column Name</th>
+                    <th>Data Type</th>
+                    <th>Constraints & Metadata</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody id="db-fields-body">
+                  <!-- Columns list populated dynamically -->
+                </tbody>
+              </table>
+            </div>
+
+            <div>
+              <span class="api-section-title">Common Query Pattern</span>
+              <div class="code-block-wrapper">
+                <button class="copy-btn" title="Copy SQL"><i class="fa-regular fa-copy"></i></button>
+                <pre><code id="db-sample-query" class="language-sql">-- SQL query will display here</code></pre>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <h4 style="margin: 32px 0 12px 0; font-weight: 600;">Database Versions & Schema Migration</h4>
+        <p>
+          The DB engine implements a version-gate check using <code class="font-mono-tag">PRAGMA user_version</code>. The schema is currently at <strong>Version 6</strong>.
+        </p>
+        <table class="compact-table">
+          <thead>
+            <tr>
+              <th style="width: 120px;">DB Version</th>
+              <th>Migration Change Log</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>v2</strong></td>
+              <td>Added column helpers to support remote media integrations (<code class="font-mono-tag">SourceKey</code>, <code class="font-mono-tag">SourceKind</code>, <code class="font-mono-tag">Provider</code>, <code class="font-mono-tag">SourceUrl</code>, etc.). Added playlist schema, and unique indices on source tracking components.</td>
+            </tr>
+            <tr>
+              <td><strong>v4</strong></td>
+              <td>Dropped columns supporting volume normalizations (`ReplayGainDb`) since that feature was deprecated, optimization clean-up.</td>
+            </tr>
+            <tr>
+              <td><strong>v5</strong></td>
+              <td>Rebranded default labels for remote imports: modified <code class="font-mono-tag">DateAddedText</code> values matching remote source indicators to say "Music API" to prevent UI leakage.</td>
+            </tr>
+            <tr>
+              <td><strong>v6</strong></td>
+              <td>Schema version baseline optimization to prevent repetitive migration iterations, improving initialization speed.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Section 6: Provider API Contract -->
+    <section id="api-contract">
+      <div class="card">
+        <span class="card-title-badge">Specifications</span>
+        <h3><i class="fa-solid fa-code"></i> Music API Provider Contract</h3>
+        <p>
+          If you configure a custom <strong>Music API Provider</strong> under settings, the player offloads catalog searching, album indexing, streaming, related radio, and synchronized lyrics requests to your provider base URL via HTTP.
+        </p>
+
+        <!-- Interactive API Playground -->
+        <div class="api-explorer">
+          <div class="api-endpoints-bar" id="api-tabs-bar">
+            <!-- Buttons dynamically populated -->
+          </div>
+          
+          <div class="api-details-pane">
+            <div class="api-path-bar">
+              <span class="method-tag" id="api-active-method">GET</span>
+              <span id="api-active-path">/v1/endpoint</span>
+              <span class="api-auth-badge" id="api-active-auth">Auth: Bearer Token</span>
+            </div>
+
+            <p id="api-active-desc" style="font-size: 0.95rem; margin-bottom: 20px;">Endpoint description details.</p>
+
+            <div class="api-layout-cols">
+              <div>
+                <span class="api-section-title" id="api-params-title">URL Query Parameters</span>
+                <table class="info-table" style="font-size: 0.85rem;" id="api-params-table">
+                  <thead>
+                    <tr>
+                      <th>Parameter</th>
+                      <th>Type</th>
+                      <th>Status</th>
+                      <th>Description</th>
+                    </tr>
+                  </thead>
+                  <tbody id="api-params-body">
+                    <!-- Parameters dynamically filled -->
+                  </tbody>
+                </table>
+              </div>
+
+              <div>
+                <span class="api-section-title">Request & Response Models</span>
+                <div class="code-tabs">
+                  <div class="code-tabs-header">
+                    <button class="code-tab-btn active" data-tab="curl">cURL</button>
+                    <button class="code-tab-btn" data-tab="js">JavaScript</button>
+                    <button class="code-tab-btn" data-tab="response">Response JSON</button>
+                  </div>
+                  <div class="code-block-wrapper">
+                    <button class="copy-btn" title="Copy snippet"><i class="fa-regular fa-copy"></i></button>
+                    <pre><code id="api-code-snippet" class="language-javascript">-- Code snippet loader</code></pre>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <h4 style="margin: 32px 0 12px 0; font-weight: 600;">Authentication Standard</h4>
+        <p>The client app communicates the API key configure in settings in two ways:</p>
+        <ul class="custom-list">
+          <li><strong>JSON Endpoints:</strong> Rest query API calls from the client pass the key as an HTTP Authorization Bearer token header:
+            <div class="code-block-wrapper" style="margin-top: 10px;">
+              <pre><code>Authorization: Bearer &lt;api_key&gt;</code></pre>
+            </div>
+          </li>
+          <li style="margin-top: 12px;"><strong>Media Streams & Artworks:</strong> Since Windows Media and image rendering pipelines perform native queries direct from the OS stack where custom headers cannot be attached, keys are passed via query strings:
+            <div class="code-block-wrapper" style="margin-top: 10px;">
+              <pre><code>?access_token=&lt;api_key&gt;</code></pre>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- Section 7: Troubleshooting -->
+    <section id="troubleshooting">
+      <div class="card">
+        <span class="card-title-badge">Meta</span>
+        <h3><i class="fa-solid fa-bug-slash"></i> Troubleshooting & FAQ</h3>
+        <p>
+          Common issues encountered during development, installation, or configuration of Last Music Player client and provider stacks.
+        </p>
+
+        <div class="faq-container">
+          <div class="faq-item active">
+            <div class="faq-header">
+              <span>Why does the compiler throw access-violation exceptions on startup?</span>
+              <i class="fa-solid fa-chevron-down"></i>
+            </div>
+            <div class="faq-content">
+              Make sure that the <code class="font-mono-tag">MediaPlayer</code> instance inside `AudioPlayer.cpp` is not initialized during static/global variable setup. The constructor runs before <code class="font-mono-tag">init_apartment()</code> has been called, causing ABI proxy failures. Ensure the client player instantiation is called lazily (e.g. on UI thread initialization).
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <div class="faq-header">
+              <span>Why are Equalizer controls disabled?</span>
+              <i class="fa-solid fa-chevron-down"></i>
+            </div>
+            <div class="faq-content">
+              The user interface elements for the 10-band equalizer are visible in Settings but are currently disabled. The DSP audio effect is operational inside <code class="font-mono-tag">EqualizerEffect.cpp</code>, but the UI is deactivated pending fine-tuning of the biquad audio filter coefficients to avoid crackling noise during playback adjustments.
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <div class="faq-header">
+              <span>Why isn't Google Cast detecting my casting devices?</span>
+              <i class="fa-solid fa-chevron-down"></i>
+            </div>
+            <div class="faq-content">
+              Google Cast relies on network device discovery features. Ensure that the casting devices (like Chromecast or Google Nest speakers) are on the exact same local Wi-Fi/Ethernet subnet as the Windows desktop PC, and that network profiles on Windows are set to "Private" to allow device discoveries.
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <div class="faq-header">
+              <span>How are API requests handled if the provider times out?</span>
+              <i class="fa-solid fa-chevron-down"></i>
+            </div>
+            <div class="faq-content">
+              JSON endpoints like search or lyrics checks are hard-capped with a <strong>15-second timeout</strong> inside the client app. If the server does not respond within this window, the client aborts the request. Audio transcoding or file resolving operations should be handled under the streaming path (<code class="font-mono-tag">/v1/stream</code>) which does not enforce this timeout constraint.
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <div class="faq-header">
+              <span>How does the local library scanner index track metadata?</span>
+              <i class="fa-solid fa-chevron-down"></i>
+            </div>
+            <div class="faq-content">
+              The local library scanner (found under <code class="font-mono-tag">MainWindow.LibraryScan.cpp</code>) runs background tasks that recursively crawl configured directories. It parses audio file headers for embedded tags (ID3, Vorbis, MP4 metadata) and saves them to the local SQLite catalog. Track cover artwork is extracted, written to the local app data folder, and referenced as the track's <code class="font-mono-tag">ArtworkUrl</code>.
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <div class="faq-header">
+              <span>How is the local disk cache managed for remote music streams?</span>
+              <i class="fa-solid fa-chevron-down"></i>
+            </div>
+            <div class="faq-content">
+              The client app integrates a local cache manager (<code class="font-mono-tag">StreamCache.cpp</code>) which writes remote audio stream segments to temporary disk storage during active playback. If a track's <code class="font-mono-tag">sourceUrl</code> is requested again, the client redirects the media pipeline to fetch bytes directly from local cache, saving bandwidth and preventing network latency gaps.
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <div class="faq-header">
+              <span>Why does the app lose connection with media keys and Windows Volume Flyout (SMTC)?</span>
+              <i class="fa-solid fa-chevron-down"></i>
+            </div>
+            <div class="faq-content">
+              Windows manages media focus dynamically. If another application (such as Spotify or an active browser tab playing video) grabs exclusive SMTC focus, the OS stops routing media button presses to Last Music Player. Clicking play or pause inside the client app forces a re-registration of the player session to re-acquire focus.
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <div class="faq-header">
+              <span>How does the gapless playback engine pre-load the next track?</span>
+              <i class="fa-solid fa-chevron-down"></i>
+            </div>
+            <div class="faq-content">
+              When a track is active in the native <code class="font-mono-tag">MediaPlaybackList</code>, the <code class="font-mono-tag">AudioPlayer</code> listens to item transitions. When the current track approaches its end, a lookahead thread resolves the stream URL of the next queue item, pre-loads it at index 1 of the playback list, and switches streams seamlessly when index 0 finishes.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 8: Licensing and Terms -->
+    <section id="license">
+      <div class="card">
+        <span class="card-title-badge">Meta</span>
+        <h3><i class="fa-solid fa-scale-balanced"></i> Licensing & Contribution Terms</h3>
+        <p>
+          Last Music Player is distributed as a <strong>source-available</strong> project, not open-source. Using, modifying, or redistributing the application codebase is governed by specific licensing guidelines.
+        </p>
+
+        <h4 style="margin-bottom: 12px; font-weight: 600;">License Summary</h4>
+        <p>The code is subject to the custom <strong>Last Projects License 1.0</strong>. Key tenets include:</p>
+        <ul class="custom-list">
+          <li><strong>Personal Use:</strong> Free for natural persons studying, building, or modifying the software for strictly personal and non-commercial purposes.</li>
+          <li><strong>Modified Source:</strong> If you modify the codebase, you are required to publish the modified source code in a qualifying public Git repository within <strong>seven calendar days</strong>.</li>
+          <li><strong>Organizational Restrictions:</strong> Non-profits, companies, government institutions, and schools require a separately negotiated commercial license.</li>
+          <li><strong>Dataset Constraints:</strong> Using the source code or binary outputs for AI training datasets is strictly prohibited without explicit written consent.</li>
+        </ul>
+
+        <h4 style="margin: 24px 0 12px 0; font-weight: 600;">Contributor Agreement (CLA)</h4>
+        <p>
+          By submitting code patches or pull requests to the project, you agree to grant ownership and redistribution rights to Last Projects. You can review the details in <code class="font-mono-tag">CLA.md</code>.
+        </p>
+
+        <p style="margin-top: 24px;">For organization license requests or questions, reach out to: <a href="mailto:info@lastprojects.com" style="color: var(--accent-secondary); font-weight: 600;">info@lastprojects.com</a>.</p>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- JS Logic -->
+  <script>
+    // Database schema definitions
+    const dbSchema = {
+      Tracks: {
+        desc: "Stores track metadata for both scanned local media files and indexed remote Provider tracks.",
+        fields: [
+          { name: "Id", type: "INTEGER", key: "PRIMARY KEY AUTOINCREMENT", desc: "Unique local DB identifier." },
+          { name: "SourceKey", type: "TEXT", key: "UNIQUE INDEX", desc: "Compound index identifier (e.g. 'local|c:/music/file.mp3' or 'remote|provider|http://url')." },
+          { name: "SourceKind", type: "TEXT", key: "DEFAULT 'local'", desc: "Specifies media origin: 'local' or 'remote'." },
+          { name: "Provider", type: "TEXT", key: "NULLABLE", desc: "Identifier of the provider API instance." },
+          { name: "SourceUrl", type: "TEXT", key: "NULLABLE", desc: "Unique stable URL identifier from remote provider API." },
+          { name: "FilePath", type: "TEXT", key: "NULLABLE", desc: "Absolute disk path to the media file for local tracks." },
+          { name: "Title", type: "TEXT", key: "NULLABLE", desc: "Song title." },
+          { name: "Artist", type: "TEXT", key: "NULLABLE", desc: "Artist or band name." },
+          { name: "Album", type: "TEXT", key: "NULLABLE", desc: "Album containing the track." },
+          { name: "Genre", type: "TEXT", key: "NULLABLE", desc: "Genre metadata." },
+          { name: "DurationSeconds", type: "REAL", key: "DEFAULT 0", desc: "Total track length in seconds." },
+          { name: "ArtworkUrl", type: "TEXT", key: "NULLABLE", desc: "URL or path pointing to track cover art image." },
+          { name: "DateAddedSortKey", type: "REAL", key: "DEFAULT 0", desc: "Sort key representing track addition time." },
+          { name: "DateAddedText", type: "TEXT", key: "NULLABLE", desc: "Human readable text indicating track source details." },
+          { name: "DurationText", type: "TEXT", key: "NULLABLE", desc: "Formatted play length string (e.g. '3:45')." },
+          { name: "PlayCount", type: "INTEGER", key: "DEFAULT 0", desc: "Total play cycles accumulated." },
+          { name: "LastPlayedOrder", type: "INTEGER", key: "DEFAULT 0", desc: "Ordering value of last playback." },
+          { name: "IsLiked", type: "INTEGER", key: "DEFAULT 0", desc: "Boolean flag (0/1) for track favorites." },
+          { name: "IsActive", type: "INTEGER", key: "DEFAULT 1", desc: "Boolean flag (0/1) indicating index validity." },
+          { name: "UpdatedAt", type: "INTEGER", key: "DEFAULT 0", desc: "Timestamp representing last schema update." },
+          { name: "LastPlayed", type: "DATETIME", key: "NULLABLE", desc: "Timestamp of last playback event." }
+        ],
+        query: `SELECT Title, Artist, PlayCount, LastPlayed \nFROM Tracks \nWHERE IsActive = 1 \nORDER BY LastPlayed DESC \nLIMIT 10;`
+      },
+      Albums: {
+        desc: "Holds collections grouped as albums, auto-generated mixes, or remote imports.",
+        fields: [
+          { name: "Id", type: "INTEGER", key: "PRIMARY KEY AUTOINCREMENT", desc: "Unique identifier." },
+          { name: "AlbumKey", type: "TEXT", key: "UNIQUE", desc: "Lookup key mapping albums to tracks." },
+          { name: "Title", type: "TEXT", key: "NULLABLE", desc: "Album header title." },
+          { name: "Artist", type: "TEXT", key: "NULLABLE", desc: "Primary album artist." },
+          { name: "ArtworkUrl", type: "TEXT", key: "NULLABLE", desc: "Album specific cover art URL." },
+          { name: "SourceKind", type: "TEXT", key: "DEFAULT 'manual'", desc: "Collection type: 'manual' or 'imported'." },
+          { name: "SourceUrl", type: "TEXT", key: "NULLABLE", desc: "Import source URL." },
+          { name: "SourceLabel", type: "TEXT", key: "NULLABLE", desc: "Display label for imports." },
+          { name: "CreatedAt", type: "INTEGER", key: "DEFAULT 0", desc: "Timestamp of creation." },
+          { name: "UpdatedAt", type: "INTEGER", key: "DEFAULT 0", desc: "Timestamp of last update." }
+        ],
+        query: `SELECT Title, Artist \nFROM Albums \nWHERE SourceKind = 'manual' \nORDER BY CreatedAt DESC;`
+      },
+      Playlists: {
+        desc: "Tracks custom playlists created by user or imported lists.",
+        fields: [
+          { name: "Id", type: "INTEGER", key: "PRIMARY KEY AUTOINCREMENT", desc: "Unique identifier." },
+          { name: "PlaylistKey", type: "TEXT", key: "UNIQUE", desc: "Lookup key mapping tracks." },
+          { name: "Title", type: "TEXT", key: "NULLABLE", desc: "Playlist Title." },
+          { name: "Description", type: "TEXT", key: "NULLABLE", desc: "User description text." },
+          { name: "ArtworkUrl", type: "TEXT", key: "NULLABLE", desc: "Cover art banner URL." },
+          { name: "SourceKind", type: "TEXT", key: "DEFAULT 'manual'", desc: "Origin indicator." },
+          { name: "Provider", type: "TEXT", key: "NULLABLE", desc: "Provider identity string." },
+          { name: "SourceUrl", type: "TEXT", key: "NULLABLE", desc: "Linked online playlist URL." },
+          { name: "SourceLabel", type: "TEXT", key: "NULLABLE", desc: "Display label indicating playlist source." },
+          { name: "CreatedAt", type: "INTEGER", key: "DEFAULT 0", desc: "Timestamp of creation." },
+          { name: "UpdatedAt", type: "INTEGER", key: "DEFAULT 0", desc: "Timestamp of last update." }
+        ],
+        query: `SELECT * FROM Playlists WHERE PlaylistKey LIKE 'custom-%';`
+      },
+      AlbumTracks: {
+        desc: "Join table creating ordered relations between Tracks and Albums.",
+        fields: [
+          { name: "AlbumId", type: "INTEGER", key: "FOREIGN KEY REFERENCES Albums(Id)", desc: "Target Album ID." },
+          { name: "TrackId", type: "INTEGER", key: "FOREIGN KEY REFERENCES Tracks(Id)", desc: "Target Track ID." },
+          { name: "TrackOrder", type: "INTEGER", key: "DEFAULT 0", desc: "Ordering value inside album tracks." }
+        ],
+        query: `SELECT t.Title, t.Artist, at.TrackOrder \nFROM AlbumTracks at \nJOIN Tracks t ON at.TrackId = t.Id \nWHERE at.AlbumId = 5 \nORDER BY at.TrackOrder ASC;`
+      },
+      PlaylistTracks: {
+        desc: "Join table creating ordered relations between Tracks and Playlists.",
+        fields: [
+          { name: "PlaylistId", type: "INTEGER", key: "FOREIGN KEY REFERENCES Playlists(Id)", desc: "Target Playlist ID." },
+          { name: "TrackId", type: "INTEGER", key: "FOREIGN KEY REFERENCES Tracks(Id)", desc: "Target Track ID." },
+          { name: "TrackOrder", type: "INTEGER", key: "DEFAULT 0", desc: "Ordering inside playlist." }
+        ],
+        query: `SELECT t.Title, pt.TrackOrder \nFROM PlaylistTracks pt \nJOIN Tracks t ON pt.TrackId = t.Id \nWHERE pt.PlaylistId = 1 \nORDER BY pt.TrackOrder ASC;`
+      }
+    };
+
+    // API contract definitions
+    const apiEndpoints = [
+      {
+        id: "health",
+        method: "GET",
+        path: "/v1/providers",
+        auth: "Bearer Token",
+        desc: "Test connectivity to custom API provider. Any 2xx status code response validates the settings.",
+        params: [],
+        curl: `curl -X GET "http://127.0.0.1:4527/v1/providers" \\\n  -H "Authorization: Bearer YOUR_API_KEY"`,
+        js: `fetch('http://127.0.0.1:4527/v1/providers', {\n  headers: {\n    'Authorization': 'Bearer YOUR_API_KEY'\n  }\n})\n.then(res => res.json())\n.then(data => console.log(data));`,
+        response: `[\n  {\n    "id": "my_provider",\n    "name": "My Custom Music API",\n    "version": "1.0.0"\n  }\n]`
+      },
+      {
+        id: "search",
+        method: "GET",
+        path: "/v1/search",
+        auth: "Bearer Token",
+        desc: "Perform full-text search across the provider catalog.",
+        params: [
+          { name: "q", type: "String", status: "Required", desc: "URL-encoded search query text." }
+        ],
+        curl: `curl -X GET "http://127.0.0.1:4527/v1/search?q=Example" \\\n  -H "Authorization: Bearer YOUR_API_KEY"`,
+        js: `fetch('http://127.0.0.1:4527/v1/search?q=' + encodeURIComponent('Example'), {\n  headers: {\n    'Authorization': 'Bearer YOUR_API_KEY'\n  }\n})\n.then(res => res.json());`,
+        response: `{\n  "results": [\n    {\n      "title": "Example Song",\n      "artist": "Example Artist",\n      "album": "Example Album",\n      "sourceUrl": "https://catalog.example.com/tracks/abc123",\n      "streamUrl": "http://127.0.0.1:4527/v1/stream/abc123",\n      "durationMs": 213000,\n      "artworkUrl": "http://127.0.0.1:4527/v1/artwork?id=abc123",\n      "provider": "example"\n    }\n  ]\n}`
+      },
+      {
+        id: "related",
+        method: "GET",
+        path: "/v1/related",
+        auth: "Bearer Token",
+        desc: "Fetches autoplay recommendations based on seed track URL.",
+        params: [
+          { name: "sourceUrl", type: "String", status: "Required", desc: "URL-encoded source URL of the seed track." }
+        ],
+        curl: `curl -X GET "http://127.0.0.1:4527/v1/related?sourceUrl=https%3A%2F%2Fcatalog.example.com%2Ftracks%2Fabc123" \\\n  -H "Authorization: Bearer YOUR_API_KEY"`,
+        js: `fetch('http://127.0.0.1:4527/v1/related?sourceUrl=' + encodeURIComponent('https://catalog.example.com/tracks/abc123'), {\n  headers: {\n    'Authorization': 'Bearer YOUR_API_KEY'\n  }\n})\n.then(res => res.json());`,
+        response: `{\n  "results": [\n    {\n      "title": "Related Song",\n      "artist": "Related Artist",\n      "album": "Related Album",\n      "sourceUrl": "https://catalog.example.com/tracks/xyz789",\n      "streamUrl": "http://127.0.0.1:4527/v1/stream/xyz789",\n      "durationMs": 180000,\n      "artworkUrl": "http://127.0.0.1:4527/v1/artwork?id=xyz789",\n      "provider": "example"\n    }\n  ]\n}`
+      },
+      {
+        id: "resolve",
+        method: "POST",
+        path: "/v1/resolve",
+        auth: "Bearer Token",
+        desc: "Resolves a pasted URL link into a playable track schema.",
+        params: [
+          { name: "url", type: "String", status: "Body JSON", desc: "Pasted link web URL to resolve." }
+        ],
+        curl: `curl -X POST "http://127.0.0.1:4527/v1/resolve" \\\n  -H "Authorization: Bearer YOUR_API_KEY" \\\n  -H "Content-Type: application/json" \\\n  -d '{"url": "https://catalog.example.test/tracks/example"}'`,
+        js: `fetch('http://127.0.0.1:4527/v1/resolve', {\n  method: 'POST',\n  headers: {\n    'Authorization': 'Bearer YOUR_API_KEY',\n    'Content-Type': 'application/json'\n  },\n  body: JSON.stringify({ url: 'https://catalog.example.test/tracks/example' })\n})\n.then(res => res.json());`,
+        response: `{\n  "results": [\n    {\n      "title": "Resolved Song",\n      "artist": "Resolved Artist",\n      "album": "Cloud Sound",\n      "sourceUrl": "https://catalog.example.test/tracks/example",\n      "streamUrl": "http://127.0.0.1:4527/v1/stream/sound123",\n      "durationMs": 240000,\n      "artworkUrl": "http://127.0.0.1:4527/v1/artwork?id=sound123",\n      "provider": "example"\n    }\n  ]\n}`
+      },
+      {
+        id: "import",
+        method: "POST",
+        path: "/v1/import-album",
+        auth: "Bearer Token",
+        desc: "Expands album or playlist URL link into array of track schemas.",
+        params: [
+          { name: "url", type: "String", status: "Body JSON", desc: "Album/Playlist link URL." }
+        ],
+        curl: `curl -X POST "http://127.0.0.1:4527/v1/import-album" \\\n  -H "Authorization: Bearer YOUR_API_KEY" \\\n  -H "Content-Type: application/json" \\\n  -d '{"url": "https://catalog.example.com/albums/my-album"}'`,
+        js: `fetch('http://127.0.0.1:4527/v1/import-album', {\n  method: 'POST',\n  headers: {\n    'Authorization': 'Bearer YOUR_API_KEY',\n    'Content-Type': 'application/json'\n  },\n  body: JSON.stringify({ url: 'https://catalog.example.com/albums/my-album' })\n})\n.then(res => res.json());`,
+        response: `{\n  "results": [\n    {\n      "title": "Track One",\n      "artist": "Artist A",\n      "album": "My Album",\n      "sourceUrl": "https://catalog.example.com/tracks/1",\n      "streamUrl": "http://127.0.0.1:4527/v1/stream/1",\n      "durationMs": 195000\n    },\n    {\n      "title": "Track Two",\n      "artist": "Artist A",\n      "album": "My Album",\n      "sourceUrl": "https://catalog.example.com/tracks/2",\n      "streamUrl": "http://127.0.0.1:4527/v1/stream/2",\n      "durationMs": 220000\n    }\n  ]\n}`
+      },
+      {
+        id: "lyrics",
+        method: "GET",
+        path: "/v1/lyrics",
+        auth: "Bearer Token",
+        desc: "Fetches plain text or synchronized lyrics timing details for a track.",
+        params: [
+          { name: "artist", type: "String", status: "Required", desc: "Artist name." },
+          { name: "title", type: "String", status: "Required", desc: "Track title." },
+          { name: "album", type: "String", status: "Optional", desc: "Album title." },
+          { name: "durationMs", type: "Number", status: "Optional", desc: "Track length." },
+          { name: "sourceUrl", type: "String", status: "Optional", desc: "Provider source URL." }
+        ],
+        curl: `curl -X GET "http://127.0.0.1:4527/v1/lyrics?artist=Artist&title=Song" \\\n  -H "Authorization: Bearer YOUR_API_KEY"`,
+        js: `fetch('http://127.0.0.1:4527/v1/lyrics?artist=Artist&title=Song', {\n  headers: {\n    'Authorization': 'Bearer YOUR_API_KEY'\n  }\n})\n.then(res => res.json());`,
+        response: `{\n  "found": true,\n  "instrumental": false,\n  "source": "lyrics-db",\n  "trackName": "Song",\n  "artistName": "Artist",\n  "plain": "Line one\\nLine two",\n  "synced": [\n    { "timeMs": 0, "text": "Line one" },\n    { "timeMs": 4000, "text": "Line two" }\n  ]\n}`
+      },
+      {
+        id: "stream",
+        method: "GET",
+        path: "/v1/stream/<streamId>",
+        auth: "Query Parameter",
+        desc: "Streams audio file binary payload. Supports Range headers.",
+        params: [
+          { name: "url", type: "String", status: "Required", desc: "Target stable source URL." },
+          { name: "access_token", type: "String", status: "Required", desc: "Settings API key passed in query parameter." }
+        ],
+        curl: `curl -X GET "http://127.0.0.1:4527/v1/stream/abc123?url=https%3D...&access_token=YOUR_API_KEY" \\\n  -H "Range: bytes=0-1024"`,
+        js: `// Usually called directly by Windows Media Foundation Engine via Url source string\nconst streamUrl = 'http://127.0.0.1:4527/v1/stream/abc123?url=' + encodeURIComponent(sourceUrl) + '&access_token=' + apiKey;`,
+        response: `[Binary Audio Payload (MP3/FLAC/AAC/Opus Bytes)]`
+      },
+      {
+        id: "artwork",
+        method: "GET",
+        path: "/v1/artwork",
+        auth: "Query Parameter",
+        desc: "Serves track cover artwork image files.",
+        params: [
+          { name: "access_token", type: "String", status: "Required", desc: "Settings API key." }
+        ],
+        curl: `curl -X GET "http://127.0.0.1:4527/v1/artwork?id=abc&access_token=YOUR_API_KEY"`,
+        js: `// Rendered via WinUI XAML Image ElementSource`,
+        response: `[Image binary bytes (JPEG/PNG/WebP)]`
+      },
+      {
+        id: "discord",
+        method: "POST",
+        path: "/v1/discord/artwork-url",
+        auth: "Bearer Token",
+        desc: "Optional Discord metadata cover resolver. Used to fetch URLs whitelisted by Discord CDN for Rich Presence badges.",
+        params: [
+          { name: "title", type: "String", status: "Body JSON", desc: "Playing Track title." },
+          { name: "artist", type: "String", status: "Body JSON", desc: "Playing Track artist." }
+        ],
+        curl: `curl -X POST "http://127.0.0.1:4527/v1/discord/artwork-url" \\\n  -H "Authorization: Bearer YOUR_API_KEY" \\\n  -H "Content-Type: application/json" \\\n  -d '{"title": "Song Title", "artist": "Artist Name"}'`,
+        js: `fetch('http://127.0.0.1:4527/v1/discord/artwork-url', {\n  method: 'POST',\n  headers: {\n    'Authorization': 'Bearer YOUR_API_KEY',\n    'Content-Type': 'application/json'\n  },\n  body: JSON.stringify({ title: 'Song Title', artist: 'Artist Name' })\n})\n.then(res => res.json());`,
+        response: `{\n  "url": "https://img.provider-cdn.com/artwork-cover.jpg"\n}`
+      }
+    ];
+
+    // Initialize Database Schema UI
+    const dbSidebar = document.getElementById("db-sidebar-list");
+    const dbTableTitle = document.getElementById("db-table-title");
+    const dbTableDesc = document.getElementById("db-table-desc");
+    const dbFieldsBody = document.getElementById("db-fields-body");
+    const dbSampleQuery = document.getElementById("db-sample-query");
+
+    let activeTable = "Tracks";
+
+    function selectDbTable(tableName) {
+      activeTable = tableName;
+      
+      // Update sidebar active states
+      document.querySelectorAll(".db-tab-btn").forEach(btn => {
+        if (btn.getAttribute("data-table") === tableName) {
+          btn.classList.add("active");
+        } else {
+          btn.classList.remove("active");
+        }
+      });
+
+      const tableData = dbSchema[tableName];
+      dbTableTitle.textContent = tableName;
+      dbTableDesc.textContent = tableData.desc;
+
+      // Populate column fields
+      dbFieldsBody.innerHTML = "";
+      tableData.fields.forEach(field => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td><span class="font-mono-tag">${field.name}</span></td>
+          <td><span class="font-mono-type">${field.type}</span></td>
+          <td><span style="font-size: 0.8rem; color: var(--text-muted);">${field.key || "NULLABLE"}</span></td>
+          <td>${field.desc}</td>
+        `;
+        dbFieldsBody.appendChild(tr);
+      });
+
+      // Populate query
+      dbSampleQuery.textContent = tableData.query;
+    }
+
+    // Initialize Database Sidebar Navigation List
+    Object.keys(dbSchema).forEach(tableName => {
+      const button = document.createElement("button");
+      button.className = "db-tab-btn";
+      button.setAttribute("data-table", tableName);
+      button.innerHTML = `
+        <span>${tableName}</span>
+        <span class="badge-rows">${dbSchema[tableName].fields.length} cols</span>
+      `;
+      button.addEventListener("click", () => selectDbTable(tableName));
+      dbSidebar.appendChild(button);
+    });
+
+    // Default table display
+    selectDbTable("Tracks");
+
+
+    // Initialize API Explorer UI
+    const apiTabsBar = document.getElementById("api-tabs-bar");
+    const apiActiveMethod = document.getElementById("api-active-method");
+    const apiActivePath = document.getElementById("api-active-path");
+    const apiActiveAuth = document.getElementById("api-active-auth");
+    const apiActiveDesc = document.getElementById("api-active-desc");
+    const apiParamsBody = document.getElementById("api-params-body");
+    const apiParamsTitle = document.getElementById("api-params-title");
+    const apiCodeSnippet = document.getElementById("api-code-snippet");
+
+    let activeEndpointIndex = 0;
+    let activeSnippetType = "curl";
+
+    function selectApiEndpoint(index) {
+      activeEndpointIndex = index;
+      const endpoint = apiEndpoints[index];
+
+      // Update tabs active states
+      document.querySelectorAll(".api-endpoint-btn").forEach((btn, idx) => {
+        if (idx === index) {
+          btn.classList.add("active");
+        } else {
+          btn.classList.remove("active");
+        }
+      });
+
+      // Render top details
+      apiActiveMethod.textContent = endpoint.method;
+      apiActiveMethod.className = `method-tag ${endpoint.method.toLowerCase()}`;
+      apiActivePath.textContent = endpoint.path;
+      apiActiveAuth.textContent = `Auth: ${endpoint.auth}`;
+      apiActiveAuth.className = `api-auth-badge ${endpoint.auth.toLowerCase().includes("bearer") ? 'bearer' : ''}`;
+      apiActiveDesc.textContent = endpoint.desc;
+
+      // Parameters list rendering
+      apiParamsBody.innerHTML = "";
+      if (endpoint.params.length === 0) {
+        apiParamsTitle.textContent = "URL Query Parameters (None)";
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td colspan="4" style="text-align: center; color: var(--text-muted);">No arguments required.</td>`;
+        apiParamsBody.appendChild(tr);
+      } else {
+        apiParamsTitle.textContent = "URL Query Parameters";
+        endpoint.params.forEach(param => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td><span class="font-mono-tag">${param.name}</span></td>
+            <td><span class="font-mono-type">${param.type}</span></td>
+            <td><span style="font-size:0.75rem; color: ${param.status.includes("Required") ? 'var(--tag-delete)' : 'var(--text-muted)'}; font-weight:600;">${param.status}</span></td>
+            <td>${param.desc}</td>
+          `;
+          apiParamsBody.appendChild(tr);
+        });
+      }
+
+      // Update snippet code
+      renderCodeSnippet();
+    }
+
+    function renderCodeSnippet() {
+      const endpoint = apiEndpoints[activeEndpointIndex];
+      let snippetContent = "";
+      if (activeSnippetType === "curl") {
+        snippetContent = endpoint.curl;
+      } else if (activeSnippetType === "js") {
+        snippetContent = endpoint.js;
+      } else {
+        snippetContent = endpoint.response;
+      }
+      apiCodeSnippet.textContent = snippetContent;
+    }
+
+    // Populate API Tabs Navigation list
+    apiEndpoints.forEach((ep, idx) => {
+      const button = document.createElement("button");
+      button.className = "api-endpoint-btn";
+      if (idx === 0) button.classList.add("active");
+      button.innerHTML = `
+        <span class="method-tag ${ep.method.toLowerCase()}">${ep.method}</span>
+        <span>${ep.path}</span>
+      `;
+      button.addEventListener("click", () => selectApiEndpoint(idx));
+      apiTabsBar.appendChild(button);
+    });
+
+    // Populate API snippet type tab selectors
+    document.querySelectorAll(".code-tab-btn").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        document.querySelectorAll(".code-tab-btn").forEach(b => b.classList.remove("active"));
+        e.target.classList.add("active");
+        activeSnippetType = e.target.getAttribute("data-tab");
+        renderCodeSnippet();
+      });
+    });
+
+    // Set Default endpoint display
+    selectApiEndpoint(0);
+
+
+    // Copy to Clipboard feature setup
+    document.querySelectorAll(".copy-btn").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        const wrapper = e.target.closest(".code-block-wrapper");
+        const codeElement = wrapper.querySelector("code");
+        const textToCopy = codeElement.textContent;
+
+        navigator.clipboard.writeText(textToCopy).then(() => {
+          btn.classList.add("copied");
+          btn.innerHTML = `<i class="fa-solid fa-check"></i>`;
+          
+          setTimeout(() => {
+            btn.classList.remove("copied");
+            btn.innerHTML = `<i class="fa-regular fa-copy"></i>`;
+          }, 2000);
+        });
+      });
+    });
+
+
+    // Interactive Search Engine Feature
+    const searchInput = document.getElementById("search-input");
+    
+    searchInput.addEventListener("input", (e) => {
+      const query = e.target.value.toLowerCase().trim();
+
+      if (query === "") {
+        // Show everything if search is cleared
+        document.querySelectorAll("section").forEach(sec => {
+          sec.style.display = "block";
+        });
+        document.querySelectorAll(".nav-link").forEach(link => {
+          link.style.display = "flex";
+        });
+        return;
+      }
+
+      // Track sections matching target content
+      let sectionsFound = 0;
+
+      document.querySelectorAll("section").forEach(sec => {
+        const textContent = sec.innerText.toLowerCase();
+        const sectionId = sec.getAttribute("id");
+        const navLink = document.querySelector(`.nav-link[data-target="${sectionId}"]`);
+
+        if (textContent.includes(query)) {
+          sec.style.display = "block";
+          if (navLink) navLink.style.display = "flex";
+          sectionsFound++;
+        } else {
+          sec.style.display = "none";
+          if (navLink) navLink.style.display = "none";
+        }
+      });
+    });
+
+
+    // Scroll and Active navigation linking
+    const sections = document.querySelectorAll("section");
+    const navLinks = document.querySelectorAll(".nav-link");
+
+    window.addEventListener("scroll", () => {
+      let currentSection = "";
+      
+      sections.forEach(sec => {
+        const secTop = sec.offsetTop;
+        const secHeight = sec.clientHeight;
+        if (pageYOffset >= (secTop - 150)) {
+          currentSection = sec.getAttribute("id");
+        }
+      });
+
+      navLinks.forEach(link => {
+        link.classList.remove("active");
+        if (link.getAttribute("data-target") === currentSection) {
+          link.classList.add("active");
+        }
+      });
+    });
+
+    // Anchor smooth scroll clicking
+    navLinks.forEach(link => {
+      link.addEventListener("click", (e) => {
+        e.preventDefault();
+        const targetId = link.getAttribute("data-target");
+        const targetSection = document.getElementById(targetId);
+        
+        window.scrollTo({
+          top: targetSection.offsetTop - 50,
+          behavior: "smooth"
+        });
+
+        // Close mobile sidebar panel if open
+        const sidebar = document.getElementById("sidebar-panel");
+        sidebar.classList.remove("open");
+      });
+    });
+
+
+    // FAQ accordion collapsible lists
+    document.querySelectorAll(".faq-header").forEach(header => {
+      header.addEventListener("click", () => {
+        const item = header.closest(".faq-item");
+        const isActive = item.classList.contains("active");
+        
+        // Collapse other active FAQs
+        document.querySelectorAll(".faq-item").forEach(faq => {
+          faq.classList.remove("active");
+        });
+
+        if (!isActive) {
+          item.classList.add("active");
+        }
+      });
+    });
+
+
+    // Hamburger Mobile Toggle Navigation control
+    const menuToggleBtn = document.getElementById("menu-toggle-btn");
+    const sidebarPanel = document.getElementById("sidebar-panel");
+
+    menuToggleBtn.addEventListener("click", () => {
+      sidebarPanel.classList.toggle("open");
+    });
+
+    // Close mobile menu when clicked outside of panel
+    document.addEventListener("click", (e) => {
+      if (!sidebarPanel.contains(e.target) && !menuToggleBtn.contains(e.target) && sidebarPanel.classList.contains("open")) {
+        sidebarPanel.classList.remove("open");
+      }
+    });
+
+    // Architecture flow diagram interactions
+    document.querySelectorAll(".flow-node").forEach(node => {
+      node.addEventListener("click", () => {
+        const reference = node.getAttribute("data-ref");
+        
+        // Display custom animations/highlights
+        document.querySelectorAll(".flow-node").forEach(n => n.classList.remove("highlighted"));
+        node.classList.add("highlighted");
+
+        // Action routing based on architecture component clicked
+        if (reference === "db-layer") {
+          const dbSection = document.getElementById("database");
+          window.scrollTo({ top: dbSection.offsetTop - 50, behavior: "smooth" });
+          selectDbTable("Tracks");
+        } else if (reference === "provider-layer" || reference === "external-service") {
+          const apiSection = document.getElementById("api-contract");
+          window.scrollTo({ top: apiSection.offsetTop - 50, behavior: "smooth" });
+        } else if (reference === "audio-layer") {
+          const faqItem = document.querySelector(".faq-item:first-child");
+          const troubleshootingSection = document.getElementById("troubleshooting");
+          window.scrollTo({ top: troubleshootingSection.offsetTop - 50, behavior: "smooth" });
+          faqItem.classList.add("active");
+        }
+      });
+    });
+  </script>
+</body>
+</html>

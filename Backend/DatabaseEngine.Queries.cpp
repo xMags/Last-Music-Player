@@ -445,7 +445,8 @@ namespace LastMusicPlayer::Backend
             "SELECT p.PlaylistId, p.Name, p.Description, p.SourceUrl, "
             "(SELECT COUNT(*) FROM AccountPlaylistTracks pt WHERE pt.AccountId=p.AccountId AND pt.PlaylistId=p.PlaylistId), "
             "COALESCE((SELECT t.ArtworkUrl FROM AccountPlaylistTracks pt JOIN AccountTracks t ON t.AccountId=pt.AccountId AND t.RemoteId=pt.RemoteId "
-            "WHERE pt.AccountId=p.AccountId AND pt.PlaylistId=p.PlaylistId ORDER BY pt.TrackOrder LIMIT 1),'') "
+            "WHERE pt.AccountId=p.AccountId AND pt.PlaylistId=p.PlaylistId AND COALESCE(t.ArtworkUrl,'')<>'' "
+            "ORDER BY pt.TrackOrder LIMIT 1),'') "
             "FROM AccountPlaylists p JOIN ActiveAccountContext c ON c.SingletonId=1 AND c.AccountId=p.AccountId "
             "ORDER BY p.UpdatedAtUtc DESC, p.Name COLLATE NOCASE ASC;" };
         if (accountStmt)

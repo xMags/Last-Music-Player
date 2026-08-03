@@ -74,7 +74,7 @@ namespace winrt::Last_Music_Player::implementation
             m_libraryDetailAccountBinding.reset();
         }
         MarkLibraryViewsDirty();
-        ClearCatalogArtworkCache();
+        ClearAccountArtworkCache();
         if (m_lyricsHydrationTimer)
         {
             m_lyricsHydrationTimer.Stop();
@@ -90,6 +90,27 @@ namespace winrt::Last_Music_Player::implementation
         RemoteMusicServiceService().InvalidateScope();
         InvalidateRemoteViewWork();
         StreamCacheService().InvalidateInFlight();
+        ++m_discoverEpoch;
+        m_discoverLoaded = false;
+        m_catalogDiscovery = {};
+        m_catalogContentStorefront.clear();
+        m_catalogBackStack.clear();
+        m_catalogGalleryCharts.clear();
+        m_catalogLikeOverrides.clear();
+        ClearAccountArtworkCache();
+        if (DiscoverChartGalleryPanel())
+        {
+            DiscoverChartGalleryPanel().Children().Clear();
+            m_discoverChartItems.Clear();
+            m_discoverDetailTracks.Clear();
+        }
+        if (HomeCatalogPrimaryPanel())
+        {
+            HomeCatalogPrimaryPanel().Children().Clear();
+            HomeCatalogMoodPanel().Children().Clear();
+            HomeCatalogPrimaryContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
+            HomeCatalogMoodPanel().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
+        }
     }
 
     void MainWindow::SettingsSection_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
@@ -203,6 +224,16 @@ namespace winrt::Last_Music_Player::implementation
             track.Title(trackObject.GetNamedString(L"title", trackObject.GetNamedString(L"name", legacy.Title())));
             track.Artist(trackObject.GetNamedString(L"artist", legacy.Artist()));
             track.Album(trackObject.GetNamedString(L"album", legacy.Album()));
+            auto artworkUrl = trackObject.GetNamedString(
+                L"artworkUrl",
+                trackObject.GetNamedString(L"imageUrl", L""));
+            if (artworkUrl.empty() && nested)
+            {
+                artworkUrl = result.GetNamedString(
+                    L"artworkUrl",
+                    result.GetNamedString(L"imageUrl", legacy.ArtworkUrl()));
+            }
+            track.ArtworkUrl(artworkUrl.empty() ? legacy.ArtworkUrl() : artworkUrl);
             auto durationSeconds = trackObject.GetNamedNumber(L"durationSeconds", legacy.DurationSeconds());
             auto durationMs = trackObject.GetNamedNumber(L"durationMs", 0.0);
             track.DurationSeconds(durationMs > 0.0 ? durationMs / 1000.0 : durationSeconds);
@@ -321,9 +352,9 @@ namespace winrt::Last_Music_Player::implementation
         }
         AccountClearDataButton().IsEnabled(hasCachedData);
 
-        // Browse depends on both the mode and a live session, so it is refreshed
-        // from the same place as the rest of the mode-driven visibility.
-        UpdateDiscoverAvailability();
+        // Home catalog content depends on both the mode and a live session, so
+        // refresh it from the same place as the rest of the mode-driven state.
+        UpdateCatalogAvailability();
 
         RemoteModeAccount().IsEnabled(available && signedIn);
         // Keep configuration reachable without reading the provider credential
@@ -2173,10 +2204,15 @@ namespace winrt::Last_Music_Player::implementation
             m_homeGenrePools.clear();
             m_homeMixGenres.clear();
             m_catalogTracks.clear();
-            ClearCatalogArtworkCache();
+            ClearAccountArtworkCache();
             m_discoverLoaded = false;
             m_discoverStorefront = {};
-            m_discoverChartType = {};
+            m_catalogDiscovery = {};
+            m_catalogContentStorefront = {};
+            m_catalogBackStack.clear();
+            m_catalogGalleryCharts.clear();
+            m_catalogLikeOverrides.clear();
+            m_discoverChartRequest = {};
             m_discoverChartNextOffset = 0;
             m_discoverChartHasMore = false;
             m_discoverChartItems.Clear();
@@ -2305,7 +2341,7 @@ namespace winrt::Last_Music_Player::implementation
 
             LoadSettingsIntoUi();
             RefreshAccountSettingsUi();
-            UpdateDiscoverAvailability();
+            UpdateCatalogAvailability();
             UpdateSongsScopeLabel();
             ApplyUserDisplayName();
             m_loadingSettings = true;

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import
+    Project="$(MSBuildThisFileDirectory)AccountIntegration.local.props"
+    Condition="Exists('$(MSBuildThisFileDirectory)AccountIntegration.local.props')" />
+
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <PreprocessorDefinitions Condition="'$(LastMusicAccountApiOrigin)'!=''">LAST_MUSIC_ACCOUNT_API_ORIGIN=L&quot;$(LastMusicAccountApiOrigin)&quot;;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(LastMusicAccountFrontendOrigin)'!=''">LAST_MUSIC_ACCOUNT_FRONTEND_ORIGIN=L&quot;$(LastMusicAccountFrontendOrigin)&quot;;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(LastMusicAccountMediaOrigin)'!=''">LAST_MUSIC_ACCOUNT_MEDIA_ORIGIN=L&quot;$(LastMusicAccountMediaOrigin)&quot;;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+
+  <Target Name="ValidateLastMusicAccountIntegration" BeforeTargets="PrepareForBuild" Condition="'$(DesignTimeBuild)'!='true'">
+    <Error
+      Condition="'$(LastMusicAccountApiOrigin)'=='' and ('$(LastMusicAccountFrontendOrigin)'!='' or '$(LastMusicAccountMediaOrigin)'!='')"
+      Text="LastMusicAccountApiOrigin is required when an account frontend or media origin is configured." />
+    <Error
+      Condition="'$(Configuration)'=='Release' and '$(LastMusicAccountApiOrigin)'!='' and !$([System.String]::Copy('$(LastMusicAccountApiOrigin)').StartsWith('https://', System.StringComparison.OrdinalIgnoreCase))"
+      Text="Release account API origins must use HTTPS." />
+    <Error
+      Condition="'$(Configuration)'=='Release' and '$(LastMusicAccountFrontendOrigin)'!='' and !$([System.String]::Copy('$(LastMusicAccountFrontendOrigin)').StartsWith('https://', System.StringComparison.OrdinalIgnoreCase))"
+      Text="Release account frontend origins must use HTTPS." />
+    <Error
+      Condition="'$(Configuration)'=='Release' and '$(LastMusicAccountMediaOrigin)'!='' and !$([System.String]::Copy('$(LastMusicAccountMediaOrigin)').StartsWith('https://', System.StringComparison.OrdinalIgnoreCase))"
+      Text="Release account media origins must use HTTPS." />
+  </Target>
+</Project>

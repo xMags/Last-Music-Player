@@ -629,10 +629,21 @@ namespace winrt::Last_Music_Player::implementation
         HomeViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Visible);
         SettingsViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
         SongsViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
-        BrowseViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
+        HomeCatalogViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
         LibraryViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
         ExitSearchMode();
         UpdateNavSelection(L"Home");
+        m_catalogBackStack.clear();
+        m_catalogSurface = CatalogSurface::Home;
+        if (RemoteMusicServiceService().Mode() == LastMusicPlayer::Backend::RemoteAccessMode::Account)
+        {
+            RunDetached(HydrateDiscoverAsync(false));
+        }
+        else
+        {
+            HomeCatalogPrimaryContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
+            HomeCatalogMoodPanel().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
+        }
     }
 
     void MainWindow::SettingsNav_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
@@ -642,7 +653,7 @@ namespace winrt::Last_Music_Player::implementation
         HomeViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
         SettingsViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Visible);
         SongsViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
-        BrowseViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
+        HomeCatalogViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
         LibraryViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
         ExitSearchMode();
         UpdateNavSelection(L"Settings");
@@ -663,7 +674,7 @@ namespace winrt::Last_Music_Player::implementation
         HomeViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
         SettingsViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
         SongsViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Visible);
-        BrowseViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
+        HomeCatalogViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
         LibraryViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
         ExitSearchMode();
         if (!m_songsResultsValid)
@@ -672,22 +683,6 @@ namespace winrt::Last_Music_Player::implementation
         }
         UpdateNavSelection(L"Songs");
     }
-
-    void MainWindow::BrowseButton_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
-    {
-        (void)sender;
-        (void)args;
-        HomeViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
-        SettingsViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
-        SongsViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
-        BrowseViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Visible);
-        LibraryViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
-        ExitSearchMode();
-        UpdateNavSelection(L"Browse");
-        ShowDiscoverShelvesPage();
-        RunDetached(HydrateDiscoverAsync(false));
-    }
-
 
     MainWindow::AppStateSnapshot MainWindow::BuildAppStateSnapshot()
     {
@@ -963,7 +958,6 @@ namespace winrt::Last_Music_Player::implementation
         NavRow rows[] = {
             { HomeButton(), HomeGlyph(), HomeLabel(), L"Home" },
             { SongsButton(), SongsGlyph(), SongsLabel(), L"Songs" },
-            { BrowseButton(), BrowseGlyph(), BrowseLabel(), L"Browse" },
             { LibraryButton(), LibraryGlyph(), LibraryLabel(), L"Library" },
             { SettingsButton(), SettingsGlyph(), SettingsLabel(), L"Settings" },
         };

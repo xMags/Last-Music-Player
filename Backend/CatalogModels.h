@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -25,9 +26,56 @@ namespace LastMusicPlayer::Backend
     CatalogResourceType ParseCatalogResourceType(winrt::hstring const& value) noexcept;
     winrt::hstring CatalogResourceTypeName(CatalogResourceType type) noexcept;
 
+    enum class CatalogChartKind
+    {
+        Unknown,
+        Global,
+        City,
+        Genre,
+    };
+
+    CatalogChartKind ParseCatalogChartKind(winrt::hstring const& value) noexcept;
+    winrt::hstring CatalogChartKindName(CatalogChartKind kind) noexcept;
+
+    struct CatalogChartRef
+    {
+        winrt::hstring Storefront;
+        CatalogChartKind Kind{ CatalogChartKind::Unknown };
+        winrt::hstring Id;
+        CatalogResourceType ResourceType{ CatalogResourceType::Unknown };
+    };
+
+    bool IsValidCatalogStorefront(winrt::hstring const& storefront) noexcept;
+    bool IsValidCatalogChartRef(CatalogChartRef const& chart) noexcept;
+
+    struct CatalogChartDescriptor
+    {
+        CatalogChartRef Ref;
+        winrt::hstring Name;
+        winrt::hstring Title;
+        winrt::hstring Subtitle;
+        winrt::hstring StorefrontName;
+        winrt::hstring ArtworkUrl;
+    };
+
+    struct CatalogCityChartGroup
+    {
+        std::vector<CatalogChartDescriptor> Charts;
+        bool Partial{ false };
+    };
+
+    struct CatalogCityChartGroups
+    {
+        CatalogCityChartGroup Indian;
+        CatalogCityChartGroup International;
+    };
+
     struct CatalogItem
     {
         CatalogResourceType Type{ CatalogResourceType::Unknown };
+        // Stable account-library identity, for example `apple-music:1811023667`.
+        // CatalogId remains the provider's resource id used by detail routes.
+        winrt::hstring RemoteId;
         winrt::hstring CatalogId;
         // Songs carry `title`, albums and playlists carry `name`. Both land here.
         winrt::hstring Title;
@@ -53,16 +101,27 @@ namespace LastMusicPlayer::Backend
         CatalogResourceType ItemType{ CatalogResourceType::Unknown };
         // Set when the shelf has a full chart page behind it, which is what the
         // "See all" affordance opens.
-        winrt::hstring ChartId;
-        winrt::hstring ChartType;
+        std::optional<CatalogChartRef> Chart;
         std::vector<CatalogItem> Items;
     };
 
     struct CatalogDiscovery
     {
         winrt::hstring Storefront;
+        winrt::hstring StorefrontName;
         winrt::hstring FetchedAt;
         std::vector<CatalogShelf> Shelves;
+        std::vector<CatalogChartDescriptor> Charts;
+        std::optional<CatalogCityChartGroups> CityChartGroups;
+        std::optional<CatalogShelf> MoodActivityShelf;
+        bool Stale{ false };
+    };
+
+    struct CatalogChartRequest
+    {
+        CatalogChartRef Ref;
+        std::int32_t Limit{ 50 };
+        std::int32_t Offset{ 0 };
     };
 
     struct CatalogChartPage
@@ -73,6 +132,8 @@ namespace LastMusicPlayer::Backend
         winrt::hstring Title;
         CatalogResourceType ItemType{ CatalogResourceType::Unknown };
         std::vector<CatalogItem> Items;
+        std::optional<CatalogChartDescriptor> Descriptor;
+        bool Stale{ false };
         // Absent when the service reported no further page.
         bool HasNextOffset{ false };
         std::int32_t NextOffset{ 0 };
