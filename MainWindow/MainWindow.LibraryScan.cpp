@@ -2,6 +2,7 @@
 #include "MainWindow.xaml.h"
 #include "MainWindow.Internal.h"
 
+#include "Backend/EmbeddedArtwork.h"
 #include "Backend/ProviderClient.h"
 
 #include <winrt/Windows.Data.Json.h>
@@ -15,6 +16,7 @@
 #include <winrt/Microsoft.UI.Xaml.Media.h>
 
 #include <algorithm>
+#include <array>
 #include <chrono>
 #include <cmath>
 #include <cwctype>
@@ -23,6 +25,7 @@
 #include <limits>
 #include <random>
 #include <string>
+#include <utility>
 #include <vector>
 #include <shobjidl.h>
 
@@ -35,78 +38,178 @@ namespace winrt::Last_Music_Player::implementation
 
     namespace
     {
-        // Extract a local audio file's embedded album art (or shell-cached
-        // thumbnail) into a small on-disk cache file and return its
-        // file:/// URI. BitmapImage can't decode embedded art directly
-        // from an MP3/M4A, so we hand it a real JPEG it CAN decode. Cache
-        // is keyed by a hash of the source path, so repeated scans are
-        // cheap. On any failure we return an empty hstring and the caller
-        // falls back to the generic placeholder glyph.
-        winrt::Windows::Foundation::IAsyncOperation<winrt::hstring>
-        EnsureLocalThumbnailUriAsync(winrt::Windows::Storage::StorageFile file)
+        // Picture formats the artwork cache can hold. A cache hit probes these
+        // in turn because the cached file name records the format the source
+        // file actually used rather than assuming JPEG.
+        constexpr std::array<wchar_t const*, 7> kArtworkCacheExtensions{
+            L".jpg", L".png", L".webp", L".gif", L".bmp", L".tif", L".ico"
+        };
+
+        // Cache generation marker. Bumping it makes the next scan rebuild every
+        // cached picture, which is how a change that improves artwork quality
+        // reaches libraries that were scanned by an earlier build.
+        constexpr wchar_t const* kArtworkCacheGeneration = L"-v2";
+
+        // Requested size, in pixels, for the shell thumbnail fallback. The
+        // full-screen now playing artwork is 340 effective pixels, so this stays
+        // sharp through 200% display scaling. Only files that carry no embedded
+        // picture at all ever reach this path.
+        constexpr uint32_t kFallbackThumbnailPixels = 1024;
+
+        bool WriteArtworkCacheFile(
+            std::filesystem::path const& cachePath,
+            std::vector<uint8_t> const& bytes)
         {
+            std::ofstream out(cachePath, std::ios::binary | std::ios::trunc);
+            if (!out)
+            {
+                return false;
+            }
+            out.write(
+                reinterpret_cast<char const*>(bytes.data()),
+                static_cast<std::streamsize>(bytes.size()));
+            out.close();
+            if (!out)
+            {
+                std::error_code ec;
+                std::filesystem::remove(cachePath, ec);
+                return false;
+            }
+            return true;
+        }
+
+        // Ask the shell for a thumbnail. Used only when a file carries no
+        // embedded picture, since the shell re-encodes the image and may crop it
+        // to the square its view mode expects. Returns an IBuffer rather than a
+        // vector because a WinRT async operation can only carry a WinRT type.
+        winrt::Windows::Foundation::IAsyncOperation<winrt::Windows::Storage::Streams::IBuffer>
+        ReadShellThumbnailAsync(winrt::Windows::Storage::StorageFile file)
+        {
+            using winrt::Windows::Storage::FileProperties::ThumbnailMode;
+            using winrt::Windows::Storage::FileProperties::ThumbnailOptions;
+            using winrt::Windows::Storage::FileProperties::ThumbnailType;
+
+            // SingleItem is the mode that serves large previews; MusicView caps
+            // out much smaller, so it is only the second choice.
+            for (auto mode : { ThumbnailMode::SingleItem, ThumbnailMode::MusicView })
+            {
+                try
+                {
+                    // No ResizeThumbnail: that flag forces a downscale to the
+                    // requested size, while omitting it lets the shell hand back
+                    // the next cache tier up, which is what keeps detail.
+                    auto thumbnail = co_await file.GetThumbnailAsync(
+                        mode,
+                        kFallbackThumbnailPixels,
+                        ThumbnailOptions::None);
+                    if (!thumbnail
+                        || thumbnail.Type() != ThumbnailType::Image
+                        || thumbnail.Size() == 0
+                        || thumbnail.Size() > LastMusicPlayer::Backend::kMaxEmbeddedArtworkBytes)
+                    {
+                        continue;
+                    }
+
+                    auto total = static_cast<uint32_t>(thumbnail.Size());
+                    winrt::Windows::Storage::Streams::DataReader reader(thumbnail.GetInputStreamAt(0));
+                    if (co_await reader.LoadAsync(total) != total)
+                    {
+                        continue;
+                    }
+                    co_return reader.ReadBuffer(total);
+                }
+                catch (...)
+                {
+                }
+            }
+            co_return nullptr;
+        }
+
+        // Copy a local audio file's cover art into an on-disk cache file and
+        // return its file:/// URI. BitmapImage cannot pull a picture out of an
+        // MP3 or FLAC container, so it needs a real image file to point at.
+        //
+        // The picture is copied byte for byte out of the file's own tags, so the
+        // tagger's full resolution survives; a 1280x720 cover stays 1280x720
+        // instead of being flattened to a shell thumbnail. Only files with no
+        // embedded picture fall back to the shell.
+        //
+        // The cache is keyed by a hash of the source path, so rescans are cheap.
+        // On any failure this returns an empty hstring and the caller falls back
+        // to the generated placeholder artwork.
+        //
+        // Runs its file I/O on a background thread and returns to `dispatcher`,
+        // so the caller's thread affinity is the same before and after.
+        winrt::Windows::Foundation::IAsyncOperation<winrt::hstring>
+        EnsureLocalArtworkUriAsync(
+            winrt::Windows::Storage::StorageFile file,
+            winrt::Microsoft::UI::Dispatching::DispatcherQueue dispatcher)
+        {
+            winrt::hstring result{};
+            std::wstring sourcePath{ file.Path().c_str() };
+
+            co_await winrt::resume_background();
             try
             {
-                auto cacheDir = AppDataDirectory() / L"thumbs";
+                auto cacheDir = ArtworkCacheDirectory();
                 std::error_code ec;
                 std::filesystem::create_directories(cacheDir, ec);
 
-                std::wstring path{ file.Path().c_str() };
-                auto h = std::hash<std::wstring>{}(path);
-                auto cachePath = cacheDir / (std::to_wstring(h) + L".jpg");
+                auto key = std::to_wstring(std::hash<std::wstring>{}(sourcePath))
+                    + kArtworkCacheGeneration;
 
-                auto pathToFileUri = [](std::filesystem::path const& p)
+                for (auto const* extension : kArtworkCacheExtensions)
                 {
-                    std::wstring s = p.wstring();
-                    std::replace(s.begin(), s.end(), L'\\', L'/');
-                    std::wstring out;
-                    out.reserve(s.size() + 16);
-                    for (wchar_t ch : s)
+                    auto candidate = cacheDir / (key + extension);
+                    if (std::filesystem::exists(candidate, ec)
+                        && std::filesystem::file_size(candidate, ec) > 0)
                     {
-                        if (ch == L' ') out.append(L"%20");
-                        else out.push_back(ch);
+                        result = ArtworkCacheFileUri(candidate);
+                        break;
                     }
-                    return winrt::hstring{ L"file:///" + out };
-                };
-
-                if (std::filesystem::exists(cachePath, ec) &&
-                    std::filesystem::file_size(cachePath, ec) > 0)
-                {
-                    co_return pathToFileUri(cachePath);
                 }
 
-                auto thumb = co_await file.GetThumbnailAsync(
-                    winrt::Windows::Storage::FileProperties::ThumbnailMode::MusicView,
-                    256,
-                    winrt::Windows::Storage::FileProperties::ThumbnailOptions::ResizeThumbnail);
-                if (!thumb ||
-                    thumb.Type() != winrt::Windows::Storage::FileProperties::ThumbnailType::Image ||
-                    thumb.Size() == 0)
+                if (result.empty())
                 {
-                    co_return winrt::hstring{};
+                    std::vector<uint8_t> bytes;
+                    std::wstring extension{ L".jpg" };
+                    if (auto embedded = LastMusicPlayer::Backend::TryReadEmbeddedArtwork(sourcePath))
+                    {
+                        bytes = std::move(embedded->Bytes);
+                        extension = LastMusicPlayer::Backend::ArtworkFileExtension(embedded->MimeType);
+                    }
+                    else if (auto thumbnail = co_await ReadShellThumbnailAsync(file))
+                    {
+                        auto reader = winrt::Windows::Storage::Streams::DataReader::FromBuffer(thumbnail);
+                        bytes.resize(thumbnail.Length());
+                        reader.ReadBytes(bytes);
+                    }
+
+                    if (!bytes.empty())
+                    {
+                        auto cachePath = cacheDir / (key + extension);
+                        if (WriteArtworkCacheFile(cachePath, bytes))
+                        {
+                            // Drop the previous generation's low-resolution copy
+                            // now that a better one has taken its place.
+                            std::filesystem::remove(
+                                cacheDir / (std::to_wstring(std::hash<std::wstring>{}(sourcePath)) + L".jpg"),
+                                ec);
+                            result = ArtworkCacheFileUri(cachePath);
+                        }
+                    }
                 }
-
-                uint32_t total = static_cast<uint32_t>(thumb.Size());
-                winrt::Windows::Storage::Streams::DataReader reader(thumb.GetInputStreamAt(0));
-                co_await reader.LoadAsync(total);
-                std::vector<uint8_t> bytes(total);
-                reader.ReadBytes(bytes);
-
-                std::ofstream out(cachePath, std::ios::binary | std::ios::trunc);
-                if (!out) co_return winrt::hstring{};
-                out.write(reinterpret_cast<const char*>(bytes.data()),
-                          static_cast<std::streamsize>(bytes.size()));
-                out.close();
-                if (!out)
-                {
-                    std::filesystem::remove(cachePath, ec);
-                    co_return winrt::hstring{};
-                }
-
-                co_return pathToFileUri(cachePath);
             }
-            catch (...) {}
-            co_return winrt::hstring{};
+            catch (...)
+            {
+                result = winrt::hstring{};
+            }
+
+            if (dispatcher)
+            {
+                co_await wil::resume_foreground(dispatcher);
+            }
+            co_return result;
         }
     }
 
@@ -405,13 +508,13 @@ namespace winrt::Last_Music_Player::implementation
                 track.Index(++trackIndex);
                 track.SourceKind(L"local");
                 track.SourceLabel(L"Local");
-                // Local tracks: extract embedded album art (or shell
-                // thumbnail) into a disk-cached JPEG and hand BitmapImage
-                // its URI. We deliberately leave AlbumArt null here so
-                // CreateMusicArtworkBitmap's lazy UriSource decode runs
-                // only when the track actually renders.
+                // Local tracks: copy the embedded cover art (or, failing that,
+                // the shell thumbnail) into a disk-cached image file and hand
+                // BitmapImage its URI. We deliberately leave AlbumArt null here
+                // so CreateMusicArtworkBitmap's lazy UriSource decode runs only
+                // when the track actually renders.
                 winrt::hstring localThumbUri{};
-                try { localThumbUri = co_await EnsureLocalThumbnailUriAsync(file); } catch (...) {}
+                try { localThumbUri = co_await EnsureLocalArtworkUriAsync(file, dispatcher); } catch (...) {}
                 if (isCancelled())
                 {
                     finishScan();

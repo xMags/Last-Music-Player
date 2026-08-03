@@ -93,6 +93,7 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
+  <Import Project="build\AccountIntegration.props" />
   <ItemDefinitionGroup>
     <ClCompile>
       <PrecompiledHeader>Use</PrecompiledHeader>
@@ -100,9 +101,6 @@
       <PrecompiledHeaderOutputFile>$(IntDir)pch.pch</PrecompiledHeaderOutputFile>
       <WarningLevel>Level4</WarningLevel>
       <PreprocessorDefinitions>DISABLE_XAML_GENERATED_MAIN;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <PreprocessorDefinitions Condition="'$(LastMusicAccountApiOrigin)'!=''">LAST_MUSIC_ACCOUNT_API_ORIGIN=L&quot;$(LastMusicAccountApiOrigin)&quot;;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <PreprocessorDefinitions Condition="'$(LastMusicAccountFrontendOrigin)'!=''">LAST_MUSIC_ACCOUNT_FRONTEND_ORIGIN=L&quot;$(LastMusicAccountFrontendOrigin)&quot;;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <PreprocessorDefinitions Condition="'$(LastMusicAccountMediaOrigin)'!=''">LAST_MUSIC_ACCOUNT_MEDIA_ORIGIN=L&quot;$(LastMusicAccountMediaOrigin)&quot;;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <LanguageStandard Condition="'$(VisualStudioVersion)' &gt;= '18.0'">stdcpp20</LanguageStandard>
       <LanguageStandard Condition="'$(VisualStudioVersion)' &lt; '18.0'">stdcpp17</LanguageStandard>
       <AdditionalIncludeDirectories>$(ProjectDir);$(GeneratedFilesDir);$(IntDir);$(IntDir)MainWindow;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -167,6 +165,7 @@
     <ClInclude Include="Backend\Pkce.h" />
     <ClInclude Include="Backend\LoopbackCallback.h" />
     <ClInclude Include="Backend\AccountClient.h" />
+    <ClInclude Include="Backend\AccountUrlPolicy.h" />
     <ClInclude Include="Backend\AccountSessionGateway.h" />
     <ClInclude Include="Backend\AccountSyncTransport.h" />
     <ClInclude Include="Backend\AccountSessionService.h" />
@@ -175,6 +174,8 @@
     <ClInclude Include="Backend\UserDataOperationGate.h" />
     <ClInclude Include="Backend\CatalogModels.h" />
     <ClInclude Include="Backend\CatalogParser.h" />
+    <ClInclude Include="Backend\CatalogPresentation.h" />
+    <ClInclude Include="Backend\EmbeddedArtwork.h" />
     <ClInclude Include="Backend\PlaybackHistoryQualifier.h" />
     <ClInclude Include="Backend\HistoryImport.h" />
     <ClInclude Include="Backend\StreamCache.h" />
@@ -242,6 +243,7 @@
     <ClCompile Include="Backend\Pkce.cpp" />
     <ClCompile Include="Backend\LoopbackCallback.cpp" />
     <ClCompile Include="Backend\AccountClient.cpp" />
+    <ClCompile Include="Backend\AccountUrlPolicy.cpp" />
     <ClCompile Include="Backend\AccountSessionGateway.cpp" />
     <ClCompile Include="Backend\AccountSessionService.cpp" />
     <ClCompile Include="Backend\RemoteMusicService.cpp" />
@@ -249,6 +251,8 @@
     <ClCompile Include="Backend\MusicSyncService.cpp" />
     <ClCompile Include="Backend\UserDataOperationGate.cpp" />
     <ClCompile Include="Backend\CatalogParser.cpp" />
+    <ClCompile Include="Backend\CatalogPresentation.cpp" />
+    <ClCompile Include="Backend\EmbeddedArtwork.cpp" />
     <ClCompile Include="Backend\StreamCache.cpp" />
     <ClCompile Include="Backend\DatabaseEngine.cpp" />
     <ClCompile Include="Backend\DatabaseEngine.Internal.cpp" />

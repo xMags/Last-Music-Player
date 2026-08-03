@@ -24,6 +24,7 @@
 #include <winrt/Windows.System.h>
 #include <winrt/Microsoft.UI.Windowing.h>
 #include <array>
+#include <deque>
 #include <vector>
 #include <utility>
 #include <unordered_map>
@@ -35,6 +36,10 @@
 
 namespace LastMusicPlayer::Backend { class TrayIcon; class DiscordPresence; class ProviderClient; }
 
+// Defined in MainWindow.Internal.h, which is far too heavy to pull in here. An
+// opaque declaration is enough to name the type in signatures and members.
+namespace winrt::Last_Music_Player::implementation::detail { enum class ArtworkDetail; }
+
 namespace winrt::Last_Music_Player::implementation
 {
     struct MainWindow : MainWindowT<MainWindow>
@@ -44,7 +49,6 @@ namespace winrt::Last_Music_Player::implementation
         void HomeButton_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void SettingsNav_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void SongsButton_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
-        void BrowseButton_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         winrt::Windows::Foundation::IAsyncAction ChangeFolderButton_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         winrt::Windows::Foundation::IAsyncAction OpenFolderButton_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         winrt::Windows::Foundation::IAsyncAction ScanMusicButton_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
@@ -203,11 +207,11 @@ namespace winrt::Last_Music_Player::implementation
         void EqResetButton_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void EqPreampSlider_ValueChanged(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::Primitives::RangeBaseValueChangedEventArgs const& args);
 
-        // Catalog discovery handlers. XAML-referenced handlers must be public:
+        // Artwork and catalog handlers referenced by XAML must be public because
         // the generated connect code lives outside this class.
-        void CatalogTileArt_Loaded(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void AccountArtwork_Loaded(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void DiscoverBack_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
-        winrt::Windows::Foundation::IAsyncAction DiscoverRetry_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        winrt::Windows::Foundation::IAsyncAction HomeCatalogRetry_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         winrt::Windows::Foundation::IAsyncAction DiscoverStorefront_SelectionChanged(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::SelectionChangedEventArgs const& args);
         winrt::Windows::Foundation::IAsyncAction DiscoverItem_ItemClick(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::ItemClickEventArgs const& args);
         winrt::Windows::Foundation::IAsyncAction DiscoverChartMore_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
@@ -303,6 +307,35 @@ namespace winrt::Last_Music_Player::implementation
             std::wstring DetailKey;
             std::wstring PlaylistId;
             uint64_t DetailEpoch{};
+        };
+
+        struct AccountArtworkTarget
+        {
+            winrt::Microsoft::UI::Xaml::Controls::Image Image{ nullptr };
+            winrt::Last_Music_Player::TrackInfo Track{ nullptr };
+            // Decode size for this surface alone. Targets of one request may
+            // want very different sizes, so each gets its own bitmap.
+            detail::ArtworkDetail Detail{};
+        };
+
+        struct AccountArtworkRequest
+        {
+            uint64_t Id{};
+            winrt::hstring ArtworkUrl;
+            winrt::hstring SourceUrl;
+            std::vector<AccountArtworkTarget> Targets;
+        };
+
+        // The encoded bytes, not a decoded bitmap. Two Image elements must never
+        // share a BitmapImage: XAML decodes it once, at the size of whichever
+        // element renders it first, and every other element is then stuck
+        // stretching that one decode. Caching the bytes lets each surface decode
+        // its own copy, and costs far less memory than caching decoded pixels.
+        struct AccountArtworkCacheEntry
+        {
+            winrt::Windows::Storage::Streams::IBuffer Bytes{ nullptr };
+            winrt::hstring ArtworkUrl;
+            winrt::hstring SourceUrl;
         };
 
         struct AppStateTrackSnapshot
@@ -536,29 +569,72 @@ namespace winrt::Last_Music_Player::implementation
             bool gaplessTransitioned,
             double resumeSeconds,
             uint64_t resolveEpoch);
-        // Fetch catalog artwork through the authenticated relay and put it in the
-        // given Image. Safe against container recycling; failures leave the
-        // generated placeholder in place.
-        winrt::fire_and_forget HydrateCatalogArtworkAsync(
-            winrt::Microsoft::UI::Xaml::Controls::Image image,
-            winrt::hstring artworkUrl);
-        void ClearCatalogArtworkCache();
+        // Queue account artwork through the authenticated relay. Requests sharing
+        // a URL are coalesced, and each target is revalidated after the async work
+        // so recycled containers and newer now-playing tracks win.
+        void QueueAccountArtworkImage(
+            winrt::Microsoft::UI::Xaml::Controls::Image const& image,
+            winrt::hstring const& artworkUrl,
+            detail::ArtworkDetail artworkDetail,
+            winrt::Last_Music_Player::TrackInfo const& track = nullptr);
+        // Decodes `bytes` into a bitmap of this target's own, then revalidates
+        // the target before assigning it, because the decode yields the thread.
+        winrt::fire_and_forget ApplyAccountArtworkTargetAsync(
+            AccountArtworkTarget target,
+            winrt::Windows::Storage::Streams::IBuffer bytes,
+            winrt::hstring requestKey,
+            winrt::hstring artworkUrl,
+            winrt::hstring sourceUrl);
+        void StartAccountArtworkRequests();
+        void CompleteAccountArtworkRequest();
+        winrt::fire_and_forget HydrateAccountArtworkAsync(
+            winrt::hstring requestKey,
+            uint64_t requestId);
+        void ClearAccountArtworkCache();
 
-        // ----- Catalog discovery (Browse) -----
-        void ShowDiscoverShelvesPage();
-        void SetDiscoverStatus(winrt::hstring const& message, bool canRetry);
-        void UpdateDiscoverAvailability();
+        // ----- Home catalog discovery -----
+        enum class CatalogSurface
+        {
+            Home,
+            ChartGallery,
+            Chart,
+            Detail,
+        };
+
+        void ShowCatalogSurface(CatalogSurface surface, bool pushCurrent = true);
+        void ShowHomeCatalogStatus(winrt::hstring const& message, bool loading, bool canRetry);
+        void UpdateCatalogAvailability();
         winrt::hstring CurrentDiscoverStorefront();
         winrt::Windows::Foundation::IAsyncAction HydrateDiscoverAsync(bool force);
         winrt::Windows::Foundation::IAsyncAction OpenDiscoverChartAsync(
-            winrt::hstring chartType,
+            LastMusicPlayer::Backend::CatalogChartRef chart,
             winrt::hstring title);
+        void OpenDiscoverChartGallery(
+            winrt::hstring const& title,
+            std::vector<LastMusicPlayer::Backend::CatalogChartDescriptor> const& charts,
+            bool partial);
+        void OpenDiscoverShelf(
+            LastMusicPlayer::Backend::CatalogShelf const& shelf,
+            winrt::hstring const& eyebrow);
         winrt::Windows::Foundation::IAsyncAction LoadDiscoverChartPageAsync(int32_t offset);
         winrt::Windows::Foundation::IAsyncAction OpenDiscoverResourceAsync(
             winrt::hstring kind,
             winrt::hstring catalogId,
             winrt::hstring title);
-        void BuildDiscoverShelves(LastMusicPlayer::Backend::CatalogDiscovery const& discovery);
+        void BuildHomeCatalog(LastMusicPlayer::Backend::CatalogDiscovery const& discovery);
+        void RebuildCatalogSurfaces();
+        winrt::Microsoft::UI::Xaml::Controls::StackPanel BuildCatalogShelfSection(
+            LastMusicPlayer::Backend::CatalogShelf const& shelf,
+            winrt::hstring const& title,
+            winrt::hstring const& pill,
+            std::size_t previewLimit,
+            bool forceSeeAll);
+        winrt::Microsoft::UI::Xaml::Controls::StackPanel BuildCatalogChartSection(
+            winrt::hstring const& title,
+            std::vector<LastMusicPlayer::Backend::CatalogChartDescriptor> const& charts,
+            bool partial);
+        winrt::Microsoft::UI::Xaml::Controls::Button BuildCatalogChartCard(
+            LastMusicPlayer::Backend::CatalogChartDescriptor const& chart);
         void PopulateDiscoverStorefronts(
             std::vector<LastMusicPlayer::Backend::CatalogStorefront> const& storefronts);
         winrt::Last_Music_Player::TrackInfo CatalogItemToTrack(
@@ -606,22 +682,35 @@ namespace winrt::Last_Music_Player::implementation
         // advance forever. Cleared by any successful resolve.
         int m_remoteResolveFailures{ 0 };
         winrt::Microsoft::UI::Xaml::DispatcherTimer m_playbackNoticeTimer{ nullptr };
-        // Decoded catalog artwork keyed by source URL. Catalog surfaces are almost
-        // entirely images and containers recycle constantly, so without this every
-        // scroll would re-fetch and re-decode what is already on screen.
-        std::unordered_map<std::wstring, winrt::Microsoft::UI::Xaml::Media::Imaging::BitmapImage>
-            m_catalogArtworkCache;
+        // Encoded account artwork keyed by durable source URL. Realized controls
+        // share both in-flight requests and fetched bytes, while the budget
+        // below stops a long browsing session retaining every image it has seen.
+        std::unordered_map<std::wstring, AccountArtworkCacheEntry>
+            m_accountArtworkCache;
+        std::size_t m_accountArtworkCacheBytes{ 0 };
+        std::unordered_map<std::wstring, AccountArtworkRequest> m_accountArtworkRequests;
+        std::deque<std::wstring> m_accountArtworkQueue;
+        std::size_t m_activeAccountArtworkRequests{ 0 };
+        uint64_t m_accountArtworkRequestId{ 0 };
 
-        // ----- Catalog discovery (Browse) -----
+        // ----- Home catalog discovery -----
         // Generation counter for discovery work. A storefront switch or a sign-out
         // while a request is in flight has to be able to discard its result.
         uint64_t m_discoverEpoch{ 0 };
         uint64_t m_discoverNavigationEpoch{ 0 };
         bool m_discoverLoaded{ false };
+        bool m_discoverInFlight{ false };
+        bool m_discoverPendingRefresh{ false };
         bool m_suppressDiscoverStorefrontChange{ false };
         winrt::hstring m_discoverStorefront;
+        LastMusicPlayer::Backend::CatalogDiscovery m_catalogDiscovery;
+        CatalogSurface m_catalogSurface{ CatalogSurface::Home };
+        std::vector<CatalogSurface> m_catalogBackStack;
+        std::vector<LastMusicPlayer::Backend::CatalogChartDescriptor> m_catalogGalleryCharts;
+        winrt::hstring m_catalogContentStorefront;
+        std::unordered_map<std::wstring, bool> m_catalogLikeOverrides;
         // Chart paging state for the currently open chart page.
-        winrt::hstring m_discoverChartType;
+        LastMusicPlayer::Backend::CatalogChartRequest m_discoverChartRequest;
         int32_t m_discoverChartNextOffset{ 0 };
         bool m_discoverChartHasMore{ false };
         winrt::Windows::Foundation::Collections::IObservableVector<winrt::Last_Music_Player::TrackInfo> m_discoverChartItems{
