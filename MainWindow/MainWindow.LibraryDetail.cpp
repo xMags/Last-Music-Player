@@ -434,6 +434,9 @@ namespace winrt::Last_Music_Player::implementation
         winrt::Microsoft::UI::Xaml::Media::ImageSource const& fallbackArt,
         winrt::Last_Music_Player::TrackInfo const& sourceGroup)
     {
+        auto accountArtworkUrl = sourceGroup
+            ? NormalizeMusicArtworkUrl(sourceGroup.ArtworkUrl())
+            : winrt::hstring{};
         auto previousKind = m_libraryDetailKind;
         auto previousKey = m_libraryDetailKey;
         auto requestedKind = std::wstring(kind.c_str());
@@ -591,6 +594,8 @@ namespace winrt::Last_Music_Player::implementation
         LibraryDetailSubtitleText().Text(count > 0
             ? winrt::hstring(std::to_wstring(count) + (count == 1 ? L" song" : L" songs")) + (subtitle.empty() ? L"" : L" - " + subtitle)
             : winrt::hstring{ L"Loading songs..." });
+        // Invalidates any relay response started for the previously open detail.
+        LibraryDetailArt().Tag(nullptr);
         LibraryDetailArt().Source(nullptr);
         LibraryDetailArt().Opacity(detailFallbackArt ? 1.0 : 0.0);
         LibraryDetailGeneratedArtwork().Opacity(detailFallbackArt ? 0.0 : 1.0);
@@ -601,6 +606,12 @@ namespace winrt::Last_Music_Player::implementation
         if (detailFallbackArt)
         {
             LibraryDetailArt().Source(detailFallbackArt);
+        }
+        if (!accountArtworkUrl.empty() && IsHttpUrl(accountArtworkUrl))
+        {
+            // The detail header artwork is 168 effective pixels, inside the
+            // range the tile decode covers.
+            QueueAccountArtworkImage(LibraryDetailArt(), accountArtworkUrl, ArtworkDetail::Tile, sourceGroup);
         }
         ApplyLibraryDetailPlaylistCollage();
     }

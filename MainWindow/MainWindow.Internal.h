@@ -35,6 +35,34 @@ namespace winrt::Last_Music_Player::implementation::detail
     inline constexpr uint32_t kPageAppendThreshold = 25;
     inline constexpr size_t kRemoteSearchCacheLimit = 64;
 
+    // How many pixels tall an artwork bitmap should be decoded to.
+    //
+    // Two things make this explicit rather than automatic. A BitmapImage with no
+    // stated decode size is decoded to fit whichever Image element happens to
+    // render it first, and that single decode is then reused everywhere else the
+    // same bitmap appears; album art is shown from a 38 pixel list row up to the
+    // 340 pixel full-screen player, so leaving it implicit lets a list row
+    // decide how sharp the full-screen artwork looks.
+    //
+    // Height is the dimension that matters because every artwork host is square
+    // and stretches UniformToFill. Filling a square with a landscape image
+    // scales it by height, so a 1280x720 cover only ever contributes 720 pixels
+    // of detail no matter how wide it is. Only the height is ever set, which
+    // leaves XAML to derive the width from the source's own aspect ratio;
+    // setting both would stretch any cover that is not square.
+    enum class ArtworkDetail
+    {
+        // List rows, grid tiles, and detail page headers. The largest of these
+        // is 184 effective pixels, so this covers them at 200% display scaling.
+        Tile = 384,
+
+        // The player bar, the now playing panel, and the full-screen player,
+        // which share one bitmap. The largest is 340 effective pixels, so this
+        // holds up to 300% display scaling.
+        Hero = 1024
+    };
+
+
     void InstallMinimumWindowSize(HWND hwnd);
     void RunDetached(winrt::Windows::Foundation::IAsyncAction action);
 
@@ -60,8 +88,10 @@ namespace winrt::Last_Music_Player::implementation::detail
     winrt::hstring UpperArtworkText(winrt::hstring const& value, winrt::hstring const& fallback);
     bool TryReplaceMusicArtworkSize(std::wstring& text, std::wstring const& marker, std::wstring const& replacement);
     winrt::hstring NormalizeMusicArtworkUrl(winrt::hstring const& value);
-    winrt::Microsoft::UI::Xaml::Media::Imaging::BitmapImage CreateMusicArtworkBitmap();
-    winrt::Microsoft::UI::Xaml::Media::Imaging::BitmapImage CreateMusicArtworkBitmap(winrt::hstring const& artworkUrl);
+    winrt::Microsoft::UI::Xaml::Media::Imaging::BitmapImage CreateMusicArtworkBitmap(ArtworkDetail detail);
+    winrt::Microsoft::UI::Xaml::Media::Imaging::BitmapImage CreateMusicArtworkBitmap(
+        winrt::hstring const& artworkUrl,
+        ArtworkDetail detail);
     void ResolveArtworkPresentation(winrt::Last_Music_Player::TrackInfo const& track, winrt::hstring const& context);
     winrt::Microsoft::UI::Xaml::Media::ImageSource ApprovedDetailArtwork(winrt::Last_Music_Player::TrackInfo const& track, winrt::hstring const& context);
     std::wstring HomeQueueDedupeKey(winrt::Last_Music_Player::TrackInfo const& track);
@@ -70,6 +100,19 @@ namespace winrt::Last_Music_Player::implementation::detail
         LastMusicPlayer::Backend::RemoteScopeSnapshot const& scope,
         winrt::Last_Music_Player::TrackInfo const& track);
     std::wstring FilePathToUri(winrt::hstring const& filePath);
+
+    // Where the library scan puts the cover art it copies out of local files.
+    std::filesystem::path ArtworkCacheDirectory();
+
+    // file:// URI for a path inside the artwork cache. Escapes more than
+    // FilePathToUri does because that one also serves media paths whose
+    // existing callers may pass an already-encoded URI back through it.
+    winrt::hstring ArtworkCacheFileUri(std::filesystem::path const& path);
+
+    // Whether an artwork URL names a file in the artwork cache. Artwork URLs
+    // also arrive from account sync, so a file:// URL is only ever handed to an
+    // image decoder when it points at something this app wrote itself.
+    bool IsArtworkCacheUri(winrt::hstring const& artworkUrl);
 
     std::filesystem::path AppDataDirectory();
     std::filesystem::path StateFilePath();

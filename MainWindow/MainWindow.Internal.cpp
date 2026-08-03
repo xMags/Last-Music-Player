@@ -240,76 +240,25 @@ namespace winrt::Last_Music_Player::implementation::detail
         return winrt::hstring{ text };
     }
 
-    bool TryReplaceMusicArtworkSize(std::wstring& text, std::wstring const& marker, std::wstring const& replacement)
-    {
-        auto lowered = text;
-        std::transform(lowered.begin(), lowered.end(), lowered.begin(), [](wchar_t ch)
-        {
-            return static_cast<wchar_t>(std::towlower(ch));
-        });
-
-        auto pos = lowered.find(marker);
-        while (pos != std::wstring::npos)
-        {
-            auto cursor = pos + marker.size();
-            auto widthStart = cursor;
-            while (cursor < lowered.size() && std::iswdigit(lowered[cursor]))
-            {
-                ++cursor;
-            }
-            if (cursor == widthStart || cursor + 2 > lowered.size() || lowered.compare(cursor, 2, L"-h") != 0)
-            {
-                pos = lowered.find(marker, pos + marker.size());
-                continue;
-            }
-
-            cursor += 2;
-            auto heightStart = cursor;
-            while (cursor < lowered.size() && std::iswdigit(lowered[cursor]))
-            {
-                ++cursor;
-            }
-            if (cursor == heightStart)
-            {
-                pos = lowered.find(marker, pos + marker.size());
-                continue;
-            }
-
-            auto end = cursor;
-            while (end < text.size() && text[end] != L'?' && text[end] != L'&' && text[end] != L'#')
-            {
-                ++end;
-            }
-            text.replace(pos, end - pos, replacement);
-            return true;
-        }
-
-        return false;
-    }
-
     winrt::hstring NormalizeMusicArtworkUrl(winrt::hstring const& value)
     {
-        std::wstring text{ value.c_str() };
-        text.erase(text.begin(), std::find_if(text.begin(), text.end(), [](wchar_t ch) { return !std::iswspace(ch); }));
-        text.erase(std::find_if(text.rbegin(), text.rend(), [](wchar_t ch) { return !std::iswspace(ch); }).base(), text.end());
-        if (text.empty())
-        {
-            return {};
-        }
-
-        // Some remote artwork URLs encode their requested crop in the URL.
-        // Normalize known encoded sizes to the same square artwork contract;
-        // XAML still owns the visible UniformToFill crop.
-        TryReplaceMusicArtworkSize(text, L"=w", L"=w512-h512-l90-rj")
-            || TryReplaceMusicArtworkSize(text, L"%3dw", L"%3Dw512-h512-l90-rj");
-        return winrt::hstring{ text };
+        return LastMusicPlayer::Backend::NormalizeArtworkUrlForDisplay(value);
     }
 
-    winrt::Microsoft::UI::Xaml::Media::Imaging::BitmapImage CreateMusicArtworkBitmap()
+    winrt::Microsoft::UI::Xaml::Media::Imaging::BitmapImage CreateMusicArtworkBitmap(ArtworkDetail detail)
     {
         try
         {
-            return winrt::Microsoft::UI::Xaml::Media::Imaging::BitmapImage();
+            winrt::Microsoft::UI::Xaml::Media::Imaging::BitmapImage bitmap;
+            // Physical rather than the default Logical: a logical size is
+            // resolved against the display scale once, at decode time, and
+            // nothing re-decodes when the window is dragged to a monitor that
+            // scales differently. Fixed physical sizes are chosen instead with
+            // enough headroom to cover every scale factor.
+            bitmap.DecodePixelType(
+                winrt::Microsoft::UI::Xaml::Media::Imaging::DecodePixelType::Physical);
+            bitmap.DecodePixelHeight(static_cast<int32_t>(detail));
+            return bitmap;
         }
         catch (...)
         {
@@ -317,7 +266,9 @@ namespace winrt::Last_Music_Player::implementation::detail
         }
     }
 
-    winrt::Microsoft::UI::Xaml::Media::Imaging::BitmapImage CreateMusicArtworkBitmap(winrt::hstring const& artworkUrl)
+    winrt::Microsoft::UI::Xaml::Media::Imaging::BitmapImage CreateMusicArtworkBitmap(
+        winrt::hstring const& artworkUrl,
+        ArtworkDetail detail)
     {
         auto normalized = NormalizeMusicArtworkUrl(artworkUrl);
         if (normalized.empty())
@@ -325,11 +276,18 @@ namespace winrt::Last_Music_Player::implementation::detail
             return nullptr;
         }
 
-        // Provider-proxied artwork is usable only with the short-lived signed
-        // media URL returned by the authenticated API. Never place the API key
-        // in an image URL; expired artwork safely falls back to the generated
-        // placeholder until the track is refreshed.
-        auto fresh = ProviderArtworkUrlFor(normalized);
+        // Cover art copied out of a local file needs none of the provider URL
+        // machinery: there is no credential to strip and no host to rebase, and
+        // ProviderArtworkUrlFor deliberately builds nothing outside API-key
+        // mode. Restricting this to the app's own cache directory is what keeps
+        // a synced artwork URL from aiming the image decoder somewhere else.
+        //
+        // Account artwork is loaded separately through the authenticated relay.
+        // API-key mode still uses a provider URL here, but the helper refuses to
+        // place a long-lived credential in an untrusted external image URL.
+        auto fresh = IsArtworkCacheUri(normalized)
+            ? normalized
+            : ProviderArtworkUrlFor(normalized);
         if (fresh.empty())
         {
             return nullptr;
@@ -337,7 +295,7 @@ namespace winrt::Last_Music_Player::implementation::detail
 
         try
         {
-            auto albumArt = CreateMusicArtworkBitmap();
+            auto albumArt = CreateMusicArtworkBitmap(detail);
             if (!albumArt)
             {
                 return nullptr;
@@ -376,7 +334,10 @@ namespace winrt::Last_Music_Player::implementation::detail
 
         if (hasImage && track.AlbumArt() == nullptr && !rawArtworkUrl.empty())
         {
-            auto albumArt = CreateMusicArtworkBitmap(rawArtworkUrl);
+            // TrackInfo::AlbumArt is bound into list rows and grid tiles, so it
+            // is sized for those. Hero surfaces build their own bitmap rather
+            // than borrowing this one.
+            auto albumArt = CreateMusicArtworkBitmap(rawArtworkUrl, ArtworkDetail::Tile);
             if (albumArt)
             {
                 track.AlbumArt(albumArt);
@@ -548,6 +509,63 @@ namespace winrt::Last_Music_Player::implementation::detail
             return encoded;
         }
         return L"file:///" + encoded;
+    }
+
+    std::filesystem::path ArtworkCacheDirectory()
+    {
+        return AppDataDirectory() / L"thumbs";
+    }
+
+    winrt::hstring ArtworkCacheFileUri(std::filesystem::path const& path)
+    {
+        std::wstring text = path.wstring();
+        std::replace(text.begin(), text.end(), L'\\', L'/');
+
+        // Percent has to be escaped first, then the delimiters that would
+        // otherwise cut the path short. The cache lives under the user profile,
+        // so a user name containing one of these is the realistic way they show
+        // up in an otherwise hash-named path.
+        std::wstring escaped;
+        escaped.reserve(text.size() + 16);
+        for (wchar_t character : text)
+        {
+            switch (character)
+            {
+            case L'%': escaped.append(L"%25"); break;
+            case L' ': escaped.append(L"%20"); break;
+            case L'#': escaped.append(L"%23"); break;
+            case L'?': escaped.append(L"%3F"); break;
+            default: escaped.push_back(character); break;
+            }
+        }
+        return winrt::hstring{ L"file:///" + escaped };
+    }
+
+    bool IsArtworkCacheUri(winrt::hstring const& artworkUrl)
+    {
+        auto value = ToLowerCopy(artworkUrl);
+        if (value.rfind(L"file:///", 0) != 0)
+        {
+            return false;
+        }
+
+        // A traversal component is rejected outright rather than normalised
+        // away, so no crafted URL can climb out of the cache directory.
+        if (value.find(L"..") != std::wstring::npos)
+        {
+            return false;
+        }
+
+        std::wstring prefix{ ArtworkCacheFileUri(ArtworkCacheDirectory()).c_str() };
+        std::transform(prefix.begin(), prefix.end(), prefix.begin(), [](wchar_t character)
+        {
+            return static_cast<wchar_t>(std::towlower(character));
+        });
+        if (!prefix.empty() && prefix.back() != L'/')
+        {
+            prefix.push_back(L'/');
+        }
+        return value.rfind(prefix, 0) == 0 && value.size() > prefix.size();
     }
 
     std::filesystem::path AppDataDirectory()
@@ -753,7 +771,7 @@ namespace winrt::Last_Music_Player::implementation::detail
             return;
         }
 
-        track.AlbumArt(CreateMusicArtworkBitmap(normalized));
+        track.AlbumArt(CreateMusicArtworkBitmap(normalized, ArtworkDetail::Tile));
         ResolveArtworkPresentation(track, context);
     }
 

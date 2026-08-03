@@ -322,18 +322,55 @@ namespace winrt::Last_Music_Player::implementation
         NpMetaYear().Text(track.SourceLabel().empty() ? (remote ? L"Remote" : L"Local") : track.SourceLabel());
         NpMetaFormat().Text(remote ? L"Stream" : L"File");
 
-        bool hasImage = track.ImageArtworkOpacity() > 0.0 && track.AlbumArt() != nullptr;
-        BottomPlayerArt().Source(hasImage ? track.AlbumArt() : nullptr);
-        BottomPlayerArt().Opacity(hasImage ? 1.0 : 0.0);
-        BottomGeneratedArtwork().Opacity(hasImage ? 0.0 : 1.0);
-        RightPanelArt().Source(hasImage ? track.AlbumArt() : nullptr);
-        RightPanelArt().Opacity(hasImage ? 1.0 : 0.0);
-        RightPanelGeneratedArtwork().Opacity(hasImage ? 0.0 : 1.0);
+        auto artworkUrl = track.ArtworkUrl();
+
+        // Account artwork cannot be handed to a BitmapImage as a URL; it arrives
+        // through the authenticated relay. Queue it before anything is assigned,
+        // because queuing clears the source it is going to replace: a cache hit
+        // lands synchronously here, and a miss leaves the surface empty for the
+        // fallback below to fill until the relay answers.
+        if (RemoteMusicServiceService().Mode() == LastMusicPlayer::Backend::RemoteAccessMode::Account
+            && !artworkUrl.empty()
+            && IsHttpUrl(artworkUrl))
+        {
+            QueueAccountArtworkImage(BottomPlayerArt(), artworkUrl, ArtworkDetail::Tile, track);
+            QueueAccountArtworkImage(RightPanelArt(), artworkUrl, ArtworkDetail::Hero, track);
+            if (FsArt())
+            {
+                QueueAccountArtworkImage(FsArt(), artworkUrl, ArtworkDetail::Hero, track);
+            }
+        }
+
+        // Each surface reloads the artwork into a bitmap of its own, so none of
+        // them inherits a decode sized for another. TrackInfo::AlbumArt is the
+        // shared last resort, used only when there is no URL to reload from.
+        auto hasArtwork = track.ImageArtworkOpacity() > 0.0;
+        auto applyArtworkSurface = [&artworkUrl, &track, hasArtwork](
+            winrt::Microsoft::UI::Xaml::Controls::Image const& image,
+            winrt::Microsoft::UI::Xaml::UIElement const& generated,
+            ArtworkDetail detail)
+        {
+            auto showsImage = image.Source() != nullptr;
+            if (!showsImage && hasArtwork)
+            {
+                auto owned = CreateMusicArtworkBitmap(artworkUrl, detail);
+                winrt::Microsoft::UI::Xaml::Media::ImageSource source =
+                    owned ? winrt::Microsoft::UI::Xaml::Media::ImageSource{ owned } : track.AlbumArt();
+                if (source)
+                {
+                    image.Source(source);
+                    showsImage = true;
+                }
+            }
+            image.Opacity(showsImage ? 1.0 : 0.0);
+            generated.Opacity(showsImage ? 0.0 : 1.0);
+        };
+
+        applyArtworkSurface(BottomPlayerArt(), BottomGeneratedArtwork(), ArtworkDetail::Tile);
+        applyArtworkSurface(RightPanelArt(), RightPanelGeneratedArtwork(), ArtworkDetail::Hero);
         if (FsArt())
         {
-            FsArt().Source(hasImage ? track.AlbumArt() : nullptr);
-            FsArt().Opacity(hasImage ? 1.0 : 0.0);
-            FsGeneratedArtwork().Opacity(hasImage ? 0.0 : 1.0);
+            applyArtworkSurface(FsArt(), FsGeneratedArtwork(), ArtworkDetail::Hero);
         }
         ApplyShowAlbumArt();
 
@@ -501,24 +538,59 @@ namespace winrt::Last_Music_Player::implementation
                 FsGeneratedArtwork().Opacity(1.0);
             }
         };
-        auto showImageArtwork = [this](winrt::Microsoft::UI::Xaml::Media::ImageSource const& source)
+        // Each surface gets a bitmap of its own, built from `artworkUrl` where
+        // there is one. Handing all three the same BitmapImage would let XAML
+        // decode it once at the size of the smallest, which is the player bar
+        // thumbnail, and leave the two large surfaces stretching that decode.
+        auto showImageArtwork = [this](
+            winrt::hstring const& artworkUrl,
+            winrt::Microsoft::UI::Xaml::Media::ImageSource const& shared)
         {
-            BottomPlayerArt().Source(source);
+            auto sourceFor = [&artworkUrl, &shared](ArtworkDetail detail)
+            {
+                auto owned = CreateMusicArtworkBitmap(artworkUrl, detail);
+                return owned
+                    ? winrt::Microsoft::UI::Xaml::Media::ImageSource{ owned }
+                    : shared;
+            };
+
+            BottomPlayerArt().Source(sourceFor(ArtworkDetail::Tile));
             BottomPlayerArt().Opacity(1.0);
             BottomGeneratedArtwork().Opacity(0.0);
-            RightPanelArt().Source(source);
+            RightPanelArt().Source(sourceFor(ArtworkDetail::Hero));
             RightPanelArt().Opacity(1.0);
             RightPanelGeneratedArtwork().Opacity(0.0);
             if (FsArt())
             {
-                FsArt().Source(source);
+                FsArt().Source(sourceFor(ArtworkDetail::Hero));
                 FsArt().Opacity(1.0);
                 FsGeneratedArtwork().Opacity(0.0);
             }
         };
 
         showGeneratedArtwork();
-        if (track.ImageArtworkOpacity() > 0.0 && track.AlbumArt() != nullptr)
+        auto accountArtworkUrl = NormalizeMusicArtworkUrl(track.ArtworkUrl());
+        auto canResolveAccountArtwork = accountArtworkUrl.empty()
+            && !track.SourceUrl().empty()
+            && IsHttpUrl(track.SourceUrl());
+        if (accountMode
+            && ((!accountArtworkUrl.empty() && IsHttpUrl(accountArtworkUrl))
+                || canResolveAccountArtwork))
+        {
+            // Account library rows store durable external/provider URLs. Fetch the
+            // bytes through the session-authenticated relay instead of assigning
+            // those URLs directly to BitmapImage.
+            // One fetch, three independently decoded bitmaps. The player bar
+            // thumbnail is small enough for the tile size; the now playing panel
+            // and the full-screen player need the large one.
+            QueueAccountArtworkImage(BottomPlayerArt(), accountArtworkUrl, ArtworkDetail::Tile, track);
+            QueueAccountArtworkImage(RightPanelArt(), accountArtworkUrl, ArtworkDetail::Hero, track);
+            if (FsArt())
+            {
+                QueueAccountArtworkImage(FsArt(), accountArtworkUrl, ArtworkDetail::Hero, track);
+            }
+        }
+        else if (track.ImageArtworkOpacity() > 0.0 && track.AlbumArt() != nullptr)
         {
             auto artworkUrl = track.ArtworkUrl();
             auto useFreshRemoteLoad = !artworkUrl.empty() && IsHttpUrl(artworkUrl);
@@ -526,7 +598,7 @@ namespace winrt::Last_Music_Player::implementation
             {
                 try
                 {
-                    auto bitmap = CreateMusicArtworkBitmap();
+                    auto bitmap = CreateMusicArtworkBitmap(ArtworkDetail::Hero);
                     auto normalizedArtworkUrl = NormalizeMusicArtworkUrl(artworkUrl);
                     // Use only the provider-issued signed artwork URL. External
                     // image hosts pass through unchanged; expired provider art
@@ -540,21 +612,34 @@ namespace winrt::Last_Music_Player::implementation
                     else
                     {
                         auto weakThis = get_weak();
-                        bitmap.ImageOpened([weakThis, artworkEpoch, bitmap](auto const&, auto const&)
+                        // `bitmap` only proves the URL loads. Each surface then
+                        // takes a bitmap of its own so none of them is stuck
+                        // with a decode sized for another.
+                        bitmap.ImageOpened([weakThis, artworkEpoch, freshArtworkUrl](auto const&, auto const&)
                         {
                             if (auto self = weakThis.get())
                             {
                                 if (self->m_nowPlayingArtworkEpoch == artworkEpoch)
                                 {
-                                    self->BottomPlayerArt().Source(bitmap);
+                                    auto sourceFor = [&freshArtworkUrl](ArtworkDetail detail)
+                                    {
+                                        auto owned = CreateMusicArtworkBitmap(detail);
+                                        if (owned)
+                                        {
+                                            owned.UriSource(winrt::Windows::Foundation::Uri(freshArtworkUrl));
+                                        }
+                                        return owned;
+                                    };
+
+                                    self->BottomPlayerArt().Source(sourceFor(ArtworkDetail::Tile));
                                     self->BottomPlayerArt().Opacity(1.0);
                                     self->BottomGeneratedArtwork().Opacity(0.0);
-                                    self->RightPanelArt().Source(bitmap);
+                                    self->RightPanelArt().Source(sourceFor(ArtworkDetail::Hero));
                                     self->RightPanelArt().Opacity(1.0);
                                     self->RightPanelGeneratedArtwork().Opacity(0.0);
                                     if (self->FsArt())
                                     {
-                                        self->FsArt().Source(bitmap);
+                                        self->FsArt().Source(sourceFor(ArtworkDetail::Hero));
                                         self->FsArt().Opacity(1.0);
                                         self->FsGeneratedArtwork().Opacity(0.0);
                                     }
@@ -582,8 +667,6 @@ namespace winrt::Last_Music_Player::implementation
                                 }
                             }
                         });
-                        BottomPlayerArt().Source(bitmap);
-                        RightPanelArt().Source(bitmap);
                         bitmap.UriSource(winrt::Windows::Foundation::Uri(freshArtworkUrl));
                     }
                 }
@@ -594,7 +677,10 @@ namespace winrt::Last_Music_Player::implementation
             }
             else
             {
-                showImageArtwork(track.AlbumArt());
+                // Local artwork. TrackInfo::AlbumArt is decoded for list rows,
+                // so the player builds its own copies at the sizes it needs
+                // rather than stretching the row-sized one.
+                showImageArtwork(artworkUrl, track.AlbumArt());
             }
         }
 
