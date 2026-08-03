@@ -71,20 +71,6 @@
                         <VisualState.Setters>
                             <Setter Target="RightRailColumn.Width" Value="300" />
                             <Setter Target="RightSidebar.Visibility" Value="Visible" />
-                            <Setter Target="SettingsNavColumn.Width" Value="56" />
-                            <Setter Target="SettingsNavPanel.Margin" Value="0,0,12,0" />
-                            <Setter Target="SetLabelLibrary.Visibility" Value="Collapsed" />
-                            <Setter Target="SetLabelPlayback.Visibility" Value="Collapsed" />
-                            <Setter Target="SetLabelAudio.Visibility" Value="Collapsed" />
-                            <Setter Target="SetLabelAppearance.Visibility" Value="Collapsed" />
-                            <Setter Target="SetLabelIntegrations.Visibility" Value="Collapsed" />
-                            <Setter Target="SetLabelAbout.Visibility" Value="Collapsed" />
-                            <Setter Target="SetPillLibrary.Visibility" Value="Collapsed" />
-                            <Setter Target="SetPillPlayback.Visibility" Value="Collapsed" />
-                            <Setter Target="SetPillAudio.Visibility" Value="Collapsed" />
-                            <Setter Target="SetPillAppearance.Visibility" Value="Collapsed" />
-                            <Setter Target="SetPillIntegrations.Visibility" Value="Collapsed" />
-                            <Setter Target="SetPillAbout.Visibility" Value="Collapsed" />
                             <Setter Target="MusicFolderActions.(Grid.Column)" Value="1" />
                             <Setter Target="MusicFolderActions.(Grid.Row)" Value="1" />
                             <Setter Target="MusicFolderActions.HorizontalAlignment" Value="Left" />
@@ -138,20 +124,6 @@
                         <VisualState.Setters>
                             <Setter Target="RightRailColumn.Width" Value="0" />
                             <Setter Target="RightSidebar.Visibility" Value="Collapsed" />
-                            <Setter Target="SettingsNavColumn.Width" Value="56" />
-                            <Setter Target="SettingsNavPanel.Margin" Value="0,0,12,0" />
-                            <Setter Target="SetLabelLibrary.Visibility" Value="Collapsed" />
-                            <Setter Target="SetLabelPlayback.Visibility" Value="Collapsed" />
-                            <Setter Target="SetLabelAudio.Visibility" Value="Collapsed" />
-                            <Setter Target="SetLabelAppearance.Visibility" Value="Collapsed" />
-                            <Setter Target="SetLabelIntegrations.Visibility" Value="Collapsed" />
-                            <Setter Target="SetLabelAbout.Visibility" Value="Collapsed" />
-                            <Setter Target="SetPillLibrary.Visibility" Value="Collapsed" />
-                            <Setter Target="SetPillPlayback.Visibility" Value="Collapsed" />
-                            <Setter Target="SetPillAudio.Visibility" Value="Collapsed" />
-                            <Setter Target="SetPillAppearance.Visibility" Value="Collapsed" />
-                            <Setter Target="SetPillIntegrations.Visibility" Value="Collapsed" />
-                            <Setter Target="SetPillAbout.Visibility" Value="Collapsed" />
 
                             <Setter Target="MusicFolderActions.(Grid.Column)" Value="1" />
                             <Setter Target="MusicFolderActions.(Grid.Row)" Value="1" />
@@ -1235,504 +1207,168 @@
                 </Grid>
 
                 <!-- ========== SETTINGS VIEW ========== -->
+                <!-- Single scrolling page: every section is stacked top to bottom,
+                     header included, so there is no section switcher to keep in sync. -->
                 <Grid x:Name="SettingsViewContainer" Visibility="Collapsed" Padding="0,16,0,0">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" /> <!-- Header -->
-                        <RowDefinition Height="*" />    <!-- Nav + content -->
-                    </Grid.RowDefinitions>
+                    <ScrollViewer x:Name="SettingsScrollViewer" VerticalScrollBarVisibility="Auto">
+                        <StackPanel Spacing="32" Padding="0,0,4,32">
 
-                    <StackPanel Grid.Row="0" Spacing="4" Margin="0,0,0,24">
-                        <TextBlock Text="PREFERENCES" Style="{StaticResource EyebrowText}" />
-                        <TextBlock Text="Settings" Style="{StaticResource TitleH1}" />
-                        <TextBlock Text="Tune playback, library and appearance" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" TextWrapping="Wrap" />
-                    </StackPanel>
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="PREFERENCES" Style="{StaticResource EyebrowText}" />
+                                <TextBlock Text="Settings" Style="{StaticResource TitleH1}" />
+                                <TextBlock Text="Tune playback, library and appearance" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" TextWrapping="Wrap" />
+                            </StackPanel>
 
-                    <Grid Grid.Row="1">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition x:Name="SettingsNavColumn" Width="220" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-
-                        <!-- Settings sub-nav -->
-                        <StackPanel x:Name="SettingsNavPanel" Grid.Column="0" Spacing="2" Margin="0,0,24,0">
-                            <Button x:Name="SetNavProfile" Tag="Profile" Click="SettingsSection_Click" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Background="{ThemeResource AccentSoftBrush}" BorderThickness="0" CornerRadius="{StaticResource RadiusLg}" Height="42" Padding="12,0">
-                                <Grid>
-                                    <Border x:Name="SetPillProfile" HorizontalAlignment="Left" VerticalAlignment="Center" Width="3" Height="16" CornerRadius="1.5" Background="{ThemeResource AccentBrush}" Margin="-4,0,0,0" Visibility="Visible" />
-                                    <StackPanel Orientation="Horizontal" Spacing="16" VerticalAlignment="Center">
-                                        <FontIcon x:Name="SetGlyphProfile" Glyph="&#xE77B;" Foreground="{ThemeResource AccentBrush}" FontSize="15" />
-                                        <TextBlock x:Name="SetLabelProfile" Text="Profile" FontWeight="SemiBold" Foreground="{ThemeResource AccentBrush}" VerticalAlignment="Center" />
-                                    </StackPanel>
-                                </Grid>
-                            </Button>
-                            <Button x:Name="SetNavLibrary" Tag="Library" Click="SettingsSection_Click" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Background="Transparent" BorderThickness="0" CornerRadius="{StaticResource RadiusLg}" Height="42" Padding="12,0">
-                                <Grid>
-                                    <Border x:Name="SetPillLibrary" HorizontalAlignment="Left" VerticalAlignment="Center" Width="3" Height="16" CornerRadius="1.5" Background="{ThemeResource AccentBrush}" Margin="-4,0,0,0" Visibility="Collapsed" />
-                                    <StackPanel Orientation="Horizontal" Spacing="16" VerticalAlignment="Center">
-                                        <FontIcon x:Name="SetGlyphLibrary" Glyph="&#xE8D6;" Foreground="{ThemeResource TextSecondaryBrush}" FontSize="15" />
-                                        <TextBlock x:Name="SetLabelLibrary" Text="Library" Foreground="{ThemeResource TextPrimaryBrush}" VerticalAlignment="Center" />
-                                    </StackPanel>
-                                </Grid>
-                            </Button>
-                            <Button x:Name="SetNavPlayback" Tag="Playback" Click="SettingsSection_Click" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Background="Transparent" BorderThickness="0" CornerRadius="{StaticResource RadiusLg}" Height="42" Padding="12,0">
-                                <Grid>
-                                    <Border x:Name="SetPillPlayback" HorizontalAlignment="Left" VerticalAlignment="Center" Width="3" Height="16" CornerRadius="1.5" Background="{ThemeResource AccentBrush}" Margin="-4,0,0,0" Visibility="Collapsed" />
-                                    <StackPanel Orientation="Horizontal" Spacing="16" VerticalAlignment="Center">
-                                        <FontIcon x:Name="SetGlyphPlayback" Glyph="&#xE768;" Foreground="{ThemeResource TextSecondaryBrush}" FontSize="15" />
-                                        <TextBlock x:Name="SetLabelPlayback" Text="Playback" Foreground="{ThemeResource TextPrimaryBrush}" VerticalAlignment="Center" />
-                                    </StackPanel>
-                                </Grid>
-                            </Button>
-                            <Button x:Name="SetNavAudio" Tag="Audio" Click="SettingsSection_Click" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Background="Transparent" BorderThickness="0" CornerRadius="{StaticResource RadiusLg}" Height="42" Padding="12,0">
-                                <Grid>
-                                    <Border x:Name="SetPillAudio" HorizontalAlignment="Left" VerticalAlignment="Center" Width="3" Height="16" CornerRadius="1.5" Background="{ThemeResource AccentBrush}" Margin="-4,0,0,0" Visibility="Collapsed" />
-                                    <StackPanel Orientation="Horizontal" Spacing="16" VerticalAlignment="Center">
-                                        <FontIcon x:Name="SetGlyphAudio" Glyph="&#xE767;" Foreground="{ThemeResource TextSecondaryBrush}" FontSize="15" />
-                                        <TextBlock x:Name="SetLabelAudio" Text="Audio" Foreground="{ThemeResource TextPrimaryBrush}" VerticalAlignment="Center" />
-                                    </StackPanel>
-                                </Grid>
-                            </Button>
-                            <Button x:Name="SetNavAppearance" Tag="Appearance" Click="SettingsSection_Click" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Background="Transparent" BorderThickness="0" CornerRadius="{StaticResource RadiusLg}" Height="42" Padding="12,0">
-                                <Grid>
-                                    <Border x:Name="SetPillAppearance" HorizontalAlignment="Left" VerticalAlignment="Center" Width="3" Height="16" CornerRadius="1.5" Background="{ThemeResource AccentBrush}" Margin="-4,0,0,0" Visibility="Collapsed" />
-                                    <StackPanel Orientation="Horizontal" Spacing="16" VerticalAlignment="Center">
-                                        <FontIcon x:Name="SetGlyphAppearance" Glyph="&#xE790;" Foreground="{ThemeResource TextSecondaryBrush}" FontSize="15" />
-                                        <TextBlock x:Name="SetLabelAppearance" Text="Appearance" Foreground="{ThemeResource TextPrimaryBrush}" VerticalAlignment="Center" />
-                                    </StackPanel>
-                                </Grid>
-                            </Button>
-                            <Button x:Name="SetNavIntegrations" Tag="Integrations" Click="SettingsSection_Click" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Background="Transparent" BorderThickness="0" CornerRadius="{StaticResource RadiusLg}" Height="42" Padding="12,0">
-                                <Grid>
-                                    <Border x:Name="SetPillIntegrations" HorizontalAlignment="Left" VerticalAlignment="Center" Width="3" Height="16" CornerRadius="1.5" Background="{ThemeResource AccentBrush}" Margin="-4,0,0,0" Visibility="Collapsed" />
-                                    <StackPanel Orientation="Horizontal" Spacing="16" VerticalAlignment="Center">
-                                        <FontIcon x:Name="SetGlyphIntegrations" Glyph="&#xE71B;" Foreground="{ThemeResource TextSecondaryBrush}" FontSize="15" />
-                                        <TextBlock x:Name="SetLabelIntegrations" Text="Integrations" Foreground="{ThemeResource TextPrimaryBrush}" VerticalAlignment="Center" />
-                                    </StackPanel>
-                                </Grid>
-                            </Button>
-                            <Button x:Name="SetNavAbout" Tag="About" Click="SettingsSection_Click" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Background="Transparent" BorderThickness="0" CornerRadius="{StaticResource RadiusLg}" Height="42" Padding="12,0">
-                                <Grid>
-                                    <Border x:Name="SetPillAbout" HorizontalAlignment="Left" VerticalAlignment="Center" Width="3" Height="16" CornerRadius="1.5" Background="{ThemeResource AccentBrush}" Margin="-4,0,0,0" Visibility="Collapsed" />
-                                    <StackPanel Orientation="Horizontal" Spacing="16" VerticalAlignment="Center">
-                                        <FontIcon x:Name="SetGlyphAbout" Glyph="&#xE946;" Foreground="{ThemeResource TextSecondaryBrush}" FontSize="15" />
-                                        <TextBlock x:Name="SetLabelAbout" Text="About" Foreground="{ThemeResource TextPrimaryBrush}" VerticalAlignment="Center" />
-                                    </StackPanel>
-                                </Grid>
-                            </Button>
-                        </StackPanel>
-
-                        <!-- Section content -->
-                        <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Hidden">
-                            <Grid Padding="0,0,4,24">
-
-                                <!-- ===== Profile ===== -->
-                                <StackPanel x:Name="SetSecProfile" Spacing="20" Visibility="Visible">
-                                    <TextBlock Text="Profile" Style="{StaticResource TitleH3}" TextWrapping="Wrap" />
-                                    <Border Style="{StaticResource SettingsCard}">
-                                        <StackPanel>
-                                            <Grid ColumnSpacing="14">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="Auto" />
-                                                    <ColumnDefinition Width="*" />
-                                                </Grid.ColumnDefinitions>
-                                                <Border Grid.Column="0" Width="36" Height="36" CornerRadius="{StaticResource RadiusLg}" Background="{ThemeResource AccentSoftBrush}" VerticalAlignment="Center">
-                                                    <FontIcon Glyph="&#xE77B;" FontSize="16" Foreground="{ThemeResource AccentBrush}" />
-                                                </Border>
-                                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="4">
-                                                    <TextBlock Text="Display name" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" />
-                                                    <TextBlock Text="Shown in the greeting, sidebar and 'Made for…' carousel." Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
-                                                    <Grid Margin="0,6,0,0" ColumnSpacing="8">
-                                                        <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="*" />
-                                                            <ColumnDefinition Width="Auto" />
-                                                        </Grid.ColumnDefinitions>
-                                                        <TextBox Grid.Column="0" x:Name="DisplayNameBox" MaxLength="40" PlaceholderText="Listener" TextChanged="DisplayNameBox_TextChanged" KeyDown="DisplayNameBox_KeyDown" HorizontalAlignment="Stretch" />
-                                                        <Button Grid.Column="1" x:Name="DisplayNameSaveButton" Click="DisplayNameSave_Click" Style="{StaticResource AccentButtonStyle}" CornerRadius="{StaticResource RadiusMd}" Padding="16,7" VerticalAlignment="Center" IsEnabled="False">
-                                                            <TextBlock Text="Save" FontSize="12" FontWeight="SemiBold" />
-                                                        </Button>
-                                                    </Grid>
-                                                </StackPanel>
-                                            </Grid>
-                                        </StackPanel>
-                                    </Border>
-                                </StackPanel>
-
-                                <!-- ===== Library ===== -->
-                                <StackPanel x:Name="SetSecLibrary" Spacing="20" Visibility="Collapsed">
-                                    <!-- Scanning banner (shown while a scan runs) -->
-                                    <Border x:Name="SettingsScanCard" Visibility="Collapsed" CornerRadius="{StaticResource RadiusXl}" BorderBrush="{ThemeResource AccentSoft2Brush}" BorderThickness="1" Padding="18,16">
-                                        <Border.Background>
-                                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                                                <GradientStop Color="{ThemeResource AccentColor}" Offset="0.0" />
-                                                <GradientStop Color="{ThemeResource PanelGradient1}" Offset="1.0" />
-                                            </LinearGradientBrush>
-                                        </Border.Background>
+                            <!-- ===== Profile ===== -->
+                            <StackPanel x:Name="SetSecProfile" Spacing="20">
+                                <TextBlock Text="Profile" Style="{StaticResource TitleH2}" TextWrapping="Wrap" />
+                                <Border Style="{StaticResource SettingsCard}">
+                                    <StackPanel>
                                         <Grid ColumnSpacing="14">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="Auto" />
                                                 <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
-                                            <Border Grid.Column="0" Width="36" Height="36" CornerRadius="18" Background="{ThemeResource SurfaceBrush}" VerticalAlignment="Center">
-                                                <FontIcon Glyph="&#xE149;" FontSize="16" Foreground="{ThemeResource AccentBrush}" />
+                                            <Border Grid.Column="0" Width="36" Height="36" CornerRadius="{StaticResource RadiusLg}" Background="{ThemeResource AccentSoftBrush}" VerticalAlignment="Center">
+                                                <FontIcon Glyph="&#xE77B;" FontSize="16" Foreground="{ThemeResource AccentBrush}" />
                                             </Border>
-                                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="6">
-                                                <TextBlock x:Name="ScanStatusText" Text="Scanning your music folder..." Style="{StaticResource BodyStrong}" TextWrapping="Wrap" />
-                                                <ProgressBar IsIndeterminate="True" Foreground="{ThemeResource AccentBrush}" />
+                                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="4">
+                                                <TextBlock Text="Display name" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" />
+                                                <TextBlock Text="Shown in the greeting, sidebar and 'Made for…' carousel." Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
+                                                <Grid Margin="0,6,0,0" ColumnSpacing="8">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBox Grid.Column="0" x:Name="DisplayNameBox" MaxLength="40" PlaceholderText="Listener" TextChanged="DisplayNameBox_TextChanged" KeyDown="DisplayNameBox_KeyDown" HorizontalAlignment="Stretch" />
+                                                    <Button Grid.Column="1" x:Name="DisplayNameSaveButton" Click="DisplayNameSave_Click" Style="{StaticResource AccentButtonStyle}" CornerRadius="{StaticResource RadiusMd}" Padding="16,7" VerticalAlignment="Center" IsEnabled="False">
+                                                        <TextBlock Text="Save" FontSize="12" FontWeight="SemiBold" />
+                                                    </Button>
+                                                </Grid>
                                             </StackPanel>
-                                            <Button Grid.Column="2" x:Name="ScanCancelButton" Click="ScanCancel_Click" CornerRadius="{StaticResource RadiusMd}" Padding="12,6" VerticalAlignment="Center">
-                                                <TextBlock Text="Cancel" FontSize="12" FontWeight="SemiBold" />
-                                            </Button>
                                         </Grid>
-                                    </Border>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
 
-                                    <TextBlock Text="Library Management" Style="{StaticResource TitleH3}" TextWrapping="Wrap" />
-                                    <Border Style="{StaticResource SettingsCard}">
-                                        <StackPanel>
-                                            <!-- Music folder -->
-                                            <Grid ColumnSpacing="14">
-                                                <Grid.RowDefinitions>
-                                                    <RowDefinition Height="Auto" />
-                                                    <RowDefinition Height="Auto" />
-                                                </Grid.RowDefinitions>
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="Auto" />
-                                                    <ColumnDefinition Width="*" />
-                                                    <ColumnDefinition Width="Auto" />
-                                                </Grid.ColumnDefinitions>
-                                                <Border Grid.Column="0" Width="36" Height="36" CornerRadius="{StaticResource RadiusLg}" Background="{ThemeResource AccentSoftBrush}" VerticalAlignment="Center">
-                                                    <FontIcon Glyph="&#xED25;" FontSize="16" Foreground="{ThemeResource AccentBrush}" />
-                                                </Border>
-                                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="4">
-                                                    <TextBlock Text="Music folder" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" />
-                                                    <TextBlock Text="The folder scanned for your local library." Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
-                                                    <TextBox x:Name="MusicFolderPathBox" IsReadOnly="True" PlaceholderText="No folder selected" Margin="0,6,0,0" HorizontalAlignment="Stretch" />
-                                                </StackPanel>
-                                                <StackPanel x:Name="MusicFolderActions" Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                                                    <Button x:Name="ChangeFolderButton" Click="ChangeFolderButton_Click" CornerRadius="{StaticResource RadiusMd}" Padding="14,7">
-                                                        <TextBlock Text="Change" FontSize="12" FontWeight="SemiBold" />
-                                                    </Button>
-                                                    <Button x:Name="OpenFolderButton" Click="OpenFolderButton_Click" CornerRadius="{StaticResource RadiusMd}" Padding="14,7">
-                                                        <TextBlock Text="Open" FontSize="12" FontWeight="SemiBold" />
-                                                    </Button>
-                                                </StackPanel>
-                                            </Grid>
-
-                                            <Border Height="1" Background="{ThemeResource DividerBrush}" Margin="0,16" />
-
-                                            <!-- Scan for music -->
-                                            <Grid ColumnSpacing="14">
-                                                <Grid.RowDefinitions>
-                                                    <RowDefinition Height="Auto" />
-                                                    <RowDefinition Height="Auto" />
-                                                </Grid.RowDefinitions>
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="Auto" />
-                                                    <ColumnDefinition Width="*" />
-                                                    <ColumnDefinition Width="Auto" />
-                                                </Grid.ColumnDefinitions>
-                                                <Border Grid.Column="0" Width="36" Height="36" CornerRadius="{StaticResource RadiusLg}" Background="{ThemeResource AccentSoftBrush}" VerticalAlignment="Center">
-                                                    <FontIcon Glyph="&#xE149;" FontSize="16" Foreground="{ThemeResource AccentBrush}" />
-                                                </Border>
-                                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="4">
-                                                    <TextBlock Text="Scan for music" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" />
-                                                    <TextBlock Text="Re-index the selected folder for new or changed tracks." Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
-                                                </StackPanel>
-                                                <Button Grid.Column="2" x:Name="ScanMusicButton" Click="ScanMusicButton_Click" Style="{StaticResource AccentButtonStyle}" CornerRadius="{StaticResource RadiusMd}" Padding="16,7" VerticalAlignment="Center">
-                                                    <TextBlock Text="Scan now" FontSize="12" FontWeight="SemiBold" />
-                                                </Button>
-                                            </Grid>
-
-                                            <Border Height="1" Background="{ThemeResource DividerBrush}" Margin="0,16" />
-
+                            <!-- ===== Library ===== -->
+                            <StackPanel x:Name="SetSecLibrary" Spacing="20">
+                                <!-- Scanning banner (shown while a scan runs) -->
+                                <Border x:Name="SettingsScanCard" Visibility="Collapsed" CornerRadius="{StaticResource RadiusXl}" BorderBrush="{ThemeResource AccentSoft2Brush}" BorderThickness="1" Padding="18,16">
+                                    <Border.Background>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                            <GradientStop Color="{ThemeResource AccentColor}" Offset="0.0" />
+                                            <GradientStop Color="{ThemeResource PanelGradient1}" Offset="1.0" />
+                                        </LinearGradientBrush>
+                                    </Border.Background>
+                                    <Grid ColumnSpacing="14">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <Border Grid.Column="0" Width="36" Height="36" CornerRadius="18" Background="{ThemeResource SurfaceBrush}" VerticalAlignment="Center">
+                                            <FontIcon Glyph="&#xE149;" FontSize="16" Foreground="{ThemeResource AccentBrush}" />
+                                        </Border>
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="6">
+                                            <TextBlock x:Name="ScanStatusText" Text="Scanning your music folder..." Style="{StaticResource BodyStrong}" TextWrapping="Wrap" />
+                                            <ProgressBar IsIndeterminate="True" Foreground="{ThemeResource AccentBrush}" />
                                         </StackPanel>
-                                    </Border>
+                                        <Button Grid.Column="2" x:Name="ScanCancelButton" Click="ScanCancel_Click" CornerRadius="{StaticResource RadiusMd}" Padding="12,6" VerticalAlignment="Center">
+                                            <TextBlock Text="Cancel" FontSize="12" FontWeight="SemiBold" />
+                                        </Button>
+                                    </Grid>
+                                </Border>
 
-                                    <TextBlock Text="File Formats" Style="{StaticResource TitleH3}" TextWrapping="Wrap" />
-                                    <Border Style="{StaticResource SettingsCard}">
-                                        <StackPanel Spacing="12">
-                                            <TextBlock Text="Formats included when scanning. Backend currently indexes MP3 and FLAC." Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
-                                            <ScrollViewer HorizontalScrollBarVisibility="Auto" HorizontalScrollMode="Auto" VerticalScrollMode="Enabled" VerticalScrollBarVisibility="Disabled">
-                                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                                    <ToggleButton x:Name="FmtMp3" Tag=".mp3" Content="MP3" IsChecked="True" Style="{StaticResource ChipToggle}" Checked="FormatChip_Toggled" Unchecked="FormatChip_Toggled" />
-                                                    <ToggleButton x:Name="FmtFlac" Tag=".flac" Content="FLAC" IsChecked="True" Style="{StaticResource ChipToggle}" Checked="FormatChip_Toggled" Unchecked="FormatChip_Toggled" />
-                                                    <ToggleButton x:Name="FmtWav" Tag=".wav" Content="WAV" Style="{StaticResource ChipToggle}" Checked="FormatChip_Toggled" Unchecked="FormatChip_Toggled" />
-                                                    <ToggleButton x:Name="FmtM4a" Tag=".m4a" Content="M4A" Style="{StaticResource ChipToggle}" Checked="FormatChip_Toggled" Unchecked="FormatChip_Toggled" />
-                                                    <ToggleButton x:Name="FmtAac" Tag=".aac" Content="AAC" Style="{StaticResource ChipToggle}" Checked="FormatChip_Toggled" Unchecked="FormatChip_Toggled" />
-                                                    <ToggleButton x:Name="FmtOgg" Tag=".ogg" Content="OGG" Style="{StaticResource ChipToggle}" Checked="FormatChip_Toggled" Unchecked="FormatChip_Toggled" />
-                                                    <ToggleButton x:Name="FmtOpus" Tag=".opus" Content="OPUS" Style="{StaticResource ChipToggle}" Checked="FormatChip_Toggled" Unchecked="FormatChip_Toggled" />
-                                                    <ToggleButton x:Name="FmtWma" Tag=".wma" Content="WMA" Style="{StaticResource ChipToggle}" Checked="FormatChip_Toggled" Unchecked="FormatChip_Toggled" />
-                                                </StackPanel>
-                                            </ScrollViewer>
-                                        </StackPanel>
-                                    </Border>
-                                </StackPanel>
-
-                                <!-- ===== Playback ===== -->
-                                <StackPanel x:Name="SetSecPlayback" Visibility="Collapsed" Spacing="20">
-                                    <TextBlock Text="Playback" Style="{StaticResource TitleH3}" TextWrapping="Wrap" />
-                                    <Border Style="{StaticResource SettingsCard}">
-                                        <StackPanel>
-                                            <Grid>
-                                                <Grid.RowDefinitions>
-                                                    <RowDefinition Height="Auto" />
-                                                    <RowDefinition Height="Auto" />
-                                                </Grid.RowDefinitions>
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="*" />
-                                                    <ColumnDefinition Width="Auto" />
-                                                </Grid.ColumnDefinitions>
-                                                <StackPanel Grid.Column="0" Spacing="4">
-                                                    <TextBlock Text="Autoplay" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" />
-                                                    <TextBlock Text="Keep playing related songs when your queue ends." Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
-                                                </StackPanel>
-                                                <ToggleSwitch x:Name="AutoplaySwitch" Grid.Column="1" IsOn="True" Toggled="SettingsToggle_Toggled" OnContent="" OffContent="" MinWidth="0" VerticalAlignment="Center" />
-                                            </Grid>
-                                            <Border Height="1" Background="{ThemeResource DividerBrush}" Margin="0,16" />
-                                            <Grid>
-                                                <Grid.RowDefinitions>
-                                                    <RowDefinition Height="Auto" />
-                                                    <RowDefinition Height="Auto" />
-                                                </Grid.RowDefinitions>
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="*" />
-                                                    <ColumnDefinition Width="Auto" />
-                                                </Grid.ColumnDefinitions>
-                                                <StackPanel Grid.Column="0" Spacing="4">
-                                                    <TextBlock Text="Gapless playback" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" />
-                                                    <TextBlock Text="Remove silence between consecutive tracks." Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
-                                                </StackPanel>
-                                                <ToggleSwitch x:Name="GaplessSwitch" Grid.Column="1" IsOn="True" Toggled="SettingsToggle_Toggled" OnContent="" OffContent="" MinWidth="0" VerticalAlignment="Center" />
-                                            </Grid>
-                                            <Border Height="1" Background="{ThemeResource DividerBrush}" Margin="0,16" />
-                                            <Grid>
-                                                <Grid.RowDefinitions>
-                                                    <RowDefinition Height="Auto" />
-                                                    <RowDefinition Height="Auto" />
-                                                </Grid.RowDefinitions>
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="*" />
-                                                    <ColumnDefinition Width="Auto" />
-                                                </Grid.ColumnDefinitions>
-                                                <StackPanel Grid.Column="0" Spacing="4">
-                                                    <TextBlock Text="When closing window" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" />
-                                                    <TextBlock Text="Choose what the close button does." Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
-                                                </StackPanel>
-                                                <ComboBox x:Name="CloseBehaviorCombo" Grid.Column="1" SelectedIndex="0" MinWidth="180" VerticalAlignment="Center" SelectionChanged="SettingsCombo_SelectionChanged">
-                                                    <ComboBoxItem Content="Minimize to tray" />
-                                                    <ComboBoxItem Content="Quit" />
-                                                </ComboBox>
-                                            </Grid>
-                                        </StackPanel>
-                                    </Border>
-                                </StackPanel>
-
-                                <!-- ===== Audio ===== -->
-                                <StackPanel x:Name="SetSecAudio" Visibility="Collapsed" Spacing="20">
-                                    <TextBlock Text="Audio" Style="{StaticResource TitleH3}" TextWrapping="Wrap" />
-                                    <Border Style="{StaticResource SettingsCard}">
-                                        <StackPanel>
-                                            <Grid>
-                                                <Grid.RowDefinitions>
-                                                    <RowDefinition Height="Auto" />
-                                                    <RowDefinition Height="Auto" />
-                                                </Grid.RowDefinitions>
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="*" />
-                                                    <ColumnDefinition Width="Auto" />
-                                                </Grid.ColumnDefinitions>
-                                                <StackPanel Grid.Column="0" Spacing="4">
-                                                    <TextBlock Text="Output device" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" />
-                                                    <TextBlock Text="Where audio is rendered." Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
-                                                </StackPanel>
-                                                <ComboBox x:Name="OutputDeviceCombo" Grid.Column="1" SelectedIndex="0" MinWidth="200" VerticalAlignment="Center" SelectionChanged="SettingsCombo_SelectionChanged">
-                                                    <ComboBoxItem Content="System default" />
-                                                </ComboBox>
-                                            </Grid>
-                                        </StackPanel>
-                                    </Border>
-
-                                    <TextBlock Text="Equalizer" Style="{StaticResource TitleH3}" TextWrapping="Wrap" />
-                                    <TextBlock Text="Applies to local playback only. Cast playback uses the device's own audio processing." Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
-                                    <Border Style="{StaticResource SettingsCard}">
-                                        <StackPanel Spacing="16">
-                                            <StackPanel Orientation="Vertical" Spacing="8">
-                                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                                    <ToggleButton x:Name="EqPresetFlat" Tag="Flat" Content="Flat" Style="{StaticResource ChipToggle}" Click="EqualizerPreset_Click" IsEnabled="False" />
-                                                    <ToggleButton x:Name="EqPresetBass" Tag="Bass" Content="Bass Boost" Style="{StaticResource ChipToggle}" Click="EqualizerPreset_Click" IsEnabled="False" />
-                                                    <ToggleButton x:Name="EqPresetTreble" Tag="Treble" Content="Treble" Style="{StaticResource ChipToggle}" Click="EqualizerPreset_Click" IsEnabled="False" />
-                                                    <ToggleButton x:Name="EqPresetVocal" Tag="Vocal" Content="Vocal" Style="{StaticResource ChipToggle}" Click="EqualizerPreset_Click" IsEnabled="False" />
-                                                </StackPanel>
-                                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                                    <ToggleButton x:Name="EqPresetAcoustic" Tag="Acoustic" Content="Acoustic" Style="{StaticResource ChipToggle}" Click="EqualizerPreset_Click" IsEnabled="False" />
-                                                    <ToggleButton x:Name="EqPresetElectronic" Tag="Electronic" Content="Electronic" Style="{StaticResource ChipToggle}" Click="EqualizerPreset_Click" IsEnabled="False" />
-                                                    <ToggleButton x:Name="EqPresetCustom" Tag="Custom" Content="Custom" Style="{StaticResource ChipToggle}" IsEnabled="False" IsHitTestVisible="False" IsTabStop="False" ToolTipService.ToolTip="Highlights when bands do not match a preset" />
-                                                    <Button x:Name="EqResetButton" Click="EqResetButton_Click" ToolTipService.ToolTip="Zero all bands and preamp" IsEnabled="False">
-                                                        <StackPanel Orientation="Horizontal" Spacing="6">
-                                                            <FontIcon Glyph="&#xE777;" FontSize="12" />
-                                                            <TextBlock Text="Reset" />
-                                                        </StackPanel>
-                                                    </Button>
-                                                </StackPanel>
-                                            </StackPanel>
-                                            <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
-                                                <TextBlock Text="Preamp" Style="{StaticResource CaptionText}" Width="60" VerticalAlignment="Center" />
-                                                <Slider x:Name="EqPreampSlider" Minimum="-12" Maximum="0" Value="0" StepFrequency="1" Width="200" VerticalAlignment="Center" ValueChanged="EqPreampSlider_ValueChanged" ToolTipService.ToolTip="Reduce signal before the bands to give boosts headroom" IsEnabled="False" />
-                                                <TextBlock x:Name="EqPreampValueText" Text="0 dB" Width="56" VerticalAlignment="Center" />
-                                            </StackPanel>
-                                            <StackPanel x:Name="EqualizerBars" Orientation="Horizontal" Spacing="10" HorizontalAlignment="Left" />
-                                        </StackPanel>
-                                    </Border>
-                                </StackPanel>
-
-                                <!-- ===== Appearance ===== -->
-                                <StackPanel x:Name="SetSecAppearance" Visibility="Collapsed" Spacing="20">
-                                    <TextBlock Text="Appearance" Style="{StaticResource TitleH3}" TextWrapping="Wrap" />
-                                    <Border Style="{StaticResource SettingsCard}">
-                                        <StackPanel>
-                                            <Grid>
-                                                <Grid.RowDefinitions>
-                                                    <RowDefinition Height="Auto" />
-                                                    <RowDefinition Height="Auto" />
-                                                </Grid.RowDefinitions>
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="*" />
-                                                    <ColumnDefinition Width="Auto" />
-                                                </Grid.ColumnDefinitions>
-                                                <StackPanel Grid.Column="0" Spacing="4">
-                                                    <TextBlock Text="Theme" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" />
-                                                    <TextBlock Text="Switch between light, dark, or follow the system." Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
-                                                </StackPanel>
-                                                <StackPanel x:Name="ThemeOptionsPanel" Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                                                    <ToggleButton x:Name="ThemeLight" Tag="Light" Content="Light" Style="{StaticResource ChipToggle}" Checked="ThemeSegment_Checked" />
-                                                    <ToggleButton x:Name="ThemeDark" Tag="Dark" Content="Dark" Style="{StaticResource ChipToggle}" Checked="ThemeSegment_Checked" />
-                                                    <ToggleButton x:Name="ThemeSystem" Tag="System" Content="System" IsChecked="True" Style="{StaticResource ChipToggle}" Checked="ThemeSegment_Checked" />
-                                                </StackPanel>
-                                            </Grid>
-                                            <Border Height="1" Background="{ThemeResource DividerBrush}" Margin="0,16" />
-                                            <Grid>
-                                                <Grid.RowDefinitions>
-                                                    <RowDefinition Height="Auto" />
-                                                    <RowDefinition Height="Auto" />
-                                                </Grid.RowDefinitions>
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="*" />
-                                                    <ColumnDefinition Width="Auto" />
-                                                </Grid.ColumnDefinitions>
-                                                <StackPanel Grid.Column="0" Spacing="4">
-                                                    <TextBlock Text="Accent color" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" />
-                                                    <TextBlock Text="Recolors highlights, sliders and accents across the app." Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
-                                                </StackPanel>
-                                                <StackPanel x:Name="AccentSwatchesPanel" Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-                                                    <Ellipse x:Name="AccentSw0" Tag="#FF0097B2" Width="22" Height="22" Fill="{ThemeResource AccentBrush}" Stroke="{ThemeResource StrokeStrongBrush}" StrokeThickness="2" Tapped="AccentSwatch_Tapped" />
-                                                    <Ellipse x:Name="AccentSw1" Tag="#FF6B8EFE" Width="22" Height="22" Fill="#FF6B8EFE" StrokeThickness="0" Tapped="AccentSwatch_Tapped" />
-                                                    <Ellipse x:Name="AccentSw2" Tag="#FFE0719C" Width="22" Height="22" Fill="#FFE0719C" StrokeThickness="0" Tapped="AccentSwatch_Tapped" />
-                                                    <Ellipse x:Name="AccentSw3" Tag="#FF6FBF73" Width="22" Height="22" Fill="#FF6FBF73" StrokeThickness="0" Tapped="AccentSwatch_Tapped" />
-                                                    <Ellipse x:Name="AccentSw4" Tag="#FFE8A33D" Width="22" Height="22" Fill="#FFE8A33D" StrokeThickness="0" Tapped="AccentSwatch_Tapped" />
-                                                </StackPanel>
-                                            </Grid>
-                                            <Border Height="1" Background="{ThemeResource DividerBrush}" Margin="0,16" />
-                                            <Grid>
-                                                <Grid.RowDefinitions>
-                                                    <RowDefinition Height="Auto" />
-                                                    <RowDefinition Height="Auto" />
-                                                </Grid.RowDefinitions>
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="*" />
-                                                    <ColumnDefinition Width="Auto" />
-                                                </Grid.ColumnDefinitions>
-                                                <StackPanel Grid.Column="0" Spacing="4">
-                                                    <TextBlock Text="Show album art on player bar" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" />
-                                                    <TextBlock Text="Display artwork next to the now-playing track." Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
-                                                </StackPanel>
-                                                <ToggleSwitch x:Name="ShowAlbumArtSwitch" Grid.Column="1" IsOn="True" Toggled="SettingsToggle_Toggled" OnContent="" OffContent="" MinWidth="0" VerticalAlignment="Center" />
-                                            </Grid>
-                                        </StackPanel>
-                                    </Border>
-                                </StackPanel>
-
-                                <!-- ===== Integrations ===== -->
-                                <StackPanel x:Name="SetSecIntegrations" Visibility="Collapsed" Spacing="20">
-                                    <TextBlock Text="Integrations" Style="{StaticResource TitleH3}" TextWrapping="Wrap" />
-                                    <Border Style="{StaticResource SettingsCard}">
-                                        <StackPanel Spacing="16">
-                                            <Grid ColumnSpacing="16">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="*" />
-                                                    <ColumnDefinition Width="Auto" />
-                                                </Grid.ColumnDefinitions>
-                                                <StackPanel Spacing="4">
-                                                    <TextBlock Text="Account" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" />
-                                                    <TextBlock x:Name="AccountStatusText" Text="Checking account status..." Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
-                                                </StackPanel>
-                                                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                                                    <Button x:Name="AccountSignInButton" Click="AccountSignIn_Click" CornerRadius="{StaticResource RadiusMd}" Padding="16,7" Content="Sign in" />
-                                                    <Button x:Name="AccountSyncButton" Click="AccountSync_Click" CornerRadius="{StaticResource RadiusMd}" Padding="16,7" Content="Sync now" Visibility="Collapsed" />
-                                                    <Button x:Name="AccountSignOutButton" Click="AccountSignOut_Click" CornerRadius="{StaticResource RadiusMd}" Padding="16,7" Content="Sign out" Visibility="Collapsed" />
-                                                </StackPanel>
-                                            </Grid>
-                                            <Grid x:Name="AccountProfilePanel" Visibility="Collapsed" ColumnSpacing="12">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="44" />
-                                                    <ColumnDefinition Width="*" />
-                                                </Grid.ColumnDefinitions>
-                                                <Border Width="44" Height="44" CornerRadius="22" Background="{ThemeResource ControlFillColorSecondaryBrush}">
-                                                    <Grid>
-                                                        <Image x:Name="AccountAvatarImage" Loaded="ArtworkImage_Loaded" Stretch="UniformToFill" Visibility="Collapsed" />
-                                                        <FontIcon x:Name="AccountAvatarFallback" Glyph="&#xE77B;" FontSize="20" Foreground="{ThemeResource TextSecondaryBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                                    </Grid>
-                                                </Border>
-                                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
-                                                    <TextBlock x:Name="AccountDisplayNameText" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" />
-                                                    <TextBlock x:Name="AccountUsernameText" Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
-                                                    <TextBlock x:Name="AccountPlanText" Style="{StaticResource CaptionText}" Foreground="{ThemeResource TextTertiaryBrush}" TextWrapping="Wrap" />
-                                                    <HyperlinkButton x:Name="AccountManageButton" Click="AccountManage_Click" Content="Manage account" Padding="0" MinHeight="0" HorizontalAlignment="Left" Visibility="Collapsed" />
-                                                </StackPanel>
-                                            </Grid>
-                                            <Grid ColumnSpacing="16">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="*" />
-                                                    <ColumnDefinition Width="Auto" />
-                                                </Grid.ColumnDefinitions>
-                                                <StackPanel Spacing="2">
-                                                    <TextBlock Text="Account library on this PC" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" />
-                                                    <TextBlock x:Name="AccountLastSyncText" Text="Not synchronized yet" Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
-                                                </StackPanel>
-                                                <Button x:Name="AccountClearDataButton" Grid.Column="1" Click="AccountClearData_Click" CornerRadius="{StaticResource RadiusMd}" Padding="12,6" Content="Clear synced data" IsEnabled="False" />
-                                            </Grid>
-                                        </StackPanel>
-                                    </Border>
-                                    <Border Style="{StaticResource SettingsCard}">
-                                        <StackPanel Spacing="12">
-                                            <StackPanel Spacing="4">
-                                                <TextBlock Text="Music source" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" />
-                                                <TextBlock Text="Choose one remote source. Local files remain available in every mode." Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
-                                            </StackPanel>
-                                            <RadioButtons x:Name="RemoteModeSelector" SelectionChanged="RemoteMode_SelectionChanged">
-                                                <RadioButton x:Name="RemoteModeLocal" Content="Local files only" Tag="LocalOnly" />
-                                                <RadioButton x:Name="RemoteModeAccount" Content="Account" Tag="Account" />
-                                                <RadioButton x:Name="RemoteModeApiKey" Content="API key" Tag="ApiKey" />
-                                            </RadioButtons>
-                                        </StackPanel>
-                                    </Border>
-                                    <!-- Only meaningful while the catalog is reachable, so its
-                                         visibility follows the same check as the catalog itself. -->
-                                    <Border x:Name="SettingsCatalogRegionCard" Style="{StaticResource SettingsCard}" Visibility="Collapsed">
-                                        <Grid>
+                                <TextBlock Text="Library Management" Style="{StaticResource TitleH2}" TextWrapping="Wrap" />
+                                <Border Style="{StaticResource SettingsCard}">
+                                    <StackPanel>
+                                        <!-- Music folder -->
+                                        <Grid ColumnSpacing="14">
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
                                             <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
                                                 <ColumnDefinition Width="*" />
                                                 <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
-                                            <StackPanel Grid.Column="0" Spacing="4">
-                                                <TextBlock Text="Catalog region" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" />
-                                                <TextBlock Text="Which country's Apple Music charts and featured music appear on Home." Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
+                                            <Border Grid.Column="0" Width="36" Height="36" CornerRadius="{StaticResource RadiusLg}" Background="{ThemeResource AccentSoftBrush}" VerticalAlignment="Center">
+                                                <FontIcon Glyph="&#xED25;" FontSize="16" Foreground="{ThemeResource AccentBrush}" />
+                                            </Border>
+                                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="4">
+                                                <TextBlock Text="Music folder" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" />
+                                                <TextBlock Text="The folder scanned for your local library." Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
+                                                <TextBox x:Name="MusicFolderPathBox" IsReadOnly="True" PlaceholderText="No folder selected" Margin="0,6,0,0" HorizontalAlignment="Stretch" />
                                             </StackPanel>
-                                            <ComboBox x:Name="DiscoverStorefrontSelector" Grid.Column="1" MinWidth="200" VerticalAlignment="Center" SelectionChanged="DiscoverStorefront_SelectionChanged" />
+                                            <StackPanel x:Name="MusicFolderActions" Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                                <Button x:Name="ChangeFolderButton" Click="ChangeFolderButton_Click" CornerRadius="{StaticResource RadiusMd}" Padding="14,7">
+                                                    <TextBlock Text="Change" FontSize="12" FontWeight="SemiBold" />
+                                                </Button>
+                                                <Button x:Name="OpenFolderButton" Click="OpenFolderButton_Click" CornerRadius="{StaticResource RadiusMd}" Padding="14,7">
+                                                    <TextBlock Text="Open" FontSize="12" FontWeight="SemiBold" />
+                                                </Button>
+                                            </StackPanel>
                                         </Grid>
-                                    </Border>
-                                    <Border Style="{StaticResource SettingsCard}">
-                                        <Grid ColumnSpacing="16">
+
+                                        <Border Height="1" Background="{ThemeResource DividerBrush}" Margin="0,16" />
+
+                                        <!-- Scan for music -->
+                                        <Grid ColumnSpacing="14">
                                             <Grid.RowDefinitions>
                                                 <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <Border Grid.Column="0" Width="36" Height="36" CornerRadius="{StaticResource RadiusLg}" Background="{ThemeResource AccentSoftBrush}" VerticalAlignment="Center">
+                                                <FontIcon Glyph="&#xE149;" FontSize="16" Foreground="{ThemeResource AccentBrush}" />
+                                            </Border>
+                                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="4">
+                                                <TextBlock Text="Scan for music" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" />
+                                                <TextBlock Text="Re-index the selected folder for new or changed tracks." Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
+                                            </StackPanel>
+                                            <Button Grid.Column="2" x:Name="ScanMusicButton" Click="ScanMusicButton_Click" Style="{StaticResource AccentButtonStyle}" CornerRadius="{StaticResource RadiusMd}" Padding="16,7" VerticalAlignment="Center">
+                                                <TextBlock Text="Scan now" FontSize="12" FontWeight="SemiBold" />
+                                            </Button>
+                                        </Grid>
+
+                                        <Border Height="1" Background="{ThemeResource DividerBrush}" Margin="0,16" />
+
+                                    </StackPanel>
+                                </Border>
+
+                                <TextBlock Text="File Formats" Style="{StaticResource TitleH3}" TextWrapping="Wrap" />
+                                <Border Style="{StaticResource SettingsCard}">
+                                    <StackPanel Spacing="12">
+                                        <TextBlock Text="Formats included when scanning. Backend currently indexes MP3 and FLAC." Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
+                                        <ScrollViewer HorizontalScrollBarVisibility="Auto" HorizontalScrollMode="Auto" VerticalScrollMode="Enabled" VerticalScrollBarVisibility="Disabled">
+                                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                                <ToggleButton x:Name="FmtMp3" Tag=".mp3" Content="MP3" IsChecked="True" Style="{StaticResource ChipToggle}" Checked="FormatChip_Toggled" Unchecked="FormatChip_Toggled" />
+                                                <ToggleButton x:Name="FmtFlac" Tag=".flac" Content="FLAC" IsChecked="True" Style="{StaticResource ChipToggle}" Checked="FormatChip_Toggled" Unchecked="FormatChip_Toggled" />
+                                                <ToggleButton x:Name="FmtWav" Tag=".wav" Content="WAV" Style="{StaticResource ChipToggle}" Checked="FormatChip_Toggled" Unchecked="FormatChip_Toggled" />
+                                                <ToggleButton x:Name="FmtM4a" Tag=".m4a" Content="M4A" Style="{StaticResource ChipToggle}" Checked="FormatChip_Toggled" Unchecked="FormatChip_Toggled" />
+                                                <ToggleButton x:Name="FmtAac" Tag=".aac" Content="AAC" Style="{StaticResource ChipToggle}" Checked="FormatChip_Toggled" Unchecked="FormatChip_Toggled" />
+                                                <ToggleButton x:Name="FmtOgg" Tag=".ogg" Content="OGG" Style="{StaticResource ChipToggle}" Checked="FormatChip_Toggled" Unchecked="FormatChip_Toggled" />
+                                                <ToggleButton x:Name="FmtOpus" Tag=".opus" Content="OPUS" Style="{StaticResource ChipToggle}" Checked="FormatChip_Toggled" Unchecked="FormatChip_Toggled" />
+                                                <ToggleButton x:Name="FmtWma" Tag=".wma" Content="WMA" Style="{StaticResource ChipToggle}" Checked="FormatChip_Toggled" Unchecked="FormatChip_Toggled" />
+                                            </StackPanel>
+                                        </ScrollViewer>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+
+                            <!-- ===== Playback ===== -->
+                            <StackPanel x:Name="SetSecPlayback" Spacing="20">
+                                <TextBlock Text="Playback" Style="{StaticResource TitleH2}" TextWrapping="Wrap" />
+                                <Border Style="{StaticResource SettingsCard}">
+                                    <StackPanel>
+                                        <Grid>
+                                            <Grid.RowDefinitions>
                                                 <RowDefinition Height="Auto" />
                                                 <RowDefinition Height="Auto" />
                                             </Grid.RowDefinitions>
@@ -1740,130 +1376,388 @@
                                                 <ColumnDefinition Width="*" />
                                                 <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
-                                            <StackPanel Grid.Row="0" Grid.Column="0" Spacing="4">
-                                                <TextBlock Text="API key connection" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" />
-                                                <TextBlock x:Name="ProviderTestStatusText" Text="Ready" Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
+                                            <StackPanel Grid.Column="0" Spacing="4">
+                                                <TextBlock Text="Autoplay" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" />
+                                                <TextBlock Text="Keep playing related songs when your queue ends." Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
                                             </StackPanel>
-                                            <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                                                <Button x:Name="ProviderTestButton" Click="PlayProviderTest_Click" CornerRadius="{StaticResource RadiusMd}" Padding="16,7">
-                                                    <StackPanel Orientation="Horizontal" Spacing="8">
-                                                        <FontIcon Glyph="&#xE8FB;" FontSize="13" />
-                                                        <TextBlock Text="Connect" FontSize="12" FontWeight="SemiBold" />
-                                                    </StackPanel>
-                                                </Button>
-                                                <Button x:Name="ProviderDisconnectButton" Click="DisconnectProvider_Click" CornerRadius="{StaticResource RadiusMd}" Padding="16,7" Content="Disconnect" />
-                                            </StackPanel>
-                                            <TextBox x:Name="ProviderBaseUrlBox" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Text="http://127.0.0.1:4527" Header="Provider URL" Margin="0,12,0,0" />
-                                            <PasswordBox x:Name="ProviderApiKeyBox" Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Header="API key" PasswordRevealMode="Peek" Margin="0,8,0,0" />
+                                            <ToggleSwitch x:Name="AutoplaySwitch" Grid.Column="1" IsOn="True" Toggled="SettingsToggle_Toggled" OnContent="" OffContent="" MinWidth="0" VerticalAlignment="Center" />
                                         </Grid>
-                                    </Border>
-                                    <Border Style="{StaticResource SettingsCard}">
-                                        <StackPanel>
-                                            <Grid>
-                                                <Grid.RowDefinitions>
-                                                    <RowDefinition Height="Auto" />
-                                                    <RowDefinition Height="Auto" />
-                                                </Grid.RowDefinitions>
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="*" />
-                                                    <ColumnDefinition Width="Auto" />
-                                                </Grid.ColumnDefinitions>
-                                                <StackPanel Grid.Column="0" Spacing="4">
-                                                    <TextBlock Text="Discord Rich Presence" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" />
-                                                    <TextBlock Text="Show what you're listening to on Discord." Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
-                                                    <TextBlock Text="Requires the Discord desktop app to be running." Style="{StaticResource CaptionText}" Foreground="{ThemeResource TextTertiaryBrush}" TextWrapping="Wrap" />
-                                                </StackPanel>
-                                                <ToggleSwitch x:Name="DiscordPresenceSwitch" Grid.Column="1" Toggled="SettingsToggle_Toggled" OnContent="" OffContent="" MinWidth="0" VerticalAlignment="Center" />
-                                            </Grid>
-                                            <Border Height="1" Background="{ThemeResource DividerBrush}" Margin="0,16" />
-                                            <Grid>
-                                                <Grid.RowDefinitions>
-                                                    <RowDefinition Height="Auto" />
-                                                    <RowDefinition Height="Auto" />
-                                                </Grid.RowDefinitions>
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="*" />
-                                                    <ColumnDefinition Width="Auto" />
-                                                </Grid.ColumnDefinitions>
-                                                <StackPanel Grid.Column="0" Spacing="4">
-                                                    <TextBlock Text="Windows media controls" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" />
-                                                    <TextBlock Text="System play/pause and media keys (SMTC)." Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
-                                                </StackPanel>
-                                                <ToggleSwitch x:Name="WindowsMediaControlsSwitch" Grid.Column="1" IsOn="True" Toggled="SettingsToggle_Toggled" OnContent="" OffContent="" MinWidth="0" VerticalAlignment="Center" />
-                                            </Grid>
-                                        </StackPanel>
-                                    </Border>
-                                </StackPanel>
+                                        <Border Height="1" Background="{ThemeResource DividerBrush}" Margin="0,16" />
+                                        <Grid>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0" Spacing="4">
+                                                <TextBlock Text="Gapless playback" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" />
+                                                <TextBlock Text="Remove silence between consecutive tracks." Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
+                                            </StackPanel>
+                                            <ToggleSwitch x:Name="GaplessSwitch" Grid.Column="1" IsOn="True" Toggled="SettingsToggle_Toggled" OnContent="" OffContent="" MinWidth="0" VerticalAlignment="Center" />
+                                        </Grid>
+                                        <Border Height="1" Background="{ThemeResource DividerBrush}" Margin="0,16" />
+                                        <Grid>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0" Spacing="4">
+                                                <TextBlock Text="When closing window" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" />
+                                                <TextBlock Text="Choose what the close button does." Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
+                                            </StackPanel>
+                                            <ComboBox x:Name="CloseBehaviorCombo" Grid.Column="1" SelectedIndex="0" MinWidth="180" VerticalAlignment="Center" SelectionChanged="SettingsCombo_SelectionChanged">
+                                                <ComboBoxItem Content="Minimize to tray" />
+                                                <ComboBoxItem Content="Quit" />
+                                            </ComboBox>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
 
-                                <!-- ===== About ===== -->
-                                <StackPanel x:Name="SetSecAbout" Visibility="Collapsed" Spacing="20">
-                                    <TextBlock Text="About" Style="{StaticResource TitleH3}" TextWrapping="Wrap" />
-                                    <Border Style="{StaticResource SettingsCard}">
-                                        <StackPanel Spacing="16">
-                                            <StackPanel Orientation="Horizontal" Spacing="16">
-                                                <Border Width="56" Height="56" CornerRadius="{StaticResource RadiusXl}">
-                                                    <Border.Background>
-                                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                                            <GradientStop Color="{ThemeResource AccentColor}" Offset="0.0" />
-                                                            <GradientStop Color="{ThemeResource AccentColorLight}" Offset="1.0" />
-                                                        </LinearGradientBrush>
-                                                    </Border.Background>
-                                                    <TextBlock Text="&#x266A;" FontSize="28" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                                </Border>
-                                                <StackPanel VerticalAlignment="Center" Spacing="2">
-                                                    <TextBlock Text="Last Music Player" Style="{StaticResource TitleH3}" TextWrapping="Wrap" />
-                                                    <TextBlock Text="Version 1.0.0" Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
-                                                </StackPanel>
+                            <!-- ===== Audio ===== -->
+                            <StackPanel x:Name="SetSecAudio" Spacing="20">
+                                <TextBlock Text="Audio" Style="{StaticResource TitleH2}" TextWrapping="Wrap" />
+                                <Border Style="{StaticResource SettingsCard}">
+                                    <StackPanel>
+                                        <Grid>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0" Spacing="4">
+                                                <TextBlock Text="Output device" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" />
+                                                <TextBlock Text="Where audio is rendered." Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
                                             </StackPanel>
-                                            <Border Height="1" Background="{ThemeResource DividerBrush}" />
-                                            <StackPanel Spacing="6">
-                                                <TextBlock Text="Build" Style="{StaticResource EyebrowText}" />
-                                                <TextBlock Text="Windows App SDK 1.8 · x64 · C++/WinRT (MSVC)" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" TextWrapping="Wrap" />
+                                            <ComboBox x:Name="OutputDeviceCombo" Grid.Column="1" SelectedIndex="0" MinWidth="200" VerticalAlignment="Center" SelectionChanged="SettingsCombo_SelectionChanged">
+                                                <ComboBoxItem Content="System default" />
+                                            </ComboBox>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+
+                                <TextBlock Text="Equalizer" Style="{StaticResource TitleH3}" TextWrapping="Wrap" />
+                                <TextBlock Text="Applies to local playback only. Cast playback uses the device's own audio processing." Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
+                                <Border Style="{StaticResource SettingsCard}">
+                                    <StackPanel Spacing="16">
+                                        <StackPanel Orientation="Vertical" Spacing="8">
+                                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                                <ToggleButton x:Name="EqPresetFlat" Tag="Flat" Content="Flat" Style="{StaticResource ChipToggle}" Click="EqualizerPreset_Click" IsEnabled="False" />
+                                                <ToggleButton x:Name="EqPresetBass" Tag="Bass" Content="Bass Boost" Style="{StaticResource ChipToggle}" Click="EqualizerPreset_Click" IsEnabled="False" />
+                                                <ToggleButton x:Name="EqPresetTreble" Tag="Treble" Content="Treble" Style="{StaticResource ChipToggle}" Click="EqualizerPreset_Click" IsEnabled="False" />
+                                                <ToggleButton x:Name="EqPresetVocal" Tag="Vocal" Content="Vocal" Style="{StaticResource ChipToggle}" Click="EqualizerPreset_Click" IsEnabled="False" />
                                             </StackPanel>
-                                            <StackPanel Spacing="6">
-                                                <TextBlock Text="Database" Style="{StaticResource EyebrowText}" />
-                                                <TextBlock x:Name="AboutDbStats" Text="SQLite 3 · local library" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" TextWrapping="Wrap" />
-                                            </StackPanel>
-                                            <StackPanel Orientation="Horizontal" Spacing="10">
-                                                <Button x:Name="OpenDataFolderButton" Click="OpenDataFolder_Click" CornerRadius="{StaticResource RadiusMd}" Padding="16,8">
-                                                    <StackPanel Orientation="Horizontal" Spacing="8">
-                                                        <FontIcon Glyph="&#xED43;" FontSize="14" />
-                                                        <TextBlock Text="Open data folder" FontSize="12" FontWeight="SemiBold" />
+                                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                                <ToggleButton x:Name="EqPresetAcoustic" Tag="Acoustic" Content="Acoustic" Style="{StaticResource ChipToggle}" Click="EqualizerPreset_Click" IsEnabled="False" />
+                                                <ToggleButton x:Name="EqPresetElectronic" Tag="Electronic" Content="Electronic" Style="{StaticResource ChipToggle}" Click="EqualizerPreset_Click" IsEnabled="False" />
+                                                <ToggleButton x:Name="EqPresetCustom" Tag="Custom" Content="Custom" Style="{StaticResource ChipToggle}" IsEnabled="False" IsHitTestVisible="False" IsTabStop="False" ToolTipService.ToolTip="Highlights when bands do not match a preset" />
+                                                <Button x:Name="EqResetButton" Click="EqResetButton_Click" ToolTipService.ToolTip="Zero all bands and preamp" IsEnabled="False">
+                                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                                        <FontIcon Glyph="&#xE777;" FontSize="12" />
+                                                        <TextBlock Text="Reset" />
                                                     </StackPanel>
                                                 </Button>
-                                                <Button x:Name="LicensesButton" Click="ShowLicenses_Click" CornerRadius="{StaticResource RadiusMd}" Padding="16,8">
-                                                    <TextBlock Text="Licenses &amp; credits" FontSize="12" FontWeight="SemiBold" />
-                                                </Button>
-                                                <Button x:Name="ResetDefaultsButton" Click="ResetDefaults_Click" CornerRadius="{StaticResource RadiusMd}" Padding="16,8">
-                                                    <TextBlock Text="Reset to defaults" FontSize="12" FontWeight="SemiBold" />
-                                                </Button>
                                             </StackPanel>
-                                            <Border Height="1" Background="{ThemeResource DividerBrush}" />
-                                            <Grid ColumnSpacing="14">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="Auto" />
-                                                    <ColumnDefinition Width="*" />
-                                                    <ColumnDefinition Width="Auto" />
-                                                </Grid.ColumnDefinitions>
-                                                <Border Grid.Column="0" Width="36" Height="36" CornerRadius="{StaticResource RadiusLg}" Background="{ThemeResource DangerSoftBrush}" VerticalAlignment="Center">
-                                                    <FontIcon Glyph="&#xE74D;" FontSize="16" Foreground="{ThemeResource DangerBrush}" />
-                                                </Border>
-                                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="4">
-                                                    <TextBlock Text="Clean up everything" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" />
-                                                    <TextBlock Text="Wipe library, account cache, playback history, queues, settings, provider credentials and app caches." Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
-                                                    <TextBlock x:Name="WipeAllDataStatusText" Style="{StaticResource CaptionText}" TextWrapping="Wrap" Visibility="Collapsed" />
-                                                </StackPanel>
-                                                <Button x:Name="WipeAllDataButton" Grid.Column="2" Click="WipeAllData_Click" Background="{ThemeResource DangerBrush}" Foreground="White" BorderThickness="0" CornerRadius="{StaticResource RadiusMd}" Padding="16,8" VerticalAlignment="Center">
-                                                    <TextBlock Text="Clean up" FontSize="12" FontWeight="SemiBold" />
-                                                </Button>
-                                            </Grid>
                                         </StackPanel>
-                                    </Border>
-                                </StackPanel>
+                                        <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                                            <TextBlock Text="Preamp" Style="{StaticResource CaptionText}" Width="60" VerticalAlignment="Center" />
+                                            <Slider x:Name="EqPreampSlider" Minimum="-12" Maximum="0" Value="0" StepFrequency="1" Width="200" VerticalAlignment="Center" ValueChanged="EqPreampSlider_ValueChanged" ToolTipService.ToolTip="Reduce signal before the bands to give boosts headroom" IsEnabled="False" />
+                                            <TextBlock x:Name="EqPreampValueText" Text="0 dB" Width="56" VerticalAlignment="Center" />
+                                        </StackPanel>
+                                        <StackPanel x:Name="EqualizerBars" Orientation="Horizontal" Spacing="10" HorizontalAlignment="Left" />
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
 
-                            </Grid>
-                        </ScrollViewer>
-                    </Grid>
+                            <!-- ===== Appearance ===== -->
+                            <StackPanel x:Name="SetSecAppearance" Spacing="20">
+                                <TextBlock Text="Appearance" Style="{StaticResource TitleH2}" TextWrapping="Wrap" />
+                                <Border Style="{StaticResource SettingsCard}">
+                                    <StackPanel>
+                                        <Grid>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0" Spacing="4">
+                                                <TextBlock Text="Theme" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" />
+                                                <TextBlock Text="Switch between light, dark, or follow the system." Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
+                                            </StackPanel>
+                                            <StackPanel x:Name="ThemeOptionsPanel" Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                                <ToggleButton x:Name="ThemeLight" Tag="Light" Content="Light" Style="{StaticResource ChipToggle}" Checked="ThemeSegment_Checked" />
+                                                <ToggleButton x:Name="ThemeDark" Tag="Dark" Content="Dark" Style="{StaticResource ChipToggle}" Checked="ThemeSegment_Checked" />
+                                                <ToggleButton x:Name="ThemeSystem" Tag="System" Content="System" IsChecked="True" Style="{StaticResource ChipToggle}" Checked="ThemeSegment_Checked" />
+                                            </StackPanel>
+                                        </Grid>
+                                        <Border Height="1" Background="{ThemeResource DividerBrush}" Margin="0,16" />
+                                        <Grid>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0" Spacing="4">
+                                                <TextBlock Text="Accent color" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" />
+                                                <TextBlock Text="Recolors highlights, sliders and accents across the app." Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
+                                            </StackPanel>
+                                            <StackPanel x:Name="AccentSwatchesPanel" Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                                                <Ellipse x:Name="AccentSw0" Tag="#FF0097B2" Width="22" Height="22" Fill="{ThemeResource AccentBrush}" Stroke="{ThemeResource StrokeStrongBrush}" StrokeThickness="2" Tapped="AccentSwatch_Tapped" />
+                                                <Ellipse x:Name="AccentSw1" Tag="#FF6B8EFE" Width="22" Height="22" Fill="#FF6B8EFE" StrokeThickness="0" Tapped="AccentSwatch_Tapped" />
+                                                <Ellipse x:Name="AccentSw2" Tag="#FFE0719C" Width="22" Height="22" Fill="#FFE0719C" StrokeThickness="0" Tapped="AccentSwatch_Tapped" />
+                                                <Ellipse x:Name="AccentSw3" Tag="#FF6FBF73" Width="22" Height="22" Fill="#FF6FBF73" StrokeThickness="0" Tapped="AccentSwatch_Tapped" />
+                                                <Ellipse x:Name="AccentSw4" Tag="#FFE8A33D" Width="22" Height="22" Fill="#FFE8A33D" StrokeThickness="0" Tapped="AccentSwatch_Tapped" />
+                                            </StackPanel>
+                                        </Grid>
+                                        <Border Height="1" Background="{ThemeResource DividerBrush}" Margin="0,16" />
+                                        <Grid>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0" Spacing="4">
+                                                <TextBlock Text="Show album art on player bar" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" />
+                                                <TextBlock Text="Display artwork next to the now-playing track." Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
+                                            </StackPanel>
+                                            <ToggleSwitch x:Name="ShowAlbumArtSwitch" Grid.Column="1" IsOn="True" Toggled="SettingsToggle_Toggled" OnContent="" OffContent="" MinWidth="0" VerticalAlignment="Center" />
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+
+                            <!-- ===== Integrations ===== -->
+                            <StackPanel x:Name="SetSecIntegrations" Spacing="20">
+                                <TextBlock Text="Integrations" Style="{StaticResource TitleH2}" TextWrapping="Wrap" />
+                                <Border Style="{StaticResource SettingsCard}">
+                                    <StackPanel Spacing="16">
+                                        <Grid ColumnSpacing="16">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Spacing="4">
+                                                <TextBlock Text="Account" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" />
+                                                <TextBlock x:Name="AccountStatusText" Text="Checking account status..." Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                                <Button x:Name="AccountSignInButton" Click="AccountSignIn_Click" CornerRadius="{StaticResource RadiusMd}" Padding="16,7" Content="Sign in" />
+                                                <Button x:Name="AccountSyncButton" Click="AccountSync_Click" CornerRadius="{StaticResource RadiusMd}" Padding="16,7" Content="Sync now" Visibility="Collapsed" />
+                                                <Button x:Name="AccountSignOutButton" Click="AccountSignOut_Click" CornerRadius="{StaticResource RadiusMd}" Padding="16,7" Content="Sign out" Visibility="Collapsed" />
+                                            </StackPanel>
+                                        </Grid>
+                                        <Grid x:Name="AccountProfilePanel" Visibility="Collapsed" ColumnSpacing="12">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="44" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <Border Width="44" Height="44" CornerRadius="22" Background="{ThemeResource ControlFillColorSecondaryBrush}">
+                                                <Grid>
+                                                    <Image x:Name="AccountAvatarImage" Loaded="ArtworkImage_Loaded" Stretch="UniformToFill" Visibility="Collapsed" />
+                                                    <FontIcon x:Name="AccountAvatarFallback" Glyph="&#xE77B;" FontSize="20" Foreground="{ThemeResource TextSecondaryBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                </Grid>
+                                            </Border>
+                                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                                                <TextBlock x:Name="AccountDisplayNameText" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" />
+                                                <TextBlock x:Name="AccountUsernameText" Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
+                                                <TextBlock x:Name="AccountPlanText" Style="{StaticResource CaptionText}" Foreground="{ThemeResource TextTertiaryBrush}" TextWrapping="Wrap" />
+                                                <HyperlinkButton x:Name="AccountManageButton" Click="AccountManage_Click" Content="Manage account" Padding="0" MinHeight="0" HorizontalAlignment="Left" Visibility="Collapsed" />
+                                            </StackPanel>
+                                        </Grid>
+                                        <Grid ColumnSpacing="16">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Spacing="2">
+                                                <TextBlock Text="Account library on this PC" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" />
+                                                <TextBlock x:Name="AccountLastSyncText" Text="Not synchronized yet" Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
+                                            </StackPanel>
+                                            <Button x:Name="AccountClearDataButton" Grid.Column="1" Click="AccountClearData_Click" CornerRadius="{StaticResource RadiusMd}" Padding="12,6" Content="Clear synced data" IsEnabled="False" />
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+                                <Border Style="{StaticResource SettingsCard}">
+                                    <StackPanel Spacing="12">
+                                        <StackPanel Spacing="4">
+                                            <TextBlock Text="Music source" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" />
+                                            <TextBlock Text="Choose one remote source. Local files remain available in every mode." Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
+                                        </StackPanel>
+                                        <RadioButtons x:Name="RemoteModeSelector" SelectionChanged="RemoteMode_SelectionChanged">
+                                            <RadioButton x:Name="RemoteModeLocal" Content="Local files only" Tag="LocalOnly" />
+                                            <RadioButton x:Name="RemoteModeAccount" Content="Account" Tag="Account" />
+                                            <RadioButton x:Name="RemoteModeApiKey" Content="API key" Tag="ApiKey" />
+                                        </RadioButtons>
+                                    </StackPanel>
+                                </Border>
+                                <!-- Only meaningful while the catalog is reachable, so its
+                                     visibility follows the same check as the catalog itself. -->
+                                <Border x:Name="SettingsCatalogRegionCard" Style="{StaticResource SettingsCard}" Visibility="Collapsed">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" Spacing="4">
+                                            <TextBlock Text="Catalog region" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" />
+                                            <TextBlock Text="Which country's Apple Music charts and featured music appear on Home." Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
+                                        </StackPanel>
+                                        <ComboBox x:Name="DiscoverStorefrontSelector" Grid.Column="1" MinWidth="200" VerticalAlignment="Center" SelectionChanged="DiscoverStorefront_SelectionChanged" />
+                                    </Grid>
+                                </Border>
+                                <Border Style="{StaticResource SettingsCard}">
+                                    <Grid ColumnSpacing="16">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Row="0" Grid.Column="0" Spacing="4">
+                                            <TextBlock Text="API key connection" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" />
+                                            <TextBlock x:Name="ProviderTestStatusText" Text="Ready" Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
+                                        </StackPanel>
+                                        <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                            <Button x:Name="ProviderTestButton" Click="PlayProviderTest_Click" CornerRadius="{StaticResource RadiusMd}" Padding="16,7">
+                                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                                    <FontIcon Glyph="&#xE8FB;" FontSize="13" />
+                                                    <TextBlock Text="Connect" FontSize="12" FontWeight="SemiBold" />
+                                                </StackPanel>
+                                            </Button>
+                                            <Button x:Name="ProviderDisconnectButton" Click="DisconnectProvider_Click" CornerRadius="{StaticResource RadiusMd}" Padding="16,7" Content="Disconnect" />
+                                        </StackPanel>
+                                        <TextBox x:Name="ProviderBaseUrlBox" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Text="http://127.0.0.1:4527" Header="Provider URL" Margin="0,12,0,0" />
+                                        <PasswordBox x:Name="ProviderApiKeyBox" Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Header="API key" PasswordRevealMode="Peek" Margin="0,8,0,0" />
+                                    </Grid>
+                                </Border>
+                                <Border Style="{StaticResource SettingsCard}">
+                                    <StackPanel>
+                                        <Grid>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0" Spacing="4">
+                                                <TextBlock Text="Discord Rich Presence" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" />
+                                                <TextBlock Text="Show what you're listening to on Discord." Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
+                                                <TextBlock Text="Requires the Discord desktop app to be running." Style="{StaticResource CaptionText}" Foreground="{ThemeResource TextTertiaryBrush}" TextWrapping="Wrap" />
+                                            </StackPanel>
+                                            <ToggleSwitch x:Name="DiscordPresenceSwitch" Grid.Column="1" Toggled="SettingsToggle_Toggled" OnContent="" OffContent="" MinWidth="0" VerticalAlignment="Center" />
+                                        </Grid>
+                                        <Border Height="1" Background="{ThemeResource DividerBrush}" Margin="0,16" />
+                                        <Grid>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0" Spacing="4">
+                                                <TextBlock Text="Windows media controls" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" />
+                                                <TextBlock Text="System play/pause and media keys (SMTC)." Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
+                                            </StackPanel>
+                                            <ToggleSwitch x:Name="WindowsMediaControlsSwitch" Grid.Column="1" IsOn="True" Toggled="SettingsToggle_Toggled" OnContent="" OffContent="" MinWidth="0" VerticalAlignment="Center" />
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+
+                            <!-- ===== About ===== -->
+                            <StackPanel x:Name="SetSecAbout" Spacing="20">
+                                <TextBlock Text="About" Style="{StaticResource TitleH2}" TextWrapping="Wrap" />
+                                <Border Style="{StaticResource SettingsCard}">
+                                    <StackPanel Spacing="16">
+                                        <StackPanel Orientation="Horizontal" Spacing="16">
+                                            <Border Width="56" Height="56" CornerRadius="{StaticResource RadiusXl}">
+                                                <Border.Background>
+                                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                                        <GradientStop Color="{ThemeResource AccentColor}" Offset="0.0" />
+                                                        <GradientStop Color="{ThemeResource AccentColorLight}" Offset="1.0" />
+                                                    </LinearGradientBrush>
+                                                </Border.Background>
+                                                <TextBlock Text="&#x266A;" FontSize="28" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                            </Border>
+                                            <StackPanel VerticalAlignment="Center" Spacing="2">
+                                                <TextBlock Text="Last Music Player" Style="{StaticResource TitleH3}" TextWrapping="Wrap" />
+                                                <TextBlock Text="Version 1.0.0" Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
+                                            </StackPanel>
+                                        </StackPanel>
+                                        <Border Height="1" Background="{ThemeResource DividerBrush}" />
+                                        <StackPanel Spacing="6">
+                                            <TextBlock Text="Build" Style="{StaticResource EyebrowText}" />
+                                            <TextBlock Text="Windows App SDK 1.8 · x64 · C++/WinRT (MSVC)" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" TextWrapping="Wrap" />
+                                        </StackPanel>
+                                        <StackPanel Spacing="6">
+                                            <TextBlock Text="Database" Style="{StaticResource EyebrowText}" />
+                                            <TextBlock x:Name="AboutDbStats" Text="SQLite 3 · local library" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" TextWrapping="Wrap" />
+                                        </StackPanel>
+                                        <StackPanel Orientation="Horizontal" Spacing="10">
+                                            <Button x:Name="OpenDataFolderButton" Click="OpenDataFolder_Click" CornerRadius="{StaticResource RadiusMd}" Padding="16,8">
+                                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                                    <FontIcon Glyph="&#xED43;" FontSize="14" />
+                                                    <TextBlock Text="Open data folder" FontSize="12" FontWeight="SemiBold" />
+                                                </StackPanel>
+                                            </Button>
+                                            <Button x:Name="LicensesButton" Click="ShowLicenses_Click" CornerRadius="{StaticResource RadiusMd}" Padding="16,8">
+                                                <TextBlock Text="Licenses &amp; credits" FontSize="12" FontWeight="SemiBold" />
+                                            </Button>
+                                            <Button x:Name="ResetDefaultsButton" Click="ResetDefaults_Click" CornerRadius="{StaticResource RadiusMd}" Padding="16,8">
+                                                <TextBlock Text="Reset to defaults" FontSize="12" FontWeight="SemiBold" />
+                                            </Button>
+                                        </StackPanel>
+                                        <Border Height="1" Background="{ThemeResource DividerBrush}" />
+                                        <Grid ColumnSpacing="14">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <Border Grid.Column="0" Width="36" Height="36" CornerRadius="{StaticResource RadiusLg}" Background="{ThemeResource DangerSoftBrush}" VerticalAlignment="Center">
+                                                <FontIcon Glyph="&#xE74D;" FontSize="16" Foreground="{ThemeResource DangerBrush}" />
+                                            </Border>
+                                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="4">
+                                                <TextBlock Text="Clean up everything" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" />
+                                                <TextBlock Text="Wipe library, account cache, playback history, queues, settings, provider credentials and app caches." Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
+                                                <TextBlock x:Name="WipeAllDataStatusText" Style="{StaticResource CaptionText}" TextWrapping="Wrap" Visibility="Collapsed" />
+                                            </StackPanel>
+                                            <Button x:Name="WipeAllDataButton" Grid.Column="2" Click="WipeAllData_Click" Background="{ThemeResource DangerBrush}" Foreground="White" BorderThickness="0" CornerRadius="{StaticResource RadiusMd}" Padding="16,8" VerticalAlignment="Center">
+                                                <TextBlock Text="Clean up" FontSize="12" FontWeight="SemiBold" />
+                                            </Button>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+
+                        </StackPanel>
+                    </ScrollViewer>
                 </Grid>
 
                 <!-- ========== BROWSE VIEW ========== -->
