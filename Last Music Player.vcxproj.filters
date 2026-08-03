@@ -206,6 +206,9 @@
     <ClInclude Include="Frontend\NavigationService.h">
       <Filter>Frontend</Filter>
     </ClInclude>
+    <ClInclude Include="Frontend\RoundedCornerClip.h">
+      <Filter>Frontend</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="MainWindow\MainWindow.xaml.cpp">
@@ -332,6 +335,9 @@
       <Filter>Frontend</Filter>
     </ClCompile>
     <ClCompile Include="Frontend\NavigationService.cpp">
+      <Filter>Frontend</Filter>
+    </ClCompile>
+    <ClCompile Include="Frontend\RoundedCornerClip.cpp">
       <Filter>Frontend</Filter>
     </ClCompile>
   </ItemGroup>
