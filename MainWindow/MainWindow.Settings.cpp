@@ -113,18 +113,6 @@ namespace winrt::Last_Music_Player::implementation
         }
     }
 
-    void MainWindow::SettingsSection_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
-    {
-        (void)args;
-        auto btn = sender.try_as<winrt::Microsoft::UI::Xaml::Controls::Button>();
-        if (!btn)
-        {
-            return;
-        }
-        auto tag = ReadTagString(btn.Tag());
-        UpdateSettingsSection(tag.empty() ? winrt::hstring{ L"Profile" } : tag);
-    }
-
     namespace
     {
         class UserDataAdmissionGuard final
@@ -1043,95 +1031,16 @@ namespace winrt::Last_Music_Player::implementation
     }
 
 
-    void MainWindow::UpdateSettingsSection(winrt::hstring const& key)
-    {
-        m_selectedSettingsSection = key;
-        EnsureAccentBrushes();
-
-        using winrt::Microsoft::UI::Xaml::Visibility;
-        using winrt::Microsoft::UI::Text::FontWeights;
-
-        struct SecRow
-        {
-            winrt::Microsoft::UI::Xaml::Controls::Button btn;
-            winrt::Microsoft::UI::Xaml::Controls::Border pill;
-            winrt::Microsoft::UI::Xaml::Controls::FontIcon glyph;
-            winrt::Microsoft::UI::Xaml::Controls::TextBlock label;
-            winrt::Microsoft::UI::Xaml::UIElement panel;
-            winrt::hstring id;
-        };
-
-        SecRow rows[] = {
-            { SetNavProfile(), SetPillProfile(), SetGlyphProfile(), SetLabelProfile(), SetSecProfile(), L"Profile" },
-            { SetNavLibrary(), SetPillLibrary(), SetGlyphLibrary(), SetLabelLibrary(), SetSecLibrary(), L"Library" },
-            { SetNavPlayback(), SetPillPlayback(), SetGlyphPlayback(), SetLabelPlayback(), SetSecPlayback(), L"Playback" },
-            { SetNavAudio(), SetPillAudio(), SetGlyphAudio(), SetLabelAudio(), SetSecAudio(), L"Audio" },
-            { SetNavAppearance(), SetPillAppearance(), SetGlyphAppearance(), SetLabelAppearance(), SetSecAppearance(), L"Appearance" },
-            { SetNavIntegrations(), SetPillIntegrations(), SetGlyphIntegrations(), SetLabelIntegrations(), SetSecIntegrations(), L"Integrations" },
-            { SetNavAbout(), SetPillAbout(), SetGlyphAbout(), SetLabelAbout(), SetSecAbout(), L"About" },
-        };
-
-        for (auto const& r : rows)
-        {
-            bool selected = (key == r.id);
-            r.pill.Visibility(selected ? Visibility::Visible : Visibility::Collapsed);
-            r.btn.Background(selected ? m_brushAccentSoft : m_brushTransparent);
-            r.glyph.Foreground(selected ? m_brushAccent : m_brushGlyphIdle);
-            r.label.Foreground(selected ? m_brushAccent : m_brushLabelIdle);
-            r.label.FontWeight(selected ? FontWeights::SemiBold() : FontWeights::Normal());
-            r.panel.Visibility(selected ? Visibility::Visible : Visibility::Collapsed);
-        }
-
-        if (auto mainBody = MainBodyGrid())
-        {
-            ApplySettingsResponsiveLayout(mainBody.ActualWidth());
-        }
-    }
-
     void MainWindow::ApplySettingsResponsiveLayout(double width)
     {
         constexpr double compactBreakpoint = 1500.0;
         bool compact = width < compactBreakpoint;
-        m_settingsCompactLayout = compact;
 
         using winrt::Microsoft::UI::Xaml::FrameworkElement;
         using winrt::Microsoft::UI::Xaml::HorizontalAlignment;
         using winrt::Microsoft::UI::Xaml::Thickness;
         using winrt::Microsoft::UI::Xaml::UIElement;
-        using winrt::Microsoft::UI::Xaml::Visibility;
         using winrt::Microsoft::UI::Xaml::Controls::Grid;
-        using winrt::Microsoft::UI::Xaml::GridLengthHelper;
-
-        if (auto column = SettingsNavColumn())
-        {
-            column.Width(GridLengthHelper::FromPixels(compact ? 56.0 : 220.0));
-        }
-        if (auto panel = SettingsNavPanel())
-        {
-            panel.Margin(compact ? Thickness{ 0, 0, 12, 0 } : Thickness{ 0, 0, 24, 0 });
-        }
-
-        auto setNavVisuals = [&](winrt::Microsoft::UI::Xaml::Controls::TextBlock const& label,
-                                 winrt::Microsoft::UI::Xaml::Controls::Border const& pill,
-                                 winrt::hstring const& id)
-        {
-            if (label)
-            {
-                label.Visibility(compact ? Visibility::Collapsed : Visibility::Visible);
-            }
-            if (pill)
-            {
-                pill.Visibility(!compact && m_selectedSettingsSection == id ? Visibility::Visible : Visibility::Collapsed);
-            }
-        };
-
-        setNavVisuals(SetLabelProfile(), SetPillProfile(), L"Profile");
-        setNavVisuals(SetLabelLibrary(), SetPillLibrary(), L"Library");
-        setNavVisuals(SetLabelPlayback(), SetPillPlayback(), L"Playback");
-        setNavVisuals(SetLabelAudio(), SetPillAudio(), L"Audio");
-        setNavVisuals(SetLabelAppearance(), SetPillAppearance(), L"Appearance");
-        setNavVisuals(SetLabelIntegrations(), SetPillIntegrations(), L"Integrations");
-        setNavVisuals(SetLabelAbout(), SetPillAbout(), L"About");
 
         auto placeAction = [&](UIElement const& element, int wideColumn, int compactColumn)
         {

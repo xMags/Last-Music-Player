@@ -153,7 +153,6 @@ namespace winrt::Last_Music_Player::implementation
         void UpNextQueue_DragItemsCompleted(winrt::Microsoft::UI::Xaml::Controls::ListViewBase const& sender, winrt::Microsoft::UI::Xaml::Controls::DragItemsCompletedEventArgs const& args);
         void LikedSongsButton_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void LikeCurrentTrack_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
-        void SettingsSection_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void ThemeSegment_Checked(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         winrt::Windows::Foundation::IAsyncAction PlayProviderTest_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void DisconnectProvider_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
@@ -555,7 +554,6 @@ namespace winrt::Last_Music_Player::implementation
         void BeginPlaybackQualification(winrt::Last_Music_Player::TrackInfo const& track);
         void ObservePlaybackQualification(bool playing, double positionSeconds);
         void UpdateLikeButton(winrt::Last_Music_Player::TrackInfo const& track);
-        void UpdateSettingsSection(winrt::hstring const& key);
         void ApplySettingsResponsiveLayout(double width);
         void ApplyLibraryHeaderResponsive(double width);
         void BuildEqualizerBars();
@@ -875,7 +873,6 @@ namespace winrt::Last_Music_Player::implementation
         // Suppresses re-entrant chip Checked events when SyncActiveEqualizerPreset
         // or ApplyEqualizerPreset programmatically toggles preset chips.
         bool m_skipPresetSync = false;
-        bool m_settingsCompactLayout = false;
         bool m_forceExit = false;
         HWND m_hwnd{ nullptr };
         // SMTC bound to our window via ISystemMediaTransportControlsInterop.
@@ -894,7 +891,6 @@ namespace winrt::Last_Music_Player::implementation
         std::vector<winrt::Microsoft::UI::Xaml::Controls::Slider> m_equalizerSliders;
         bool m_updatingSongsChips = false;
         bool m_xamlReadyForEvents = false;
-        winrt::hstring m_selectedSettingsSection{ L"Profile" };
         winrt::hstring m_currentNav{ L"Home" };
 
         // Nav/accent brushes captured off the resolved XAML so we never do a

@@ -147,7 +147,6 @@ namespace winrt::Last_Music_Player::implementation
                     m_accentBrushesCaptured = false;
                     EnsureAccentBrushes();
                     UpdateNavSelection(m_currentNav);
-                    UpdateSettingsSection(m_selectedSettingsSection);
                     ApplyAccentColor(SettingsManagerService().GetString(L"AccentColor", L"#FF0097B2"));
                 });
             });
@@ -657,7 +656,13 @@ namespace winrt::Last_Music_Player::implementation
         LibraryViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
         ExitSearchMode();
         UpdateNavSelection(L"Settings");
-        UpdateSettingsSection(L"Profile");
+        // The view only gets collapsed, so it would otherwise reopen wherever the
+        // user last scrolled to. Settings always starts at the top.
+        if (auto scroller = SettingsScrollViewer())
+        {
+            auto zero = winrt::box_value(0.0).as<winrt::Windows::Foundation::IReference<double>>();
+            scroller.ChangeView(nullptr, zero, nullptr, true);
+        }
         // Pre-populate Profile textbox with the persisted name (blank if
         // never set — placeholder text shows "Listener" instead).
         if (auto box = DisplayNameBox())
