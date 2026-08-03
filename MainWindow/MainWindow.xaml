@@ -512,17 +512,9 @@
                         <!-- Signed-in catalog discovery. Personal Home content remains
                              usable while this independent feed loads or retries. -->
                         <StackPanel x:Name="HomeCatalogPrimaryContainer" Visibility="Collapsed" Spacing="20">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Text="APPLE MUSIC CATALOG" Style="{StaticResource EyebrowText}" VerticalAlignment="Center" />
-                                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-                                    <TextBlock Text="Region" Style="{StaticResource CaptionText}" VerticalAlignment="Center" />
-                                    <ComboBox x:Name="DiscoverStorefrontSelector" MinWidth="180" SelectionChanged="DiscoverStorefront_SelectionChanged" />
-                                </StackPanel>
-                            </Grid>
+                            <!-- The region this catalog is drawn from is chosen in
+                                 Settings > Integrations. -->
+                            <TextBlock Text="APPLE MUSIC CATALOG" Style="{StaticResource EyebrowText}" VerticalAlignment="Center" />
                             <Grid x:Name="HomeCatalogStatusPanel" Visibility="Collapsed">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto" />
@@ -1721,6 +1713,21 @@
                                                 <RadioButton x:Name="RemoteModeApiKey" Content="API key" Tag="ApiKey" />
                                             </RadioButtons>
                                         </StackPanel>
+                                    </Border>
+                                    <!-- Only meaningful while the catalog is reachable, so its
+                                         visibility follows the same check as the catalog itself. -->
+                                    <Border x:Name="SettingsCatalogRegionCard" Style="{StaticResource SettingsCard}" Visibility="Collapsed">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0" Spacing="4">
+                                                <TextBlock Text="Catalog region" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" />
+                                                <TextBlock Text="Which country's Apple Music charts and featured music appear on Home." Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
+                                            </StackPanel>
+                                            <ComboBox x:Name="DiscoverStorefrontSelector" Grid.Column="1" MinWidth="200" VerticalAlignment="Center" SelectionChanged="DiscoverStorefront_SelectionChanged" />
+                                        </Grid>
                                     </Border>
                                     <Border Style="{StaticResource SettingsCard}">
                                         <Grid ColumnSpacing="16">
