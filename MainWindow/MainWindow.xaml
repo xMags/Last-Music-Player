@@ -419,7 +419,7 @@
                                           ItemContainerStyle="{StaticResource CardTileContainerStyle}"
                                           SelectionMode="None"
                                           ScrollViewer.HorizontalScrollBarVisibility="Hidden"
-                                          ScrollViewer.HorizontalScrollMode="Enabled"
+                                          ScrollViewer.HorizontalScrollMode="Disabled"
                                           ScrollViewer.VerticalScrollMode="Disabled"
                                           ScrollViewer.VerticalScrollBarVisibility="Hidden">
                                     <GridView.ItemsPanel>
@@ -526,7 +526,7 @@
                             </Grid>
 
                             <Grid x:Name="HomeMixArrowHost">
-                                <ScrollViewer x:Name="HomeMixScroller" HorizontalScrollBarVisibility="Hidden" HorizontalScrollMode="Enabled" VerticalScrollMode="Disabled">
+                                <ScrollViewer x:Name="HomeMixScroller" HorizontalScrollBarVisibility="Hidden" HorizontalScrollMode="Disabled" VerticalScrollMode="Disabled">
                                     <StackPanel Orientation="Horizontal" Spacing="20" Padding="0,4,64,8">
 
                                         <!-- Daily Mix 1 -->
@@ -928,7 +928,7 @@
                                           ItemContainerStyle="{StaticResource CardTileContainerStyle}"
                                           SelectionMode="None"
                                           ScrollViewer.HorizontalScrollBarVisibility="Hidden"
-                                          ScrollViewer.HorizontalScrollMode="Enabled"
+                                          ScrollViewer.HorizontalScrollMode="Disabled"
                                           ScrollViewer.VerticalScrollMode="Disabled"
                                           ScrollViewer.VerticalScrollBarVisibility="Hidden">
                                     <GridView.ItemsPanel>
@@ -1008,7 +1008,7 @@
                                           ItemContainerStyle="{StaticResource CardTileContainerStyle}"
                                           SelectionMode="None"
                                           ScrollViewer.HorizontalScrollBarVisibility="Hidden"
-                                          ScrollViewer.HorizontalScrollMode="Enabled"
+                                          ScrollViewer.HorizontalScrollMode="Disabled"
                                           ScrollViewer.VerticalScrollMode="Disabled"
                                           ScrollViewer.VerticalScrollBarVisibility="Hidden">
                                     <GridView.ItemsPanel>
@@ -1094,7 +1094,7 @@
                                           ItemContainerStyle="{StaticResource CardTileContainerStyle}"
                                           SelectionMode="None"
                                           ScrollViewer.HorizontalScrollBarVisibility="Hidden"
-                                          ScrollViewer.HorizontalScrollMode="Enabled"
+                                          ScrollViewer.HorizontalScrollMode="Disabled"
                                           ScrollViewer.VerticalScrollMode="Disabled"
                                           ScrollViewer.VerticalScrollBarVisibility="Hidden">
                                     <GridView.ItemsPanel>

@@ -6,9 +6,18 @@
 namespace LastMusicPlayer::Frontend
 {
     // Overlays previous/next buttons on a horizontally scrolling shelf, the way
-    // the web client does: the wheel still works, but a pointer user gets the
-    // same round chevrons at the edge of the row rather than having to know that
-    // shift-wheel or a trackpad gesture is the only way across.
+    // the web client does.
+    //
+    // Every shelf these are attached to is declared with its horizontal scroll
+    // mode disabled, which makes these buttons the only way across. That is
+    // deliberate: a shelf with no vertical axis of its own has a vertical wheel
+    // steered onto its horizontal one by the framework, so the row would run off
+    // sideways whenever the pointer happened to be over it while the user was
+    // scrolling down the page. Intercepting the wheel instead was tried and does
+    // not hold: whether the shelf still scrolls depends on where the event is
+    // handled relative to the ScrollViewer, which differs across the shapes a
+    // shelf can take. Disabling the axis stops every input path at once, which
+    // costs touch panning on these rows.
     //
     // `host` is a Grid that already contains `shelf`; the buttons are added on
     // top of it, so they need a panel that overlaps rather than stacks. The

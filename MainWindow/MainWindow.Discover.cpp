@@ -1242,7 +1242,12 @@ namespace winrt::Last_Music_Player::implementation
         if (tileTemplate) grid.ItemTemplate(tileTemplate);
         ObserveCatalogGridContainers(grid);
         ScrollViewer::SetHorizontalScrollBarVisibility(grid, ScrollBarVisibility::Hidden);
-        ScrollViewer::SetHorizontalScrollMode(grid, ScrollMode::Enabled);
+        // Disabled, not Enabled: a shelf with no vertical axis of its own has a
+        // vertical wheel steered onto its horizontal one by the framework, and
+        // the row runs off sideways while the user is moving down the page.
+        // Taking the axis away from user input is the only reliable way to stop
+        // that; the arrows drive it instead, and ChangeView still works.
+        ScrollViewer::SetHorizontalScrollMode(grid, ScrollMode::Disabled);
         ScrollViewer::SetVerticalScrollMode(grid, ScrollMode::Disabled);
         ScrollViewer::SetVerticalScrollBarVisibility(grid, ScrollBarVisibility::Hidden);
         auto panelTemplate = winrt::Microsoft::UI::Xaml::Markup::XamlReader::Load(
@@ -1461,7 +1466,10 @@ namespace winrt::Last_Music_Player::implementation
 
         ScrollViewer scroll;
         scroll.HorizontalScrollBarVisibility(ScrollBarVisibility::Hidden);
-        scroll.HorizontalScrollMode(ScrollMode::Enabled);
+        // Disabled for the same reason as the shelves above: the wheel would
+        // otherwise be steered sideways. The arrows attached below are what
+        // moves this row.
+        scroll.HorizontalScrollMode(ScrollMode::Disabled);
         scroll.VerticalScrollMode(ScrollMode::Disabled);
         StackPanel row;
         row.Orientation(Orientation::Horizontal);
@@ -1472,7 +1480,12 @@ namespace winrt::Last_Music_Player::implementation
             row.Children().Append(BuildCatalogChartCard(charts[index]));
         }
         scroll.Content(row);
-        section.Children().Append(scroll);
+        // A chart card's artwork is the top 184 of the tile, so its middle is 92
+        // down; the arrows line up with the picture rather than the caption.
+        Grid arrowHost;
+        arrowHost.Children().Append(scroll);
+        LastMusicPlayer::Frontend::AttachCarouselArrows(arrowHost, scroll, 92.0);
+        section.Children().Append(arrowHost);
         return section;
     }
 
