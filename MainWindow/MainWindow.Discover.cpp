@@ -49,6 +49,24 @@ namespace winrt::Last_Music_Player::implementation
                         || !discovery.CityChartGroups->International.Charts.empty()));
         }
 
+        // Takes its inputs as parameters rather than captures, and deliberately
+        // so: a coroutine copies its parameters into the frame, while a lambda's
+        // captures stay in the closure object. A closure created inline at the
+        // call site is a temporary, destroyed once the call expression ends,
+        // which is before a coroutine that suspends ever reads them again.
+        winrt::Windows::Foundation::IAsyncAction WriteCatalogDiscoveryCacheAsync(
+            std::wstring storefront,
+            std::wstring payload)
+        {
+            co_await winrt::resume_background();
+            auto accountId = DatabaseService().ActiveAccountId();
+            if (accountId.empty())
+            {
+                co_return;
+            }
+            DatabaseService().SaveCatalogDiscoveryPayload(accountId, storefront, payload);
+        }
+
         bool IsTransientAccountArtworkError(winrt::hresult_error const& error) noexcept
         {
             auto code = error.code();
@@ -1166,23 +1184,12 @@ namespace winrt::Last_Music_Player::implementation
             return;
         }
 
-        std::wstring storefrontKey(storefront.c_str());
-        std::wstring payloadText(payload.c_str());
-        // Detached, and it captures copies rather than this: the write touches
-        // no window state, only the database singleton, so it has no reason to
-        // hold the window alive or to be waited on by the surface that queued
-        // it. The coroutine frame owns the copies for as long as it runs.
-        RunDetached([storefrontKey = std::move(storefrontKey), payloadText = std::move(payloadText)]()
-            -> winrt::Windows::Foundation::IAsyncAction
-            {
-                co_await winrt::resume_background();
-                auto accountId = DatabaseService().ActiveAccountId();
-                if (accountId.empty())
-                {
-                    co_return;
-                }
-                DatabaseService().SaveCatalogDiscoveryPayload(accountId, storefrontKey, payloadText);
-            }());
+        // Detached and free-standing: the write touches no window state, only
+        // the database singleton, so it neither holds the window alive nor makes
+        // the surface that queued it wait on a disk round trip.
+        RunDetached(WriteCatalogDiscoveryCacheAsync(
+            std::wstring(storefront.c_str()),
+            std::wstring(payload.c_str())));
     }
 
     winrt::Windows::Foundation::IAsyncAction MainWindow::HydrateDiscoverAsync(bool force)
