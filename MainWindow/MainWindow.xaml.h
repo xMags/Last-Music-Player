@@ -683,6 +683,11 @@ namespace winrt::Last_Music_Player::implementation
         // markup. Called once during construction, alongside AttachSkeletons.
         void AttachArtworkGridObservers();
 
+        // Puts previous/next buttons on the horizontal rows declared in markup.
+        // The catalog shelves get theirs as they are built instead, since they
+        // do not exist yet at construction.
+        void AttachCarouselArrows();
+
         // Watches a tile so its artwork is fetched at visible priority once it
         // reaches the viewport. The registration removes itself after it fires,
         // since a tile only needs promoting once.
