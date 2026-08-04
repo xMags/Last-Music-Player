@@ -228,6 +228,110 @@ namespace LastMusicPlayer::Backend
         }
     }
 
+    bool IsInlineProfileImageData(winrt::hstring const& value) noexcept
+    {
+        constexpr std::wstring_view scheme{ L"data:" };
+        if (value.size() < scheme.size())
+        {
+            return false;
+        }
+        for (std::size_t index{}; index < scheme.size(); ++index)
+        {
+            if (std::towlower(value[static_cast<uint32_t>(index)]) != scheme[index])
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    bool IsSafeInlineProfileImage(winrt::hstring const& value) noexcept
+    {
+        try
+        {
+            // Large enough for a real profile photo at a sensible resolution,
+            // small enough that a hostile response cannot make the app hold
+            // an unbounded string or store one per account.
+            constexpr std::size_t MaxInlineImageCharacters = 1'500'000;
+            constexpr std::wstring_view scheme{ L"data:" };
+            constexpr std::wstring_view encoding{ L";base64," };
+            static constexpr std::array<std::wstring_view, 5> allowedMediaTypes{
+                L"image/jpeg", L"image/png", L"image/gif", L"image/webp", L"image/bmp"
+            };
+
+            std::wstring text{ value.c_str() };
+            if (text.empty() || text.size() > MaxInlineImageCharacters)
+            {
+                return false;
+            }
+
+            auto separator = text.find(L',');
+            if (separator == std::wstring::npos)
+            {
+                return false;
+            }
+
+            // Only the header is case-folded. The payload past the comma is
+            // base64, where case carries data.
+            std::wstring header = text.substr(0, separator + 1);
+            std::transform(header.begin(), header.end(), header.begin(), [](wchar_t character)
+            {
+                return static_cast<wchar_t>(std::towlower(character));
+            });
+            if (!header.starts_with(scheme) || !header.ends_with(encoding))
+            {
+                return false;
+            }
+
+            std::wstring_view mediaType{ header };
+            mediaType.remove_prefix(scheme.size());
+            mediaType.remove_suffix(encoding.size());
+            if (std::find(allowedMediaTypes.begin(), allowedMediaTypes.end(), mediaType)
+                == allowedMediaTypes.end())
+            {
+                return false;
+            }
+
+            std::wstring_view payload{ text };
+            payload.remove_prefix(separator + 1);
+            if (payload.empty() || payload.size() % 4 != 0)
+            {
+                return false;
+            }
+
+            // Validated here rather than left to the decoder, so a malformed
+            // payload is rejected at the boundary instead of failing later in
+            // the UI or being persisted and replayed on every launch.
+            auto dataLength = payload.size();
+            while (dataLength > 0 && payload[dataLength - 1] == L'=')
+            {
+                --dataLength;
+            }
+            if (dataLength == 0 || payload.size() - dataLength > 2)
+            {
+                return false;
+            }
+            for (std::size_t index{}; index < dataLength; ++index)
+            {
+                auto character = payload[index];
+                auto allowed = (character >= L'A' && character <= L'Z')
+                    || (character >= L'a' && character <= L'z')
+                    || (character >= L'0' && character <= L'9')
+                    || character == L'+'
+                    || character == L'/';
+                if (!allowed)
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+        catch (...)
+        {
+            return false;
+        }
+    }
+
     bool IsSafeAccountProfileUrl(winrt::hstring const& url) noexcept
     {
         try

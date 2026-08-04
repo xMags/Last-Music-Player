@@ -11,6 +11,7 @@
 #include "Backend/AccountSessionGateway.h"
 #include "Backend/AccountSessionService.h"
 #include "Backend/BuildConfig.h"
+#include "Backend/AccountUrlPolicy.h"
 #include "Backend/ProfileIdentity.h"
 #include "Backend/RemoteMusicService.h"
 #include "Backend/LoopbackCallback.h"
@@ -1444,6 +1445,70 @@ namespace
             auto message = account::SafeAccountErrorMessage(status);
             Expect(!message.empty() && message.size() < 128, "account error was not bounded");
         }
+    }
+
+    void TestInlineProfileImageValidation()
+    {
+        // A one-pixel GIF, the smallest payload that exercises the whole shape.
+        winrt::hstring const gif{
+            L"data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" };
+        Expect(account::IsSafeInlineProfileImage(gif), "a valid inline GIF avatar was rejected");
+        Expect(account::IsInlineProfileImageData(gif), "an inline avatar was not recognized as inline");
+
+        // The scheme and media type are case-insensitive per RFC 2397; the
+        // base64 payload after the comma is not.
+        Expect(account::IsSafeInlineProfileImage(L"DATA:IMAGE/PNG;BASE64,AAAA"),
+            "an upper-case data URI header was rejected");
+        Expect(account::IsSafeInlineProfileImage(L"data:image/jpeg;base64,/9j/4AAQ"),
+            "a JPEG payload using the full base64 alphabet was rejected");
+        Expect(account::IsSafeInlineProfileImage(L"data:image/webp;base64,AAA="),
+            "a payload with one padding character was rejected");
+        Expect(account::IsSafeInlineProfileImage(L"data:image/bmp;base64,AA=="),
+            "a payload with two padding characters was rejected");
+
+        // A URL is not inline data, and inline data is not a URL. Neither
+        // check may accept the other's input.
+        Expect(!account::IsInlineProfileImageData(L"https://cdn.example.test/a.png"),
+            "an HTTPS avatar URL was misread as inline data");
+        Expect(!account::IsSafeInlineProfileImage(L"https://cdn.example.test/a.png"),
+            "an HTTPS avatar URL was accepted as inline data");
+        Expect(!account::IsSafeAccountProfileUrl(gif),
+            "inline image data was accepted by the URL check");
+
+        // Anything that is not a still image the decoder is expected to
+        // handle, or that could name something other than an image.
+        Expect(!account::IsSafeInlineProfileImage(L"data:image/svg+xml;base64,AAAA"),
+            "an SVG avatar was accepted");
+        Expect(!account::IsSafeInlineProfileImage(L"data:text/html;base64,AAAA"),
+            "a non-image media type was accepted");
+        Expect(!account::IsSafeInlineProfileImage(L"data:application/octet-stream;base64,AAAA"),
+            "an opaque binary media type was accepted");
+        Expect(!account::IsSafeInlineProfileImage(L"data:image/png,AAAA"),
+            "a non-base64 data URI was accepted");
+        Expect(!account::IsSafeInlineProfileImage(L"data:image/png;base64,"),
+            "an empty payload was accepted");
+        Expect(!account::IsSafeInlineProfileImage(L"data:image/png;base64"),
+            "a data URI with no payload separator was accepted");
+
+        // A malformed payload must be rejected at the boundary rather than
+        // stored and replayed into the image decoder on every launch.
+        Expect(!account::IsSafeInlineProfileImage(L"data:image/png;base64,AA*A"),
+            "a payload outside the base64 alphabet was accepted");
+        Expect(!account::IsSafeInlineProfileImage(L"data:image/png;base64,AA-_"),
+            "a base64url payload was accepted for a standard base64 field");
+        Expect(!account::IsSafeInlineProfileImage(L"data:image/png;base64,AAAAA"),
+            "a payload of non-multiple-of-four length was accepted");
+        Expect(!account::IsSafeInlineProfileImage(L"data:image/png;base64,A==="),
+            "an over-padded payload was accepted");
+        Expect(!account::IsSafeInlineProfileImage(L"data:image/png;base64,===="),
+            "a payload of pure padding was accepted");
+
+        // An unbounded picture would be held in memory and written to the
+        // account database once per signed-in account.
+        std::wstring oversized{ L"data:image/png;base64," };
+        oversized.append(1'500'004, L'A');
+        Expect(!account::IsSafeInlineProfileImage(winrt::hstring{ oversized }),
+            "an oversized inline avatar was accepted");
     }
 
     void TestProfileIdentitySelection()
@@ -2942,6 +3007,7 @@ int wmain()
         TestLoopbackListenerLifecycle();
         TestAccountRedirectProtection();
         TestAccountOriginAndSafeErrors();
+        TestInlineProfileImageValidation();
         TestProfileIdentitySelection();
         TestSyncableRemoteSources();
         TestCatalogDiscoveryParsing();

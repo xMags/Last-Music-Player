@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/DatabaseEngine.h"
+#include "Backend/AccountUrlPolicy.h"
 #include "Backend/DatabaseEngine.Internal.h"
 #include "Backend/ProviderHelpers.h"
 
@@ -20,6 +21,19 @@ namespace LastMusicPlayer::Backend
             return IsSafeRemoteUrl(cleaned, RemoteUrlUse::Durable)
                 ? std::wstring(cleaned.c_str())
                 : std::wstring{};
+        }
+
+        // A profile picture is either a URL, which is held to the same
+        // durability rules as every other stored URL, or the image itself
+        // inlined, which has no origin to check and is kept verbatim so the
+        // cached account still has a picture while offline.
+        std::wstring SanitizeAccountAvatar(winrt::hstring const& value)
+        {
+            if (IsSafeInlineProfileImage(value))
+            {
+                return std::wstring(value.c_str());
+            }
+            return SanitizeAccountUrl(value);
         }
 
         void InsertString(JsonObject const& object, wchar_t const* key, winrt::hstring const& value)
@@ -257,7 +271,7 @@ namespace LastMusicPlayer::Backend
         BindText(profile.value, 1, accountId);
         BindText(profile.value, 2, snapshot.Profile.DisplayName);
         BindText(profile.value, 3, snapshot.Profile.Username);
-        BindText(profile.value, 4, SanitizeAccountUrl(winrt::hstring(snapshot.Profile.AvatarUrl)));
+        BindText(profile.value, 4, SanitizeAccountAvatar(winrt::hstring(snapshot.Profile.AvatarUrl)));
         BindText(profile.value, 5, snapshot.Profile.PlanLabel);
         BindText(profile.value, 6, snapshot.Profile.UpdatedAtUtc);
         if (sqlite3_step(profile.value) != SQLITE_DONE)

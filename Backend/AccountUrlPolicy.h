@@ -22,4 +22,17 @@ namespace LastMusicPlayer::Backend
     // Profile images may use an external HTTPS CDN, but must not contain
     // embedded credentials, signed-delivery fields, or unsafe schemes.
     bool IsSafeAccountProfileUrl(winrt::hstring const& url) noexcept;
+
+    // The account API may also send the profile picture inline, as a base64
+    // data URI, instead of a URL to fetch. That form needs a different check:
+    // there is no origin to trust and no query to strip, and the real risks
+    // are an unexpected media type, a malformed payload reaching the image
+    // decoder, and an unbounded string being held in memory and written to
+    // the account database.
+    bool IsSafeInlineProfileImage(winrt::hstring const& value) noexcept;
+
+    // Whether a stored profile picture is inline image data rather than a
+    // URL. Cheap prefix test for callers that must route the two apart; it
+    // says nothing about whether the payload is safe.
+    bool IsInlineProfileImageData(winrt::hstring const& value) noexcept;
 }

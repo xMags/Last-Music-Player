@@ -412,8 +412,11 @@ namespace LastMusicPlayer::Backend
             JsonString(user, L"plan"),
             MaxPlanCharacters);
 
+        // The account API sends the picture either as a URL to fetch or as
+        // the image itself inlined in a base64 data URI, so both forms are
+        // accepted, each against its own check.
         auto avatarUrl = JsonString(user, L"avatarUrl");
-        if (IsSafeAccountProfileUrl(avatarUrl))
+        if (IsSafeAccountProfileUrl(avatarUrl) || IsSafeInlineProfileImage(avatarUrl))
         {
             profile.AvatarUrl = avatarUrl;
         }

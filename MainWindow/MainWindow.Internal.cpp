@@ -3,7 +3,12 @@
 
 #include "Backend/BuildConfig.h"
 
+#include <wil/cppwinrt_helpers.h>
+
 #include <winrt/Windows.Data.Json.h>
+#include <winrt/Windows.Security.Cryptography.h>
+#include <winrt/Windows.Storage.Streams.h>
+#include <winrt/Microsoft.UI.Dispatching.h>
 #include <winrt/Microsoft.UI.Xaml.Media.Imaging.h>
 
 #include <algorithm>
@@ -170,6 +175,154 @@ namespace winrt::Last_Music_Player::implementation::detail
             SettingsManagerService().GetString(L"UserDisplayName", L""));
     }
 
+    namespace
+    {
+        using AvatarImage = winrt::Microsoft::UI::Xaml::Controls::Image;
+        using AvatarFallback = winrt::Microsoft::UI::Xaml::UIElement;
+        using winrt::Microsoft::UI::Xaml::Media::Imaging::BitmapImage;
+
+        // Both decode handlers ignore a bitmap that is no longer the one on
+        // screen. A refresh can replace the source while an earlier picture is
+        // still decoding, and without this the late result would drive the
+        // visibility of a picture it has nothing to do with.
+        bool IsCurrentAvatarSource(
+            AvatarImage const& image,
+            winrt::weak_ref<BitmapImage> const& expected)
+        {
+            auto bitmap = expected.get();
+            return bitmap && image.Source() == bitmap;
+        }
+
+        void RestoreAvatarFallback(AvatarImage const& image, AvatarFallback const& fallback)
+        {
+            using winrt::Microsoft::UI::Xaml::Visibility;
+
+            image.Source(nullptr);
+            image.Visibility(Visibility::Collapsed);
+            fallback.Visibility(Visibility::Visible);
+        }
+
+        void AttachAvatarDecodeHandlers(
+            BitmapImage const& bitmap,
+            AvatarImage const& image,
+            AvatarFallback const& fallback)
+        {
+            using winrt::Microsoft::UI::Xaml::Visibility;
+
+            // Weak throughout, because the Image owns the bitmap that owns
+            // these handlers; capturing either strongly would close a
+            // reference cycle and leak both for the life of the process.
+            auto weakImage = winrt::make_weak(image);
+            auto weakFallback = winrt::make_weak(fallback);
+            auto weakBitmap = winrt::make_weak(bitmap);
+
+            bitmap.ImageOpened([weakImage, weakFallback, weakBitmap](
+                winrt::Windows::Foundation::IInspectable const&,
+                winrt::Microsoft::UI::Xaml::RoutedEventArgs const&)
+            {
+                auto target = weakImage.get();
+                auto glyph = weakFallback.get();
+                if (!target || !glyph || !IsCurrentAvatarSource(target, weakBitmap))
+                {
+                    return;
+                }
+                target.Opacity(1.0);
+                glyph.Visibility(Visibility::Collapsed);
+            });
+
+            bitmap.ImageFailed([weakImage, weakFallback, weakBitmap](
+                winrt::Windows::Foundation::IInspectable const&,
+                winrt::Microsoft::UI::Xaml::ExceptionRoutedEventArgs const&)
+            {
+                auto target = weakImage.get();
+                auto glyph = weakFallback.get();
+                if (!target || !glyph || !IsCurrentAvatarSource(target, weakBitmap))
+                {
+                    return;
+                }
+                RestoreAvatarFallback(target, glyph);
+            });
+        }
+
+        // An inline picture arrives as base64 inside the profile payload, so
+        // there is nothing for XAML to download: the bytes have to be decoded
+        // and handed to the bitmap as a stream. Decoding runs off the UI thread
+        // because a profile photo is large enough to be worth not blocking on.
+        winrt::fire_and_forget DecodeInlineAvatarAsync(
+            BitmapImage bitmap,
+            AvatarImage image,
+            AvatarFallback fallback,
+            winrt::hstring payload)
+        {
+            auto weakImage = winrt::make_weak(image);
+            auto weakFallback = winrt::make_weak(fallback);
+            auto weakBitmap = winrt::make_weak(bitmap);
+            auto dispatcher = image.DispatcherQueue();
+
+            // Nothing past this point may hold the UI alive: this coroutine can
+            // outlive the window it was started for.
+            bitmap = nullptr;
+            image = nullptr;
+            fallback = nullptr;
+
+            winrt::Windows::Storage::Streams::InMemoryRandomAccessStream stream;
+            bool decoded = false;
+            try
+            {
+                co_await winrt::resume_background();
+                auto buffer = winrt::Windows::Security::Cryptography::CryptographicBuffer
+                    ::DecodeFromBase64String(payload);
+                co_await stream.WriteAsync(buffer);
+                stream.Seek(0);
+                decoded = true;
+            }
+            catch (...)
+            {
+                // Falls through to the fallback restore below, on the UI thread.
+            }
+
+            co_await wil::resume_foreground(dispatcher);
+
+            auto target = weakImage.get();
+            if (!target)
+            {
+                co_return;
+            }
+
+            // A newer refresh may have replaced the picture while this one was
+            // decoding. Feeding the stale bitmap now would fire its handlers
+            // against whatever is on screen instead.
+            if (!IsCurrentAvatarSource(target, weakBitmap))
+            {
+                co_return;
+            }
+
+            auto glyph = weakFallback.get();
+            if (!decoded)
+            {
+                if (glyph)
+                {
+                    RestoreAvatarFallback(target, glyph);
+                }
+                co_return;
+            }
+
+            try
+            {
+                // ImageOpened and ImageFailed carry the outcome from here, so
+                // the visibility swap stays in one place for both avatar forms.
+                co_await weakBitmap.get().SetSourceAsync(stream);
+            }
+            catch (...)
+            {
+                if (glyph && IsCurrentAvatarSource(target, weakBitmap))
+                {
+                    RestoreAvatarFallback(target, glyph);
+                }
+            }
+        }
+    }
+
     void ApplyAvatarPicture(
         winrt::Microsoft::UI::Xaml::Controls::Image const& image,
         winrt::Microsoft::UI::Xaml::UIElement const& fallback,
@@ -182,10 +335,8 @@ namespace winrt::Last_Music_Player::implementation::detail
             return;
         }
 
-        image.Source(nullptr);
-        image.Visibility(Visibility::Collapsed);
+        RestoreAvatarFallback(image, fallback);
         image.Opacity(0.0);
-        fallback.Visibility(Visibility::Visible);
 
         if (avatarUrl.empty())
         {
@@ -194,56 +345,44 @@ namespace winrt::Last_Music_Player::implementation::detail
 
         try
         {
-            winrt::Windows::Foundation::Uri uri{ avatarUrl };
-            winrt::Microsoft::UI::Xaml::Media::Imaging::BitmapImage bitmap{ uri };
+            BitmapImage bitmap{ nullptr };
+            winrt::hstring inlinePayload;
 
-            // Weak, because the Image owns the bitmap that owns these
-            // handlers; capturing the elements strongly would close a
-            // reference cycle and leak both for the life of the process.
-            auto weakImage = winrt::make_weak(image);
-            auto weakFallback = winrt::make_weak(fallback);
-
-            bitmap.ImageOpened([weakImage, weakFallback](
-                winrt::Windows::Foundation::IInspectable const&,
-                winrt::Microsoft::UI::Xaml::RoutedEventArgs const&)
+            if (LastMusicPlayer::Backend::IsInlineProfileImageData(avatarUrl))
             {
-                auto target = weakImage.get();
-                auto glyph = weakFallback.get();
-                if (!target || !glyph)
+                // Re-checked here rather than trusted from the parse boundary,
+                // because the same string also comes back out of the account
+                // database, which is a separate trust boundary.
+                if (!LastMusicPlayer::Backend::IsSafeInlineProfileImage(avatarUrl))
                 {
                     return;
                 }
-                target.Opacity(1.0);
-                glyph.Visibility(Visibility::Collapsed);
-            });
-
-            bitmap.ImageFailed([weakImage, weakFallback](
-                winrt::Windows::Foundation::IInspectable const&,
-                winrt::Microsoft::UI::Xaml::ExceptionRoutedEventArgs const&)
+                std::wstring text{ avatarUrl.c_str() };
+                inlinePayload = winrt::hstring{ text.substr(text.find(L',') + 1) };
+                bitmap = BitmapImage{};
+            }
+            else
             {
-                auto target = weakImage.get();
-                auto glyph = weakFallback.get();
-                if (!target || !glyph)
-                {
-                    return;
-                }
-                target.Source(nullptr);
-                target.Visibility(Visibility::Collapsed);
-                glyph.Visibility(Visibility::Visible);
-            });
+                bitmap = BitmapImage{ winrt::Windows::Foundation::Uri{ avatarUrl } };
+            }
+
+            AttachAvatarDecodeHandlers(bitmap, image, fallback);
 
             // Visible but fully transparent while it loads. A collapsed Image
             // is not guaranteed to trigger the download at all, which would
             // leave the picture permanently stuck behind the fallback glyph.
             image.Source(bitmap);
             image.Visibility(Visibility::Visible);
+
+            if (!inlinePayload.empty())
+            {
+                DecodeInlineAvatarAsync(bitmap, image, fallback, inlinePayload);
+            }
         }
         catch (...)
         {
             // A URL the Uri parser rejects is treated like no picture at all.
-            image.Source(nullptr);
-            image.Visibility(Visibility::Collapsed);
-            fallback.Visibility(Visibility::Visible);
+            RestoreAvatarFallback(image, fallback);
         }
     }
 
