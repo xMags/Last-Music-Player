@@ -96,6 +96,12 @@ namespace winrt::Last_Music_Player::implementation
         winrt::Windows::Foundation::IAsyncAction HomeLiked_ItemClick(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::ItemClickEventArgs const& args);
         void HomeLikedSeeAll_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void HomeMostPlayedSeeAll_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void HomeRecentlyAddedSeeAll_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+
+        // The one line under the mixes row that says whether the provider fill
+        // is running, gave up, or had nothing to add. Empty message hides it.
+        void ShowHomeMixStatus(winrt::hstring const& message, bool busy);
+        void ClearHomeMixStatus();
         void HomeRowMenuPlayNow_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void UpdateMadeForCardLabels();
         void UpdateHomeGreeting(winrt::hstring const& displayName);
