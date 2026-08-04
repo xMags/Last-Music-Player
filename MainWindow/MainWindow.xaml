@@ -34,6 +34,7 @@
             <KeyboardAccelerator Key="Space" Invoked="AccelPlayPause_Invoked" />
             <KeyboardAccelerator Key="Right" Modifiers="Control" Invoked="AccelNext_Invoked" />
             <KeyboardAccelerator Key="Left" Modifiers="Control" Invoked="AccelPrev_Invoked" />
+            <KeyboardAccelerator Key="K" Modifiers="Control" Invoked="AccelSearch_Invoked" />
         </Grid.KeyboardAccelerators>
 
         <!-- Row 0: App Body (Sidebars and Content), Row 1: Bottom Music Player -->

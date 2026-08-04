@@ -407,9 +407,18 @@ namespace winrt::Last_Music_Player::implementation
     void MainWindow::AccelSearch_Invoked(winrt::Microsoft::UI::Xaml::Input::KeyboardAccelerator const& sender, winrt::Microsoft::UI::Xaml::Input::KeyboardAcceleratorInvokedEventArgs const& args)
     {
         (void)sender;
-        // The search box only exists on Home — switch there, then focus it.
-        HomeButton_Click(nullptr, nullptr);
+        // The search box only exists on Home, so anywhere else has to switch
+        // there first. Switching is skipped when Home is already up, because
+        // HomeButton_Click clears the query on its way through ExitSearchMode
+        // and a second Ctrl+K mid-search has to leave what was typed alone.
+        if (HomeViewContainer().Visibility() != winrt::Microsoft::UI::Xaml::Visibility::Visible)
+        {
+            HomeButton_Click(nullptr, nullptr);
+        }
         GlobalSearchBox().Focus(winrt::Microsoft::UI::Xaml::FocusState::Programmatic);
+        // Selected rather than just focused, so the shortcut can be used to
+        // replace one query with the next without clearing the box by hand.
+        GlobalSearchBox().SelectAll();
         args.Handled(true);
     }
 
