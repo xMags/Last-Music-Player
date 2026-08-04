@@ -583,13 +583,20 @@ namespace LastMusicPlayer::Backend
                 return page;
             }
 
+            // The service answers with the chart id namespaced by its kind
+            // ("global:top-songs", "city:mumbai", "genre:20") while the request
+            // carries the bare id. Accepting only the global prefix meant every
+            // city and genre response was read as a mismatched chart and thrown
+            // away, leaving those pages blank. The check stays strict about
+            // which chart came back; it just recognises both spellings of it.
             auto responseId = StringValue(root, L"id");
-            auto expectedGlobalId = winrt::hstring{
-                L"global:" + std::wstring{ requestedChart.Id.c_str() }
+            auto qualifiedId = winrt::hstring{
+                std::wstring{ CatalogChartKindName(requestedChart.Kind).c_str() }
+                + L":" + std::wstring{ requestedChart.Id.c_str() }
             };
             if (!responseId.empty()
                 && responseId != requestedChart.Id
-                && (requestedChart.Kind != CatalogChartKind::Global || responseId != expectedGlobalId))
+                && responseId != qualifiedId)
             {
                 return page;
             }
