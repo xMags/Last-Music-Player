@@ -5,6 +5,7 @@
 #include "Backend/CatalogParser.h"
 #include "Backend/CatalogPresentation.h"
 #include "Frontend/RoundedCornerClip.h"
+#include "Frontend/CarouselArrows.h"
 
 #include <winrt/Windows.Storage.Streams.h>
 #include <winrt/Microsoft.UI.Xaml.Controls.h>
@@ -350,6 +351,22 @@ namespace winrt::Last_Music_Player::implementation
         m_accountArtworkBackfillQueue.push_back(key);
         ObserveAccountArtworkViewport(image, key);
         StartAccountArtworkRequests();
+    }
+
+    void MainWindow::AttachCarouselArrows()
+    {
+        // The artwork on a card shelf is 156 tall and starts at the top of the
+        // row, so its middle is 78 down. The mixes row is a taller card, and
+        // its art block is 176, so 88.
+        constexpr double kCardArtCenter = 78.0;
+        constexpr double kMixArtCenter = 88.0;
+
+        using LastMusicPlayer::Frontend::AttachCarouselArrows;
+        AttachCarouselArrows(HomeRecentArrowHost(), HomeRecentGridView(), kCardArtCenter);
+        AttachCarouselArrows(HomeMostPlayedArrowHost(), HomeMostPlayedGridView(), kCardArtCenter);
+        AttachCarouselArrows(HomeLikedArrowHost(), HomeLikedGridView(), kCardArtCenter);
+        AttachCarouselArrows(HomeRecentlyAddedArrowHost(), HomeRecentlyAddedGridView(), kCardArtCenter);
+        AttachCarouselArrows(HomeMixArrowHost(), HomeMixScroller(), kMixArtCenter);
     }
 
     void MainWindow::AttachArtworkGridObservers()
@@ -1252,7 +1269,12 @@ namespace winrt::Last_Music_Player::implementation
             }
             QueueAndPlayObservable(items, track);
         });
-        section.Children().Append(grid);
+        // The shelf goes into a Grid of its own so the arrows have something to
+        // overlay; a StackPanel would stack them underneath instead.
+        Grid arrowHost;
+        arrowHost.Children().Append(grid);
+        LastMusicPlayer::Frontend::AttachCarouselArrows(arrowHost, grid, 78.0);
+        section.Children().Append(arrowHost);
         return section;
     }
 

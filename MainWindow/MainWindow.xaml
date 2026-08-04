@@ -409,73 +409,75 @@
                             </Grid>
 
                             <Grid x:Name="ListenAgainSkeletonHost" Visibility="Collapsed" Margin="0,4,0,24" />
-                            <GridView x:Name="HomeRecentGridView"
-                                      Height="260"
-                                      Padding="0,4,64,24"
-                                      Visibility="Collapsed"
-                                      IsItemClickEnabled="True"
-                                      ItemClick="HomeRecentGridView_ItemClick"
-                                      ItemContainerStyle="{StaticResource CardTileContainerStyle}"
-                                      SelectionMode="None"
-                                      ScrollViewer.HorizontalScrollBarVisibility="Hidden"
-                                      ScrollViewer.HorizontalScrollMode="Enabled"
-                                      ScrollViewer.VerticalScrollMode="Disabled"
-                                      ScrollViewer.VerticalScrollBarVisibility="Hidden">
-                                <GridView.ItemsPanel>
-                                    <ItemsPanelTemplate>
-                                        <ItemsStackPanel Orientation="Horizontal" />
-                                    </ItemsPanelTemplate>
-                                </GridView.ItemsPanel>
-                                <GridView.ItemTemplate>
-                                    <DataTemplate x:DataType="local:TrackInfo">
-                                        <!-- Explicit row grid keeps the title row a fixed 40 px
-                                             (2 BodyStrong lines max). Short titles leave the
-                                             extra line blank; artist and source labels always
-                                             line up at the same Y across neighbouring cards. -->
-                                        <Grid x:Name="CardRoot" Width="156" Margin="0,0,20,0" VerticalAlignment="Top"
-                                              PointerEntered="Card_PointerEntered" PointerExited="Card_PointerExited">
-                                            <Grid.RowDefinitions>
-                                                <RowDefinition Height="156" />
-                                                <RowDefinition Height="12" />
-                                                <RowDefinition Height="40" />
-                                                <RowDefinition Height="18" />
-                                                <RowDefinition Height="18" />
-                                            </Grid.RowDefinitions>
-                                            <Grid.ContextFlyout>
-                                                <MenuFlyout>
-                                                    <MenuFlyoutItem Text="Play now" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="HomeRowMenuPlayNow_Click" />
-                                                    <MenuFlyoutItem Text="Play next" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuPlayNext_Click" />
-                                                    <MenuFlyoutItem Text="Add to queue" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuAddToQueue_Click" />
-                                                    <MenuFlyoutItem Text="Add to playlist" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="LibraryRowMenuAddToPlaylist_Click" />
-                                                    <MenuFlyoutSeparator />
-                                                    <MenuFlyoutItem Text="{x:Bind LikeActionText}" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuLike_Click" />
-                                                    <MenuFlyoutSeparator />
-                                                    <MenuFlyoutItem Text="Go to artist" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuArtist_Click" />
-                                                    <MenuFlyoutItem Text="Go to album" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuAlbum_Click" />
-                                                </MenuFlyout>
-                                            </Grid.ContextFlyout>
-                                            <Grid Grid.Row="0" Width="156" Height="156">
-                                                <Border CornerRadius="{StaticResource Radius2xl}" Translation="0,0,16">
-                                                    <Border.Background>
-                                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                                            <GradientStop Color="#14A8BC" Offset="0" />
-                                                            <GradientStop Color="#7F6CFF" Offset="1" />
-                                                        </LinearGradientBrush>
-                                                    </Border.Background>
-                                                    <Border.Shadow>
-                                                        <ThemeShadow />
-                                                    </Border.Shadow>
-                                                    <FontIcon Glyph="&#xE8D6;" FontSize="36" Foreground="White" Opacity="0.55" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                                </Border>
-                                                <Image Source="{x:Bind AlbumArt}" Stretch="UniformToFill" Loaded="AccountArtwork_Loaded" />
+                            <Grid x:Name="HomeRecentArrowHost">
+                                <GridView x:Name="HomeRecentGridView"
+                                          Height="260"
+                                          Padding="0,4,64,24"
+                                          Visibility="Collapsed"
+                                          IsItemClickEnabled="True"
+                                          ItemClick="HomeRecentGridView_ItemClick"
+                                          ItemContainerStyle="{StaticResource CardTileContainerStyle}"
+                                          SelectionMode="None"
+                                          ScrollViewer.HorizontalScrollBarVisibility="Hidden"
+                                          ScrollViewer.HorizontalScrollMode="Enabled"
+                                          ScrollViewer.VerticalScrollMode="Disabled"
+                                          ScrollViewer.VerticalScrollBarVisibility="Hidden">
+                                    <GridView.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <ItemsStackPanel Orientation="Horizontal" />
+                                        </ItemsPanelTemplate>
+                                    </GridView.ItemsPanel>
+                                    <GridView.ItemTemplate>
+                                        <DataTemplate x:DataType="local:TrackInfo">
+                                            <!-- Explicit row grid keeps the title row a fixed 40 px
+                                                 (2 BodyStrong lines max). Short titles leave the
+                                                 extra line blank; artist and source labels always
+                                                 line up at the same Y across neighbouring cards. -->
+                                            <Grid x:Name="CardRoot" Width="156" Margin="0,0,20,0" VerticalAlignment="Top"
+                                                  PointerEntered="Card_PointerEntered" PointerExited="Card_PointerExited">
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="156" />
+                                                    <RowDefinition Height="12" />
+                                                    <RowDefinition Height="40" />
+                                                    <RowDefinition Height="18" />
+                                                    <RowDefinition Height="18" />
+                                                </Grid.RowDefinitions>
+                                                <Grid.ContextFlyout>
+                                                    <MenuFlyout>
+                                                        <MenuFlyoutItem Text="Play now" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="HomeRowMenuPlayNow_Click" />
+                                                        <MenuFlyoutItem Text="Play next" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuPlayNext_Click" />
+                                                        <MenuFlyoutItem Text="Add to queue" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuAddToQueue_Click" />
+                                                        <MenuFlyoutItem Text="Add to playlist" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="LibraryRowMenuAddToPlaylist_Click" />
+                                                        <MenuFlyoutSeparator />
+                                                        <MenuFlyoutItem Text="{x:Bind LikeActionText}" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuLike_Click" />
+                                                        <MenuFlyoutSeparator />
+                                                        <MenuFlyoutItem Text="Go to artist" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuArtist_Click" />
+                                                        <MenuFlyoutItem Text="Go to album" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuAlbum_Click" />
+                                                    </MenuFlyout>
+                                                </Grid.ContextFlyout>
+                                                <Grid Grid.Row="0" Width="156" Height="156">
+                                                    <Border CornerRadius="{StaticResource Radius2xl}" Translation="0,0,16">
+                                                        <Border.Background>
+                                                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                                                <GradientStop Color="#14A8BC" Offset="0" />
+                                                                <GradientStop Color="#7F6CFF" Offset="1" />
+                                                            </LinearGradientBrush>
+                                                        </Border.Background>
+                                                        <Border.Shadow>
+                                                            <ThemeShadow />
+                                                        </Border.Shadow>
+                                                        <FontIcon Glyph="&#xE8D6;" FontSize="36" Foreground="White" Opacity="0.55" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                    </Border>
+                                                    <Image Source="{x:Bind AlbumArt}" Stretch="UniformToFill" Loaded="AccountArtwork_Loaded" />
+                                                </Grid>
+                                                <TextBlock Grid.Row="2" Text="{x:Bind Title}" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" VerticalAlignment="Top" />
+                                                <TextBlock Grid.Row="3" Text="{x:Bind Artist}" Style="{StaticResource CaptionText}" TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Grid.Row="4" Text="{x:Bind DateAdded}" Style="{StaticResource CaptionText}" TextTrimming="CharacterEllipsis" Opacity="0.8" />
                                             </Grid>
-                                            <TextBlock Grid.Row="2" Text="{x:Bind Title}" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" VerticalAlignment="Top" />
-                                            <TextBlock Grid.Row="3" Text="{x:Bind Artist}" Style="{StaticResource CaptionText}" TextTrimming="CharacterEllipsis" />
-                                            <TextBlock Grid.Row="4" Text="{x:Bind DateAdded}" Style="{StaticResource CaptionText}" TextTrimming="CharacterEllipsis" Opacity="0.8" />
-                                        </Grid>
-                                    </DataTemplate>
-                                </GridView.ItemTemplate>
-                            </GridView>
+                                        </DataTemplate>
+                                    </GridView.ItemTemplate>
+                                </GridView>
+                            </Grid>
 
                             <!-- Empty state: shown until there is real listening history -->
                             <TextBlock x:Name="ListenAgainEmptyText"
@@ -523,362 +525,364 @@
                                 <Button x:Name="HomeMadeForAllButton" Content="See all &#x203A;" Click="HomeMadeForAll_Click" HorizontalAlignment="Right" VerticalAlignment="Center" Background="Transparent" BorderThickness="0" Padding="6,2" FontSize="12" FontWeight="SemiBold" Foreground="{ThemeResource AccentBrush}" />
                             </Grid>
 
-                            <ScrollViewer HorizontalScrollBarVisibility="Hidden" HorizontalScrollMode="Enabled" VerticalScrollMode="Disabled">
-                                <StackPanel Orientation="Horizontal" Spacing="20" Padding="0,4,64,8">
+                            <Grid x:Name="HomeMixArrowHost">
+                                <ScrollViewer x:Name="HomeMixScroller" HorizontalScrollBarVisibility="Hidden" HorizontalScrollMode="Enabled" VerticalScrollMode="Disabled">
+                                    <StackPanel Orientation="Horizontal" Spacing="20" Padding="0,4,64,8">
 
-                                    <!-- Daily Mix 1 -->
-                                    <Grid Width="184" VerticalAlignment="Top" Tag="daily1" Tapped="HomeMixCard_Tapped" AutomationProperties.Name="Play Daily Mix 1" PointerEntered="PlaylistCard_PointerEntered" PointerExited="PlaylistCard_PointerExited">
-                                        <Grid.ContextFlyout>
-                                            <MenuFlyout>
-                                                <MenuFlyoutItem Text="Play now" Tag="daily1" Click="HomeMixMenuPlayNow_Click" />
-                                                <MenuFlyoutItem Text="Play next" Tag="daily1" Click="HomeMixMenuPlayNext_Click" />
-                                                <MenuFlyoutItem Text="Add to queue" Tag="daily1" Click="HomeMixMenuAddToQueue_Click" />
-                                                <MenuFlyoutSeparator />
-                                                <MenuFlyoutItem Text="Shuffle" Tag="daily1" Click="HomeMixMenuShuffle_Click" />
-                                            </MenuFlyout>
-                                        </Grid.ContextFlyout>
-                                        <StackPanel>
-                                            <Border Width="184" Height="184" CornerRadius="{StaticResource Radius2xl}" Margin="0,0,0,10" Translation="0,0,16">
-                                                <Border.Shadow><ThemeShadow /></Border.Shadow>
-                                                <Border.Background>
-                                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                                        <GradientStop Color="#FF0097B2" Offset="0.0"/>
-                                                        <GradientStop Color="#FF00B8D4" Offset="1.0"/>
-                                                    </LinearGradientBrush>
-                                                </Border.Background>
-                                                <Grid>
-                                                    <FontIcon Glyph="&#xE8D6;" FontSize="90" Foreground="White" Opacity="0.18" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-8,-8,0" IsHitTestVisible="False"/>
-                                                    <Border IsHitTestVisible="False" CornerRadius="{StaticResource Radius2xl}">
-                                                        <Border.Background>
-                                                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                                                                <GradientStop Color="#1AFFFFFF" Offset="0.0"/>
-                                                                <GradientStop Color="#00FFFFFF" Offset="0.4"/>
-                                                            </LinearGradientBrush>
-                                                        </Border.Background>
-                                                    </Border>
-                                                    <TextBlock Text="DAILY MIX 1" FontSize="11" FontWeight="Bold" CharacterSpacing="180" Foreground="White" Opacity="0.95" VerticalAlignment="Top" Margin="14"/>
-                                                    <TextBlock x:Name="HomeMix1Desc" Text="Upbeat indie &amp; pop you keep coming back to." FontSize="12" FontWeight="Medium" Foreground="White" Opacity="0.94" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" LineHeight="17" VerticalAlignment="Bottom" Margin="14"/>
-                                                </Grid>
-                                            </Border>
-                                            <TextBlock Text="Daily Mix 1" Style="{StaticResource BodyStrong}"/>
-                                            <TextBlock x:Name="HomeMix1Caption" Text="Made for you" Style="{StaticResource CaptionText}"/>
-                                        </StackPanel>
-                                    </Grid>
+                                        <!-- Daily Mix 1 -->
+                                        <Grid Width="184" VerticalAlignment="Top" Tag="daily1" Tapped="HomeMixCard_Tapped" AutomationProperties.Name="Play Daily Mix 1" PointerEntered="PlaylistCard_PointerEntered" PointerExited="PlaylistCard_PointerExited">
+                                            <Grid.ContextFlyout>
+                                                <MenuFlyout>
+                                                    <MenuFlyoutItem Text="Play now" Tag="daily1" Click="HomeMixMenuPlayNow_Click" />
+                                                    <MenuFlyoutItem Text="Play next" Tag="daily1" Click="HomeMixMenuPlayNext_Click" />
+                                                    <MenuFlyoutItem Text="Add to queue" Tag="daily1" Click="HomeMixMenuAddToQueue_Click" />
+                                                    <MenuFlyoutSeparator />
+                                                    <MenuFlyoutItem Text="Shuffle" Tag="daily1" Click="HomeMixMenuShuffle_Click" />
+                                                </MenuFlyout>
+                                            </Grid.ContextFlyout>
+                                            <StackPanel>
+                                                <Border Width="184" Height="184" CornerRadius="{StaticResource Radius2xl}" Margin="0,0,0,10" Translation="0,0,16">
+                                                    <Border.Shadow><ThemeShadow /></Border.Shadow>
+                                                    <Border.Background>
+                                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                                            <GradientStop Color="#FF0097B2" Offset="0.0"/>
+                                                            <GradientStop Color="#FF00B8D4" Offset="1.0"/>
+                                                        </LinearGradientBrush>
+                                                    </Border.Background>
+                                                    <Grid>
+                                                        <FontIcon Glyph="&#xE8D6;" FontSize="90" Foreground="White" Opacity="0.18" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-8,-8,0" IsHitTestVisible="False"/>
+                                                        <Border IsHitTestVisible="False" CornerRadius="{StaticResource Radius2xl}">
+                                                            <Border.Background>
+                                                                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                                    <GradientStop Color="#1AFFFFFF" Offset="0.0"/>
+                                                                    <GradientStop Color="#00FFFFFF" Offset="0.4"/>
+                                                                </LinearGradientBrush>
+                                                            </Border.Background>
+                                                        </Border>
+                                                        <TextBlock Text="DAILY MIX 1" FontSize="11" FontWeight="Bold" CharacterSpacing="180" Foreground="White" Opacity="0.95" VerticalAlignment="Top" Margin="14"/>
+                                                        <TextBlock x:Name="HomeMix1Desc" Text="Upbeat indie &amp; pop you keep coming back to." FontSize="12" FontWeight="Medium" Foreground="White" Opacity="0.94" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" LineHeight="17" VerticalAlignment="Bottom" Margin="14"/>
+                                                    </Grid>
+                                                </Border>
+                                                <TextBlock Text="Daily Mix 1" Style="{StaticResource BodyStrong}"/>
+                                                <TextBlock x:Name="HomeMix1Caption" Text="Made for you" Style="{StaticResource CaptionText}"/>
+                                            </StackPanel>
+                                        </Grid>
 
-                                    <!-- Daily Mix 2 -->
-                                    <Grid Width="184" VerticalAlignment="Top" Tag="daily2" Tapped="HomeMixCard_Tapped" AutomationProperties.Name="Play Daily Mix 2" PointerEntered="PlaylistCard_PointerEntered" PointerExited="PlaylistCard_PointerExited">
-                                        <Grid.ContextFlyout>
-                                            <MenuFlyout>
-                                                <MenuFlyoutItem Text="Play now" Tag="daily2" Click="HomeMixMenuPlayNow_Click" />
-                                                <MenuFlyoutItem Text="Play next" Tag="daily2" Click="HomeMixMenuPlayNext_Click" />
-                                                <MenuFlyoutItem Text="Add to queue" Tag="daily2" Click="HomeMixMenuAddToQueue_Click" />
-                                                <MenuFlyoutSeparator />
-                                                <MenuFlyoutItem Text="Shuffle" Tag="daily2" Click="HomeMixMenuShuffle_Click" />
-                                            </MenuFlyout>
-                                        </Grid.ContextFlyout>
-                                        <StackPanel>
-                                            <Border Width="184" Height="184" CornerRadius="{StaticResource Radius2xl}" Margin="0,0,0,10" Translation="0,0,16">
-                                                <Border.Shadow><ThemeShadow /></Border.Shadow>
-                                                <Border.Background>
-                                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                                        <GradientStop Color="#FF6B5BFE" Offset="0.0"/>
-                                                        <GradientStop Color="#FF9B7BFE" Offset="1.0"/>
-                                                    </LinearGradientBrush>
-                                                </Border.Background>
-                                                <Grid>
-                                                    <FontIcon Glyph="&#xE8D6;" FontSize="90" Foreground="White" Opacity="0.18" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-8,-8,0" IsHitTestVisible="False"/>
-                                                    <Border IsHitTestVisible="False" CornerRadius="{StaticResource Radius2xl}">
-                                                        <Border.Background>
-                                                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                                                                <GradientStop Color="#1AFFFFFF" Offset="0.0"/>
-                                                                <GradientStop Color="#00FFFFFF" Offset="0.4"/>
-                                                            </LinearGradientBrush>
-                                                        </Border.Background>
-                                                    </Border>
-                                                    <TextBlock Text="DAILY MIX 2" FontSize="11" FontWeight="Bold" CharacterSpacing="180" Foreground="White" Opacity="0.95" VerticalAlignment="Top" Margin="14"/>
-                                                    <TextBlock x:Name="HomeMix2Desc" Text="Mellow electronic and chill beats." FontSize="12" FontWeight="Medium" Foreground="White" Opacity="0.94" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" LineHeight="17" VerticalAlignment="Bottom" Margin="14"/>
-                                                </Grid>
-                                            </Border>
-                                            <TextBlock Text="Daily Mix 2" Style="{StaticResource BodyStrong}"/>
-                                            <TextBlock x:Name="HomeMix2Caption" Text="Made for you" Style="{StaticResource CaptionText}"/>
-                                        </StackPanel>
-                                    </Grid>
+                                        <!-- Daily Mix 2 -->
+                                        <Grid Width="184" VerticalAlignment="Top" Tag="daily2" Tapped="HomeMixCard_Tapped" AutomationProperties.Name="Play Daily Mix 2" PointerEntered="PlaylistCard_PointerEntered" PointerExited="PlaylistCard_PointerExited">
+                                            <Grid.ContextFlyout>
+                                                <MenuFlyout>
+                                                    <MenuFlyoutItem Text="Play now" Tag="daily2" Click="HomeMixMenuPlayNow_Click" />
+                                                    <MenuFlyoutItem Text="Play next" Tag="daily2" Click="HomeMixMenuPlayNext_Click" />
+                                                    <MenuFlyoutItem Text="Add to queue" Tag="daily2" Click="HomeMixMenuAddToQueue_Click" />
+                                                    <MenuFlyoutSeparator />
+                                                    <MenuFlyoutItem Text="Shuffle" Tag="daily2" Click="HomeMixMenuShuffle_Click" />
+                                                </MenuFlyout>
+                                            </Grid.ContextFlyout>
+                                            <StackPanel>
+                                                <Border Width="184" Height="184" CornerRadius="{StaticResource Radius2xl}" Margin="0,0,0,10" Translation="0,0,16">
+                                                    <Border.Shadow><ThemeShadow /></Border.Shadow>
+                                                    <Border.Background>
+                                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                                            <GradientStop Color="#FF6B5BFE" Offset="0.0"/>
+                                                            <GradientStop Color="#FF9B7BFE" Offset="1.0"/>
+                                                        </LinearGradientBrush>
+                                                    </Border.Background>
+                                                    <Grid>
+                                                        <FontIcon Glyph="&#xE8D6;" FontSize="90" Foreground="White" Opacity="0.18" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-8,-8,0" IsHitTestVisible="False"/>
+                                                        <Border IsHitTestVisible="False" CornerRadius="{StaticResource Radius2xl}">
+                                                            <Border.Background>
+                                                                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                                    <GradientStop Color="#1AFFFFFF" Offset="0.0"/>
+                                                                    <GradientStop Color="#00FFFFFF" Offset="0.4"/>
+                                                                </LinearGradientBrush>
+                                                            </Border.Background>
+                                                        </Border>
+                                                        <TextBlock Text="DAILY MIX 2" FontSize="11" FontWeight="Bold" CharacterSpacing="180" Foreground="White" Opacity="0.95" VerticalAlignment="Top" Margin="14"/>
+                                                        <TextBlock x:Name="HomeMix2Desc" Text="Mellow electronic and chill beats." FontSize="12" FontWeight="Medium" Foreground="White" Opacity="0.94" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" LineHeight="17" VerticalAlignment="Bottom" Margin="14"/>
+                                                    </Grid>
+                                                </Border>
+                                                <TextBlock Text="Daily Mix 2" Style="{StaticResource BodyStrong}"/>
+                                                <TextBlock x:Name="HomeMix2Caption" Text="Made for you" Style="{StaticResource CaptionText}"/>
+                                            </StackPanel>
+                                        </Grid>
 
-                                    <!-- Daily Mix 3 -->
-                                    <Grid Width="184" VerticalAlignment="Top" Tag="daily3" Tapped="HomeMixCard_Tapped" AutomationProperties.Name="Play Daily Mix 3" PointerEntered="PlaylistCard_PointerEntered" PointerExited="PlaylistCard_PointerExited">
-                                        <Grid.ContextFlyout>
-                                            <MenuFlyout>
-                                                <MenuFlyoutItem Text="Play now" Tag="daily3" Click="HomeMixMenuPlayNow_Click" />
-                                                <MenuFlyoutItem Text="Play next" Tag="daily3" Click="HomeMixMenuPlayNext_Click" />
-                                                <MenuFlyoutItem Text="Add to queue" Tag="daily3" Click="HomeMixMenuAddToQueue_Click" />
-                                                <MenuFlyoutSeparator />
-                                                <MenuFlyoutItem Text="Shuffle" Tag="daily3" Click="HomeMixMenuShuffle_Click" />
-                                            </MenuFlyout>
-                                        </Grid.ContextFlyout>
-                                        <StackPanel>
-                                            <Border Width="184" Height="184" CornerRadius="{StaticResource Radius2xl}" Margin="0,0,0,10" Translation="0,0,16">
-                                                <Border.Shadow><ThemeShadow /></Border.Shadow>
-                                                <Border.Background>
-                                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                                        <GradientStop Color="#FFFE6B6B" Offset="0.0"/>
-                                                        <GradientStop Color="#FFFE9B6B" Offset="1.0"/>
-                                                    </LinearGradientBrush>
-                                                </Border.Background>
-                                                <Grid>
-                                                    <FontIcon Glyph="&#xE8D6;" FontSize="90" Foreground="White" Opacity="0.18" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-8,-8,0" IsHitTestVisible="False"/>
-                                                    <Border IsHitTestVisible="False" CornerRadius="{StaticResource Radius2xl}">
-                                                        <Border.Background>
-                                                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                                                                <GradientStop Color="#1AFFFFFF" Offset="0.0"/>
-                                                                <GradientStop Color="#00FFFFFF" Offset="0.4"/>
-                                                            </LinearGradientBrush>
-                                                        </Border.Background>
-                                                    </Border>
-                                                    <TextBlock Text="DAILY MIX 3" FontSize="11" FontWeight="Bold" CharacterSpacing="180" Foreground="White" Opacity="0.95" VerticalAlignment="Top" Margin="14"/>
-                                                    <TextBlock x:Name="HomeMix3Desc" Text="Rock and alternative favourites." FontSize="12" FontWeight="Medium" Foreground="White" Opacity="0.94" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" LineHeight="17" VerticalAlignment="Bottom" Margin="14"/>
-                                                </Grid>
-                                            </Border>
-                                            <TextBlock Text="Daily Mix 3" Style="{StaticResource BodyStrong}"/>
-                                            <TextBlock x:Name="HomeMix3Caption" Text="Made for you" Style="{StaticResource CaptionText}"/>
-                                        </StackPanel>
-                                    </Grid>
+                                        <!-- Daily Mix 3 -->
+                                        <Grid Width="184" VerticalAlignment="Top" Tag="daily3" Tapped="HomeMixCard_Tapped" AutomationProperties.Name="Play Daily Mix 3" PointerEntered="PlaylistCard_PointerEntered" PointerExited="PlaylistCard_PointerExited">
+                                            <Grid.ContextFlyout>
+                                                <MenuFlyout>
+                                                    <MenuFlyoutItem Text="Play now" Tag="daily3" Click="HomeMixMenuPlayNow_Click" />
+                                                    <MenuFlyoutItem Text="Play next" Tag="daily3" Click="HomeMixMenuPlayNext_Click" />
+                                                    <MenuFlyoutItem Text="Add to queue" Tag="daily3" Click="HomeMixMenuAddToQueue_Click" />
+                                                    <MenuFlyoutSeparator />
+                                                    <MenuFlyoutItem Text="Shuffle" Tag="daily3" Click="HomeMixMenuShuffle_Click" />
+                                                </MenuFlyout>
+                                            </Grid.ContextFlyout>
+                                            <StackPanel>
+                                                <Border Width="184" Height="184" CornerRadius="{StaticResource Radius2xl}" Margin="0,0,0,10" Translation="0,0,16">
+                                                    <Border.Shadow><ThemeShadow /></Border.Shadow>
+                                                    <Border.Background>
+                                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                                            <GradientStop Color="#FFFE6B6B" Offset="0.0"/>
+                                                            <GradientStop Color="#FFFE9B6B" Offset="1.0"/>
+                                                        </LinearGradientBrush>
+                                                    </Border.Background>
+                                                    <Grid>
+                                                        <FontIcon Glyph="&#xE8D6;" FontSize="90" Foreground="White" Opacity="0.18" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-8,-8,0" IsHitTestVisible="False"/>
+                                                        <Border IsHitTestVisible="False" CornerRadius="{StaticResource Radius2xl}">
+                                                            <Border.Background>
+                                                                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                                    <GradientStop Color="#1AFFFFFF" Offset="0.0"/>
+                                                                    <GradientStop Color="#00FFFFFF" Offset="0.4"/>
+                                                                </LinearGradientBrush>
+                                                            </Border.Background>
+                                                        </Border>
+                                                        <TextBlock Text="DAILY MIX 3" FontSize="11" FontWeight="Bold" CharacterSpacing="180" Foreground="White" Opacity="0.95" VerticalAlignment="Top" Margin="14"/>
+                                                        <TextBlock x:Name="HomeMix3Desc" Text="Rock and alternative favourites." FontSize="12" FontWeight="Medium" Foreground="White" Opacity="0.94" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" LineHeight="17" VerticalAlignment="Bottom" Margin="14"/>
+                                                    </Grid>
+                                                </Border>
+                                                <TextBlock Text="Daily Mix 3" Style="{StaticResource BodyStrong}"/>
+                                                <TextBlock x:Name="HomeMix3Caption" Text="Made for you" Style="{StaticResource CaptionText}"/>
+                                            </StackPanel>
+                                        </Grid>
 
-                                    <!-- Daily Mix 4 -->
-                                    <Grid Width="184" VerticalAlignment="Top" Tag="daily4" Tapped="HomeMixCard_Tapped" AutomationProperties.Name="Play Daily Mix 4" PointerEntered="PlaylistCard_PointerEntered" PointerExited="PlaylistCard_PointerExited">
-                                        <Grid.ContextFlyout>
-                                            <MenuFlyout>
-                                                <MenuFlyoutItem Text="Play now" Tag="daily4" Click="HomeMixMenuPlayNow_Click" />
-                                                <MenuFlyoutItem Text="Play next" Tag="daily4" Click="HomeMixMenuPlayNext_Click" />
-                                                <MenuFlyoutItem Text="Add to queue" Tag="daily4" Click="HomeMixMenuAddToQueue_Click" />
-                                                <MenuFlyoutSeparator />
-                                                <MenuFlyoutItem Text="Shuffle" Tag="daily4" Click="HomeMixMenuShuffle_Click" />
-                                            </MenuFlyout>
-                                        </Grid.ContextFlyout>
-                                        <StackPanel>
-                                            <Border Width="184" Height="184" CornerRadius="{StaticResource Radius2xl}" Margin="0,0,0,10" Translation="0,0,16">
-                                                <Border.Shadow><ThemeShadow /></Border.Shadow>
-                                                <Border.Background>
-                                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                                        <GradientStop Color="#FF2E6BE6" Offset="0.0"/>
-                                                        <GradientStop Color="#FF4FB0FF" Offset="1.0"/>
-                                                    </LinearGradientBrush>
-                                                </Border.Background>
-                                                <Grid>
-                                                    <FontIcon Glyph="&#xE8D6;" FontSize="90" Foreground="White" Opacity="0.18" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-8,-8,0" IsHitTestVisible="False"/>
-                                                    <Border IsHitTestVisible="False" CornerRadius="{StaticResource Radius2xl}">
-                                                        <Border.Background>
-                                                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                                                                <GradientStop Color="#1AFFFFFF" Offset="0.0"/>
-                                                                <GradientStop Color="#00FFFFFF" Offset="0.4"/>
-                                                            </LinearGradientBrush>
-                                                        </Border.Background>
-                                                    </Border>
-                                                    <TextBlock Text="DAILY MIX 4" FontSize="11" FontWeight="Bold" CharacterSpacing="180" Foreground="White" Opacity="0.95" VerticalAlignment="Top" Margin="14"/>
-                                                    <TextBlock x:Name="HomeMix4Desc" Text="More from a genre you love." FontSize="12" FontWeight="Medium" Foreground="White" Opacity="0.94" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" LineHeight="17" VerticalAlignment="Bottom" Margin="14"/>
-                                                </Grid>
-                                            </Border>
-                                            <TextBlock Text="Daily Mix 4" Style="{StaticResource BodyStrong}"/>
-                                            <TextBlock x:Name="HomeMix4Caption" Text="Made for you" Style="{StaticResource CaptionText}"/>
-                                        </StackPanel>
-                                    </Grid>
+                                        <!-- Daily Mix 4 -->
+                                        <Grid Width="184" VerticalAlignment="Top" Tag="daily4" Tapped="HomeMixCard_Tapped" AutomationProperties.Name="Play Daily Mix 4" PointerEntered="PlaylistCard_PointerEntered" PointerExited="PlaylistCard_PointerExited">
+                                            <Grid.ContextFlyout>
+                                                <MenuFlyout>
+                                                    <MenuFlyoutItem Text="Play now" Tag="daily4" Click="HomeMixMenuPlayNow_Click" />
+                                                    <MenuFlyoutItem Text="Play next" Tag="daily4" Click="HomeMixMenuPlayNext_Click" />
+                                                    <MenuFlyoutItem Text="Add to queue" Tag="daily4" Click="HomeMixMenuAddToQueue_Click" />
+                                                    <MenuFlyoutSeparator />
+                                                    <MenuFlyoutItem Text="Shuffle" Tag="daily4" Click="HomeMixMenuShuffle_Click" />
+                                                </MenuFlyout>
+                                            </Grid.ContextFlyout>
+                                            <StackPanel>
+                                                <Border Width="184" Height="184" CornerRadius="{StaticResource Radius2xl}" Margin="0,0,0,10" Translation="0,0,16">
+                                                    <Border.Shadow><ThemeShadow /></Border.Shadow>
+                                                    <Border.Background>
+                                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                                            <GradientStop Color="#FF2E6BE6" Offset="0.0"/>
+                                                            <GradientStop Color="#FF4FB0FF" Offset="1.0"/>
+                                                        </LinearGradientBrush>
+                                                    </Border.Background>
+                                                    <Grid>
+                                                        <FontIcon Glyph="&#xE8D6;" FontSize="90" Foreground="White" Opacity="0.18" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-8,-8,0" IsHitTestVisible="False"/>
+                                                        <Border IsHitTestVisible="False" CornerRadius="{StaticResource Radius2xl}">
+                                                            <Border.Background>
+                                                                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                                    <GradientStop Color="#1AFFFFFF" Offset="0.0"/>
+                                                                    <GradientStop Color="#00FFFFFF" Offset="0.4"/>
+                                                                </LinearGradientBrush>
+                                                            </Border.Background>
+                                                        </Border>
+                                                        <TextBlock Text="DAILY MIX 4" FontSize="11" FontWeight="Bold" CharacterSpacing="180" Foreground="White" Opacity="0.95" VerticalAlignment="Top" Margin="14"/>
+                                                        <TextBlock x:Name="HomeMix4Desc" Text="More from a genre you love." FontSize="12" FontWeight="Medium" Foreground="White" Opacity="0.94" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" LineHeight="17" VerticalAlignment="Bottom" Margin="14"/>
+                                                    </Grid>
+                                                </Border>
+                                                <TextBlock Text="Daily Mix 4" Style="{StaticResource BodyStrong}"/>
+                                                <TextBlock x:Name="HomeMix4Caption" Text="Made for you" Style="{StaticResource CaptionText}"/>
+                                            </StackPanel>
+                                        </Grid>
 
-                                    <!-- Daily Mix 5 -->
-                                    <Grid Width="184" VerticalAlignment="Top" Tag="daily5" Tapped="HomeMixCard_Tapped" AutomationProperties.Name="Play Daily Mix 5" PointerEntered="PlaylistCard_PointerEntered" PointerExited="PlaylistCard_PointerExited">
-                                        <Grid.ContextFlyout>
-                                            <MenuFlyout>
-                                                <MenuFlyoutItem Text="Play now" Tag="daily5" Click="HomeMixMenuPlayNow_Click" />
-                                                <MenuFlyoutItem Text="Play next" Tag="daily5" Click="HomeMixMenuPlayNext_Click" />
-                                                <MenuFlyoutItem Text="Add to queue" Tag="daily5" Click="HomeMixMenuAddToQueue_Click" />
-                                                <MenuFlyoutSeparator />
-                                                <MenuFlyoutItem Text="Shuffle" Tag="daily5" Click="HomeMixMenuShuffle_Click" />
-                                            </MenuFlyout>
-                                        </Grid.ContextFlyout>
-                                        <StackPanel>
-                                            <Border Width="184" Height="184" CornerRadius="{StaticResource Radius2xl}" Margin="0,0,0,10" Translation="0,0,16">
-                                                <Border.Shadow><ThemeShadow /></Border.Shadow>
-                                                <Border.Background>
-                                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                                        <GradientStop Color="#FF6A3DE0" Offset="0.0"/>
-                                                        <GradientStop Color="#FF9B6AF0" Offset="1.0"/>
-                                                    </LinearGradientBrush>
-                                                </Border.Background>
-                                                <Grid>
-                                                    <FontIcon Glyph="&#xE8D6;" FontSize="90" Foreground="White" Opacity="0.18" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-8,-8,0" IsHitTestVisible="False"/>
-                                                    <Border IsHitTestVisible="False" CornerRadius="{StaticResource Radius2xl}">
-                                                        <Border.Background>
-                                                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                                                                <GradientStop Color="#1AFFFFFF" Offset="0.0"/>
-                                                                <GradientStop Color="#00FFFFFF" Offset="0.4"/>
-                                                            </LinearGradientBrush>
-                                                        </Border.Background>
-                                                    </Border>
-                                                    <TextBlock Text="DAILY MIX 5" FontSize="11" FontWeight="Bold" CharacterSpacing="180" Foreground="White" Opacity="0.95" VerticalAlignment="Top" Margin="14"/>
-                                                    <TextBlock x:Name="HomeMix5Desc" Text="More from a genre you love." FontSize="12" FontWeight="Medium" Foreground="White" Opacity="0.94" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" LineHeight="17" VerticalAlignment="Bottom" Margin="14"/>
-                                                </Grid>
-                                            </Border>
-                                            <TextBlock Text="Daily Mix 5" Style="{StaticResource BodyStrong}"/>
-                                            <TextBlock x:Name="HomeMix5Caption" Text="Made for you" Style="{StaticResource CaptionText}"/>
-                                        </StackPanel>
-                                    </Grid>
+                                        <!-- Daily Mix 5 -->
+                                        <Grid Width="184" VerticalAlignment="Top" Tag="daily5" Tapped="HomeMixCard_Tapped" AutomationProperties.Name="Play Daily Mix 5" PointerEntered="PlaylistCard_PointerEntered" PointerExited="PlaylistCard_PointerExited">
+                                            <Grid.ContextFlyout>
+                                                <MenuFlyout>
+                                                    <MenuFlyoutItem Text="Play now" Tag="daily5" Click="HomeMixMenuPlayNow_Click" />
+                                                    <MenuFlyoutItem Text="Play next" Tag="daily5" Click="HomeMixMenuPlayNext_Click" />
+                                                    <MenuFlyoutItem Text="Add to queue" Tag="daily5" Click="HomeMixMenuAddToQueue_Click" />
+                                                    <MenuFlyoutSeparator />
+                                                    <MenuFlyoutItem Text="Shuffle" Tag="daily5" Click="HomeMixMenuShuffle_Click" />
+                                                </MenuFlyout>
+                                            </Grid.ContextFlyout>
+                                            <StackPanel>
+                                                <Border Width="184" Height="184" CornerRadius="{StaticResource Radius2xl}" Margin="0,0,0,10" Translation="0,0,16">
+                                                    <Border.Shadow><ThemeShadow /></Border.Shadow>
+                                                    <Border.Background>
+                                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                                            <GradientStop Color="#FF6A3DE0" Offset="0.0"/>
+                                                            <GradientStop Color="#FF9B6AF0" Offset="1.0"/>
+                                                        </LinearGradientBrush>
+                                                    </Border.Background>
+                                                    <Grid>
+                                                        <FontIcon Glyph="&#xE8D6;" FontSize="90" Foreground="White" Opacity="0.18" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-8,-8,0" IsHitTestVisible="False"/>
+                                                        <Border IsHitTestVisible="False" CornerRadius="{StaticResource Radius2xl}">
+                                                            <Border.Background>
+                                                                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                                    <GradientStop Color="#1AFFFFFF" Offset="0.0"/>
+                                                                    <GradientStop Color="#00FFFFFF" Offset="0.4"/>
+                                                                </LinearGradientBrush>
+                                                            </Border.Background>
+                                                        </Border>
+                                                        <TextBlock Text="DAILY MIX 5" FontSize="11" FontWeight="Bold" CharacterSpacing="180" Foreground="White" Opacity="0.95" VerticalAlignment="Top" Margin="14"/>
+                                                        <TextBlock x:Name="HomeMix5Desc" Text="More from a genre you love." FontSize="12" FontWeight="Medium" Foreground="White" Opacity="0.94" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" LineHeight="17" VerticalAlignment="Bottom" Margin="14"/>
+                                                    </Grid>
+                                                </Border>
+                                                <TextBlock Text="Daily Mix 5" Style="{StaticResource BodyStrong}"/>
+                                                <TextBlock x:Name="HomeMix5Caption" Text="Made for you" Style="{StaticResource CaptionText}"/>
+                                            </StackPanel>
+                                        </Grid>
 
-                                    <!-- On Repeat -->
-                                    <Grid Width="184" VerticalAlignment="Top" Tag="repeat" Tapped="HomeMixCard_Tapped" AutomationProperties.Name="Play On Repeat" PointerEntered="PlaylistCard_PointerEntered" PointerExited="PlaylistCard_PointerExited">
-                                        <Grid.ContextFlyout>
-                                            <MenuFlyout>
-                                                <MenuFlyoutItem Text="Play now" Tag="repeat" Click="HomeMixMenuPlayNow_Click" />
-                                                <MenuFlyoutItem Text="Play next" Tag="repeat" Click="HomeMixMenuPlayNext_Click" />
-                                                <MenuFlyoutItem Text="Add to queue" Tag="repeat" Click="HomeMixMenuAddToQueue_Click" />
-                                                <MenuFlyoutSeparator />
-                                                <MenuFlyoutItem Text="Shuffle" Tag="repeat" Click="HomeMixMenuShuffle_Click" />
-                                            </MenuFlyout>
-                                        </Grid.ContextFlyout>
-                                        <StackPanel>
-                                            <Border Width="184" Height="184" CornerRadius="{StaticResource Radius2xl}" Margin="0,0,0,10" Translation="0,0,16">
-                                                <Border.Shadow><ThemeShadow /></Border.Shadow>
-                                                <Border.Background>
-                                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                                        <GradientStop Color="#FF1FB57A" Offset="0.0"/>
-                                                        <GradientStop Color="#FF35D6A0" Offset="1.0"/>
-                                                    </LinearGradientBrush>
-                                                </Border.Background>
-                                                <Grid>
-                                                    <FontIcon Glyph="&#xE8D6;" FontSize="90" Foreground="White" Opacity="0.18" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-8,-8,0" IsHitTestVisible="False"/>
-                                                    <Border IsHitTestVisible="False" CornerRadius="{StaticResource Radius2xl}">
-                                                        <Border.Background>
-                                                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                                                                <GradientStop Color="#1AFFFFFF" Offset="0.0"/>
-                                                                <GradientStop Color="#00FFFFFF" Offset="0.4"/>
-                                                            </LinearGradientBrush>
-                                                        </Border.Background>
-                                                    </Border>
-                                                    <TextBlock Text="ON REPEAT" FontSize="11" FontWeight="Bold" CharacterSpacing="180" Foreground="White" Opacity="0.95" VerticalAlignment="Top" Margin="14"/>
-                                                    <TextBlock Text="The tracks you've had on loop lately." FontSize="12" FontWeight="Medium" Foreground="White" Opacity="0.94" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" LineHeight="17" VerticalAlignment="Bottom" Margin="14"/>
-                                                </Grid>
-                                            </Border>
-                                            <TextBlock Text="On Repeat" Style="{StaticResource BodyStrong}"/>
-                                            <TextBlock Text="Made for you" Style="{StaticResource CaptionText}"/>
-                                        </StackPanel>
-                                    </Grid>
+                                        <!-- On Repeat -->
+                                        <Grid Width="184" VerticalAlignment="Top" Tag="repeat" Tapped="HomeMixCard_Tapped" AutomationProperties.Name="Play On Repeat" PointerEntered="PlaylistCard_PointerEntered" PointerExited="PlaylistCard_PointerExited">
+                                            <Grid.ContextFlyout>
+                                                <MenuFlyout>
+                                                    <MenuFlyoutItem Text="Play now" Tag="repeat" Click="HomeMixMenuPlayNow_Click" />
+                                                    <MenuFlyoutItem Text="Play next" Tag="repeat" Click="HomeMixMenuPlayNext_Click" />
+                                                    <MenuFlyoutItem Text="Add to queue" Tag="repeat" Click="HomeMixMenuAddToQueue_Click" />
+                                                    <MenuFlyoutSeparator />
+                                                    <MenuFlyoutItem Text="Shuffle" Tag="repeat" Click="HomeMixMenuShuffle_Click" />
+                                                </MenuFlyout>
+                                            </Grid.ContextFlyout>
+                                            <StackPanel>
+                                                <Border Width="184" Height="184" CornerRadius="{StaticResource Radius2xl}" Margin="0,0,0,10" Translation="0,0,16">
+                                                    <Border.Shadow><ThemeShadow /></Border.Shadow>
+                                                    <Border.Background>
+                                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                                            <GradientStop Color="#FF1FB57A" Offset="0.0"/>
+                                                            <GradientStop Color="#FF35D6A0" Offset="1.0"/>
+                                                        </LinearGradientBrush>
+                                                    </Border.Background>
+                                                    <Grid>
+                                                        <FontIcon Glyph="&#xE8D6;" FontSize="90" Foreground="White" Opacity="0.18" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-8,-8,0" IsHitTestVisible="False"/>
+                                                        <Border IsHitTestVisible="False" CornerRadius="{StaticResource Radius2xl}">
+                                                            <Border.Background>
+                                                                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                                    <GradientStop Color="#1AFFFFFF" Offset="0.0"/>
+                                                                    <GradientStop Color="#00FFFFFF" Offset="0.4"/>
+                                                                </LinearGradientBrush>
+                                                            </Border.Background>
+                                                        </Border>
+                                                        <TextBlock Text="ON REPEAT" FontSize="11" FontWeight="Bold" CharacterSpacing="180" Foreground="White" Opacity="0.95" VerticalAlignment="Top" Margin="14"/>
+                                                        <TextBlock Text="The tracks you've had on loop lately." FontSize="12" FontWeight="Medium" Foreground="White" Opacity="0.94" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" LineHeight="17" VerticalAlignment="Bottom" Margin="14"/>
+                                                    </Grid>
+                                                </Border>
+                                                <TextBlock Text="On Repeat" Style="{StaticResource BodyStrong}"/>
+                                                <TextBlock Text="Made for you" Style="{StaticResource CaptionText}"/>
+                                            </StackPanel>
+                                        </Grid>
 
-                                    <!-- Discover Weekly -->
-                                    <Grid Width="184" VerticalAlignment="Top" Tag="discover" Tapped="HomeMixCard_Tapped" AutomationProperties.Name="Play Discover Weekly" PointerEntered="PlaylistCard_PointerEntered" PointerExited="PlaylistCard_PointerExited">
-                                        <Grid.ContextFlyout>
-                                            <MenuFlyout>
-                                                <MenuFlyoutItem Text="Play now" Tag="discover" Click="HomeMixMenuPlayNow_Click" />
-                                                <MenuFlyoutItem Text="Play next" Tag="discover" Click="HomeMixMenuPlayNext_Click" />
-                                                <MenuFlyoutItem Text="Add to queue" Tag="discover" Click="HomeMixMenuAddToQueue_Click" />
-                                                <MenuFlyoutSeparator />
-                                                <MenuFlyoutItem Text="Shuffle" Tag="discover" Click="HomeMixMenuShuffle_Click" />
-                                            </MenuFlyout>
-                                        </Grid.ContextFlyout>
-                                        <StackPanel>
-                                            <Border Width="184" Height="184" CornerRadius="{StaticResource Radius2xl}" Margin="0,0,0,10" Translation="0,0,16">
-                                                <Border.Shadow><ThemeShadow /></Border.Shadow>
-                                                <Border.Background>
-                                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                                        <GradientStop Color="#FFC04BFE" Offset="0.0"/>
-                                                        <GradientStop Color="#FFFE6BD0" Offset="1.0"/>
-                                                    </LinearGradientBrush>
-                                                </Border.Background>
-                                                <Grid>
-                                                    <FontIcon Glyph="&#xE8D6;" FontSize="90" Foreground="White" Opacity="0.18" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-8,-8,0" IsHitTestVisible="False"/>
-                                                    <Border IsHitTestVisible="False" CornerRadius="{StaticResource Radius2xl}">
-                                                        <Border.Background>
-                                                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                                                                <GradientStop Color="#1AFFFFFF" Offset="0.0"/>
-                                                                <GradientStop Color="#00FFFFFF" Offset="0.4"/>
-                                                            </LinearGradientBrush>
-                                                        </Border.Background>
-                                                    </Border>
-                                                    <TextBlock Text="DISCOVER WEEKLY" FontSize="11" FontWeight="Bold" CharacterSpacing="180" Foreground="White" Opacity="0.95" VerticalAlignment="Top" Margin="14"/>
-                                                    <TextBlock Text="Fresh picks from your library, refreshed weekly." FontSize="12" FontWeight="Medium" Foreground="White" Opacity="0.94" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" LineHeight="17" VerticalAlignment="Bottom" Margin="14"/>
-                                                </Grid>
-                                            </Border>
-                                            <TextBlock Text="Discover Weekly" Style="{StaticResource BodyStrong}"/>
-                                            <TextBlock Text="Made for you" Style="{StaticResource CaptionText}"/>
-                                        </StackPanel>
-                                    </Grid>
+                                        <!-- Discover Weekly -->
+                                        <Grid Width="184" VerticalAlignment="Top" Tag="discover" Tapped="HomeMixCard_Tapped" AutomationProperties.Name="Play Discover Weekly" PointerEntered="PlaylistCard_PointerEntered" PointerExited="PlaylistCard_PointerExited">
+                                            <Grid.ContextFlyout>
+                                                <MenuFlyout>
+                                                    <MenuFlyoutItem Text="Play now" Tag="discover" Click="HomeMixMenuPlayNow_Click" />
+                                                    <MenuFlyoutItem Text="Play next" Tag="discover" Click="HomeMixMenuPlayNext_Click" />
+                                                    <MenuFlyoutItem Text="Add to queue" Tag="discover" Click="HomeMixMenuAddToQueue_Click" />
+                                                    <MenuFlyoutSeparator />
+                                                    <MenuFlyoutItem Text="Shuffle" Tag="discover" Click="HomeMixMenuShuffle_Click" />
+                                                </MenuFlyout>
+                                            </Grid.ContextFlyout>
+                                            <StackPanel>
+                                                <Border Width="184" Height="184" CornerRadius="{StaticResource Radius2xl}" Margin="0,0,0,10" Translation="0,0,16">
+                                                    <Border.Shadow><ThemeShadow /></Border.Shadow>
+                                                    <Border.Background>
+                                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                                            <GradientStop Color="#FFC04BFE" Offset="0.0"/>
+                                                            <GradientStop Color="#FFFE6BD0" Offset="1.0"/>
+                                                        </LinearGradientBrush>
+                                                    </Border.Background>
+                                                    <Grid>
+                                                        <FontIcon Glyph="&#xE8D6;" FontSize="90" Foreground="White" Opacity="0.18" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-8,-8,0" IsHitTestVisible="False"/>
+                                                        <Border IsHitTestVisible="False" CornerRadius="{StaticResource Radius2xl}">
+                                                            <Border.Background>
+                                                                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                                    <GradientStop Color="#1AFFFFFF" Offset="0.0"/>
+                                                                    <GradientStop Color="#00FFFFFF" Offset="0.4"/>
+                                                                </LinearGradientBrush>
+                                                            </Border.Background>
+                                                        </Border>
+                                                        <TextBlock Text="DISCOVER WEEKLY" FontSize="11" FontWeight="Bold" CharacterSpacing="180" Foreground="White" Opacity="0.95" VerticalAlignment="Top" Margin="14"/>
+                                                        <TextBlock Text="Fresh picks from your library, refreshed weekly." FontSize="12" FontWeight="Medium" Foreground="White" Opacity="0.94" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" LineHeight="17" VerticalAlignment="Bottom" Margin="14"/>
+                                                    </Grid>
+                                                </Border>
+                                                <TextBlock Text="Discover Weekly" Style="{StaticResource BodyStrong}"/>
+                                                <TextBlock Text="Made for you" Style="{StaticResource CaptionText}"/>
+                                            </StackPanel>
+                                        </Grid>
 
-                                    <!-- Time Capsule -->
-                                    <Grid Width="184" VerticalAlignment="Top" Tag="timecapsule" Tapped="HomeMixCard_Tapped" AutomationProperties.Name="Play Time Capsule" PointerEntered="PlaylistCard_PointerEntered" PointerExited="PlaylistCard_PointerExited">
-                                        <Grid.ContextFlyout>
-                                            <MenuFlyout>
-                                                <MenuFlyoutItem Text="Play now" Tag="timecapsule" Click="HomeMixMenuPlayNow_Click" />
-                                                <MenuFlyoutItem Text="Play next" Tag="timecapsule" Click="HomeMixMenuPlayNext_Click" />
-                                                <MenuFlyoutItem Text="Add to queue" Tag="timecapsule" Click="HomeMixMenuAddToQueue_Click" />
-                                                <MenuFlyoutSeparator />
-                                                <MenuFlyoutItem Text="Shuffle" Tag="timecapsule" Click="HomeMixMenuShuffle_Click" />
-                                            </MenuFlyout>
-                                        </Grid.ContextFlyout>
-                                        <StackPanel>
-                                            <Border Width="184" Height="184" CornerRadius="{StaticResource Radius2xl}" Margin="0,0,0,10" Translation="0,0,16">
-                                                <Border.Shadow><ThemeShadow /></Border.Shadow>
-                                                <Border.Background>
-                                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                                        <GradientStop Color="#FFB0794A" Offset="0.0"/>
-                                                        <GradientStop Color="#FFE0B36A" Offset="1.0"/>
-                                                    </LinearGradientBrush>
-                                                </Border.Background>
-                                                <Grid>
-                                                    <FontIcon Glyph="&#xE8D6;" FontSize="90" Foreground="White" Opacity="0.18" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-8,-8,0" IsHitTestVisible="False"/>
-                                                    <Border IsHitTestVisible="False" CornerRadius="{StaticResource Radius2xl}">
-                                                        <Border.Background>
-                                                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                                                                <GradientStop Color="#1AFFFFFF" Offset="0.0"/>
-                                                                <GradientStop Color="#00FFFFFF" Offset="0.4"/>
-                                                            </LinearGradientBrush>
-                                                        </Border.Background>
-                                                    </Border>
-                                                    <TextBlock Text="TIME CAPSULE" FontSize="11" FontWeight="Bold" CharacterSpacing="180" Foreground="White" Opacity="0.95" VerticalAlignment="Top" Margin="14"/>
-                                                    <TextBlock Text="A trip back through your early library." FontSize="12" FontWeight="Medium" Foreground="White" Opacity="0.94" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" LineHeight="17" VerticalAlignment="Bottom" Margin="14"/>
-                                                </Grid>
-                                            </Border>
-                                            <TextBlock Text="Time Capsule" Style="{StaticResource BodyStrong}"/>
-                                            <TextBlock Text="Made for you" Style="{StaticResource CaptionText}"/>
-                                        </StackPanel>
-                                    </Grid>
+                                        <!-- Time Capsule -->
+                                        <Grid Width="184" VerticalAlignment="Top" Tag="timecapsule" Tapped="HomeMixCard_Tapped" AutomationProperties.Name="Play Time Capsule" PointerEntered="PlaylistCard_PointerEntered" PointerExited="PlaylistCard_PointerExited">
+                                            <Grid.ContextFlyout>
+                                                <MenuFlyout>
+                                                    <MenuFlyoutItem Text="Play now" Tag="timecapsule" Click="HomeMixMenuPlayNow_Click" />
+                                                    <MenuFlyoutItem Text="Play next" Tag="timecapsule" Click="HomeMixMenuPlayNext_Click" />
+                                                    <MenuFlyoutItem Text="Add to queue" Tag="timecapsule" Click="HomeMixMenuAddToQueue_Click" />
+                                                    <MenuFlyoutSeparator />
+                                                    <MenuFlyoutItem Text="Shuffle" Tag="timecapsule" Click="HomeMixMenuShuffle_Click" />
+                                                </MenuFlyout>
+                                            </Grid.ContextFlyout>
+                                            <StackPanel>
+                                                <Border Width="184" Height="184" CornerRadius="{StaticResource Radius2xl}" Margin="0,0,0,10" Translation="0,0,16">
+                                                    <Border.Shadow><ThemeShadow /></Border.Shadow>
+                                                    <Border.Background>
+                                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                                            <GradientStop Color="#FFB0794A" Offset="0.0"/>
+                                                            <GradientStop Color="#FFE0B36A" Offset="1.0"/>
+                                                        </LinearGradientBrush>
+                                                    </Border.Background>
+                                                    <Grid>
+                                                        <FontIcon Glyph="&#xE8D6;" FontSize="90" Foreground="White" Opacity="0.18" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-8,-8,0" IsHitTestVisible="False"/>
+                                                        <Border IsHitTestVisible="False" CornerRadius="{StaticResource Radius2xl}">
+                                                            <Border.Background>
+                                                                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                                    <GradientStop Color="#1AFFFFFF" Offset="0.0"/>
+                                                                    <GradientStop Color="#00FFFFFF" Offset="0.4"/>
+                                                                </LinearGradientBrush>
+                                                            </Border.Background>
+                                                        </Border>
+                                                        <TextBlock Text="TIME CAPSULE" FontSize="11" FontWeight="Bold" CharacterSpacing="180" Foreground="White" Opacity="0.95" VerticalAlignment="Top" Margin="14"/>
+                                                        <TextBlock Text="A trip back through your early library." FontSize="12" FontWeight="Medium" Foreground="White" Opacity="0.94" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" LineHeight="17" VerticalAlignment="Bottom" Margin="14"/>
+                                                    </Grid>
+                                                </Border>
+                                                <TextBlock Text="Time Capsule" Style="{StaticResource BodyStrong}"/>
+                                                <TextBlock Text="Made for you" Style="{StaticResource CaptionText}"/>
+                                            </StackPanel>
+                                        </Grid>
 
-                                    <!-- Fresh Finds -->
-                                    <Grid Width="184" VerticalAlignment="Top" Tag="fresh" Tapped="HomeMixCard_Tapped" AutomationProperties.Name="Play Fresh Finds" PointerEntered="PlaylistCard_PointerEntered" PointerExited="PlaylistCard_PointerExited">
-                                        <Grid.ContextFlyout>
-                                            <MenuFlyout>
-                                                <MenuFlyoutItem Text="Play now" Tag="fresh" Click="HomeMixMenuPlayNow_Click" />
-                                                <MenuFlyoutItem Text="Play next" Tag="fresh" Click="HomeMixMenuPlayNext_Click" />
-                                                <MenuFlyoutItem Text="Add to queue" Tag="fresh" Click="HomeMixMenuAddToQueue_Click" />
-                                                <MenuFlyoutSeparator />
-                                                <MenuFlyoutItem Text="Shuffle" Tag="fresh" Click="HomeMixMenuShuffle_Click" />
-                                            </MenuFlyout>
-                                        </Grid.ContextFlyout>
-                                        <StackPanel>
-                                            <Border Width="184" Height="184" CornerRadius="{StaticResource Radius2xl}" Margin="0,0,0,10" Translation="0,0,16">
-                                                <Border.Shadow><ThemeShadow /></Border.Shadow>
-                                                <Border.Background>
-                                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                                        <GradientStop Color="#FF2BD48F" Offset="0.0"/>
-                                                        <GradientStop Color="#FF8BE36B" Offset="1.0"/>
-                                                    </LinearGradientBrush>
-                                                </Border.Background>
-                                                <Grid>
-                                                    <FontIcon Glyph="&#xE8D6;" FontSize="90" Foreground="White" Opacity="0.18" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-8,-8,0" IsHitTestVisible="False"/>
-                                                    <Border IsHitTestVisible="False" CornerRadius="{StaticResource Radius2xl}">
-                                                        <Border.Background>
-                                                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                                                                <GradientStop Color="#1AFFFFFF" Offset="0.0"/>
-                                                                <GradientStop Color="#00FFFFFF" Offset="0.4"/>
-                                                            </LinearGradientBrush>
-                                                        </Border.Background>
-                                                    </Border>
-                                                    <TextBlock Text="FRESH FINDS" FontSize="11" FontWeight="Bold" CharacterSpacing="180" Foreground="White" Opacity="0.95" VerticalAlignment="Top" Margin="14"/>
-                                                    <TextBlock Text="The latest additions to your library." FontSize="12" FontWeight="Medium" Foreground="White" Opacity="0.94" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" LineHeight="17" VerticalAlignment="Bottom" Margin="14"/>
-                                                </Grid>
-                                            </Border>
-                                            <TextBlock Text="Fresh Finds" Style="{StaticResource BodyStrong}"/>
-                                            <TextBlock Text="Made for you" Style="{StaticResource CaptionText}"/>
-                                        </StackPanel>
-                                    </Grid>
+                                        <!-- Fresh Finds -->
+                                        <Grid Width="184" VerticalAlignment="Top" Tag="fresh" Tapped="HomeMixCard_Tapped" AutomationProperties.Name="Play Fresh Finds" PointerEntered="PlaylistCard_PointerEntered" PointerExited="PlaylistCard_PointerExited">
+                                            <Grid.ContextFlyout>
+                                                <MenuFlyout>
+                                                    <MenuFlyoutItem Text="Play now" Tag="fresh" Click="HomeMixMenuPlayNow_Click" />
+                                                    <MenuFlyoutItem Text="Play next" Tag="fresh" Click="HomeMixMenuPlayNext_Click" />
+                                                    <MenuFlyoutItem Text="Add to queue" Tag="fresh" Click="HomeMixMenuAddToQueue_Click" />
+                                                    <MenuFlyoutSeparator />
+                                                    <MenuFlyoutItem Text="Shuffle" Tag="fresh" Click="HomeMixMenuShuffle_Click" />
+                                                </MenuFlyout>
+                                            </Grid.ContextFlyout>
+                                            <StackPanel>
+                                                <Border Width="184" Height="184" CornerRadius="{StaticResource Radius2xl}" Margin="0,0,0,10" Translation="0,0,16">
+                                                    <Border.Shadow><ThemeShadow /></Border.Shadow>
+                                                    <Border.Background>
+                                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                                            <GradientStop Color="#FF2BD48F" Offset="0.0"/>
+                                                            <GradientStop Color="#FF8BE36B" Offset="1.0"/>
+                                                        </LinearGradientBrush>
+                                                    </Border.Background>
+                                                    <Grid>
+                                                        <FontIcon Glyph="&#xE8D6;" FontSize="90" Foreground="White" Opacity="0.18" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-8,-8,0" IsHitTestVisible="False"/>
+                                                        <Border IsHitTestVisible="False" CornerRadius="{StaticResource Radius2xl}">
+                                                            <Border.Background>
+                                                                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                                    <GradientStop Color="#1AFFFFFF" Offset="0.0"/>
+                                                                    <GradientStop Color="#00FFFFFF" Offset="0.4"/>
+                                                                </LinearGradientBrush>
+                                                            </Border.Background>
+                                                        </Border>
+                                                        <TextBlock Text="FRESH FINDS" FontSize="11" FontWeight="Bold" CharacterSpacing="180" Foreground="White" Opacity="0.95" VerticalAlignment="Top" Margin="14"/>
+                                                        <TextBlock Text="The latest additions to your library." FontSize="12" FontWeight="Medium" Foreground="White" Opacity="0.94" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" LineHeight="17" VerticalAlignment="Bottom" Margin="14"/>
+                                                    </Grid>
+                                                </Border>
+                                                <TextBlock Text="Fresh Finds" Style="{StaticResource BodyStrong}"/>
+                                                <TextBlock Text="Made for you" Style="{StaticResource CaptionText}"/>
+                                            </StackPanel>
+                                        </Grid>
 
-                                </StackPanel>
-                            </ScrollViewer>
+                                    </StackPanel>
+                                </ScrollViewer>
+                            </Grid>
 
                             <!-- Sits under the mixes row, as it does on web and
                                  Android. The mixes are built from the local
@@ -915,69 +919,71 @@
                                 </StackPanel>
                                 <Button x:Name="HomeMostPlayedSeeAllButton" Content="See all &#x203A;" Click="HomeMostPlayedSeeAll_Click" HorizontalAlignment="Right" VerticalAlignment="Center" Background="Transparent" BorderThickness="0" Padding="6,2" FontSize="12" FontWeight="SemiBold" Foreground="{ThemeResource AccentBrush}" />
                             </Grid>
-                            <GridView x:Name="HomeMostPlayedGridView"
-                                      Height="260"
-                                      Padding="0,4,64,24"
-                                      IsItemClickEnabled="True"
-                                      ItemClick="HomeMostPlayed_ItemClick"
-                                      ItemContainerStyle="{StaticResource CardTileContainerStyle}"
-                                      SelectionMode="None"
-                                      ScrollViewer.HorizontalScrollBarVisibility="Hidden"
-                                      ScrollViewer.HorizontalScrollMode="Enabled"
-                                      ScrollViewer.VerticalScrollMode="Disabled"
-                                      ScrollViewer.VerticalScrollBarVisibility="Hidden">
-                                <GridView.ItemsPanel>
-                                    <ItemsPanelTemplate>
-                                        <ItemsStackPanel Orientation="Horizontal" />
-                                    </ItemsPanelTemplate>
-                                </GridView.ItemsPanel>
-                                <GridView.ItemTemplate>
-                                    <DataTemplate x:DataType="local:TrackInfo">
-                                        <!-- Fixed-row grid so 2-line titles don't shift artist
-                                             text down — neighbouring cards stay vertically
-                                             aligned regardless of title length. -->
-                                        <Grid Width="156" Margin="0,0,20,0" VerticalAlignment="Top"
-                                              PointerEntered="Card_PointerEntered" PointerExited="Card_PointerExited">
-                                            <Grid.RowDefinitions>
-                                                <RowDefinition Height="156" />
-                                                <RowDefinition Height="12" />
-                                                <RowDefinition Height="40" />
-                                                <RowDefinition Height="18" />
-                                            </Grid.RowDefinitions>
-                                            <Grid.ContextFlyout>
-                                                <MenuFlyout>
-                                                    <MenuFlyoutItem Text="Play now" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="HomeRowMenuPlayNow_Click" />
-                                                    <MenuFlyoutItem Text="Play next" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuPlayNext_Click" />
-                                                    <MenuFlyoutItem Text="Add to queue" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuAddToQueue_Click" />
-                                                    <MenuFlyoutItem Text="Add to playlist" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="LibraryRowMenuAddToPlaylist_Click" />
-                                                    <MenuFlyoutSeparator />
-                                                    <MenuFlyoutItem Text="{x:Bind LikeActionText}" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuLike_Click" />
-                                                    <MenuFlyoutSeparator />
-                                                    <MenuFlyoutItem Text="Go to artist" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuArtist_Click" />
-                                                    <MenuFlyoutItem Text="Go to album" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuAlbum_Click" />
-                                                </MenuFlyout>
-                                            </Grid.ContextFlyout>
-                                            <Grid Grid.Row="0" Width="156" Height="156">
-                                                <Border CornerRadius="{StaticResource Radius2xl}" Translation="0,0,16">
-                                                    <Border.Background>
-                                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                                            <GradientStop Color="#FFA042" Offset="0" />
-                                                            <GradientStop Color="#FF3B6A" Offset="1" />
-                                                        </LinearGradientBrush>
-                                                    </Border.Background>
-                                                    <Border.Shadow>
-                                                        <ThemeShadow />
-                                                    </Border.Shadow>
-                                                    <FontIcon Glyph="&#xE8D6;" FontSize="36" Foreground="White" Opacity="0.55" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                                </Border>
-                                                <Image Source="{x:Bind AlbumArt}" Stretch="UniformToFill" Loaded="AccountArtwork_Loaded" />
+                            <Grid x:Name="HomeMostPlayedArrowHost">
+                                <GridView x:Name="HomeMostPlayedGridView"
+                                          Height="260"
+                                          Padding="0,4,64,24"
+                                          IsItemClickEnabled="True"
+                                          ItemClick="HomeMostPlayed_ItemClick"
+                                          ItemContainerStyle="{StaticResource CardTileContainerStyle}"
+                                          SelectionMode="None"
+                                          ScrollViewer.HorizontalScrollBarVisibility="Hidden"
+                                          ScrollViewer.HorizontalScrollMode="Enabled"
+                                          ScrollViewer.VerticalScrollMode="Disabled"
+                                          ScrollViewer.VerticalScrollBarVisibility="Hidden">
+                                    <GridView.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <ItemsStackPanel Orientation="Horizontal" />
+                                        </ItemsPanelTemplate>
+                                    </GridView.ItemsPanel>
+                                    <GridView.ItemTemplate>
+                                        <DataTemplate x:DataType="local:TrackInfo">
+                                            <!-- Fixed-row grid so 2-line titles don't shift artist
+                                                 text down — neighbouring cards stay vertically
+                                                 aligned regardless of title length. -->
+                                            <Grid Width="156" Margin="0,0,20,0" VerticalAlignment="Top"
+                                                  PointerEntered="Card_PointerEntered" PointerExited="Card_PointerExited">
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="156" />
+                                                    <RowDefinition Height="12" />
+                                                    <RowDefinition Height="40" />
+                                                    <RowDefinition Height="18" />
+                                                </Grid.RowDefinitions>
+                                                <Grid.ContextFlyout>
+                                                    <MenuFlyout>
+                                                        <MenuFlyoutItem Text="Play now" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="HomeRowMenuPlayNow_Click" />
+                                                        <MenuFlyoutItem Text="Play next" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuPlayNext_Click" />
+                                                        <MenuFlyoutItem Text="Add to queue" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuAddToQueue_Click" />
+                                                        <MenuFlyoutItem Text="Add to playlist" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="LibraryRowMenuAddToPlaylist_Click" />
+                                                        <MenuFlyoutSeparator />
+                                                        <MenuFlyoutItem Text="{x:Bind LikeActionText}" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuLike_Click" />
+                                                        <MenuFlyoutSeparator />
+                                                        <MenuFlyoutItem Text="Go to artist" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuArtist_Click" />
+                                                        <MenuFlyoutItem Text="Go to album" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuAlbum_Click" />
+                                                    </MenuFlyout>
+                                                </Grid.ContextFlyout>
+                                                <Grid Grid.Row="0" Width="156" Height="156">
+                                                    <Border CornerRadius="{StaticResource Radius2xl}" Translation="0,0,16">
+                                                        <Border.Background>
+                                                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                                                <GradientStop Color="#FFA042" Offset="0" />
+                                                                <GradientStop Color="#FF3B6A" Offset="1" />
+                                                            </LinearGradientBrush>
+                                                        </Border.Background>
+                                                        <Border.Shadow>
+                                                            <ThemeShadow />
+                                                        </Border.Shadow>
+                                                        <FontIcon Glyph="&#xE8D6;" FontSize="36" Foreground="White" Opacity="0.55" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                    </Border>
+                                                    <Image Source="{x:Bind AlbumArt}" Stretch="UniformToFill" Loaded="AccountArtwork_Loaded" />
+                                                </Grid>
+                                                <TextBlock Grid.Row="2" Text="{x:Bind Title}" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" VerticalAlignment="Top" />
+                                                <TextBlock Grid.Row="3" Text="{x:Bind Artist}" Style="{StaticResource CaptionText}" TextTrimming="CharacterEllipsis" />
                                             </Grid>
-                                            <TextBlock Grid.Row="2" Text="{x:Bind Title}" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" VerticalAlignment="Top" />
-                                            <TextBlock Grid.Row="3" Text="{x:Bind Artist}" Style="{StaticResource CaptionText}" TextTrimming="CharacterEllipsis" />
-                                        </Grid>
-                                    </DataTemplate>
-                                </GridView.ItemTemplate>
-                            </GridView>
+                                        </DataTemplate>
+                                    </GridView.ItemTemplate>
+                                </GridView>
+                            </Grid>
                         </StackPanel>
 
                         <!-- Liked Songs Highlights Section. Reads from the existing
@@ -993,66 +999,68 @@
                                 </StackPanel>
                                 <Button x:Name="HomeLikedSeeAllButton" Content="See all &#x203A;" Click="HomeLikedSeeAll_Click" HorizontalAlignment="Right" VerticalAlignment="Center" Background="Transparent" BorderThickness="0" Padding="6,2" FontSize="12" FontWeight="SemiBold" Foreground="{ThemeResource AccentBrush}" />
                             </Grid>
-                            <GridView x:Name="HomeLikedGridView"
-                                      Height="260"
-                                      Padding="0,4,64,24"
-                                      IsItemClickEnabled="True"
-                                      ItemClick="HomeLiked_ItemClick"
-                                      ItemContainerStyle="{StaticResource CardTileContainerStyle}"
-                                      SelectionMode="None"
-                                      ScrollViewer.HorizontalScrollBarVisibility="Hidden"
-                                      ScrollViewer.HorizontalScrollMode="Enabled"
-                                      ScrollViewer.VerticalScrollMode="Disabled"
-                                      ScrollViewer.VerticalScrollBarVisibility="Hidden">
-                                <GridView.ItemsPanel>
-                                    <ItemsPanelTemplate>
-                                        <ItemsStackPanel Orientation="Horizontal" />
-                                    </ItemsPanelTemplate>
-                                </GridView.ItemsPanel>
-                                <GridView.ItemTemplate>
-                                    <DataTemplate x:DataType="local:TrackInfo">
-                                        <Grid Width="156" Margin="0,0,20,0" VerticalAlignment="Top"
-                                              PointerEntered="Card_PointerEntered" PointerExited="Card_PointerExited">
-                                            <Grid.RowDefinitions>
-                                                <RowDefinition Height="156" />
-                                                <RowDefinition Height="12" />
-                                                <RowDefinition Height="40" />
-                                                <RowDefinition Height="18" />
-                                            </Grid.RowDefinitions>
-                                            <Grid.ContextFlyout>
-                                                <MenuFlyout>
-                                                    <MenuFlyoutItem Text="Play now" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="HomeRowMenuPlayNow_Click" />
-                                                    <MenuFlyoutItem Text="Play next" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuPlayNext_Click" />
-                                                    <MenuFlyoutItem Text="Add to queue" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuAddToQueue_Click" />
-                                                    <MenuFlyoutItem Text="Add to playlist" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="LibraryRowMenuAddToPlaylist_Click" />
-                                                    <MenuFlyoutSeparator />
-                                                    <MenuFlyoutItem Text="{x:Bind LikeActionText}" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuLike_Click" />
-                                                    <MenuFlyoutSeparator />
-                                                    <MenuFlyoutItem Text="Go to artist" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuArtist_Click" />
-                                                    <MenuFlyoutItem Text="Go to album" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuAlbum_Click" />
-                                                </MenuFlyout>
-                                            </Grid.ContextFlyout>
-                                            <Grid Grid.Row="0" Width="156" Height="156">
-                                                <Border CornerRadius="{StaticResource Radius2xl}" Translation="0,0,16">
-                                                    <Border.Background>
-                                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                                            <GradientStop Color="#FF6BD0" Offset="0" />
-                                                            <GradientStop Color="#C04BFE" Offset="1" />
-                                                        </LinearGradientBrush>
-                                                    </Border.Background>
-                                                    <Border.Shadow>
-                                                        <ThemeShadow />
-                                                    </Border.Shadow>
-                                                    <FontIcon Glyph="&#xEB52;" FontSize="36" Foreground="White" Opacity="0.55" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                                </Border>
-                                                <Image Source="{x:Bind AlbumArt}" Stretch="UniformToFill" Loaded="AccountArtwork_Loaded" />
+                            <Grid x:Name="HomeLikedArrowHost">
+                                <GridView x:Name="HomeLikedGridView"
+                                          Height="260"
+                                          Padding="0,4,64,24"
+                                          IsItemClickEnabled="True"
+                                          ItemClick="HomeLiked_ItemClick"
+                                          ItemContainerStyle="{StaticResource CardTileContainerStyle}"
+                                          SelectionMode="None"
+                                          ScrollViewer.HorizontalScrollBarVisibility="Hidden"
+                                          ScrollViewer.HorizontalScrollMode="Enabled"
+                                          ScrollViewer.VerticalScrollMode="Disabled"
+                                          ScrollViewer.VerticalScrollBarVisibility="Hidden">
+                                    <GridView.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <ItemsStackPanel Orientation="Horizontal" />
+                                        </ItemsPanelTemplate>
+                                    </GridView.ItemsPanel>
+                                    <GridView.ItemTemplate>
+                                        <DataTemplate x:DataType="local:TrackInfo">
+                                            <Grid Width="156" Margin="0,0,20,0" VerticalAlignment="Top"
+                                                  PointerEntered="Card_PointerEntered" PointerExited="Card_PointerExited">
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="156" />
+                                                    <RowDefinition Height="12" />
+                                                    <RowDefinition Height="40" />
+                                                    <RowDefinition Height="18" />
+                                                </Grid.RowDefinitions>
+                                                <Grid.ContextFlyout>
+                                                    <MenuFlyout>
+                                                        <MenuFlyoutItem Text="Play now" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="HomeRowMenuPlayNow_Click" />
+                                                        <MenuFlyoutItem Text="Play next" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuPlayNext_Click" />
+                                                        <MenuFlyoutItem Text="Add to queue" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuAddToQueue_Click" />
+                                                        <MenuFlyoutItem Text="Add to playlist" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="LibraryRowMenuAddToPlaylist_Click" />
+                                                        <MenuFlyoutSeparator />
+                                                        <MenuFlyoutItem Text="{x:Bind LikeActionText}" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuLike_Click" />
+                                                        <MenuFlyoutSeparator />
+                                                        <MenuFlyoutItem Text="Go to artist" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuArtist_Click" />
+                                                        <MenuFlyoutItem Text="Go to album" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuAlbum_Click" />
+                                                    </MenuFlyout>
+                                                </Grid.ContextFlyout>
+                                                <Grid Grid.Row="0" Width="156" Height="156">
+                                                    <Border CornerRadius="{StaticResource Radius2xl}" Translation="0,0,16">
+                                                        <Border.Background>
+                                                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                                                <GradientStop Color="#FF6BD0" Offset="0" />
+                                                                <GradientStop Color="#C04BFE" Offset="1" />
+                                                            </LinearGradientBrush>
+                                                        </Border.Background>
+                                                        <Border.Shadow>
+                                                            <ThemeShadow />
+                                                        </Border.Shadow>
+                                                        <FontIcon Glyph="&#xEB52;" FontSize="36" Foreground="White" Opacity="0.55" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                    </Border>
+                                                    <Image Source="{x:Bind AlbumArt}" Stretch="UniformToFill" Loaded="AccountArtwork_Loaded" />
+                                                </Grid>
+                                                <TextBlock Grid.Row="2" Text="{x:Bind Title}" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" VerticalAlignment="Top" />
+                                                <TextBlock Grid.Row="3" Text="{x:Bind Artist}" Style="{StaticResource CaptionText}" TextTrimming="CharacterEllipsis" />
                                             </Grid>
-                                            <TextBlock Grid.Row="2" Text="{x:Bind Title}" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" VerticalAlignment="Top" />
-                                            <TextBlock Grid.Row="3" Text="{x:Bind Artist}" Style="{StaticResource CaptionText}" TextTrimming="CharacterEllipsis" />
-                                        </Grid>
-                                    </DataTemplate>
-                                </GridView.ItemTemplate>
-                            </GridView>
+                                        </DataTemplate>
+                                    </GridView.ItemTemplate>
+                                </GridView>
+                            </Grid>
                         </StackPanel>
 
                         <!-- Recently Added Section. Hidden when no library tracks
@@ -1076,67 +1084,69 @@
                                  Liked Songs. This one used to be a two-column list
                                  of rows, which made it the odd one out among the
                                  personal shelves. -->
-                            <GridView x:Name="HomeRecentlyAddedGridView"
-                                      Visibility="Collapsed"
-                                      Height="260"
-                                      Padding="0,4,64,24"
-                                      IsItemClickEnabled="True"
-                                      ItemClick="HomeRecentlyAdded_ItemClick"
-                                      ItemContainerStyle="{StaticResource CardTileContainerStyle}"
-                                      SelectionMode="None"
-                                      ScrollViewer.HorizontalScrollBarVisibility="Hidden"
-                                      ScrollViewer.HorizontalScrollMode="Enabled"
-                                      ScrollViewer.VerticalScrollMode="Disabled"
-                                      ScrollViewer.VerticalScrollBarVisibility="Hidden">
-                                <GridView.ItemsPanel>
-                                    <ItemsPanelTemplate>
-                                        <ItemsStackPanel Orientation="Horizontal" />
-                                    </ItemsPanelTemplate>
-                                </GridView.ItemsPanel>
-                                <GridView.ItemTemplate>
-                                    <DataTemplate x:DataType="local:TrackInfo">
-                                        <Grid Width="156" Margin="0,0,20,0" VerticalAlignment="Top"
-                                              PointerEntered="Card_PointerEntered" PointerExited="Card_PointerExited">
-                                            <Grid.RowDefinitions>
-                                                <RowDefinition Height="156" />
-                                                <RowDefinition Height="12" />
-                                                <RowDefinition Height="40" />
-                                                <RowDefinition Height="18" />
-                                            </Grid.RowDefinitions>
-                                            <Grid.ContextFlyout>
-                                                <MenuFlyout>
-                                                    <MenuFlyoutItem Text="Play now" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="HomeRowMenuPlayNow_Click" />
-                                                    <MenuFlyoutItem Text="Play next" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuPlayNext_Click" />
-                                                    <MenuFlyoutItem Text="Add to queue" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuAddToQueue_Click" />
-                                                    <MenuFlyoutItem Text="Add to playlist" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="LibraryRowMenuAddToPlaylist_Click" />
-                                                    <MenuFlyoutSeparator />
-                                                    <MenuFlyoutItem Text="{x:Bind LikeActionText}" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuLike_Click" />
-                                                    <MenuFlyoutSeparator />
-                                                    <MenuFlyoutItem Text="Go to artist" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuArtist_Click" />
-                                                    <MenuFlyoutItem Text="Go to album" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuAlbum_Click" />
-                                                </MenuFlyout>
-                                            </Grid.ContextFlyout>
-                                            <Grid Grid.Row="0" Width="156" Height="156">
-                                                <Border CornerRadius="{StaticResource Radius2xl}" Translation="0,0,16">
-                                                    <Border.Background>
-                                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                                            <GradientStop Color="#14A8BC" Offset="0" />
-                                                            <GradientStop Color="#7F6CFF" Offset="1" />
-                                                        </LinearGradientBrush>
-                                                    </Border.Background>
-                                                    <Border.Shadow>
-                                                        <ThemeShadow />
-                                                    </Border.Shadow>
-                                                    <FontIcon Glyph="&#xE8D6;" FontSize="36" Foreground="White" Opacity="0.55" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                                </Border>
-                                                <Image Source="{x:Bind AlbumArt}" Stretch="UniformToFill" Loaded="AccountArtwork_Loaded" />
+                            <Grid x:Name="HomeRecentlyAddedArrowHost">
+                                <GridView x:Name="HomeRecentlyAddedGridView"
+                                          Visibility="Collapsed"
+                                          Height="260"
+                                          Padding="0,4,64,24"
+                                          IsItemClickEnabled="True"
+                                          ItemClick="HomeRecentlyAdded_ItemClick"
+                                          ItemContainerStyle="{StaticResource CardTileContainerStyle}"
+                                          SelectionMode="None"
+                                          ScrollViewer.HorizontalScrollBarVisibility="Hidden"
+                                          ScrollViewer.HorizontalScrollMode="Enabled"
+                                          ScrollViewer.VerticalScrollMode="Disabled"
+                                          ScrollViewer.VerticalScrollBarVisibility="Hidden">
+                                    <GridView.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <ItemsStackPanel Orientation="Horizontal" />
+                                        </ItemsPanelTemplate>
+                                    </GridView.ItemsPanel>
+                                    <GridView.ItemTemplate>
+                                        <DataTemplate x:DataType="local:TrackInfo">
+                                            <Grid Width="156" Margin="0,0,20,0" VerticalAlignment="Top"
+                                                  PointerEntered="Card_PointerEntered" PointerExited="Card_PointerExited">
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="156" />
+                                                    <RowDefinition Height="12" />
+                                                    <RowDefinition Height="40" />
+                                                    <RowDefinition Height="18" />
+                                                </Grid.RowDefinitions>
+                                                <Grid.ContextFlyout>
+                                                    <MenuFlyout>
+                                                        <MenuFlyoutItem Text="Play now" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="HomeRowMenuPlayNow_Click" />
+                                                        <MenuFlyoutItem Text="Play next" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuPlayNext_Click" />
+                                                        <MenuFlyoutItem Text="Add to queue" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuAddToQueue_Click" />
+                                                        <MenuFlyoutItem Text="Add to playlist" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="LibraryRowMenuAddToPlaylist_Click" />
+                                                        <MenuFlyoutSeparator />
+                                                        <MenuFlyoutItem Text="{x:Bind LikeActionText}" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuLike_Click" />
+                                                        <MenuFlyoutSeparator />
+                                                        <MenuFlyoutItem Text="Go to artist" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuArtist_Click" />
+                                                        <MenuFlyoutItem Text="Go to album" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuAlbum_Click" />
+                                                    </MenuFlyout>
+                                                </Grid.ContextFlyout>
+                                                <Grid Grid.Row="0" Width="156" Height="156">
+                                                    <Border CornerRadius="{StaticResource Radius2xl}" Translation="0,0,16">
+                                                        <Border.Background>
+                                                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                                                <GradientStop Color="#14A8BC" Offset="0" />
+                                                                <GradientStop Color="#7F6CFF" Offset="1" />
+                                                            </LinearGradientBrush>
+                                                        </Border.Background>
+                                                        <Border.Shadow>
+                                                            <ThemeShadow />
+                                                        </Border.Shadow>
+                                                        <FontIcon Glyph="&#xE8D6;" FontSize="36" Foreground="White" Opacity="0.55" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                    </Border>
+                                                    <Image Source="{x:Bind AlbumArt}" Stretch="UniformToFill" Loaded="AccountArtwork_Loaded" />
+                                                </Grid>
+                                                <TextBlock Grid.Row="2" Text="{x:Bind Title}" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" VerticalAlignment="Top" />
+                                                <TextBlock Grid.Row="3" Text="{x:Bind Artist}" Style="{StaticResource CaptionText}" TextTrimming="CharacterEllipsis" />
                                             </Grid>
-                                            <TextBlock Grid.Row="2" Text="{x:Bind Title}" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" VerticalAlignment="Top" />
-                                            <TextBlock Grid.Row="3" Text="{x:Bind Artist}" Style="{StaticResource CaptionText}" TextTrimming="CharacterEllipsis" />
-                                        </Grid>
-                                    </DataTemplate>
-                                </GridView.ItemTemplate>
-                            </GridView>
+                                        </DataTemplate>
+                                    </GridView.ItemTemplate>
+                                </GridView>
+                            </Grid>
 
                             <!-- Empty state: shown until there are tracks in the library -->
                             <TextBlock x:Name="RecentlyAddedEmptyText"
