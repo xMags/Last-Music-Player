@@ -656,6 +656,27 @@ namespace winrt::Last_Music_Player::implementation
         // backfill that was queued ahead of it.
         void PromoteAccountArtworkRequest(std::wstring const& key);
 
+        // Requests artwork as containers are realized and recycled.
+        //
+        // The Loaded event cannot carry this on a virtualized list: it fires
+        // once per element, but a GridView reuses one element for many items, so
+        // every container realized in a later layout pass or reused on scroll
+        // was silently left without artwork. This fires for each container every
+        // time it takes on an item, which is exactly when the request is wanted,
+        // and it fires as the user scrolls a shelf into view, which is what puts
+        // that shelf ahead of the rest.
+        void CatalogGrid_ContainerContentChanging(
+            winrt::Microsoft::UI::Xaml::Controls::ListViewBase const& sender,
+            winrt::Microsoft::UI::Xaml::Controls::ContainerContentChangingEventArgs const& args);
+
+        // Attaches the handler above to a grid built in markup or in code.
+        void ObserveCatalogGridContainers(
+            winrt::Microsoft::UI::Xaml::Controls::ListViewBase const& grid);
+
+        // Wires the container hook onto every virtualized surface declared in
+        // markup. Called once during construction, alongside AttachSkeletons.
+        void AttachArtworkGridObservers();
+
         // Watches a tile so its artwork is fetched at visible priority once it
         // reaches the viewport. The registration removes itself after it fires,
         // since a tile only needs promoting once.

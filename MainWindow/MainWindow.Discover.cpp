@@ -68,6 +68,34 @@ namespace winrt::Last_Music_Player::implementation
         // scroll so art is usually there by the time the tile is.
         constexpr double kAccountArtworkViewportMargin = 1.0;
 
+        // First element of type T at or below `root`, breadth-first.
+        //
+        // A tile template nests its image a couple of levels down, and the
+        // container hands back only the template root, so the element has to be
+        // found rather than named: the same handler serves several templates.
+        template <typename T>
+        T FindDescendant(winrt::Microsoft::UI::Xaml::DependencyObject const& root)
+        {
+            if (!root)
+            {
+                return nullptr;
+            }
+            if (auto match = root.try_as<T>())
+            {
+                return match;
+            }
+            auto count = winrt::Microsoft::UI::Xaml::Media::VisualTreeHelper::GetChildrenCount(root);
+            for (int32_t index = 0; index < count; ++index)
+            {
+                auto child = winrt::Microsoft::UI::Xaml::Media::VisualTreeHelper::GetChild(root, index);
+                if (auto found = FindDescendant<T>(child))
+                {
+                    return found;
+                }
+            }
+            return nullptr;
+        }
+
         // Whether a parsed payload has anything worth putting on screen. A
         // request can succeed and still yield nothing usable, either because the
         // region genuinely has no charts or because the payload shape moved, and
@@ -324,6 +352,78 @@ namespace winrt::Last_Music_Player::implementation
         m_accountArtworkBackfillQueue.push_back(key);
         ObserveAccountArtworkViewport(image, key);
         StartAccountArtworkRequests();
+    }
+
+    void MainWindow::AttachArtworkGridObservers()
+    {
+        // Every virtualized surface that shows account or catalog artwork. The
+        // markup still carries Loaded on these templates, which is harmless
+        // duplication: a second registration for the same image is deduplicated
+        // by request key. What it cannot do is fire for a recycled container,
+        // which is why each of these grids needs the container hook as well.
+        for (auto const& grid : {
+            HomeRecentGridView(),
+            HomeMostPlayedGridView(),
+            HomeLikedGridView(),
+            HomeRecentlyAddedGridView(),
+            DiscoverChartGridView(),
+            SongsGridView(),
+            LibAlbumsGrid(),
+            LibArtistsGrid(),
+            LibGenresGrid(),
+            LibManualPlaylistsGrid(),
+            LibAutoPlaylistsGrid() })
+        {
+            ObserveCatalogGridContainers(grid);
+        }
+        ObserveCatalogGridContainers(SearchSongsListView());
+    }
+
+    void MainWindow::ObserveCatalogGridContainers(
+        winrt::Microsoft::UI::Xaml::Controls::ListViewBase const& grid)
+    {
+        if (!grid)
+        {
+            return;
+        }
+        grid.ContainerContentChanging({ this, &MainWindow::CatalogGrid_ContainerContentChanging });
+    }
+
+    void MainWindow::CatalogGrid_ContainerContentChanging(
+        winrt::Microsoft::UI::Xaml::Controls::ListViewBase const& sender,
+        winrt::Microsoft::UI::Xaml::Controls::ContainerContentChangingEventArgs const& args)
+    {
+        (void)sender;
+
+        auto container = args.ItemContainer();
+        if (!container)
+        {
+            return;
+        }
+        auto image = FindDescendant<winrt::Microsoft::UI::Xaml::Controls::Image>(
+            container.ContentTemplateRoot());
+        if (!image)
+        {
+            return;
+        }
+
+        if (args.InRecycleQueue())
+        {
+            // Deliberately nothing. Clearing the image here looked like the
+            // tidy thing to do, but several of these templates bind Source to
+            // AlbumArt, and nulling it fights the binding that is the only
+            // thing putting their picture back. The registration below already
+            // clears the source when the container takes on its next item, so
+            // no stale cover survives either way.
+            return;
+        }
+
+        auto track = args.Item().try_as<winrt::Last_Music_Player::TrackInfo>();
+        if (!track)
+        {
+            return;
+        }
+        QueueAccountArtworkImage(image, track.ArtworkUrl(), ArtworkDetail::Tile, track);
     }
 
     void MainWindow::ObserveAccountArtworkViewport(
@@ -1113,6 +1213,7 @@ namespace winrt::Last_Music_Player::implementation
         grid.SelectionMode(ListViewSelectionMode::None);
         if (containerStyle) grid.ItemContainerStyle(containerStyle);
         if (tileTemplate) grid.ItemTemplate(tileTemplate);
+        ObserveCatalogGridContainers(grid);
         ScrollViewer::SetHorizontalScrollBarVisibility(grid, ScrollBarVisibility::Hidden);
         ScrollViewer::SetHorizontalScrollMode(grid, ScrollMode::Enabled);
         ScrollViewer::SetVerticalScrollMode(grid, ScrollMode::Disabled);
