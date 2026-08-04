@@ -104,9 +104,9 @@ namespace winrt::Last_Music_Player::implementation
         winrt::Windows::Foundation::IAsyncAction HomeRecentlyAdded_ItemClick(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::ItemClickEventArgs const& args);
         winrt::Windows::Foundation::IAsyncAction HomeMostPlayed_ItemClick(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::ItemClickEventArgs const& args);
         winrt::Windows::Foundation::IAsyncAction HomeLiked_ItemClick(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::ItemClickEventArgs const& args);
-        void HomeLikedSeeAll_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
-        void HomeMostPlayedSeeAll_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
-        void HomeRecentlyAddedSeeAll_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        winrt::Windows::Foundation::IAsyncAction HomeLikedSeeAll_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        winrt::Windows::Foundation::IAsyncAction HomeMostPlayedSeeAll_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        winrt::Windows::Foundation::IAsyncAction HomeRecentlyAddedSeeAll_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
 
         // The one line under the mixes row that says whether the provider fill
         // is running, gave up, or had nothing to add. Empty message hides it.
@@ -536,6 +536,12 @@ namespace winrt::Last_Music_Player::implementation
         // all of them; doing that by hand at each call site left two pages
         // stacked whenever one was missed, and nothing in the build catches it.
         void ShowPrimaryView(winrt::hstring const& key);
+        void ResetLibraryScopeToAll();
+        void OpenLibraryHistory();
+        void OpenLibraryPlaylists(bool autoMixes);
+        void OpenLibraryAutoMixes();
+        winrt::Windows::Foundation::IAsyncAction OpenLibrarySystemPlaylistAsync(
+            winrt::hstring playlistKey);
         void UpdateNavSelection(winrt::hstring const& key);
         void SetRailTab(bool upNext);
         void ApplyRightRailWidth();

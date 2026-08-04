@@ -414,7 +414,7 @@
                                         <TextBlock x:Name="HomeResultsBadgeText" Text="History" FontSize="10" Foreground="{ThemeResource TextSecondaryBrush}" FontWeight="SemiBold" CharacterSpacing="40" />
                                     </Border>
                                 </StackPanel>
-                                <Button x:Name="HomeListenAllButton" Content="See all &#x203A;" Click="HomeListenAll_Click" HorizontalAlignment="Right" VerticalAlignment="Center" Background="Transparent" BorderThickness="0" Padding="6,2" FontSize="12" FontWeight="SemiBold" Foreground="{ThemeResource AccentBrush}" />
+                                <Button x:Name="HomeListenAllButton" Content="See all &#x203A;" Click="HomeListenAll_Click" AutomationProperties.Name="See all Listen Again" HorizontalAlignment="Right" VerticalAlignment="Center" Background="Transparent" BorderThickness="0" Padding="6,2" FontSize="12" FontWeight="SemiBold" Foreground="{ThemeResource AccentBrush}" />
                             </Grid>
 
                             <Grid x:Name="ListenAgainSkeletonHost" Visibility="Collapsed" Margin="0,4,0,24" />
@@ -531,7 +531,7 @@
                                         <TextBlock Text="PERSONAL" FontSize="10" Foreground="{ThemeResource TextSecondaryBrush}" FontWeight="SemiBold" CharacterSpacing="40" />
                                     </Border>
                                 </StackPanel>
-                                <Button x:Name="HomeMadeForAllButton" Content="See all &#x203A;" Click="HomeMadeForAll_Click" HorizontalAlignment="Right" VerticalAlignment="Center" Background="Transparent" BorderThickness="0" Padding="6,2" FontSize="12" FontWeight="SemiBold" Foreground="{ThemeResource AccentBrush}" />
+                                <Button x:Name="HomeMadeForAllButton" Content="See all &#x203A;" Click="HomeMadeForAll_Click" AutomationProperties.Name="See all Auto mixes" HorizontalAlignment="Right" VerticalAlignment="Center" Background="Transparent" BorderThickness="0" Padding="6,2" FontSize="12" FontWeight="SemiBold" Foreground="{ThemeResource AccentBrush}" />
                             </Grid>
 
                             <Grid x:Name="HomeMixArrowHost">
@@ -926,7 +926,7 @@
                                         <TextBlock Text="TOP HITS" FontSize="10" Foreground="{ThemeResource TextSecondaryBrush}" FontWeight="SemiBold" CharacterSpacing="40" />
                                     </Border>
                                 </StackPanel>
-                                <Button x:Name="HomeMostPlayedSeeAllButton" Content="See all &#x203A;" Click="HomeMostPlayedSeeAll_Click" HorizontalAlignment="Right" VerticalAlignment="Center" Background="Transparent" BorderThickness="0" Padding="6,2" FontSize="12" FontWeight="SemiBold" Foreground="{ThemeResource AccentBrush}" />
+                                <Button x:Name="HomeMostPlayedSeeAllButton" Content="See all &#x203A;" Click="HomeMostPlayedSeeAll_Click" AutomationProperties.Name="See all Most Played" HorizontalAlignment="Right" VerticalAlignment="Center" Background="Transparent" BorderThickness="0" Padding="6,2" FontSize="12" FontWeight="SemiBold" Foreground="{ThemeResource AccentBrush}" />
                             </Grid>
                             <Grid x:Name="HomeMostPlayedArrowHost">
                                 <GridView x:Name="HomeMostPlayedGridView"
@@ -1006,7 +1006,7 @@
                                         <TextBlock Text="FAVOURITES" FontSize="10" Foreground="{ThemeResource TextSecondaryBrush}" FontWeight="SemiBold" CharacterSpacing="40" />
                                     </Border>
                                 </StackPanel>
-                                <Button x:Name="HomeLikedSeeAllButton" Content="See all &#x203A;" Click="HomeLikedSeeAll_Click" HorizontalAlignment="Right" VerticalAlignment="Center" Background="Transparent" BorderThickness="0" Padding="6,2" FontSize="12" FontWeight="SemiBold" Foreground="{ThemeResource AccentBrush}" />
+                                <Button x:Name="HomeLikedSeeAllButton" Content="See all &#x203A;" Click="HomeLikedSeeAll_Click" AutomationProperties.Name="See all Favourites" HorizontalAlignment="Right" VerticalAlignment="Center" Background="Transparent" BorderThickness="0" Padding="6,2" FontSize="12" FontWeight="SemiBold" Foreground="{ThemeResource AccentBrush}" />
                             </Grid>
                             <Grid x:Name="HomeLikedArrowHost">
                                 <GridView x:Name="HomeLikedGridView"
@@ -1085,7 +1085,7 @@
                                         <TextBlock Text="NEW" FontSize="10" Foreground="{ThemeResource TextSecondaryBrush}" FontWeight="SemiBold" CharacterSpacing="40" />
                                     </Border>
                                 </StackPanel>
-                                <Button x:Name="HomeRecentlyAddedSeeAllButton" Content="See all &#x203A;" Click="HomeRecentlyAddedSeeAll_Click" HorizontalAlignment="Right" VerticalAlignment="Center" Background="Transparent" BorderThickness="0" Padding="6,2" FontSize="12" FontWeight="SemiBold" Foreground="{ThemeResource AccentBrush}" />
+                                <Button x:Name="HomeRecentlyAddedSeeAllButton" Content="See all &#x203A;" Click="HomeRecentlyAddedSeeAll_Click" AutomationProperties.Name="See all Recently Added" HorizontalAlignment="Right" VerticalAlignment="Center" Background="Transparent" BorderThickness="0" Padding="6,2" FontSize="12" FontWeight="SemiBold" Foreground="{ThemeResource AccentBrush}" />
                             </Grid>
 
                             <Grid x:Name="RecentlyAddedSkeletonHost" Visibility="Collapsed" Margin="0,4,0,24" />

@@ -198,6 +198,121 @@ namespace winrt::Last_Music_Player::implementation
             winrt::to_hstring(count) + (count == 1 ? L" track" : L" tracks"));
     }
 
+    void MainWindow::ResetLibraryScopeToAll()
+    {
+        if (m_libraryScope != L"All")
+        {
+            m_libraryScope = L"All";
+            m_librarySongsState = LoadState::Dirty;
+            m_libraryPlaylistsState = LoadState::Dirty;
+        }
+        if (LibraryScopeSelector() && LibraryScopeSelector().SelectedIndex() != 0)
+        {
+            LibraryScopeSelector().SelectedIndex(0);
+        }
+    }
+
+    void MainWindow::OpenLibraryHistory()
+    {
+        ResetLibraryScopeToAll();
+        ShowPrimaryView(L"Library");
+        HideLibraryDetail();
+        if (!LibTabHistory())
+        {
+            return;
+        }
+
+        auto checked = LibTabHistory().IsChecked();
+        if (!checked || !checked.Value())
+        {
+            LibTabHistory().IsChecked(true);
+        }
+        else
+        {
+            LibraryTab_Checked(LibTabHistory(), nullptr);
+        }
+    }
+
+    void MainWindow::OpenLibraryPlaylists(bool autoMixes)
+    {
+        ResetLibraryScopeToAll();
+        ShowPrimaryView(L"Library");
+        HideLibraryDetail();
+        if (!LibTabPlaylists())
+        {
+            return;
+        }
+
+        auto tabChecked = LibTabPlaylists().IsChecked();
+        if (!tabChecked || !tabChecked.Value())
+        {
+            LibTabPlaylists().IsChecked(true);
+        }
+        else
+        {
+            LibraryTab_Checked(LibTabPlaylists(), nullptr);
+        }
+
+        auto filter = autoMixes ? LibPlaylistAutoFilter() : LibPlaylistManualFilter();
+        if (!filter)
+        {
+            return;
+        }
+        auto filterChecked = filter.IsChecked();
+        if (!filterChecked || !filterChecked.Value())
+        {
+            filter.IsChecked(true);
+        }
+        else
+        {
+            LibraryPlaylistFilter_Checked(filter, nullptr);
+        }
+    }
+
+    void MainWindow::OpenLibraryAutoMixes()
+    {
+        OpenLibraryPlaylists(true);
+    }
+
+    winrt::Windows::Foundation::IAsyncAction MainWindow::OpenLibrarySystemPlaylistAsync(
+        winrt::hstring playlistKey)
+    {
+        auto lifetime = get_strong();
+        OpenLibraryPlaylists(false);
+        co_await HydrateLibraryTabAsync(L"Playlists", true);
+
+        if (!LibraryViewContainer()
+            || LibraryViewContainer().Visibility() != winrt::Microsoft::UI::Xaml::Visibility::Visible
+            || m_libraryPlaylistFilter != L"Manual")
+        {
+            co_return;
+        }
+        auto tabChecked = LibTabPlaylists().IsChecked();
+        if (!tabChecked || !tabChecked.Value())
+        {
+            co_return;
+        }
+
+        for (uint32_t index = 0; index < m_yourPlaylists.Size(); ++index)
+        {
+            auto playlist = m_yourPlaylists.GetAt(index);
+            if (playlist.SourceKind() != L"auto-playlist"
+                || playlist.SourceUrl() != playlistKey)
+            {
+                continue;
+            }
+
+            ShowLibraryDetail(
+                playlist.SourceKind(),
+                playlist.SourceUrl(),
+                playlist.Title(),
+                playlist.Artist(),
+                ApprovedDetailArtwork(playlist, playlist.SourceKind()),
+                playlist);
+            co_return;
+        }
+    }
+
     void MainWindow::LibraryPlaylistFilter_Checked(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
     {
         (void)args;
