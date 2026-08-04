@@ -446,6 +446,7 @@ namespace winrt::Last_Music_Player::implementation
         for (auto& item : m_queue.Queue) { patchLike(item); }
         for (auto& item : m_homeRecentHistory) { patchLike(item); }
         for (auto& item : m_catalogTracks) { patchLike(item); }
+        for (auto& item : m_searchAllResults) { patchLike(item); }
         for (auto& item : m_songsAllResults) { patchLike(item); }
         for (auto& item : m_librarySongAllResults) { patchLike(item); }
         for (auto& item : m_libraryDetailAllResults) { patchLike(item); }

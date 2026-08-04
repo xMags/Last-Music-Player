@@ -219,6 +219,7 @@
     </ClCompile>
     <ClCompile Include="MainWindow\MainWindow.Internal.cpp" />
     <ClCompile Include="MainWindow\MainWindow.Home.cpp" />
+    <ClCompile Include="MainWindow\MainWindow.Browse.cpp" />
     <ClCompile Include="MainWindow\MainWindow.Search.cpp" />
     <ClCompile Include="MainWindow\MainWindow.Songs.cpp" />
     <ClCompile Include="MainWindow\MainWindow.Discover.cpp" />

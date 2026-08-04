@@ -225,6 +225,9 @@
     <ClCompile Include="MainWindow\MainWindow.Home.cpp">
       <Filter>MainWindow</Filter>
     </ClCompile>
+    <ClCompile Include="MainWindow\MainWindow.Browse.cpp">
+      <Filter>MainWindow</Filter>
+    </ClCompile>
     <ClCompile Include="MainWindow\MainWindow.Search.cpp">
       <Filter>MainWindow</Filter>
     </ClCompile>

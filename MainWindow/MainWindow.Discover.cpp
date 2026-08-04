@@ -975,7 +975,7 @@ namespace winrt::Last_Music_Player::implementation
         m_catalogSkeleton.Attach(HomeCatalogSkeleton(), SkeletonShape::Shelf, 2);
         m_listenAgainSkeleton.Attach(ListenAgainSkeletonHost(), SkeletonShape::TileRow, 6);
         m_recentlyAddedSkeleton.Attach(RecentlyAddedSkeletonHost(), SkeletonShape::TileRow, 6);
-        m_searchSkeleton.Attach(SearchSkeletonHost(), SkeletonShape::TileRow, 6);
+        m_searchSkeleton.Attach(SearchSkeletonHost(), SkeletonShape::TileGrid, 8);
         m_songsSkeleton.Attach(SongsSkeletonHost(), SkeletonShape::TrackList, 9);
         m_libraryTabsSkeleton.Attach(LibraryTabsSkeletonHost(), SkeletonShape::TrackList, 9);
         m_libraryDetailSkeleton.Attach(LibraryDetailSkeletonHost(), SkeletonShape::TrackList, 8);

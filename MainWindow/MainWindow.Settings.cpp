@@ -2215,6 +2215,7 @@ namespace winrt::Last_Music_Player::implementation
             m_discoverChartHasMore = false;
             m_discoverChartItems.Clear();
             m_discoverDetailTracks.Clear();
+            m_searchAllResults.clear();
             m_songsAllResults.clear();
             m_librarySongAllResults.clear();
             m_libraryDetailAllResults.clear();
@@ -2242,6 +2243,9 @@ namespace winrt::Last_Music_Player::implementation
             m_homeLikedTracks.Clear();
             m_songsTracks.Clear();
             m_searchTracks.Clear();
+            m_browseCategories.Clear();
+            m_browseLandingLoaded = false;
+            ++m_browseLandingEpoch;
             m_librarySongs.Clear();
             m_libraryGenres.Clear();
             m_manualPlaylists.Clear();
