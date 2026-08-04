@@ -16,6 +16,7 @@ namespace LastMusicPlayer::Frontend
     {
         namespace xaml = winrt::Microsoft::UI::Xaml;
         namespace controls = winrt::Microsoft::UI::Xaml::Controls;
+        namespace input = winrt::Microsoft::UI::Xaml::Input;
         namespace media = winrt::Microsoft::UI::Xaml::Media;
 
         // Matches the web client: a page is most of the viewport, not all of it,
@@ -50,14 +51,38 @@ namespace LastMusicPlayer::Frontend
             return nullptr;
         }
 
+        xaml::Style CarouselArrowStyle()
+        {
+            try
+            {
+                return xaml::Application::Current().Resources()
+                    .Lookup(winrt::box_value(winrt::hstring{ L"CarouselArrowButton" }))
+                    .try_as<xaml::Style>();
+            }
+            catch (...)
+            {
+                return nullptr;
+            }
+        }
+
         controls::Button MakeArrow(bool forward, double artCenterY)
         {
             controls::Button button;
+            if (auto style = CarouselArrowStyle())
+            {
+                button.Style(style);
+            }
+            else
+            {
+                // Keep the control usable if the shared resource dictionary was
+                // not loaded, even though it will not have the acrylic treatment.
+                button.Padding(xaml::Thickness{});
+                button.BorderThickness(xaml::Thickness{});
+                button.CornerRadius(xaml::CornerRadius{ 18, 18, 18, 18 });
+            }
             button.Width(kButtonSize);
             button.Height(kButtonSize);
-            button.Padding(xaml::Thickness{});
-            button.BorderThickness(xaml::Thickness{});
-            button.CornerRadius(xaml::CornerRadius{ 18, 18, 18, 18 });
+            button.Translation(winrt::Windows::Foundation::Numerics::float3{ 0.0f, 0.0f, 16.0f });
             button.VerticalAlignment(xaml::VerticalAlignment::Top);
             button.HorizontalAlignment(forward
                 ? xaml::HorizontalAlignment::Right
@@ -95,6 +120,8 @@ namespace LastMusicPlayer::Frontend
             controls::Button Previous{ nullptr };
             controls::Button Next{ nullptr };
             controls::ScrollViewer Scroller{ nullptr };
+            bool IsPointerOver{ false };
+            bool ViewChangedBound{ false };
         };
 
         void Refresh(std::shared_ptr<ArrowState> const& state)
@@ -107,14 +134,9 @@ namespace LastMusicPlayer::Frontend
             auto offset = state->Scroller.HorizontalOffset();
             auto max = state->Scroller.ScrollableWidth();
             auto scrollable = max > kEdgeEpsilon;
-            auto showPrevious = scrollable && offset > kEdgeEpsilon;
-            auto showNext = scrollable && offset < max - kEdgeEpsilon;
+            auto showPrevious = state->IsPointerOver && scrollable && offset > kEdgeEpsilon;
+            auto showNext = state->IsPointerOver && scrollable && offset < max - kEdgeEpsilon;
 
-            // Shown outright whenever the row can move, rather than only while
-            // the pointer is over it as on the web. Hover would have to arrive
-            // through a panel with nothing to hit-test against, and an arrow
-            // nobody can find is worse than one always present; this way the
-            // affordance is visible the moment a row has more than it can show.
             auto apply = [&](controls::Button const& button, bool available)
             {
                 // Collapsed rather than transparent when it cannot be used, so
@@ -154,23 +176,62 @@ namespace LastMusicPlayer::Frontend
         auto state = std::make_shared<ArrowState>();
         state->Previous = MakeArrow(false, artCenterY);
         state->Next = MakeArrow(true, artCenterY);
+
+        // A panel without a background is not a hit-test target in its empty
+        // areas. Transparent keeps the existing appearance while making hover
+        // cover the full shelf, including the gaps between cards.
+        if (!host.Background())
+        {
+            host.Background(media::SolidColorBrush{ winrt::Windows::UI::Color{ 0, 0, 0, 0 } });
+        }
+
         host.Children().Append(state->Previous);
         host.Children().Append(state->Next);
 
         state->Previous.Click([state](auto&&, auto&&) { Page(state, false); });
         state->Next.Click([state](auto&&, auto&&) { Page(state, true); });
+        auto showOnPointer = [state](auto&&, auto&&)
+        {
+            if (!state->IsPointerOver)
+            {
+                state->IsPointerOver = true;
+                Refresh(state);
+            }
+        };
+        host.AddHandler(
+            xaml::UIElement::PointerEnteredEvent(),
+            winrt::box_value(input::PointerEventHandler{ showOnPointer }),
+            true);
+        // PointerMoved is also wired because GridView card containers can handle
+        // their own entry event. Movement still reaches the shelf host and makes
+        // hovering artwork reveal the controls, not only hovering empty gaps.
+        host.PointerMoved(showOnPointer);
+        host.PointerExited([state](auto&&, auto&&)
+        {
+            state->IsPointerOver = false;
+            Refresh(state);
+        });
 
         // Resolves the ScrollViewer, which lives inside the shelf's template
         // and so does not exist until the shelf has been through layout once.
         // Declared ahead of the handlers below because they all call it.
+        //
+        // Every step is guarded on its own rather than the whole thing running
+        // once, because the pieces arrive at different times: the template's
+        // ScrollViewer can exist a pass before its content does, and a shelf
+        // built in code has no ancestors to search until it is in the tree.
+        // Each later pass picks up whatever was still missing.
         auto bind = [state, weakShelf = winrt::make_weak(shelf)]()
         {
             auto target = weakShelf.get();
-            if (!target || state->Scroller)
+            if (!target)
             {
                 return;
             }
-            state->Scroller = target.try_as<controls::ScrollViewer>();
+            if (!state->Scroller)
+            {
+                state->Scroller = target.try_as<controls::ScrollViewer>();
+            }
             if (!state->Scroller)
             {
                 state->Scroller = FindDescendant<controls::ScrollViewer>(target);
@@ -179,7 +240,12 @@ namespace LastMusicPlayer::Frontend
             {
                 return;
             }
-            state->Scroller.ViewChanged([state](auto&&, auto&&) { Refresh(state); });
+
+            if (!state->ViewChangedBound)
+            {
+                state->ViewChangedBound = true;
+                state->Scroller.ViewChanged([state](auto&&, auto&&) { Refresh(state); });
+            }
             Refresh(state);
         };
 

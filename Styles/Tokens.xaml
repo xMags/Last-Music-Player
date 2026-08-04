@@ -23,6 +23,13 @@
             <!-- Surfaces -->
             <SolidColorBrush x:Key="SurfaceBrush" Color="#FFFFFFFF" />
             <SolidColorBrush x:Key="SurfaceAltBrush" Color="#FFFBFBFD" />
+            <AcrylicBrush x:Key="CarouselArrowBackgroundBrush"
+                          TintColor="#FFFFFFFF"
+                          TintOpacity="0.64"
+                          TintLuminosityOpacity="0.86"
+                          FallbackColor="#F2FFFFFF" />
+            <SolidColorBrush x:Key="CarouselArrowBorderBrush" Color="#70FFFFFF" />
+            <SolidColorBrush x:Key="CarouselArrowForegroundBrush" Color="#FF202124" />
             <SolidColorBrush x:Key="NeutralFillBrush" Color="#FFF3F4F6" />
             <SolidColorBrush x:Key="PlaceholderGlyphBrush" Color="#FFC7CDD4" />
             <!-- Distinctly darker than NeutralFillBrush, which sits at almost
@@ -71,6 +78,13 @@
             <!-- Surfaces -->
             <SolidColorBrush x:Key="SurfaceBrush" Color="#FF2B2B2B" />
             <SolidColorBrush x:Key="SurfaceAltBrush" Color="#FF272727" />
+            <AcrylicBrush x:Key="CarouselArrowBackgroundBrush"
+                          TintColor="#FF181818"
+                          TintOpacity="0.58"
+                          TintLuminosityOpacity="0.72"
+                          FallbackColor="#EE242424" />
+            <SolidColorBrush x:Key="CarouselArrowBorderBrush" Color="#52FFFFFF" />
+            <SolidColorBrush x:Key="CarouselArrowForegroundBrush" Color="#FFFFFFFF" />
             <SolidColorBrush x:Key="NeutralFillBrush" Color="#FF3A3A3A" />
             <SolidColorBrush x:Key="PlaceholderGlyphBrush" Color="#FF5A5A5A" />
             <!-- Lifted off the dark panel gradient by roughly the same contrast
@@ -200,6 +214,65 @@
         <Setter Property="Foreground" Value="{ThemeResource TextSecondaryBrush}" />
         <Setter Property="HorizontalContentAlignment" Value="Center" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+
+    <!-- Frosted circular buttons over horizontally scrolling shelves. -->
+    <Style x:Key="CarouselArrowButton" TargetType="Button">
+        <Setter Property="Width" Value="36" />
+        <Setter Property="Height" Value="36" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="CornerRadius" Value="18" />
+        <Setter Property="Background" Value="{ThemeResource CarouselArrowBackgroundBrush}" />
+        <Setter Property="BorderBrush" Value="{ThemeResource CarouselArrowBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Foreground" Value="{ThemeResource CarouselArrowForegroundBrush}" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="UseSystemFocusVisuals" Value="True" />
+        <Setter Property="Shadow">
+            <Setter.Value>
+                <ThemeShadow />
+            </Setter.Value>
+        </Setter>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Grid x:Name="Root" Background="Transparent">
+                        <Border x:Name="Chrome"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="{TemplateBinding CornerRadius}"
+                                Opacity="0.94">
+                            <ContentPresenter Padding="{TemplateBinding Padding}"
+                                              Foreground="{TemplateBinding Foreground}"
+                                              HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}" />
+                        </Border>
+                        <VisualStateManager.VisualStateGroups>
+                            <VisualStateGroup x:Name="CommonStates">
+                                <VisualState x:Name="Normal" />
+                                <VisualState x:Name="PointerOver">
+                                    <VisualState.Setters>
+                                        <Setter Target="Chrome.Opacity" Value="1" />
+                                    </VisualState.Setters>
+                                </VisualState>
+                                <VisualState x:Name="Pressed">
+                                    <VisualState.Setters>
+                                        <Setter Target="Chrome.Opacity" Value="0.80" />
+                                    </VisualState.Setters>
+                                </VisualState>
+                                <VisualState x:Name="Disabled">
+                                    <VisualState.Setters>
+                                        <Setter Target="Root.Opacity" Value="0.45" />
+                                    </VisualState.Setters>
+                                </VisualState>
+                            </VisualStateGroup>
+                        </VisualStateManager.VisualStateGroups>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
     </Style>
 
     <!-- Stat card (Library view) -->
