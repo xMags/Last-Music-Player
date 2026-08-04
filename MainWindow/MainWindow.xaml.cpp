@@ -125,12 +125,15 @@ namespace winrt::Last_Music_Player::implementation
         FsUpNext().ItemsSource(m_upNextQueue);
         SidebarPlaylistsListView().ItemsSource(m_sidebarPlaylists);
         LibrarySongsListView().ItemsSource(m_librarySongs);
+        HistoryGridView().ItemsSource(m_librarySongs);
         LibAlbumsGrid().ItemsSource(m_albums);
         LibArtistsGrid().ItemsSource(m_artists);
         LibGenresGrid().ItemsSource(m_libraryGenres);
         LibManualPlaylistsGrid().ItemsSource(m_yourPlaylists);
         LibAutoPlaylistsGrid().ItemsSource(m_autoPlaylists);
         LibraryDetailTracksListView().ItemsSource(m_libraryDetailTracks);
+        SetHistoryGridMode(m_libraryHistoryGridMode);
+        UpdateHistoryCount();
         if (LibTabPlaylists())
         {
             LibTabPlaylists().IsChecked(true);

@@ -2636,12 +2636,55 @@
 
                         <!-- History -->
                         <Grid x:Name="LibHistoryPanel" Visibility="Collapsed">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+
+                            <Grid Grid.Row="0" Margin="0,0,0,16">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                                    <Border CornerRadius="{StaticResource RadiusMd}" Background="{ThemeResource NeutralFillBrush}" Padding="3">
+                                        <StackPanel Orientation="Horizontal">
+                                            <Button x:Name="HistoryListViewButton" Click="HistoryListView_Click" Background="Transparent" BorderThickness="0" CornerRadius="{StaticResource RadiusSm}" Padding="8,5" AutomationProperties.Name="List view">
+                                                <FontIcon Glyph="&#xEA37;" FontSize="14" Foreground="{ThemeResource TextPrimaryBrush}" />
+                                            </Button>
+                                            <Button x:Name="HistoryGridViewButton" Click="HistoryGridView_Click" Background="{ThemeResource SurfaceBrush}" BorderBrush="{ThemeResource StrokeBrush}" BorderThickness="1" CornerRadius="{StaticResource RadiusSm}" Padding="8,5" AutomationProperties.Name="Grid view">
+                                                <FontIcon Glyph="&#xE80A;" FontSize="14" Foreground="{ThemeResource TextPrimaryBrush}" />
+                                            </Button>
+                                        </StackPanel>
+                                    </Border>
+                                    <TextBlock x:Name="HistoryCountText" Text="0 tracks" Style="{StaticResource CaptionText}" VerticalAlignment="Center" />
+                                </StackPanel>
+                                <DropDownButton Grid.Column="1" x:Name="HistorySortButton" CornerRadius="{StaticResource RadiusMd}" Padding="12,7" AutomationProperties.Name="Sort history">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <TextBlock x:Name="HistorySortLabel" Text="Relevance" FontSize="12" FontWeight="SemiBold" />
+                                    </StackPanel>
+                                    <DropDownButton.Flyout>
+                                        <MenuFlyout>
+                                            <MenuFlyoutItem Text="Relevance" Tag="Relevance" Click="HistorySort_Click" />
+                                            <MenuFlyoutItem Text="Title" Tag="Title" Click="HistorySort_Click" />
+                                            <MenuFlyoutItem Text="Artist" Tag="Artist" Click="HistorySort_Click" />
+                                            <MenuFlyoutItem Text="Duration" Tag="Duration" Click="HistorySort_Click" />
+                                        </MenuFlyout>
+                                    </DropDownButton.Flyout>
+                                </DropDownButton>
+                            </Grid>
+
                             <ListView x:Name="LibrarySongsListView"
+                                      Grid.Row="1"
+                                      Visibility="Collapsed"
+                                      AutomationProperties.Name="History list"
                                       IsItemClickEnabled="True"
                                       ItemClick="LibrarySongsListView_ItemClick"
                                       ContainerContentChanging="LibrarySongs_ContainerContentChanging"
                                       ScrollViewer.VerticalScrollMode="Enabled"
                                       ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                      ScrollViewer.HorizontalScrollMode="Disabled"
+                                      ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                                       SelectionMode="Single">
                                 <ListView.ItemsPanel>
                                     <ItemsPanelTemplate>
@@ -2693,6 +2736,55 @@
                                     </DataTemplate>
                                 </ListView.ItemTemplate>
                             </ListView>
+
+                            <GridView x:Name="HistoryGridView"
+                                      Grid.Row="1"
+                                      AutomationProperties.Name="History grid"
+                                      SelectionMode="None"
+                                      IsItemClickEnabled="True"
+                                      ItemClick="LibrarySongsListView_ItemClick"
+                                      ItemContainerStyle="{StaticResource CardTileContainerStyle}"
+                                      ContainerContentChanging="LibrarySongs_ContainerContentChanging"
+                                      Padding="0,4,8,24"
+                                      VerticalAlignment="Stretch"
+                                      ScrollViewer.VerticalScrollMode="Enabled"
+                                      ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                      ScrollViewer.HorizontalScrollMode="Disabled"
+                                      ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                <GridView.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <ItemsWrapGrid Orientation="Horizontal" ItemWidth="192" ItemHeight="264" />
+                                    </ItemsPanelTemplate>
+                                </GridView.ItemsPanel>
+                                <GridView.ItemTemplate>
+                                    <DataTemplate x:DataType="local:TrackInfo">
+                                        <StackPanel Width="172" Margin="0,0,20,24" PointerEntered="Card_PointerEntered" PointerExited="Card_PointerExited">
+                                            <StackPanel.ContextFlyout>
+                                                <MenuFlyout>
+                                                    <MenuFlyoutItem Text="Play now" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="LibraryRowMenuPlayNow_Click" />
+                                                    <MenuFlyoutItem Text="Play next" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="LibraryRowMenuPlayNext_Click" />
+                                                    <MenuFlyoutItem Text="Add to queue" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="LibraryRowMenuAddToQueue_Click" />
+                                                    <MenuFlyoutItem Text="Add to playlist" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="LibraryRowMenuAddToPlaylist_Click" />
+                                                    <MenuFlyoutSeparator />
+                                                    <MenuFlyoutItem Text="{x:Bind LikeActionText}" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuLike_Click" />
+                                                    <MenuFlyoutSeparator />
+                                                    <MenuFlyoutItem Text="Go to artist" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuArtist_Click" />
+                                                    <MenuFlyoutItem Text="Go to album" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="LibraryRowMenuAlbum_Click" />
+                                                </MenuFlyout>
+                                            </StackPanel.ContextFlyout>
+                                            <Border Width="172" Height="172" CornerRadius="{StaticResource RadiusLg}" Background="{ThemeResource NeutralFillBrush}" Margin="0,0,0,10">
+                                                <Grid>
+                                                    <FontIcon Glyph="&#xE8D6;" FontSize="40" Foreground="{ThemeResource PlaceholderGlyphBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False" AutomationProperties.AccessibilityView="Raw" />
+                                                    <Image Source="{x:Bind AlbumArt}" Stretch="UniformToFill" Loaded="AccountArtwork_Loaded" />
+                                                </Grid>
+                                            </Border>
+                                            <TextBlock Text="{x:Bind Title}" Style="{StaticResource BodyStrong}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                                            <TextBlock Text="{x:Bind Artist}" Style="{StaticResource CaptionText}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                                            <TextBlock Text="{x:Bind Duration}" Style="{StaticResource CaptionText}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </GridView.ItemTemplate>
+                            </GridView>
                         </Grid>
 
                         <!-- Genres -->

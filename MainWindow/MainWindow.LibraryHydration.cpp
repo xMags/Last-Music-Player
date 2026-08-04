@@ -199,7 +199,6 @@ namespace winrt::Last_Music_Player::implementation
 
         if (key == L"History")
         {
-            m_librarySongsFilter = L"History";
             if (!shouldLoad(m_librarySongsState) && !m_librarySongsPageLoading)
             {
                 co_return;
@@ -212,10 +211,13 @@ namespace winrt::Last_Music_Player::implementation
             m_librarySongs.Clear();
             m_librarySongsMatchedCount = 0;
             m_librarySongsMatchedSeconds = 0.0;
+            UpdateHistoryCount();
             // LibraryImportStatusText still carries scan and import progress,
             // so it is only the plain "loading" messages that the placeholder
             // takes over from.
-            BeginLibraryTabSkeleton(LastMusicPlayer::Frontend::SkeletonShape::TrackList);
+            BeginLibraryTabSkeleton(m_libraryHistoryGridMode
+                ? LastMusicPlayer::Frontend::SkeletonShape::TileGrid
+                : LastMusicPlayer::Frontend::SkeletonShape::TrackList);
             co_await AppendLibrarySongsPageAsync();
             if (epoch == m_libraryHydrationEpoch)
             {
@@ -435,7 +437,11 @@ namespace winrt::Last_Music_Player::implementation
 
     void MainWindow::AppendLibrarySongsPage()
     {
-        AppendTrackPage(m_librarySongAllResults, m_librarySongs, kLibrarySongPageSize);
+        AppendTrackPage(
+            m_librarySongAllResults,
+            m_librarySongs,
+            m_libraryHistoryGridMode ? kSongsGridPageSize : kLibrarySongPageSize);
+        UpdateHistoryCount();
     }
 
     winrt::Windows::Foundation::IAsyncAction MainWindow::AppendLibrarySongsPageAsync()
@@ -453,7 +459,8 @@ namespace winrt::Last_Music_Player::implementation
         auto dispatcher = this->DispatcherQueue();
         auto epoch = m_libraryHydrationEpoch;
         auto offset = static_cast<uint32_t>(m_librarySongAllResults.size());
-        auto query = CurrentLibrarySongsQuery(offset, kLibrarySongPageSize);
+        auto pageSize = m_libraryHistoryGridMode ? kSongsGridPageSize : kLibrarySongPageSize;
+        auto query = CurrentLibrarySongsQuery(offset, pageSize);
         m_librarySongsPageLoading = true;
         auto pageLoadId = ++m_librarySongsPageLoadId;
 
@@ -484,6 +491,7 @@ namespace winrt::Last_Music_Player::implementation
         {
             m_librarySongsPageLoading = false;
         }
+        UpdateHistoryCount();
     }
 
 
@@ -523,8 +531,8 @@ namespace winrt::Last_Music_Player::implementation
     LastMusicPlayer::Backend::TrackQuery MainWindow::CurrentLibrarySongsQuery(uint32_t offset, uint32_t limit) const
     {
         LastMusicPlayer::Backend::TrackQuery query;
-        query.Filter = m_librarySongsFilter;
-        query.Sort = m_librarySongsFilter == L"History" ? L"MostPlayed" : L"DateAdded";
+        query.Filter = L"History";
+        query.Sort = m_libraryHistorySort;
         query.Scope = m_libraryScope;
         query.Offset = static_cast<int>(offset);
         query.Limit = static_cast<int>(limit);

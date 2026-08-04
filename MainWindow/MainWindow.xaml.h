@@ -139,6 +139,9 @@ namespace winrt::Last_Music_Player::implementation
         void SongsListView_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void SongsGridView_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void SongsSort_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void HistoryListView_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void HistoryGridView_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void HistorySort_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void LibraryButton_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         winrt::Windows::Foundation::IAsyncAction LibraryAddFolder_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         winrt::Windows::Foundation::IAsyncAction LibraryCreateAlbum_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
@@ -552,6 +555,7 @@ namespace winrt::Last_Music_Player::implementation
             AccountPlaylistDetailContext const& context);
         void UpdateSongsScopeLabel();
         void UpdateSongsStats();
+        void UpdateHistoryCount();
         void LoadCatalogFromDatabase();
         void RefreshLibraryCatalogViews();
         void RefreshAutoPlaylists();
@@ -573,6 +577,7 @@ namespace winrt::Last_Music_Player::implementation
         void MaybeAppendLibraryDetailPage(uint32_t itemIndex);
         void SelectSongsFilter(std::wstring const& filter);
         void SetSongsGridMode(bool gridMode);
+        void SetHistoryGridMode(bool gridMode);
         void QueueAndPlayVisible(std::vector<winrt::Last_Music_Player::TrackInfo> const& tracks, winrt::Last_Music_Player::TrackInfo const& clickedTrack);
         void QueueAndPlayObservable(winrt::Windows::Foundation::Collections::IObservableVector<winrt::Last_Music_Player::TrackInfo> const& tracks, winrt::Last_Music_Player::TrackInfo const& clickedTrack);
         winrt::Last_Music_Player::TrackInfo TrackFromActionSender(winrt::Windows::Foundation::IInspectable const& sender);
@@ -1021,8 +1026,9 @@ namespace winrt::Last_Music_Player::implementation
         LoadState m_libraryPlaylistsState{ LoadState::NotLoaded };
         LoadState m_libraryDetailState{ LoadState::NotLoaded };
         std::wstring m_libraryPlaylistFilter{ L"Manual" };
-        std::wstring m_librarySongsFilter{ L"All" };
+        std::wstring m_libraryHistorySort{ L"Relevance" };
         std::wstring m_libraryScope{ L"All" };
+        bool m_libraryHistoryGridMode{ true };
         std::vector<AccountPlaylistBinding> m_accountPlaylistBindings;
         std::optional<AccountPlaylistBinding> m_libraryDetailAccountBinding;
         std::wstring m_libraryDetailKind;
