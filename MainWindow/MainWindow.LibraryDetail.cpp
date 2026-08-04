@@ -535,7 +535,8 @@ namespace winrt::Last_Music_Player::implementation
             }
             if (kind == L"auto-playlist")
             {
-                return findIn(m_autoPlaylists, kind);
+                auto artwork = findIn(m_yourPlaylists, kind);
+                return artwork ? artwork : findIn(m_autoPlaylists, kind);
             }
             return nullptr;
         };

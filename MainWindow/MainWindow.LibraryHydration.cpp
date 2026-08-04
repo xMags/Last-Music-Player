@@ -110,6 +110,7 @@ namespace winrt::Last_Music_Player::implementation
 
     void MainWindow::RefreshAutoPlaylists()
     {
+        m_yourPlaylists.Clear();
         m_autoPlaylists.Clear();
 
         struct AutoPlaylistDef
@@ -119,10 +120,12 @@ namespace winrt::Last_Music_Player::implementation
             wchar_t const* Caption;
         };
 
-        static constexpr AutoPlaylistDef kAutoPlaylists[] = {
+        static constexpr AutoPlaylistDef kSystemPlaylists[] = {
             { L"smart-liked", L"Favourites", L"Every song you've liked." },
             { L"smart-most", L"Most Played", L"Your most-played songs." },
             { L"smart-recent", L"Recently Added", L"The newest songs in your library." },
+        };
+        static constexpr AutoPlaylistDef kAutoMixes[] = {
             { L"daily1", L"Daily Mix 1", L"Built from recent listening." },
             { L"daily2", L"Daily Mix 2", L"A second lane through your library." },
             { L"daily3", L"Daily Mix 3", L"Balanced across your artists." },
@@ -134,22 +137,44 @@ namespace winrt::Last_Music_Player::implementation
             { L"fresh", L"Fresh Finds", L"Your newest library additions." },
         };
 
-        for (auto const& def : kAutoPlaylists)
+        auto appendGenerated = [this](
+            AutoPlaylistDef const& def,
+            winrt::Windows::Foundation::Collections::IObservableVector<winrt::Last_Music_Player::TrackInfo> const& target,
+            wchar_t const* kindLabel,
+            wchar_t const* sourceLabel)
         {
             auto mixIt = m_homeMixes.find(def.Key);
-            auto count = mixIt == m_homeMixes.end() ? 0 : static_cast<int32_t>(mixIt->second.size());
+            auto count = mixIt == m_homeMixes.end()
+                ? 0
+                : static_cast<int32_t>(mixIt->second.size());
+            auto summary = std::to_wstring(count);
+            summary += count == 1 ? L" song - " : L" songs - ";
+            summary += kindLabel;
 
             LastMusicPlayer::Backend::TrackInfo playlist;
             playlist.Title(def.Title);
-            playlist.Artist(winrt::hstring(std::to_wstring(count) + (count == 1 ? L" song - Smart playlist" : L" songs - Smart playlist")));
+            playlist.Artist(winrt::hstring(summary));
             playlist.SourceKind(L"auto-playlist");
             playlist.Provider(L"auto");
             playlist.SourceUrl(def.Key);
-            playlist.SourceLabel(L"Smart");
+            playlist.SourceLabel(sourceLabel);
             playlist.TrackCount(count);
             playlist.ArtworkCaption(def.Caption);
             ResolveArtworkPresentation(playlist, L"auto-playlist");
-            m_autoPlaylists.Append(playlist);
+            target.Append(playlist);
+        };
+
+        for (auto const& def : kSystemPlaylists)
+        {
+            appendGenerated(def, m_yourPlaylists, L"System playlist", L"System");
+        }
+        for (uint32_t index = 0; index < m_manualPlaylists.Size(); ++index)
+        {
+            m_yourPlaylists.Append(m_manualPlaylists.GetAt(index));
+        }
+        for (auto const& def : kAutoMixes)
+        {
+            appendGenerated(def, m_autoPlaylists, L"Auto mix", L"Auto mix");
         }
     }
 
@@ -172,9 +197,9 @@ namespace winrt::Last_Music_Player::implementation
             }
         };
 
-        if (key == L"Songs" || key == L"History")
+        if (key == L"History")
         {
-            m_librarySongsFilter = key == L"History" ? L"History" : L"All";
+            m_librarySongsFilter = L"History";
             if (!shouldLoad(m_librarySongsState) && !m_librarySongsPageLoading)
             {
                 co_return;

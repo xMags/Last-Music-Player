@@ -564,7 +564,10 @@ namespace winrt::Last_Music_Player::implementation
     {
         (void)args;
         auto playlist = TrackFromActionSender(sender);
-        if (!playlist || !DatabaseService().IsInitialized() || playlist.SourceUrl().empty())
+        if (!playlist
+            || playlist.SourceKind() != L"playlist"
+            || !DatabaseService().IsInitialized()
+            || playlist.SourceUrl().empty())
         {
             co_return;
         }
@@ -652,7 +655,10 @@ namespace winrt::Last_Music_Player::implementation
     {
         (void)args;
         auto playlist = TrackFromActionSender(sender);
-        if (!playlist || !DatabaseService().IsInitialized() || playlist.SourceUrl().empty())
+        if (!playlist
+            || playlist.SourceKind() != L"playlist"
+            || !DatabaseService().IsInitialized()
+            || playlist.SourceUrl().empty())
         {
             co_return;
         }

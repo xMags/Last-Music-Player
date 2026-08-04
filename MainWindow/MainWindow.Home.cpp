@@ -299,8 +299,10 @@ namespace winrt::Last_Music_Player::implementation
 
     void MainWindow::HomeListenAll_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
     {
-        // "See all" on Listen Again -> full library Songs view.
-        SongsButton_Click(sender, args);
+        (void)sender;
+        (void)args;
+        // "See all" on Listen Again -> full Library Songs tab.
+        OpenLibrarySongs();
         SelectSongsFilter(L"All");
     }
 
@@ -337,29 +339,34 @@ namespace winrt::Last_Music_Player::implementation
 
     void MainWindow::HomeLikedSeeAll_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
     {
-        // "See all" on Your Liked Songs -> Songs view with the Favourites
-        // chip pre-selected. ChipFav uses Tag="Fav" so the filter string
-        // is L"Fav" (see MainWindow.xaml:1418).
-        SongsButton_Click(sender, args);
+        (void)sender;
+        (void)args;
+        // "See all" on Your Liked Songs -> Library Songs with the Favourites
+        // chip pre-selected. ChipFav uses Tag="Fav", so the filter is L"Fav".
+        OpenLibrarySongs();
         SelectSongsFilter(L"Fav");
     }
 
     void MainWindow::HomeMostPlayedSeeAll_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
     {
-        // "See all" on Most Played -> Songs view with the Most played
-        // chip pre-selected. ChipMost uses Tag="Most" (MainWindow.xaml:1417).
-        SongsButton_Click(sender, args);
+        (void)sender;
+        (void)args;
+        // "See all" on Most Played -> Library Songs with the Most played
+        // chip pre-selected. ChipMost uses Tag="Most".
+        OpenLibrarySongs();
         SelectSongsFilter(L"Most");
     }
 
     void MainWindow::HomeRecentlyAddedSeeAll_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
     {
-        // "See all" on Recently Added -> Songs view, unfiltered but newest
+        (void)sender;
+        (void)args;
+        // "See all" on Recently Added -> Library Songs, unfiltered but newest
         // first. Unlike its siblings there is no chip for this shelf, so what
         // stands in for one is the sort: the sort is set rather than assumed,
         // because it persists across visits and the user may well have left it
         // on something else.
-        SongsButton_Click(sender, args);
+        OpenLibrarySongs();
         SelectSongsFilter(L"All");
         if (m_songsSort != L"DateAdded")
         {

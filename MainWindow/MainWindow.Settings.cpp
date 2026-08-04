@@ -493,18 +493,21 @@ namespace winrt::Last_Music_Player::implementation
                 };
                 LibraryTabRow tabs[] = {
                     { LibTabPlaylists(), L"Playlists" },
+                    { LibTabHistory(), L"History" },
                     { LibTabAlbums(), L"Albums" },
                     { LibTabArtists(), L"Artists" },
-                    { LibTabSongs(), L"Songs" },
-                    { LibTabHistory(), L"History" },
                     { LibTabGenres(), L"Genres" },
+                    { LibTabSongs(), L"Songs" },
                 };
                 for (auto const& tab : tabs)
                 {
                     auto checked = tab.Button.IsChecked();
                     if (checked && checked.Value())
                     {
-                        co_await HydrateLibraryTabAsync(tab.Name, true);
+                        if (tab.Name != L"Songs")
+                        {
+                            co_await HydrateLibraryTabAsync(tab.Name, true);
+                        }
                         break;
                     }
                 }
@@ -2248,6 +2251,7 @@ namespace winrt::Last_Music_Player::implementation
             ++m_browseLandingEpoch;
             m_librarySongs.Clear();
             m_libraryGenres.Clear();
+            m_yourPlaylists.Clear();
             m_manualPlaylists.Clear();
             m_autoPlaylists.Clear();
             m_sidebarPlaylists.Clear();
