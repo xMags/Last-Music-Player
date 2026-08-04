@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/DatabaseEngine.Internal.h"
+#include "Backend/LibraryGroupingSql.h"
 #include "Backend/ProviderHelpers.h"
 
 #include <algorithm>
@@ -376,15 +377,21 @@ namespace LastMusicPlayer::Backend::DatabaseDetail
         auto normalizedKind = ToLowerInvariant(groupKind);
         if (normalizedKind == L"album")
         {
-            return " AND CASE WHEN Album IS NULL OR Album='' THEN CASE WHEN SourceKind='remote' THEN 'Remote Singles' ELSE 'Unknown Album' END ELSE Album END = ?3";
+            return " AND " + LibraryGroupingSql::GroupMatchPredicate(
+                LibraryGroupingSql::GroupKind::Album,
+                "?3");
         }
         if (normalizedKind == L"artist")
         {
-            return " AND CASE WHEN Artist IS NULL OR Artist='' THEN 'Unknown Artist' ELSE Artist END = ?3";
+            return " AND " + LibraryGroupingSql::GroupMatchPredicate(
+                LibraryGroupingSql::GroupKind::Artist,
+                "?3");
         }
         if (normalizedKind == L"genre")
         {
-            return " AND CASE WHEN Genre IS NULL OR Genre='' THEN 'Unknown Genre' ELSE Genre END = ?3";
+            return " AND " + LibraryGroupingSql::GroupMatchPredicate(
+                LibraryGroupingSql::GroupKind::Genre,
+                "?3");
         }
         return {};
     }

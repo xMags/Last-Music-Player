@@ -189,6 +189,9 @@
     <ClInclude Include="Backend\DatabaseAccountSchema.h">
       <Filter>Backend</Filter>
     </ClInclude>
+    <ClInclude Include="Backend\LibraryGroupingSql.h">
+      <Filter>Backend</Filter>
+    </ClInclude>
     <ClInclude Include="Backend\ProviderClient.h">
       <Filter>Backend</Filter>
     </ClInclude>
