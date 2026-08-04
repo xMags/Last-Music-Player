@@ -241,6 +241,7 @@ namespace LastMusicPlayer::Backend
         TryExec(m_db, "CREATE INDEX IF NOT EXISTS IX_AccountTracks_Liked ON AccountTracks(AccountId, IsLiked);");
         TryExec(m_db, "CREATE INDEX IF NOT EXISTS IX_AccountTracks_History ON AccountTracks(AccountId, LastPlayedAtUtc DESC);");
         TryExec(m_db, "CREATE INDEX IF NOT EXISTS IX_AccountPlaylistTracks_Order ON AccountPlaylistTracks(AccountId, PlaylistId, TrackOrder);");
+        TryExec(m_db, "CREATE INDEX IF NOT EXISTS IX_AccountPlaylistTracks_Track ON AccountPlaylistTracks(AccountId, RemoteId);");
         TryExec(m_db, "CREATE INDEX IF NOT EXISTS IX_PlaybackEvents_Account ON PlaybackEvents(AccountId, PlayedAtUtc);");
         TryExec(m_db, "CREATE INDEX IF NOT EXISTS IX_PendingLikes_Account ON PendingLikes(AccountId, UpdatedAtUtc);");
 

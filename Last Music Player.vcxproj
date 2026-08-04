@@ -184,6 +184,7 @@
     <ClInclude Include="Backend\DatabaseEngine.h" />
     <ClInclude Include="Backend\DatabaseEngine.Internal.h" />
     <ClInclude Include="Backend\DatabaseAccountSchema.h" />
+    <ClInclude Include="Backend\LibraryGroupingSql.h" />
     <ClInclude Include="Backend\ProviderClient.h" />
     <ClInclude Include="Backend\ProviderHelpers.h" />
     <ClInclude Include="Backend\TrackSearchPolicy.h" />

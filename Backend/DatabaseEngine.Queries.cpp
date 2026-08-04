@@ -1,9 +1,11 @@
 #include "pch.h"
 #include "Backend/DatabaseEngine.h"
 #include "Backend/DatabaseEngine.Internal.h"
+#include "Backend/LibraryGroupingSql.h"
 
 #include <algorithm>
 #include <string>
+#include <utility>
 
 namespace LastMusicPlayer::Backend
 {
@@ -418,13 +420,17 @@ namespace LastMusicPlayer::Backend
         std::vector<TrackInfo> groups;
         if (!m_db) return groups;
 
-        static constexpr char kSql[] =
-            "SELECT "
-            "CASE WHEN Album IS NULL OR Album='' THEN CASE WHEN SourceKind='remote' THEN 'Remote Singles' ELSE 'Unknown Album' END ELSE Album END AS GroupTitle,"
-            "MIN(CASE WHEN Artist IS NULL OR Artist='' THEN 'Unknown Artist' ELSE Artist END),"
-            "MAX(CASE WHEN ArtworkUrl IS NULL THEN '' ELSE ArtworkUrl END),"
+        auto sql = LibraryGroupingSql::EligibleTracksCte(
+            LibraryGroupingSql::GroupKind::Album)
+            + "SELECT GroupTitle,"
+            "MIN(CASE WHEN COALESCE(TRIM(Artist),'')='' THEN 'Unknown Artist' ELSE TRIM(Artist) END),"
+            "MAX(COALESCE(ArtworkUrl,'')),"
             "COUNT(*), SUM(CASE WHEN SourceKind='remote' THEN 1 ELSE 0 END) "
-            "FROM EffectiveTracks WHERE IsActive=1 AND Id NOT IN (SELECT at.TrackId FROM AlbumTracks at JOIN Albums a ON a.Id=at.AlbumId WHERE a.SourceKind<>'manual') GROUP BY GroupTitle ORDER BY GroupTitle COLLATE NOCASE ASC;";
+            "FROM EligibleLibraryTracks WHERE GroupTitle<>'' AND Id NOT IN ("
+            "SELECT at.TrackId FROM AlbumTracks at JOIN Albums a ON a.Id=at.AlbumId "
+            "WHERE a.SourceKind<>'manual') "
+            "GROUP BY GroupTitle COLLATE NOCASE "
+            "ORDER BY COUNT(*) DESC, GroupTitle COLLATE NOCASE ASC;";
 
         Statement collections{ m_db,
             "SELECT Id, AlbumKey, Title, Artist, ArtworkUrl, SourceKind, SourceUrl, SourceLabel, "
@@ -456,7 +462,7 @@ namespace LastMusicPlayer::Backend
             }
         }
 
-        Statement stmt{ m_db, kSql };
+        Statement stmt{ m_db, sql.c_str() };
         if (!stmt) return groups;
         while (sqlite3_step(stmt.value) == SQLITE_ROW)
         {
@@ -571,14 +577,19 @@ namespace LastMusicPlayer::Backend
         std::vector<TrackInfo> groups;
         if (!m_db) return groups;
 
-        static constexpr char kSql[] =
-            "SELECT CASE WHEN Artist IS NULL OR Artist='' THEN 'Unknown Artist' ELSE Artist END AS GroupTitle,"
-            "COUNT(*), COUNT(DISTINCT CASE WHEN Album IS NULL OR Album='' THEN 'Unknown Album' ELSE Album END),"
-            "MAX(CASE WHEN ArtworkUrl IS NULL THEN '' ELSE ArtworkUrl END),"
+        auto sql = LibraryGroupingSql::EligibleTracksCte(
+            LibraryGroupingSql::GroupKind::Artist)
+            + "SELECT GroupTitle, COUNT(*), "
+            "COUNT(DISTINCT CASE WHEN COALESCE(TRIM(Album),'')='' "
+            "OR LOWER(TRIM(Album))='unknown album' THEN NULL "
+            "ELSE LOWER(TRIM(Album)) END),"
+            "MAX(COALESCE(ArtworkUrl,'')),"
             "SUM(CASE WHEN SourceKind='remote' THEN 1 ELSE 0 END) "
-            "FROM EffectiveTracks WHERE IsActive=1 GROUP BY GroupTitle ORDER BY GroupTitle COLLATE NOCASE ASC;";
+            "FROM EligibleLibraryTracks WHERE GroupTitle<>'' "
+            "GROUP BY GroupTitle COLLATE NOCASE "
+            "ORDER BY COUNT(*) DESC, GroupTitle COLLATE NOCASE ASC;";
 
-        Statement stmt{ m_db, kSql };
+        Statement stmt{ m_db, sql.c_str() };
         if (!stmt) return groups;
         while (sqlite3_step(stmt.value) == SQLITE_ROW)
         {
@@ -604,12 +615,15 @@ namespace LastMusicPlayer::Backend
         std::vector<TrackInfo> groups;
         if (!m_db) return groups;
 
-        static constexpr char kSql[] =
-            "SELECT CASE WHEN Genre IS NULL OR Genre='' THEN 'Unknown Genre' ELSE Genre END AS GroupTitle,"
-            "COUNT(*), SUM(CASE WHEN SourceKind='remote' THEN 1 ELSE 0 END) "
-            "FROM EffectiveTracks WHERE IsActive=1 GROUP BY GroupTitle ORDER BY GroupTitle COLLATE NOCASE ASC;";
+        auto sql = LibraryGroupingSql::EligibleTracksCte(
+            LibraryGroupingSql::GroupKind::Genre)
+            + "SELECT GroupTitle, COUNT(*), "
+            "SUM(CASE WHEN SourceKind='remote' THEN 1 ELSE 0 END) "
+            "FROM EligibleLibraryTracks WHERE GroupTitle<>'' "
+            "GROUP BY GroupTitle COLLATE NOCASE "
+            "ORDER BY COUNT(*) DESC, GroupTitle COLLATE NOCASE ASC;";
 
-        Statement stmt{ m_db, kSql };
+        Statement stmt{ m_db, sql.c_str() };
         if (!stmt) return groups;
         while (sqlite3_step(stmt.value) == SQLITE_ROW)
         {
@@ -670,83 +684,31 @@ namespace LastMusicPlayer::Backend
         return genres;
     }
 
-    std::vector<TrackInfo> DatabaseEngine::LoadTracksForGroup(std::wstring const& groupKind, std::wstring const& groupKey) const
+    std::vector<TrackInfo> DatabaseEngine::LoadTracksForGroup(
+        std::wstring const& groupKind,
+        std::wstring const& groupKey) const
     {
-        std::scoped_lock lock{ m_mutex };
-        std::vector<TrackInfo> tracks;
-        if (!m_db || groupKey.empty())
+        if (groupKey.empty())
         {
-            return tracks;
+            return {};
         }
 
-        if (groupKind == L"album-collection")
+        auto normalizedKind = ToLowerInvariant(groupKind);
+        if (normalizedKind != L"album"
+            && normalizedKind != L"artist"
+            && normalizedKind != L"genre"
+            && normalizedKind != L"album-collection"
+            && normalizedKind != L"playlist")
         {
-            static constexpr char kCollectionSql[] =
-                "SELECT t.Id, t.SourceKind, t.Provider, t.SourceUrl, t.FilePath, t.Title, t.Artist, t.Album, t.Genre, t.DurationSeconds, t.ArtworkUrl, t.DateAddedSortKey, t.DateAddedText, t.DurationText, t.IsLiked "
-                "FROM AlbumTracks at "
-                "JOIN Albums a ON a.Id=at.AlbumId "
-                "JOIN Tracks t ON t.Id=at.TrackId "
-                "WHERE a.AlbumKey=?1 AND t.IsActive=1 "
-                "ORDER BY at.TrackOrder ASC, t.Title COLLATE NOCASE ASC;";
-
-            Statement stmt{ m_db, kCollectionSql };
-            if (!stmt) return tracks;
-            BindText(stmt.value, 1, groupKey);
-            int index = 1;
-            while (sqlite3_step(stmt.value) == SQLITE_ROW)
-            {
-                auto track = TrackFromStatement(stmt.value);
-                track.Index(index++);
-                tracks.push_back(track);
-            }
-            return tracks;
+            return {};
         }
 
-        if (groupKind == L"playlist")
-        {
-            static constexpr char kPlaylistSql[] =
-                "SELECT t.Id, t.SourceKind, t.Provider, t.SourceUrl, t.FilePath, t.Title, t.Artist, t.Album, t.Genre, t.DurationSeconds, t.ArtworkUrl, t.DateAddedSortKey, t.DateAddedText, t.DurationText, t.IsLiked "
-                "FROM PlaylistTracks pt "
-                "JOIN Playlists p ON p.Id=pt.PlaylistId "
-                "JOIN Tracks t ON t.Id=pt.TrackId "
-                "WHERE p.PlaylistKey=?1 AND t.IsActive=1 "
-                "ORDER BY pt.TrackOrder ASC, t.Title COLLATE NOCASE ASC;";
-
-            Statement stmt{ m_db, kPlaylistSql };
-            if (!stmt) return tracks;
-            BindText(stmt.value, 1, groupKey);
-            int index = 1;
-            while (sqlite3_step(stmt.value) == SQLITE_ROW)
-            {
-                auto track = TrackFromStatement(stmt.value);
-                track.Index(index++);
-                tracks.push_back(track);
-            }
-            return tracks;
-        }
-
-        char const* sql =
-            "SELECT Id, SourceKind, Provider, SourceUrl, FilePath, Title, Artist, Album, Genre, DurationSeconds, ArtworkUrl, DateAddedSortKey, DateAddedText, DurationText, IsLiked, RemoteId "
-            "FROM EffectiveTracks WHERE IsActive=1 AND "
-            "CASE ?1 "
-            "WHEN 'album' THEN CASE WHEN Album IS NULL OR Album='' THEN CASE WHEN SourceKind='remote' THEN 'Remote Singles' ELSE 'Unknown Album' END ELSE Album END "
-            "WHEN 'artist' THEN CASE WHEN Artist IS NULL OR Artist='' THEN 'Unknown Artist' ELSE Artist END "
-            "WHEN 'genre' THEN CASE WHEN Genre IS NULL OR Genre='' THEN 'Unknown Genre' ELSE Genre END "
-            "ELSE '' END = ?2 "
-            "ORDER BY CASE WHEN DateAddedSortKey IS NULL THEN 0 ELSE DateAddedSortKey END DESC, Title COLLATE NOCASE ASC;";
-
-        Statement stmt{ m_db, sql };
-        if (!stmt) return tracks;
-        BindText(stmt.value, 1, groupKind);
-        BindText(stmt.value, 2, groupKey);
-        int index = 1;
-        while (sqlite3_step(stmt.value) == SQLITE_ROW)
-        {
-            auto track = TrackFromStatement(stmt.value);
-            track.Index(index++);
-            tracks.push_back(track);
-        }
-        return tracks;
+        TrackQuery query;
+        query.GroupKind = std::move(normalizedKind);
+        query.GroupKey = groupKey;
+        query.IncludeRemote = true;
+        query.ActiveOnly = true;
+        return LoadTracksForQuery(query);
     }
 
     LibraryStats DatabaseEngine::GetLibraryStats() const
