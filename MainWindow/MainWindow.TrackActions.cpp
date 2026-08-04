@@ -510,13 +510,7 @@ namespace winrt::Last_Music_Player::implementation
         }
 
         auto artist = track.Artist().empty() ? winrt::hstring{ L"Unknown Artist" } : track.Artist();
-        HomeViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
-        SettingsViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
-        SongsViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
-        HomeCatalogViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
-        LibraryViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Visible);
-        ExitSearchMode();
-        UpdateNavSelection(L"Library");
+        ShowPrimaryView(L"Library");
         ShowLibraryDetail(L"artist", artist, artist, L"");
     }
 
@@ -532,13 +526,7 @@ namespace winrt::Last_Music_Player::implementation
             ? (remote ? winrt::hstring{ L"Remote Singles" } : winrt::hstring{ L"Unknown Album" })
             : track.Album();
 
-        HomeViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
-        SettingsViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
-        SongsViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
-        HomeCatalogViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
-        LibraryViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Visible);
-        ExitSearchMode();
-        UpdateNavSelection(L"Library");
+        ShowPrimaryView(L"Library");
         ShowLibraryDetail(L"album", album, album, track.Artist(), ApprovedDetailArtwork(track, L"album"), track);
     }
 

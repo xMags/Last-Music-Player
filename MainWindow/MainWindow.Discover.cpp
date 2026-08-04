@@ -953,13 +953,12 @@ namespace winrt::Last_Music_Player::implementation
             return;
         }
 
+        // The catalog is not a destination of its own: it opens in Home's place
+        // and leaves Home selected in the rail. So the ordinary page switch runs
+        // first, and the catalog then takes the slot Home would have filled.
+        ShowPrimaryView(L"Home");
         HomeViewContainer().Visibility(Visibility::Collapsed);
-        SettingsViewContainer().Visibility(Visibility::Collapsed);
-        SongsViewContainer().Visibility(Visibility::Collapsed);
-        LibraryViewContainer().Visibility(Visibility::Collapsed);
         HomeCatalogViewContainer().Visibility(Visibility::Visible);
-        ExitSearchMode();
-        UpdateNavSelection(L"Home");
 
         DiscoverChartGalleryPage().Visibility(surface == CatalogSurface::ChartGallery ? Visibility::Visible : Visibility::Collapsed);
         DiscoverChartPage().Visibility(surface == CatalogSurface::Chart ? Visibility::Visible : Visibility::Collapsed);
