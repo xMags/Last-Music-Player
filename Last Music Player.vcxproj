@@ -186,6 +186,7 @@
     <ClInclude Include="Backend\DatabaseAccountSchema.h" />
     <ClInclude Include="Backend\ProviderClient.h" />
     <ClInclude Include="Backend\ProviderHelpers.h" />
+    <ClInclude Include="Backend\TrackSearchPolicy.h" />
     <ClInclude Include="Backend\CastEngine.h" />
     <ClInclude Include="Backend\TrayIcon.h" />
     <ClInclude Include="Backend\DiscordPresence.h" />
@@ -270,6 +271,7 @@
     <ClCompile Include="Backend\DatabaseEngine.Account.cpp" />
     <ClCompile Include="Backend\ProviderClient.cpp" />
     <ClCompile Include="Backend\ProviderHelpers.cpp" />
+    <ClCompile Include="Backend\TrackSearchPolicy.cpp" />
     <ClCompile Include="Backend\LyricsService.cpp" />
     <ClCompile Include="Backend\CastEngine.cpp" />
     <ClCompile Include="Backend\TrayIcon.cpp" />
