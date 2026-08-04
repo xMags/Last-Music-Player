@@ -1213,10 +1213,9 @@ namespace winrt::Last_Music_Player::implementation::detail
         }
         track.SourceKind(L"remote");
         track.Provider(provider);
-        track.SourceLabel(L"Music API");
         // Keep the visible label provider-neutral. Routing identity remains in
         // the internal provider and source fields used by remote resolution.
-        track.DateAdded(L"Music API");
+        track.SourceLabel(L"Music API");
         auto durationMs = item.GetNamedNumber(L"durationMs", 0.0);
         track.DurationSeconds(durationMs > 0.0 ? durationMs / 1000.0 : 0.0);
         track.Duration(track.DurationSeconds() > 0.0

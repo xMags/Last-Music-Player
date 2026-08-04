@@ -1372,7 +1372,7 @@
                                                 <TextBlock Text="{x:Bind Artist}" Style="{StaticResource CaptionText}" TextTrimming="CharacterEllipsis" />
                                             </StackPanel>
                                             <TextBlock Grid.Column="2" Text="{x:Bind Album}" VerticalAlignment="Center" Foreground="{ThemeResource TextSecondaryBrush}" FontSize="13" TextTrimming="CharacterEllipsis" />
-                                            <TextBlock Grid.Column="3" Text="{x:Bind DateAdded}" VerticalAlignment="Center" Foreground="{ThemeResource TextTertiaryBrush}" FontSize="12" TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Grid.Column="3" Text="{x:Bind SourceLabel}" VerticalAlignment="Center" Foreground="{ThemeResource TextTertiaryBrush}" FontSize="12" TextTrimming="CharacterEllipsis" />
                                             <TextBlock Grid.Column="4" Text="{x:Bind Duration}" VerticalAlignment="Center" HorizontalAlignment="Right" Foreground="{ThemeResource TextTertiaryBrush}" FontSize="13" />
                                         </Grid>
                                     </DataTemplate>
@@ -1429,7 +1429,7 @@
                                             </Grid>
                                             <TextBlock Grid.Row="2" Text="{x:Bind Title}" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" VerticalAlignment="Top" />
                                             <TextBlock Grid.Row="3" Text="{x:Bind Artist}" Style="{StaticResource CaptionText}" TextTrimming="CharacterEllipsis" />
-                                            <TextBlock Grid.Row="4" Text="{x:Bind DateAdded}" Style="{StaticResource CaptionText}" TextTrimming="CharacterEllipsis" Opacity="0.8" />
+                                            <TextBlock Grid.Row="4" Text="{x:Bind SourceLabel}" Style="{StaticResource CaptionText}" TextTrimming="CharacterEllipsis" Opacity="0.8" />
                                         </Grid>
                                     </DataTemplate>
                                 </GridView.ItemTemplate>
