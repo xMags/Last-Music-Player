@@ -374,7 +374,19 @@ namespace winrt::Last_Music_Player::implementation
         {
             ObserveCatalogGridContainers(grid);
         }
+
+        // The row lists need this every bit as much as the tile grids: a list
+        // recycles a handful of rows for the whole collection, so without the
+        // container hook only the rows realized on the first layout ever ask
+        // for artwork and everything scrolled to afterwards stays blank. Listed
+        // one by one because these are not all the same control type.
         ObserveCatalogGridContainers(SearchSongsListView());
+        ObserveCatalogGridContainers(MusicListView());
+        ObserveCatalogGridContainers(DiscoverDetailTracksListView());
+        ObserveCatalogGridContainers(LibrarySongsListView());
+        ObserveCatalogGridContainers(LibraryDetailTracksListView());
+        ObserveCatalogGridContainers(UpNextListView());
+        ObserveCatalogGridContainers(FsUpNext());
     }
 
     void MainWindow::ObserveCatalogGridContainers(
