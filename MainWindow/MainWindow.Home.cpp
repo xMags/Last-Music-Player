@@ -394,12 +394,17 @@ namespace winrt::Last_Music_Player::implementation
 
         // The plan badge only means something for an account identity, so it
         // disappears entirely rather than showing a stale or invented tier.
+        // Upper-cased to read as a badge next to the sidebar's other micro
+        // labels; the plan itself is still whatever the account reports.
         if (auto tb = ProfileSidebarPlan())
         {
-            tb.Text(identity.PlanLabel);
-            tb.Visibility(identity.PlanLabel.empty()
-                ? Visibility::Collapsed
-                : Visibility::Visible);
+            std::wstring plan{ identity.PlanLabel.c_str() };
+            std::transform(plan.begin(), plan.end(), plan.begin(), [](wchar_t character)
+            {
+                return static_cast<wchar_t>(std::towupper(character));
+            });
+            tb.Text(winrt::hstring{ plan });
+            tb.Visibility(plan.empty() ? Visibility::Collapsed : Visibility::Visible);
         }
 
         detail::ApplyAvatarPicture(ProfileSidebarAvatarImage(), ProfileSidebarAvatarGlyph(), identity.AvatarUrl);
