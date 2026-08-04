@@ -1189,6 +1189,12 @@ namespace winrt::Last_Music_Player::implementation
             {
                 m_autoSyncTimer.Stop();
             }
+            // Its tick captures this window by raw pointer, so an armed timer
+            // outliving the close would fire against freed memory.
+            if (m_accountArtworkRetryTimer && m_accountArtworkRetryTimer.IsRunning())
+            {
+                m_accountArtworkRetryTimer.Stop();
+            }
             m_cast.Disconnect();
             ClearCastCallbacks();
             return; // allow the close to proceed
