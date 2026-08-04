@@ -352,6 +352,26 @@ namespace winrt::Last_Music_Player::implementation
         SelectSongsFilter(L"Most");
     }
 
+    void MainWindow::HomeRecentlyAddedSeeAll_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
+    {
+        // "See all" on Recently Added -> Songs view, unfiltered but newest
+        // first. Unlike its siblings there is no chip for this shelf, so what
+        // stands in for one is the sort: the sort is set rather than assumed,
+        // because it persists across visits and the user may well have left it
+        // on something else.
+        SongsButton_Click(sender, args);
+        SelectSongsFilter(L"All");
+        if (m_songsSort != L"DateAdded")
+        {
+            m_songsSort = L"DateAdded";
+            if (auto label = SongsSortLabel())
+            {
+                label.Text(L"Date added");
+            }
+            ApplySongsFilterSort();
+        }
+    }
+
     void MainWindow::UpdateHomeGreeting(winrt::hstring const& displayName)
     {
         // Time-of-day greeting, picks a bucket by local hour. The name is
@@ -698,11 +718,15 @@ namespace winrt::Last_Music_Player::implementation
             auto copy = track;
             ResolveArtworkPresentation(copy, L"track");
             m_recentlyAddedTracks.Append(copy);
-            // DateAddedSortKey is only set for genuinely-added library
-            // entries (local scans, imported playlists). Search-result
-            // remote tracks land with key=0; surface the section only
-            // when at least one real library addition exists.
-            if (track.DateAddedSortKey() > 0.0)
+            // Only genuinely-added library entries carry a sort key, and the
+            // test is for a non-zero one rather than a positive one. Local
+            // scans and imports get a positive timestamp, but account sync
+            // assigns descending negatives to hold the order the server sent
+            // when it supplies no date of its own (MusicSyncService.cpp).
+            // Requiring a positive key therefore excluded every cloud track,
+            // which hid this whole section for accounts with no local files.
+            // A search result still lands on exactly zero and stays out.
+            if (track.DateAddedSortKey() != 0.0)
             {
                 anyMeaningfulRecentlyAdded = true;
             }
@@ -1357,6 +1381,14 @@ namespace winrt::Last_Music_Player::implementation
         }
         auto cacheScope = LastMusicPlayer::Backend::RemoteScopeCacheKey(remoteScope);
 
+        // Cleared on every exit below, so a refresh that is abandoned partway
+        // cannot strand the spinner. The count of queries that actually failed
+        // decides what the user is told once the pass ends.
+        ShowHomeMixStatus(L"Refreshing recommendations...", true);
+        int attempted = 0;
+        int failed = 0;
+        int remoteTrackCount = 0;
+
         auto topArtists = RankedHomeArtists(m_queue.CurrentPlaylist, m_homePlayCounts);
         auto artistOr = [&](size_t index, wchar_t const* fallback)
         {
@@ -1396,9 +1428,11 @@ namespace winrt::Last_Music_Player::implementation
         {
             if (refreshId != m_homeHydration.MixRefreshId)
             {
+                ClearHomeMixStatus();
                 co_return;
             }
 
+            ++attempted;
             try
             {
                 auto cacheKey = cacheScope + L"\nhome\n" + std::wstring(request.query.c_str());
@@ -1408,6 +1442,7 @@ namespace winrt::Last_Music_Player::implementation
                 {
                     if (!remoteMusic.IsCurrent(remoteScope))
                     {
+                        ClearHomeMixStatus();
                         co_return;
                     }
                     remoteTracks = cached->second;
@@ -1418,6 +1453,7 @@ namespace winrt::Last_Music_Player::implementation
                     if (refreshId != m_homeHydration.MixRefreshId
                         || !remoteMusic.IsCurrent(remoteScope))
                     {
+                        ClearHomeMixStatus();
                         co_return;
                     }
                     remoteTracks = ParseProviderTracks(payload, 8);
@@ -1467,25 +1503,74 @@ namespace winrt::Last_Music_Player::implementation
 
                 if (!remoteMusic.IsCurrent(remoteScope))
                 {
+                    ClearHomeMixStatus();
                     co_return;
                 }
+                remoteTrackCount += static_cast<int>(remoteTracks.size());
                 mix = std::move(merged);
             }
             catch (winrt::hresult_canceled const&)
             {
+                ClearHomeMixStatus();
                 co_return;
             }
             catch (...)
             {
+                // One query failing does not spoil the rest, but it is counted:
+                // a mix that got nothing from the provider is still a local-only
+                // mix, and until now that was indistinguishable from success.
+                ++failed;
                 continue;
             }
         }
 
-        if (refreshId == m_homeHydration.MixRefreshId
-            && remoteMusic.IsCurrent(remoteScope))
+        if (refreshId != m_homeHydration.MixRefreshId
+            || !remoteMusic.IsCurrent(remoteScope))
         {
-            RefreshAutoPlaylists();
+            ClearHomeMixStatus();
+            co_return;
         }
+
+        RefreshAutoPlaylists();
+
+        if (failed == attempted && attempted > 0)
+        {
+            // Nothing got through at all, so the mixes on screen are purely
+            // local. Say so rather than leave them looking freshly recommended.
+            ShowHomeMixStatus(L"Could not refresh recommendations. Showing mixes from your library.", false);
+        }
+        else if (remoteTrackCount == 0 && attempted > 0)
+        {
+            // Every query answered, and none of them had anything to add.
+            ShowHomeMixStatus(L"Recommendations will appear as you listen to more music.", false);
+        }
+        else
+        {
+            ClearHomeMixStatus();
+        }
+    }
+
+    void MainWindow::ShowHomeMixStatus(winrt::hstring const& message, bool busy)
+    {
+        using winrt::Microsoft::UI::Xaml::Visibility;
+        if (auto ring = HomeMixProgressRing())
+        {
+            ring.IsActive(busy);
+            ring.Visibility(busy ? Visibility::Visible : Visibility::Collapsed);
+        }
+        if (auto text = HomeMixStatusText())
+        {
+            text.Text(message);
+        }
+        if (auto panel = HomeMixStatusPanel())
+        {
+            panel.Visibility(message.empty() ? Visibility::Collapsed : Visibility::Visible);
+        }
+    }
+
+    void MainWindow::ClearHomeMixStatus()
+    {
+        ShowHomeMixStatus(L"", false);
     }
 
 }

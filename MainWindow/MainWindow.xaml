@@ -879,6 +879,21 @@
 
                                 </StackPanel>
                             </ScrollViewer>
+
+                            <!-- Sits under the mixes row, as it does on web and
+                                 Android. The mixes are built from the local
+                                 library first and then blended with provider
+                                 recommendations, so this is the only thing that
+                                 distinguishes "still fetching" from "fetched and
+                                 there was nothing to add". -->
+                            <Grid x:Name="HomeMixStatusPanel" Visibility="Collapsed" Margin="0,14,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <ProgressRing x:Name="HomeMixProgressRing" Width="16" Height="16" IsActive="False" VerticalAlignment="Center" Margin="0,0,10,0" />
+                                <TextBlock x:Name="HomeMixStatusText" Grid.Column="1" Style="{StaticResource CaptionText}" VerticalAlignment="Center" TextWrapping="Wrap" />
+                            </Grid>
                         </StackPanel>
 
                         <!-- Matches the web and Android ordering: mood collections
@@ -1046,12 +1061,15 @@
                              dominate the carousel meaninglessly. Hidden state
                              matches Most Played + Liked Songs behaviour. -->
                         <StackPanel x:Name="HomeRecentlyAddedSection" Visibility="Collapsed">
-                            <StackPanel Orientation="Horizontal" Spacing="14" Margin="0,0,0,16" VerticalAlignment="Center">
-                                <TextBlock Text="Recently Added" Style="{StaticResource TitleH2}" />
-                                <Border Background="{ThemeResource NeutralFillBrush}" BorderBrush="{ThemeResource StrokeBrush}" BorderThickness="1" CornerRadius="999" Padding="9,3" VerticalAlignment="Center">
-                                    <TextBlock Text="LOCAL" FontSize="10" Foreground="{ThemeResource TextSecondaryBrush}" FontWeight="SemiBold" CharacterSpacing="40" />
-                                </Border>
-                            </StackPanel>
+                            <Grid Margin="0,0,0,16" VerticalAlignment="Center">
+                                <StackPanel Orientation="Horizontal" Spacing="14" VerticalAlignment="Center">
+                                    <TextBlock Text="Recently Added" Style="{StaticResource TitleH2}" />
+                                    <Border Background="{ThemeResource NeutralFillBrush}" BorderBrush="{ThemeResource StrokeBrush}" BorderThickness="1" CornerRadius="999" Padding="9,3" VerticalAlignment="Center">
+                                        <TextBlock Text="NEW" FontSize="10" Foreground="{ThemeResource TextSecondaryBrush}" FontWeight="SemiBold" CharacterSpacing="40" />
+                                    </Border>
+                                </StackPanel>
+                                <Button x:Name="HomeRecentlyAddedSeeAllButton" Content="See all &#x203A;" Click="HomeRecentlyAddedSeeAll_Click" HorizontalAlignment="Right" VerticalAlignment="Center" Background="Transparent" BorderThickness="0" Padding="6,2" FontSize="12" FontWeight="SemiBold" Foreground="{ThemeResource AccentBrush}" />
+                            </Grid>
 
                             <Grid x:Name="RecentlyAddedSkeletonHost" Visibility="Collapsed" Margin="0,4,0,24" />
                             <GridView x:Name="HomeRecentlyAddedGridView"
