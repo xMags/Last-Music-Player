@@ -288,7 +288,7 @@ namespace winrt::Last_Music_Player::implementation
                     accountBinding->Scope,
                     selectedPlaylist.RemoteId(),
                     trackJson);
-                co_await SynchronizeAccountLibraryAsync(false);
+                co_await SynchronizeAccountLibraryAsync(AccountSyncMode::Implicit);
                 operationLease.reset();
                 LibraryImportStatusText().Text(L"Added to account playlist");
             }
@@ -484,7 +484,7 @@ namespace winrt::Last_Music_Player::implementation
         RunDetached(HydrateHomeAsync(false));
         if (accountTrack)
         {
-            RunDetached(SynchronizeAccountLibraryAsync(false));
+            RunDetached(SynchronizeAccountLibraryAsync(AccountSyncMode::Implicit));
         }
 
         if (!detailKind.empty() && !detailKey.empty())

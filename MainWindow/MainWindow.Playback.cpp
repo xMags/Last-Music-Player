@@ -188,7 +188,7 @@ namespace winrt::Last_Music_Player::implementation
             && snapshot.Generation == playbackAccountGeneration
             && snapshot.Profile.Id == winrt::hstring(playbackAccountOwner))
         {
-            RunDetached(SynchronizeAccountLibraryAsync(false));
+            RunDetached(SynchronizeAccountLibraryAsync(AccountSyncMode::Implicit));
         }
     }
 

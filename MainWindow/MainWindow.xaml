@@ -1325,6 +1325,17 @@
                                             </StackPanel>
                                             <Button x:Name="AccountClearDataButton" Grid.Column="1" Click="AccountClearData_Click" CornerRadius="{StaticResource RadiusMd}" Padding="12,6" Content="Clear synced data" IsEnabled="False" />
                                         </Grid>
+                                        <Grid ColumnSpacing="16">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Spacing="4">
+                                                <TextBlock Text="Keep this PC up to date" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" />
+                                                <TextBlock Text="Check for changes made on your other devices while the app is open." Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
+                                            </StackPanel>
+                                            <ToggleSwitch x:Name="AutoSyncSwitch" Grid.Column="1" IsOn="True" Toggled="SettingsToggle_Toggled" OnContent="" OffContent="" MinWidth="0" VerticalAlignment="Center" />
+                                        </Grid>
                                     </StackPanel>
                                 </Border>
 
