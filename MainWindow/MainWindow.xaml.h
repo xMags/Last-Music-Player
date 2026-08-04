@@ -342,12 +342,38 @@ namespace winrt::Last_Music_Player::implementation
             detail::ArtworkDetail Detail{};
         };
 
+        // Which queue a pending request is waiting in. Tiles the user is looking
+        // at are fetched first and with more parallelism; everything else fills
+        // in behind them, so a page still ends up complete without the whole
+        // page competing for the relay at once.
+        enum class AccountArtworkPriority
+        {
+            Visible,
+            Backfill,
+        };
+
         struct AccountArtworkRequest
         {
             uint64_t Id{};
             winrt::hstring ArtworkUrl;
             winrt::hstring SourceUrl;
             std::vector<AccountArtworkTarget> Targets;
+            AccountArtworkPriority Priority{ AccountArtworkPriority::Backfill };
+            // Transport attempts already spent. A relay that is refusing a burst
+            // fails many tiles at once, and dropping them there is what left
+            // permanent gaps, so a transient failure is re-queued rather than
+            // discarded until this reaches the ceiling.
+            int Attempts{};
+            // Set while the request sits in the deferred list, so a promotion to
+            // Visible does not also queue a second copy of it.
+            bool Deferred{};
+        };
+
+        // A request waiting out its backoff before it may be tried again.
+        struct DeferredAccountArtworkRequest
+        {
+            std::wstring Key;
+            std::chrono::steady_clock::time_point DueAt;
         };
 
         // The encoded bytes, not a decoded bitmap. Two Image elements must never
@@ -618,11 +644,30 @@ namespace winrt::Last_Music_Player::implementation
             winrt::hstring artworkUrl,
             winrt::hstring sourceUrl);
         void StartAccountArtworkRequests();
-        void CompleteAccountArtworkRequest();
+        void CompleteAccountArtworkRequest(AccountArtworkPriority priority);
         winrt::fire_and_forget HydrateAccountArtworkAsync(
             winrt::hstring requestKey,
-            uint64_t requestId);
+            uint64_t requestId,
+            AccountArtworkPriority priority);
         void ClearAccountArtworkCache();
+
+        // Moves a pending request to the front of the visible queue. Called when
+        // a tile scrolls into view, so what the user is looking at overtakes the
+        // backfill that was queued ahead of it.
+        void PromoteAccountArtworkRequest(std::wstring const& key);
+
+        // Watches a tile so its artwork is fetched at visible priority once it
+        // reaches the viewport. The registration removes itself after it fires,
+        // since a tile only needs promoting once.
+        void ObserveAccountArtworkViewport(
+            winrt::Microsoft::UI::Xaml::Controls::Image const& image,
+            std::wstring const& key);
+
+        // Puts a transiently failed request back in line after a backoff, and
+        // arms the timer that returns due requests to the queue.
+        void DeferAccountArtworkRequest(std::wstring const& key, int attempts);
+        void EnsureAccountArtworkRetryTimer();
+        void ReleaseDueAccountArtworkRequests();
 
         // ----- Home catalog discovery -----
         enum class CatalogSurface
@@ -744,9 +789,18 @@ namespace winrt::Last_Music_Player::implementation
             m_accountArtworkCache;
         std::size_t m_accountArtworkCacheBytes{ 0 };
         std::unordered_map<std::wstring, AccountArtworkRequest> m_accountArtworkRequests;
-        std::deque<std::wstring> m_accountArtworkQueue;
+        // Two lines rather than one: the visible queue is drained first and to a
+        // higher concurrency, so scrolling to a shelf does not wait behind every
+        // tile queued before it.
+        std::deque<std::wstring> m_accountArtworkVisibleQueue;
+        std::deque<std::wstring> m_accountArtworkBackfillQueue;
+        std::vector<DeferredAccountArtworkRequest> m_deferredAccountArtwork;
         std::size_t m_activeAccountArtworkRequests{ 0 };
+        std::size_t m_activeAccountArtworkBackfill{ 0 };
         uint64_t m_accountArtworkRequestId{ 0 };
+        // Returns deferred requests to the queue. Only armed while something is
+        // actually waiting, so an idle page runs no timer at all.
+        winrt::Microsoft::UI::Dispatching::DispatcherQueueTimer m_accountArtworkRetryTimer{ nullptr };
 
         // ----- Home catalog discovery -----
         // Generation counter for discovery work. A storefront switch or a sign-out

@@ -16,6 +16,7 @@
 #include <algorithm>
 #include <array>
 #include <chrono>
+#include <memory>
 #include <string>
 #include <utility>
 #include <vector>
@@ -29,11 +30,43 @@ namespace winrt::Last_Music_Player::implementation
         // Budget for the encoded account artwork held in memory. Covers run
         // around 300-600 KB each, so this holds well over a hundred of them.
         constexpr std::size_t kMaxCachedAccountArtworkBytes = 64u * 1024u * 1024u;
-        constexpr std::size_t kMaxConcurrentAccountArtworkRequests = 2;
+
+        // Total transport slots, and the share of them backfill may occupy.
+        // Backfill is capped below the total so a tile scrolled into view always
+        // finds a slot instead of queueing behind off-screen work.
+        constexpr std::size_t kMaxConcurrentAccountArtworkRequests = 6;
+        constexpr std::size_t kMaxConcurrentAccountArtworkBackfill = 2;
+
+        // Delays between transport attempts within a single run.
         constexpr std::array kAccountArtworkRetryDelays{
             std::chrono::milliseconds{ 500 },
             std::chrono::milliseconds{ 1500 }
         };
+
+        // A run that exhausts those and still failed transiently is re-queued
+        // instead of dropped, which is what stopped throttled tiles from ever
+        // recovering. The ceiling is on runs, not attempts, so the real limit is
+        // this many times the retries above.
+        constexpr int kMaxAccountArtworkRuns = 5;
+
+        // Backoff before a re-queued run, indexed by runs already spent. Long
+        // enough that a relay refusing a burst has stopped refusing by the time
+        // the tail comes back to it.
+        constexpr std::array kAccountArtworkRunBackoff{
+            std::chrono::milliseconds{ 2000 },
+            std::chrono::milliseconds{ 5000 },
+            std::chrono::milliseconds{ 12000 },
+            std::chrono::milliseconds{ 30000 }
+        };
+
+        // How often the deferred list is swept. Coarse on purpose: these are
+        // decorative images and a few seconds of imprecision costs nothing.
+        constexpr std::chrono::milliseconds kAccountArtworkRetrySweep{ 1000 };
+
+        // How close to the viewport a tile must come before its artwork is
+        // promoted, as a multiple of the viewport size. Slightly ahead of the
+        // scroll so art is usually there by the time the tile is.
+        constexpr double kAccountArtworkViewportMargin = 1.0;
 
         // Whether a parsed payload has anything worth putting on screen. A
         // request can succeed and still yield nothing usable, either because the
@@ -271,6 +304,9 @@ namespace winrt::Last_Music_Player::implementation
             {
                 pending->second.Targets.push_back(std::move(target));
             }
+            // Another tile for the same image may already be on screen even
+            // though the one that first asked was not.
+            ObserveAccountArtworkViewport(image, key);
             return;
         }
 
@@ -280,18 +316,108 @@ namespace winrt::Last_Music_Player::implementation
         request.ArtworkUrl = hasArtworkUrl ? normalized : winrt::hstring{};
         request.SourceUrl = canResolveSource ? sourceUrl : winrt::hstring{};
         request.Targets.push_back(std::move(target));
+        // Everything starts as backfill. A tile that is actually on screen gets
+        // promoted by the viewport callback below, which fires as soon as XAML
+        // has laid it out, so the visible rows still go first.
+        request.Priority = AccountArtworkPriority::Backfill;
         m_accountArtworkRequests.emplace(key, std::move(request));
-        m_accountArtworkQueue.push_back(key);
+        m_accountArtworkBackfillQueue.push_back(key);
+        ObserveAccountArtworkViewport(image, key);
+        StartAccountArtworkRequests();
+    }
+
+    void MainWindow::ObserveAccountArtworkViewport(
+        winrt::Microsoft::UI::Xaml::Controls::Image const& image,
+        std::wstring const& key)
+    {
+        // Weak, not strong: the subscription is owned by the image, which the
+        // window owns in turn, so a strong capture would close a cycle for every
+        // tile that never comes into view.
+        auto weakSelf = get_weak();
+        winrt::hstring requestKey{ key };
+        // The token is stored in the closure so the handler can detach itself.
+        // A tile only ever needs promoting once, and leaving the subscription
+        // attached would keep firing for the rest of the element's life.
+        auto token = std::make_shared<winrt::event_token>();
+        *token = image.EffectiveViewportChanged(
+            [weakSelf, requestKey, token](
+                winrt::Microsoft::UI::Xaml::FrameworkElement const& sender,
+                winrt::Microsoft::UI::Xaml::EffectiveViewportChangedEventArgs const& args)
+            {
+                // BringIntoViewDistance is zero once the element is inside the
+                // viewport and grows as it moves away, so this admits a tile
+                // that is on screen or within a screen of it.
+                auto viewport = args.EffectiveViewport();
+                auto marginX = viewport.Width * kAccountArtworkViewportMargin;
+                auto marginY = viewport.Height * kAccountArtworkViewportMargin;
+                if (args.BringIntoViewDistanceX() > marginX
+                    || args.BringIntoViewDistanceY() > marginY)
+                {
+                    return;
+                }
+                sender.EffectiveViewportChanged(*token);
+                if (auto self = weakSelf.get())
+                {
+                    self->PromoteAccountArtworkRequest(std::wstring{ requestKey.c_str() });
+                }
+            });
+    }
+
+    void MainWindow::PromoteAccountArtworkRequest(std::wstring const& key)
+    {
+        auto pending = m_accountArtworkRequests.find(key);
+        if (pending == m_accountArtworkRequests.end()
+            || pending->second.Priority == AccountArtworkPriority::Visible)
+        {
+            return;
+        }
+        pending->second.Priority = AccountArtworkPriority::Visible;
+
+        // A deferred request keeps its place in the deferred list: promoting it
+        // must not let it skip the backoff it is waiting out, or a scrolling
+        // user would hammer a relay that is already refusing.
+        if (pending->second.Deferred)
+        {
+            return;
+        }
+
+        auto queued = std::find(
+            m_accountArtworkBackfillQueue.begin(),
+            m_accountArtworkBackfillQueue.end(),
+            key);
+        if (queued == m_accountArtworkBackfillQueue.end())
+        {
+            // Already running. It will finish at whatever concurrency it took.
+            return;
+        }
+        m_accountArtworkBackfillQueue.erase(queued);
+        m_accountArtworkVisibleQueue.push_back(key);
         StartAccountArtworkRequests();
     }
 
     void MainWindow::StartAccountArtworkRequests()
     {
-        while (m_activeAccountArtworkRequests < kMaxConcurrentAccountArtworkRequests
-            && !m_accountArtworkQueue.empty())
+        while (m_activeAccountArtworkRequests < kMaxConcurrentAccountArtworkRequests)
         {
-            auto key = std::move(m_accountArtworkQueue.front());
-            m_accountArtworkQueue.pop_front();
+            std::wstring key;
+            auto priority = AccountArtworkPriority::Visible;
+
+            if (!m_accountArtworkVisibleQueue.empty())
+            {
+                key = std::move(m_accountArtworkVisibleQueue.front());
+                m_accountArtworkVisibleQueue.pop_front();
+            }
+            else if (m_activeAccountArtworkBackfill < kMaxConcurrentAccountArtworkBackfill
+                && !m_accountArtworkBackfillQueue.empty())
+            {
+                key = std::move(m_accountArtworkBackfillQueue.front());
+                m_accountArtworkBackfillQueue.pop_front();
+                priority = AccountArtworkPriority::Backfill;
+            }
+            else
+            {
+                break;
+            }
 
             auto pending = m_accountArtworkRequests.find(key);
             if (pending == m_accountArtworkRequests.end())
@@ -300,24 +426,131 @@ namespace winrt::Last_Music_Player::implementation
             }
 
             ++m_activeAccountArtworkRequests;
+            if (priority == AccountArtworkPriority::Backfill)
+            {
+                ++m_activeAccountArtworkBackfill;
+            }
             HydrateAccountArtworkAsync(
                 winrt::hstring{ key },
-                pending->second.Id);
+                pending->second.Id,
+                priority);
         }
     }
 
-    void MainWindow::CompleteAccountArtworkRequest()
+    void MainWindow::CompleteAccountArtworkRequest(AccountArtworkPriority priority)
     {
         if (m_activeAccountArtworkRequests > 0)
         {
             --m_activeAccountArtworkRequests;
         }
+        // Released against the slot it was started on, not the priority it may
+        // have been promoted to since, or the backfill count would drift.
+        if (priority == AccountArtworkPriority::Backfill && m_activeAccountArtworkBackfill > 0)
+        {
+            --m_activeAccountArtworkBackfill;
+        }
         StartAccountArtworkRequests();
+    }
+
+    void MainWindow::DeferAccountArtworkRequest(std::wstring const& key, int attempts)
+    {
+        auto pending = m_accountArtworkRequests.find(key);
+        if (pending == m_accountArtworkRequests.end())
+        {
+            return;
+        }
+        // Parenthesised because windows.h defines min/max as macros.
+        auto index = static_cast<std::size_t>((std::max)(0, attempts - 1));
+        auto delay = kAccountArtworkRunBackoff[
+            (std::min)(index, kAccountArtworkRunBackoff.size() - 1)];
+
+        pending->second.Deferred = true;
+        m_deferredAccountArtwork.push_back(
+            DeferredAccountArtworkRequest{ key, std::chrono::steady_clock::now() + delay });
+        EnsureAccountArtworkRetryTimer();
+    }
+
+    void MainWindow::EnsureAccountArtworkRetryTimer()
+    {
+        if (m_deferredAccountArtwork.empty())
+        {
+            return;
+        }
+        if (!m_accountArtworkRetryTimer)
+        {
+            auto queue = DispatcherQueue();
+            if (!queue)
+            {
+                return;
+            }
+            m_accountArtworkRetryTimer = queue.CreateTimer();
+            m_accountArtworkRetryTimer.Interval(kAccountArtworkRetrySweep);
+            // Raw `this` is safe here only because the timer is stopped in the
+            // window's teardown alongside the other timers it owns.
+            m_accountArtworkRetryTimer.Tick(
+                [this](
+                    winrt::Microsoft::UI::Dispatching::DispatcherQueueTimer const&,
+                    winrt::Windows::Foundation::IInspectable const&)
+                {
+                    ReleaseDueAccountArtworkRequests();
+                });
+        }
+        if (!m_accountArtworkRetryTimer.IsRunning())
+        {
+            m_accountArtworkRetryTimer.Start();
+        }
+    }
+
+    void MainWindow::ReleaseDueAccountArtworkRequests()
+    {
+        auto now = std::chrono::steady_clock::now();
+        auto due = std::stable_partition(
+            m_deferredAccountArtwork.begin(),
+            m_deferredAccountArtwork.end(),
+            [&](DeferredAccountArtworkRequest const& entry)
+            {
+                return entry.DueAt > now;
+            });
+
+        std::vector<DeferredAccountArtworkRequest> ready{
+            std::make_move_iterator(due),
+            std::make_move_iterator(m_deferredAccountArtwork.end()) };
+        m_deferredAccountArtwork.erase(due, m_deferredAccountArtwork.end());
+
+        for (auto const& entry : ready)
+        {
+            auto pending = m_accountArtworkRequests.find(entry.Key);
+            if (pending == m_accountArtworkRequests.end())
+            {
+                continue;
+            }
+            pending->second.Deferred = false;
+            // Requeued at whatever priority it holds now: a tile the user has
+            // scrolled to while it was waiting goes back as visible work.
+            if (pending->second.Priority == AccountArtworkPriority::Visible)
+            {
+                m_accountArtworkVisibleQueue.push_back(entry.Key);
+            }
+            else
+            {
+                m_accountArtworkBackfillQueue.push_back(entry.Key);
+            }
+        }
+
+        if (m_deferredAccountArtwork.empty() && m_accountArtworkRetryTimer)
+        {
+            m_accountArtworkRetryTimer.Stop();
+        }
+        if (!ready.empty())
+        {
+            StartAccountArtworkRequests();
+        }
     }
 
     winrt::fire_and_forget MainWindow::HydrateAccountArtworkAsync(
         winrt::hstring requestKey,
-        uint64_t requestId)
+        uint64_t requestId,
+        AccountArtworkPriority priority)
     {
         auto lifetime = get_strong();
         auto dispatcher = DispatcherQueue();
@@ -328,11 +561,12 @@ namespace winrt::Last_Music_Player::implementation
         auto initial = m_accountArtworkRequests.find(key);
         if (initial == m_accountArtworkRequests.end() || initial->second.Id != requestId)
         {
-            CompleteAccountArtworkRequest();
+            CompleteAccountArtworkRequest(priority);
             co_return;
         }
         auto artworkUrl = initial->second.ArtworkUrl;
         auto sourceUrl = initial->second.SourceUrl;
+        auto runsSpent = ++initial->second.Attempts;
 
         if (artworkUrl.empty() && !sourceUrl.empty())
         {
@@ -348,6 +582,10 @@ namespace winrt::Last_Music_Player::implementation
 
         winrt::Windows::Storage::Streams::IBuffer buffer{ nullptr };
         bool fetched = false;
+        // Whether the last failure was the kind that another run could survive:
+        // a throttle or a server-side wobble, as opposed to a 404 for artwork
+        // that genuinely is not there. Only the former earns a re-queue.
+        bool transientFailure = false;
         if (!artworkUrl.empty() && IsHttpUrl(artworkUrl))
         {
             for (std::size_t attempt = 0;
@@ -362,13 +600,16 @@ namespace winrt::Last_Music_Player::implementation
                     // URLs server-side.
                     buffer = co_await remoteMusic.GetAccountArtworkAsync(artworkUrl);
                     fetched = buffer && buffer.Length() > 0;
+                    transientFailure = false;
                 }
                 catch (winrt::hresult_error const& error)
                 {
                     retry = IsTransientAccountArtworkError(error);
+                    transientFailure = retry;
                 }
                 catch (...)
                 {
+                    transientFailure = false;
                 }
 
                 if (fetched
@@ -387,13 +628,37 @@ namespace winrt::Last_Music_Player::implementation
         auto pending = m_accountArtworkRequests.find(key);
         if (pending == m_accountArtworkRequests.end() || pending->second.Id != requestId)
         {
-            CompleteAccountArtworkRequest();
+            CompleteAccountArtworkRequest(priority);
             co_return;
         }
-        if (!fetched || !remoteMusic.IsCurrent(scope))
+        if (!fetched)
         {
+            // A relay refusing a burst fails a whole tail of tiles at once.
+            // Dropping them here is what left those tiles grey for the rest of
+            // the session, with nothing to bring them back: the element has
+            // already loaded, so its handler never runs again. Give a transient
+            // failure another run after a backoff instead, and only give up for
+            // good once the runs are spent or the failure was never going to
+            // resolve itself.
+            if (transientFailure
+                && runsSpent < kMaxAccountArtworkRuns
+                && remoteMusic.IsCurrent(scope))
+            {
+                DeferAccountArtworkRequest(key, runsSpent);
+            }
+            else
+            {
+                m_accountArtworkRequests.erase(pending);
+            }
+            CompleteAccountArtworkRequest(priority);
+            co_return;
+        }
+        if (!remoteMusic.IsCurrent(scope))
+        {
+            // The account moved out from under this fetch, so the bytes belong
+            // to a session that is no longer on screen.
             m_accountArtworkRequests.erase(pending);
-            CompleteAccountArtworkRequest();
+            CompleteAccountArtworkRequest(priority);
             co_return;
         }
 
@@ -423,7 +688,7 @@ namespace winrt::Last_Music_Player::implementation
                 artworkUrl,
                 sourceUrl);
         }
-        CompleteAccountArtworkRequest();
+        CompleteAccountArtworkRequest(priority);
     }
 
     void MainWindow::ClearAccountArtworkCache()
@@ -431,7 +696,16 @@ namespace winrt::Last_Music_Player::implementation
         m_accountArtworkCache.clear();
         m_accountArtworkCacheBytes = 0;
         m_accountArtworkRequests.clear();
-        m_accountArtworkQueue.clear();
+        m_accountArtworkVisibleQueue.clear();
+        m_accountArtworkBackfillQueue.clear();
+        m_deferredAccountArtwork.clear();
+        if (m_accountArtworkRetryTimer)
+        {
+            m_accountArtworkRetryTimer.Stop();
+        }
+        // In-flight runs are not cancelled, only orphaned: each still resumes
+        // and releases its own slot through the request-not-found path, so the
+        // active counters stay balanced without being reset here.
         ++m_accountArtworkRequestId;
     }
 
