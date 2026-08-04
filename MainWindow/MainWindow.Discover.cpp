@@ -181,7 +181,7 @@ namespace winrt::Last_Music_Player::implementation
         // Revalidating both before and after the decode: the checks below are
         // what keep a recycled container or a newer now-playing track from being
         // overwritten, and the decode yields the thread in between.
-        auto stillWanted = [&target, &requestKey, &artworkUrl, &sourceUrl]()
+        auto stillWanted = [&target, &requestKey]()
         {
             if (!target.Image)
             {
@@ -197,28 +197,26 @@ namespace winrt::Last_Music_Player::implementation
                 return false;
             }
 
-            if (!target.Track)
-            {
-                return true;
-            }
-
-            if (sourceUrl.empty())
-            {
-                if (NormalizeMusicArtworkUrl(target.Track.ArtworkUrl()) != artworkUrl)
-                {
-                    return false;
-                }
-            }
-            else if (target.Track.SourceUrl() != sourceUrl)
-            {
-                return false;
-            }
-
-            // DataTemplate containers are recycled. If the image now belongs to
-            // a different TrackInfo, the URL tag alone is not enough when two
-            // tracks happen to share the same cover.
-            auto currentTrack = target.Image.DataContext().try_as<winrt::Last_Music_Player::TrackInfo>();
-            return !currentTrack || currentTrack == target.Track;
+            // The tag is the whole answer. It is written at registration from
+            // whichever track the container is taking on, and any later
+            // registration for that same element overwrites it, so a tag that
+            // still reads back as this request means no newer item has claimed
+            // the element and the bytes are still the ones it wants.
+            //
+            // This deliberately does not consult the element's DataContext.
+            // Artwork is requested from ContainerContentChanging, which runs
+            // before the container's DataContext has been repointed at its new
+            // item: it still holds the previous one. Comparing against it
+            // rejected the very applies that were correct, and because the
+            // source is cleared when the request is registered, the tile was
+            // left permanently blank rather than merely stale.
+            //
+            // Nor does it re-derive the URL from the track. The request key was
+            // built from those fields at registration, so the tag comparison
+            // above has already made that check; repeating it against a
+            // possibly different TrackInfo instance for the same song only
+            // reintroduces the same false rejection.
+            return true;
         };
 
         if (!bytes || bytes.Length() == 0 || !stillWanted())
