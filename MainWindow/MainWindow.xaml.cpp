@@ -619,6 +619,7 @@ namespace winrt::Last_Music_Player::implementation
         ApplyUserDisplayName();
 
         AttachSkeletons();
+        AttachArtworkGridObservers();
 
         // Launch counts as a background sync attempt. RestoreAccountIntegrationAsync
         // already syncs on the way up and the window's first activation arrives
