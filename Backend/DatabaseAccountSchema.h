@@ -140,7 +140,17 @@ namespace LastMusicPlayer::Backend::DatabaseAccountSchema
         "UNION ALL "
         "SELECT -a.rowid, 'account|' || a.AccountId || '|' || a.RemoteId, 'remote', 'account', "
         "a.SourceUrl, '', a.Title, a.Artist, a.Album, a.Genre, a.DurationSeconds, a.ArtworkUrl, "
-        "a.DateAddedSortKey, a.DateAddedText, a.DurationText, a.PlayCount, "
+        // An account track only carries a date of its own when the service sent
+        // one, which it does not for anything picked up from the catalog: those
+        // arrive with a zero key and so sorted as though they had never been
+        // added, which emptied the Recently Added shelf for a library with no
+        // local files. Fall back to when the track was first, then last, heard.
+        // This is the same chain the web client uses: addedAt, firstPlayedAt,
+        // lastPlayedAt, so both clients order the shelf alike.
+        "CASE WHEN COALESCE(a.DateAddedSortKey,0)<>0 THEN a.DateAddedSortKey "
+        "ELSE COALESCE(CAST(strftime('%s', a.FirstPlayedAtUtc) AS REAL), "
+        "CAST(strftime('%s', a.LastPlayedAtUtc) AS REAL), 0) END, "
+        "a.DateAddedText, a.DurationText, a.PlayCount, "
         "COALESCE(CAST(strftime('%s', a.LastPlayedAtUtc) AS INTEGER),0), a.IsLiked, 1, "
         "COALESCE(CAST(strftime('%s', a.UpdatedAtUtc) AS INTEGER),0), a.LastPlayedAtUtc, a.RemoteId "
         "FROM AccountTracks a JOIN ActiveAccountContext c ON c.SingletonId=1 AND c.RemoteMode='Account' AND c.AccountId=a.AccountId;";
