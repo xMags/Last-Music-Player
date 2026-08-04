@@ -11,6 +11,7 @@
 #include "Backend/AccountSessionGateway.h"
 #include "Backend/AccountSessionService.h"
 #include "Backend/BuildConfig.h"
+#include "Backend/ProfileIdentity.h"
 #include "Backend/RemoteMusicService.h"
 #include "Backend/LoopbackCallback.h"
 #include "Backend/Pkce.h"
@@ -1445,6 +1446,114 @@ namespace
         }
     }
 
+    void TestProfileIdentitySelection()
+    {
+        account::AccountProfile full;
+        full.Id = L"owner-1";
+        full.Username = L"debashis";
+        full.DisplayName = L"  Debashis  ";
+        full.AvatarUrl = L"https://cdn.example.test/avatar.png";
+        full.PlanLabel = L" Premium ";
+
+        // Only account mode with a live-or-cached session hands the shell over
+        // to the server-owned profile.
+        auto connected = account::ChooseProfileIdentity(
+            account::RemoteAccessMode::Account,
+            account::AccountSessionStatus::Validated,
+            full,
+            L"Typed Name");
+        Expect(connected.Source == account::ProfileIdentitySource::Account,
+            "a validated account session did not take over the identity");
+        Expect(connected.Name == L"Debashis", "the account display name was not trimmed");
+        Expect(connected.AvatarUrl == full.AvatarUrl, "the account avatar was dropped");
+        Expect(connected.PlanLabel == L"Premium", "the plan label was not trimmed");
+
+        auto offline = account::ChooseProfileIdentity(
+            account::RemoteAccessMode::Account,
+            account::AccountSessionStatus::Offline,
+            full,
+            L"Typed Name");
+        Expect(offline.Source == account::ProfileIdentitySource::Account,
+            "an offline session fell back to the manual identity");
+        Expect(offline.Name == L"Debashis", "the cached profile name was not used while offline");
+
+        // The manual name is only ignored, never consumed, so every other
+        // combination restores exactly what the user typed.
+        for (auto mode : { account::RemoteAccessMode::LocalOnly, account::RemoteAccessMode::ApiKey })
+        {
+            auto manual = account::ChooseProfileIdentity(
+                mode,
+                account::AccountSessionStatus::Validated,
+                full,
+                L"  Typed Name  ");
+            Expect(manual.Source == account::ProfileIdentitySource::Manual,
+                "a non-account mode adopted the account identity");
+            Expect(manual.Name == L"Typed Name", "the manual name was not trimmed");
+            Expect(manual.AvatarUrl.empty(), "a non-account mode kept the account avatar");
+            Expect(manual.PlanLabel.empty(), "a non-account mode kept the account plan label");
+        }
+
+        auto signedOut = account::ChooseProfileIdentity(
+            account::RemoteAccessMode::Account,
+            account::AccountSessionStatus::SignedOut,
+            account::AccountProfile{},
+            L"Typed Name");
+        Expect(signedOut.Source == account::ProfileIdentitySource::Manual,
+            "account mode without a session claimed an account identity");
+        Expect(signedOut.Name == L"Typed Name", "signing out discarded the manual name");
+
+        auto signingIn = account::ChooseProfileIdentity(
+            account::RemoteAccessMode::Account,
+            account::AccountSessionStatus::SigningIn,
+            full,
+            L"Typed Name");
+        Expect(signingIn.Source == account::ProfileIdentitySource::Manual,
+            "an in-flight sign-in published the profile before it was validated");
+
+        // The server treats display name, username and plan as optional, so
+        // each one degrades on its own rather than voiding the whole identity.
+        account::AccountProfile usernameOnly;
+        usernameOnly.Id = L"owner-2";
+        usernameOnly.Username = L"listener42";
+        auto byUsername = account::ChooseProfileIdentity(
+            account::RemoteAccessMode::Account,
+            account::AccountSessionStatus::Validated,
+            usernameOnly,
+            L"Typed Name");
+        Expect(byUsername.Source == account::ProfileIdentitySource::Account,
+            "a profile with no display name lost its account identity");
+        Expect(byUsername.Name == L"listener42", "the username was not used as the display fallback");
+        Expect(byUsername.PlanLabel.empty(), "a missing plan label was invented");
+
+        account::AccountProfile nameless;
+        nameless.Id = L"owner-3";
+        auto byManual = account::ChooseProfileIdentity(
+            account::RemoteAccessMode::Account,
+            account::AccountSessionStatus::Validated,
+            nameless,
+            L"Typed Name");
+        Expect(byManual.Name == L"Typed Name",
+            "a nameless profile did not fall back to the manual name");
+        Expect(byManual.Source == account::ProfileIdentitySource::Account,
+            "a nameless profile stopped being an account identity");
+
+        auto unnamed = account::ChooseProfileIdentity(
+            account::RemoteAccessMode::Account,
+            account::AccountSessionStatus::Validated,
+            nameless,
+            L"   ");
+        Expect(unnamed.Name == account::kDefaultListenerName,
+            "an identity with no name anywhere did not fall back to Listener");
+
+        auto blankManual = account::ChooseProfileIdentity(
+            account::RemoteAccessMode::LocalOnly,
+            account::AccountSessionStatus::SignedOut,
+            account::AccountProfile{},
+            L" \t ");
+        Expect(blankManual.Name == account::kDefaultListenerName,
+            "a whitespace-only manual name did not fall back to Listener");
+    }
+
     void TestSyncableRemoteSources()
     {
         // Catalog rows are resolved to a playable source at playback time, so
@@ -2833,6 +2942,7 @@ int wmain()
         TestLoopbackListenerLifecycle();
         TestAccountRedirectProtection();
         TestAccountOriginAndSafeErrors();
+        TestProfileIdentitySelection();
         TestSyncableRemoteSources();
         TestCatalogDiscoveryParsing();
         TestCatalogChartAndDetailParsing();

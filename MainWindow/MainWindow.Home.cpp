@@ -352,26 +352,11 @@ namespace winrt::Last_Music_Player::implementation
         SelectSongsFilter(L"Most");
     }
 
-    namespace
+    void MainWindow::UpdateHomeGreeting(winrt::hstring const& displayName)
     {
-        // Single source of truth for the display name shown across the
-        // app. Trims surrounding whitespace and falls back to "Listener"
-        // when the user hasn't set anything (or has cleared the field).
-        std::wstring EffectiveDisplayName()
-        {
-            auto raw = SettingsManagerService().GetString(L"UserDisplayName", L"");
-            std::wstring s{ raw.c_str() };
-            while (!s.empty() && std::iswspace(s.front())) s.erase(s.begin());
-            while (!s.empty() && std::iswspace(s.back()))  s.pop_back();
-            return s.empty() ? std::wstring{ L"Listener" } : s;
-        }
-    }
-
-    void MainWindow::UpdateHomeGreeting()
-    {
-        // Time-of-day greeting, picks a bucket by local hour. Display
-        // name comes from the UserDisplayName setting, editable via the
-        // Settings -> Profile section, default "Listener".
+        // Time-of-day greeting, picks a bucket by local hour. The name is
+        // resolved by the caller because in Account mode it comes from the
+        // signed-in profile rather than the UserDisplayName setting.
         SYSTEMTIME now{};
         GetLocalTime(&now);
         wchar_t const* greetingPrefix = L"Good evening";
@@ -382,7 +367,7 @@ namespace winrt::Last_Music_Player::implementation
 
         std::wstring greeting{ greetingPrefix };
         greeting += L", ";
-        greeting += EffectiveDisplayName();
+        greeting += displayName;
         if (auto tb = HomeGreeting())
         {
             tb.Text(winrt::hstring{ greeting });
@@ -391,21 +376,35 @@ namespace winrt::Last_Music_Player::implementation
 
     void MainWindow::ApplyUserDisplayName()
     {
-        // Pushes the current UserDisplayName setting (or its "Listener"
-        // fallback) to every UI surface that shows the user's name:
-        // sidebar name label, "Made for X" carousel header, Home
-        // greeting. The avatar glyph is name-agnostic so it's not
-        // touched here.
-        auto effective = EffectiveDisplayName();
+        // Pushes the resolved identity to every shell surface that shows who
+        // the user is: sidebar name, sidebar avatar and plan badge, "Made for
+        // X" carousel header, and the Home greeting. Which identity that is
+        // (typed name or MagnetoFX profile) is decided by ChooseProfileIdentity.
+        auto identity = detail::ResolveProfileIdentity();
+        std::wstring name{ identity.Name.c_str() };
+
         if (auto tb = ProfileSidebarName())
         {
-            tb.Text(winrt::hstring{ effective });
+            tb.Text(identity.Name);
         }
         if (auto tb = HomeMadeForTitle())
         {
-            tb.Text(winrt::hstring{ L"Made for " + effective });
+            tb.Text(winrt::hstring{ L"Made for " + name });
         }
-        UpdateHomeGreeting();
+
+        // The plan badge only means something for an account identity, so it
+        // disappears entirely rather than showing a stale or invented tier.
+        if (auto tb = ProfileSidebarPlan())
+        {
+            tb.Text(identity.PlanLabel);
+            tb.Visibility(identity.PlanLabel.empty()
+                ? Visibility::Collapsed
+                : Visibility::Visible);
+        }
+
+        detail::ApplyAvatarPicture(ProfileSidebarAvatarImage(), ProfileSidebarAvatarGlyph(), identity.AvatarUrl);
+
+        UpdateHomeGreeting(identity.Name);
     }
 
     void MainWindow::HomeMadeForAll_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)

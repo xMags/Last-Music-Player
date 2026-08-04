@@ -318,21 +318,25 @@
                 <!-- Profile Section -->
                 <Border Grid.Row="2" BorderBrush="{ThemeResource DividerBrush}" BorderThickness="0,1,0,0" Padding="16, 20">
                     <StackPanel Orientation="Horizontal" Spacing="12">
-                        <!-- Avatar: user-silhouette glyph centred inside an accent ring.
-                             Name-agnostic; the sidebar text label below still shows the
-                             current UserDisplayName. -->
+                        <!-- Avatar: the account profile picture once one decodes,
+                             otherwise a user-silhouette glyph inside an accent ring.
+                             The glyph stays up until ImageOpened fires so a slow or
+                             broken picture never shows as an empty circle. -->
                         <Grid Width="40" Height="40">
                             <Ellipse Stroke="{ThemeResource AccentBrush}" StrokeThickness="1.5">
                                 <Ellipse.Fill>
                                     <SolidColorBrush Color="Transparent" />
                                 </Ellipse.Fill>
                             </Ellipse>
-                            <FontIcon Glyph="&#xE77B;" FontSize="22" Foreground="{ThemeResource AccentBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            <Border Width="40" Height="40" CornerRadius="20">
+                                <Image x:Name="ProfileSidebarAvatarImage" Loaded="ArtworkImage_Loaded" Stretch="UniformToFill" Visibility="Collapsed" />
+                            </Border>
+                            <FontIcon x:Name="ProfileSidebarAvatarGlyph" Glyph="&#xE77B;" FontSize="22" Foreground="{ThemeResource AccentBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Grid>
 
                         <StackPanel VerticalAlignment="Center" Margin="0,0,0,0">
                             <TextBlock x:Name="ProfileSidebarName" Text="Listener" FontWeight="SemiBold" Foreground="{ThemeResource TextPrimaryBrush}" />
-                            <TextBlock Text="PREMIUM" FontSize="10" Foreground="{ThemeResource AccentBrush}" FontWeight="SemiBold" />
+                            <TextBlock x:Name="ProfileSidebarPlan" Text="" FontSize="10" Foreground="{ThemeResource AccentBrush}" FontWeight="SemiBold" Visibility="Collapsed" />
                         </StackPanel>
                     </StackPanel>
                 </Border>
@@ -1219,12 +1223,36 @@
                                 <TextBlock Text="Tune playback, library and appearance" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" TextWrapping="Wrap" />
                             </StackPanel>
 
-                            <!-- ===== Profile ===== -->
-                            <StackPanel x:Name="SetSecProfile" Spacing="20">
-                                <TextBlock Text="Profile" Style="{StaticResource TitleH2}" TextWrapping="Wrap" />
+                            <!-- ===== Account ===== -->
+                            <!-- The operation mode decides where music comes from and, with it,
+                                 who the app says you are: the identity card below shows the
+                                 rename box on the local and API key modes, and the MagnetoFX
+                                 profile on account mode. Sign-in and the API key fields stay
+                                 visible in every mode on purpose, because RemoteMusicService
+                                 only lets a mode be selected once that mode's own setup is
+                                 already complete. -->
+                            <StackPanel x:Name="SetSecAccount" Spacing="20">
+                                <TextBlock Text="Account" Style="{StaticResource TitleH2}" TextWrapping="Wrap" />
+
                                 <Border Style="{StaticResource SettingsCard}">
-                                    <StackPanel>
-                                        <Grid ColumnSpacing="14">
+                                    <StackPanel Spacing="12">
+                                        <StackPanel Spacing="4">
+                                            <TextBlock Text="Operation mode" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" />
+                                            <TextBlock Text="Where your music comes from. Local files remain available in every mode." Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
+                                        </StackPanel>
+                                        <RadioButtons x:Name="RemoteModeSelector" SelectionChanged="RemoteMode_SelectionChanged">
+                                            <RadioButton x:Name="RemoteModeLocal" Content="Local files only" Tag="LocalOnly" />
+                                            <RadioButton x:Name="RemoteModeAccount" Content="Account" Tag="Account" />
+                                            <RadioButton x:Name="RemoteModeApiKey" Content="API key" Tag="ApiKey" />
+                                        </RadioButtons>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Exactly one of these two panels is visible; C++ picks which
+                                     from the resolved identity source. -->
+                                <Border Style="{StaticResource SettingsCard}">
+                                    <Grid>
+                                        <Grid x:Name="SettingsIdentityManualPanel" ColumnSpacing="14">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="Auto" />
                                                 <ColumnDefinition Width="*" />
@@ -1247,7 +1275,86 @@
                                                 </Grid>
                                             </StackPanel>
                                         </Grid>
+                                        <Grid x:Name="SettingsIdentityAccountPanel" Visibility="Collapsed" ColumnSpacing="14">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <Border Grid.Column="0" Width="56" Height="56" CornerRadius="28" Background="{ThemeResource ControlFillColorSecondaryBrush}" VerticalAlignment="Center">
+                                                <Grid>
+                                                    <Image x:Name="AccountAvatarImage" Loaded="ArtworkImage_Loaded" Stretch="UniformToFill" Visibility="Collapsed" />
+                                                    <FontIcon x:Name="AccountAvatarFallback" Glyph="&#xE77B;" FontSize="24" Foreground="{ThemeResource TextSecondaryBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                </Grid>
+                                            </Border>
+                                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                                                <TextBlock x:Name="AccountDisplayNameText" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" />
+                                                <TextBlock x:Name="AccountUsernameText" Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
+                                                <TextBlock x:Name="AccountPlanText" Style="{StaticResource CaptionText}" Foreground="{ThemeResource TextTertiaryBrush}" TextWrapping="Wrap" />
+                                                <TextBlock Text="Your name and picture come from your account. Rename yourself by switching to another operation mode." Style="{StaticResource CaptionText}" Foreground="{ThemeResource TextTertiaryBrush}" TextWrapping="Wrap" Margin="0,4,0,0" />
+                                                <HyperlinkButton x:Name="AccountManageButton" Click="AccountManage_Click" Content="Manage account" Padding="0" MinHeight="0" HorizontalAlignment="Left" Visibility="Collapsed" />
+                                            </StackPanel>
+                                        </Grid>
+                                    </Grid>
+                                </Border>
+
+                                <Border Style="{StaticResource SettingsCard}">
+                                    <StackPanel Spacing="16">
+                                        <Grid ColumnSpacing="16">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Spacing="4">
+                                                <TextBlock Text="Account connection" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" />
+                                                <TextBlock x:Name="AccountStatusText" Text="Checking account status..." Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                                <Button x:Name="AccountSignInButton" Click="AccountSignIn_Click" CornerRadius="{StaticResource RadiusMd}" Padding="16,7" Content="Sign in" />
+                                                <Button x:Name="AccountSyncButton" Click="AccountSync_Click" CornerRadius="{StaticResource RadiusMd}" Padding="16,7" Content="Sync now" Visibility="Collapsed" />
+                                                <Button x:Name="AccountSignOutButton" Click="AccountSignOut_Click" CornerRadius="{StaticResource RadiusMd}" Padding="16,7" Content="Sign out" Visibility="Collapsed" />
+                                            </StackPanel>
+                                        </Grid>
+                                        <Grid ColumnSpacing="16">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Spacing="2">
+                                                <TextBlock Text="Account library on this PC" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" />
+                                                <TextBlock x:Name="AccountLastSyncText" Text="Not synchronized yet" Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
+                                            </StackPanel>
+                                            <Button x:Name="AccountClearDataButton" Grid.Column="1" Click="AccountClearData_Click" CornerRadius="{StaticResource RadiusMd}" Padding="12,6" Content="Clear synced data" IsEnabled="False" />
+                                        </Grid>
                                     </StackPanel>
+                                </Border>
+
+                                <Border Style="{StaticResource SettingsCard}">
+                                    <Grid ColumnSpacing="16">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Row="0" Grid.Column="0" Spacing="4">
+                                            <TextBlock Text="API key connection" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" />
+                                            <TextBlock x:Name="ProviderTestStatusText" Text="Ready" Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
+                                        </StackPanel>
+                                        <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                            <Button x:Name="ProviderTestButton" Click="PlayProviderTest_Click" CornerRadius="{StaticResource RadiusMd}" Padding="16,7">
+                                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                                    <FontIcon Glyph="&#xE8FB;" FontSize="13" />
+                                                    <TextBlock Text="Connect" FontSize="12" FontWeight="SemiBold" />
+                                                </StackPanel>
+                                            </Button>
+                                            <Button x:Name="ProviderDisconnectButton" Click="DisconnectProvider_Click" CornerRadius="{StaticResource RadiusMd}" Padding="16,7" Content="Disconnect" />
+                                        </StackPanel>
+                                        <TextBox x:Name="ProviderBaseUrlBox" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Text="http://127.0.0.1:4527" Header="Provider URL" Margin="0,12,0,0" />
+                                        <PasswordBox x:Name="ProviderApiKeyBox" Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Header="API key" PasswordRevealMode="Peek" Margin="0,8,0,0" />
+                                    </Grid>
                                 </Border>
                             </StackPanel>
 
@@ -1548,67 +1655,6 @@
                             <!-- ===== Integrations ===== -->
                             <StackPanel x:Name="SetSecIntegrations" Spacing="20">
                                 <TextBlock Text="Integrations" Style="{StaticResource TitleH2}" TextWrapping="Wrap" />
-                                <Border Style="{StaticResource SettingsCard}">
-                                    <StackPanel Spacing="16">
-                                        <Grid ColumnSpacing="16">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="Auto" />
-                                            </Grid.ColumnDefinitions>
-                                            <StackPanel Spacing="4">
-                                                <TextBlock Text="Account" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" />
-                                                <TextBlock x:Name="AccountStatusText" Text="Checking account status..." Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
-                                            </StackPanel>
-                                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                                                <Button x:Name="AccountSignInButton" Click="AccountSignIn_Click" CornerRadius="{StaticResource RadiusMd}" Padding="16,7" Content="Sign in" />
-                                                <Button x:Name="AccountSyncButton" Click="AccountSync_Click" CornerRadius="{StaticResource RadiusMd}" Padding="16,7" Content="Sync now" Visibility="Collapsed" />
-                                                <Button x:Name="AccountSignOutButton" Click="AccountSignOut_Click" CornerRadius="{StaticResource RadiusMd}" Padding="16,7" Content="Sign out" Visibility="Collapsed" />
-                                            </StackPanel>
-                                        </Grid>
-                                        <Grid x:Name="AccountProfilePanel" Visibility="Collapsed" ColumnSpacing="12">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="44" />
-                                                <ColumnDefinition Width="*" />
-                                            </Grid.ColumnDefinitions>
-                                            <Border Width="44" Height="44" CornerRadius="22" Background="{ThemeResource ControlFillColorSecondaryBrush}">
-                                                <Grid>
-                                                    <Image x:Name="AccountAvatarImage" Loaded="ArtworkImage_Loaded" Stretch="UniformToFill" Visibility="Collapsed" />
-                                                    <FontIcon x:Name="AccountAvatarFallback" Glyph="&#xE77B;" FontSize="20" Foreground="{ThemeResource TextSecondaryBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                                </Grid>
-                                            </Border>
-                                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
-                                                <TextBlock x:Name="AccountDisplayNameText" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" />
-                                                <TextBlock x:Name="AccountUsernameText" Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
-                                                <TextBlock x:Name="AccountPlanText" Style="{StaticResource CaptionText}" Foreground="{ThemeResource TextTertiaryBrush}" TextWrapping="Wrap" />
-                                                <HyperlinkButton x:Name="AccountManageButton" Click="AccountManage_Click" Content="Manage account" Padding="0" MinHeight="0" HorizontalAlignment="Left" Visibility="Collapsed" />
-                                            </StackPanel>
-                                        </Grid>
-                                        <Grid ColumnSpacing="16">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="Auto" />
-                                            </Grid.ColumnDefinitions>
-                                            <StackPanel Spacing="2">
-                                                <TextBlock Text="Account library on this PC" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" />
-                                                <TextBlock x:Name="AccountLastSyncText" Text="Not synchronized yet" Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
-                                            </StackPanel>
-                                            <Button x:Name="AccountClearDataButton" Grid.Column="1" Click="AccountClearData_Click" CornerRadius="{StaticResource RadiusMd}" Padding="12,6" Content="Clear synced data" IsEnabled="False" />
-                                        </Grid>
-                                    </StackPanel>
-                                </Border>
-                                <Border Style="{StaticResource SettingsCard}">
-                                    <StackPanel Spacing="12">
-                                        <StackPanel Spacing="4">
-                                            <TextBlock Text="Music source" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" />
-                                            <TextBlock Text="Choose one remote source. Local files remain available in every mode." Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
-                                        </StackPanel>
-                                        <RadioButtons x:Name="RemoteModeSelector" SelectionChanged="RemoteMode_SelectionChanged">
-                                            <RadioButton x:Name="RemoteModeLocal" Content="Local files only" Tag="LocalOnly" />
-                                            <RadioButton x:Name="RemoteModeAccount" Content="Account" Tag="Account" />
-                                            <RadioButton x:Name="RemoteModeApiKey" Content="API key" Tag="ApiKey" />
-                                        </RadioButtons>
-                                    </StackPanel>
-                                </Border>
                                 <!-- Only meaningful while the catalog is reachable, so its
                                      visibility follows the same check as the catalog itself. -->
                                 <Border x:Name="SettingsCatalogRegionCard" Style="{StaticResource SettingsCard}" Visibility="Collapsed">
@@ -1622,34 +1668,6 @@
                                             <TextBlock Text="Which country's Apple Music charts and featured music appear on Home." Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
                                         </StackPanel>
                                         <ComboBox x:Name="DiscoverStorefrontSelector" Grid.Column="1" MinWidth="200" VerticalAlignment="Center" SelectionChanged="DiscoverStorefront_SelectionChanged" />
-                                    </Grid>
-                                </Border>
-                                <Border Style="{StaticResource SettingsCard}">
-                                    <Grid ColumnSpacing="16">
-                                        <Grid.RowDefinitions>
-                                            <RowDefinition Height="Auto" />
-                                            <RowDefinition Height="Auto" />
-                                            <RowDefinition Height="Auto" />
-                                        </Grid.RowDefinitions>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="Auto" />
-                                        </Grid.ColumnDefinitions>
-                                        <StackPanel Grid.Row="0" Grid.Column="0" Spacing="4">
-                                            <TextBlock Text="API key connection" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" />
-                                            <TextBlock x:Name="ProviderTestStatusText" Text="Ready" Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
-                                        </StackPanel>
-                                        <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                                            <Button x:Name="ProviderTestButton" Click="PlayProviderTest_Click" CornerRadius="{StaticResource RadiusMd}" Padding="16,7">
-                                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                                    <FontIcon Glyph="&#xE8FB;" FontSize="13" />
-                                                    <TextBlock Text="Connect" FontSize="12" FontWeight="SemiBold" />
-                                                </StackPanel>
-                                            </Button>
-                                            <Button x:Name="ProviderDisconnectButton" Click="DisconnectProvider_Click" CornerRadius="{StaticResource RadiusMd}" Padding="16,7" Content="Disconnect" />
-                                        </StackPanel>
-                                        <TextBox x:Name="ProviderBaseUrlBox" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Text="http://127.0.0.1:4527" Header="Provider URL" Margin="0,12,0,0" />
-                                        <PasswordBox x:Name="ProviderApiKeyBox" Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Header="API key" PasswordRevealMode="Peek" Margin="0,8,0,0" />
                                     </Grid>
                                 </Border>
                                 <Border Style="{StaticResource SettingsCard}">
