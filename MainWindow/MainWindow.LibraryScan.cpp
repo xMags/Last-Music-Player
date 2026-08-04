@@ -369,11 +369,11 @@ namespace winrt::Last_Music_Player::implementation
         if (ScanMusicButton()) ScanMusicButton().IsEnabled(controlsEnabled);
         if (SongsRescanButton()) SongsRescanButton().IsEnabled(controlsEnabled);
         if (ChangeFolderButton()) ChangeFolderButton().IsEnabled(controlsEnabled);
-        if (visible && SongsViewContainer().Visibility() == winrt::Microsoft::UI::Xaml::Visibility::Visible && !status.empty())
+        if (visible && LibrarySongsBrowser().Visibility() == winrt::Microsoft::UI::Xaml::Visibility::Visible && !status.empty())
         {
             SongsSubtitle().Text(status);
         }
-        else if (!visible && SongsViewContainer().Visibility() == winrt::Microsoft::UI::Xaml::Visibility::Visible)
+        else if (!visible && LibrarySongsBrowser().Visibility() == winrt::Microsoft::UI::Xaml::Visibility::Visible)
         {
             UpdateSongsStats();
         }
@@ -651,17 +651,36 @@ namespace winrt::Last_Music_Player::implementation
                 finishScan();
                 co_return false;
             }
-            if (SongsViewContainer().Visibility() == winrt::Microsoft::UI::Xaml::Visibility::Visible)
-            {
-
-                try { ApplySongsFilterSort(); } catch (...) {}
-
-            }
             if (LibraryViewContainer().Visibility() == winrt::Microsoft::UI::Xaml::Visibility::Visible)
             {
-
-                try { co_await HydrateLibraryTabAsync(L"Playlists", true); } catch (...) {}
-
+                try
+                {
+                    if (LibrarySongsBrowser().Visibility() == winrt::Microsoft::UI::Xaml::Visibility::Visible)
+                    {
+                        ApplySongsFilterSort();
+                    }
+                    else if (LibHistoryPanel().Visibility() == winrt::Microsoft::UI::Xaml::Visibility::Visible)
+                    {
+                        co_await HydrateLibraryTabAsync(L"History", true);
+                    }
+                    else if (LibAlbumsGrid().Visibility() == winrt::Microsoft::UI::Xaml::Visibility::Visible)
+                    {
+                        co_await HydrateLibraryTabAsync(L"Albums", true);
+                    }
+                    else if (LibArtistsGrid().Visibility() == winrt::Microsoft::UI::Xaml::Visibility::Visible)
+                    {
+                        co_await HydrateLibraryTabAsync(L"Artists", true);
+                    }
+                    else if (LibGenresPanel().Visibility() == winrt::Microsoft::UI::Xaml::Visibility::Visible)
+                    {
+                        co_await HydrateLibraryTabAsync(L"Genres", true);
+                    }
+                    else
+                    {
+                        co_await HydrateLibraryTabAsync(L"Playlists", true);
+                    }
+                }
+                catch (...) {}
             }
             finishScan();
             co_return true;

@@ -87,6 +87,46 @@ namespace winrt::Last_Music_Player::implementation
     }
 
 
+    void MainWindow::LibraryPlaylistCardMenu_Opening(
+        winrt::Windows::Foundation::IInspectable const& sender,
+        winrt::Windows::Foundation::IInspectable const& args)
+    {
+        (void)args;
+        auto menu = sender.try_as<winrt::Microsoft::UI::Xaml::Controls::MenuFlyout>();
+        if (!menu)
+        {
+            return;
+        }
+
+        winrt::Last_Music_Player::TrackInfo playlist{ nullptr };
+        for (auto const& item : menu.Items())
+        {
+            auto action = item.try_as<winrt::Microsoft::UI::Xaml::Controls::MenuFlyoutItem>();
+            if (!action)
+            {
+                continue;
+            }
+            playlist = action.CommandParameter().try_as<winrt::Last_Music_Player::TrackInfo>();
+            if (playlist)
+            {
+                break;
+            }
+        }
+
+        auto visibility = playlist && playlist.SourceKind() == L"playlist"
+            ? winrt::Microsoft::UI::Xaml::Visibility::Visible
+            : winrt::Microsoft::UI::Xaml::Visibility::Collapsed;
+        for (auto const& item : menu.Items())
+        {
+            auto element = item.try_as<winrt::Microsoft::UI::Xaml::FrameworkElement>();
+            if (element && ReadTagString(element.Tag()) == L"EditablePlaylistAction")
+            {
+                element.Visibility(visibility);
+            }
+        }
+    }
+
+
     void MainWindow::LibraryRowMenuPlayNow_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
     {
         (void)args;

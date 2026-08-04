@@ -128,7 +128,7 @@ namespace winrt::Last_Music_Player::implementation
         LibAlbumsGrid().ItemsSource(m_albums);
         LibArtistsGrid().ItemsSource(m_artists);
         LibGenresGrid().ItemsSource(m_libraryGenres);
-        LibManualPlaylistsGrid().ItemsSource(m_manualPlaylists);
+        LibManualPlaylistsGrid().ItemsSource(m_yourPlaylists);
         LibAutoPlaylistsGrid().ItemsSource(m_autoPlaylists);
         LibraryDetailTracksListView().ItemsSource(m_libraryDetailTracks);
         if (LibTabPlaylists())
@@ -719,14 +719,14 @@ namespace winrt::Last_Music_Player::implementation
         UpdateAboutStats();
     }
 
-    void MainWindow::SongsButton_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
+    void MainWindow::OpenLibrarySongs()
     {
-        (void)sender;
-        (void)args;
-        ShowPrimaryView(L"Songs");
-        if (!m_songsResultsValid)
+        ShowPrimaryView(L"Library");
+        HideLibraryDetail();
+        if (LibTabSongs())
         {
-            ApplySongsFilterSort();
+            LibTabSongs().IsChecked(true);
+            LibraryTab_Checked(LibTabSongs(), nullptr);
         }
     }
 
@@ -999,7 +999,6 @@ namespace winrt::Last_Music_Player::implementation
         ViewRow const rows[] = {
             { HomeViewContainer(), L"Home" },
             { BrowseViewContainer(), L"Browse" },
-            { SongsViewContainer(), L"Songs" },
             { LibraryViewContainer(), L"Library" },
             { SettingsViewContainer(), L"Settings" },
         };
@@ -1035,7 +1034,6 @@ namespace winrt::Last_Music_Player::implementation
         NavRow rows[] = {
             { HomeButton(), HomeGlyph(), HomeLabel(), L"Home" },
             { BrowseButton(), BrowseGlyph(), BrowseLabel(), L"Browse" },
-            { SongsButton(), SongsGlyph(), SongsLabel(), L"Songs" },
             { LibraryButton(), LibraryGlyph(), LibraryLabel(), L"Library" },
             { SettingsButton(), SettingsGlyph(), SettingsLabel(), L"Settings" },
         };

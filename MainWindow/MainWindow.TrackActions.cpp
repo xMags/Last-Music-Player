@@ -534,7 +534,9 @@ namespace winrt::Last_Music_Player::implementation
 
     void MainWindow::LikedSongsButton_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
     {
-        SongsButton_Click(sender, args);
+        (void)sender;
+        (void)args;
+        OpenLibrarySongs();
         SelectSongsFilter(L"Fav");
     }
 

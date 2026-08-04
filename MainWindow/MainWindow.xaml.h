@@ -70,7 +70,7 @@ namespace winrt::Last_Music_Player::implementation
 
         void HomeButton_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void SettingsNav_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
-        void SongsButton_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void OpenLibrarySongs();
         void BrowseButton_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         // Home's bar is only a way in to Browse; both the click and a tap on the
         // surrounding chrome land on the same place.
@@ -148,6 +148,7 @@ namespace winrt::Last_Music_Player::implementation
         winrt::Windows::Foundation::IAsyncAction LibraryAlbumDelete_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         winrt::Windows::Foundation::IAsyncAction LibraryPlaylistRename_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         winrt::Windows::Foundation::IAsyncAction LibraryPlaylistDelete_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void LibraryPlaylistCardMenu_Opening(winrt::Windows::Foundation::IInspectable const& sender, winrt::Windows::Foundation::IInspectable const& args);
         void LibraryPlaylistFilter_Checked(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void LibraryTab_Checked(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void LibraryScope_SelectionChanged(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::SelectionChangedEventArgs const& args);
@@ -931,6 +932,12 @@ namespace winrt::Last_Music_Player::implementation
         winrt::Windows::Foundation::Collections::IObservableVector<winrt::Last_Music_Player::TrackInfo> m_libraryGenres{
             winrt::single_threaded_observable_vector<winrt::Last_Music_Player::TrackInfo>()
         };
+        // Display projection for the default playlist segment. The first three
+        // entries are read-only system playlists; m_manualPlaylists remains the
+        // editable-only authority used by create, rename, delete, and add flows.
+        winrt::Windows::Foundation::Collections::IObservableVector<winrt::Last_Music_Player::TrackInfo> m_yourPlaylists{
+            winrt::single_threaded_observable_vector<winrt::Last_Music_Player::TrackInfo>()
+        };
         winrt::Windows::Foundation::Collections::IObservableVector<winrt::Last_Music_Player::TrackInfo> m_manualPlaylists{
             winrt::single_threaded_observable_vector<winrt::Last_Music_Player::TrackInfo>()
         };
@@ -1013,7 +1020,7 @@ namespace winrt::Last_Music_Player::implementation
         LoadState m_libraryGenresState{ LoadState::NotLoaded };
         LoadState m_libraryPlaylistsState{ LoadState::NotLoaded };
         LoadState m_libraryDetailState{ LoadState::NotLoaded };
-        std::wstring m_libraryPlaylistFilter{ L"Auto" };
+        std::wstring m_libraryPlaylistFilter{ L"Manual" };
         std::wstring m_librarySongsFilter{ L"All" };
         std::wstring m_libraryScope{ L"All" };
         std::vector<AccountPlaylistBinding> m_accountPlaylistBindings;
