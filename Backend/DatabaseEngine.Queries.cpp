@@ -338,12 +338,41 @@ namespace LastMusicPlayer::Backend
     std::vector<TrackInfo> DatabaseEngine::LoadRecentlyAddedTracks(int limit) const
     {
         std::scoped_lock lock{ m_mutex };
-        TrackQuery query;
-        query.Filter = L"All";
-        query.Sort = L"DateAdded";
-        query.Offset = 0;
-        query.Limit = limit;
-        return LoadTrackPage(query).Tracks;
+        std::vector<TrackInfo> tracks;
+        if (!m_db)
+        {
+            return tracks;
+        }
+
+        // Queried straight from the view, like the history and most-played
+        // shelves either side of it, rather than through the paged library
+        // query: that one carries scope and grouping rules meant for the songs
+        // list, which filtered this shelf down to nothing for an account with
+        // no local files.
+        //
+        // The non-zero test is the shelf's own rule and mirrors the web client,
+        // which keeps a track only when it resolves an added time. A track that
+        // was never added to the library, only passed through in a search
+        // result, holds zero here and stays out.
+        static constexpr char kSql[] =
+            "SELECT Id, SourceKind, Provider, SourceUrl, FilePath, Title, Artist, Album, Genre, DurationSeconds, ArtworkUrl, DateAddedSortKey, DateAddedText, DurationText, IsLiked, RemoteId "
+            "FROM EffectiveTracks "
+            "WHERE IsActive=1 AND COALESCE(DateAddedSortKey,0)<>0 "
+            "ORDER BY DateAddedSortKey DESC, Title COLLATE NOCASE ASC "
+            "LIMIT ?1;";
+
+        Statement stmt{ m_db, kSql };
+        if (!stmt) return tracks;
+        sqlite3_bind_int(stmt.value, 1, limit > 0 ? limit : -1);
+
+        int index = 1;
+        while (sqlite3_step(stmt.value) == SQLITE_ROW)
+        {
+            auto track = TrackFromStatement(stmt.value);
+            track.Index(index++);
+            tracks.push_back(track);
+        }
+        return tracks;
     }
 
     std::vector<TrackInfo> DatabaseEngine::LoadAlbums() const

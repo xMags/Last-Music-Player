@@ -616,7 +616,10 @@ namespace winrt::Last_Music_Player::implementation
             historyQuery.Limit = 12;
             history = DatabaseService().LoadTrackPage(historyQuery).Tracks;
 
-            recentlyAdded = DatabaseService().LoadRecentlyAddedTracks(6);
+            // Twelve, like the history and liked shelves: this is a horizontal
+            // card row that fits around eight across, so six left it stopping
+            // short of the edge with nothing to scroll to.
+            recentlyAdded = DatabaseService().LoadRecentlyAddedTracks(12);
 
             // Top tracks by PlayCount — drives the Most Played carousel.
             // LoadMostPlayedTracks returns the full sorted set; the C++

@@ -112,6 +112,10 @@ namespace winrt::Last_Music_Player::implementation
         HomeRecentGridView().ItemsSource(m_homeTracks);
         HomeMostPlayedGridView().ItemsSource(m_homeMostPlayedTracks);
         HomeLikedGridView().ItemsSource(m_homeLikedTracks);
+        // Bound here with its siblings. The only other place that ever set it
+        // was a helper nothing calls, so the shelf had no source at all and
+        // stayed blank however many tracks its collection held.
+        HomeRecentlyAddedGridView().ItemsSource(m_recentlyAddedTracks);
         MusicListView().ItemsSource(m_songsTracks);
         SongsGridView().ItemsSource(m_songsTracks);
         SearchSongsListView().ItemsSource(m_searchTracks);
