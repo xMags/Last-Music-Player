@@ -516,6 +516,11 @@ namespace winrt::Last_Music_Player::implementation
         void TransportPause();
         void TransportSeekSeconds(double seconds);
         void TransportSetVolume(double volume);
+        // Opens one top-level page and closes the rest. Every page is a sibling
+        // container that is only shown or collapsed, so switching means naming
+        // all of them; doing that by hand at each call site left two pages
+        // stacked whenever one was missed, and nothing in the build catches it.
+        void ShowPrimaryView(winrt::hstring const& key);
         void UpdateNavSelection(winrt::hstring const& key);
         void SetRailTab(bool upNext);
         void ApplyRightRailWidth();

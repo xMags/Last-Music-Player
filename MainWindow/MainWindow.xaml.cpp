@@ -682,13 +682,7 @@ namespace winrt::Last_Music_Player::implementation
     {
         (void)sender;
         (void)args;
-        HomeViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Visible);
-        SettingsViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
-        SongsViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
-        HomeCatalogViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
-        LibraryViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
-        ExitSearchMode();
-        UpdateNavSelection(L"Home");
+        ShowPrimaryView(L"Home");
         m_catalogBackStack.clear();
         m_catalogSurface = CatalogSurface::Home;
         if (RemoteMusicServiceService().Mode() == LastMusicPlayer::Backend::RemoteAccessMode::Account)
@@ -706,13 +700,7 @@ namespace winrt::Last_Music_Player::implementation
     {
         (void)sender;
         (void)args;
-        HomeViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
-        SettingsViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Visible);
-        SongsViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
-        HomeCatalogViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
-        LibraryViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
-        ExitSearchMode();
-        UpdateNavSelection(L"Settings");
+        ShowPrimaryView(L"Settings");
         // The view only gets collapsed, so it would otherwise reopen wherever the
         // user last scrolled to. Settings always starts at the top.
         if (auto scroller = SettingsScrollViewer())
@@ -733,17 +721,11 @@ namespace winrt::Last_Music_Player::implementation
     {
         (void)sender;
         (void)args;
-        HomeViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
-        SettingsViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
-        SongsViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Visible);
-        HomeCatalogViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
-        LibraryViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
-        ExitSearchMode();
+        ShowPrimaryView(L"Songs");
         if (!m_songsResultsValid)
         {
             ApplySongsFilterSort();
         }
-        UpdateNavSelection(L"Songs");
     }
 
     MainWindow::AppStateSnapshot MainWindow::BuildAppStateSnapshot()
@@ -999,6 +981,38 @@ namespace winrt::Last_Music_Player::implementation
         m_brushTransparent = ProbeTransparent().Background();
         m_brushStroke = ProbeStroke().BorderBrush();
         m_accentBrushesCaptured = true;
+    }
+
+    void MainWindow::ShowPrimaryView(winrt::hstring const& key)
+    {
+        using winrt::Microsoft::UI::Xaml::UIElement;
+        using winrt::Microsoft::UI::Xaml::Visibility;
+
+        struct ViewRow
+        {
+            UIElement container;
+            winrt::hstring id;
+        };
+
+        ViewRow const rows[] = {
+            { HomeViewContainer(), L"Home" },
+            { SongsViewContainer(), L"Songs" },
+            { LibraryViewContainer(), L"Library" },
+            { SettingsViewContainer(), L"Settings" },
+        };
+
+        for (auto const& row : rows)
+        {
+            row.container.Visibility(key == row.id ? Visibility::Visible : Visibility::Collapsed);
+        }
+
+        // Not a destination of its own: the catalog surface opens over Home and
+        // keeps Home selected in the rail, so every page switch closes it and
+        // the catalog reopens it for itself.
+        HomeCatalogViewContainer().Visibility(Visibility::Collapsed);
+
+        ExitSearchMode();
+        UpdateNavSelection(key);
     }
 
     void MainWindow::UpdateNavSelection(winrt::hstring const& key)

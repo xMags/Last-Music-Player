@@ -43,13 +43,7 @@ namespace winrt::Last_Music_Player::implementation
     {
         (void)sender;
         (void)args;
-        HomeViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
-        SettingsViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
-        SongsViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
-        HomeCatalogViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
-        LibraryViewContainer().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Visible);
-        ExitSearchMode();
-        UpdateNavSelection(L"Library");
+        ShowPrimaryView(L"Library");
         HideLibraryDetail();
         if (LibTabPlaylists())
         {
