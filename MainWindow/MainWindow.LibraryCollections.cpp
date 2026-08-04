@@ -353,7 +353,7 @@ namespace winrt::Last_Music_Player::implementation
                     co_return;
                 }
                 co_await RemoteMusicServiceService().CreateAccountPlaylistAsync(remoteScope, body);
-                co_await SynchronizeAccountLibraryAsync(false);
+                co_await SynchronizeAccountLibraryAsync(AccountSyncMode::Implicit);
                 operationLease.reset();
                 LibraryImportStatusText().Text(L"Account playlist created");
             }
@@ -454,7 +454,7 @@ namespace winrt::Last_Music_Player::implementation
                     co_return;
                 }
                 co_await remoteMusic.CreateAccountPlaylistAsync(remoteScope, body);
-                co_await SynchronizeAccountLibraryAsync(false);
+                co_await SynchronizeAccountLibraryAsync(AccountSyncMode::Implicit);
                 operationLease.reset();
                 LibraryImportStatusText().Text(L"Account playlist imported");
                 co_return;
@@ -619,7 +619,7 @@ namespace winrt::Last_Music_Player::implementation
                     accountBinding->Scope,
                     playlist.RemoteId(),
                     body);
-                co_await SynchronizeAccountLibraryAsync(false);
+                co_await SynchronizeAccountLibraryAsync(AccountSyncMode::Implicit);
                 operationLease.reset();
                 LibraryImportStatusText().Text(L"Account playlist renamed");
             }
@@ -704,7 +704,7 @@ namespace winrt::Last_Music_Player::implementation
                 {
                     HideLibraryDetail();
                 }
-                co_await SynchronizeAccountLibraryAsync(false);
+                co_await SynchronizeAccountLibraryAsync(AccountSyncMode::Implicit);
                 operationLease.reset();
                 LibraryImportStatusText().Text(L"Account playlist deleted");
             }

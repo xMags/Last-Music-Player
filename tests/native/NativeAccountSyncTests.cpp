@@ -12,6 +12,7 @@
 #include "Backend/AccountSessionService.h"
 #include "Backend/BuildConfig.h"
 #include "Backend/AccountUrlPolicy.h"
+#include "Backend/AutoSyncPolicy.h"
 #include "Backend/ProfileIdentity.h"
 #include "Backend/RemoteMusicService.h"
 #include "Backend/LoopbackCallback.h"
@@ -1445,6 +1446,96 @@ namespace
             auto message = account::SafeAccountErrorMessage(status);
             Expect(!message.empty() && message.size() < 128, "account error was not bounded");
         }
+    }
+
+    void TestAutoSyncPolicy()
+    {
+        using account::AutoSyncDecision;
+        using account::AutoSyncTrigger;
+
+        // Every condition satisfied, and long enough since the last attempt
+        // that even the debounced trigger qualifies.
+        auto ready = []
+        {
+            account::AutoSyncConditions conditions;
+            conditions.Enabled = true;
+            conditions.Mode = account::RemoteAccessMode::Account;
+            conditions.Status = account::AccountSessionStatus::Validated;
+            conditions.Syncing = false;
+            conditions.WindowInteractive = true;
+            conditions.AccountDetailOpen = false;
+            conditions.SinceLastAttempt = account::kAutoSyncFocusDebounce;
+            return conditions;
+        };
+
+        Expect(account::EvaluateAutoSync(ready(), AutoSyncTrigger::Timer) == AutoSyncDecision::Run,
+            "a fully eligible timer tick did not sync");
+        Expect(account::EvaluateAutoSync(ready(), AutoSyncTrigger::WindowFocus) == AutoSyncDecision::Run,
+            "a fully eligible focus trigger did not sync");
+
+        // Each skip reason in isolation, so a future reordering of the checks
+        // cannot let one condition mask another.
+        auto disabled = ready();
+        disabled.Enabled = false;
+        Expect(account::EvaluateAutoSync(disabled, AutoSyncTrigger::Timer) == AutoSyncDecision::Disabled,
+            "the auto sync setting was ignored");
+
+        for (auto mode : { account::RemoteAccessMode::LocalOnly, account::RemoteAccessMode::ApiKey })
+        {
+            auto wrongMode = ready();
+            wrongMode.Mode = mode;
+            Expect(account::EvaluateAutoSync(wrongMode, AutoSyncTrigger::Timer)
+                == AutoSyncDecision::NotAccountMode,
+                "a non-account mode was polled for account changes");
+        }
+
+        // Offline must not qualify: MusicSyncService refuses an offline
+        // session, so polling one only records a failure.
+        for (auto status : { account::AccountSessionStatus::SignedOut,
+                             account::AccountSessionStatus::SigningIn,
+                             account::AccountSessionStatus::Offline })
+        {
+            auto notLive = ready();
+            notLive.Status = status;
+            Expect(account::EvaluateAutoSync(notLive, AutoSyncTrigger::Timer)
+                == AutoSyncDecision::NotSignedIn,
+                "a session that cannot sync was polled anyway");
+        }
+
+        auto busy = ready();
+        busy.Syncing = true;
+        Expect(account::EvaluateAutoSync(busy, AutoSyncTrigger::Timer) == AutoSyncDecision::AlreadySyncing,
+            "a second sync was started while one was running");
+
+        auto hidden = ready();
+        hidden.WindowInteractive = false;
+        Expect(account::EvaluateAutoSync(hidden, AutoSyncTrigger::Timer)
+            == AutoSyncDecision::WindowNotInteractive,
+            "a window hidden to the tray kept polling");
+
+        // A sync clears the bindings behind an open account playlist, so the
+        // background path waits rather than pulling the view out from under it.
+        auto detailOpen = ready();
+        detailOpen.AccountDetailOpen = true;
+        Expect(account::EvaluateAutoSync(detailOpen, AutoSyncTrigger::Timer)
+            == AutoSyncDecision::AccountDetailOpen,
+            "a background sync ran under an open account playlist");
+
+        // The focus debounce boundary. The timer's own interval is its
+        // debounce, so it is deliberately not subject to this one.
+        auto justSynced = ready();
+        justSynced.SinceLastAttempt = account::kAutoSyncFocusDebounce - std::chrono::seconds(1);
+        Expect(account::EvaluateAutoSync(justSynced, AutoSyncTrigger::WindowFocus)
+            == AutoSyncDecision::TooSoon,
+            "every window activation was treated as a reason to sync");
+        Expect(account::EvaluateAutoSync(justSynced, AutoSyncTrigger::Timer) == AutoSyncDecision::Run,
+            "the focus debounce wrongly suppressed a timer tick");
+
+        auto neverSynced = ready();
+        neverSynced.SinceLastAttempt = (std::chrono::steady_clock::duration::max)();
+        Expect(account::EvaluateAutoSync(neverSynced, AutoSyncTrigger::WindowFocus)
+            == AutoSyncDecision::Run,
+            "the first activation of a session did not sync");
     }
 
     void TestInlineProfileImageValidation()
@@ -3007,6 +3098,7 @@ int wmain()
         TestLoopbackListenerLifecycle();
         TestAccountRedirectProtection();
         TestAccountOriginAndSafeErrors();
+        TestAutoSyncPolicy();
         TestInlineProfileImageValidation();
         TestProfileIdentitySelection();
         TestSyncableRemoteSources();

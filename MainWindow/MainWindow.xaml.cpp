@@ -618,7 +618,56 @@ namespace winrt::Last_Music_Player::implementation
         // render the static XAML defaults.
         ApplyUserDisplayName();
 
+        // Launch counts as a background sync attempt. RestoreAccountIntegrationAsync
+        // already syncs on the way up and the window's first activation arrives
+        // while that is still in flight, so without this the two would race and,
+        // if the restore happened to finish first, run twice for nothing.
+        m_lastAutoSyncAttempt = std::chrono::steady_clock::now();
+
+        // The periodic half of background sync. It ticks on the UI thread, so
+        // the handler needs no marshalling, and it holds the window weakly
+        // because a running timer is kept alive by the dispatcher queue.
+        if (auto queue = this->DispatcherQueue())
+        {
+            m_autoSyncTimer = queue.CreateTimer();
+            m_autoSyncTimer.Interval(LastMusicPlayer::Backend::kAutoSyncPollInterval);
+            m_autoSyncTimer.IsRepeating(true);
+            m_autoSyncTimer.Tick([weak = get_weak()](
+                winrt::Microsoft::UI::Dispatching::DispatcherQueueTimer const&,
+                winrt::Windows::Foundation::IInspectable const&)
+            {
+                if (auto self = weak.get())
+                {
+                    RunDetached(self->RequestBackgroundAccountSyncAsync(
+                        LastMusicPlayer::Backend::AutoSyncTrigger::Timer));
+                }
+            });
+            ApplyAutoSyncSetting();
+        }
+        this->Activated({ this, &MainWindow::OnWindowActivated });
+
         QueueStartupDataLoad(savedLibraryPath);
+    }
+
+    void MainWindow::OnWindowActivated(
+        winrt::Windows::Foundation::IInspectable const& sender,
+        winrt::Microsoft::UI::Xaml::WindowActivatedEventArgs const& args)
+    {
+        (void)sender;
+
+        // Losing focus is not a reason to sync, and the debounce that decides
+        // whether regaining it is one lives in EvaluateAutoSync.
+        if (args.WindowActivationState()
+            == winrt::Microsoft::UI::Xaml::WindowActivationState::Deactivated)
+        {
+            return;
+        }
+        if (!m_xamlReadyForEvents)
+        {
+            return;
+        }
+        RunDetached(RequestBackgroundAccountSyncAsync(
+            LastMusicPlayer::Backend::AutoSyncTrigger::WindowFocus));
     }
 
     void MainWindow::HomeButton_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
@@ -1134,6 +1183,10 @@ namespace winrt::Last_Music_Player::implementation
         }
         if (m_forceExit)
         {
+            if (m_autoSyncTimer && m_autoSyncTimer.IsRunning())
+            {
+                m_autoSyncTimer.Stop();
+            }
             m_cast.Disconnect();
             ClearCastCallbacks();
             return; // allow the close to proceed

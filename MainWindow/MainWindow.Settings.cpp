@@ -400,7 +400,7 @@ namespace winrt::Last_Music_Player::implementation
         if (snapshot.Status == LastMusicPlayer::Backend::AccountSessionStatus::Validated
             && RemoteMusicServiceService().Mode() == LastMusicPlayer::Backend::RemoteAccessMode::Account)
         {
-            co_await SynchronizeAccountLibraryAsync(false);
+            co_await SynchronizeAccountLibraryAsync(AccountSyncMode::Implicit);
         }
         else
         {
@@ -411,10 +411,11 @@ namespace winrt::Last_Music_Player::implementation
         }
     }
 
-    winrt::Windows::Foundation::IAsyncAction MainWindow::SynchronizeAccountLibraryAsync(bool showStatus)
+    winrt::Windows::Foundation::IAsyncAction MainWindow::SynchronizeAccountLibraryAsync(AccountSyncMode mode)
     {
         auto lifetime = get_strong();
-        if (showStatus)
+        auto const background = mode == AccountSyncMode::Background;
+        if (mode == AccountSyncMode::Interactive)
         {
             AccountStatusText().Text(L"Synchronizing account library...");
         }
@@ -423,7 +424,11 @@ namespace winrt::Last_Music_Player::implementation
         auto synchronized = co_await MusicSyncServiceService().SyncAsync();
         if (synchronized)
         {
-            if (IsAccountPlaylistDetail() || m_libraryDetailAccountBinding)
+            // Clearing the bindings orphans an open account playlist, so the
+            // interactive paths close that view first. A background sync is
+            // only ever started when no such view is open (EvaluateAutoSync
+            // refuses otherwise), so it has nothing to close.
+            if (!background && (IsAccountPlaylistDetail() || m_libraryDetailAccountBinding))
             {
                 HideLibraryDetail();
             }
@@ -457,42 +462,113 @@ namespace winrt::Last_Music_Player::implementation
                 }
             }
 
-            co_await HydrateHomeAsync(false);
-            co_await EnsureSongsHydratedAsync(true);
-
-            struct LibraryTabRow
+            // Rebuilding a list replaces its ItemsSource, which sends the view
+            // back to the top. A background sync therefore only rebuilds what
+            // the user is not currently reading; MarkLibraryViewsDirty above
+            // already makes everything else reload on next navigation.
+            if (!background || m_currentNav != L"Home")
             {
-                winrt::Microsoft::UI::Xaml::Controls::Primitives::ToggleButton Button;
-                winrt::hstring Name;
-            };
-            LibraryTabRow tabs[] = {
-                { LibTabPlaylists(), L"Playlists" },
-                { LibTabAlbums(), L"Albums" },
-                { LibTabArtists(), L"Artists" },
-                { LibTabSongs(), L"Songs" },
-                { LibTabHistory(), L"History" },
-                { LibTabGenres(), L"Genres" },
-            };
-            for (auto const& tab : tabs)
-            {
-                auto checked = tab.Button.IsChecked();
-                if (checked && checked.Value())
-                {
-                    co_await HydrateLibraryTabAsync(tab.Name, true);
-                    break;
-                }
+                co_await HydrateHomeAsync(false);
             }
-            co_await OfferCompatibleHistoryImportAsync();
+
+            if (!background)
+            {
+                co_await EnsureSongsHydratedAsync(true);
+
+                struct LibraryTabRow
+                {
+                    winrt::Microsoft::UI::Xaml::Controls::Primitives::ToggleButton Button;
+                    winrt::hstring Name;
+                };
+                LibraryTabRow tabs[] = {
+                    { LibTabPlaylists(), L"Playlists" },
+                    { LibTabAlbums(), L"Albums" },
+                    { LibTabArtists(), L"Artists" },
+                    { LibTabSongs(), L"Songs" },
+                    { LibTabHistory(), L"History" },
+                    { LibTabGenres(), L"Genres" },
+                };
+                for (auto const& tab : tabs)
+                {
+                    auto checked = tab.Button.IsChecked();
+                    if (checked && checked.Value())
+                    {
+                        co_await HydrateLibraryTabAsync(tab.Name, true);
+                        break;
+                    }
+                }
+
+                // Opens a modal dialog on first run. Never from a timer.
+                co_await OfferCompatibleHistoryImportAsync();
+            }
         }
 
         RefreshAccountSettingsUi();
-        if (showStatus)
+        if (mode == AccountSyncMode::Interactive)
         {
             AccountStatusText().Text(synchronized
                 ? winrt::hstring{ L"Account library synchronized" }
                 : MusicSyncServiceService().LastSafeError());
         }
     }
+
+    winrt::Windows::Foundation::IAsyncAction MainWindow::RequestBackgroundAccountSyncAsync(
+        LastMusicPlayer::Backend::AutoSyncTrigger trigger)
+    {
+        auto lifetime = get_strong();
+
+        LastMusicPlayer::Backend::AutoSyncConditions conditions;
+        conditions.Enabled = SettingsManagerService().GetBool(L"AutoSyncAccount", true);
+        conditions.Mode = RemoteMusicServiceService().Mode();
+        conditions.Status = AccountSessionService().Snapshot().Status;
+        conditions.Syncing = MusicSyncServiceService().IsSyncing();
+        conditions.WindowInteractive = m_hwnd
+            && ::IsWindowVisible(m_hwnd)
+            && !::IsIconic(m_hwnd);
+        conditions.AccountDetailOpen = IsAccountPlaylistDetail()
+            || m_libraryDetailAccountBinding.has_value();
+
+        auto const now = std::chrono::steady_clock::now();
+        if (m_lastAutoSyncAttempt)
+        {
+            conditions.SinceLastAttempt = now - *m_lastAutoSyncAttempt;
+        }
+
+        if (LastMusicPlayer::Backend::EvaluateAutoSync(conditions, trigger)
+            != LastMusicPlayer::Backend::AutoSyncDecision::Run)
+        {
+            co_return;
+        }
+
+        // Stamped before the sync rather than after, so a long or hung sync
+        // cannot let a burst of activations queue up behind it.
+        m_lastAutoSyncAttempt = now;
+        co_await SynchronizeAccountLibraryAsync(AccountSyncMode::Background);
+    }
+
+    void MainWindow::ApplyAutoSyncSetting()
+    {
+        if (!m_autoSyncTimer)
+        {
+            return;
+        }
+
+        // The timer only gates the periodic poll. Whether a given tick actually
+        // syncs is still EvaluateAutoSync's call, so there is no need to also
+        // start and stop it as the mode or session changes.
+        if (SettingsManagerService().GetBool(L"AutoSyncAccount", true))
+        {
+            if (!m_autoSyncTimer.IsRunning())
+            {
+                m_autoSyncTimer.Start();
+            }
+        }
+        else if (m_autoSyncTimer.IsRunning())
+        {
+            m_autoSyncTimer.Stop();
+        }
+    }
+
     winrt::Windows::Foundation::IAsyncAction MainWindow::OfferCompatibleHistoryImportAsync()
     {
         auto lifetime = get_strong();
@@ -684,7 +760,7 @@ namespace winrt::Last_Music_Player::implementation
     {
         (void)sender;
         (void)args;
-        co_await SynchronizeAccountLibraryAsync(true);
+        co_await SynchronizeAccountLibraryAsync(AccountSyncMode::Interactive);
     }
 
     winrt::Windows::Foundation::IAsyncAction MainWindow::AccountManage_Click(
@@ -765,7 +841,7 @@ namespace winrt::Last_Music_Player::implementation
 
                 UpdateSongsScopeLabel();
                 operationLease.reset();
-                co_await SynchronizeAccountLibraryAsync(true);
+                co_await SynchronizeAccountLibraryAsync(AccountSyncMode::Interactive);
             }
             catch (winrt::hresult_canceled const&)
             {
@@ -966,7 +1042,7 @@ namespace winrt::Last_Music_Player::implementation
         UpdateSongsScopeLabel();
         RefreshAccountSettingsUi();
         RunDetached(mode == LastMusicPlayer::Backend::RemoteAccessMode::Account
-            ? SynchronizeAccountLibraryAsync(false)
+            ? SynchronizeAccountLibraryAsync(AccountSyncMode::Implicit)
             : HydrateHomeAsync(false));
     }
 
@@ -1168,6 +1244,7 @@ namespace winrt::Last_Music_Player::implementation
         if (n == L"GaplessSwitch")             return L"Gapless";
         if (n == L"AutoplaySwitch")            return L"Autoplay";
         if (n == L"DiscordPresenceSwitch")     return L"DiscordPresence";
+        if (n == L"AutoSyncSwitch")            return L"AutoSyncAccount";
         if (n == L"CloseBehaviorCombo")        return L"CloseBehavior";
         if (n == L"OutputDeviceCombo")         return L"OutputDeviceIndex";
         return {};
@@ -1198,6 +1275,10 @@ namespace winrt::Last_Music_Player::implementation
         else if (name == L"DiscordPresenceSwitch")
         {
             ApplyDiscordPresence();
+        }
+        else if (name == L"AutoSyncSwitch")
+        {
+            ApplyAutoSyncSetting();
         }
         else if (name == L"GaplessSwitch")
         {
@@ -2316,6 +2397,7 @@ namespace winrt::Last_Music_Player::implementation
         if (GaplessSwitch())              GaplessSwitch().IsOn(s.GetBool(L"Gapless", true));
         if (AutoplaySwitch())             AutoplaySwitch().IsOn(s.GetBool(L"Autoplay", true));
         if (DiscordPresenceSwitch())      DiscordPresenceSwitch().IsOn(s.GetBool(L"DiscordPresence", false));
+        if (AutoSyncSwitch())             AutoSyncSwitch().IsOn(s.GetBool(L"AutoSyncAccount", true));
 
         if (CloseBehaviorCombo())         CloseBehaviorCombo().SelectedIndex(s.GetInt(L"CloseBehavior", 0));
 

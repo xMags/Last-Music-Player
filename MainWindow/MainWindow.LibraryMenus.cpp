@@ -230,7 +230,7 @@ namespace winrt::Last_Music_Player::implementation
                 {
                     co_return;
                 }
-                co_await SynchronizeAccountLibraryAsync(false);
+                co_await SynchronizeAccountLibraryAsync(AccountSyncMode::Implicit);
                 operationLease.reset();
                 if (!IsCurrentAccountPlaylistDetailContext(*accountContext))
                 {
@@ -357,7 +357,7 @@ namespace winrt::Last_Music_Player::implementation
                 {
                     co_return;
                 }
-                co_await SynchronizeAccountLibraryAsync(false);
+                co_await SynchronizeAccountLibraryAsync(AccountSyncMode::Implicit);
                 operationLease.reset();
                 if (!IsCurrentAccountPlaylistDetailContext(*accountContext))
                 {

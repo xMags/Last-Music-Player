@@ -3,6 +3,7 @@
 #include "Backend/TrackInfo.h"
 #include "Backend/DatabaseEngine.h"
 #include "Backend/PlaybackHistoryQualifier.h"
+#include "Backend/AutoSyncPolicy.h"
 #include "Backend/CastEngine.h"
 #include "Backend/CatalogModels.h"
 #include "Backend/LyricsService.h"
@@ -23,7 +24,9 @@
 #include <winrt/Microsoft.UI.Xaml.Controls.h>
 #include <winrt/Windows.System.h>
 #include <winrt/Microsoft.UI.Windowing.h>
+#include <winrt/Microsoft.UI.Dispatching.h>
 #include <array>
+#include <chrono>
 #include <deque>
 #include <vector>
 #include <utility>
@@ -42,6 +45,23 @@ namespace winrt::Last_Music_Player::implementation::detail { enum class ArtworkD
 
 namespace winrt::Last_Music_Player::implementation
 {
+    // What prompted an account library sync, which decides how much of the UI
+    // it is allowed to disturb once it finishes.
+    enum class AccountSyncMode
+    {
+        // The user pressed Sync now or signed in. Reports progress in Settings
+        // and takes the full post-sync reset.
+        Interactive,
+
+        // Something the user did implies it: finishing a track, liking a song,
+        // editing a playlist, changing mode. Full reset, but silent.
+        Implicit,
+
+        // A timer tick or the window regaining focus. Must never close the view
+        // the user is on, reset their scroll position, or open a dialog.
+        Background,
+    };
+
     struct MainWindow : MainWindowT<MainWindow>
     {
         MainWindow();
@@ -389,7 +409,16 @@ namespace winrt::Last_Music_Player::implementation
         winrt::Windows::Foundation::IAsyncAction RestoreAccountIntegrationAsync();
         void RefreshAccountSettingsUi();
         winrt::Windows::Foundation::IAsyncAction OfferCompatibleHistoryImportAsync();
-        winrt::Windows::Foundation::IAsyncAction SynchronizeAccountLibraryAsync(bool showStatus);
+        winrt::Windows::Foundation::IAsyncAction SynchronizeAccountLibraryAsync(AccountSyncMode mode);
+
+        // Runs a sync only if EvaluateAutoSync says the current conditions
+        // allow it. Both background triggers go through here.
+        winrt::Windows::Foundation::IAsyncAction RequestBackgroundAccountSyncAsync(
+            LastMusicPlayer::Backend::AutoSyncTrigger trigger);
+        void ApplyAutoSyncSetting();
+        void OnWindowActivated(
+            winrt::Windows::Foundation::IInspectable const& sender,
+            winrt::Microsoft::UI::Xaml::WindowActivatedEventArgs const& args);
         void FinishHomeHydration();
         winrt::Windows::Foundation::IAsyncAction EnsureSongsHydratedAsync(bool reset);
         winrt::Windows::Foundation::IAsyncAction AppendSongsPageAsync();
@@ -892,6 +921,18 @@ namespace winrt::Last_Music_Player::implementation
         bool m_updatingSongsChips = false;
         bool m_xamlReadyForEvents = false;
         winrt::hstring m_currentNav{ L"Home" };
+
+        // Periodic pull for a signed-in account. Owned here so it dies with the
+        // window; its tick captures a weak reference back, because a running
+        // timer is kept alive by the dispatcher queue and a strong capture
+        // would drag the window along with it.
+        winrt::Microsoft::UI::Dispatching::DispatcherQueueTimer m_autoSyncTimer{ nullptr };
+
+        // Stamped at launch, and thereafter whenever a background sync actually
+        // starts, so the focus debounce measures real traffic rather than
+        // triggers that were skipped. Optional rather than a sentinel time
+        // because subtracting from time_point::min() would overflow.
+        std::optional<std::chrono::steady_clock::time_point> m_lastAutoSyncAttempt;
 
         // Nav/accent brushes captured off the resolved XAML so we never do a
         // programmatic lookup of ThemeDictionaries keys (a WinUI pitfall).
