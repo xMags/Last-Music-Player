@@ -215,8 +215,51 @@ namespace winrt::Last_Music_Player::implementation
         m_searchAllResults.clear();
         m_searchTracks.Clear();
         ShowBrowseSearchLoading();
-        LastMusicPlayer::Frontend::SkeletonLoadScope searchSkeleton{ m_searchSkeleton, true };
 
+        std::vector<winrt::Last_Music_Player::TrackInfo> localTracks;
+        if (DatabaseService().IsInitialized())
+        {
+            LastMusicPlayer::Backend::TrackQuery localQuery;
+            localQuery.SearchText = std::wstring(query.c_str());
+            localQuery.Sort = L"DateAdded";
+            localQuery.IncludeRemote = false;
+            localQuery.ActiveOnly = true;
+            localQuery.Limit = 60;
+
+            auto dispatcher = DispatcherQueue();
+            co_await winrt::resume_background();
+            localTracks = DatabaseService().LoadTrackPage(localQuery).Tracks;
+            co_await wil::resume_foreground(dispatcher);
+            if (requestId != m_searchRequestId || !m_isSearchMode)
+            {
+                co_return;
+            }
+        }
+        else
+        {
+            // The database is unavailable only during early startup or a failed
+            // initialization. Keep search usable from the scanned in-memory
+            // library in that degraded state, but never use the playback context.
+            for (auto const& track : m_catalogTracks)
+            {
+                if (ToLowerCopy(track.SourceKind()) == L"remote")
+                {
+                    continue;
+                }
+                if (ContainsFolded(track.Title(), query)
+                    || ContainsFolded(track.Artist(), query)
+                    || ContainsFolded(track.Album(), query))
+                {
+                    localTracks.push_back(track);
+                    if (localTracks.size() >= 60)
+                    {
+                        break;
+                    }
+                }
+            }
+        }
+
+        LastMusicPlayer::Frontend::SkeletonLoadScope searchSkeleton{ m_searchSkeleton, true };
         std::unordered_map<std::wstring, int> visibleKeys;
         auto appendVisibleTrack = [&](winrt::Last_Music_Player::TrackInfo const& track) -> bool
         {
@@ -232,20 +275,11 @@ namespace winrt::Last_Music_Player::implementation
         };
 
         size_t localMatches = 0;
-        for (auto const& track : m_queue.CurrentPlaylist)
+        for (auto const& track : localTracks)
         {
-            if (ContainsFolded(track.Title(), query)
-                || ContainsFolded(track.Artist(), query)
-                || ContainsFolded(track.Album(), query))
+            if (appendVisibleTrack(track))
             {
-                if (appendVisibleTrack(track))
-                {
-                    ++localMatches;
-                }
-                if (localMatches >= 60)
-                {
-                    break;
-                }
+                ++localMatches;
             }
         }
 

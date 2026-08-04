@@ -113,6 +113,10 @@ namespace LastMusicPlayer::Backend
         std::wstring Scope{ L"All" };
         std::wstring GroupKind;
         std::wstring GroupKey;
+        // Optional case-insensitive substring match across title, artist and
+        // album. LIKE wildcards are escaped by DatabaseEngine, so callers pass
+        // the listener's text unchanged rather than building SQL patterns.
+        std::wstring SearchText;
         std::wstring AccountOwnerId;
         bool IncludeRemote{ true };
         bool ActiveOnly{ true };
