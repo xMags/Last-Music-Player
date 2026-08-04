@@ -333,6 +333,18 @@ namespace LastMusicPlayer::Backend::DatabaseDetail
         auto normalizedSort = ToLowerInvariant(sort);
         if (normalizedFilter == L"history")
         {
+            if (normalizedSort == L"title")
+            {
+                return "ORDER BY Title COLLATE NOCASE ASC";
+            }
+            if (normalizedSort == L"artist")
+            {
+                return "ORDER BY Artist COLLATE NOCASE ASC, Title COLLATE NOCASE ASC";
+            }
+            if (normalizedSort == L"duration")
+            {
+                return "ORDER BY DurationSeconds ASC, Title COLLATE NOCASE ASC";
+            }
             return "ORDER BY LastPlayedOrder DESC, Title COLLATE NOCASE ASC";
         }
         if (normalizedFilter == L"most" || normalizedSort == L"mostplayed")

@@ -104,11 +104,6 @@ namespace winrt::Last_Music_Player::implementation
         {
             LibraryScopeSelector().Visibility(scopedTab && accountScopeAvailable ? V::Visible : V::Collapsed);
         }
-        if (tag == L"History" && m_librarySongsFilter != L"History")
-        {
-            m_librarySongsFilter = L"History";
-            m_librarySongsState = LoadState::Dirty;
-        }
         UpdateLibraryActionButtons();
         if (!LibraryViewContainer() || LibraryViewContainer().Visibility() != V::Visible)
         {
@@ -123,6 +118,84 @@ namespace winrt::Last_Music_Player::implementation
             return;
         }
         RunDetached(HydrateLibraryTabAsync(winrt::hstring(tag), false));
+    }
+
+    void MainWindow::HistoryListView_Click(
+        winrt::Windows::Foundation::IInspectable const& sender,
+        winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
+    {
+        (void)sender;
+        (void)args;
+        SetHistoryGridMode(false);
+    }
+
+    void MainWindow::HistoryGridView_Click(
+        winrt::Windows::Foundation::IInspectable const& sender,
+        winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
+    {
+        (void)sender;
+        (void)args;
+        SetHistoryGridMode(true);
+    }
+
+    void MainWindow::HistorySort_Click(
+        winrt::Windows::Foundation::IInspectable const& sender,
+        winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
+    {
+        (void)args;
+        auto item = sender.try_as<winrt::Microsoft::UI::Xaml::Controls::MenuFlyoutItem>();
+        if (!item)
+        {
+            return;
+        }
+
+        auto tag = ReadTagString(item.Tag());
+        if (tag.empty() || m_libraryHistorySort == tag.c_str())
+        {
+            return;
+        }
+
+        m_libraryHistorySort = tag.c_str();
+        HistorySortLabel().Text(item.Text());
+        m_librarySongsState = LoadState::Dirty;
+        RunDetached(HydrateLibraryTabAsync(L"History", true));
+    }
+
+    void MainWindow::SetHistoryGridMode(bool gridMode)
+    {
+        m_libraryHistoryGridMode = gridMode;
+        EnsureAccentBrushes();
+
+        using V = winrt::Microsoft::UI::Xaml::Visibility;
+        LibrarySongsListView().Visibility(gridMode ? V::Collapsed : V::Visible);
+        HistoryGridView().Visibility(gridMode ? V::Visible : V::Collapsed);
+        HistoryListViewButton().Background(gridMode ? m_brushTransparent : m_brushAccentSoft);
+        HistoryGridViewButton().Background(gridMode ? m_brushAccentSoft : m_brushTransparent);
+
+        auto total = m_librarySongsMatchedCount > 0
+            ? static_cast<size_t>(m_librarySongsMatchedCount)
+            : m_librarySongAllResults.size();
+        if (!gridMode
+            && m_librarySongs.Size() < (std::min)(static_cast<size_t>(kLibrarySongPageSize), total))
+        {
+            if (DatabaseService().IsInitialized())
+            {
+                RunDetached(AppendLibrarySongsPageAsync());
+            }
+            else
+            {
+                AppendLibrarySongsPage();
+            }
+        }
+    }
+
+    void MainWindow::UpdateHistoryCount()
+    {
+        auto count = m_librarySongsMatchedCount > 0
+            ? static_cast<size_t>(m_librarySongsMatchedCount)
+            : m_librarySongAllResults.size();
+        HistoryCountText().Text(
+            winrt::to_hstring(count) + (count == 1 ? L" track" : L" tracks"));
     }
 
     void MainWindow::LibraryPlaylistFilter_Checked(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
