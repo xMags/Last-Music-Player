@@ -1933,6 +1933,65 @@ namespace
         Expect(!mismatchedGlobal.Descriptor.has_value() && mismatchedGlobal.Items.empty(),
             "mismatched global chart response was accepted");
 
+        // The service namespaces the chart id by kind in its response while the
+        // request carries the bare id. Every kind has to be recognised, not just
+        // global: accepting only "global:" left city and genre charts blank.
+        account::CatalogChartRef genreChart{
+            L"in", account::CatalogChartKind::Genre, L"20", account::CatalogResourceType::Song
+        };
+        auto genrePage = account::ParseCatalogChartPage(LR"({
+          "storefront": "in",
+          "type": "songs",
+          "id": "genre:20",
+          "title": "Top Alternative Songs",
+          "resourceType": "song",
+          "descriptor": {
+            "kind": "genre", "id": "20", "name": "Alternative",
+            "title": "Top Alternative Songs", "resourceType": "song"
+          },
+          "items": [
+            { "catalogId": "1", "resourceType": "song", "title": "One", "artistName": "A" }
+          ]
+        })", genreChart);
+        Expect(genrePage.Descriptor.has_value(), "a genre chart response was rejected as a mismatch");
+        Expect(genrePage.Items.size() == 1, "genre chart items were dropped");
+        Expect(genrePage.Title == L"Top Alternative Songs", "genre chart title was not read");
+
+        account::CatalogChartRef cityChart{
+            L"in", account::CatalogChartKind::City, L"mumbai", account::CatalogResourceType::Song
+        };
+        auto cityPage = account::ParseCatalogChartPage(LR"({
+          "storefront": "in",
+          "type": "songs",
+          "id": "city:mumbai",
+          "title": "Mumbai",
+          "resourceType": "song",
+          "descriptor": {
+            "kind": "city", "id": "mumbai", "name": "Mumbai",
+            "title": "Mumbai", "resourceType": "song"
+          },
+          "items": [
+            { "catalogId": "1", "resourceType": "song", "title": "One", "artistName": "A" }
+          ]
+        })", cityChart);
+        Expect(cityPage.Descriptor.has_value(), "a city chart response was rejected as a mismatch");
+        Expect(cityPage.Items.size() == 1, "city chart items were dropped");
+
+        // Recognising the namespaced form must not make the check permissive:
+        // a different chart of the same kind still has to be refused.
+        auto wrongGenre = account::ParseCatalogChartPage(LR"({
+          "storefront": "in", "type": "songs", "id": "genre:21", "resourceType": "song",
+          "descriptor": {
+            "kind": "genre", "id": "21", "name": "Rock",
+            "title": "Top Rock Songs", "resourceType": "song"
+          },
+          "items": [
+            { "catalogId": "1", "resourceType": "song", "title": "One", "artistName": "A" }
+          ]
+        })", genreChart);
+        Expect(!wrongGenre.Descriptor.has_value() && wrongGenre.Items.empty(),
+            "a different genre chart was accepted as the requested one");
+
         auto invalidResponseStorefront = account::ParseCatalogChartPage(LR"({
           "storefront": "india", "type": "songs", "id": "global:top-songs", "items": []
         })", topSongs);
