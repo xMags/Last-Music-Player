@@ -401,6 +401,17 @@ namespace winrt::Last_Music_Player::implementation
             && RemoteMusicServiceService().Mode() == LastMusicPlayer::Backend::RemoteAccessMode::Account)
         {
             co_await SynchronizeAccountLibraryAsync(AccountSyncMode::Implicit);
+
+            // Restoring a session moves the database scope from "no account" to
+            // the signed-in one, and the startup hydration already ran against
+            // the old scope: its history query saw nothing, so Listen Again came
+            // up empty. SynchronizeAccountLibraryAsync only rebuilds the views
+            // when the sync itself succeeds, which leaves a failed or offline
+            // sync showing that empty state until some later navigation happens
+            // to hydrate again. The cached account library is readable either
+            // way, so the views are rebuilt here regardless of the outcome.
+            MarkLibraryViewsDirty();
+            co_await HydrateHomeAsync(false);
         }
         else
         {
