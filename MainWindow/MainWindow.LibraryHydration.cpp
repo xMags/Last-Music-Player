@@ -490,6 +490,8 @@ namespace winrt::Last_Music_Player::implementation
         m_libraryGenresState = LoadState::Dirty;
         m_libraryPlaylistsState = LoadState::Dirty;
         m_libraryDetailState = LoadState::Dirty;
+        m_browseLandingLoaded = false;
+        ++m_browseLandingEpoch;
     }
 
 

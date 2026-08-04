@@ -71,6 +71,16 @@ namespace winrt::Last_Music_Player::implementation
         void HomeButton_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void SettingsNav_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void SongsButton_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void BrowseButton_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        // Home's bar is only a way in to Browse; both the click and a tap on the
+        // surrounding chrome land on the same place.
+        void HomeSearchEntry_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void HomeSearchEntry_Tapped(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Input::TappedRoutedEventArgs const& args);
+        void BrowseCategory_ItemClick(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::ItemClickEventArgs const& args);
+        void SearchListView_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void SearchGridView_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void SearchSort_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void SearchRetry_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         winrt::Windows::Foundation::IAsyncAction ChangeFolderButton_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         winrt::Windows::Foundation::IAsyncAction OpenFolderButton_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         winrt::Windows::Foundation::IAsyncAction ScanMusicButton_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
@@ -799,6 +809,13 @@ namespace winrt::Last_Music_Player::implementation
         void SetPlaybackQueue(std::vector<winrt::Last_Music_Player::TrackInfo> const& tracks, int selectedIndex);
         void EnterSearchMode(winrt::hstring const& query);
         void ExitSearchMode();
+        void ShowBrowseLanding(bool showMinimumLengthHint);
+        void ShowBrowseSearchLoading();
+        void ShowBrowseSearchResults(winrt::hstring const& query);
+        void ShowBrowseSearchError(winrt::hstring const& message);
+        void SetSearchGridMode(bool gridMode);
+        void ApplySearchResultSort();
+        winrt::Windows::Foundation::IAsyncAction HydrateBrowseLandingAsync(bool force);
         void RunDebouncedHomeSearch();
         winrt::Windows::Foundation::IAsyncAction RunHomeSearchAsync();
         winrt::Windows::Foundation::IAsyncAction RunHomeSearchNowAsync(winrt::hstring query, uint64_t requestId);
@@ -904,6 +921,9 @@ namespace winrt::Last_Music_Player::implementation
         winrt::Windows::Foundation::Collections::IObservableVector<winrt::Last_Music_Player::TrackInfo> m_searchTracks{
             winrt::single_threaded_observable_vector<winrt::Last_Music_Player::TrackInfo>()
         };
+        winrt::Windows::Foundation::Collections::IObservableVector<winrt::Last_Music_Player::TrackInfo> m_browseCategories{
+            winrt::single_threaded_observable_vector<winrt::Last_Music_Player::TrackInfo>()
+        };
         winrt::Windows::Foundation::Collections::IObservableVector<winrt::Last_Music_Player::TrackInfo> m_librarySongs{
             winrt::single_threaded_observable_vector<winrt::Last_Music_Player::TrackInfo>()
         };
@@ -963,6 +983,7 @@ namespace winrt::Last_Music_Player::implementation
         std::unordered_map<std::wstring, std::vector<winrt::Last_Music_Player::TrackInfo>> m_remoteSearchCache;
         LastMusicPlayer::Backend::LibraryStats m_libraryStats;
         std::vector<winrt::Last_Music_Player::TrackInfo> m_catalogTracks;
+        std::vector<winrt::Last_Music_Player::TrackInfo> m_searchAllResults;
         std::vector<winrt::Last_Music_Player::TrackInfo> m_songsAllResults;
         std::vector<winrt::Last_Music_Player::TrackInfo> m_librarySongAllResults;
         std::vector<winrt::Last_Music_Player::TrackInfo> m_libraryDetailAllResults;
@@ -1010,8 +1031,12 @@ namespace winrt::Last_Music_Player::implementation
         uint64_t m_libraryDetailHydrationEpoch{ 0 };
         uint64_t m_searchDebounceId{ 0 };
         uint64_t m_searchRequestId{ 0 };
+        uint64_t m_browseLandingEpoch{ 0 };
         uint64_t m_nowPlayingArtworkEpoch{ 0 };
         winrt::Microsoft::UI::Xaml::DispatcherTimer m_playbackProgressTimer{ nullptr };
+        std::wstring m_searchSort{ L"Relevance" };
+        bool m_searchGridMode{ true };
+        bool m_browseLandingLoaded{ false };
         bool m_isSearchMode{ false };
         bool m_isUpdatingSlider = false;
         bool m_loadingSettings = false;

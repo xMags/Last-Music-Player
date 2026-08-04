@@ -119,6 +119,8 @@ namespace winrt::Last_Music_Player::implementation
         MusicListView().ItemsSource(m_songsTracks);
         SongsGridView().ItemsSource(m_songsTracks);
         SearchSongsListView().ItemsSource(m_searchTracks);
+        SearchResultsListView().ItemsSource(m_searchTracks);
+        BrowseCategoryGrid().ItemsSource(m_browseCategories);
         UpNextListView().ItemsSource(m_upNextQueue);
         FsUpNext().ItemsSource(m_upNextQueue);
         SidebarPlaylistsListView().ItemsSource(m_sidebarPlaylists);
@@ -996,6 +998,7 @@ namespace winrt::Last_Music_Player::implementation
 
         ViewRow const rows[] = {
             { HomeViewContainer(), L"Home" },
+            { BrowseViewContainer(), L"Browse" },
             { SongsViewContainer(), L"Songs" },
             { LibraryViewContainer(), L"Library" },
             { SettingsViewContainer(), L"Settings" },
@@ -1010,8 +1013,6 @@ namespace winrt::Last_Music_Player::implementation
         // keeps Home selected in the rail, so every page switch closes it and
         // the catalog reopens it for itself.
         HomeCatalogViewContainer().Visibility(Visibility::Collapsed);
-
-        ExitSearchMode();
         UpdateNavSelection(key);
     }
 
@@ -1033,6 +1034,7 @@ namespace winrt::Last_Music_Player::implementation
 
         NavRow rows[] = {
             { HomeButton(), HomeGlyph(), HomeLabel(), L"Home" },
+            { BrowseButton(), BrowseGlyph(), BrowseLabel(), L"Browse" },
             { SongsButton(), SongsGlyph(), SongsLabel(), L"Songs" },
             { LibraryButton(), LibraryGlyph(), LibraryLabel(), L"Library" },
             { SettingsButton(), SettingsGlyph(), SettingsLabel(), L"Settings" },

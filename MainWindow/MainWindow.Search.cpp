@@ -3,6 +3,7 @@
 #include "MainWindow.Internal.h"
 
 #include "Backend/ProviderClient.h"
+#include "Backend/TrackSearchPolicy.h"
 #include "Backend/SettingsManager.h"
 #include "Backend/TrayIcon.h"
 #include "Backend/DiscordPresence.h"
@@ -125,12 +126,6 @@ namespace winrt::Last_Music_Player::implementation
     {
         (void)query;
         m_isSearchMode = true;
-        HomeDefaultContent().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
-        HomeSearchContent().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Visible);
-        if (m_searchTracks.Size() == 0)
-        {
-            SearchStatusText().Text(L"");
-        }
     }
 
     void MainWindow::ExitSearchMode()
@@ -138,15 +133,10 @@ namespace winrt::Last_Music_Player::implementation
         ++m_searchDebounceId;
         ++m_searchRequestId;
         m_isSearchMode = false;
+        m_searchAllResults.clear();
         m_searchTracks.Clear();
-        HomeSearchContent().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
-        HomeDefaultContent().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Visible);
-        SearchStatusText().Text(L"Type to search");
-        if (!GlobalSearchBox().Text().empty())
-        {
-            GlobalSearchBox().Text(L"");
-        }
-        RunDetached(HydrateHomeAsync(false));
+        ShowBrowseLanding(false);
+        RunDetached(HydrateBrowseLandingAsync(false));
     }
 
     void MainWindow::GlobalSearchBox_TextChanged(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::TextChangedEventArgs const& args)
@@ -155,9 +145,10 @@ namespace winrt::Last_Music_Player::implementation
         (void)args;
 
         auto query = TrimQuery(GlobalSearchBox().Text());
-        if (query.empty())
+        if (query.size() < LastMusicPlayer::Backend::kMinimumSearchQueryLength)
         {
             ExitSearchMode();
+            ShowBrowseLanding(query.size() == 1);
             return;
         }
 
@@ -184,7 +175,8 @@ namespace winrt::Last_Music_Player::implementation
                 }
 
                 auto const liveQuery = TrimQuery(self->GlobalSearchBox().Text());
-                if (liveQuery.empty() || liveQuery != query)
+                if (liveQuery.size() < LastMusicPlayer::Backend::kMinimumSearchQueryLength
+                    || liveQuery != query)
                 {
                     return;
                 }
@@ -198,9 +190,10 @@ namespace winrt::Last_Music_Player::implementation
     winrt::Windows::Foundation::IAsyncAction MainWindow::RunHomeSearchAsync()
     {
         auto query = TrimQuery(GlobalSearchBox().Text());
-        if (query.empty())
+        if (query.size() < LastMusicPlayer::Backend::kMinimumSearchQueryLength)
         {
             ExitSearchMode();
+            ShowBrowseLanding(query.size() == 1);
             co_return;
         }
 
@@ -212,51 +205,43 @@ namespace winrt::Last_Music_Player::implementation
 
     winrt::Windows::Foundation::IAsyncAction MainWindow::RunHomeSearchNowAsync(winrt::hstring query, uint64_t requestId)
     {
-        if (requestId != m_searchRequestId || !m_isSearchMode)
+        if (requestId != m_searchRequestId
+            || !m_isSearchMode
+            || query.size() < LastMusicPlayer::Backend::kMinimumSearchQueryLength)
         {
             co_return;
         }
 
+        m_searchAllResults.clear();
         m_searchTracks.Clear();
-        // The status pill keeps its result and error text; only the "searching"
-        // progress messages are handed over to the placeholder. Cleared rather
-        // than left alone so the previous query's count does not sit there
-        // looking like an answer to this one.
-        SearchStatusText().Text(L"");
-        // Scoped: this coroutine returns early on a superseded request, an
-        // unavailable remote, and a caught transport failure.
+        ShowBrowseSearchLoading();
         LastMusicPlayer::Frontend::SkeletonLoadScope searchSkeleton{ m_searchSkeleton, true };
 
         std::unordered_map<std::wstring, int> visibleKeys;
         auto appendVisibleTrack = [&](winrt::Last_Music_Player::TrackInfo const& track) -> bool
         {
             auto key = HomeQueueDedupeKey(track);
-            if (visibleKeys.find(key) != visibleKeys.end())
+            if (visibleKeys.contains(key))
             {
                 return false;
             }
 
-            visibleKeys.emplace(std::move(key), static_cast<int>(m_searchTracks.Size()));
-            m_searchTracks.Append(track);
+            visibleKeys.emplace(std::move(key), static_cast<int>(m_searchAllResults.size()));
+            m_searchAllResults.push_back(track);
             return true;
         };
 
         size_t localMatches = 0;
         for (auto const& track : m_queue.CurrentPlaylist)
         {
-            if (ContainsFolded(track.Title(), query) ||
-                ContainsFolded(track.Artist(), query) ||
-                ContainsFolded(track.Album(), query))
+            if (ContainsFolded(track.Title(), query)
+                || ContainsFolded(track.Artist(), query)
+                || ContainsFolded(track.Album(), query))
             {
                 if (appendVisibleTrack(track))
                 {
                     ++localMatches;
                 }
-                // Cap at 60 (instead of 15) so the local-library half of the
-                // results doesn't silently swallow matches when the user's
-                // library is large. The provider service typically returns
-                // ~30 unique results across all sources, so 60 total gives
-                // both halves room to fill without artificial truncation.
                 if (localMatches >= 60)
                 {
                     break;
@@ -264,34 +249,35 @@ namespace winrt::Last_Music_Player::implementation
             }
         }
 
-        auto updateFinalStatus = [&]()
-        {
-            auto const total = static_cast<uint32_t>(m_searchTracks.Size());
-            if (total == 0)
-            {
-                SearchStatusText().Text(L"No matches");
-            }
-            else
-            {
-                SearchStatusText().Text(winrt::to_hstring(total) + L" Results");
-            }
-        };
-
-        // Local hits are already on screen, so the placeholder has nothing left
-        // to stand in for even though the remote half is still running.
+        // Local hits are useful immediately. Keep them visible while the remote
+        // half finishes instead of replacing playable rows with a placeholder.
         if (localMatches > 0)
         {
+            ApplySearchResultSort();
+            ShowBrowseSearchResults(query);
             m_searchSkeleton.EndLoading();
         }
 
         size_t remoteMatches = 0;
         auto& remoteMusic = RemoteMusicServiceService();
         auto remoteScope = remoteMusic.CaptureScope();
-        if (remoteScope.Mode == LastMusicPlayer::Backend::RemoteAccessMode::LocalOnly
-            || !remoteMusic.IsModeAvailable(remoteScope.Mode)
+        if (remoteScope.Mode == LastMusicPlayer::Backend::RemoteAccessMode::LocalOnly)
+        {
+            ApplySearchResultSort();
+            ShowBrowseSearchResults(query);
+            co_return;
+        }
+        if (!remoteMusic.IsModeAvailable(remoteScope.Mode)
             || !remoteMusic.IsCurrent(remoteScope))
         {
-            SearchStatusText().Text(m_searchTracks.Size() > 0 ? L"Local only" : L"Remote unavailable");
+            if (m_searchAllResults.empty())
+            {
+                ShowBrowseSearchError(L"Remote search is unavailable in the current mode.");
+            }
+            else
+            {
+                ShowBrowseSearchResults(query);
+            }
             co_return;
         }
         auto cacheScope = LastMusicPlayer::Backend::RemoteScopeCacheKey(remoteScope);
@@ -320,8 +306,6 @@ namespace winrt::Last_Music_Player::implementation
                     co_return;
                 }
 
-                // Accept the provider's bounded result set. A smaller client-side
-                // cap previously truncated useful matches for longer queries.
                 remoteTracks = ParseProviderTracks(payload, 60);
             }
 
@@ -367,14 +351,31 @@ namespace winrt::Last_Music_Player::implementation
         {
             co_return;
         }
-        catch (winrt::hresult_error const&)
+        catch (winrt::hresult_error const& error)
         {
-            SearchStatusText().Text(m_searchTracks.Size() > 0 ? L"Local only" : L"Remote failed");
+            if (m_searchAllResults.empty())
+            {
+                auto message = error.message();
+                ShowBrowseSearchError(message.empty()
+                    ? winrt::hstring{ L"Check your connection and try again." }
+                    : message);
+            }
+            else
+            {
+                ShowBrowseSearchResults(query);
+            }
             co_return;
         }
         catch (...)
         {
-            SearchStatusText().Text(m_searchTracks.Size() > 0 ? L"Local only" : L"Remote failed");
+            if (m_searchAllResults.empty())
+            {
+                ShowBrowseSearchError(L"Check your connection and try again.");
+            }
+            else
+            {
+                ShowBrowseSearchResults(query);
+            }
             co_return;
         }
 
@@ -383,7 +384,8 @@ namespace winrt::Last_Music_Player::implementation
             co_return;
         }
 
-        updateFinalStatus();
+        ApplySearchResultSort();
+        ShowBrowseSearchResults(query);
     }
 
     winrt::Windows::Foundation::IAsyncAction MainWindow::SearchResult_ItemClick(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::ItemClickEventArgs const& args)
@@ -407,13 +409,12 @@ namespace winrt::Last_Music_Player::implementation
     void MainWindow::AccelSearch_Invoked(winrt::Microsoft::UI::Xaml::Input::KeyboardAccelerator const& sender, winrt::Microsoft::UI::Xaml::Input::KeyboardAcceleratorInvokedEventArgs const& args)
     {
         (void)sender;
-        // The search box only exists on Home, so anywhere else has to switch
-        // there first. Switching is skipped when Home is already up, because
-        // HomeButton_Click clears the query on its way through ExitSearchMode
-        // and a second Ctrl+K mid-search has to leave what was typed alone.
-        if (HomeViewContainer().Visibility() != winrt::Microsoft::UI::Xaml::Visibility::Visible)
+        // Browse owns the only live search field. Switching pages deliberately
+        // preserves its query and results, so Ctrl+K can return to an in-progress
+        // search instead of silently starting it over.
+        if (BrowseViewContainer().Visibility() != winrt::Microsoft::UI::Xaml::Visibility::Visible)
         {
-            HomeButton_Click(nullptr, nullptr);
+            BrowseButton_Click(nullptr, nullptr);
         }
         GlobalSearchBox().Focus(winrt::Microsoft::UI::Xaml::FocusState::Programmatic);
         // Selected rather than just focused, so the shortcut can be used to
