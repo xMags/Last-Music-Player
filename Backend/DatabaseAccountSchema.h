@@ -77,7 +77,20 @@ namespace LastMusicPlayer::Backend::DatabaseAccountSchema
         "CREATE TABLE IF NOT EXISTS ActiveAccountContext ("
         "SingletonId INTEGER PRIMARY KEY CHECK (SingletonId=1),"
         "RemoteMode TEXT NOT NULL DEFAULT 'LocalOnly',"
-        "AccountId TEXT);";
+        "AccountId TEXT);"
+        // The last catalog discovery payload that parsed into real shelves, so a
+        // relaunch can draw them before the network answers. Stored raw and
+        // re-parsed on read: the payload carries only titles, ids and artwork
+        // URLs, so unlike the track tables there is no expiring credential in it
+        // to strip. Keyed by region because the shelves differ per storefront,
+        // and cascade-deleted with the profile so signing out drops it.
+        "CREATE TABLE IF NOT EXISTS CatalogDiscoveryCache ("
+        "AccountId TEXT NOT NULL,"
+        "Storefront TEXT NOT NULL,"
+        "Payload TEXT NOT NULL,"
+        "FetchedAtUtc TEXT,"
+        "PRIMARY KEY (AccountId, Storefront),"
+        "FOREIGN KEY (AccountId) REFERENCES AccountProfiles(AccountId) ON DELETE CASCADE);";
 
     inline constexpr char RemoveLegacyGenericAccountTracksSql[] =
         "DELETE FROM Tracks WHERE SourceKind='remote' AND Provider='account';";

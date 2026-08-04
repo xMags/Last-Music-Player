@@ -618,6 +618,8 @@ namespace winrt::Last_Music_Player::implementation
         // render the static XAML defaults.
         ApplyUserDisplayName();
 
+        AttachSkeletons();
+
         // Launch counts as a background sync attempt. RestoreAccountIntegrationAsync
         // already syncs on the way up and the window's first activation arrives
         // while that is still in flight, so without this the two would race and,

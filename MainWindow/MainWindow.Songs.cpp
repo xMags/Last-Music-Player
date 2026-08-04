@@ -134,7 +134,9 @@ namespace winrt::Last_Music_Player::implementation
         ++m_songsPageLoadId;
         m_songsResultsValid = false;
         m_songsLoadState = LoadState::Loading;
-        SongsSubtitle().Text(L"Loading tracks...");
+        // The subtitle carries counts, not progress; the placeholder is the
+        // loading signal now, so it keeps whatever UpdateSongsStats writes.
+        m_songsSkeleton.BeginLoading(true);
         UpdateSongsStats();
         RunDetached(EnsureSongsHydratedAsync(true));
     }
@@ -166,6 +168,7 @@ namespace winrt::Last_Music_Player::implementation
             m_songsLoadState = LoadState::Loaded;
             m_songsResultsValid = true;
             UpdateSongsStats();
+            m_songsSkeleton.EndLoading();
             co_return;
         }
 
@@ -175,6 +178,7 @@ namespace winrt::Last_Music_Player::implementation
             m_songsLoadState = LoadState::Loaded;
             m_songsResultsValid = true;
         }
+        m_songsSkeleton.EndLoading();
     }
 
     winrt::Windows::Foundation::IAsyncAction MainWindow::AppendSongsPageAsync()

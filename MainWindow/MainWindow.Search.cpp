@@ -129,7 +129,7 @@ namespace winrt::Last_Music_Player::implementation
         HomeSearchContent().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Visible);
         if (m_searchTracks.Size() == 0)
         {
-            SearchStatusText().Text(L"Searching");
+            SearchStatusText().Text(L"");
         }
     }
 
@@ -218,7 +218,14 @@ namespace winrt::Last_Music_Player::implementation
         }
 
         m_searchTracks.Clear();
-        SearchStatusText().Text(L"Searching");
+        // The status pill keeps its result and error text; only the "searching"
+        // progress messages are handed over to the placeholder. Cleared rather
+        // than left alone so the previous query's count does not sit there
+        // looking like an answer to this one.
+        SearchStatusText().Text(L"");
+        // Scoped: this coroutine returns early on a superseded request, an
+        // unavailable remote, and a caught transport failure.
+        LastMusicPlayer::Frontend::SkeletonLoadScope searchSkeleton{ m_searchSkeleton, true };
 
         std::unordered_map<std::wstring, int> visibleKeys;
         auto appendVisibleTrack = [&](winrt::Last_Music_Player::TrackInfo const& track) -> bool
@@ -270,9 +277,11 @@ namespace winrt::Last_Music_Player::implementation
             }
         };
 
+        // Local hits are already on screen, so the placeholder has nothing left
+        // to stand in for even though the remote half is still running.
         if (localMatches > 0)
         {
-            SearchStatusText().Text(L"Searching remote");
+            m_searchSkeleton.EndLoading();
         }
 
         size_t remoteMatches = 0;

@@ -187,12 +187,16 @@ namespace winrt::Last_Music_Player::implementation
             m_librarySongs.Clear();
             m_librarySongsMatchedCount = 0;
             m_librarySongsMatchedSeconds = 0.0;
-            LibraryImportStatusText().Text(key == L"History" ? L"Loading history..." : L"Loading songs...");
+            // LibraryImportStatusText still carries scan and import progress,
+            // so it is only the plain "loading" messages that the placeholder
+            // takes over from.
+            BeginLibraryTabSkeleton(LastMusicPlayer::Frontend::SkeletonShape::TrackList);
             co_await AppendLibrarySongsPageAsync();
             if (epoch == m_libraryHydrationEpoch)
             {
                 m_librarySongsState = LoadState::Loaded;
                 LibraryImportStatusText().Text(L"");
+                m_libraryTabsSkeleton.EndLoading();
             }
             else
             {
@@ -209,7 +213,7 @@ namespace winrt::Last_Music_Player::implementation
             }
             auto epoch = ++m_libraryHydrationEpoch;
             m_libraryPlaylistsState = LoadState::Loading;
-            LibraryImportStatusText().Text(L"Loading playlists...");
+            BeginLibraryTabSkeleton(LastMusicPlayer::Frontend::SkeletonShape::TileGrid);
             auto scope = m_libraryScope;
             auto remoteScope = RemoteMusicServiceService().CaptureScope();
             auto accountSnapshot = AccountSessionService().Snapshot();
@@ -309,6 +313,7 @@ namespace winrt::Last_Music_Player::implementation
             RefreshAutoPlaylists();
             m_libraryPlaylistsState = LoadState::Loaded;
             LibraryImportStatusText().Text(L"");
+            m_libraryTabsSkeleton.EndLoading();
             co_return;
         }
 
@@ -320,7 +325,7 @@ namespace winrt::Last_Music_Player::implementation
             }
             auto epoch = ++m_libraryHydrationEpoch;
             m_libraryAlbumsState = LoadState::Loading;
-            LibraryImportStatusText().Text(L"Loading albums...");
+            BeginLibraryTabSkeleton(LastMusicPlayer::Frontend::SkeletonShape::TileGrid);
             co_await winrt::resume_background();
             auto albums = DatabaseService().IsInitialized() ? DatabaseService().LoadAlbums() : std::vector<winrt::Last_Music_Player::TrackInfo>{};
             co_await wil::resume_foreground(dispatcher);
@@ -338,6 +343,7 @@ namespace winrt::Last_Music_Player::implementation
             }
             m_libraryAlbumsState = LoadState::Loaded;
             LibraryImportStatusText().Text(L"");
+            m_libraryTabsSkeleton.EndLoading();
             co_return;
         }
 
@@ -349,7 +355,7 @@ namespace winrt::Last_Music_Player::implementation
             }
             auto epoch = ++m_libraryHydrationEpoch;
             m_libraryArtistsState = LoadState::Loading;
-            LibraryImportStatusText().Text(L"Loading artists...");
+            BeginLibraryTabSkeleton(LastMusicPlayer::Frontend::SkeletonShape::TileGrid);
             co_await winrt::resume_background();
             auto artists = DatabaseService().IsInitialized() ? DatabaseService().LoadArtists() : std::vector<winrt::Last_Music_Player::TrackInfo>{};
             co_await wil::resume_foreground(dispatcher);
@@ -367,6 +373,7 @@ namespace winrt::Last_Music_Player::implementation
             }
             m_libraryArtistsState = LoadState::Loaded;
             LibraryImportStatusText().Text(L"");
+            m_libraryTabsSkeleton.EndLoading();
             co_return;
         }
 
@@ -378,7 +385,7 @@ namespace winrt::Last_Music_Player::implementation
             }
             auto epoch = ++m_libraryHydrationEpoch;
             m_libraryGenresState = LoadState::Loading;
-            LibraryImportStatusText().Text(L"Loading genres...");
+            BeginLibraryTabSkeleton(LastMusicPlayer::Frontend::SkeletonShape::TileGrid);
             co_await winrt::resume_background();
             auto genres = DatabaseService().IsInitialized() ? DatabaseService().LoadGenres() : std::vector<winrt::Last_Music_Player::TrackInfo>{};
             co_await wil::resume_foreground(dispatcher);
@@ -396,6 +403,7 @@ namespace winrt::Last_Music_Player::implementation
             }
             m_libraryGenresState = LoadState::Loaded;
             LibraryImportStatusText().Text(L"");
+            m_libraryTabsSkeleton.EndLoading();
         }
     }
 

@@ -408,6 +408,7 @@
                                 <Button x:Name="HomeListenAllButton" Content="See all &#x203A;" Click="HomeListenAll_Click" HorizontalAlignment="Right" VerticalAlignment="Center" Background="Transparent" BorderThickness="0" Padding="6,2" FontSize="12" FontWeight="SemiBold" Foreground="{ThemeResource AccentBrush}" />
                             </Grid>
 
+                            <Grid x:Name="ListenAgainSkeletonHost" Visibility="Collapsed" Margin="0,4,0,24" />
                             <GridView x:Name="HomeRecentGridView"
                                       Height="260"
                                       Padding="0,4,64,24"
@@ -501,6 +502,12 @@
                                 <TextBlock x:Name="HomeCatalogStatusText" Grid.Column="1" Style="{StaticResource CaptionText}" VerticalAlignment="Center" TextWrapping="Wrap" />
                                 <Button x:Name="HomeCatalogRetryButton" Grid.Column="2" Content="Retry" Click="HomeCatalogRetry_Click" Visibility="Collapsed" Background="Transparent" BorderThickness="0" Padding="8,4" Foreground="{ThemeResource AccentBrush}" FontWeight="SemiBold" />
                             </Grid>
+
+                            <!-- First-load placeholder. Filled by SkeletonPresenter, which
+                                 mirrors the geometry BuildCatalogShelfSection produces so the
+                                 page does not jump when the shelves arrive. -->
+                            <StackPanel x:Name="HomeCatalogSkeleton" Visibility="Collapsed" Spacing="32" />
+
                             <StackPanel x:Name="HomeCatalogPrimaryPanel" Spacing="32" />
                         </StackPanel>
 
@@ -1046,6 +1053,7 @@
                                 </Border>
                             </StackPanel>
 
+                            <Grid x:Name="RecentlyAddedSkeletonHost" Visibility="Collapsed" Margin="0,4,0,24" />
                             <GridView x:Name="HomeRecentlyAddedGridView"
                                       Visibility="Collapsed"
                                       SelectionMode="None"
@@ -1140,6 +1148,7 @@
 
                         <StackPanel Spacing="14">
                             <TextBlock Text="Results" Style="{StaticResource TitleH2}" />
+                            <Grid x:Name="SearchSkeletonHost" Visibility="Collapsed" Margin="0,4,0,24" />
                             <GridView x:Name="SearchSongsListView"
                                       SelectionMode="None"
                                       IsItemClickEnabled="True"
@@ -1894,6 +1903,7 @@
                     </Grid>
 
                     <!-- Table -->
+                    <Grid x:Name="SongsSkeletonHost" Grid.Row="3" Visibility="Collapsed" VerticalAlignment="Top" Margin="0,4,0,0" />
                     <ListView x:Name="MusicListView" Grid.Row="3"
                               IsItemClickEnabled="True"
                               ItemClick="MusicListView_ItemClick"
@@ -2154,6 +2164,7 @@
                         </StackPanel>
                         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" VerticalScrollMode="Enabled">
                             <StackPanel>
+                                <Grid x:Name="DiscoverChartSkeletonHost" Visibility="Collapsed" Margin="0,4,0,24" />
                                 <GridView x:Name="DiscoverChartGridView"
                                           IsItemClickEnabled="True"
                                           ItemClick="DiscoverItem_ItemClick"
@@ -2213,6 +2224,7 @@
                                 </StackPanel>
                             </Grid>
                         </StackPanel>
+                        <Grid x:Name="DiscoverDetailSkeletonHost" Grid.Row="1" Visibility="Collapsed" VerticalAlignment="Top" />
                         <ListView x:Name="DiscoverDetailTracksListView"
                                   Grid.Row="1"
                                   IsItemClickEnabled="True"
@@ -2351,6 +2363,7 @@
                     <!-- Content: Albums / Artists / Songs / Genres -->
                     <Grid x:Name="LibraryTabsContent" Grid.Row="2">
                         <!-- Albums -->
+                        <Grid x:Name="LibraryTabsSkeletonHost" Visibility="Collapsed" VerticalAlignment="Top" />
                         <GridView x:Name="LibAlbumsGrid" Visibility="Collapsed" SelectionMode="None" IsItemClickEnabled="True" ItemClick="LibraryGroup_ItemClick" ItemContainerStyle="{StaticResource CardTileContainerStyle}" Padding="0,0,0,24"
                                   ScrollViewer.HorizontalScrollMode="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                             <GridView.ItemTemplate>
@@ -2712,6 +2725,7 @@
                             </Grid>
                             </Border>
                         </StackPanel>
+                        <Grid x:Name="LibraryDetailSkeletonHost" Grid.Row="1" Visibility="Collapsed" VerticalAlignment="Top" />
                         <ListView x:Name="LibraryDetailTracksListView"
                                   Grid.Row="1"
                                   IsItemClickEnabled="True"

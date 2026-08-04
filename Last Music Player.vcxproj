@@ -196,6 +196,7 @@
     <ClInclude Include="Frontend\UIHelpers.h" />
     <ClInclude Include="Frontend\NavigationService.h" />
     <ClInclude Include="Frontend\RoundedCornerClip.h" />
+    <ClInclude Include="Frontend\Skeleton.h" />
   </ItemGroup>
   <ItemGroup>
     <ApplicationDefinition Include="App.xaml" />
@@ -291,6 +292,7 @@
     <ClCompile Include="Frontend\UIHelpers.cpp" />
     <ClCompile Include="Frontend\NavigationService.cpp" />
     <ClCompile Include="Frontend\RoundedCornerClip.cpp" />
+    <ClCompile Include="Frontend\Skeleton.cpp" />
     <ClCompile Include="packages\Microsoft.WindowsAppSDK.Foundation.1.8.260203002\include\UndockedRegFreeWinRT-AutoInitializer.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PreprocessorDefinitions>MICROSOFT_WINDOWSAPPSDK_UNDOCKEDREGFREEWINRT_AUTO_INITIALIZE_LOADLIBRARY;MICROSOFT_WINDOWSAPPSDK_UNDOCKEDREGFREEWINRT_AUTO_INITIALIZE;%(PreprocessorDefinitions)</PreprocessorDefinitions>

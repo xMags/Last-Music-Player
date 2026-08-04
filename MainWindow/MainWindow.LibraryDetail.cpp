@@ -72,6 +72,15 @@ namespace winrt::Last_Music_Player::implementation
         m_libraryDetailPageLoading = true;
         auto pageLoadId = ++m_libraryDetailPageLoadId;
 
+        // Only the first page gets a placeholder. This same coroutine appends
+        // later pages as the user scrolls, and replacing rows they are already
+        // reading with grey blocks would be a step backwards. Scoped because it
+        // returns early on a stale epoch and on a superseded account playlist.
+        LastMusicPlayer::Frontend::SkeletonLoadScope detailSkeleton{
+            m_libraryDetailSkeleton,
+            offset == 0
+        };
+
         co_await winrt::resume_background();
         auto page = DatabaseService().LoadTrackPage(query);
 

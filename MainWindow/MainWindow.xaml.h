@@ -4,6 +4,7 @@
 #include "Backend/DatabaseEngine.h"
 #include "Backend/PlaybackHistoryQualifier.h"
 #include "Backend/AutoSyncPolicy.h"
+#include "Frontend/Skeleton.h"
 #include "Backend/CastEngine.h"
 #include "Backend/CatalogModels.h"
 #include "Backend/LyricsService.h"
@@ -21,6 +22,7 @@
 #include <winrt/Microsoft.UI.Xaml.h>
 #include <winrt/Microsoft.UI.Xaml.Input.h>
 #include <winrt/Microsoft.UI.Xaml.Media.h>
+#include <winrt/Microsoft.UI.Xaml.Media.Animation.h>
 #include <winrt/Microsoft.UI.Xaml.Controls.h>
 #include <winrt/Windows.System.h>
 #include <winrt/Microsoft.UI.Windowing.h>
@@ -633,9 +635,32 @@ namespace winrt::Last_Music_Player::implementation
 
         void ShowCatalogSurface(CatalogSurface surface, bool pushCurrent = true);
         void ShowHomeCatalogStatus(winrt::hstring const& message, bool loading, bool canRetry);
+
+        // Binds every loading placeholder to its host panel. Called once during
+        // construction; the presenters build their trees lazily on first use.
+        void AttachSkeletons();
+
+        // Every library tab draws into one shared host, so the placeholder is
+        // re-shaped to match whichever tab is about to load.
+        void BeginLibraryTabSkeleton(LastMusicPlayer::Frontend::SkeletonShape shape);
         void UpdateCatalogAvailability();
         winrt::hstring CurrentDiscoverStorefront();
         winrt::Windows::Foundation::IAsyncAction HydrateDiscoverAsync(bool force);
+
+        // Puts the last catalog payload that worked back on screen so a relaunch
+        // is not a blank wait for the network. Reads and parses off the UI
+        // thread, then applies on it, and returns whether anything was applied.
+        // Declines to apply if the epoch or account scope moved while it was
+        // reading, so it can never overwrite a newer load with an older one.
+        winrt::Windows::Foundation::IAsyncOperation<bool> RestoreCachedDiscoveryAsync(
+            winrt::hstring storefront,
+            std::uint64_t epoch,
+            LastMusicPlayer::Backend::RemoteScopeSnapshot scope);
+
+        // Records a payload that parsed into real shelves, so the next launch
+        // has something to draw. Fire-and-forget: a failed write only costs the
+        // next start a round trip, so it never blocks or reports.
+        void CacheDiscoveryPayload(winrt::hstring const& storefront, winrt::hstring const& payload);
         winrt::Windows::Foundation::IAsyncAction OpenDiscoverChartAsync(
             LastMusicPlayer::Backend::CatalogChartRef chart,
             winrt::hstring title);
@@ -927,6 +952,23 @@ namespace winrt::Last_Music_Player::implementation
         // timer is kept alive by the dispatcher queue and a strong capture
         // would drag the window along with it.
         winrt::Microsoft::UI::Dispatching::DispatcherQueueTimer m_autoSyncTimer{ nullptr };
+
+        // Loading placeholders, one per surface. Each owns its own delay gate,
+        // so a load that resolves quickly never puts anything on screen.
+        LastMusicPlayer::Frontend::SkeletonPresenter m_catalogSkeleton;
+        LastMusicPlayer::Frontend::SkeletonPresenter m_listenAgainSkeleton;
+        LastMusicPlayer::Frontend::SkeletonPresenter m_recentlyAddedSkeleton;
+        LastMusicPlayer::Frontend::SkeletonPresenter m_songsSkeleton;
+        // Every library tab shares one host inside LibraryTabsContent, so this
+        // is re-attached with the shape of whichever tab is loading. The shape
+        // is tracked to avoid rebuilding the tree when it has not changed.
+        LastMusicPlayer::Frontend::SkeletonPresenter m_libraryTabsSkeleton;
+        LastMusicPlayer::Frontend::SkeletonShape m_libraryTabSkeletonShape{
+            LastMusicPlayer::Frontend::SkeletonShape::TrackList };
+        LastMusicPlayer::Frontend::SkeletonPresenter m_libraryDetailSkeleton;
+        LastMusicPlayer::Frontend::SkeletonPresenter m_discoverDetailSkeleton;
+        LastMusicPlayer::Frontend::SkeletonPresenter m_discoverChartSkeleton;
+        LastMusicPlayer::Frontend::SkeletonPresenter m_searchSkeleton;
 
         // Stamped at launch, and thereafter whenever a background sync actually
         // starts, so the focus debounce measures real traffic rather than
