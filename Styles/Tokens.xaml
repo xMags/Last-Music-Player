@@ -25,6 +25,11 @@
             <SolidColorBrush x:Key="SurfaceAltBrush" Color="#FFFBFBFD" />
             <SolidColorBrush x:Key="NeutralFillBrush" Color="#FFF3F4F6" />
             <SolidColorBrush x:Key="PlaceholderGlyphBrush" Color="#FFC7CDD4" />
+            <!-- Distinctly darker than NeutralFillBrush, which sits at almost
+                 exactly the luminance of the page gradient and disappears into
+                 it. A skeleton has to read as a solid shape from across the
+                 room, so it is pitched near the placeholder glyph instead. -->
+            <SolidColorBrush x:Key="SkeletonFillBrush" Color="#FFDCE1E9" />
 
             <!-- Gradient stop colors -->
             <Color x:Key="PanelGradient1">#FFF0FCFF</Color>
@@ -68,6 +73,10 @@
             <SolidColorBrush x:Key="SurfaceAltBrush" Color="#FF272727" />
             <SolidColorBrush x:Key="NeutralFillBrush" Color="#FF3A3A3A" />
             <SolidColorBrush x:Key="PlaceholderGlyphBrush" Color="#FF5A5A5A" />
+            <!-- Lifted off the dark panel gradient by roughly the same contrast
+                 step the light theme uses, and tinted to match it rather than
+                 going flat grey. -->
+            <SolidColorBrush x:Key="SkeletonFillBrush" Color="#FF383F49" />
 
             <!-- Gradient stop colors -->
             <Color x:Key="PanelGradient1">#FF1D2329</Color>
@@ -260,6 +269,15 @@
     <!-- Implicit slider style: accent filled track + accent thumb -->
     <Style TargetType="Slider">
         <Setter Property="Foreground" Value="{ThemeResource AccentBrush}" />
+    </Style>
+
+    <!-- One block of a loading skeleton. Callers give it the size of the
+         content it stands in for, so the page lays out once and does not
+         reflow when the real data arrives. The pulse that makes it read as
+         loading is animated on the container, not on each block. -->
+    <Style x:Key="SkeletonBlock" TargetType="Border">
+        <Setter Property="Background" Value="{ThemeResource SkeletonFillBrush}" />
+        <Setter Property="CornerRadius" Value="{StaticResource RadiusMd}" />
     </Style>
 
 </ResourceDictionary>

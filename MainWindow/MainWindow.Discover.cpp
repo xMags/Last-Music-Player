@@ -35,6 +35,20 @@ namespace winrt::Last_Music_Player::implementation
             std::chrono::milliseconds{ 1500 }
         };
 
+        // Whether a parsed payload has anything worth putting on screen. A
+        // request can succeed and still yield nothing usable, either because the
+        // region genuinely has no charts or because the payload shape moved, and
+        // both cases must be kept out of the on-screen state and off disk.
+        bool HasCatalogContent(LastMusicPlayer::Backend::CatalogDiscovery const& discovery) noexcept
+        {
+            return !discovery.Shelves.empty()
+                || !discovery.Charts.empty()
+                || discovery.MoodActivityShelf.has_value()
+                || (discovery.CityChartGroups
+                    && (!discovery.CityChartGroups->Indian.Charts.empty()
+                        || !discovery.CityChartGroups->International.Charts.empty()));
+        }
+
         bool IsTransientAccountArtworkError(winrt::hresult_error const& error) noexcept
         {
             auto code = error.code();
@@ -533,6 +547,43 @@ namespace winrt::Last_Music_Player::implementation
         DiscoverDetailPage().Visibility(surface == CatalogSurface::Detail ? Visibility::Visible : Visibility::Collapsed);
     }
 
+    void MainWindow::AttachSkeletons()
+    {
+        using LastMusicPlayer::Frontend::SkeletonShape;
+
+        // Counts are chosen to fill roughly one screen of the surface they
+        // cover, so the placeholder neither stops short nor runs on past the
+        // content that replaces it.
+        m_catalogSkeleton.Attach(HomeCatalogSkeleton(), SkeletonShape::Shelf, 2);
+        m_listenAgainSkeleton.Attach(ListenAgainSkeletonHost(), SkeletonShape::TileRow, 6);
+        m_recentlyAddedSkeleton.Attach(RecentlyAddedSkeletonHost(), SkeletonShape::TileRow, 6);
+        m_searchSkeleton.Attach(SearchSkeletonHost(), SkeletonShape::TileRow, 6);
+        m_songsSkeleton.Attach(SongsSkeletonHost(), SkeletonShape::TrackList, 9);
+        m_libraryTabsSkeleton.Attach(LibraryTabsSkeletonHost(), SkeletonShape::TrackList, 9);
+        m_libraryDetailSkeleton.Attach(LibraryDetailSkeletonHost(), SkeletonShape::TrackList, 8);
+        m_discoverDetailSkeleton.Attach(DiscoverDetailSkeletonHost(), SkeletonShape::TrackList, 8);
+        m_discoverChartSkeleton.Attach(DiscoverChartSkeletonHost(), SkeletonShape::TileGrid, 10);
+    }
+
+    void MainWindow::BeginLibraryTabSkeleton(LastMusicPlayer::Frontend::SkeletonShape shape)
+    {
+        // Re-attaching discards the tree built for the previous tab, which is
+        // the point: a track list and a card grid look nothing alike, and only
+        // one tab is ever on screen.
+        if (shape != m_libraryTabSkeletonShape)
+        {
+            m_libraryTabsSkeleton.Attach(
+                LibraryTabsSkeletonHost(),
+                shape,
+                shape == LastMusicPlayer::Frontend::SkeletonShape::TrackList ? 9 : 10);
+            m_libraryTabSkeletonShape = shape;
+        }
+
+        // Always treated as a first load: switching tabs replaces the content
+        // wholesale, so there is never anything worth preserving underneath.
+        m_libraryTabsSkeleton.BeginLoading(true);
+    }
+
     void MainWindow::ShowHomeCatalogStatus(
         winrt::hstring const& message,
         bool loading,
@@ -540,19 +591,31 @@ namespace winrt::Last_Music_Player::implementation
     {
         using winrt::Microsoft::UI::Xaml::Visibility;
         auto accountMode = RemoteMusicServiceService().Mode() == LastMusicPlayer::Backend::RemoteAccessMode::Account;
-        auto hasContent = !m_catalogDiscovery.Shelves.empty()
-            || !m_catalogDiscovery.Charts.empty()
-            || m_catalogDiscovery.MoodActivityShelf.has_value()
-            || (m_catalogDiscovery.CityChartGroups
-                && (!m_catalogDiscovery.CityChartGroups->Indian.Charts.empty()
-                    || !m_catalogDiscovery.CityChartGroups->International.Charts.empty()));
+        auto hasContent = HasCatalogContent(m_catalogDiscovery);
+
+        // The skeleton stands in for shelves that are not there yet, so it only
+        // makes sense on a first load. Refreshing over shelves the user is
+        // already reading keeps the one-line status instead: swapping real
+        // content for placeholders would be a step backwards.
+        auto showSkeleton = accountMode && loading && !hasContent;
+
         HomeCatalogPrimaryContainer().Visibility(accountMode && (hasContent || !message.empty())
             ? Visibility::Visible
             : Visibility::Collapsed);
+        if (showSkeleton)
+        {
+            m_catalogSkeleton.BeginLoading(true);
+        }
+        else
+        {
+            m_catalogSkeleton.EndLoading();
+        }
         HomeCatalogStatusText().Text(message);
-        HomeCatalogStatusPanel().Visibility(message.empty() ? Visibility::Collapsed : Visibility::Visible);
-        HomeCatalogProgressRing().IsActive(loading);
-        HomeCatalogProgressRing().Visibility(loading ? Visibility::Visible : Visibility::Collapsed);
+        HomeCatalogStatusPanel().Visibility(message.empty() || showSkeleton
+            ? Visibility::Collapsed
+            : Visibility::Visible);
+        HomeCatalogProgressRing().IsActive(loading && !showSkeleton);
+        HomeCatalogProgressRing().Visibility(loading && !showSkeleton ? Visibility::Visible : Visibility::Collapsed);
         HomeCatalogRetryButton().Visibility(canRetry ? Visibility::Visible : Visibility::Collapsed);
     }
 
@@ -1037,6 +1100,91 @@ namespace winrt::Last_Music_Player::implementation
         BuildHomeCatalog(m_catalogDiscovery);
     }
 
+    winrt::Windows::Foundation::IAsyncOperation<bool> MainWindow::RestoreCachedDiscoveryAsync(
+        winrt::hstring storefront,
+        std::uint64_t epoch,
+        LastMusicPlayer::Backend::RemoteScopeSnapshot scope)
+    {
+        auto lifetime = get_strong();
+        auto dispatcher = DispatcherQueue();
+        if (!dispatcher || storefront.empty())
+        {
+            co_return false;
+        }
+
+        co_await winrt::resume_background();
+
+        // Reading the row and parsing it are both off the UI thread: the payload
+        // runs to hundreds of kilobytes and the parse walks every shelf in it.
+        auto accountId = DatabaseService().ActiveAccountId();
+        LastMusicPlayer::Backend::CatalogDiscovery restored;
+        if (!accountId.empty())
+        {
+            auto payload = DatabaseService().LoadCatalogDiscoveryPayload(
+                accountId,
+                std::wstring(storefront.c_str()));
+            if (!payload.empty())
+            {
+                restored = LastMusicPlayer::Backend::ParseCatalogDiscovery(
+                    winrt::hstring(payload),
+                    storefront);
+            }
+        }
+
+        co_await wil::resume_foreground(dispatcher);
+
+        // A stored payload that no longer parses into shelves is treated as a
+        // cold start rather than an error: the live request is already on its
+        // way, and it is the one that decides what the user is told.
+        if (!HasCatalogContent(restored))
+        {
+            co_return false;
+        }
+        // The read took long enough to suspend twice, so the account or the load
+        // that asked for this may both have moved on. Applying either way would
+        // put one account's catalog under another's session, or resurrect a
+        // region the user has already navigated away from.
+        if (epoch != m_discoverEpoch
+            || storefront != CurrentDiscoverStorefront()
+            || !RemoteMusicServiceService().IsCurrent(scope))
+        {
+            co_return false;
+        }
+
+        m_catalogDiscovery = std::move(restored);
+        m_discoverLoaded = true;
+        RebuildCatalogSurfaces();
+        co_return true;
+    }
+
+    void MainWindow::CacheDiscoveryPayload(
+        winrt::hstring const& storefront,
+        winrt::hstring const& payload)
+    {
+        if (storefront.empty() || payload.empty())
+        {
+            return;
+        }
+
+        std::wstring storefrontKey(storefront.c_str());
+        std::wstring payloadText(payload.c_str());
+        // Detached, and it captures copies rather than this: the write touches
+        // no window state, only the database singleton, so it has no reason to
+        // hold the window alive or to be waited on by the surface that queued
+        // it. The coroutine frame owns the copies for as long as it runs.
+        RunDetached([storefrontKey = std::move(storefrontKey), payloadText = std::move(payloadText)]()
+            -> winrt::Windows::Foundation::IAsyncAction
+            {
+                co_await winrt::resume_background();
+                auto accountId = DatabaseService().ActiveAccountId();
+                if (accountId.empty())
+                {
+                    co_return;
+                }
+                DatabaseService().SaveCatalogDiscoveryPayload(accountId, storefrontKey, payloadText);
+            }());
+    }
+
     winrt::Windows::Foundation::IAsyncAction MainWindow::HydrateDiscoverAsync(bool force)
     {
         auto lifetime = get_strong();
@@ -1065,15 +1213,6 @@ namespace winrt::Last_Music_Player::implementation
         auto scope = RemoteMusicServiceService().CaptureScope();
         auto hasCachedContent = m_discoverLoaded
             && m_catalogDiscovery.Storefront == storefront;
-        if (hasCachedContent)
-        {
-            ShowHomeCatalogStatus(L"Refreshing catalog...", true, false);
-        }
-        else
-        {
-            HomeCatalogPrimaryPanel().Children().Clear();
-            ShowHomeCatalogStatus(L"Loading catalog...", true, false);
-        }
 
         auto finish = [this]()
         {
@@ -1084,6 +1223,31 @@ namespace winrt::Last_Music_Player::implementation
                 RunDetached(HydrateDiscoverAsync(true));
             }
         };
+
+        if (!hasCachedContent)
+        {
+            // Nothing in memory for this region, which on a relaunch means the
+            // shelves would otherwise sit blank for a whole round trip. Draw the
+            // last payload that worked instead, then let the request below
+            // replace it. The refresh is unconditional: this only decides what
+            // is on screen while it runs, never whether it runs.
+            hasCachedContent = co_await RestoreCachedDiscoveryAsync(storefront, epoch, scope);
+            if (epoch != m_discoverEpoch || !RemoteMusicServiceService().IsCurrent(scope))
+            {
+                finish();
+                co_return;
+            }
+        }
+
+        if (hasCachedContent)
+        {
+            ShowHomeCatalogStatus(L"Refreshing catalog...", true, false);
+        }
+        else
+        {
+            HomeCatalogPrimaryPanel().Children().Clear();
+            ShowHomeCatalogStatus(L"Loading catalog...", true, false);
+        }
 
         winrt::hstring discoveryPayload;
         winrt::hstring storefrontsPayload;
@@ -1133,13 +1297,7 @@ namespace winrt::Last_Music_Player::implementation
         }
 
         auto discovery = LastMusicPlayer::Backend::ParseCatalogDiscovery(discoveryPayload, storefront);
-        auto hasDiscoveryContent = !discovery.Shelves.empty()
-            || !discovery.Charts.empty()
-            || discovery.MoodActivityShelf.has_value()
-            || (discovery.CityChartGroups
-                && (!discovery.CityChartGroups->Indian.Charts.empty()
-                    || !discovery.CityChartGroups->International.Charts.empty()));
-        if (!hasDiscoveryContent)
+        if (!HasCatalogContent(discovery))
         {
             // The request succeeded and produced nothing usable. Either this
             // storefront has no charts, or the payload shape moved; both look the
@@ -1155,6 +1313,13 @@ namespace winrt::Last_Music_Player::implementation
                 ? winrt::hstring{ L"Showing saved catalog content while the service refreshes." }
                 : winrt::hstring{};
             ShowHomeCatalogStatus(message, false, m_catalogDiscovery.Stale);
+            // Only payloads that actually produced shelves are worth keeping, and
+            // only the live one: a payload the service already flagged stale would
+            // be served back on the next launch as though it were current.
+            if (!m_catalogDiscovery.Stale)
+            {
+                CacheDiscoveryPayload(storefront, discoveryPayload);
+            }
         }
 
         // The storefront list is cosmetic, so a failure here leaves the existing
@@ -1214,7 +1379,9 @@ namespace winrt::Last_Music_Player::implementation
 
         ShowCatalogSurface(CatalogSurface::Chart, true);
 
+        m_discoverChartSkeleton.BeginLoading(m_discoverChartItems.Size() == 0);
         co_await LoadDiscoverChartPageAsync(0);
+        m_discoverChartSkeleton.EndLoading();
     }
 
     winrt::Windows::Foundation::IAsyncAction MainWindow::LoadDiscoverChartPageAsync(int32_t offset)
@@ -1342,12 +1509,17 @@ namespace winrt::Last_Music_Player::implementation
         DiscoverDetailTracksListView().ItemsSource(m_discoverDetailTracks);
         DiscoverDetailTitleText().Text(title);
         DiscoverDetailKindText().Text(kind == L"playlists" ? L"Playlist" : L"Album");
-        DiscoverDetailSubtitleText().Text(L"Loading...");
+        // Cleared, not relabelled: the track placeholder below is the loading
+        // signal, and this line goes on to carry the real track count.
+        DiscoverDetailSubtitleText().Text(L"");
         DiscoverDetailDescriptionText().Text(L"");
         DiscoverDetailArt().Tag(nullptr);
         DiscoverDetailArt().Source(nullptr);
 
         ShowCatalogSurface(CatalogSurface::Detail, true);
+        // Scoped, because this coroutine leaves by several routes: a stale
+        // epoch, a superseded navigation, or a caught transport failure.
+        LastMusicPlayer::Frontend::SkeletonLoadScope detailSkeleton{ m_discoverDetailSkeleton, true };
         auto navigationEpoch = m_discoverNavigationEpoch;
 
         winrt::hstring payload;

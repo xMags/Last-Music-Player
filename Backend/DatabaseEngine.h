@@ -207,6 +207,18 @@ namespace LastMusicPlayer::Backend
 
         AccountSyncState LoadAccountSyncState(std::wstring const& accountId) const;
         bool SaveAccountSyncState(AccountSyncState const& state);
+
+        // Last catalog discovery payload for an account and region. Returns an
+        // empty string when nothing is stored, which callers treat the same as a
+        // cold start. Both are cheap but touch disk, so call them off the UI
+        // thread; the payload can run to a few hundred kilobytes.
+        std::wstring LoadCatalogDiscoveryPayload(
+            std::wstring const& accountId,
+            std::wstring const& storefront) const;
+        bool SaveCatalogDiscoveryPayload(
+            std::wstring const& accountId,
+            std::wstring const& storefront,
+            std::wstring const& payload);
         bool ClearAccountData(
             std::wstring const& accountId,
             AccountDataClearMode mode = AccountDataClearMode::LeaveInactive);

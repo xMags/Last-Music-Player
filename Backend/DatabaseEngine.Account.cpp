@@ -867,6 +867,70 @@ namespace LastMusicPlayer::Backend
         return sqlite3_step(stmt.value) == SQLITE_DONE;
     }
 
+    std::wstring DatabaseEngine::LoadCatalogDiscoveryPayload(
+        std::wstring const& accountId,
+        std::wstring const& storefront) const
+    {
+        std::scoped_lock lock{ m_mutex };
+        if (!m_db || accountId.empty() || storefront.empty())
+        {
+            return {};
+        }
+
+        Statement stmt{ m_db,
+            "SELECT Payload FROM CatalogDiscoveryCache WHERE AccountId=? AND Storefront=?;" };
+        if (!stmt)
+        {
+            return {};
+        }
+        BindText(stmt.value, 1, accountId);
+        BindText(stmt.value, 2, storefront);
+        if (sqlite3_step(stmt.value) != SQLITE_ROW)
+        {
+            return {};
+        }
+        return ColumnText(stmt.value, 0);
+    }
+
+    bool DatabaseEngine::SaveCatalogDiscoveryPayload(
+        std::wstring const& accountId,
+        std::wstring const& storefront,
+        std::wstring const& payload)
+    {
+        std::scoped_lock lock{ m_mutex };
+        if (!m_db || accountId.empty() || storefront.empty() || payload.empty())
+        {
+            return false;
+        }
+        // The service is trusted, but it is still the far side of a network, and
+        // this row is written on every successful load for the life of the
+        // install. A payload past this size is not a catalog page any more, so
+        // refuse it rather than let one grow the database without bound. Losing
+        // the cache only costs a cold start.
+        constexpr std::size_t kMaxPayloadCharacters = 4u * 1024u * 1024u;
+        if (payload.size() > kMaxPayloadCharacters)
+        {
+            return false;
+        }
+        if (!EnsureAccountProfile(m_db, accountId))
+        {
+            return false;
+        }
+
+        Statement stmt{ m_db,
+            "INSERT INTO CatalogDiscoveryCache (AccountId, Storefront, Payload, FetchedAtUtc) "
+            "VALUES (?, ?, ?, datetime('now')) ON CONFLICT(AccountId, Storefront) DO UPDATE SET "
+            "Payload=excluded.Payload, FetchedAtUtc=excluded.FetchedAtUtc;" };
+        if (!stmt)
+        {
+            return false;
+        }
+        BindText(stmt.value, 1, accountId);
+        BindText(stmt.value, 2, storefront);
+        BindText(stmt.value, 3, payload);
+        return sqlite3_step(stmt.value) == SQLITE_DONE;
+    }
+
     bool DatabaseEngine::ClearAccountData(
         std::wstring const& accountId,
         AccountDataClearMode mode)

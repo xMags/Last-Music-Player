@@ -432,16 +432,25 @@ namespace winrt::Last_Music_Player::implementation
 
 
         m_homeLoadState = LoadState::Loading;
+        // The placeholders say "loading" now, so the empty-state labels go back
+        // to meaning only what they say: that there is nothing to show. Hidden
+        // rather than relabelled, otherwise "Play something to see it here"
+        // would sit under a skeleton claiming the opposite.
         if (ListenAgainEmptyText())
         {
-            ListenAgainEmptyText().Text(L"Loading your music...");
-            ListenAgainEmptyText().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Visible);
+            ListenAgainEmptyText().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
         }
         if (RecentlyAddedEmptyText())
         {
-            RecentlyAddedEmptyText().Text(L"Loading your library...");
-            RecentlyAddedEmptyText().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Visible);
+            RecentlyAddedEmptyText().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
         }
+        // Scoped rather than paired by hand: startup hydration has several exit
+        // points and does not funnel through the code that populates the rows,
+        // so a manual EndLoading would be missed and strand the placeholder.
+        LastMusicPlayer::Frontend::SkeletonLoadScope listenAgainSkeleton{
+            m_listenAgainSkeleton, m_homeTracks.Size() == 0 };
+        LastMusicPlayer::Frontend::SkeletonLoadScope recentlyAddedSkeleton{
+            m_recentlyAddedSkeleton, m_recentlyAddedTracks.Size() == 0 };
 
         co_await winrt::resume_background();
 
@@ -465,7 +474,6 @@ namespace winrt::Last_Music_Player::implementation
             // Deactivate local tracks whose files were deleted off disk (e.g. the
             // whole music folder was removed) before reading any stats/pages, so
             // every IsActive-filtered surface below reflects the pruned library.
-
             PruneMissingLocalTracks();
 
             stats = DatabaseService().GetLibraryStats();
