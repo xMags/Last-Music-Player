@@ -9,6 +9,26 @@ namespace LastMusicPlayer::Backend
 {
     using namespace DatabaseDetail;
 
+    namespace
+    {
+        std::wstring EscapedLikePattern(std::wstring const& text)
+        {
+            std::wstring pattern;
+            pattern.reserve(text.size() + 2);
+            pattern.push_back(L'%');
+            for (auto const character : text)
+            {
+                if (character == L'!' || character == L'%' || character == L'_')
+                {
+                    pattern.push_back(L'!');
+                }
+                pattern.push_back(character);
+            }
+            pattern.push_back(L'%');
+            return pattern;
+        }
+    }
+
     std::vector<TrackInfo> DatabaseEngine::LoadTracks(bool includeRemote, bool activeOnly) const
     {
         std::scoped_lock lock{ m_mutex };
@@ -297,9 +317,22 @@ namespace LastMusicPlayer::Backend
         }
         where += groupFilter;
 
+        auto nextParameter = groupFilter.empty() ? 3 : 4;
+        auto searchParameter = 0;
+        auto searchPattern = std::wstring{};
+        if (!query.SearchText.empty())
+        {
+            searchParameter = nextParameter++;
+            searchPattern = EscapedLikePattern(query.SearchText);
+            auto parameter = std::string("?") + std::to_string(searchParameter);
+            where += " AND (COALESCE(Title,'') LIKE " + parameter + " ESCAPE '!'";
+            where += " OR COALESCE(Artist,'') LIKE " + parameter + " ESCAPE '!'";
+            where += " OR COALESCE(Album,'') LIKE " + parameter + " ESCAPE '!')";
+        }
+
         auto countSql = std::string("SELECT COUNT(*), COALESCE(SUM(DurationSeconds),0) ") + where;
         auto pageSql = std::string("SELECT ") + kTrackColumns + " " + where + " " + TrackOrderClause(query.Filter, query.Sort);
-        auto limitIndex = groupFilter.empty() ? 3 : 4;
+        auto limitIndex = nextParameter;
         if (limit > 0)
         {
             pageSql += " LIMIT ?";
@@ -315,6 +348,10 @@ namespace LastMusicPlayer::Backend
             if (!groupFilter.empty())
             {
                 BindText(stmt, 3, query.GroupKey);
+            }
+            if (searchParameter > 0)
+            {
+                BindText(stmt, searchParameter, searchPattern);
             }
         };
         readCount(countSql, binder);

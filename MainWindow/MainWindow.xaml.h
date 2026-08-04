@@ -283,10 +283,11 @@ namespace winrt::Last_Music_Player::implementation
 
         struct PlaybackQueueState
         {
-            // The playback CONTEXT — whatever surface the user last
-            // clicked from (Songs query, Library, Playlist detail). Gets
-            // wholesale-replaced by SetPlaybackQueue on every tile click;
-            // Queue takes priority over CurrentPlaylist for navigation.
+            // The playback context: whatever surface the listener last clicked
+            // from, such as a Songs query, Library tab or playlist detail. It is
+            // replaced by SetPlaybackQueue and is not a library snapshot; search
+            // and collection discovery must query DatabaseEngine instead. Queue
+            // takes priority over CurrentPlaylist for navigation.
             std::vector<winrt::Last_Music_Player::TrackInfo> CurrentPlaylist;
             int CurrentTrackIndex{ -1 };
             std::vector<winrt::Last_Music_Player::TrackInfo> Queue;
