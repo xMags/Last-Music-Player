@@ -160,6 +160,93 @@ namespace winrt::Last_Music_Player::implementation::detail
         return service;
     }
 
+    LastMusicPlayer::Backend::ProfileIdentity ResolveProfileIdentity()
+    {
+        auto snapshot = AccountSessionService().Snapshot();
+        return LastMusicPlayer::Backend::ChooseProfileIdentity(
+            RemoteMusicServiceService().Mode(),
+            snapshot.Status,
+            snapshot.Profile,
+            SettingsManagerService().GetString(L"UserDisplayName", L""));
+    }
+
+    void ApplyAvatarPicture(
+        winrt::Microsoft::UI::Xaml::Controls::Image const& image,
+        winrt::Microsoft::UI::Xaml::UIElement const& fallback,
+        winrt::hstring const& avatarUrl)
+    {
+        using winrt::Microsoft::UI::Xaml::Visibility;
+
+        if (!image || !fallback)
+        {
+            return;
+        }
+
+        image.Source(nullptr);
+        image.Visibility(Visibility::Collapsed);
+        image.Opacity(0.0);
+        fallback.Visibility(Visibility::Visible);
+
+        if (avatarUrl.empty())
+        {
+            return;
+        }
+
+        try
+        {
+            winrt::Windows::Foundation::Uri uri{ avatarUrl };
+            winrt::Microsoft::UI::Xaml::Media::Imaging::BitmapImage bitmap{ uri };
+
+            // Weak, because the Image owns the bitmap that owns these
+            // handlers; capturing the elements strongly would close a
+            // reference cycle and leak both for the life of the process.
+            auto weakImage = winrt::make_weak(image);
+            auto weakFallback = winrt::make_weak(fallback);
+
+            bitmap.ImageOpened([weakImage, weakFallback](
+                winrt::Windows::Foundation::IInspectable const&,
+                winrt::Microsoft::UI::Xaml::RoutedEventArgs const&)
+            {
+                auto target = weakImage.get();
+                auto glyph = weakFallback.get();
+                if (!target || !glyph)
+                {
+                    return;
+                }
+                target.Opacity(1.0);
+                glyph.Visibility(Visibility::Collapsed);
+            });
+
+            bitmap.ImageFailed([weakImage, weakFallback](
+                winrt::Windows::Foundation::IInspectable const&,
+                winrt::Microsoft::UI::Xaml::ExceptionRoutedEventArgs const&)
+            {
+                auto target = weakImage.get();
+                auto glyph = weakFallback.get();
+                if (!target || !glyph)
+                {
+                    return;
+                }
+                target.Source(nullptr);
+                target.Visibility(Visibility::Collapsed);
+                glyph.Visibility(Visibility::Visible);
+            });
+
+            // Visible but fully transparent while it loads. A collapsed Image
+            // is not guaranteed to trigger the download at all, which would
+            // leave the picture permanently stuck behind the fallback glyph.
+            image.Source(bitmap);
+            image.Visibility(Visibility::Visible);
+        }
+        catch (...)
+        {
+            // A URL the Uri parser rejects is treated like no picture at all.
+            image.Source(nullptr);
+            image.Visibility(Visibility::Collapsed);
+            fallback.Visibility(Visibility::Visible);
+        }
+    }
+
     std::wstring ToLowerCopy(winrt::hstring const& value)
     {
         std::wstring lowered{ value.c_str() };

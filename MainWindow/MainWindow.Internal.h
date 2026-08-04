@@ -5,6 +5,7 @@
 #include "Backend/AccountSessionService.h"
 #include "Backend/CredentialStore.h"
 #include "Backend/DatabaseEngine.h"
+#include "Backend/ProfileIdentity.h"
 #include "Backend/ProviderHelpers.h"
 #include "Backend/SettingsManager.h"
 #include "Backend/RemoteMusicService.h"
@@ -16,6 +17,7 @@
 #include "Frontend/UIHelpers.h"
 
 #include <winrt/Windows.Data.Json.h>
+#include <winrt/Microsoft.UI.Xaml.Controls.h>
 #include <winrt/Microsoft.UI.Xaml.Media.h>
 #include <winrt/Microsoft.UI.Xaml.Media.Imaging.h>
 
@@ -77,6 +79,21 @@ namespace winrt::Last_Music_Player::implementation::detail
     LastMusicPlayer::Backend::StreamCache& StreamCacheService();
     LastMusicPlayer::Backend::UserDataOperationGate& UserDataOperationGateService();
     LastMusicPlayer::Frontend::NavigationService& NavigationService();
+
+    // Who the app currently presents the user as: the account profile while
+    // account mode is connected, otherwise the manually typed display name.
+    // Reads live services, so it must be called on the UI thread alongside the
+    // other state these services back.
+    LastMusicPlayer::Backend::ProfileIdentity ResolveProfileIdentity();
+
+    // Points an avatar Image at a profile picture, keeping the silhouette
+    // fallback element visible until the bitmap has actually decoded and
+    // restoring it if the download or decode fails. An empty or unusable URL
+    // simply leaves the fallback up.
+    void ApplyAvatarPicture(
+        winrt::Microsoft::UI::Xaml::Controls::Image const& image,
+        winrt::Microsoft::UI::Xaml::UIElement const& fallback,
+        winrt::hstring const& avatarUrl);
 
     std::wstring ToLowerCopy(winrt::hstring const& value);
     bool ContainsFolded(winrt::hstring const& haystack, winrt::hstring const& needle);

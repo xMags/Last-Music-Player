@@ -170,6 +170,7 @@
     <ClInclude Include="Backend\AccountSyncTransport.h" />
     <ClInclude Include="Backend\AccountSessionService.h" />
     <ClInclude Include="Backend\RemoteMusicService.h" />
+    <ClInclude Include="Backend\ProfileIdentity.h" />
     <ClInclude Include="Backend\MusicSyncService.h" />
     <ClInclude Include="Backend\UserDataOperationGate.h" />
     <ClInclude Include="Backend\CatalogModels.h" />
@@ -248,6 +249,7 @@
     <ClCompile Include="Backend\AccountSessionGateway.cpp" />
     <ClCompile Include="Backend\AccountSessionService.cpp" />
     <ClCompile Include="Backend\RemoteMusicService.cpp" />
+    <ClCompile Include="Backend\ProfileIdentity.cpp" />
     <ClCompile Include="Backend\HistoryImport.cpp" />
     <ClCompile Include="Backend\MusicSyncService.cpp" />
     <ClCompile Include="Backend\UserDataOperationGate.cpp" />

@@ -153,13 +153,6 @@ namespace winrt::Last_Music_Player::implementation
             LastMusicPlayer::Backend::UserDataOperationGate* m_gate;
         };
 
-        winrt::hstring TrimDisplayName(winrt::hstring const& value)
-        {
-            std::wstring s{ value.c_str() };
-            while (!s.empty() && std::iswspace(s.front())) s.erase(s.begin());
-            while (!s.empty() && std::iswspace(s.back()))  s.pop_back();
-            return winrt::hstring{ s };
-        }
         std::wstring NormalizeLegacyPlayedAt(std::wstring value)
         {
             if (value.size() == 19 && value[4] == L'-' && value[7] == L'-'
@@ -288,7 +281,17 @@ namespace winrt::Last_Music_Player::implementation
         AccountSignOutButton().IsEnabled(signedIn);
         AccountSyncButton().Visibility(signedIn ? Visibility::Visible : Visibility::Collapsed);
         AccountSyncButton().IsEnabled(status == AccountSessionStatus::Validated && !MusicSyncServiceService().IsSyncing());
-        AccountProfilePanel().Visibility(signedIn ? Visibility::Visible : Visibility::Collapsed);
+        // Which identity the app is presenting decides which half of the
+        // identity card is on screen: the rename box, or the read-only account
+        // profile. Never both, and never neither.
+        auto identity = detail::ResolveProfileIdentity();
+        auto usingAccountIdentity =
+            identity.Source == LastMusicPlayer::Backend::ProfileIdentitySource::Account;
+        SettingsIdentityAccountPanel().Visibility(
+            usingAccountIdentity ? Visibility::Visible : Visibility::Collapsed);
+        SettingsIdentityManualPanel().Visibility(
+            usingAccountIdentity ? Visibility::Collapsed : Visibility::Visible);
+
         // Hidden rather than disabled when this build has no trusted frontend
         // origin: there is nothing to manage and no page to send the user to.
         AccountManageButton().Visibility(
@@ -303,23 +306,12 @@ namespace winrt::Last_Music_Player::implementation
             : winrt::hstring(L"@" + std::wstring(profile.Username.c_str())));
         AccountPlanText().Text(profile.PlanLabel.empty() ? winrt::hstring{ L"Account library" } : profile.PlanLabel);
 
-        AccountAvatarImage().Source(nullptr);
-        AccountAvatarImage().Visibility(Visibility::Collapsed);
-        AccountAvatarFallback().Visibility(Visibility::Visible);
-        if (status == AccountSessionStatus::Validated && !profile.AvatarUrl.empty())
-        {
-            try
-            {
-                winrt::Windows::Foundation::Uri avatarUri{ profile.AvatarUrl };
-                auto bitmap = winrt::Microsoft::UI::Xaml::Media::Imaging::BitmapImage{ avatarUri };
-                AccountAvatarImage().Source(bitmap);
-                AccountAvatarImage().Visibility(Visibility::Visible);
-                AccountAvatarFallback().Visibility(Visibility::Collapsed);
-            }
-            catch (...)
-            {
-            }
-        }
+        // Offline still shows the cached picture: it is the same profile the
+        // rest of the shell is presenting, and a cached bitmap needs no network.
+        detail::ApplyAvatarPicture(
+            AccountAvatarImage(),
+            AccountAvatarFallback(),
+            signedIn ? profile.AvatarUrl : winrt::hstring{});
 
         bool hasCachedData = false;
         if (DatabaseService().IsInitialized() && !profile.Id.empty())
@@ -376,6 +368,11 @@ namespace winrt::Last_Music_Player::implementation
                 ? Visibility::Visible
                 : Visibility::Collapsed);
         }
+
+        // Every sign-in, sign-out, mode change, restore, sync and wipe already
+        // routes through here, so this is the one place the shell identity has
+        // to be re-applied from.
+        ApplyUserDisplayName();
     }
 
     winrt::Windows::Foundation::IAsyncAction MainWindow::RestoreAccountIntegrationAsync()
@@ -983,8 +980,8 @@ namespace winrt::Last_Music_Player::implementation
         // Dirty = current text (trimmed) differs from what's persisted.
         // Mirrors the trim semantics in DisplayNameSave_Click so leading
         // or trailing whitespace alone doesn't make the row look dirty.
-        auto current = TrimDisplayName(box.Text());
-        auto persisted = TrimDisplayName(SettingsManagerService().GetString(L"UserDisplayName", L""));
+        auto current = LastMusicPlayer::Backend::TrimProfileName(box.Text());
+        auto persisted = LastMusicPlayer::Backend::TrimProfileName(SettingsManagerService().GetString(L"UserDisplayName", L""));
         btn.IsEnabled(current != persisted);
     }
 
@@ -994,7 +991,7 @@ namespace winrt::Last_Music_Player::implementation
         (void)args;
         auto box = DisplayNameBox();
         if (!box) return;
-        auto trimmed = TrimDisplayName(box.Text());
+        auto trimmed = LastMusicPlayer::Backend::TrimProfileName(box.Text());
         // Empty allowed — ApplyUserDisplayName falls back to "Listener".
         SettingsManagerService().SetString(L"UserDisplayName", trimmed);
         // Reflect the trimmed value back into the box so the user sees

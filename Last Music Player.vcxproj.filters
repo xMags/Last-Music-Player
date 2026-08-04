@@ -170,6 +170,7 @@
     <ClInclude Include="Backend\AccountSyncTransport.h"><Filter>Backend</Filter></ClInclude>
     <ClInclude Include="Backend\AccountSessionService.h"><Filter>Backend</Filter></ClInclude>
     <ClInclude Include="Backend\RemoteMusicService.h"><Filter>Backend</Filter></ClInclude>
+    <ClInclude Include="Backend\ProfileIdentity.h"><Filter>Backend</Filter></ClInclude>
     <ClInclude Include="Backend\MusicSyncService.h"><Filter>Backend</Filter></ClInclude>
     <ClInclude Include="Backend\UserDataOperationGate.h"><Filter>Backend</Filter></ClInclude>
     <ClInclude Include="Backend\CatalogModels.h"><Filter>Backend</Filter></ClInclude>
@@ -291,6 +292,7 @@
     <ClCompile Include="Backend\AccountSessionGateway.cpp"><Filter>Backend</Filter></ClCompile>
     <ClCompile Include="Backend\AccountSessionService.cpp"><Filter>Backend</Filter></ClCompile>
     <ClCompile Include="Backend\RemoteMusicService.cpp"><Filter>Backend</Filter></ClCompile>
+    <ClCompile Include="Backend\ProfileIdentity.cpp"><Filter>Backend</Filter></ClCompile>
     <ClCompile Include="Backend\HistoryImport.cpp"><Filter>Backend</Filter></ClCompile>
     <ClCompile Include="Backend\MusicSyncService.cpp"><Filter>Backend</Filter></ClCompile>
     <ClCompile Include="Backend\UserDataOperationGate.cpp"><Filter>Backend</Filter></ClCompile>
