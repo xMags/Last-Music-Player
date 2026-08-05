@@ -33,8 +33,24 @@ namespace winrt::Last_Music_Player::implementation::detail
             auto info = reinterpret_cast<MINMAXINFO*>(lParam);
             if (info)
             {
-                info->ptMinTrackSize.x = kDefaultWindowWidth;
-                info->ptMinTrackSize.y = kDefaultWindowHeight;
+                // WM_GETMINMAXINFO speaks physical pixels, but every layout
+                // breakpoint and card width in this app is in effective pixels.
+                // Declaring the minimum physically made it mean a different
+                // layout on each display scale: 1600 physical came to 1600
+                // effective at 100% (wider than the content needs) and 1067 at
+                // 150%, under the 1100 breakpoint that keeps the right rail on
+                // screen. Converting here pins the same layout everywhere.
+                // Re-queried on DPI changes, so moving between monitors of
+                // different scale keeps the minimum honest.
+                auto dpi = GetDpiForWindow(hwnd);
+                if (dpi == 0)
+                {
+                    dpi = USER_DEFAULT_SCREEN_DPI;
+                }
+                info->ptMinTrackSize.x = MulDiv(
+                    kMinWindowWidthEpx, static_cast<int>(dpi), USER_DEFAULT_SCREEN_DPI);
+                info->ptMinTrackSize.y = MulDiv(
+                    kMinWindowHeightEpx, static_cast<int>(dpi), USER_DEFAULT_SCREEN_DPI);
             }
         }
 
