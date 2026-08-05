@@ -117,7 +117,12 @@ namespace winrt::Last_Music_Player::implementation
         query.Sort = m_songsSort;
         query.Offset = static_cast<int>(offset);
         query.Limit = static_cast<int>(limit);
-        query.IncludeRemote = true;
+        // Local files only. Anything streamed reaches the library through
+        // History, the collection tabs and the playlists it was added to;
+        // this tab is the one place that answers "what is on this disk",
+        // including files that have never been played and so are in none
+        // of those.
+        query.IncludeRemote = false;
         query.ActiveOnly = true;
         return query;
     }
@@ -292,30 +297,22 @@ namespace winrt::Last_Music_Player::implementation
             return;
         }
 
-        bool hasRemote = RemoteMusicServiceService().HasRemoteAccess();
-        if (!hasRemote)
-        {
-            for (auto const& track : m_catalogTracks)
-            {
-                if (ToLowerCopy(track.SourceKind()) == L"remote")
-                {
-                    hasRemote = true;
-                    break;
-                }
-            }
-        }
-
-        SongsScopeLabel().Text(hasRemote ? L"Local and Remote Library" : L"Local Library");
+        // Fixed now that the tab is local-only; it used to say whether the
+        // listing had remote tracks mixed in, which it no longer can.
+        SongsScopeLabel().Text(L"On this PC");
     }
 
     void MainWindow::UpdateSongsStats()
     {
         UpdateSongsScopeLabel();
-        size_t count = DatabaseService().IsInitialized()
-            ? static_cast<size_t>(m_libraryStats.SongCount)
-            : m_queue.CurrentPlaylist.size();
         size_t loadedCount = m_songsTracks.Size();
-        size_t matchedCount = m_songsMatchedCount > 0 ? static_cast<size_t>(m_songsMatchedCount) : m_songsAllResults.size();
+        // The query is the tab's whole scope now, so what it matched is also
+        // its total. Reading m_libraryStats here would count the streamed
+        // tracks this tab deliberately leaves out, and report a total the
+        // listing could never reach.
+        size_t matchedCount = m_songsMatchedCount > 0
+            ? static_cast<size_t>(m_songsMatchedCount)
+            : (DatabaseService().IsInitialized() ? m_songsAllResults.size() : m_queue.CurrentPlaylist.size());
         double totalSeconds = m_songsMatchedSeconds;
         if (totalSeconds <= 0.0 && !DatabaseService().IsInitialized())
         {
@@ -326,15 +323,14 @@ namespace winrt::Last_Music_Player::implementation
         }
         long long mins = static_cast<long long>(totalSeconds / 60.0);
         std::wstring s;
-        if (count == 0)
+        if (matchedCount == 0)
         {
-            s = L"No tracks scanned yet";
+            s = L"No music on this PC yet. Add a folder to scan one.";
         }
         else
         {
             s = std::to_wstring(loadedCount) + L" loaded / "
-                + std::to_wstring(matchedCount) + L" shown / "
-                + std::to_wstring(count) + L" tracks \x00B7 "
+                + std::to_wstring(matchedCount) + L" tracks \x00B7 "
                 + std::to_wstring(mins) + L" min total";
         }
         SongsSubtitle().Text(winrt::hstring(s));

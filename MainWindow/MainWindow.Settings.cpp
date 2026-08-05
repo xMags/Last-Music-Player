@@ -494,6 +494,7 @@ namespace winrt::Last_Music_Player::implementation
                 LibraryTabRow tabs[] = {
                     { LibTabPlaylists(), L"Playlists" },
                     { LibTabHistory(), L"History" },
+                    { LibTabMostPlayed(), L"MostPlayed" },
                     { LibTabAlbums(), L"Albums" },
                     { LibTabArtists(), L"Artists" },
                     { LibTabGenres(), L"Genres" },

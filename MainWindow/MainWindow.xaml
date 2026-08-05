@@ -2309,7 +2309,10 @@
                             <ToggleButton x:Name="LibTabAlbums" Tag="Albums" Content="Albums" Style="{StaticResource ChipToggle}" Checked="LibraryTab_Checked" />
                             <ToggleButton x:Name="LibTabArtists" Tag="Artists" Content="Artists" Style="{StaticResource ChipToggle}" Checked="LibraryTab_Checked" />
                             <ToggleButton x:Name="LibTabGenres" Tag="Genres" Content="Genres" Style="{StaticResource ChipToggle}" Checked="LibraryTab_Checked" />
-                            <ToggleButton x:Name="LibTabSongs" Tag="Songs" Content="Songs" Style="{StaticResource ChipToggle}" Checked="LibraryTab_Checked" />
+                            <!-- Tag and element names stay "Songs": they are internal identifiers
+                                 shared with a dozen controls in this panel. The tab shows
+                                 only what is on disk, which is what the label says. -->
+                            <ToggleButton x:Name="LibTabSongs" Tag="Songs" Content="Offline" Style="{StaticResource ChipToggle}" Checked="LibraryTab_Checked" />
                         </StackPanel>
                         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                             <ComboBox x:Name="LibraryScopeSelector" Width="132" SelectedIndex="0" Visibility="Collapsed" SelectionChanged="LibraryScope_SelectionChanged">
@@ -2423,8 +2426,8 @@
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
                                 <StackPanel Grid.Column="0" Spacing="4">
-                                    <TextBlock x:Name="SongsScopeLabel" Text="Local Library" Style="{StaticResource EyebrowText}" />
-                                    <TextBlock Text="Songs" Style="{StaticResource TitleH1}" />
+                                    <TextBlock x:Name="SongsScopeLabel" Text="On this PC" Style="{StaticResource EyebrowText}" />
+                                    <TextBlock Text="Offline music" Style="{StaticResource TitleH1}" />
                                     <TextBlock x:Name="SongsSubtitle" Text="No tracks scanned yet" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" />
                                 </StackPanel>
                                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
