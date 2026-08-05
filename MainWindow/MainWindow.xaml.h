@@ -1021,7 +1021,7 @@ namespace winrt::Last_Music_Player::implementation
         std::vector<winrt::Last_Music_Player::TrackInfo> m_libraryDetailAllResults;
         std::wstring m_songsFilter{ L"All" };
         std::wstring m_songsSort{ L"DateAdded" };
-        bool m_songsGridMode{ false };
+        bool m_songsGridMode{ true };
         bool m_catalogLoaded{ false };
         bool m_songsResultsValid{ false };
         bool m_songsPageLoading{ false };
