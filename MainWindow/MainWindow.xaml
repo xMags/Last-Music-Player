@@ -569,7 +569,6 @@
                                                     </Grid>
                                                 </Border>
                                                 <TextBlock Text="Daily Mix 1" Style="{StaticResource BodyStrong}"/>
-                                                <TextBlock x:Name="HomeMix1Caption" Text="Made for you" Style="{StaticResource CaptionText}"/>
                                             </StackPanel>
                                         </Grid>
 
@@ -608,7 +607,6 @@
                                                     </Grid>
                                                 </Border>
                                                 <TextBlock Text="Daily Mix 2" Style="{StaticResource BodyStrong}"/>
-                                                <TextBlock x:Name="HomeMix2Caption" Text="Made for you" Style="{StaticResource CaptionText}"/>
                                             </StackPanel>
                                         </Grid>
 
@@ -647,7 +645,6 @@
                                                     </Grid>
                                                 </Border>
                                                 <TextBlock Text="Daily Mix 3" Style="{StaticResource BodyStrong}"/>
-                                                <TextBlock x:Name="HomeMix3Caption" Text="Made for you" Style="{StaticResource CaptionText}"/>
                                             </StackPanel>
                                         </Grid>
 
@@ -686,7 +683,6 @@
                                                     </Grid>
                                                 </Border>
                                                 <TextBlock Text="Daily Mix 4" Style="{StaticResource BodyStrong}"/>
-                                                <TextBlock x:Name="HomeMix4Caption" Text="Made for you" Style="{StaticResource CaptionText}"/>
                                             </StackPanel>
                                         </Grid>
 
@@ -725,7 +721,6 @@
                                                     </Grid>
                                                 </Border>
                                                 <TextBlock Text="Daily Mix 5" Style="{StaticResource BodyStrong}"/>
-                                                <TextBlock x:Name="HomeMix5Caption" Text="Made for you" Style="{StaticResource CaptionText}"/>
                                             </StackPanel>
                                         </Grid>
 
@@ -764,7 +759,6 @@
                                                     </Grid>
                                                 </Border>
                                                 <TextBlock Text="On Repeat" Style="{StaticResource BodyStrong}"/>
-                                                <TextBlock Text="Made for you" Style="{StaticResource CaptionText}"/>
                                             </StackPanel>
                                         </Grid>
 
@@ -803,7 +797,6 @@
                                                     </Grid>
                                                 </Border>
                                                 <TextBlock Text="Discover Weekly" Style="{StaticResource BodyStrong}"/>
-                                                <TextBlock Text="Made for you" Style="{StaticResource CaptionText}"/>
                                             </StackPanel>
                                         </Grid>
 
@@ -842,7 +835,6 @@
                                                     </Grid>
                                                 </Border>
                                                 <TextBlock Text="Time Capsule" Style="{StaticResource BodyStrong}"/>
-                                                <TextBlock Text="Made for you" Style="{StaticResource CaptionText}"/>
                                             </StackPanel>
                                         </Grid>
 
@@ -881,7 +873,6 @@
                                                     </Grid>
                                                 </Border>
                                                 <TextBlock Text="Fresh Finds" Style="{StaticResource BodyStrong}"/>
-                                                <TextBlock Text="Made for you" Style="{StaticResource CaptionText}"/>
                                             </StackPanel>
                                         </Grid>
 
@@ -2050,6 +2041,51 @@
                                 <TextBlock Grid.Row="3" Text="{x:Bind Artist}" Style="{StaticResource CaptionText}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
                             </Grid>
                         </DataTemplate>
+
+                        <!-- Same tile without the caption row, for shelves whose
+                             items are playlists. There the subtitle only restates
+                             the shelf ("Apple Music Fitness" under every mood
+                             tile); on song and album shelves it is the artist,
+                             which the template above keeps. -->
+                        <DataTemplate x:Key="CatalogTileTitleOnlyTemplate" x:DataType="local:TrackInfo">
+                            <Grid Width="156" Margin="0,0,20,0" VerticalAlignment="Top"
+                                  PointerEntered="Card_PointerEntered" PointerExited="Card_PointerExited">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="156" />
+                                    <RowDefinition Height="12" />
+                                    <RowDefinition Height="22" />
+                                </Grid.RowDefinitions>
+                                <Grid.ContextFlyout>
+                                    <MenuFlyout>
+                                        <MenuFlyoutItem Text="Play now" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="HomeRowMenuPlayNow_Click" />
+                                        <MenuFlyoutItem Text="Play next" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuPlayNext_Click" />
+                                        <MenuFlyoutItem Text="Add to queue" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuAddToQueue_Click" />
+                                        <MenuFlyoutItem Text="Add to playlist" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="LibraryRowMenuAddToPlaylist_Click" />
+                                        <MenuFlyoutSeparator />
+                                        <MenuFlyoutItem Text="{x:Bind LikeActionText}" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuLike_Click" />
+                                        <MenuFlyoutSeparator />
+                                        <MenuFlyoutItem Text="Go to artist" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuArtist_Click" />
+                                        <MenuFlyoutItem Text="Go to album" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuAlbum_Click" />
+                                    </MenuFlyout>
+                                </Grid.ContextFlyout>
+                                <Grid Grid.Row="0" Width="156" Height="156">
+                                    <Border CornerRadius="{StaticResource Radius2xl}" Translation="0,0,16">
+                                        <Border.Background>
+                                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                                <GradientStop Color="#14A8BC" Offset="0" />
+                                                <GradientStop Color="#7F6CFF" Offset="1" />
+                                            </LinearGradientBrush>
+                                        </Border.Background>
+                                        <Border.Shadow>
+                                            <ThemeShadow />
+                                        </Border.Shadow>
+                                        <FontIcon Glyph="&#xE8D6;" FontSize="36" Foreground="White" Opacity="0.55" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </Border>
+                                    <Image Stretch="UniformToFill" Loaded="AccountArtwork_Loaded" />
+                                </Grid>
+                                <TextBlock Grid.Row="2" Text="{x:Bind Title}" Style="{StaticResource BodyStrong}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" VerticalAlignment="Top" />
+                            </Grid>
+                        </DataTemplate>
                     </Grid.Resources>
 
                     <!-- Full Explore Charts / City Charts gallery reached from Home. -->
@@ -2072,7 +2108,7 @@
                             </StackPanel>
                         </StackPanel>
                         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" VerticalScrollMode="Enabled">
-                            <VariableSizedWrapGrid x:Name="DiscoverChartGalleryPanel" Orientation="Horizontal" ItemWidth="184" ItemHeight="236" MaximumRowsOrColumns="20" />
+                            <VariableSizedWrapGrid x:Name="DiscoverChartGalleryPanel" Orientation="Horizontal" ItemWidth="184" ItemHeight="216" MaximumRowsOrColumns="20" />
                         </ScrollViewer>
                     </Grid>
 

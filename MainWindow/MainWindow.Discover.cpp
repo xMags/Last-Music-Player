@@ -1226,17 +1226,25 @@ namespace winrt::Last_Music_Player::implementation
             items.Append(CatalogItemToTrack(item, index++));
         }
 
+        // A song or album tile captions itself with the artist, which is worth
+        // the row. A playlist tile's subtitle only repeats the shelf it sits in,
+        // so those shelves use the title-only tile.
+        auto showsArtist = shelf.ItemType == LastMusicPlayer::Backend::CatalogResourceType::Song
+            || shelf.ItemType == LastMusicPlayer::Backend::CatalogResourceType::Album;
         auto tileTemplate = HomeCatalogViewContainer().Resources()
-            .Lookup(winrt::box_value(winrt::hstring{ L"CatalogTileTemplate" }))
+            .Lookup(winrt::box_value(showsArtist
+                ? winrt::hstring{ L"CatalogTileTemplate" }
+                : winrt::hstring{ L"CatalogTileTitleOnlyTemplate" }))
             .try_as<DataTemplate>();
         auto containerStyle = Application::Current().Resources()
             .Lookup(winrt::box_value(winrt::hstring{ L"CardTileContainerStyle" }))
             .try_as<Style>();
 
         GridView grid;
-        // Exactly one CatalogTileTemplate tall (156 art + 12 gap + 22 title +
-        // 18 artist). Any slack here reads as dead space between shelves.
-        grid.Height(208);
+        // Exactly one tile tall: 156 artwork + 12 gap + 22 title, plus the 18px
+        // artist row when the tile carries one. Any slack here reads as dead
+        // space between shelves.
+        grid.Height(showsArtist ? 208 : 190);
         grid.IsItemClickEnabled(true);
         grid.SelectionMode(ListViewSelectionMode::None);
         if (containerStyle) grid.ItemContainerStyle(containerStyle);
@@ -1293,7 +1301,9 @@ namespace winrt::Last_Music_Player::implementation
 
         Button button;
         button.Width(184);
-        button.Height(232);
+        // 184 artwork + 7 spacing + one BodyStrong line. The card carries no
+        // caption: the tile art already states the chart kind.
+        button.Height(212);
         button.Padding(ThicknessHelper::FromUniformLength(0));
         button.Background(m_brushTransparent);
         button.BorderThickness(ThicknessHelper::FromUniformLength(0));
@@ -1383,13 +1393,6 @@ namespace winrt::Last_Music_Player::implementation
             .try_as<Style>());
         title.TextTrimming(TextTrimming::CharacterEllipsis);
         content.Children().Append(title);
-        TextBlock subtitle;
-        subtitle.Text(chart.Subtitle.empty() ? chart.Title : chart.Subtitle);
-        subtitle.Style(Application::Current().Resources()
-            .Lookup(winrt::box_value(winrt::hstring{ L"CaptionText" }))
-            .try_as<Style>());
-        subtitle.TextTrimming(TextTrimming::CharacterEllipsis);
-        content.Children().Append(subtitle);
         button.Content(content);
         button.Click([this, chart](auto&&, auto&&)
         {
@@ -1426,13 +1429,6 @@ namespace winrt::Last_Music_Player::implementation
             .Lookup(winrt::box_value(winrt::hstring{ L"TitleH2" }))
             .try_as<Style>());
         heading.Children().Append(title);
-        TextBlock source;
-        source.Text(L"APPLE MUSIC");
-        source.Style(Application::Current().Resources()
-            .Lookup(winrt::box_value(winrt::hstring{ L"EyebrowText" }))
-            .try_as<Style>());
-        source.VerticalAlignment(VerticalAlignment::Center);
-        heading.Children().Append(source);
         if (partial)
         {
             TextBlock partialText;
