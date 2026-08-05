@@ -535,8 +535,8 @@
                                     <StackPanel Orientation="Horizontal" Spacing="20" Padding="0,4,64,8">
 
                                         <!-- Daily Mix 1 -->
-                                        <Grid Width="184" VerticalAlignment="Top" Tag="daily1" Tapped="HomeMixCard_Tapped" AutomationProperties.Name="Play Daily Mix 1" PointerEntered="PlaylistCard_PointerEntered" PointerExited="PlaylistCard_PointerExited">
-                                            <Grid.ContextFlyout>
+                                        <Button Width="184" VerticalAlignment="Top" Tag="daily1" Click="HomeMixCard_Click" AutomationProperties.Name="Play Daily Mix 1" PointerEntered="PlaylistCard_PointerEntered" PointerExited="PlaylistCard_PointerExited" Style="{StaticResource CardButton}">
+                                            <Button.ContextFlyout>
                                                 <MenuFlyout>
                                                     <MenuFlyoutItem Text="Play now" Tag="daily1" Click="HomeMixMenuPlayNow_Click" />
                                                     <MenuFlyoutItem Text="Play next" Tag="daily1" Click="HomeMixMenuPlayNext_Click" />
@@ -544,7 +544,7 @@
                                                     <MenuFlyoutSeparator />
                                                     <MenuFlyoutItem Text="Shuffle" Tag="daily1" Click="HomeMixMenuShuffle_Click" />
                                                 </MenuFlyout>
-                                            </Grid.ContextFlyout>
+                                            </Button.ContextFlyout>
                                             <StackPanel>
                                                 <Border Width="184" Height="184" CornerRadius="{StaticResource Radius2xl}" Margin="0,0,0,10" Translation="0,0,16">
                                                     <Border.Shadow><ThemeShadow /></Border.Shadow>
@@ -570,11 +570,11 @@
                                                 </Border>
                                                 <TextBlock Text="Daily Mix 1" Style="{StaticResource BodyStrong}"/>
                                             </StackPanel>
-                                        </Grid>
+                                        </Button>
 
                                         <!-- Daily Mix 2 -->
-                                        <Grid Width="184" VerticalAlignment="Top" Tag="daily2" Tapped="HomeMixCard_Tapped" AutomationProperties.Name="Play Daily Mix 2" PointerEntered="PlaylistCard_PointerEntered" PointerExited="PlaylistCard_PointerExited">
-                                            <Grid.ContextFlyout>
+                                        <Button Width="184" VerticalAlignment="Top" Tag="daily2" Click="HomeMixCard_Click" AutomationProperties.Name="Play Daily Mix 2" PointerEntered="PlaylistCard_PointerEntered" PointerExited="PlaylistCard_PointerExited" Style="{StaticResource CardButton}">
+                                            <Button.ContextFlyout>
                                                 <MenuFlyout>
                                                     <MenuFlyoutItem Text="Play now" Tag="daily2" Click="HomeMixMenuPlayNow_Click" />
                                                     <MenuFlyoutItem Text="Play next" Tag="daily2" Click="HomeMixMenuPlayNext_Click" />
@@ -582,7 +582,7 @@
                                                     <MenuFlyoutSeparator />
                                                     <MenuFlyoutItem Text="Shuffle" Tag="daily2" Click="HomeMixMenuShuffle_Click" />
                                                 </MenuFlyout>
-                                            </Grid.ContextFlyout>
+                                            </Button.ContextFlyout>
                                             <StackPanel>
                                                 <Border Width="184" Height="184" CornerRadius="{StaticResource Radius2xl}" Margin="0,0,0,10" Translation="0,0,16">
                                                     <Border.Shadow><ThemeShadow /></Border.Shadow>
@@ -608,11 +608,11 @@
                                                 </Border>
                                                 <TextBlock Text="Daily Mix 2" Style="{StaticResource BodyStrong}"/>
                                             </StackPanel>
-                                        </Grid>
+                                        </Button>
 
                                         <!-- Daily Mix 3 -->
-                                        <Grid Width="184" VerticalAlignment="Top" Tag="daily3" Tapped="HomeMixCard_Tapped" AutomationProperties.Name="Play Daily Mix 3" PointerEntered="PlaylistCard_PointerEntered" PointerExited="PlaylistCard_PointerExited">
-                                            <Grid.ContextFlyout>
+                                        <Button Width="184" VerticalAlignment="Top" Tag="daily3" Click="HomeMixCard_Click" AutomationProperties.Name="Play Daily Mix 3" PointerEntered="PlaylistCard_PointerEntered" PointerExited="PlaylistCard_PointerExited" Style="{StaticResource CardButton}">
+                                            <Button.ContextFlyout>
                                                 <MenuFlyout>
                                                     <MenuFlyoutItem Text="Play now" Tag="daily3" Click="HomeMixMenuPlayNow_Click" />
                                                     <MenuFlyoutItem Text="Play next" Tag="daily3" Click="HomeMixMenuPlayNext_Click" />
@@ -620,7 +620,7 @@
                                                     <MenuFlyoutSeparator />
                                                     <MenuFlyoutItem Text="Shuffle" Tag="daily3" Click="HomeMixMenuShuffle_Click" />
                                                 </MenuFlyout>
-                                            </Grid.ContextFlyout>
+                                            </Button.ContextFlyout>
                                             <StackPanel>
                                                 <Border Width="184" Height="184" CornerRadius="{StaticResource Radius2xl}" Margin="0,0,0,10" Translation="0,0,16">
                                                     <Border.Shadow><ThemeShadow /></Border.Shadow>
@@ -646,11 +646,11 @@
                                                 </Border>
                                                 <TextBlock Text="Daily Mix 3" Style="{StaticResource BodyStrong}"/>
                                             </StackPanel>
-                                        </Grid>
+                                        </Button>
 
                                         <!-- Daily Mix 4 -->
-                                        <Grid Width="184" VerticalAlignment="Top" Tag="daily4" Tapped="HomeMixCard_Tapped" AutomationProperties.Name="Play Daily Mix 4" PointerEntered="PlaylistCard_PointerEntered" PointerExited="PlaylistCard_PointerExited">
-                                            <Grid.ContextFlyout>
+                                        <Button Width="184" VerticalAlignment="Top" Tag="daily4" Click="HomeMixCard_Click" AutomationProperties.Name="Play Daily Mix 4" PointerEntered="PlaylistCard_PointerEntered" PointerExited="PlaylistCard_PointerExited" Style="{StaticResource CardButton}">
+                                            <Button.ContextFlyout>
                                                 <MenuFlyout>
                                                     <MenuFlyoutItem Text="Play now" Tag="daily4" Click="HomeMixMenuPlayNow_Click" />
                                                     <MenuFlyoutItem Text="Play next" Tag="daily4" Click="HomeMixMenuPlayNext_Click" />
@@ -658,7 +658,7 @@
                                                     <MenuFlyoutSeparator />
                                                     <MenuFlyoutItem Text="Shuffle" Tag="daily4" Click="HomeMixMenuShuffle_Click" />
                                                 </MenuFlyout>
-                                            </Grid.ContextFlyout>
+                                            </Button.ContextFlyout>
                                             <StackPanel>
                                                 <Border Width="184" Height="184" CornerRadius="{StaticResource Radius2xl}" Margin="0,0,0,10" Translation="0,0,16">
                                                     <Border.Shadow><ThemeShadow /></Border.Shadow>
@@ -684,11 +684,11 @@
                                                 </Border>
                                                 <TextBlock Text="Daily Mix 4" Style="{StaticResource BodyStrong}"/>
                                             </StackPanel>
-                                        </Grid>
+                                        </Button>
 
                                         <!-- Daily Mix 5 -->
-                                        <Grid Width="184" VerticalAlignment="Top" Tag="daily5" Tapped="HomeMixCard_Tapped" AutomationProperties.Name="Play Daily Mix 5" PointerEntered="PlaylistCard_PointerEntered" PointerExited="PlaylistCard_PointerExited">
-                                            <Grid.ContextFlyout>
+                                        <Button Width="184" VerticalAlignment="Top" Tag="daily5" Click="HomeMixCard_Click" AutomationProperties.Name="Play Daily Mix 5" PointerEntered="PlaylistCard_PointerEntered" PointerExited="PlaylistCard_PointerExited" Style="{StaticResource CardButton}">
+                                            <Button.ContextFlyout>
                                                 <MenuFlyout>
                                                     <MenuFlyoutItem Text="Play now" Tag="daily5" Click="HomeMixMenuPlayNow_Click" />
                                                     <MenuFlyoutItem Text="Play next" Tag="daily5" Click="HomeMixMenuPlayNext_Click" />
@@ -696,7 +696,7 @@
                                                     <MenuFlyoutSeparator />
                                                     <MenuFlyoutItem Text="Shuffle" Tag="daily5" Click="HomeMixMenuShuffle_Click" />
                                                 </MenuFlyout>
-                                            </Grid.ContextFlyout>
+                                            </Button.ContextFlyout>
                                             <StackPanel>
                                                 <Border Width="184" Height="184" CornerRadius="{StaticResource Radius2xl}" Margin="0,0,0,10" Translation="0,0,16">
                                                     <Border.Shadow><ThemeShadow /></Border.Shadow>
@@ -722,11 +722,11 @@
                                                 </Border>
                                                 <TextBlock Text="Daily Mix 5" Style="{StaticResource BodyStrong}"/>
                                             </StackPanel>
-                                        </Grid>
+                                        </Button>
 
                                         <!-- On Repeat -->
-                                        <Grid Width="184" VerticalAlignment="Top" Tag="repeat" Tapped="HomeMixCard_Tapped" AutomationProperties.Name="Play On Repeat" PointerEntered="PlaylistCard_PointerEntered" PointerExited="PlaylistCard_PointerExited">
-                                            <Grid.ContextFlyout>
+                                        <Button Width="184" VerticalAlignment="Top" Tag="repeat" Click="HomeMixCard_Click" AutomationProperties.Name="Play On Repeat" PointerEntered="PlaylistCard_PointerEntered" PointerExited="PlaylistCard_PointerExited" Style="{StaticResource CardButton}">
+                                            <Button.ContextFlyout>
                                                 <MenuFlyout>
                                                     <MenuFlyoutItem Text="Play now" Tag="repeat" Click="HomeMixMenuPlayNow_Click" />
                                                     <MenuFlyoutItem Text="Play next" Tag="repeat" Click="HomeMixMenuPlayNext_Click" />
@@ -734,7 +734,7 @@
                                                     <MenuFlyoutSeparator />
                                                     <MenuFlyoutItem Text="Shuffle" Tag="repeat" Click="HomeMixMenuShuffle_Click" />
                                                 </MenuFlyout>
-                                            </Grid.ContextFlyout>
+                                            </Button.ContextFlyout>
                                             <StackPanel>
                                                 <Border Width="184" Height="184" CornerRadius="{StaticResource Radius2xl}" Margin="0,0,0,10" Translation="0,0,16">
                                                     <Border.Shadow><ThemeShadow /></Border.Shadow>
@@ -760,11 +760,11 @@
                                                 </Border>
                                                 <TextBlock Text="On Repeat" Style="{StaticResource BodyStrong}"/>
                                             </StackPanel>
-                                        </Grid>
+                                        </Button>
 
                                         <!-- Discover Weekly -->
-                                        <Grid Width="184" VerticalAlignment="Top" Tag="discover" Tapped="HomeMixCard_Tapped" AutomationProperties.Name="Play Discover Weekly" PointerEntered="PlaylistCard_PointerEntered" PointerExited="PlaylistCard_PointerExited">
-                                            <Grid.ContextFlyout>
+                                        <Button Width="184" VerticalAlignment="Top" Tag="discover" Click="HomeMixCard_Click" AutomationProperties.Name="Play Discover Weekly" PointerEntered="PlaylistCard_PointerEntered" PointerExited="PlaylistCard_PointerExited" Style="{StaticResource CardButton}">
+                                            <Button.ContextFlyout>
                                                 <MenuFlyout>
                                                     <MenuFlyoutItem Text="Play now" Tag="discover" Click="HomeMixMenuPlayNow_Click" />
                                                     <MenuFlyoutItem Text="Play next" Tag="discover" Click="HomeMixMenuPlayNext_Click" />
@@ -772,7 +772,7 @@
                                                     <MenuFlyoutSeparator />
                                                     <MenuFlyoutItem Text="Shuffle" Tag="discover" Click="HomeMixMenuShuffle_Click" />
                                                 </MenuFlyout>
-                                            </Grid.ContextFlyout>
+                                            </Button.ContextFlyout>
                                             <StackPanel>
                                                 <Border Width="184" Height="184" CornerRadius="{StaticResource Radius2xl}" Margin="0,0,0,10" Translation="0,0,16">
                                                     <Border.Shadow><ThemeShadow /></Border.Shadow>
@@ -798,11 +798,11 @@
                                                 </Border>
                                                 <TextBlock Text="Discover Weekly" Style="{StaticResource BodyStrong}"/>
                                             </StackPanel>
-                                        </Grid>
+                                        </Button>
 
                                         <!-- Time Capsule -->
-                                        <Grid Width="184" VerticalAlignment="Top" Tag="timecapsule" Tapped="HomeMixCard_Tapped" AutomationProperties.Name="Play Time Capsule" PointerEntered="PlaylistCard_PointerEntered" PointerExited="PlaylistCard_PointerExited">
-                                            <Grid.ContextFlyout>
+                                        <Button Width="184" VerticalAlignment="Top" Tag="timecapsule" Click="HomeMixCard_Click" AutomationProperties.Name="Play Time Capsule" PointerEntered="PlaylistCard_PointerEntered" PointerExited="PlaylistCard_PointerExited" Style="{StaticResource CardButton}">
+                                            <Button.ContextFlyout>
                                                 <MenuFlyout>
                                                     <MenuFlyoutItem Text="Play now" Tag="timecapsule" Click="HomeMixMenuPlayNow_Click" />
                                                     <MenuFlyoutItem Text="Play next" Tag="timecapsule" Click="HomeMixMenuPlayNext_Click" />
@@ -810,7 +810,7 @@
                                                     <MenuFlyoutSeparator />
                                                     <MenuFlyoutItem Text="Shuffle" Tag="timecapsule" Click="HomeMixMenuShuffle_Click" />
                                                 </MenuFlyout>
-                                            </Grid.ContextFlyout>
+                                            </Button.ContextFlyout>
                                             <StackPanel>
                                                 <Border Width="184" Height="184" CornerRadius="{StaticResource Radius2xl}" Margin="0,0,0,10" Translation="0,0,16">
                                                     <Border.Shadow><ThemeShadow /></Border.Shadow>
@@ -836,11 +836,11 @@
                                                 </Border>
                                                 <TextBlock Text="Time Capsule" Style="{StaticResource BodyStrong}"/>
                                             </StackPanel>
-                                        </Grid>
+                                        </Button>
 
                                         <!-- Fresh Finds -->
-                                        <Grid Width="184" VerticalAlignment="Top" Tag="fresh" Tapped="HomeMixCard_Tapped" AutomationProperties.Name="Play Fresh Finds" PointerEntered="PlaylistCard_PointerEntered" PointerExited="PlaylistCard_PointerExited">
-                                            <Grid.ContextFlyout>
+                                        <Button Width="184" VerticalAlignment="Top" Tag="fresh" Click="HomeMixCard_Click" AutomationProperties.Name="Play Fresh Finds" PointerEntered="PlaylistCard_PointerEntered" PointerExited="PlaylistCard_PointerExited" Style="{StaticResource CardButton}">
+                                            <Button.ContextFlyout>
                                                 <MenuFlyout>
                                                     <MenuFlyoutItem Text="Play now" Tag="fresh" Click="HomeMixMenuPlayNow_Click" />
                                                     <MenuFlyoutItem Text="Play next" Tag="fresh" Click="HomeMixMenuPlayNext_Click" />
@@ -848,7 +848,7 @@
                                                     <MenuFlyoutSeparator />
                                                     <MenuFlyoutItem Text="Shuffle" Tag="fresh" Click="HomeMixMenuShuffle_Click" />
                                                 </MenuFlyout>
-                                            </Grid.ContextFlyout>
+                                            </Button.ContextFlyout>
                                             <StackPanel>
                                                 <Border Width="184" Height="184" CornerRadius="{StaticResource Radius2xl}" Margin="0,0,0,10" Translation="0,0,16">
                                                     <Border.Shadow><ThemeShadow /></Border.Shadow>
@@ -874,7 +874,7 @@
                                                 </Border>
                                                 <TextBlock Text="Fresh Finds" Style="{StaticResource BodyStrong}"/>
                                             </StackPanel>
-                                        </Grid>
+                                        </Button>
 
                                     </StackPanel>
                                 </ScrollViewer>
