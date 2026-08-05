@@ -132,6 +132,24 @@ namespace winrt::Last_Music_Player::implementation
         LibManualPlaylistsGrid().ItemsSource(m_yourPlaylists);
         LibAutoPlaylistsGrid().ItemsSource(m_autoPlaylists);
         LibraryDetailTracksListView().ItemsSource(m_libraryDetailTracks);
+        // Every Library tab scrolls its own list, so each one reports its own
+        // offset to the shared header.
+        winrt::Microsoft::UI::Xaml::FrameworkElement const librarySurfaces[] = {
+            LibAlbumsGrid(),
+            LibArtistsGrid(),
+            LibGenresGrid(),
+            LibManualPlaylistsGrid(),
+            LibAutoPlaylistsGrid(),
+            LibrarySongsListView(),
+            HistoryGridView(),
+            MusicListView(),
+            SongsGridView(),
+            LibraryDetailTracksListView(),
+        };
+        for (auto const& surface : librarySurfaces)
+        {
+            ObserveLibraryScroll(surface);
+        }
         SetHistoryGridMode(m_libraryHistoryGridMode);
         // Applied rather than left to the markup's initial visibility: the flag
         // is the one source of truth for which view is showing, and the two

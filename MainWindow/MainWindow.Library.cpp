@@ -16,6 +16,7 @@
 #include <winrt/Microsoft.UI.Xaml.Controls.h>
 #include <winrt/Microsoft.UI.Xaml.Controls.Primitives.h>
 #include <winrt/Microsoft.UI.Xaml.Media.h>
+#include <winrt/Microsoft.UI.Xaml.Media.Animation.h>
 #include <winrt/Microsoft.UI.Text.h>
 
 #include <algorithm>
@@ -404,5 +405,216 @@ namespace winrt::Last_Music_Player::implementation
         }
     }
 
+
+
+    namespace
+    {
+        template <typename T>
+        T FindScrollHost(winrt::Microsoft::UI::Xaml::DependencyObject const& root)
+        {
+            if (!root)
+            {
+                return nullptr;
+            }
+            if (auto match = root.try_as<T>())
+            {
+                return match;
+            }
+            auto count = winrt::Microsoft::UI::Xaml::Media::VisualTreeHelper::GetChildrenCount(root);
+            for (int32_t index = 0; index < count; ++index)
+            {
+                if (auto found = FindScrollHost<T>(
+                    winrt::Microsoft::UI::Xaml::Media::VisualTreeHelper::GetChild(root, index)))
+                {
+                    return found;
+                }
+            }
+            return nullptr;
+        }
+    }
+
+    void MainWindow::ObserveLibraryScroll(winrt::Microsoft::UI::Xaml::FrameworkElement const& surface)
+    {
+        if (!surface)
+        {
+            return;
+        }
+
+        // The ScrollViewer belongs to the list's template, and a tab that
+        // starts collapsed is never measured, so at Loaded most of these
+        // controls still have no template to search. The same attempt is
+        // therefore made again on the first size change, which is what
+        // showing the tab produces. The flag keeps it to one subscription.
+        auto attached = std::make_shared<bool>(false);
+        auto attach = [weak = get_weak(), attached](
+            winrt::Windows::Foundation::IInspectable const& sender,
+            auto const&)
+        {
+            if (*attached)
+            {
+                return;
+            }
+            auto self = weak.get();
+            auto element = sender.try_as<winrt::Microsoft::UI::Xaml::FrameworkElement>();
+            if (!self || !element)
+            {
+                return;
+            }
+            auto scroller = FindScrollHost<winrt::Microsoft::UI::Xaml::Controls::ScrollViewer>(element);
+            if (!scroller)
+            {
+                return;
+            }
+            *attached = true;
+            scroller.ViewChanged([weak](
+                winrt::Windows::Foundation::IInspectable const& viewSender,
+                winrt::Microsoft::UI::Xaml::Controls::ScrollViewerViewChangedEventArgs const&)
+            {
+                if (auto strong = weak.get())
+                {
+                    strong->UpdateLibraryHeaderForScroll(
+                        viewSender.try_as<winrt::Microsoft::UI::Xaml::Controls::ScrollViewer>());
+                }
+            });
+        };
+
+        surface.Loaded(attach);
+        surface.SizeChanged(attach);
+    }
+
+    void MainWindow::UpdateLibraryHeaderForScroll(
+        winrt::Microsoft::UI::Xaml::Controls::ScrollViewer const& scroller)
+    {
+        auto header = LibraryHeaderBar();
+        if (!scroller || !header)
+        {
+            return;
+        }
+
+        // Collapsing the header hands its height back to the list, so the two
+        // are in a feedback loop: hide it and there may no longer be anything
+        // to scroll, which would show it again. Two things break the loop.
+        // Collapsing is only allowed when the list has more to scroll than the
+        // header is tall, so it still has somewhere to sit afterwards; and the
+        // thresholds are apart, so the offset the collapse produces cannot
+        // immediately satisfy the expand test.
+        constexpr double collapseAt = 56.0;
+        constexpr double expandAt = 8.0;
+        auto offset = scroller.VerticalOffset();
+        if (m_libraryHeaderCollapsed)
+        {
+            if (offset <= expandAt)
+            {
+                SetLibraryHeaderCollapsed(false);
+            }
+            return;
+        }
+        if (offset > collapseAt && scroller.ScrollableHeight() > header.ActualHeight() + 24.0)
+        {
+            SetLibraryHeaderCollapsed(true);
+        }
+    }
+
+    void MainWindow::SetLibraryHeaderCollapsed(bool collapsed)
+    {
+        if (m_libraryHeaderCollapsed == collapsed)
+        {
+            return;
+        }
+        auto header = LibraryHeaderBar();
+        if (!header)
+        {
+            return;
+        }
+        m_libraryHeaderCollapsed = collapsed;
+
+        namespace animation = winrt::Microsoft::UI::Xaml::Media::Animation;
+        using winrt::Microsoft::UI::Xaml::Visibility;
+
+        // Measured once while the header is up. Height has to animate to a
+        // number, and reading it during the collapse would read whatever the
+        // animation had reached.
+        if (!collapsed || m_libraryHeaderHeight <= 0.0)
+        {
+            auto natural = header.ActualHeight();
+            if (natural > 0.0)
+            {
+                m_libraryHeaderHeight = natural;
+            }
+        }
+        if (m_libraryHeaderHeight <= 0.0)
+        {
+            header.Visibility(collapsed ? Visibility::Collapsed : Visibility::Visible);
+            return;
+        }
+
+        if (!collapsed)
+        {
+            header.Visibility(Visibility::Visible);
+        }
+
+        animation::Storyboard storyboard;
+
+        // Height is a layout property, so this is a dependent animation and has
+        // to say so. It is one small element rather than a list, which is what
+        // that flag exists to keep people away from.
+        animation::DoubleAnimation heightStep;
+        heightStep.EnableDependentAnimation(true);
+        heightStep.From(collapsed ? m_libraryHeaderHeight : 0.0);
+        heightStep.To(collapsed ? 0.0 : m_libraryHeaderHeight);
+        heightStep.Duration(winrt::Microsoft::UI::Xaml::DurationHelper::FromTimeSpan(
+            std::chrono::milliseconds{ 180 }));
+        animation::CubicEase heightEase;
+        heightEase.EasingMode(animation::EasingMode::EaseOut);
+        heightStep.EasingFunction(heightEase);
+        animation::Storyboard::SetTarget(heightStep, header);
+        animation::Storyboard::SetTargetProperty(heightStep, L"Height");
+        storyboard.Children().Append(heightStep);
+
+        // Fades a little ahead of the collapse so the text is gone before the
+        // row is, rather than being squashed on the way out.
+        animation::DoubleAnimation fadeStep;
+        fadeStep.From(collapsed ? 1.0 : 0.0);
+        fadeStep.To(collapsed ? 0.0 : 1.0);
+        fadeStep.Duration(winrt::Microsoft::UI::Xaml::DurationHelper::FromTimeSpan(
+            std::chrono::milliseconds{ collapsed ? 110 : 180 }));
+        animation::Storyboard::SetTarget(fadeStep, header);
+        animation::Storyboard::SetTargetProperty(fadeStep, L"Opacity");
+        storyboard.Children().Append(fadeStep);
+
+        storyboard.Completed([weak = get_weak(), collapsed](
+            winrt::Windows::Foundation::IInspectable const&,
+            winrt::Windows::Foundation::IInspectable const&)
+        {
+            auto self = weak.get();
+            if (!self)
+            {
+                return;
+            }
+            auto bar = self->LibraryHeaderBar();
+            if (!bar)
+            {
+                return;
+            }
+            // A scroll back to the top can land mid-collapse; only the state
+            // that is still current gets to finish the job.
+            if (self->m_libraryHeaderCollapsed != collapsed)
+            {
+                return;
+            }
+            if (collapsed)
+            {
+                bar.Visibility(Visibility::Collapsed);
+            }
+            else
+            {
+                // Released back to Auto so the header keeps following its own
+                // content, which the responsive handler still reflows.
+                bar.Height(std::numeric_limits<double>::quiet_NaN());
+            }
+        });
+
+        storyboard.Begin();
+    }
 
 }
