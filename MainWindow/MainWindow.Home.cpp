@@ -112,7 +112,7 @@ namespace winrt::Last_Music_Player::implementation
         PlayTrack(queue.front());
     }
 
-    void MainWindow::HomeMixCard_Tapped(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Input::TappedRoutedEventArgs const& args)
+    void MainWindow::HomeMixCard_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
     {
         (void)args;
         if (auto element = sender.try_as<winrt::Microsoft::UI::Xaml::FrameworkElement>())
@@ -127,9 +127,9 @@ namespace winrt::Last_Music_Player::implementation
 
     namespace
     {
-        // Mix-menu handlers route through this — the MenuFlyoutItem's Tag
+        // Mix-menu handlers route through this: the MenuFlyoutItem's Tag
         // carries the literal mix id (e.g. "daily1"), mirroring the host
-        // Grid's own Tag used by HomeMixCard_Tapped.
+        // button's own Tag used by HomeMixCard_Click.
         winrt::hstring MixIdFromMenuSender(winrt::Windows::Foundation::IInspectable const& sender)
         {
             if (auto item = sender.try_as<winrt::Microsoft::UI::Xaml::FrameworkElement>())
@@ -1064,7 +1064,28 @@ namespace winrt::Last_Music_Player::implementation
         // so the card keeps its generic label.
         auto topArtists = RankedHomeArtists(m_catalogTracks, m_homePlayCounts);
         constexpr size_t mixLimit = 12;
+        constexpr size_t dailyMixSlots = 5;
         m_homeMixGenres.clear();
+
+        // Every slot tops itself up from the catalog once its own rule has run.
+        // Reading that list from the front each time made any two slots that
+        // fell back converge on the same head, so three cards could show the
+        // same tracks and print the same artists. Each slot starts at its own
+        // offset and wraps, which keeps the fallbacks apart while still filling
+        // the mix. Slots that found a genre are already full and take nothing.
+        auto topUpFromCatalog = [&](std::vector<winrt::Last_Music_Player::TrackInfo>& mix, size_t slot)
+        {
+            auto const total = m_catalogTracks.size();
+            if (total == 0)
+            {
+                return;
+            }
+            auto const start = (total * slot) / dailyMixSlots;
+            for (size_t step = 0; step < total && mix.size() < mixLimit; ++step)
+            {
+                appendUnique(mix, m_catalogTracks[(start + step) % total], mixLimit);
+            }
+        };
 
         // Hands out each ranked genre to at most one daily slot (distinct mixes),
         // skipping any genre whose pool came back empty.
@@ -1098,7 +1119,7 @@ namespace winrt::Last_Music_Player::implementation
                 appendByArtist(daily1, topArtists[0], mixLimit);
             }
         }
-        appendAll(daily1, m_catalogTracks, mixLimit);
+        topUpFromCatalog(daily1, 0);
         m_homeMixes[L"daily1"] = daily1;
 
         // Daily Mix 2 — next top genre, else #2 artist + catalog stride.
@@ -1119,10 +1140,11 @@ namespace winrt::Last_Music_Player::implementation
                 appendUnique(daily2, m_catalogTracks[i], mixLimit);
             }
         }
-        appendAll(daily2, m_catalogTracks, mixLimit);
+        topUpFromCatalog(daily2, 1);
         m_homeMixes[L"daily2"] = daily2;
 
-        // Daily Mix 3 — next top genre, else artist round-robin (max 2 each).
+        // Daily Mix 3 — next top genre, else #3 artist then artist round-robin
+        // (max 2 each).
         std::vector<winrt::Last_Music_Player::TrackInfo> daily3;
         if (auto genre = nextGenre(); !genre.empty())
         {
@@ -1131,6 +1153,16 @@ namespace winrt::Last_Music_Player::implementation
         }
         else
         {
+            // Slots 1, 2, 4 and 5 each lead with their own ranked artist; this
+            // one used to start the round-robin at the front of the catalog
+            // instead, so it led with whoever happened to sit there and could
+            // print the same artists as the slot that ranked them fourth.
+            // Taking rank 3, the index no other slot claims, keeps the five
+            // fallback mixes led by five different artists.
+            if (topArtists.size() > 2)
+            {
+                appendByArtist(daily3, topArtists[2], mixLimit);
+            }
             std::unordered_map<std::wstring, uint32_t> artistBuckets;
             for (auto const& track : m_catalogTracks)
             {
@@ -1146,7 +1178,7 @@ namespace winrt::Last_Music_Player::implementation
                 }
             }
         }
-        appendAll(daily3, m_catalogTracks, mixLimit);
+        topUpFromCatalog(daily3, 2);
         m_homeMixes[L"daily3"] = daily3;
 
         // Daily Mix 4 — next top genre, else #4 artist + catalog.
@@ -1160,7 +1192,7 @@ namespace winrt::Last_Music_Player::implementation
         {
             appendByArtist(daily4, topArtists[3], mixLimit);
         }
-        appendAll(daily4, m_catalogTracks, mixLimit);
+        topUpFromCatalog(daily4, 3);
         m_homeMixes[L"daily4"] = daily4;
 
         // Daily Mix 5 — next top genre, else #5 artist + catalog.
@@ -1174,7 +1206,7 @@ namespace winrt::Last_Music_Player::implementation
         {
             appendByArtist(daily5, topArtists[4], mixLimit);
         }
-        appendAll(daily5, m_catalogTracks, mixLimit);
+        topUpFromCatalog(daily5, 4);
         m_homeMixes[L"daily5"] = daily5;
 
         std::vector<winrt::Last_Music_Player::TrackInfo> onRepeat{ m_catalogTracks.begin(), m_catalogTracks.end() };

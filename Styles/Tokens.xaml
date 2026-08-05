@@ -339,6 +339,34 @@
         </Setter>
     </Style>
 
+    <!-- A card that happens to be clickable. The tile paints itself, so the
+         button contributes no chrome: bare ContentPresenter template, no
+         visual states, no min-size, no padding. Unlike a panel with a Tapped
+         handler this is focusable, invokes on Enter or Space, and reports
+         itself to assistive tools as a button. Same shape as
+         CardTileContainerStyle above, for cards that sit outside a GridView. -->
+    <Style x:Key="CardButton" TargetType="Button">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="MinWidth" Value="0" />
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="VerticalContentAlignment" Value="Top" />
+        <Setter Property="UseSystemFocusVisuals" Value="True" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <ContentPresenter Content="{TemplateBinding Content}"
+                                      ContentTemplate="{TemplateBinding ContentTemplate}"
+                                      HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                      VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
+                                      Padding="{TemplateBinding Padding}" />
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <!-- Implicit slider style: accent filled track + accent thumb -->
     <Style TargetType="Slider">
         <Setter Property="Foreground" Value="{ThemeResource AccentBrush}" />
