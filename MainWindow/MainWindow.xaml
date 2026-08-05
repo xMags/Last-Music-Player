@@ -391,13 +391,16 @@
                 </Border>
 
                 <!-- Negative right margin reaches past the outer Grid's right padding
-                     so the vertical scrollbar lands flush against the Up Next rail.
-                     The matching right padding on each ScrollViewer's inner StackPanel
-                     absorbs the extra width — tiles and section titles keep their
-                     visual right-edge inset. Values track the outer Grid's right
-                     padding (currently 16). -->
+                     so the scrolling surface runs all the way to the Up Next rail.
+                     The matching right padding on the inner StackPanel absorbs the
+                     extra width, so tiles and section titles keep their visual
+                     right-edge inset. Values track the outer Grid's right padding
+                     (currently 16). -->
                 <Grid Grid.Row="1" Margin="0,0,-16,0">
-                <ScrollViewer x:Name="HomeDefaultContent" VerticalScrollBarVisibility="Auto">
+                <!-- Hidden, not Disabled: the wheel, keyboard and touch still scroll
+                     this; only the bar itself is gone. Home is a page of artwork and
+                     a rail of chrome down its edge fights that. -->
+                <ScrollViewer x:Name="HomeDefaultContent" VerticalScrollBarVisibility="Hidden">
                     <StackPanel Spacing="32" Padding="0,0,16,32">
 
                         <!-- Time-aware greeting. Header-style text that scrolls away with
