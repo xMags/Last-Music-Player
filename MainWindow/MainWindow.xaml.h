@@ -152,6 +152,7 @@ namespace winrt::Last_Music_Player::implementation
         winrt::Windows::Foundation::IAsyncAction LibraryPlaylistRename_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         winrt::Windows::Foundation::IAsyncAction LibraryPlaylistDelete_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void LibraryPlaylistCardMenu_Opening(winrt::Windows::Foundation::IInspectable const& sender, winrt::Windows::Foundation::IInspectable const& args);
+        void LibraryDetailRowMenu_Opening(winrt::Windows::Foundation::IInspectable const& sender, winrt::Windows::Foundation::IInspectable const& args);
         void LibraryPlaylistFilter_Checked(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void LibraryTab_Checked(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void LibraryScope_SelectionChanged(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::SelectionChangedEventArgs const& args);
@@ -616,6 +617,17 @@ namespace winrt::Last_Music_Player::implementation
             winrt::hstring const& subtitle,
             winrt::Microsoft::UI::Xaml::Media::ImageSource const& fallbackArt = nullptr,
             winrt::Last_Music_Player::TrackInfo const& sourceGroup = nullptr);
+        [[nodiscard]] bool IsAutoMixDetail(std::wstring const& key) const;
+        // What follows the song count in the detail header, empty when the
+        // count already says everything the reference clients show there.
+        [[nodiscard]] std::wstring LibraryDetailMeta(
+            std::wstring const& kind,
+            std::wstring const& key,
+            winrt::hstring const& cardCaption) const;
+        [[nodiscard]] winrt::hstring LibraryDetailEyebrow(
+            std::wstring const& kind,
+            std::wstring const& key) const;
+        [[nodiscard]] winrt::hstring LibraryDetailCountText(int count) const;
         void ApplyLibraryDetailPlaylistCollage();
         void HideLibraryDetail();
         void ApplyPlaybackProgress(double currentSeconds, double totalSeconds);
@@ -1040,6 +1052,9 @@ namespace winrt::Last_Music_Player::implementation
         std::wstring m_libraryDetailKind;
         std::wstring m_libraryDetailKey;
         std::wstring m_libraryDetailSubtitle;
+        // The subtitle the caller handed us is the collection card's caption,
+        // which the detail header cannot print verbatim; this is what it prints.
+        std::wstring m_libraryDetailMeta;
         winrt::Microsoft::UI::Xaml::Media::ImageSource m_libraryDetailFallbackArt{ nullptr };
         uint64_t m_homePlaySequence{ 0 };
         // Last-played track restored on launch but not yet loaded into the audio

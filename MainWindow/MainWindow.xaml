@@ -296,6 +296,7 @@
                                                 <MenuFlyoutItem Text="Play now" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="LibraryGroupMenuPlayNow_Click" />
                                                 <MenuFlyoutItem Text="Play next" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="LibraryGroupMenuPlayNext_Click" />
                                                 <MenuFlyoutItem Text="Add to queue" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="LibraryGroupMenuAddToQueue_Click" />
+                                                <MenuFlyoutItem Text="Shuffle" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="LibraryGroupMenuShuffle_Click" />
                                                 <MenuFlyoutSeparator />
                                                 <MenuFlyoutItem Text="Rename playlist" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="LibraryPlaylistRename_Click" />
                                                 <MenuFlyoutItem Text="Delete playlist" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="LibraryPlaylistDelete_Click" />
@@ -3036,16 +3037,16 @@
                                 <DataTemplate x:DataType="local:TrackInfo">
                                     <Grid Height="52" ColumnSpacing="12" Padding="10,0">
                                         <Grid.ContextFlyout>
-                                            <MenuFlyout>
+                                            <MenuFlyout Opening="LibraryDetailRowMenu_Opening">
                                                 <MenuFlyoutItem Text="Play now" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="LibraryRowMenuPlayNow_Click" />
                                                 <MenuFlyoutItem Text="Play next" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="LibraryRowMenuPlayNext_Click" />
                                                 <MenuFlyoutItem Text="Add to queue" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="LibraryRowMenuAddToQueue_Click" />
                                                 <MenuFlyoutItem Text="Add to playlist" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="LibraryRowMenuAddToPlaylist_Click" />
-                                                <MenuFlyoutItem Text="Move up" Tag="Up" CommandParameter="{x:Bind}" Click="LibraryRowMenuMoveInPlaylist_Click" />
-                                                <MenuFlyoutItem Text="Move down" Tag="Down" CommandParameter="{x:Bind}" Click="LibraryRowMenuMoveInPlaylist_Click" />
-                                                <MenuFlyoutItem Text="Remove from playlist" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="LibraryRowMenuRemoveFromPlaylist_Click" />
-                                                <MenuFlyoutSeparator />
                                                 <MenuFlyoutItem Text="{x:Bind LikeActionText}" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuLike_Click" />
+                                                <MenuFlyoutSeparator Tag="PlaylistTrackAction" />
+                                                <MenuFlyoutItem Text="Move up" Tag="PlaylistTrackActionUp" CommandParameter="{x:Bind}" Click="LibraryRowMenuMoveInPlaylist_Click" />
+                                                <MenuFlyoutItem Text="Move down" Tag="PlaylistTrackActionDown" CommandParameter="{x:Bind}" Click="LibraryRowMenuMoveInPlaylist_Click" />
+                                                <MenuFlyoutItem Text="Remove from playlist" Tag="PlaylistTrackAction" CommandParameter="{x:Bind}" Click="LibraryRowMenuRemoveFromPlaylist_Click" />
                                                 <MenuFlyoutSeparator />
                                                 <MenuFlyoutItem Text="Go to artist" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuArtist_Click" />
                                                 <MenuFlyoutItem Text="Go to album" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="LibraryRowMenuAlbum_Click" />
@@ -3076,16 +3077,16 @@
                                                 VerticalAlignment="Center"
                                                 AutomationProperties.Name="More options">
                                             <Button.Flyout>
-                                                <MenuFlyout>
+                                                <MenuFlyout Opening="LibraryDetailRowMenu_Opening">
                                                     <MenuFlyoutItem Text="Play now" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="LibraryRowMenuPlayNow_Click" />
                                                     <MenuFlyoutItem Text="Play next" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="LibraryRowMenuPlayNext_Click" />
                                                     <MenuFlyoutItem Text="Add to queue" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="LibraryRowMenuAddToQueue_Click" />
                                                     <MenuFlyoutItem Text="Add to playlist" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="LibraryRowMenuAddToPlaylist_Click" />
-                                                    <MenuFlyoutItem Text="Move up" Tag="Up" CommandParameter="{x:Bind}" Click="LibraryRowMenuMoveInPlaylist_Click" />
-                                                    <MenuFlyoutItem Text="Move down" Tag="Down" CommandParameter="{x:Bind}" Click="LibraryRowMenuMoveInPlaylist_Click" />
-                                                    <MenuFlyoutItem Text="Remove from playlist" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="LibraryRowMenuRemoveFromPlaylist_Click" />
-                                                    <MenuFlyoutSeparator />
                                                     <MenuFlyoutItem Text="{x:Bind LikeActionText}" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuLike_Click" />
+                                                    <MenuFlyoutSeparator Tag="PlaylistTrackAction" />
+                                                    <MenuFlyoutItem Text="Move up" Tag="PlaylistTrackActionUp" CommandParameter="{x:Bind}" Click="LibraryRowMenuMoveInPlaylist_Click" />
+                                                    <MenuFlyoutItem Text="Move down" Tag="PlaylistTrackActionDown" CommandParameter="{x:Bind}" Click="LibraryRowMenuMoveInPlaylist_Click" />
+                                                    <MenuFlyoutItem Text="Remove from playlist" Tag="PlaylistTrackAction" CommandParameter="{x:Bind}" Click="LibraryRowMenuRemoveFromPlaylist_Click" />
                                                     <MenuFlyoutSeparator />
                                                     <MenuFlyoutItem Text="Go to artist" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuArtist_Click" />
                                                     <MenuFlyoutItem Text="Go to album" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="LibraryRowMenuAlbum_Click" />

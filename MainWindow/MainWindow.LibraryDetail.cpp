@@ -115,9 +115,7 @@ namespace winrt::Last_Music_Player::implementation
         }
         m_libraryDetailState = LoadState::Loaded;
 
-        auto subtitle = winrt::hstring(m_libraryDetailSubtitle);
-        auto count = m_libraryDetailMatchedCount;
-        LibraryDetailSubtitleText().Text(winrt::hstring(std::to_wstring(count) + (count == 1 ? L" song" : L" songs")) + (subtitle.empty() ? L"" : L" - " + subtitle));
+        LibraryDetailSubtitleText().Text(LibraryDetailCountText(m_libraryDetailMatchedCount));
         ApplyLibraryDetailPlaylistCollage();
     }
 
@@ -435,6 +433,77 @@ namespace winrt::Last_Music_Player::implementation
         co_return;
     }
 
+    // The nine generated mixes and the three system playlists share the
+    // "auto-playlist" kind but read differently: the reference clients label a
+    // mix an AUTO PLAYLIST and tag its meta line, while Favourites, Most Played
+    // and Recently Added present as ordinary playlists. The mixes list is the
+    // authority rather than the key's spelling, and it is nine entries long.
+    bool MainWindow::IsAutoMixDetail(std::wstring const& key) const
+    {
+        if (key.empty())
+        {
+            return false;
+        }
+        for (uint32_t index = 0; index < m_autoPlaylists.Size(); ++index)
+        {
+            if (m_autoPlaylists.GetAt(index).SourceUrl() == winrt::hstring(key))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // The caption a collection card carries already leads with its own count
+    // ("12 songs - 3 albums", "58 songs - System playlist"), so repeating it
+    // under the count the detail derives would print the number twice. Only
+    // the album's artist and the mix's kind label say anything the count does
+    // not, which is also all the web and Android clients show here.
+    std::wstring MainWindow::LibraryDetailMeta(
+        std::wstring const& kind,
+        std::wstring const& key,
+        winrt::hstring const& cardCaption) const
+    {
+        if (kind == L"album" || kind == L"album-collection")
+        {
+            return std::wstring(cardCaption.c_str());
+        }
+        if (kind == L"auto-playlist" && IsAutoMixDetail(key))
+        {
+            return L"Auto mix";
+        }
+        return {};
+    }
+
+    winrt::hstring MainWindow::LibraryDetailEyebrow(
+        std::wstring const& kind,
+        std::wstring const& key) const
+    {
+        if (kind == L"artist")
+        {
+            return L"ARTIST";
+        }
+        if (kind == L"genre")
+        {
+            return L"GENRE";
+        }
+        if (kind == L"auto-playlist")
+        {
+            return IsAutoMixDetail(key) ? L"AUTO PLAYLIST" : L"PLAYLIST";
+        }
+        return kind == L"playlist" ? L"PLAYLIST" : L"ALBUM";
+    }
+
+    winrt::hstring MainWindow::LibraryDetailCountText(int count) const
+    {
+        auto text = std::to_wstring(count) + (count == 1 ? L" song" : L" songs");
+        if (!m_libraryDetailMeta.empty())
+        {
+            text += L" - " + m_libraryDetailMeta;
+        }
+        return winrt::hstring(text);
+    }
+
     void MainWindow::ShowLibraryDetail(
         winrt::hstring const& kind,
         winrt::hstring const& key,
@@ -562,6 +631,7 @@ namespace winrt::Last_Music_Player::implementation
         m_libraryDetailKind = std::move(requestedKind);
         m_libraryDetailKey = std::move(requestedKey);
         m_libraryDetailSubtitle = std::wstring(subtitle.c_str());
+        m_libraryDetailMeta = LibraryDetailMeta(m_libraryDetailKind, m_libraryDetailKey, subtitle);
         ++m_libraryDetailHydrationEpoch;
 
         m_libraryDetailTracks.Clear();
@@ -598,12 +668,11 @@ namespace winrt::Last_Music_Player::implementation
         LibraryTabsContent().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
         LibraryDetailContent().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Visible);
         UpdateLibraryActionButtons();
-        LibraryDetailKindText().Text(kind == L"artist" ? L"ARTIST" : (kind == L"genre" ? L"GENRE" : ((kind == L"playlist" || kind == L"auto-playlist") ? L"PLAYLIST" : L"ALBUM")));
+        LibraryDetailKindText().Text(LibraryDetailEyebrow(m_libraryDetailKind, m_libraryDetailKey));
         LibraryDetailTitleText().Text(title);
-        auto count = m_libraryDetailMatchedCount;
-        LibraryDetailSubtitleText().Text(count > 0
-            ? winrt::hstring(std::to_wstring(count) + (count == 1 ? L" song" : L" songs")) + (subtitle.empty() ? L"" : L" - " + subtitle)
-            : winrt::hstring{ L"Loading songs..." });
+        LibraryDetailSubtitleText().Text(m_libraryDetailState == LoadState::Loading
+            ? winrt::hstring{ L"Loading songs..." }
+            : LibraryDetailCountText(m_libraryDetailMatchedCount));
         // Invalidates any relay response started for the previously open detail.
         LibraryDetailArt().Tag(nullptr);
         LibraryDetailArt().Source(nullptr);
@@ -711,6 +780,7 @@ namespace winrt::Last_Music_Player::implementation
         m_libraryDetailKind.clear();
         m_libraryDetailKey.clear();
         m_libraryDetailSubtitle.clear();
+        m_libraryDetailMeta.clear();
         m_libraryDetailAccountBinding.reset();
         m_libraryDetailFallbackArt = nullptr;
         m_libraryDetailTracks.Clear();
