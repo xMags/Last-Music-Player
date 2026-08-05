@@ -17,8 +17,8 @@ namespace LastMusicPlayer::Frontend
         TrackList,
 
         // A horizontal band of 156px tiles, matching CatalogTileTemplate and the
-        // 260px row height the catalog shelves use. For surfaces whose heading
-        // is real markup that stays put while the content loads.
+        // row height the catalog shelves use. For surfaces whose heading is real
+        // markup that stays put while the content loads.
         TileRow,
 
         // A heading bar above a TileRow, repeated. For the catalog, whose shelf

@@ -31,6 +31,10 @@ namespace LastMusicPlayer::Frontend
         constexpr std::array<double, 8> kTitleInsets{ 0, 62, 24, 96, 40, 78, 12, 54 };
         constexpr std::array<double, 8> kSubtitleInsets{ 110, 148, 132, 96, 160, 118, 140, 104 };
 
+        // Matches the shelf GridView height in BuildCatalogShelfSection, so the
+        // page does not shift when the real tiles replace the placeholder.
+        constexpr double kShelfRowHeight = 208;
+
         Style BlockStyle()
         {
             // A root-dictionary key, so this is not a theme dictionary lookup.
@@ -75,13 +79,15 @@ namespace LastMusicPlayer::Frontend
         }
 
         // The tile shared by TileRow and TileGrid: a square of artwork with a
-        // couple of text bars under it.
+        // couple of text bars under it. `captionBar` adds the third bar the
+        // library cards carry; shelf tiles stop at title and artist.
         StackPanel Tile(
             Style const& style,
             double width,
             double artSize,
             Thickness const& margin,
-            std::size_t index)
+            std::size_t index,
+            bool captionBar)
         {
             StackPanel tile;
             tile.Width(width);
@@ -100,8 +106,11 @@ namespace LastMusicPlayer::Frontend
                 style, 14, ThicknessHelper::FromLengths(0, 12, 0, 0)));
             tile.Children().Append(Block(
                 style, 14, ThicknessHelper::FromLengths(0, 8, kTitleInsets[index % kTitleInsets.size()] / 3.0, 0)));
-            tile.Children().Append(Block(
-                style, 12, ThicknessHelper::FromLengths(0, 10, 40 + kTitleInsets[index % kTitleInsets.size()] / 3.0, 0)));
+            if (captionBar)
+            {
+                tile.Children().Append(Block(
+                    style, 12, ThicknessHelper::FromLengths(0, 10, 40 + kTitleInsets[index % kTitleInsets.size()] / 3.0, 0)));
+            }
             return tile;
         }
 
@@ -192,9 +201,10 @@ namespace LastMusicPlayer::Frontend
                     156,
                     156,
                     ThicknessHelper::FromLengths(0, 0, 20, 0),
-                    static_cast<std::size_t>(index)));
+                    static_cast<std::size_t>(index),
+                    false));
             }
-            return Clipped(tiles, 260);
+            return Clipped(tiles, kShelfRowHeight);
         }
 
         UIElement BuildShelves(Style const& style, int count)
@@ -226,9 +236,10 @@ namespace LastMusicPlayer::Frontend
                         156,
                         156,
                         ThicknessHelper::FromLengths(0, 0, 20, 0),
-                        static_cast<std::size_t>(index * tilesPerShelf + tile)));
+                        static_cast<std::size_t>(index * tilesPerShelf + tile),
+                        false));
                 }
-                shelf.Children().Append(Clipped(tiles, 260));
+                shelf.Children().Append(Clipped(tiles, kShelfRowHeight));
 
                 shelves.Children().Append(shelf);
             }
@@ -258,7 +269,8 @@ namespace LastMusicPlayer::Frontend
                         cardWidth,
                         artSize,
                         ThicknessHelper::FromLengths(0, 0, 16, 0),
-                        static_cast<std::size_t>(index));
+                        static_cast<std::size_t>(index),
+                        true);
                     row.Children().Append(card);
                 }
                 grid.Children().Append(Clipped(row, rowHeight));
