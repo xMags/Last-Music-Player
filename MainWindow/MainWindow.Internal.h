@@ -29,8 +29,17 @@
 
 namespace winrt::Last_Music_Player::implementation::detail
 {
+    // Physical pixels: the size the window opens at with no saved geometry.
     inline constexpr int kDefaultWindowWidth = 1600;
     inline constexpr int kDefaultWindowHeight = 1000;
+
+    // Effective pixels, converted for the window's DPI where they are applied.
+    // The width is what a Home shelf needs to show four cards beside the 240
+    // nav and the 300 rail: 3 * 176 pitch + 156 for the last card, plus the
+    // centre panel's 16 padding on each side. Narrower clips the fourth card,
+    // and under 1100 the adaptive triggers drop the right rail entirely.
+    inline constexpr int kMinWindowWidthEpx = 1280;
+    inline constexpr int kMinWindowHeightEpx = 800;
     inline constexpr uint32_t kSongsListPageSize = 150;
     inline constexpr uint32_t kSongsGridPageSize = 80;
     inline constexpr uint32_t kLibrarySongPageSize = 150;
