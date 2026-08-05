@@ -331,7 +331,17 @@ namespace LastMusicPlayer::Backend::DatabaseDetail
     {
         auto normalizedFilter = ToLowerInvariant(filter);
         auto normalizedSort = ToLowerInvariant(sort);
-        if (normalizedFilter == L"history")
+
+        // An explicitly requested play-count order wins over any filter.
+        if (normalizedSort == L"mostplayed")
+        {
+            return "ORDER BY PlayCount DESC, LastPlayedOrder DESC, Title COLLATE NOCASE ASC";
+        }
+
+        // The history and most-played views share a sort control offering
+        // title, artist and duration, and each has its own natural default
+        // under the fourth option: most recent, and most played.
+        if (normalizedFilter == L"history" || normalizedFilter == L"most")
         {
             if (normalizedSort == L"title")
             {
@@ -345,11 +355,9 @@ namespace LastMusicPlayer::Backend::DatabaseDetail
             {
                 return "ORDER BY DurationSeconds ASC, Title COLLATE NOCASE ASC";
             }
-            return "ORDER BY LastPlayedOrder DESC, Title COLLATE NOCASE ASC";
-        }
-        if (normalizedFilter == L"most" || normalizedSort == L"mostplayed")
-        {
-            return "ORDER BY PlayCount DESC, LastPlayedOrder DESC, Title COLLATE NOCASE ASC";
+            return normalizedFilter == L"most"
+                ? "ORDER BY PlayCount DESC, LastPlayedOrder DESC, Title COLLATE NOCASE ASC"
+                : "ORDER BY LastPlayedOrder DESC, Title COLLATE NOCASE ASC";
         }
         if (normalizedSort == L"title")
         {

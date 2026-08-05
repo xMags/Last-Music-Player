@@ -125,7 +125,6 @@ namespace winrt::Last_Music_Player::implementation
 
     void MainWindow::ApplySongsFilterSort()
     {
-        SongsSortButton().IsEnabled(m_songsFilter != L"History" && m_songsFilter != L"Most");
         m_songsAllResults.clear();
         m_songsTracks.Clear();
         m_songsMatchedCount = 0;
@@ -351,82 +350,6 @@ namespace winrt::Last_Music_Player::implementation
         }
 
         RunDetached(LoadSongsQueueAndPlayAsync(winrt::Last_Music_Player::TrackInfo{ nullptr }));
-    }
-
-    void MainWindow::SelectSongsFilter(std::wstring const& filter)
-    {
-        auto nextFilter = filter.empty() ? std::wstring{ L"All" } : filter;
-        if (m_songsFilter == nextFilter && m_songsResultsValid)
-        {
-            return;
-        }
-
-        m_songsFilter = nextFilter;
-        m_updatingSongsChips = true;
-
-        winrt::Microsoft::UI::Xaml::Controls::Primitives::ToggleButton chips[] = {
-            ChipAll(), ChipHistory(), ChipMost(), ChipFav()
-        };
-
-        for (auto const& chip : chips)
-        {
-            auto tag = ReadTagString(chip.Tag());
-            auto selected = std::wstring(tag.c_str()) == m_songsFilter;
-            chip.IsChecked(selected);
-        }
-
-        m_updatingSongsChips = false;
-        ApplySongsFilterSort();
-    }
-
-    void MainWindow::SongsChip_Checked(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
-    {
-        (void)args;
-        if (!m_xamlReadyForEvents)
-        {
-            return;
-        }
-
-        if (m_updatingSongsChips)
-        {
-            return;
-        }
-
-        auto clicked = sender.try_as<winrt::Microsoft::UI::Xaml::Controls::Primitives::ToggleButton>();
-        if (!clicked)
-        {
-            return;
-        }
-
-        auto tag = ReadTagString(clicked.Tag());
-        SelectSongsFilter(tag.empty() ? L"All" : std::wstring(tag.c_str()));
-    }
-
-    void MainWindow::SongsChip_Unchecked(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
-    {
-        (void)sender;
-        (void)args;
-        if (!m_xamlReadyForEvents || m_updatingSongsChips)
-        {
-            return;
-        }
-
-        winrt::Microsoft::UI::Xaml::Controls::Primitives::ToggleButton chips[] = {
-            ChipAll(), ChipHistory(), ChipMost(), ChipFav()
-        };
-        for (auto const& chip : chips)
-        {
-            if (chip)
-            {
-                auto checked = chip.IsChecked();
-                if (checked && checked.Value())
-                {
-                    return;
-                }
-            }
-        }
-
-        SelectSongsFilter(m_songsFilter);
     }
 
     winrt::Windows::Foundation::IAsyncAction MainWindow::SongsGridView_ItemClick(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::ItemClickEventArgs const& args)

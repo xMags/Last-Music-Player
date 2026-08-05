@@ -124,8 +124,6 @@ namespace winrt::Last_Music_Player::implementation
         void RailTab_Lyrics_Tapped(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Input::TappedRoutedEventArgs const& e);
         winrt::Windows::Foundation::IAsyncAction SongsRescan_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void SongsPlayAll_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
-        void SongsChip_Checked(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
-        void SongsChip_Unchecked(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         winrt::Windows::Foundation::IAsyncAction SongsGridView_ItemClick(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::ItemClickEventArgs const& args);
         void SongsList_ContainerContentChanging(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::ContainerContentChangingEventArgs const& args);
         void SongsGrid_ContainerContentChanging(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::ContainerContentChangingEventArgs const& args);
@@ -194,7 +192,7 @@ namespace winrt::Last_Music_Player::implementation
         void QueueMoveDown_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void QueueRemove_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void UpNextQueue_DragItemsCompleted(winrt::Microsoft::UI::Xaml::Controls::ListViewBase const& sender, winrt::Microsoft::UI::Xaml::Controls::DragItemsCompletedEventArgs const& args);
-        void LikedSongsButton_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        winrt::Windows::Foundation::IAsyncAction LikedSongsButton_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void LikeCurrentTrack_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void ThemeSegment_Checked(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         winrt::Windows::Foundation::IAsyncAction PlayProviderTest_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
@@ -583,7 +581,6 @@ namespace winrt::Last_Music_Player::implementation
         void MaybeAppendLibrarySongsPage(uint32_t itemIndex);
         void AppendLibraryDetailPage();
         void MaybeAppendLibraryDetailPage(uint32_t itemIndex);
-        void SelectSongsFilter(std::wstring const& filter);
         void SetSongsGridMode(bool gridMode);
         void SetHistoryGridMode(bool gridMode);
         void QueueAndPlayVisible(std::vector<winrt::Last_Music_Player::TrackInfo> const& tracks, winrt::Last_Music_Player::TrackInfo const& clickedTrack);
@@ -1045,6 +1042,8 @@ namespace winrt::Last_Music_Player::implementation
         LoadState m_libraryPlaylistsState{ LoadState::NotLoaded };
         LoadState m_libraryDetailState{ LoadState::NotLoaded };
         std::wstring m_libraryPlaylistFilter{ L"Manual" };
+        // Which query the shared history/most-played panel is showing.
+        std::wstring m_libraryTracksFilter{ L"History" };
         std::wstring m_libraryHistorySort{ L"Relevance" };
         std::wstring m_libraryScope{ L"All" };
         bool m_libraryHistoryGridMode{ true };
@@ -1095,7 +1094,6 @@ namespace winrt::Last_Music_Player::implementation
         uint64_t m_discordPresenceRefreshMs{ 0 };
         std::vector<winrt::hstring> m_outputDeviceIds;
         std::vector<winrt::Microsoft::UI::Xaml::Controls::Slider> m_equalizerSliders;
-        bool m_updatingSongsChips = false;
         bool m_xamlReadyForEvents = false;
         winrt::hstring m_currentNav{ L"Home" };
 

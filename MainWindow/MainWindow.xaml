@@ -2305,6 +2305,7 @@
                         <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                             <ToggleButton x:Name="LibTabPlaylists" Tag="Playlists" Content="Playlists" IsChecked="True" Style="{StaticResource ChipToggle}" Checked="LibraryTab_Checked" />
                             <ToggleButton x:Name="LibTabHistory" Tag="History" Content="History" Style="{StaticResource ChipToggle}" Checked="LibraryTab_Checked" />
+                            <ToggleButton x:Name="LibTabMostPlayed" Tag="MostPlayed" Content="Most Played" Style="{StaticResource ChipToggle}" Checked="LibraryTab_Checked" />
                             <ToggleButton x:Name="LibTabAlbums" Tag="Albums" Content="Albums" Style="{StaticResource ChipToggle}" Checked="LibraryTab_Checked" />
                             <ToggleButton x:Name="LibTabArtists" Tag="Artists" Content="Artists" Style="{StaticResource ChipToggle}" Checked="LibraryTab_Checked" />
                             <ToggleButton x:Name="LibTabGenres" Tag="Genres" Content="Genres" Style="{StaticResource ChipToggle}" Checked="LibraryTab_Checked" />
@@ -2448,12 +2449,11 @@
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
-                                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                                    <ToggleButton x:Name="ChipAll" Tag="All" Content="All" IsChecked="True" Style="{StaticResource ChipToggle}" Checked="SongsChip_Checked" Unchecked="SongsChip_Unchecked" />
-                                    <ToggleButton x:Name="ChipHistory" Tag="History" Content="History" Style="{StaticResource ChipToggle}" Checked="SongsChip_Checked" Unchecked="SongsChip_Unchecked" />
-                                    <ToggleButton x:Name="ChipMost" Tag="Most" Content="Most played" Style="{StaticResource ChipToggle}" Checked="SongsChip_Checked" Unchecked="SongsChip_Unchecked" />
-                                    <ToggleButton x:Name="ChipFav" Tag="Fav" Content="Favourites" Style="{StaticResource ChipToggle}" Checked="SongsChip_Checked" Unchecked="SongsChip_Unchecked" />
-                                </StackPanel>
+                                <!-- The filter chips that used to sit here duplicated
+                                     destinations that already exist: History and Most
+                                     Played are Library tabs, and Favourites is the
+                                     system playlist the sidebar's Liked Songs opens. -->
+                                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" />
                                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
                                     <Border CornerRadius="{StaticResource RadiusMd}" Background="{ThemeResource NeutralFillBrush}" Padding="3">
                                         <StackPanel Orientation="Horizontal">
