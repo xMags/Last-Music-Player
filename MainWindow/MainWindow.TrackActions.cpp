@@ -493,14 +493,6 @@ namespace winrt::Last_Music_Player::implementation
             ShowLibraryDetail(winrt::hstring(detailKind), winrt::hstring(detailKey), detailTitle.empty() ? winrt::hstring(detailKey) : detailTitle, winrt::hstring(detailSubtitle));
         }
 
-        // The Explore "Favourites" tab is a liked-filtered DB query, not a
-        // plain projection, so patching IsLiked above does not add/remove
-        // rows. Rebuild it when it is the active filter so a like/unlike
-        // from anywhere (e.g. the bottom bar) shows up immediately.
-        if (m_songsFilter == L"Fav")
-        {
-            ApplySongsFilterSort();
-        }
     }
 
     void MainWindow::OpenSongsTrackArtist(winrt::Last_Music_Player::TrackInfo const& track)
@@ -532,12 +524,14 @@ namespace winrt::Last_Music_Player::implementation
     }
 
 
-    void MainWindow::LikedSongsButton_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
+    winrt::Windows::Foundation::IAsyncAction MainWindow::LikedSongsButton_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
     {
         (void)sender;
         (void)args;
-        OpenLibrarySongs();
-        SelectSongsFilter(L"Fav");
+        // Opens the Favourites system playlist, the same destination as Home's
+        // "See all Favourites". This used to filter the Songs tab instead, but
+        // that filter is gone: one liked-songs view is enough.
+        co_await OpenLibrarySystemPlaylistAsync(L"smart-liked");
     }
 
     void MainWindow::LikeCurrentTrack_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)

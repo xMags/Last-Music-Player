@@ -67,7 +67,8 @@ namespace winrt::Last_Music_Player::implementation
         }
         // Single-select: uncheck every other tab.
         winrt::Microsoft::UI::Xaml::Controls::Primitives::ToggleButton tabs[] = {
-            LibTabPlaylists(), LibTabHistory(), LibTabAlbums(), LibTabArtists(), LibTabGenres(), LibTabSongs()
+            LibTabPlaylists(), LibTabHistory(), LibTabMostPlayed(), LibTabAlbums(),
+            LibTabArtists(), LibTabGenres(), LibTabSongs()
         };
         for (auto const& t : tabs)
         {
@@ -94,10 +95,29 @@ namespace winrt::Last_Music_Player::implementation
         setVisibility(LibAlbumsGrid(), tag == L"Albums" ? V::Visible : V::Collapsed);
         setVisibility(LibArtistsGrid(), tag == L"Artists" ? V::Visible : V::Collapsed);
         setVisibility(LibrarySongsBrowser(), tag == L"Songs" ? V::Visible : V::Collapsed);
-        setVisibility(LibHistoryPanel(), tag == L"History" ? V::Visible : V::Collapsed);
+        // History and Most Played are the same panel over a different query, so
+        // switching between them only changes the filter the page loads with.
+        auto tracksTab = tag == L"History" || tag == L"MostPlayed";
+        if (tracksTab)
+        {
+            std::wstring wanted = tag == L"MostPlayed" ? L"Most" : L"History";
+            if (m_libraryTracksFilter != wanted)
+            {
+                m_libraryTracksFilter = wanted;
+                // Each tab's default order is its own "Relevance": most recent
+                // for History, most played for Most Played.
+                m_libraryHistorySort = L"Relevance";
+                if (HistorySortLabel())
+                {
+                    HistorySortLabel().Text(L"Relevance");
+                }
+                m_librarySongsState = LoadState::Dirty;
+            }
+        }
+        setVisibility(LibHistoryPanel(), tracksTab ? V::Visible : V::Collapsed);
         setVisibility(LibGenresPanel(), tag == L"Genres" ? V::Visible : V::Collapsed);
         setVisibility(LibPlaylistsPanel(), tag == L"Playlists" ? V::Visible : V::Collapsed);
-        auto scopedTab = tag == L"History" || tag == L"Playlists";
+        auto scopedTab = tracksTab || tag == L"Playlists";
         auto accountScopeAvailable = RemoteMusicServiceService().Mode() == LastMusicPlayer::Backend::RemoteAccessMode::Account
             && RemoteMusicServiceService().IsModeAvailable(LastMusicPlayer::Backend::RemoteAccessMode::Account);
         if (LibraryScopeSelector())

@@ -197,7 +197,7 @@ namespace winrt::Last_Music_Player::implementation
             }
         };
 
-        if (key == L"History")
+        if (key == L"History" || key == L"MostPlayed")
         {
             if (!shouldLoad(m_librarySongsState) && !m_librarySongsPageLoading)
             {
@@ -531,7 +531,7 @@ namespace winrt::Last_Music_Player::implementation
     LastMusicPlayer::Backend::TrackQuery MainWindow::CurrentLibrarySongsQuery(uint32_t offset, uint32_t limit) const
     {
         LastMusicPlayer::Backend::TrackQuery query;
-        query.Filter = L"History";
+        query.Filter = m_libraryTracksFilter;
         query.Sort = m_libraryHistorySort;
         query.Scope = m_libraryScope;
         query.Offset = static_cast<int>(offset);
