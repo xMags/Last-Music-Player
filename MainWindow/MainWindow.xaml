@@ -223,7 +223,7 @@
                     </StackPanel>
                 </Border>
 
-                <ScrollViewer Grid.Row="1" Margin="0, 20, 0, 0">
+                <ScrollViewer Grid.Row="1" Margin="0, 20, 0, 0" VerticalScrollBarVisibility="Hidden">
                     <StackPanel Padding="16,0,16,0" Spacing="2">
                         <TextBlock Text="MENU" Style="{StaticResource EyebrowText}" Margin="0, 0, 0, 10"/>
 
@@ -275,7 +275,7 @@
                             </StackPanel>
                         </Button>
 
-                        <ListView x:Name="SidebarPlaylistsListView"
+                        <ListView ScrollViewer.VerticalScrollBarVisibility="Hidden" x:Name="SidebarPlaylistsListView"
                                   IsItemClickEnabled="True"
                                   ItemClick="SidebarPlaylist_ItemClick"
                                   SelectionMode="None"
@@ -1191,7 +1191,7 @@
                 </Border>
 
                 <Grid Grid.Row="1" Margin="0,0,-16,0">
-                <ScrollViewer x:Name="BrowseResultsContent" VerticalScrollBarVisibility="Auto">
+                <ScrollViewer x:Name="BrowseResultsContent" VerticalScrollBarVisibility="Hidden">
                     <StackPanel Spacing="28" Padding="0,0,16,32">
                         <StackPanel Orientation="Horizontal" Spacing="16" VerticalAlignment="Center">
                             <TextBlock Text="Browse" Style="{StaticResource TitleH1}" />
@@ -1420,7 +1420,7 @@
                 <!-- Single scrolling page: every section is stacked top to bottom,
                      header included, so there is no section switcher to keep in sync. -->
                 <Grid x:Name="SettingsViewContainer" Visibility="Collapsed" Padding="0,16,0,0">
-                    <ScrollViewer x:Name="SettingsScrollViewer" VerticalScrollBarVisibility="Auto">
+                    <ScrollViewer x:Name="SettingsScrollViewer" VerticalScrollBarVisibility="Hidden">
                         <StackPanel Spacing="32" Padding="0,0,4,32">
 
                             <StackPanel Spacing="4">
@@ -1670,7 +1670,7 @@
                                 <Border Style="{StaticResource SettingsCard}">
                                     <StackPanel Spacing="12">
                                         <TextBlock Text="Formats included when scanning. Backend currently indexes MP3 and FLAC." Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
-                                        <ScrollViewer HorizontalScrollBarVisibility="Auto" HorizontalScrollMode="Auto" VerticalScrollMode="Enabled" VerticalScrollBarVisibility="Disabled">
+                                        <ScrollViewer HorizontalScrollBarVisibility="Hidden" HorizontalScrollMode="Auto" VerticalScrollMode="Enabled" VerticalScrollBarVisibility="Disabled">
                                             <StackPanel Orientation="Horizontal" Spacing="8">
                                                 <ToggleButton x:Name="FmtMp3" Tag=".mp3" Content="MP3" IsChecked="True" Style="{StaticResource ChipToggle}" Checked="FormatChip_Toggled" Unchecked="FormatChip_Toggled" />
                                                 <ToggleButton x:Name="FmtFlac" Tag=".flac" Content="FLAC" IsChecked="True" Style="{StaticResource ChipToggle}" Checked="FormatChip_Toggled" Unchecked="FormatChip_Toggled" />
@@ -2110,7 +2110,7 @@
                                 <TextBlock x:Name="DiscoverChartGalleryStatus" Style="{StaticResource CaptionText}" Visibility="Collapsed" />
                             </StackPanel>
                         </StackPanel>
-                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" VerticalScrollMode="Enabled">
+                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Hidden" VerticalScrollMode="Enabled">
                             <VariableSizedWrapGrid x:Name="DiscoverChartGalleryPanel" Orientation="Horizontal" ItemWidth="184" ItemHeight="216" MaximumRowsOrColumns="20" />
                         </ScrollViewer>
                     </Grid>
@@ -2133,7 +2133,7 @@
                                 <TextBlock x:Name="DiscoverChartTitleText" Text="Top Songs" Style="{StaticResource TitleH1}" />
                             </StackPanel>
                         </StackPanel>
-                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" VerticalScrollMode="Enabled">
+                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Hidden" VerticalScrollMode="Enabled">
                             <StackPanel>
                                 <Grid x:Name="DiscoverChartSkeletonHost" Visibility="Collapsed" Margin="0,4,0,24" />
                                 <GridView x:Name="DiscoverChartGridView"
@@ -2201,7 +2201,7 @@
                                   IsItemClickEnabled="True"
                                   ItemClick="DiscoverDetailTrack_ItemClick"
                                   ScrollViewer.VerticalScrollMode="Enabled"
-                                  ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                  ScrollViewer.VerticalScrollBarVisibility="Hidden"
                                   SelectionMode="Single">
                             <ListView.ItemContainerStyle>
                                 <Style TargetType="ListViewItem">
@@ -2323,7 +2323,7 @@
                     <Grid x:Name="LibraryTabsContent" Grid.Row="2">
                         <!-- Albums -->
                         <Grid x:Name="LibraryTabsSkeletonHost" Visibility="Collapsed" VerticalAlignment="Top" />
-                        <GridView x:Name="LibAlbumsGrid" Visibility="Collapsed" SelectionMode="None" IsItemClickEnabled="True" ItemClick="LibraryGroup_ItemClick" ItemContainerStyle="{StaticResource CardTileContainerStyle}" Padding="0,0,0,24"
+                        <GridView ScrollViewer.VerticalScrollBarVisibility="Hidden" x:Name="LibAlbumsGrid" Visibility="Collapsed" SelectionMode="None" IsItemClickEnabled="True" ItemClick="LibraryGroup_ItemClick" ItemContainerStyle="{StaticResource CardTileContainerStyle}" Padding="0,0,0,24"
                                   ScrollViewer.HorizontalScrollMode="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                             <GridView.ItemTemplate>
                                 <DataTemplate x:DataType="local:TrackInfo">
@@ -2370,7 +2370,7 @@
                         </GridView>
 
                         <!-- Artists -->
-                        <GridView x:Name="LibArtistsGrid" Visibility="Collapsed" SelectionMode="None" IsItemClickEnabled="True" ItemClick="LibraryGroup_ItemClick" ItemContainerStyle="{StaticResource CardTileContainerStyle}" Padding="0,0,0,24"
+                        <GridView ScrollViewer.VerticalScrollBarVisibility="Hidden" x:Name="LibArtistsGrid" Visibility="Collapsed" SelectionMode="None" IsItemClickEnabled="True" ItemClick="LibraryGroup_ItemClick" ItemContainerStyle="{StaticResource CardTileContainerStyle}" Padding="0,0,0,24"
                                   ScrollViewer.HorizontalScrollMode="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                             <GridView.ItemTemplate>
                                 <DataTemplate x:DataType="local:TrackInfo">
@@ -2511,7 +2511,7 @@
                                       SelectionMode="Single"
                                       VerticalAlignment="Stretch"
                                       ScrollViewer.VerticalScrollMode="Enabled"
-                                      ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                      ScrollViewer.VerticalScrollBarVisibility="Hidden"
                                       ScrollViewer.HorizontalScrollMode="Disabled"
                                       ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                                 <ListView.ItemsPanel>
@@ -2617,7 +2617,7 @@
                                       Padding="0,4,8,24"
                                       VerticalAlignment="Stretch"
                                       ScrollViewer.VerticalScrollMode="Enabled"
-                                      ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                      ScrollViewer.VerticalScrollBarVisibility="Hidden"
                                       ScrollViewer.HorizontalScrollMode="Disabled"
                                       ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                                 <GridView.ItemsPanel>
@@ -2716,7 +2716,7 @@
                                       ItemClick="LibrarySongsListView_ItemClick"
                                       ContainerContentChanging="LibrarySongs_ContainerContentChanging"
                                       ScrollViewer.VerticalScrollMode="Enabled"
-                                      ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                      ScrollViewer.VerticalScrollBarVisibility="Hidden"
                                       ScrollViewer.HorizontalScrollMode="Disabled"
                                       ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                                       SelectionMode="Single">
@@ -2782,7 +2782,7 @@
                                       Padding="0,4,8,24"
                                       VerticalAlignment="Stretch"
                                       ScrollViewer.VerticalScrollMode="Enabled"
-                                      ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                      ScrollViewer.VerticalScrollBarVisibility="Hidden"
                                       ScrollViewer.HorizontalScrollMode="Disabled"
                                       ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                                 <GridView.ItemsPanel>
@@ -2823,7 +2823,7 @@
 
                         <!-- Genres -->
                         <Grid x:Name="LibGenresPanel" Visibility="Collapsed">
-                            <GridView x:Name="LibGenresGrid" SelectionMode="None" IsItemClickEnabled="True" ItemClick="LibraryGroup_ItemClick" ItemContainerStyle="{StaticResource CardTileContainerStyle}" Padding="0,0,0,24"
+                            <GridView ScrollViewer.VerticalScrollBarVisibility="Hidden" x:Name="LibGenresGrid" SelectionMode="None" IsItemClickEnabled="True" ItemClick="LibraryGroup_ItemClick" ItemContainerStyle="{StaticResource CardTileContainerStyle}" Padding="0,0,0,24"
                                       ScrollViewer.HorizontalScrollMode="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                             <GridView.ItemTemplate>
                                 <DataTemplate x:DataType="local:TrackInfo">
@@ -2871,7 +2871,7 @@
                                 <ToggleButton x:Name="LibPlaylistAutoFilter" Tag="Auto" Content="Auto mixes" Style="{StaticResource ChipToggle}" Checked="LibraryPlaylistFilter_Checked" />
                             </StackPanel>
                             <Grid Grid.Row="1">
-                                <GridView x:Name="LibManualPlaylistsGrid" SelectionMode="None" IsItemClickEnabled="True" ItemClick="LibraryGroup_ItemClick" ItemContainerStyle="{StaticResource CardTileContainerStyle}" Padding="0,0,0,24"
+                                <GridView ScrollViewer.VerticalScrollBarVisibility="Hidden" x:Name="LibManualPlaylistsGrid" SelectionMode="None" IsItemClickEnabled="True" ItemClick="LibraryGroup_ItemClick" ItemContainerStyle="{StaticResource CardTileContainerStyle}" Padding="0,0,0,24"
                                           ScrollViewer.HorizontalScrollMode="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                                     <GridView.ItemTemplate>
                                         <DataTemplate x:DataType="local:TrackInfo">
@@ -2909,7 +2909,7 @@
                                         </DataTemplate>
                                     </GridView.ItemTemplate>
                                 </GridView>
-                                <GridView x:Name="LibAutoPlaylistsGrid" Visibility="Collapsed" SelectionMode="None" IsItemClickEnabled="True" ItemClick="LibraryGroup_ItemClick" ItemContainerStyle="{StaticResource CardTileContainerStyle}" Padding="0,0,0,24"
+                                <GridView ScrollViewer.VerticalScrollBarVisibility="Hidden" x:Name="LibAutoPlaylistsGrid" Visibility="Collapsed" SelectionMode="None" IsItemClickEnabled="True" ItemClick="LibraryGroup_ItemClick" ItemContainerStyle="{StaticResource CardTileContainerStyle}" Padding="0,0,0,24"
                                           ScrollViewer.HorizontalScrollMode="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                                     <GridView.ItemTemplate>
                                         <DataTemplate x:DataType="local:TrackInfo">
@@ -3051,7 +3051,7 @@
                                   ItemClick="LibrarySongsListView_ItemClick"
                                   ContainerContentChanging="LibraryDetailTracks_ContainerContentChanging"
                                   ScrollViewer.VerticalScrollMode="Enabled"
-                                  ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                  ScrollViewer.VerticalScrollBarVisibility="Hidden"
                                   SelectionMode="Single">
                             <ListView.ItemsPanel>
                                 <ItemsPanelTemplate>
@@ -3292,7 +3292,7 @@
                         <TextBlock x:Name="LyricsSourceTag" FontSize="11" Foreground="{ThemeResource TextTertiaryBrush}" Margin="0,4,0,0" Visibility="Collapsed"/>
                     </StackPanel>
 
-                    <ScrollViewer x:Name="LyricsScrollViewer" Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="24,0,24,24">
+                    <ScrollViewer x:Name="LyricsScrollViewer" Grid.Row="1" VerticalScrollBarVisibility="Hidden" Padding="24,0,24,24">
                         <Grid>
                             <StackPanel x:Name="LyricsLinesPanel" Spacing="14" Visibility="Collapsed"/>
                             <TextBlock x:Name="LyricsPlainText" Visibility="Collapsed" FontSize="15" LineHeight="22" TextWrapping="Wrap" Foreground="{ThemeResource TextSecondaryBrush}"/>
@@ -3630,7 +3630,7 @@
                             <RowDefinition Height="*" />
                         </Grid.RowDefinitions>
                         <TextBlock Grid.Row="0" Text="NEXT IN QUEUE" Style="{StaticResource EyebrowText}" Margin="0,0,0,12" />
-                        <ListView x:Name="FsUpNext" Grid.Row="1"
+                        <ListView ScrollViewer.VerticalScrollBarVisibility="Hidden" x:Name="FsUpNext" Grid.Row="1"
                               SelectionMode="None" IsItemClickEnabled="False"
                               CanReorderItems="True" CanDragItems="True" AllowDrop="True"
                               ReorderMode="Enabled"
@@ -3681,7 +3681,7 @@
                             <TextBlock x:Name="FsLyricsTrackArtist" Text="Select a track" FontSize="13" Foreground="{ThemeResource TextTertiaryBrush}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
                             <TextBlock x:Name="FsLyricsSourceTag" FontSize="11" Foreground="{ThemeResource TextTertiaryBrush}" Margin="0,4,0,0" Visibility="Collapsed"/>
                         </StackPanel>
-                        <ScrollViewer x:Name="FsLyricsScrollViewer" Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                        <ScrollViewer x:Name="FsLyricsScrollViewer" Grid.Row="1" VerticalScrollBarVisibility="Hidden">
                             <Grid>
                                 <StackPanel x:Name="FsLyricsLinesPanel" Spacing="16" Visibility="Collapsed"/>
                                 <TextBlock x:Name="FsLyricsPlainText" Visibility="Collapsed" FontSize="16" LineHeight="24" TextWrapping="Wrap" Foreground="{ThemeResource TextSecondaryBrush}"/>
