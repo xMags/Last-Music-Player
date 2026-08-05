@@ -872,6 +872,37 @@ namespace winrt::Last_Music_Player::implementation
         QueueAccountArtworkImage(image, track.ArtworkUrl(), ArtworkDetail::Tile, track);
     }
 
+    void MainWindow::QueueContainerArtwork(
+        winrt::Microsoft::UI::Xaml::Controls::ContainerContentChangingEventArgs const& args)
+    {
+        // Loaded fires once per Image element, but a virtualizing list recycles
+        // the element onto a different track without raising it again, so a
+        // recycled tile kept asking for nothing and showed the placeholder. The
+        // item's artwork is requested here instead, which does run on every
+        // bind. Requests are keyed and cached, so the extra call on a tile's
+        // first bind is answered from the cache rather than the network.
+        if (args.InRecycleQueue())
+        {
+            return;
+        }
+        auto track = args.Item().try_as<winrt::Last_Music_Player::TrackInfo>();
+        auto container = args.ItemContainer();
+        if (!track || !container)
+        {
+            return;
+        }
+        auto root = container.ContentTemplateRoot();
+        if (!root)
+        {
+            return;
+        }
+        if (auto image = FindDescendant<winrt::Microsoft::UI::Xaml::Controls::Image>(root))
+        {
+            LastMusicPlayer::Frontend::ApplyRoundedCornerClip(image);
+            QueueAccountArtworkImage(image, track.ArtworkUrl(), ArtworkDetail::Tile, track);
+        }
+    }
+
     winrt::Last_Music_Player::TrackInfo MainWindow::CatalogItemToTrack(
         LastMusicPlayer::Backend::CatalogItem const& item,
         int32_t index)
