@@ -1179,6 +1179,36 @@ namespace winrt::Last_Music_Player::implementation
         column.Width(winrt::Microsoft::UI::Xaml::GridLengthHelper::FromPixels(target));
     }
 
+    void MainWindow::RightPanelArtHost_SizeChanged(
+        winrt::Windows::Foundation::IInspectable const& sender,
+        winrt::Microsoft::UI::Xaml::SizeChangedEventArgs const& args)
+    {
+        (void)sender;
+        // Keeps the now-playing artwork square at whatever width the rail gives
+        // it. Reading the measured width rather than the rail's target means
+        // this stays right for every caller that resizes the rail, including the
+        // queue button's forced-open width, without any of them knowing.
+        auto host = RightPanelArtHost();
+        if (!host)
+        {
+            return;
+        }
+
+        auto width = static_cast<double>(args.NewSize().Width);
+        if (width <= 0.0)
+        {
+            return;
+        }
+
+        // Assigning Height re-enters this handler with the same width; the
+        // comparison stops there rather than looping.
+        auto current = host.Height();
+        if (std::isnan(current) || std::abs(current - width) > 0.5)
+        {
+            host.Height(width);
+        }
+    }
+
     void MainWindow::OnAppWindowClosing(winrt::Microsoft::UI::Windowing::AppWindow const& sender, winrt::Microsoft::UI::Windowing::AppWindowClosingEventArgs const& args)
     {
         (void)sender;
