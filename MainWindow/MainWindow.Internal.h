@@ -29,9 +29,11 @@
 
 namespace winrt::Last_Music_Player::implementation::detail
 {
-    // Physical pixels: the size the window opens at with no saved geometry.
-    inline constexpr int kDefaultWindowWidth = 1600;
-    inline constexpr int kDefaultWindowHeight = 1000;
+    // Effective pixels: the size the window opens at with no saved geometry.
+    // Same unit as the minimum below so the two can be compared at a glance;
+    // a default under the minimum would just be clamped on first launch.
+    inline constexpr int kDefaultWindowWidthEpx = 1370;
+    inline constexpr int kDefaultWindowHeightEpx = 880;
 
     // Effective pixels, converted for the window's DPI where they are applied.
     //

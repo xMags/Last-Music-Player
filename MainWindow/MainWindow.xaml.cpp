@@ -228,8 +228,19 @@ namespace winrt::Last_Music_Player::implementation
             int savedY = settings.GetInt(L"WindowY", INT_MIN);
             bool haveSize = savedW >= 800 && savedH >= 600;
             bool havePos  = savedX != INT_MIN && savedY != INT_MIN;
-            int finalW = haveSize ? savedW : kDefaultWindowWidth;
-            int finalH = haveSize ? savedH : kDefaultWindowHeight;
+            // Saved geometry is already in physical pixels; the defaults are
+            // in effective pixels, so they convert for this window's DPI.
+            auto defaultDpi = GetDpiForWindow(hwnd);
+            if (defaultDpi == 0)
+            {
+                defaultDpi = USER_DEFAULT_SCREEN_DPI;
+            }
+            int finalW = haveSize
+                ? savedW
+                : MulDiv(kDefaultWindowWidthEpx, static_cast<int>(defaultDpi), USER_DEFAULT_SCREEN_DPI);
+            int finalH = haveSize
+                ? savedH
+                : MulDiv(kDefaultWindowHeightEpx, static_cast<int>(defaultDpi), USER_DEFAULT_SCREEN_DPI);
             UINT flags = SWP_NOZORDER;
             int finalX = 0;
             int finalY = 0;
