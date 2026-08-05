@@ -27,6 +27,7 @@
 #include <memory>
 #include <random>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
@@ -120,6 +121,42 @@ namespace winrt::Last_Music_Player::implementation
         {
             auto element = item.try_as<winrt::Microsoft::UI::Xaml::FrameworkElement>();
             if (element && ReadTagString(element.Tag()) == L"EditablePlaylistAction")
+            {
+                element.Visibility(visibility);
+            }
+        }
+    }
+
+    // Reordering a track and removing it only mean something inside a playlist
+    // the user owns. The same detail list also backs albums, artists, genres
+    // and the generated playlists, where the handlers below already refuse the
+    // work; hiding the actions there stops the menu from offering three items
+    // that do nothing. Editable covers both the local playlists and the
+    // account's own, which is what m_libraryDetailKind == "playlist" means.
+    void MainWindow::LibraryDetailRowMenu_Opening(
+        winrt::Windows::Foundation::IInspectable const& sender,
+        winrt::Windows::Foundation::IInspectable const& args)
+    {
+        (void)args;
+        auto menu = sender.try_as<winrt::Microsoft::UI::Xaml::Controls::MenuFlyout>();
+        if (!menu)
+        {
+            return;
+        }
+
+        auto visibility = m_libraryDetailKind == L"playlist"
+            ? winrt::Microsoft::UI::Xaml::Visibility::Visible
+            : winrt::Microsoft::UI::Xaml::Visibility::Collapsed;
+        static constexpr std::wstring_view playlistActionTag{ L"PlaylistTrackAction" };
+        for (auto const& item : menu.Items())
+        {
+            auto element = item.try_as<winrt::Microsoft::UI::Xaml::FrameworkElement>();
+            if (!element)
+            {
+                continue;
+            }
+            auto tag = ReadTagString(element.Tag());
+            if (std::wstring_view{ tag }.starts_with(playlistActionTag))
             {
                 element.Visibility(visibility);
             }
@@ -324,8 +361,16 @@ namespace winrt::Last_Music_Player::implementation
         }
         auto track = TrackFromActionSender(sender);
         auto item = sender.try_as<winrt::Microsoft::UI::Xaml::Controls::MenuFlyoutItem>();
-        auto direction = item ? ReadTagString(item.Tag()) : winrt::hstring{};
-        if (!track || (direction != L"Up" && direction != L"Down"))
+        // The tag doubles as the marker LibraryDetailRowMenu_Opening uses to
+        // hide the playlist-only actions, so the direction is read off the end
+        // of it rather than out of a tag of its own.
+        auto tag = item ? ReadTagString(item.Tag()) : winrt::hstring{};
+        auto direction = tag == L"PlaylistTrackActionUp"
+            ? std::wstring_view{ L"Up" }
+            : (tag == L"PlaylistTrackActionDown"
+                ? std::wstring_view{ L"Down" }
+                : std::wstring_view{});
+        if (!track || direction.empty())
         {
             co_return;
         }
