@@ -2427,50 +2427,21 @@
                                 <SolidColorBrush x:Key="ListViewItemBackgroundSelectedPressed" Color="{ThemeResource AccentColor}" Opacity="0.18" />
                             </Grid.Resources>
                             <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" /> <!-- Title block -->
                                 <RowDefinition Height="Auto" /> <!-- Toolbar -->
                                 <RowDefinition Height="Auto" /> <!-- Header row -->
                                 <RowDefinition Height="*" />    <!-- Table -->
                             </Grid.RowDefinitions>
 
-                            <!-- Title block -->
-                            <Grid Grid.Row="0" Margin="0,0,0,20">
+                            <!-- One toolbar line. The tab strip above already names this
+                                 view, so a title and an eyebrow repeating it only cost
+                                 height: the count says what is here, and everything that
+                                 acts on it sits opposite. -->
+                            <Grid Grid.Row="0" Margin="0,0,0,16">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
-                                <StackPanel Grid.Column="0" Spacing="4">
-                                    <TextBlock x:Name="SongsScopeLabel" Text="On this PC" Style="{StaticResource EyebrowText}" />
-                                    <TextBlock Text="Offline music" Style="{StaticResource TitleH1}" />
-                                    <TextBlock x:Name="SongsSubtitle" Text="No tracks scanned yet" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" />
-                                </StackPanel>
-                                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-                                    <Button x:Name="SongsRescanButton" Click="SongsRescan_Click" CornerRadius="{StaticResource RadiusLg}" Padding="14,8">
-                                        <StackPanel Orientation="Horizontal" Spacing="8">
-                                            <FontIcon Glyph="&#xE149;" FontSize="14" />
-                                            <TextBlock Text="Rescan" />
-                                        </StackPanel>
-                                    </Button>
-                                    <Button x:Name="SongsPlayAllButton" Click="SongsPlayAll_Click" Style="{StaticResource AccentButtonStyle}" CornerRadius="{StaticResource RadiusLg}" Padding="16,8">
-                                        <StackPanel Orientation="Horizontal" Spacing="8">
-                                            <FontIcon Glyph="&#xE768;" FontSize="14" />
-                                            <TextBlock Text="Play all" />
-                                        </StackPanel>
-                                    </Button>
-                                </StackPanel>
-                            </Grid>
-
-                            <!-- Toolbar: filter chips + view toggle / sort -->
-                            <Grid Grid.Row="1" Margin="0,0,0,16">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-                                <!-- The filter chips that used to sit here duplicated
-                                     destinations that already exist: History and Most
-                                     Played are Library tabs, and Favourites is the
-                                     system playlist the sidebar's Liked Songs opens. -->
-                                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" />
+                                <TextBlock x:Name="SongsSubtitle" Grid.Column="0" Text="No tracks scanned yet" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
                                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
                                     <Border CornerRadius="{StaticResource RadiusMd}" Background="{ThemeResource NeutralFillBrush}" Padding="3">
                                         <StackPanel Orientation="Horizontal">
@@ -2496,11 +2467,22 @@
                                             </MenuFlyout>
                                         </DropDownButton.Flyout>
                                     </DropDownButton>
+                                <Button x:Name="SongsRescanButton" Click="SongsRescan_Click" CornerRadius="{StaticResource RadiusLg}" Padding="14,8">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <FontIcon Glyph="&#xE149;" FontSize="14" />
+                                        <TextBlock Text="Rescan" />
+                                    </StackPanel>
+                                </Button>
+                                <Button x:Name="SongsPlayAllButton" Click="SongsPlayAll_Click" Style="{StaticResource AccentButtonStyle}" CornerRadius="{StaticResource RadiusLg}" Padding="16,8">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <FontIcon Glyph="&#xE768;" FontSize="14" />
+                                        <TextBlock Text="Play all" />
+                                    </StackPanel>
+                                </Button>
                                 </StackPanel>
                             </Grid>
 
-                            <!-- Header row -->
-                            <Grid x:Name="SongsListHeader" Grid.Row="2" Padding="16,9" ColumnSpacing="10"
+                            <Grid x:Name="SongsListHeader" Grid.Row="1" Padding="16,9" ColumnSpacing="10"
                                   Background="{ThemeResource SurfaceAltBrush}"
                                   BorderBrush="{ThemeResource DividerBrush}" BorderThickness="0,0,0,1">
                                 <Grid.ColumnDefinitions>
@@ -2520,8 +2502,8 @@
                             </Grid>
 
                             <!-- Table -->
-                            <Grid x:Name="SongsSkeletonHost" Grid.Row="3" Visibility="Collapsed" VerticalAlignment="Top" Margin="0,4,0,0" />
-                            <ListView x:Name="MusicListView" Grid.Row="3"
+                            <Grid x:Name="SongsSkeletonHost" Grid.Row="2" Visibility="Collapsed" VerticalAlignment="Top" Margin="0,4,0,0" />
+                            <ListView x:Name="MusicListView" Grid.Row="2"
                                       IsItemClickEnabled="True"
                                       ItemClick="MusicListView_ItemClick"
                                       ContainerContentChanging="SongsList_ContainerContentChanging"
@@ -2626,7 +2608,7 @@
                                 </ListView.ItemTemplate>
                             </ListView>
 
-                            <GridView x:Name="SongsGridView" Grid.Row="3"
+                            <GridView x:Name="SongsGridView" Grid.Row="2"
                                       Visibility="Collapsed"
                                       SelectionMode="None"
                                       IsItemClickEnabled="True"

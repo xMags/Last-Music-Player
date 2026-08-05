@@ -560,7 +560,6 @@ namespace winrt::Last_Music_Player::implementation
         std::optional<AccountPlaylistDetailContext> CaptureAccountPlaylistDetailContext();
         bool IsCurrentAccountPlaylistDetailContext(
             AccountPlaylistDetailContext const& context);
-        void UpdateSongsScopeLabel();
         void UpdateSongsStats();
         void UpdateHistoryCount();
         void LoadCatalogFromDatabase();

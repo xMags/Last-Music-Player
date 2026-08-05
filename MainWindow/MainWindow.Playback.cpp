@@ -1718,7 +1718,6 @@ namespace winrt::Last_Music_Player::implementation
                 ProviderApiKeyBox().Password(L"");
                 m_remoteSearchCache.clear();
                 ProviderTestStatusText().Text(L"Configured");
-                UpdateSongsScopeLabel();
                 RefreshAccountSettingsUi();
                 operationLease.reset();
                 co_await HydrateHomeAsync(true);
@@ -1773,7 +1772,6 @@ namespace winrt::Last_Music_Player::implementation
         m_remoteSearchCache.clear();
         ProviderTestStatusText().Text(urlRemoved ? L"Not configured" : L"API key removed; provider URL cleanup failed");
         RefreshAccountSettingsUi();
-        UpdateSongsScopeLabel();
     }
 
 

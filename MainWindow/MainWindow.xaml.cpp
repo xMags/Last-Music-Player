@@ -630,7 +630,6 @@ namespace winrt::Last_Music_Player::implementation
         {
             RunDetached(RestoreAccountIntegrationAsync());
         }
-        UpdateSongsScopeLabel();
         auto savedLibraryPath = ReadAppSettingString(L"MusicLibraryPath");
         if (!savedLibraryPath.empty())
         {
