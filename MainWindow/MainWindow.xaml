@@ -2260,7 +2260,7 @@
                     </Grid.RowDefinitions>
 
                     <!-- Title block -->
-                    <Grid x:Name="LibraryHeaderBar" Grid.Row="0" Margin="0,0,0,24" SizeChanged="LibraryHeaderBar_SizeChanged">
+                    <Grid x:Name="LibraryHeaderBar" Grid.Row="0" SizeChanged="LibraryHeaderBar_SizeChanged">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
@@ -2309,7 +2309,7 @@
                     </Grid>
 
                     <!-- Tabs + account/local scope -->
-                    <Grid x:Name="LibraryNavigationBar" Grid.Row="1" Margin="0,0,0,16">
+                    <Grid x:Name="LibraryNavigationBar" Grid.Row="1" Margin="0,24,0,16">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
@@ -2792,7 +2792,7 @@
                                       ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                                 <GridView.ItemsPanel>
                                     <ItemsPanelTemplate>
-                                        <ItemsWrapGrid Orientation="Horizontal" ItemWidth="192" ItemHeight="264" />
+                                        <ItemsWrapGrid Orientation="Horizontal" ItemWidth="192" ItemHeight="248" />
                                     </ItemsPanelTemplate>
                                 </GridView.ItemsPanel>
                                 <GridView.ItemTemplate>
@@ -2821,7 +2821,6 @@
                                             </Border>
                                             <TextBlock Text="{x:Bind Title}" Style="{StaticResource BodyStrong}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
                                             <TextBlock Text="{x:Bind Artist}" Style="{StaticResource CaptionText}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
-                                            <TextBlock Text="{x:Bind Duration}" Style="{StaticResource CaptionText}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
                                         </StackPanel>
                                     </DataTemplate>
                                 </GridView.ItemTemplate>

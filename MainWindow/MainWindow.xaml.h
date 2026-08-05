@@ -583,6 +583,9 @@ namespace winrt::Last_Music_Player::implementation
         void MaybeAppendLibraryDetailPage(uint32_t itemIndex);
         void SetSongsGridMode(bool gridMode);
         void SetHistoryGridMode(bool gridMode);
+        void ObserveLibraryScroll(winrt::Microsoft::UI::Xaml::FrameworkElement const& surface);
+        void UpdateLibraryHeaderForScroll(winrt::Microsoft::UI::Xaml::Controls::ScrollViewer const& scroller);
+        void SetLibraryHeaderCollapsed(bool collapsed);
         void QueueAndPlayVisible(std::vector<winrt::Last_Music_Player::TrackInfo> const& tracks, winrt::Last_Music_Player::TrackInfo const& clickedTrack);
         void QueueAndPlayObservable(winrt::Windows::Foundation::Collections::IObservableVector<winrt::Last_Music_Player::TrackInfo> const& tracks, winrt::Last_Music_Player::TrackInfo const& clickedTrack);
         winrt::Last_Music_Player::TrackInfo TrackFromActionSender(winrt::Windows::Foundation::IInspectable const& sender);
@@ -1043,6 +1046,8 @@ namespace winrt::Last_Music_Player::implementation
         LoadState m_libraryDetailState{ LoadState::NotLoaded };
         std::wstring m_libraryPlaylistFilter{ L"Manual" };
         // Which query the shared history/most-played panel is showing.
+        bool m_libraryHeaderCollapsed{ false };
+        double m_libraryHeaderHeight{ 0.0 };
         std::wstring m_libraryTracksFilter{ L"History" };
         std::wstring m_libraryHistorySort{ L"Relevance" };
         std::wstring m_libraryScope{ L"All" };
