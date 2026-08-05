@@ -362,6 +362,7 @@ namespace winrt::Last_Music_Player::implementation
     void MainWindow::SongsList_ContainerContentChanging(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::ContainerContentChangingEventArgs const& args)
     {
         (void)sender;
+        QueueContainerArtwork(args);
         if (!args.InRecycleQueue())
         {
             MaybeAppendSongsPage(args.ItemIndex());
