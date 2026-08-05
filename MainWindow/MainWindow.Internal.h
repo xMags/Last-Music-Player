@@ -48,7 +48,7 @@ namespace winrt::Last_Music_Player::implementation::detail
     //
     // Changing any of those pitches changes what this number has to be.
     inline constexpr int kMinWindowWidthEpx = 1370;
-    inline constexpr int kMinWindowHeightEpx = 800;
+    inline constexpr int kMinWindowHeightEpx = 880;
     inline constexpr uint32_t kSongsListPageSize = 150;
     inline constexpr uint32_t kSongsGridPageSize = 80;
     inline constexpr uint32_t kLibrarySongPageSize = 150;
