@@ -133,6 +133,11 @@ namespace winrt::Last_Music_Player::implementation
         LibAutoPlaylistsGrid().ItemsSource(m_autoPlaylists);
         LibraryDetailTracksListView().ItemsSource(m_libraryDetailTracks);
         SetHistoryGridMode(m_libraryHistoryGridMode);
+        // Applied rather than left to the markup's initial visibility: the flag
+        // is the one source of truth for which view is showing, and the two
+        // drifting apart is how the toolbar ends up highlighting the view the
+        // page is not in.
+        SetSongsGridMode(m_songsGridMode);
         UpdateHistoryCount();
         if (LibTabPlaylists())
         {
