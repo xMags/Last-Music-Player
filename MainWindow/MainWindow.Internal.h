@@ -34,11 +34,18 @@ namespace winrt::Last_Music_Player::implementation::detail
     inline constexpr int kDefaultWindowHeight = 1000;
 
     // Effective pixels, converted for the window's DPI where they are applied.
-    // The width is what a Home shelf needs to show four cards beside the 240
-    // nav and the 300 rail: 3 * 176 pitch + 156 for the last card, plus the
-    // centre panel's 16 padding on each side. Narrower clips the fourth card,
-    // and under 1100 the adaptive triggers drop the right rail entirely.
-    inline constexpr int kMinWindowWidthEpx = 1280;
+    //
+    // The width holds four cards across in the widest card grid the app has:
+    // the Library Songs and History grids, whose ItemsWrapGrid is on a 192
+    // pitch. Four of those need 768 of grid viewport, and at this window width
+    // the viewport measures 776 once the 240 nav, the 300 rail and the centre
+    // panel's padding are taken out. Every other grid is narrower per card
+    // (Library collections 184, Home shelves 176, Browse results 160) so they
+    // fit four or more at the same window size. Below 1100 the adaptive
+    // triggers drop the right rail entirely, which is a different layout.
+    //
+    // Changing any of those pitches changes what this number has to be.
+    inline constexpr int kMinWindowWidthEpx = 1370;
     inline constexpr int kMinWindowHeightEpx = 800;
     inline constexpr uint32_t kSongsListPageSize = 150;
     inline constexpr uint32_t kSongsGridPageSize = 80;
