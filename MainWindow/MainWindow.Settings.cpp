@@ -417,7 +417,6 @@ namespace winrt::Last_Music_Player::implementation
         {
             RefreshAccountSettingsUi();
             MarkLibraryViewsDirty();
-            UpdateSongsScopeLabel();
             co_await HydrateHomeAsync(false);
         }
     }
@@ -854,7 +853,6 @@ namespace winrt::Last_Music_Player::implementation
                     throw winrt::hresult_error(E_FAIL, L"Could not activate the account library.");
                 }
 
-                UpdateSongsScopeLabel();
                 operationLease.reset();
                 co_await SynchronizeAccountLibraryAsync(AccountSyncMode::Interactive);
             }
@@ -918,7 +916,6 @@ namespace winrt::Last_Music_Player::implementation
             }
             m_remoteSearchCache.clear();
             MarkLibraryViewsDirty();
-            UpdateSongsScopeLabel();
             operationLease.reset();
             co_await HydrateHomeAsync(false);
         }
@@ -1054,7 +1051,6 @@ namespace winrt::Last_Music_Player::implementation
         }
         m_remoteSearchCache.clear();
         MarkLibraryViewsDirty();
-        UpdateSongsScopeLabel();
         RefreshAccountSettingsUi();
         RunDetached(mode == LastMusicPlayer::Backend::RemoteAccessMode::Account
             ? SynchronizeAccountLibraryAsync(AccountSyncMode::Implicit)
@@ -2349,7 +2345,6 @@ namespace winrt::Last_Music_Player::implementation
             LoadSettingsIntoUi();
             RefreshAccountSettingsUi();
             UpdateCatalogAvailability();
-            UpdateSongsScopeLabel();
             ApplyUserDisplayName();
             m_loadingSettings = true;
             try

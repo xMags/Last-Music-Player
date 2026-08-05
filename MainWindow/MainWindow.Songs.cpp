@@ -290,21 +290,8 @@ namespace winrt::Last_Music_Player::implementation
         }
     }
 
-    void MainWindow::UpdateSongsScopeLabel()
-    {
-        if (!m_xamlReadyForEvents)
-        {
-            return;
-        }
-
-        // Fixed now that the tab is local-only; it used to say whether the
-        // listing had remote tracks mixed in, which it no longer can.
-        SongsScopeLabel().Text(L"On this PC");
-    }
-
     void MainWindow::UpdateSongsStats()
     {
-        UpdateSongsScopeLabel();
         size_t loadedCount = m_songsTracks.Size();
         // The query is the tab's whole scope now, so what it matched is also
         // its total. Reading m_libraryStats here would count the streamed

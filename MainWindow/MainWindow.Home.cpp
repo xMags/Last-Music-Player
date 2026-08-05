@@ -542,7 +542,6 @@ namespace winrt::Last_Music_Player::implementation
             ResolveArtworkPresentation(copy, L"playlist");
             m_sidebarPlaylists.Append(copy);
         }
-        UpdateSongsScopeLabel();
 
 
 
