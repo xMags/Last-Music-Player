@@ -1234,7 +1234,9 @@ namespace winrt::Last_Music_Player::implementation
             .try_as<Style>();
 
         GridView grid;
-        grid.Height(260);
+        // Exactly one CatalogTileTemplate tall (156 art + 12 gap + 22 title +
+        // 18 artist). Any slack here reads as dead space between shelves.
+        grid.Height(208);
         grid.IsItemClickEnabled(true);
         grid.SelectionMode(ListViewSelectionMode::None);
         if (containerStyle) grid.ItemContainerStyle(containerStyle);

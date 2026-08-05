@@ -421,8 +421,8 @@
                             <Grid x:Name="ListenAgainSkeletonHost" Visibility="Collapsed" Margin="0,4,0,24" />
                             <Grid x:Name="HomeRecentArrowHost">
                                 <GridView x:Name="HomeRecentGridView"
-                                          Height="260"
-                                          Padding="0,4,64,24"
+                                          Height="212"
+                                          Padding="0,4,64,0"
                                           Visibility="Collapsed"
                                           IsItemClickEnabled="True"
                                           ItemClick="HomeRecentGridView_ItemClick"
@@ -439,17 +439,16 @@
                                     </GridView.ItemsPanel>
                                     <GridView.ItemTemplate>
                                         <DataTemplate x:DataType="local:TrackInfo">
-                                            <!-- Explicit row grid keeps the title row a fixed 40 px
-                                                 (2 BodyStrong lines max). Short titles leave the
-                                                 extra line blank; artist and source labels always
-                                                 line up at the same Y across neighbouring cards. -->
+                                            <!-- Explicit row grid keeps the title row a fixed 22 px
+                                                 (one BodyStrong line). Every Home card is art,
+                                                 title, artist, so titles of any length leave the
+                                                 artist row at the same Y across neighbours. -->
                                             <Grid x:Name="CardRoot" Width="156" Margin="0,0,20,0" VerticalAlignment="Top"
                                                   PointerEntered="Card_PointerEntered" PointerExited="Card_PointerExited">
                                                 <Grid.RowDefinitions>
                                                     <RowDefinition Height="156" />
                                                     <RowDefinition Height="12" />
-                                                    <RowDefinition Height="40" />
-                                                    <RowDefinition Height="18" />
+                                                    <RowDefinition Height="22" />
                                                     <RowDefinition Height="18" />
                                                 </Grid.RowDefinitions>
                                                 <Grid.ContextFlyout>
@@ -480,9 +479,8 @@
                                                     </Border>
                                                     <Image Source="{x:Bind AlbumArt}" Stretch="UniformToFill" Loaded="AccountArtwork_Loaded" />
                                                 </Grid>
-                                                <TextBlock Grid.Row="2" Text="{x:Bind Title}" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" VerticalAlignment="Top" />
-                                                <TextBlock Grid.Row="3" Text="{x:Bind Artist}" Style="{StaticResource CaptionText}" TextTrimming="CharacterEllipsis" />
-                                                <TextBlock Grid.Row="4" Text="{x:Bind DateAdded}" Style="{StaticResource CaptionText}" TextTrimming="CharacterEllipsis" Opacity="0.8" />
+                                                <TextBlock Grid.Row="2" Text="{x:Bind Title}" Style="{StaticResource BodyStrong}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" VerticalAlignment="Top" />
+                                                <TextBlock Grid.Row="3" Text="{x:Bind Artist}" Style="{StaticResource CaptionText}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" />
                                             </Grid>
                                         </DataTemplate>
                                     </GridView.ItemTemplate>
@@ -501,9 +499,6 @@
                         <!-- Signed-in catalog discovery. Personal Home content remains
                              usable while this independent feed loads or retries. -->
                         <StackPanel x:Name="HomeCatalogPrimaryContainer" Visibility="Collapsed" Spacing="20">
-                            <!-- The region this catalog is drawn from is chosen in
-                                 Settings > Integrations. -->
-                            <TextBlock Text="APPLE MUSIC CATALOG" Style="{StaticResource EyebrowText}" VerticalAlignment="Center" />
                             <Grid x:Name="HomeCatalogStatusPanel" Visibility="Collapsed">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto" />
@@ -931,8 +926,8 @@
                             </Grid>
                             <Grid x:Name="HomeMostPlayedArrowHost">
                                 <GridView x:Name="HomeMostPlayedGridView"
-                                          Height="260"
-                                          Padding="0,4,64,24"
+                                          Height="212"
+                                          Padding="0,4,64,0"
                                           IsItemClickEnabled="True"
                                           ItemClick="HomeMostPlayed_ItemClick"
                                           ItemContainerStyle="{StaticResource CardTileContainerStyle}"
@@ -948,15 +943,14 @@
                                     </GridView.ItemsPanel>
                                     <GridView.ItemTemplate>
                                         <DataTemplate x:DataType="local:TrackInfo">
-                                            <!-- Fixed-row grid so 2-line titles don't shift artist
-                                                 text down — neighbouring cards stay vertically
-                                                 aligned regardless of title length. -->
+                                            <!-- Fixed-row grid so the artist line sits at the same
+                                                 Y on every card regardless of title length. -->
                                             <Grid Width="156" Margin="0,0,20,0" VerticalAlignment="Top"
                                                   PointerEntered="Card_PointerEntered" PointerExited="Card_PointerExited">
                                                 <Grid.RowDefinitions>
                                                     <RowDefinition Height="156" />
                                                     <RowDefinition Height="12" />
-                                                    <RowDefinition Height="40" />
+                                                    <RowDefinition Height="22" />
                                                     <RowDefinition Height="18" />
                                                 </Grid.RowDefinitions>
                                                 <Grid.ContextFlyout>
@@ -987,8 +981,8 @@
                                                     </Border>
                                                     <Image Source="{x:Bind AlbumArt}" Stretch="UniformToFill" Loaded="AccountArtwork_Loaded" />
                                                 </Grid>
-                                                <TextBlock Grid.Row="2" Text="{x:Bind Title}" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" VerticalAlignment="Top" />
-                                                <TextBlock Grid.Row="3" Text="{x:Bind Artist}" Style="{StaticResource CaptionText}" TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Grid.Row="2" Text="{x:Bind Title}" Style="{StaticResource BodyStrong}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" VerticalAlignment="Top" />
+                                                <TextBlock Grid.Row="3" Text="{x:Bind Artist}" Style="{StaticResource CaptionText}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" />
                                             </Grid>
                                         </DataTemplate>
                                     </GridView.ItemTemplate>
@@ -1011,8 +1005,8 @@
                             </Grid>
                             <Grid x:Name="HomeLikedArrowHost">
                                 <GridView x:Name="HomeLikedGridView"
-                                          Height="260"
-                                          Padding="0,4,64,24"
+                                          Height="212"
+                                          Padding="0,4,64,0"
                                           IsItemClickEnabled="True"
                                           ItemClick="HomeLiked_ItemClick"
                                           ItemContainerStyle="{StaticResource CardTileContainerStyle}"
@@ -1033,7 +1027,7 @@
                                                 <Grid.RowDefinitions>
                                                     <RowDefinition Height="156" />
                                                     <RowDefinition Height="12" />
-                                                    <RowDefinition Height="40" />
+                                                    <RowDefinition Height="22" />
                                                     <RowDefinition Height="18" />
                                                 </Grid.RowDefinitions>
                                                 <Grid.ContextFlyout>
@@ -1064,8 +1058,8 @@
                                                     </Border>
                                                     <Image Source="{x:Bind AlbumArt}" Stretch="UniformToFill" Loaded="AccountArtwork_Loaded" />
                                                 </Grid>
-                                                <TextBlock Grid.Row="2" Text="{x:Bind Title}" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" VerticalAlignment="Top" />
-                                                <TextBlock Grid.Row="3" Text="{x:Bind Artist}" Style="{StaticResource CaptionText}" TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Grid.Row="2" Text="{x:Bind Title}" Style="{StaticResource BodyStrong}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" VerticalAlignment="Top" />
+                                                <TextBlock Grid.Row="3" Text="{x:Bind Artist}" Style="{StaticResource CaptionText}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" />
                                             </Grid>
                                         </DataTemplate>
                                     </GridView.ItemTemplate>
@@ -1097,8 +1091,8 @@
                             <Grid x:Name="HomeRecentlyAddedArrowHost">
                                 <GridView x:Name="HomeRecentlyAddedGridView"
                                           Visibility="Collapsed"
-                                          Height="260"
-                                          Padding="0,4,64,24"
+                                          Height="212"
+                                          Padding="0,4,64,0"
                                           IsItemClickEnabled="True"
                                           ItemClick="HomeRecentlyAdded_ItemClick"
                                           ItemContainerStyle="{StaticResource CardTileContainerStyle}"
@@ -1119,7 +1113,7 @@
                                                 <Grid.RowDefinitions>
                                                     <RowDefinition Height="156" />
                                                     <RowDefinition Height="12" />
-                                                    <RowDefinition Height="40" />
+                                                    <RowDefinition Height="22" />
                                                     <RowDefinition Height="18" />
                                                 </Grid.RowDefinitions>
                                                 <Grid.ContextFlyout>
@@ -1150,8 +1144,8 @@
                                                     </Border>
                                                     <Image Source="{x:Bind AlbumArt}" Stretch="UniformToFill" Loaded="AccountArtwork_Loaded" />
                                                 </Grid>
-                                                <TextBlock Grid.Row="2" Text="{x:Bind Title}" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" VerticalAlignment="Top" />
-                                                <TextBlock Grid.Row="3" Text="{x:Bind Artist}" Style="{StaticResource CaptionText}" TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Grid.Row="2" Text="{x:Bind Title}" Style="{StaticResource BodyStrong}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" VerticalAlignment="Top" />
+                                                <TextBlock Grid.Row="3" Text="{x:Bind Artist}" Style="{StaticResource CaptionText}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" />
                                             </Grid>
                                         </DataTemplate>
                                     </GridView.ItemTemplate>
@@ -2018,7 +2012,7 @@
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="156" />
                                     <RowDefinition Height="12" />
-                                    <RowDefinition Height="40" />
+                                    <RowDefinition Height="22" />
                                     <RowDefinition Height="18" />
                                 </Grid.RowDefinitions>
                                 <Grid.ContextFlyout>
@@ -2052,7 +2046,7 @@
                                          tile scrolls into view. -->
                                     <Image Stretch="UniformToFill" Loaded="AccountArtwork_Loaded" />
                                 </Grid>
-                                <TextBlock Grid.Row="2" Text="{x:Bind Title}" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" VerticalAlignment="Top" />
+                                <TextBlock Grid.Row="2" Text="{x:Bind Title}" Style="{StaticResource BodyStrong}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" VerticalAlignment="Top" />
                                 <TextBlock Grid.Row="3" Text="{x:Bind Artist}" Style="{StaticResource CaptionText}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
                             </Grid>
                         </DataTemplate>
