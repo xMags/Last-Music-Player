@@ -3165,8 +3165,13 @@
                     <StackPanel Padding="24,8,24,24">
                         <TextBlock Text="NOW PLAYING" Style="{StaticResource EyebrowText}" Margin="0,0,0,16"/>
 
-                        <!-- Album Art (1:1 square aspect ratio) -->
-                        <Grid Width="252" Height="252" Margin="0,0,0,24">
+                        <!-- Album art, square by construction. The width comes from
+                             the rail, which is 300 or 380 depending on window width
+                             and 320 when the queue button forces the rail open, so
+                             the height tracks the measured width instead of being
+                             pinned to one rail size. -->
+                        <Grid x:Name="RightPanelArtHost" Height="252" Margin="0,0,0,24"
+                              HorizontalAlignment="Stretch" SizeChanged="RightPanelArtHost_SizeChanged">
                             <Border CornerRadius="{StaticResource Radius2xl}">
                                 <Border.Background>
                                     <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
