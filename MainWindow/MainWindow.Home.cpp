@@ -1278,24 +1278,23 @@ namespace winrt::Last_Music_Player::implementation
 
     void MainWindow::UpdateMadeForCardLabels()
     {
-        // Each Daily Mix card's description + caption reflect the genre that
-        // actually drives it (set in BuildHomeMixes). When a slot fell back to
-        // the artist/catalog logic (no genre), the original genre-themed copy is
+        // Each Daily Mix card's description reflects the genre that actually
+        // drives it (set in BuildHomeMixes). When a slot fell back to the
+        // artist/catalog logic (no genre), the original genre-themed copy is
         // restored so the card never shows a stale genre from a prior hydrate.
         struct CardSlot
         {
             wchar_t const* mixId;
             winrt::Microsoft::UI::Xaml::Controls::TextBlock desc;
-            winrt::Microsoft::UI::Xaml::Controls::TextBlock caption;
             wchar_t const* fallbackDesc;
         };
 
         CardSlot slots[] = {
-            { L"daily1", HomeMix1Desc(), HomeMix1Caption(), L"Upbeat indie & pop you keep coming back to." },
-            { L"daily2", HomeMix2Desc(), HomeMix2Caption(), L"Mellow electronic and chill beats." },
-            { L"daily3", HomeMix3Desc(), HomeMix3Caption(), L"Rock and alternative favourites." },
-            { L"daily4", HomeMix4Desc(), HomeMix4Caption(), L"More from a genre you love." },
-            { L"daily5", HomeMix5Desc(), HomeMix5Caption(), L"More from a genre you love." },
+            { L"daily1", HomeMix1Desc(), L"Upbeat indie & pop you keep coming back to." },
+            { L"daily2", HomeMix2Desc(), L"Mellow electronic and chill beats." },
+            { L"daily3", HomeMix3Desc(), L"Rock and alternative favourites." },
+            { L"daily4", HomeMix4Desc(), L"More from a genre you love." },
+            { L"daily5", HomeMix5Desc(), L"More from a genre you love." },
         };
 
         // Top 2 artists of a track set, play-weighted, comma-joined, with a
@@ -1353,11 +1352,6 @@ namespace winrt::Last_Music_Player::implementation
                 // Only fall back to the static theme copy if we somehow have no
                 // artists at all (empty mix).
                 slot.desc.Text(winrt::hstring(artistLine.empty() ? slot.fallbackDesc : artistLine));
-            }
-            if (slot.caption)
-            {
-                // Genre caption only when it's a real genre; otherwise generic.
-                slot.caption.Text(hasGenre ? winrt::hstring(genreIt->second) : winrt::hstring(L"Made for you"));
             }
         }
     }
