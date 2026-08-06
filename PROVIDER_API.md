@@ -167,3 +167,17 @@ The app falls back to the raw body or the status code if this shape is absent.
 The app aborts JSON requests after **15 seconds**. Keep responses prompt; do
 heavy work (transcoding, etc.) on the `/v1/stream` path, which is not bounded by
 that timeout.
+
+## Official service adapters
+
+The provider contract is a client transport boundary, not an authorization to
+extract or relay protected media from third-party services.
+
+An Apple Music adapter may use Apple’s official Apple Music API for catalog and
+authorized subscriber-library data. Developer tokens must be signed outside the
+public client, and subscriber-specific requests require Apple’s Music User Token
+flow. Apple Music playback must remain within an Apple-supported MusicKit playback
+runtime.
+
+This repository intentionally does not publish such an adapter, its credentials,
+or its production configuration.
