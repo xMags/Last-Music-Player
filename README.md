@@ -116,6 +116,27 @@ To enable remote playback:
 
 Your provider decides how identifiers are resolved, how auth works, and where audio comes from. The public client only knows the generic Music API contract.
 
+### Apple Music integration
+
+Last Music Player is designed to integrate with Apple’s official Apple Music API
+for catalog discovery and authorized subscriber-library features.
+
+A distributor can provide a separately operated integration that:
+
+- creates Apple developer tokens using a Media Services identifier and private key;
+- obtains the user’s authorization through MusicKit;
+- uses a valid Music User Token for subscriber-specific Apple Music API requests;
+- maps Apple Music catalog and library metadata into the client’s account contract;
+- performs playback through an Apple-supported MusicKit playback runtime for users
+  with the required Apple Music subscription and playback capability.
+
+This public repository does not include the Apple Music adapter, Media Services
+private key, developer-token service, MusicKit authorization implementation,
+production configuration, or playback integration.
+
+The generic provider API is not an implementation of MusicKit and must not be used
+to bypass Apple’s playback, DRM, subscription, authorization, or service restrictions.
+
 ## Account Integration
 
 Account mode is optional and disabled in public builds by default. The public source leaves every account origin blank, so **Settings -> Integrations** reports that account integration is unavailable until a distributor supplies build-time configuration.
