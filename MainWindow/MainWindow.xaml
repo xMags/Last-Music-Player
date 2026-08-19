@@ -1445,10 +1445,14 @@
                             <!-- The operation mode decides where music comes from and, with it,
                                  who the app says you are: the identity card below shows the
                                  rename box on the local and API key modes, and the MagnetoFX
-                                 profile on account mode. Sign-in and the API key fields stay
-                                 visible in every mode on purpose, because RemoteMusicService
-                                 only lets a mode be selected once that mode's own setup is
-                                 already complete. -->
+                                 profile on account mode. Only the active mode's connection
+                                 card is on screen; the other mode's credentials stay in the
+                                 credential store untouched, so switching back needs no
+                                 re-entry. First-time setup for a mode cannot live here,
+                                 because RemoteMusicService only lets a mode be selected once
+                                 that mode's own setup is already complete: picking an
+                                 unconfigured mode opens a setup dialog instead
+                                 (MainWindow.ModeSetup.cpp). -->
                             <StackPanel x:Name="SetSecAccount" Spacing="20">
                                 <TextBlock Text="Account" Style="{StaticResource TitleH2}" TextWrapping="Wrap" />
 
@@ -1515,7 +1519,10 @@
                                     </Grid>
                                 </Border>
 
-                                <Border Style="{StaticResource SettingsCard}">
+                                <!-- Account mode only. Sign-in is not here: it belongs to the
+                                     setup dialog, because this card is hidden in every mode
+                                     that could still need it. -->
+                                <Border x:Name="SettingsAccountConnectionCard" Style="{StaticResource SettingsCard}" Visibility="Collapsed">
                                     <StackPanel Spacing="16">
                                         <Grid ColumnSpacing="16">
                                             <Grid.ColumnDefinitions>
@@ -1527,7 +1534,6 @@
                                                 <TextBlock x:Name="AccountStatusText" Text="Checking account status..." Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
                                             </StackPanel>
                                             <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                                                <Button x:Name="AccountSignInButton" Click="AccountSignIn_Click" CornerRadius="{StaticResource RadiusMd}" Padding="16,7" Content="Sign in" />
                                                 <Button x:Name="AccountSyncButton" Click="AccountSync_Click" CornerRadius="{StaticResource RadiusMd}" Padding="16,7" Content="Sync now" Visibility="Collapsed" />
                                                 <Button x:Name="AccountSignOutButton" Click="AccountSignOut_Click" CornerRadius="{StaticResource RadiusMd}" Padding="16,7" Content="Sign out" Visibility="Collapsed" />
                                             </StackPanel>
@@ -1557,7 +1563,11 @@
                                     </StackPanel>
                                 </Border>
 
-                                <Border Style="{StaticResource SettingsCard}">
+                                <!-- API key mode only. Selecting the mode is what brings these
+                                     fields on screen, so the mode does not require a stored
+                                     credential to be entered: RemoteMusicService reports it
+                                     unavailable until Connect succeeds. -->
+                                <Border x:Name="SettingsApiKeyCard" Style="{StaticResource SettingsCard}" Visibility="Collapsed">
                                     <Grid ColumnSpacing="16">
                                         <Grid.RowDefinitions>
                                             <RowDefinition Height="Auto" />

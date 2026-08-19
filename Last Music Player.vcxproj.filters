@@ -258,6 +258,9 @@
     <ClCompile Include="MainWindow\MainWindow.Settings.cpp">
       <Filter>MainWindow</Filter>
     </ClCompile>
+    <ClCompile Include="MainWindow\MainWindow.ModeSetup.cpp">
+      <Filter>MainWindow</Filter>
+    </ClCompile>
     <ClCompile Include="MainWindow\MainWindow.TrackActions.cpp">
       <Filter>MainWindow</Filter>
     </ClCompile>

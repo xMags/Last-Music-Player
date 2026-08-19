@@ -197,7 +197,6 @@ namespace winrt::Last_Music_Player::implementation
         void ThemeSegment_Checked(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         winrt::Windows::Foundation::IAsyncAction PlayProviderTest_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void DisconnectProvider_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
-        winrt::Windows::Foundation::IAsyncAction AccountSignIn_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         winrt::Windows::Foundation::IAsyncAction AccountSync_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         winrt::Windows::Foundation::IAsyncAction AccountSignOut_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         winrt::Windows::Foundation::IAsyncAction AccountClearData_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
@@ -458,6 +457,32 @@ namespace winrt::Last_Music_Player::implementation
         winrt::Windows::Foundation::IAsyncAction HydrateHomeAsync(bool refreshProvider);
         winrt::Windows::Foundation::IAsyncAction RestoreAccountIntegrationAsync();
         void RefreshAccountSettingsUi();
+
+        // --- Operation-mode setup (MainWindow.ModeSetup.cpp) ---
+        // Settings only ever shows the active mode's connection card. API-key
+        // credentials are typed straight into that card, so entering the mode is
+        // all the setup it needs. Account is different: its session comes from a
+        // browser round trip, so picking it while signed out runs sign-in first
+        // and commits the switch only once that succeeds.
+
+        // Puts the mode selector back on the committed mode. Always call this
+        // instead of refreshing straight from RemoteMode_SelectionChanged: the
+        // selector cannot be written while RadioButtons is still resolving its
+        // own selection.
+        winrt::Windows::Foundation::IAsyncAction ResyncRemoteModeSelectorAsync();
+        winrt::Windows::Foundation::IAsyncAction BeginAccountSignInAsync();
+        winrt::Windows::Foundation::IAsyncAction ShowAccountSignInDialogAsync();
+
+        // Credential steps. Progress is reported through the caller-supplied
+        // TextBlock, so the same logic serves the API-key card's status line and
+        // the sign-in dialog's own.
+        winrt::Windows::Foundation::IAsyncOperation<bool> ConnectApiKeyProviderAsync(
+            winrt::hstring baseUrl,
+            winrt::hstring apiKey,
+            winrt::Microsoft::UI::Xaml::Controls::TextBlock status);
+        winrt::Windows::Foundation::IAsyncOperation<bool> CompleteAccountSignInAsync(
+            winrt::Microsoft::UI::Xaml::Controls::TextBlock status);
+
         winrt::Windows::Foundation::IAsyncAction OfferCompatibleHistoryImportAsync();
         winrt::Windows::Foundation::IAsyncAction SynchronizeAccountLibraryAsync(AccountSyncMode mode);
 

@@ -81,7 +81,17 @@ namespace LastMusicPlayer::Backend
         void InvalidateScope() noexcept;
         RemoteScopeSnapshot CaptureScope();
         bool IsCurrent(RemoteScopeSnapshot const& scope);
+        // Whether a mode is usable right now: it has everything it needs to
+        // serve requests. Drives HasRemoteAccess and the runtime guards.
         bool IsModeAvailable(RemoteAccessMode mode) const;
+
+        // Whether a mode may be entered, which is a weaker question. API-key
+        // mode is selectable before it is configured because its credentials are
+        // typed into the API-key settings card, and that card only appears once
+        // the mode is active. Entering it unconfigured leaves the service
+        // unavailable rather than broken: ProviderFor rejects empty credentials
+        // and HasRemoteAccess stays false until a key is stored.
+        bool IsModeSelectable(RemoteAccessMode mode) const;
         bool HasRemoteAccess();
 
         AccountSyncContext CaptureAccountSyncContext();
