@@ -274,9 +274,6 @@ namespace winrt::Last_Music_Player::implementation
         }
         AccountStatusText().Text(statusText);
 
-        AccountSignInButton().IsEnabled(available && status != AccountSessionStatus::SigningIn);
-        AccountSignInButton().Content(winrt::box_value(winrt::hstring{ L"Sign in" }));
-        AccountSignInButton().Visibility(signedIn ? Visibility::Collapsed : Visibility::Visible);
         AccountSignOutButton().Visibility(signedIn ? Visibility::Visible : Visibility::Collapsed);
         AccountSignOutButton().IsEnabled(signedIn);
         AccountSyncButton().Visibility(signedIn ? Visibility::Visible : Visibility::Collapsed);
@@ -291,6 +288,16 @@ namespace winrt::Last_Music_Player::implementation
             usingAccountIdentity ? Visibility::Visible : Visibility::Collapsed);
         SettingsIdentityManualPanel().Visibility(
             usingAccountIdentity ? Visibility::Collapsed : Visibility::Visible);
+
+        // Only the active mode's connection card is on screen. The other mode's
+        // credentials are untouched in the credential store, so switching back
+        // needs no re-entry; setting one up for the first time happens in the
+        // dialogs in MainWindow.ModeSetup.cpp.
+        auto activeMode = remoteMusic.Mode();
+        SettingsAccountConnectionCard().Visibility(
+            activeMode == RemoteAccessMode::Account ? Visibility::Visible : Visibility::Collapsed);
+        SettingsApiKeyCard().Visibility(
+            activeMode == RemoteAccessMode::ApiKey ? Visibility::Visible : Visibility::Collapsed);
 
         // Hidden rather than disabled when this build has no trusted frontend
         // origin: there is nothing to manage and no page to send the user to.
@@ -336,9 +343,11 @@ namespace winrt::Last_Music_Player::implementation
         // refresh it from the same place as the rest of the mode-driven state.
         UpdateCatalogAvailability();
 
-        RemoteModeAccount().IsEnabled(available && signedIn);
-        // Keep configuration reachable without reading the provider credential
-        // while another mode is active. SetMode validates it on user selection.
+        // Both remote modes stay pickable whether or not they are set up: an
+        // unconfigured pick opens that mode's setup dialog instead of switching.
+        // Account is the exception when the build has no account backend at all,
+        // where there is nothing for the dialog to do.
+        RemoteModeAccount().IsEnabled(available);
         RemoteModeApiKey().IsEnabled(true);
         m_suppressRemoteModeChange = true;
         switch (remoteMusic.Mode())
@@ -799,93 +808,6 @@ namespace winrt::Last_Music_Player::implementation
         }
     }
 
-    winrt::Windows::Foundation::IAsyncAction MainWindow::AccountSignIn_Click(
-        winrt::Windows::Foundation::IInspectable const& sender,
-        winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
-    {
-        (void)sender;
-        (void)args;
-        auto lifetime = get_strong();
-        auto operationGeneration = UserDataOperationGateService().Generation();
-        AccountSignInButton().IsEnabled(false);
-        AccountStatusText().Text(L"Opening browser sign-in...");
-
-        auto signedIn = co_await AccountSessionService().SignInAsync();
-        auto snapshot = AccountSessionService().Snapshot();
-        auto operationLease = UserDataOperationGateService().TryEnter();
-        if (!operationLease || !UserDataOperationGateService().IsCurrent(operationGeneration))
-        {
-            RefreshAccountSettingsUi();
-            co_return;
-        }
-        if (signedIn
-            && snapshot.Status == LastMusicPlayer::Backend::AccountSessionStatus::Validated
-            && !snapshot.Profile.Id.empty())
-        {
-            try
-            {
-                auto session = AccountSessionService().CaptureOperation();
-                if (session.Status != LastMusicPlayer::Backend::AccountSessionStatus::Validated
-                    || session.Generation != snapshot.Generation
-                    || session.OwnerId != snapshot.Profile.Id)
-                {
-                    throw winrt::hresult_canceled();
-                }
-                if (!RemoteMusicServiceService().SetMode(
-                    LastMusicPlayer::Backend::RemoteAccessMode::Account))
-                {
-                    throw winrt::hresult_error(E_NOT_VALID_STATE, L"Account mode is unavailable.");
-                }
-
-                InvalidateRemoteScopeWork();
-                auto context = RemoteMusicServiceService().CaptureAccountSyncContext();
-                auto remoteScope = RemoteMusicServiceService().CaptureScope();
-                if (context.OwnerId() != snapshot.Profile.Id
-                    || remoteScope.AccountGeneration != snapshot.Generation
-                    || !RemoteMusicServiceService().IsCurrent(context))
-                {
-                    throw winrt::hresult_canceled();
-                }
-                if (!DatabaseService().SetRemoteLibraryContext(
-                    L"Account",
-                    std::wstring(context.OwnerId().c_str())))
-                {
-                    throw winrt::hresult_error(E_FAIL, L"Could not activate the account library.");
-                }
-
-                operationLease.reset();
-                co_await SynchronizeAccountLibraryAsync(AccountSyncMode::Interactive);
-            }
-            catch (winrt::hresult_canceled const&)
-            {
-                auto current = AccountSessionService().Snapshot();
-                if ((current.Status != LastMusicPlayer::Backend::AccountSessionStatus::Validated
-                        && current.Status != LastMusicPlayer::Backend::AccountSessionStatus::Offline)
-                    || current.Profile.Id.empty())
-                {
-                    RemoteMusicServiceService().SetMode(
-                        LastMusicPlayer::Backend::RemoteAccessMode::LocalOnly);
-                    InvalidateRemoteScopeWork();
-                    (void)DatabaseService().SetRemoteLibraryContext(L"LocalOnly");
-                }
-                RefreshAccountSettingsUi();
-                co_return;
-            }
-            catch (...)
-            {
-                RemoteMusicServiceService().SetMode(
-                    LastMusicPlayer::Backend::RemoteAccessMode::LocalOnly);
-                InvalidateRemoteScopeWork();
-                (void)DatabaseService().SetRemoteLibraryContext(L"LocalOnly");
-                operationLease.reset();
-                RefreshAccountSettingsUi();
-                AccountStatusText().Text(L"Could not activate the account library.");
-                co_return;
-            }
-        }
-        RefreshAccountSettingsUi();
-    }
-
     winrt::Windows::Foundation::IAsyncAction MainWindow::AccountSignOut_Click(
         winrt::Windows::Foundation::IInspectable const& sender,
         winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
@@ -1023,9 +945,26 @@ namespace winrt::Last_Music_Player::implementation
         }
         auto tag = ReadTagString(selected.Tag());
         auto mode = LastMusicPlayer::Backend::ParseRemoteAccessMode(tag);
+
+        // Local and API-key mode switch straight through: API-key credentials are
+        // typed into the card that this switch brings on screen, so the mode does
+        // not need them beforehand. Account is the exception, because its session
+        // comes from a browser round trip with nowhere in settings to enter it, so
+        // signing in has to happen first and commits the switch itself.
+        //
+        // The rejection paths hand off to a coroutine rather than refreshing here:
+        // see ResyncRemoteModeSelectorAsync for why the selector must not be
+        // written from inside this callback.
+        if (mode == LastMusicPlayer::Backend::RemoteAccessMode::Account
+            && !RemoteMusicServiceService().IsModeAvailable(mode))
+        {
+            RunDetached(BeginAccountSignInAsync());
+            return;
+        }
+
         if (!RemoteMusicServiceService().SetMode(mode))
         {
-            RefreshAccountSettingsUi();
+            RunDetached(ResyncRemoteModeSelectorAsync());
             return;
         }
         InvalidateRemoteScopeWork();

@@ -230,6 +230,7 @@
     <ClCompile Include="MainWindow\MainWindow.LibraryDetail.cpp" />
     <ClCompile Include="MainWindow\MainWindow.LibraryMenus.cpp" />
     <ClCompile Include="MainWindow\MainWindow.Settings.cpp" />
+    <ClCompile Include="MainWindow\MainWindow.ModeSetup.cpp" />
     <ClCompile Include="MainWindow\MainWindow.TrackActions.cpp" />
     <ClCompile Include="MainWindow\MainWindow.LibraryScan.cpp" />
     <ClCompile Include="MainWindow\MainWindow.Playback.cpp" />

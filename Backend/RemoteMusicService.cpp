@@ -212,7 +212,7 @@ namespace LastMusicPlayer::Backend
 
     bool RemoteMusicService::SetMode(RemoteAccessMode mode)
     {
-        if (!IsModeAvailable(mode))
+        if (!IsModeSelectable(mode))
         {
             return false;
         }
@@ -277,6 +277,14 @@ namespace LastMusicPlayer::Backend
         default:
             return true;
         }
+    }
+
+    bool RemoteMusicService::IsModeSelectable(RemoteAccessMode mode) const
+    {
+        // Account still needs its session first: it is established through a
+        // browser round trip, not through anything the user can type into
+        // settings, so there is nothing to enter once the mode is active.
+        return mode == RemoteAccessMode::ApiKey || IsModeAvailable(mode);
     }
 
     bool RemoteMusicService::HasRemoteAccess()

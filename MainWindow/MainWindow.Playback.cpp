@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "MainWindow.xaml.h"
 #include "MainWindow.Internal.h"
 
@@ -1667,79 +1667,6 @@ namespace winrt::Last_Music_Player::implementation
         updater.Update();
     }
 
-    winrt::Windows::Foundation::IAsyncAction MainWindow::PlayProviderTest_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
-    {
-        (void)sender;
-        (void)args;
-
-        auto baseUrl = ProviderBaseUrlBox().Text();
-        auto apiKey = ProviderApiKeyBox().Password();
-        if (baseUrl.empty())
-        {
-            ProviderTestStatusText().Text(L"Missing provider URL");
-            co_return;
-        }
-        if (apiKey.empty())
-        {
-            ProviderTestStatusText().Text(L"Enter a new API key");
-            co_return;
-        }
-
-        ProviderTestStatusText().Text(L"Connecting...");
-
-        try
-        {
-            auto status = co_await RemoteMusicServiceService().TestApiKeyAsync(baseUrl, apiKey);
-            if (status == 200)
-            {
-                auto operationLease = UserDataOperationGateService().TryEnter();
-                if (!operationLease)
-                {
-                    ProviderTestStatusText().Text(L"Cleanup is in progress");
-                    co_return;
-                }
-                if (ProviderBaseUrlBox().Text() != baseUrl
-                    || ProviderApiKeyBox().Password() != apiKey)
-                {
-                    ProviderTestStatusText().Text(L"Provider settings changed. Try again.");
-                    co_return;
-                }
-
-                if (!CredentialStoreService().WriteProviderApiKey(apiKey)
-                    || CredentialStoreService().ReadProviderApiKey() != apiKey)
-                {
-                    ProviderTestStatusText().Text(L"Could not store API key");
-                    co_return;
-                }
-                WriteAppSettingString(L"ProviderBaseUrl", baseUrl);
-                RemoteMusicServiceService().SetMode(LastMusicPlayer::Backend::RemoteAccessMode::ApiKey);
-                InvalidateRemoteScopeWork();
-                DatabaseService().SetRemoteLibraryContext(L"ApiKey");
-                ProviderApiKeyBox().Password(L"");
-                m_remoteSearchCache.clear();
-                ProviderTestStatusText().Text(L"Configured");
-                RefreshAccountSettingsUi();
-                operationLease.reset();
-                co_await HydrateHomeAsync(true);
-            }
-            else if (status == 401)
-            {
-                ProviderTestStatusText().Text(L"Unauthorized");
-            }
-            else
-            {
-                ProviderTestStatusText().Text(L"Provider unavailable");
-            }
-        }
-        catch (winrt::hresult_error const&)
-        {
-            ProviderTestStatusText().Text(L"Provider unavailable");
-        }
-        catch (...)
-        {
-            ProviderTestStatusText().Text(L"Provider unavailable");
-        }
-    }
     void MainWindow::DisconnectProvider_Click(
         winrt::Windows::Foundation::IInspectable const& sender,
         winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
