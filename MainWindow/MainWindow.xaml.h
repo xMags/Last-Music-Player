@@ -596,6 +596,9 @@ namespace winrt::Last_Music_Player::implementation
         bool IsCurrentAccountPlaylistDetailContext(
             AccountPlaylistDetailContext const& context);
         void UpdateSongsStats();
+        // How many tracks the Offline tab can actually list. Shared so the tab's
+        // subtitle and its count badge cannot disagree.
+        size_t OfflineTrackCount();
         void UpdateHistoryCount();
         void UpdateLibraryHeaderMetrics();
         void LoadCatalogFromDatabase();
