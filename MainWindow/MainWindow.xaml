@@ -2230,11 +2230,11 @@
                                 </DropDownButton>
                                 <Border CornerRadius="8" Background="{ThemeResource SurfaceBrush}" BorderBrush="{ThemeResource HairlineStrongBrush}" BorderThickness="1" Padding="3">
                                     <StackPanel Orientation="Horizontal">
-                                        <Button x:Name="SongsListViewButton" Click="SongsListView_Click" Background="{ThemeResource NeutralFillBrush}" BorderThickness="0" CornerRadius="6" Padding="9,5" AutomationProperties.Name="List view">
-                                            <FontIcon Glyph="&#xEA37;" FontSize="14" Foreground="{ThemeResource TextPrimaryBrush}" />
+                                        <Button x:Name="SongsListViewButton" Click="SongsListView_Click" Background="Transparent" BorderThickness="0" CornerRadius="6" Padding="9,5" AutomationProperties.Name="List view">
+                                            <FontIcon Glyph="&#xEA37;" FontSize="14" Foreground="{ThemeResource TextTertiaryBrush}" />
                                         </Button>
-                                        <Button x:Name="SongsGridViewButton" Click="SongsGridView_Click" Background="Transparent" BorderThickness="0" CornerRadius="6" Padding="9,5" AutomationProperties.Name="Grid view">
-                                            <FontIcon Glyph="&#xE80A;" FontSize="14" Foreground="{ThemeResource TextTertiaryBrush}" />
+                                        <Button x:Name="SongsGridViewButton" Click="SongsGridView_Click" Background="{ThemeResource NeutralFillBrush}" BorderThickness="0" CornerRadius="6" Padding="9,5" AutomationProperties.Name="Grid view">
+                                            <FontIcon Glyph="&#xE80A;" FontSize="14" Foreground="{ThemeResource TextPrimaryBrush}" />
                                         </Button>
                                     </StackPanel>
                                 </Border>
@@ -2263,11 +2263,11 @@
                                 </DropDownButton>
                                 <Border CornerRadius="8" Background="{ThemeResource SurfaceBrush}" BorderBrush="{ThemeResource HairlineStrongBrush}" BorderThickness="1" Padding="3">
                                     <StackPanel Orientation="Horizontal">
-                                        <Button x:Name="HistoryListViewButton" Click="HistoryListView_Click" Background="{ThemeResource NeutralFillBrush}" BorderThickness="0" CornerRadius="6" Padding="9,5" AutomationProperties.Name="List view">
-                                            <FontIcon Glyph="&#xEA37;" FontSize="14" Foreground="{ThemeResource TextPrimaryBrush}" />
+                                        <Button x:Name="HistoryListViewButton" Click="HistoryListView_Click" Background="Transparent" BorderThickness="0" CornerRadius="6" Padding="9,5" AutomationProperties.Name="List view">
+                                            <FontIcon Glyph="&#xEA37;" FontSize="14" Foreground="{ThemeResource TextTertiaryBrush}" />
                                         </Button>
-                                        <Button x:Name="HistoryGridViewButton" Click="HistoryGridView_Click" Background="Transparent" BorderThickness="0" CornerRadius="6" Padding="9,5" AutomationProperties.Name="Grid view">
-                                            <FontIcon Glyph="&#xE80A;" FontSize="14" Foreground="{ThemeResource TextTertiaryBrush}" />
+                                        <Button x:Name="HistoryGridViewButton" Click="HistoryGridView_Click" Background="{ThemeResource NeutralFillBrush}" BorderThickness="0" CornerRadius="6" Padding="9,5" AutomationProperties.Name="Grid view">
+                                            <FontIcon Glyph="&#xE80A;" FontSize="14" Foreground="{ThemeResource TextPrimaryBrush}" />
                                         </Button>
                                     </StackPanel>
                                 </Border>

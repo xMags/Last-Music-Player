@@ -1092,7 +1092,10 @@ namespace winrt::Last_Music_Player::implementation
         // Library always combines local and current-account content. Provider
         // badges distinguish origin without a second filtering control.
         std::wstring const m_libraryScope{ L"All" };
-        bool m_libraryHistoryGridMode{ false };
+        // Grid is the default presentation across the library, matching the
+        // songs and search surfaces. This also selects the tile skeleton and
+        // the grid page size, because the hydration path reads the same flag.
+        bool m_libraryHistoryGridMode{ true };
         std::vector<AccountPlaylistBinding> m_accountPlaylistBindings;
         std::optional<AccountPlaylistBinding> m_libraryDetailAccountBinding;
         std::wstring m_libraryDetailKind;
