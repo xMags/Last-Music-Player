@@ -1424,7 +1424,7 @@
                 <!-- Single scrolling page: every section is stacked top to bottom,
                      header included, so there is no section switcher to keep in sync. -->
                 <Grid x:Name="SettingsViewContainer" Visibility="Collapsed" Padding="0,16,0,0">
-                    <ScrollViewer x:Name="SettingsScrollViewer" VerticalScrollBarVisibility="Auto">
+                    <ScrollViewer x:Name="SettingsScrollViewer" VerticalScrollBarVisibility="Hidden">
                         <StackPanel Spacing="36" Padding="0,0,4,40">
 
                             <Grid>
