@@ -76,10 +76,6 @@
                             <Setter Target="MusicFolderActions.(Grid.Row)" Value="1" />
                             <Setter Target="MusicFolderActions.HorizontalAlignment" Value="Left" />
                             <Setter Target="MusicFolderActions.Margin" Value="0,12,0,0" />
-                            <Setter Target="ScanMusicButton.(Grid.Column)" Value="1" />
-                            <Setter Target="ScanMusicButton.(Grid.Row)" Value="1" />
-                            <Setter Target="ScanMusicButton.HorizontalAlignment" Value="Left" />
-                            <Setter Target="ScanMusicButton.Margin" Value="0,12,0,0" />
                             <Setter Target="AutoplaySwitch.(Grid.Column)" Value="0" />
                             <Setter Target="AutoplaySwitch.(Grid.Row)" Value="1" />
                             <Setter Target="AutoplaySwitch.HorizontalAlignment" Value="Left" />
@@ -130,10 +126,6 @@
                             <Setter Target="MusicFolderActions.(Grid.Row)" Value="1" />
                             <Setter Target="MusicFolderActions.HorizontalAlignment" Value="Left" />
                             <Setter Target="MusicFolderActions.Margin" Value="0,12,0,0" />
-                            <Setter Target="ScanMusicButton.(Grid.Column)" Value="1" />
-                            <Setter Target="ScanMusicButton.(Grid.Row)" Value="1" />
-                            <Setter Target="ScanMusicButton.HorizontalAlignment" Value="Left" />
-                            <Setter Target="ScanMusicButton.Margin" Value="0,12,0,0" />
 
                             <Setter Target="AutoplaySwitch.(Grid.Column)" Value="0" />
                             <Setter Target="AutoplaySwitch.(Grid.Row)" Value="1" />

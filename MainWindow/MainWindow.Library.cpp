@@ -299,7 +299,10 @@ namespace winrt::Last_Music_Player::implementation
         LibTabAlbumsCount().Text(groupedNumber(m_albums.Size()));
         LibTabArtistsCount().Text(groupedNumber(m_artists.Size()));
         LibTabGenresCount().Text(groupedNumber(m_libraryGenres.Size()));
-        LibTabSongsCount().Text(groupedNumber(static_cast<std::uint64_t>((std::max)(0, m_libraryStats.SongCount))));
+        // Offline lists local files only, so its badge counts those, not the
+        // whole library: m_libraryStats includes streamed tracks this tab never
+        // shows, which is how it came to read 86 over an empty listing.
+        LibTabSongsCount().Text(groupedNumber(static_cast<std::uint64_t>(OfflineTrackCount())));
 
         LibTabPlaylistsBadge().Visibility(isChecked(LibTabPlaylists()) ? Visibility::Visible : Visibility::Collapsed);
         LibTabHistoryBadge().Visibility(isChecked(LibTabHistory()) ? Visibility::Visible : Visibility::Collapsed);

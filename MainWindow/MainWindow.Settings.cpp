@@ -1149,8 +1149,10 @@ namespace winrt::Last_Music_Player::implementation
             }
         };
 
+        // Only MusicFolderActions moves: it is the grid child. Its buttons,
+        // Scan now included, ride along inside it, and repositioning one of them
+        // on its own just pushed that button out of line with its siblings.
         placeAction(MusicFolderActions(), 2, 1);
-        placeAction(ScanMusicButton(), 2, 1);
         placeAction(AutoplaySwitch(), 1, 0);
         placeAction(GaplessSwitch(), 1, 0);
         placeAction(CloseBehaviorCombo(), 1, 0);

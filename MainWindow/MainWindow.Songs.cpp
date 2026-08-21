@@ -291,16 +291,25 @@ namespace winrt::Last_Music_Player::implementation
         }
     }
 
-    void MainWindow::UpdateSongsStats()
+    size_t MainWindow::OfflineTrackCount()
     {
-        size_t loadedCount = m_songsTracks.Size();
         // The query is the tab's whole scope now, so what it matched is also
         // its total. Reading m_libraryStats here would count the streamed
         // tracks this tab deliberately leaves out, and report a total the
         // listing could never reach.
-        size_t matchedCount = m_songsMatchedCount > 0
-            ? static_cast<size_t>(m_songsMatchedCount)
-            : (DatabaseService().IsInitialized() ? m_songsAllResults.size() : m_queue.CurrentPlaylist.size());
+        if (m_songsMatchedCount > 0)
+        {
+            return static_cast<size_t>(m_songsMatchedCount);
+        }
+        return DatabaseService().IsInitialized()
+            ? m_songsAllResults.size()
+            : m_queue.CurrentPlaylist.size();
+    }
+
+    void MainWindow::UpdateSongsStats()
+    {
+        size_t loadedCount = m_songsTracks.Size();
+        size_t matchedCount = OfflineTrackCount();
         double totalSeconds = m_songsMatchedSeconds;
         if (totalSeconds <= 0.0 && !DatabaseService().IsInitialized())
         {
@@ -322,6 +331,9 @@ namespace winrt::Last_Music_Player::implementation
                 + std::to_wstring(mins) + L" min total";
         }
         SongsSubtitle().Text(winrt::hstring(s));
+        // The tab's count badge reads the same number, and only learns it once
+        // a page has come back, so refresh it from here too.
+        UpdateLibraryHeaderMetrics();
     }
 
     void MainWindow::SongsPlayAll_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
