@@ -269,6 +269,7 @@ namespace winrt::Last_Music_Player::implementation
         m_songsGridMode = gridMode;
         EnsureAccentBrushes();
         using V = winrt::Microsoft::UI::Xaml::Visibility;
+        SongsListSurface().Visibility(gridMode ? V::Collapsed : V::Visible);
         MusicListView().Visibility(gridMode ? V::Collapsed : V::Visible);
         SongsListHeader().Visibility(gridMode ? V::Collapsed : V::Visible);
         SongsGridView().Visibility(gridMode ? V::Visible : V::Collapsed);
