@@ -14,6 +14,16 @@ namespace Last_Music_Player
         String ArtworkTitle;
         String ArtworkCaption;
         String ArtworkGlyph;
+        // Centre-glyph presentation for a generated cover. Only the system
+        // playlists set these; everything else leaves the opacity at zero, so a
+        // separate visibility flag is not needed. Segoe Fluent Icons draws some
+        // of these glyphs filled and others as outlines, which is why the size
+        // and opacity are per item rather than one shared constant.
+        Double ArtworkGlyphOpacity;
+        Double ArtworkGlyphSize;
+        // Replaces the palette gradient that LibraryArtworkBorder_Loaded derives
+        // from the item identity. Null for every item that should keep it.
+        Microsoft.UI.Xaml.Media.Brush ArtworkBackground;
         Double ImageArtworkOpacity;
         Double GeneratedArtworkOpacity;
         Windows.Storage.StorageFile File;

@@ -1,5 +1,6 @@
 #pragma once
 #include "TrackInfo.g.h"
+#include <winrt/Microsoft.UI.Xaml.Media.h>
 
 namespace winrt::Last_Music_Player::implementation
 {
@@ -30,6 +31,15 @@ namespace winrt::Last_Music_Player::implementation
 
         hstring ArtworkGlyph() { return m_artworkGlyph; }
         void ArtworkGlyph(hstring const& value) { m_artworkGlyph = value; }
+
+        double ArtworkGlyphOpacity() { return m_artworkGlyphOpacity; }
+        void ArtworkGlyphOpacity(double value) { m_artworkGlyphOpacity = value; }
+
+        double ArtworkGlyphSize() { return m_artworkGlyphSize; }
+        void ArtworkGlyphSize(double value) { m_artworkGlyphSize = value; }
+
+        winrt::Microsoft::UI::Xaml::Media::Brush ArtworkBackground() { return m_artworkBackground; }
+        void ArtworkBackground(winrt::Microsoft::UI::Xaml::Media::Brush const& value) { m_artworkBackground = value; }
 
         double ImageArtworkOpacity() { return m_imageArtworkOpacity; }
         void ImageArtworkOpacity(double value) { m_imageArtworkOpacity = value; }
@@ -112,6 +122,12 @@ namespace winrt::Last_Music_Player::implementation
         hstring m_artworkTitle;
         hstring m_artworkCaption;
         hstring m_artworkGlyph{ L"\xE8D6" };
+        // Zero keeps the centre glyph invisible on every surface that does not
+        // opt into one, which is all of them bar the system playlist covers.
+        double m_artworkGlyphOpacity{ 0.0 };
+        double m_artworkGlyphSize{ 36.0 };
+        // Null leaves the item on the palette gradient the artwork border picks.
+        winrt::Microsoft::UI::Xaml::Media::Brush m_artworkBackground{ nullptr };
         double m_imageArtworkOpacity{ 0.0 };
         double m_generatedArtworkOpacity{ 1.0 };
         winrt::Windows::Storage::StorageFile m_file{ nullptr };
