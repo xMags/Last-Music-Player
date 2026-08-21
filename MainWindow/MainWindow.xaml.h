@@ -154,7 +154,6 @@ namespace winrt::Last_Music_Player::implementation
         void LibraryDetailRowMenu_Opening(winrt::Windows::Foundation::IInspectable const& sender, winrt::Windows::Foundation::IInspectable const& args);
         void LibraryPlaylistFilter_Checked(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void LibraryTab_Checked(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
-        void LibraryScope_SelectionChanged(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::SelectionChangedEventArgs const& args);
         winrt::Windows::Foundation::IAsyncAction LibraryGroup_ItemClick(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::ItemClickEventArgs const& args);
         winrt::Windows::Foundation::IAsyncAction SidebarPlaylist_ItemClick(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::ItemClickEventArgs const& args);
         void LibraryDetailBack_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
@@ -565,7 +564,6 @@ namespace winrt::Last_Music_Player::implementation
         // all of them; doing that by hand at each call site left two pages
         // stacked whenever one was missed, and nothing in the build catches it.
         void ShowPrimaryView(winrt::hstring const& key);
-        void ResetLibraryScopeToAll();
         void OpenLibraryHistory();
         void OpenLibraryPlaylists(bool autoMixes);
         void OpenLibraryAutoMixes();
@@ -1079,7 +1077,9 @@ namespace winrt::Last_Music_Player::implementation
         double m_libraryHeaderHeight{ 0.0 };
         std::wstring m_libraryTracksFilter{ L"History" };
         std::wstring m_libraryHistorySort{ L"Relevance" };
-        std::wstring m_libraryScope{ L"All" };
+        // Library always combines local and current-account content. Provider
+        // badges distinguish origin without a second filtering control.
+        std::wstring const m_libraryScope{ L"All" };
         bool m_libraryHistoryGridMode{ true };
         std::vector<AccountPlaylistBinding> m_accountPlaylistBindings;
         std::optional<AccountPlaylistBinding> m_libraryDetailAccountBinding;

@@ -2118,13 +2118,9 @@
                         </Button>
                     </Grid>
 
-                    <!-- Tabs + account/local scope -->
+                    <!-- Collection facet tabs -->
                     <Grid x:Name="LibraryNavigationBar" Grid.Row="1" Margin="0,26,0,20">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
                             <ToggleButton x:Name="LibTabPlaylists" Tag="Playlists" IsChecked="True" Style="{StaticResource DesignChipToggle}" Checked="LibraryTab_Checked"><StackPanel Orientation="Horizontal" Spacing="6"><TextBlock Text="Playlists"/><Border x:Name="LibTabPlaylistsBadge" Background="#38FFFFFF" CornerRadius="8" Padding="6,1"><TextBlock x:Name="LibTabPlaylistsCount" Text="0" FontSize="11" FontWeight="Bold"/></Border></StackPanel></ToggleButton>
                             <ToggleButton x:Name="LibTabHistory" Tag="History" Style="{StaticResource DesignChipToggle}" Checked="LibraryTab_Checked"><StackPanel Orientation="Horizontal" Spacing="6"><TextBlock Text="History"/><Border x:Name="LibTabHistoryBadge" Visibility="Collapsed" Background="#38FFFFFF" CornerRadius="8" Padding="6,1"><TextBlock x:Name="LibTabHistoryCount" Text="0" FontSize="11" FontWeight="Bold"/></Border></StackPanel></ToggleButton>
                             <ToggleButton x:Name="LibTabMostPlayed" Tag="MostPlayed" Style="{StaticResource DesignChipToggle}" Checked="LibraryTab_Checked"><StackPanel Orientation="Horizontal" Spacing="6"><TextBlock Text="Most Played"/><Border x:Name="LibTabMostPlayedBadge" Visibility="Collapsed" Background="#38FFFFFF" CornerRadius="8" Padding="6,1"><TextBlock x:Name="LibTabMostPlayedCount" Text="0" FontSize="11" FontWeight="Bold"/></Border></StackPanel></ToggleButton>
@@ -2136,14 +2132,7 @@
                                  only what is on disk, which is what the label says. -->
                             <ToggleButton x:Name="LibTabSongs" Tag="Songs" Style="{StaticResource DesignChipToggle}" Checked="LibraryTab_Checked"><StackPanel Orientation="Horizontal" Spacing="6"><TextBlock Text="Offline"/><Border x:Name="LibTabSongsBadge" Visibility="Collapsed" Background="#38FFFFFF" CornerRadius="8" Padding="6,1"><TextBlock x:Name="LibTabSongsCount" Text="0" FontSize="11" FontWeight="Bold"/></Border></StackPanel></ToggleButton>
                         </StackPanel>
-                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                            <ComboBox x:Name="LibraryScopeSelector" Width="132" SelectedIndex="0" Visibility="Collapsed" SelectionChanged="LibraryScope_SelectionChanged">
-                                <ComboBoxItem Content="All" Tag="All" />
-                                <ComboBoxItem Content="Account" Tag="Account" />
-                                <ComboBoxItem Content="On this PC" Tag="OnThisPc" />
-                            </ComboBox>
-                        </StackPanel>
-                        <Border Grid.ColumnSpan="2" Height="1" Background="{ThemeResource HairlineStrongBrush}" VerticalAlignment="Bottom" Margin="0,0,0,-12" />
+                        <Border Height="1" Background="{ThemeResource HairlineStrongBrush}" VerticalAlignment="Bottom" Margin="0,0,0,-12" />
                     </Grid>
 
                     <!-- Tab content -->
