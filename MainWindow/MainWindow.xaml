@@ -2313,8 +2313,8 @@
                                             <Grid>
                                                 <FontIcon Glyph="{x:Bind ArtworkGlyph}" Visibility="Collapsed" />
                                                 <Image Source="/Assets/LibraryStripeOverlay.svg" Stretch="Fill" Opacity="{x:Bind GeneratedArtworkOpacity}" IsHitTestVisible="False" />
-                                                <TextBlock Text="album art" Visibility="Collapsed" />
-                                                <TextBlock Text="album art" FontFamily="Consolas" FontSize="9.5" CharacterSpacing="80" Foreground="White" Opacity="{x:Bind GeneratedArtworkOpacity}" VerticalAlignment="Bottom" Margin="12" />
+                                                <TextBlock Text="album" Visibility="Collapsed" />
+                                                <TextBlock Text="album" FontFamily="Consolas" FontSize="9.5" CharacterSpacing="80" Foreground="White" Opacity="{x:Bind GeneratedArtworkOpacity}" VerticalAlignment="Bottom" Margin="12" />
                                                 <Image Source="{x:Bind AlbumArt}" Stretch="UniformToFill" Loaded="AccountArtwork_Loaded" Opacity="{x:Bind ImageArtworkOpacity}" />
                                             </Grid>
                                         </Border>
@@ -2570,7 +2570,7 @@
                                                     <FontIcon Glyph="&#xE8D6;" FontSize="40" Foreground="{ThemeResource PlaceholderGlyphBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"
                                                               IsHitTestVisible="False" AutomationProperties.AccessibilityView="Raw" />
                                                     <Image Source="/Assets/LibraryStripeOverlay.svg" Stretch="Fill" Opacity="{x:Bind GeneratedArtworkOpacity}" IsHitTestVisible="False" />
-                                                    <TextBlock Text="track art" FontFamily="Consolas" FontSize="9.5" CharacterSpacing="80" Foreground="White" Opacity="{x:Bind GeneratedArtworkOpacity}" VerticalAlignment="Bottom" Margin="12" />
+                                                    <TextBlock Text="track" FontFamily="Consolas" FontSize="9.5" CharacterSpacing="80" Foreground="White" Opacity="{x:Bind GeneratedArtworkOpacity}" VerticalAlignment="Bottom" Margin="12" />
                                                     <Image Source="{x:Bind AlbumArt}" Stretch="UniformToFill"
                                                            HorizontalAlignment="Center" VerticalAlignment="Center"
                                                            Loaded="AccountArtwork_Loaded" />
@@ -2747,7 +2747,7 @@
                                                 <Grid>
                                                     <FontIcon Glyph="&#xE8D6;" FontSize="40" Foreground="{ThemeResource PlaceholderGlyphBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False" AutomationProperties.AccessibilityView="Raw" />
                                                     <Image Source="/Assets/LibraryStripeOverlay.svg" Stretch="Fill" Opacity="{x:Bind GeneratedArtworkOpacity}" IsHitTestVisible="False" />
-                                                    <TextBlock Text="track art" FontFamily="Consolas" FontSize="9.5" CharacterSpacing="80" Foreground="White" Opacity="{x:Bind GeneratedArtworkOpacity}" VerticalAlignment="Bottom" Margin="12" />
+                                                    <TextBlock Text="track" FontFamily="Consolas" FontSize="9.5" CharacterSpacing="80" Foreground="White" Opacity="{x:Bind GeneratedArtworkOpacity}" VerticalAlignment="Bottom" Margin="12" />
                                                     <Image Source="{x:Bind AlbumArt}" Stretch="UniformToFill"
                                                            HorizontalAlignment="Center" VerticalAlignment="Center"
                                                            Loaded="AccountArtwork_Loaded" />
@@ -2786,7 +2786,7 @@
                                             </Border.Background>
                                             <Grid>
                                                 <Image Source="/Assets/LibraryStripeOverlay.svg" Stretch="Fill" Opacity="{x:Bind GeneratedArtworkOpacity}" IsHitTestVisible="False" />
-                                                <TextBlock Text="genre art" FontFamily="Consolas" FontSize="9.5" CharacterSpacing="80" Foreground="White" Opacity="0.82" VerticalAlignment="Bottom" Margin="12" />
+                                                <TextBlock Text="genre" FontFamily="Consolas" FontSize="9.5" CharacterSpacing="80" Foreground="White" Opacity="0.82" VerticalAlignment="Bottom" Margin="12" />
                                             </Grid>
                                         </Border>
                                         <TextBlock Text="{x:Bind Title}" Style="{StaticResource BodyStrong}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
@@ -2827,8 +2827,8 @@
                                                     <Grid>
                                                         <FontIcon Glyph="{x:Bind ArtworkGlyph}" Visibility="Collapsed" />
                                                         <Image Source="/Assets/LibraryStripeOverlay.svg" Stretch="Fill" Opacity="{x:Bind GeneratedArtworkOpacity}" IsHitTestVisible="False" />
-                                                        <TextBlock Text="playlist art" Visibility="Collapsed" />
-                                                        <TextBlock Text="playlist art" FontFamily="Consolas" FontSize="9.5" CharacterSpacing="80" Foreground="White" Opacity="{x:Bind GeneratedArtworkOpacity}" VerticalAlignment="Bottom" Margin="12" />
+                                                        <TextBlock Text="playlist" Visibility="Collapsed" />
+                                                        <TextBlock Text="playlist" FontFamily="Consolas" FontSize="9.5" CharacterSpacing="80" Foreground="White" Opacity="{x:Bind GeneratedArtworkOpacity}" VerticalAlignment="Bottom" Margin="12" />
                                                         <Image Source="{x:Bind AlbumArt}" Stretch="UniformToFill" Loaded="AccountArtwork_Loaded" Opacity="{x:Bind ImageArtworkOpacity}" />
                                                     </Grid>
                                                 </Border>
@@ -2870,8 +2870,8 @@
                                                     <Grid>
                                                         <FontIcon Glyph="{x:Bind ArtworkGlyph}" Visibility="Collapsed" />
                                                         <Image Source="/Assets/LibraryStripeOverlay.svg" Stretch="Fill" Opacity="{x:Bind GeneratedArtworkOpacity}" IsHitTestVisible="False" />
-                                                        <TextBlock Text="mix art" Visibility="Collapsed" />
-                                                        <TextBlock Text="mix art" FontFamily="Consolas" FontSize="9.5" CharacterSpacing="80" Foreground="White" VerticalAlignment="Bottom" Margin="12" />
+                                                        <TextBlock Text="mix" Visibility="Collapsed" />
+                                                        <TextBlock Text="mix" FontFamily="Consolas" FontSize="9.5" CharacterSpacing="80" Foreground="White" VerticalAlignment="Bottom" Margin="12" />
                                                     </Grid>
                                                 </Border>
                                                 <TextBlock Text="{x:Bind Title}" Style="{StaticResource BodyStrong}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
