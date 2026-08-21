@@ -55,31 +55,38 @@ namespace winrt::Last_Music_Player::implementation
         };
 
         auto detailVisible = LibraryDetailContent() && LibraryDetailContent().Visibility() == V::Visible;
-        auto albumsActive = isChecked(LibTabAlbums());
         auto playlistsActive = isChecked(LibTabPlaylists());
-        auto manualPlaylistsActive = playlistsActive && m_libraryPlaylistFilter == L"Manual";
-        auto accountPlaylistScope = manualPlaylistsActive && m_libraryScope == L"Account";
-        auto accountMode = RemoteMusicServiceService().Mode() == LastMusicPlayer::Backend::RemoteAccessMode::Account;
-        auto accountPlaylistWritable = accountMode
-            && AccountSessionService().Status() == LastMusicPlayer::Backend::AccountSessionStatus::Validated;
+        auto albumsActive = isChecked(LibTabAlbums());
+        auto artistsActive = isChecked(LibTabArtists());
+        auto offlineActive = isChecked(LibTabSongs());
+        auto historyActive = isChecked(LibTabHistory());
+        auto mostPlayedActive = isChecked(LibTabMostPlayed());
+        auto accountMode = RemoteMusicServiceService().Mode()
+            == LastMusicPlayer::Backend::RemoteAccessMode::Account;
 
         if (LibraryCreateAlbumButton())
         {
-            LibraryCreateAlbumButton().Visibility(!detailVisible && albumsActive ? V::Visible : V::Collapsed);
+            LibraryCreateAlbumButton().Visibility(V::Collapsed);
         }
         if (LibraryImportAlbumButton())
         {
-            LibraryImportAlbumButton().Visibility(!detailVisible && albumsActive && !accountMode ? V::Visible : V::Collapsed);
+            LibraryImportAlbumButton().Visibility(V::Collapsed);
         }
         if (LibraryCreatePlaylistButton())
         {
-            LibraryCreatePlaylistButton().Visibility(!detailVisible && manualPlaylistsActive ? V::Visible : V::Collapsed);
-            LibraryCreatePlaylistButton().IsEnabled(!accountPlaylistScope || accountPlaylistWritable);
+            auto visible = playlistsActive || historyActive || mostPlayedActive;
+            LibraryCreatePlaylistButton().Visibility(!detailVisible && visible ? V::Visible : V::Collapsed);
+            LibraryCreatePlaylistButton().IsEnabled(true);
         }
         if (LibraryImportPlaylistButton())
         {
-            LibraryImportPlaylistButton().Visibility(!detailVisible && manualPlaylistsActive ? V::Visible : V::Collapsed);
-            LibraryImportPlaylistButton().IsEnabled(!accountMode || (accountPlaylistScope && accountPlaylistWritable));
+            auto visible = playlistsActive || albumsActive || offlineActive;
+            LibraryImportPlaylistButton().Visibility(!detailVisible && visible ? V::Visible : V::Collapsed);
+            LibraryImportPlaylistButton().IsEnabled(!accountMode);
+        }
+        if (LibraryFollowArtistButton())
+        {
+            LibraryFollowArtistButton().Visibility(!detailVisible && artistsActive ? V::Visible : V::Collapsed);
         }
         if (LibraryAddFolderButton())
         {
@@ -633,6 +640,7 @@ namespace winrt::Last_Music_Player::implementation
             { LibraryImportAlbumButton(),    LblImportAlbum(),    L"Import album" },
             { LibraryCreatePlaylistButton(), LblCreatePlaylist(), L"Create playlist" },
             { LibraryImportPlaylistButton(), LblImportPlaylist(), L"Import playlist" },
+            { LibraryFollowArtistButton(),    LblFollowArtist(),    L"Follow artist" },
             { LibraryAddFolderButton(),      LblAddFolder(),      L"Add folder" },
         };
 

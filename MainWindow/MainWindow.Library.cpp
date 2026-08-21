@@ -67,6 +67,10 @@ namespace winrt::Last_Music_Player::implementation
         {
             return;
         }
+        if (LibraryAddButton() && LibraryAddButton().Flyout())
+        {
+            LibraryAddButton().Flyout().Hide();
+        }
         // Single-select: uncheck every other tab.
         winrt::Microsoft::UI::Xaml::Controls::Primitives::ToggleButton tabs[] = {
             LibTabPlaylists(), LibTabHistory(), LibTabMostPlayed(), LibTabAlbums(),
@@ -106,12 +110,10 @@ namespace winrt::Last_Music_Player::implementation
             if (m_libraryTracksFilter != wanted)
             {
                 m_libraryTracksFilter = wanted;
-                // Each tab's default order is its own "Relevance": most recent
-                // for History, most played for Most Played.
-                m_libraryHistorySort = L"Relevance";
+                m_libraryHistorySort = L"DateAdded";
                 if (HistorySortLabel())
                 {
-                    HistorySortLabel().Text(L"Relevance");
+                    HistorySortLabel().Text(L"Date added");
                 }
                 m_librarySongsState = LoadState::Dirty;
             }
@@ -119,6 +121,9 @@ namespace winrt::Last_Music_Player::implementation
         setVisibility(LibHistoryPanel(), tracksTab ? V::Visible : V::Collapsed);
         setVisibility(LibGenresPanel(), tag == L"Genres" ? V::Visible : V::Collapsed);
         setVisibility(LibPlaylistsPanel(), tag == L"Playlists" ? V::Visible : V::Collapsed);
+        setVisibility(LibraryPlaylistContextRow(), tag == L"Playlists" ? V::Visible : V::Collapsed);
+        setVisibility(LibrarySongsContextRow(), tag == L"Songs" ? V::Visible : V::Collapsed);
+        setVisibility(LibraryHistoryContextRow(), tracksTab ? V::Visible : V::Collapsed);
         UpdateLibraryHeaderMetrics();
         UpdateLibraryActionButtons();
         if (!LibraryViewContainer() || LibraryViewContainer().Visibility() != V::Visible)
@@ -174,7 +179,35 @@ namespace winrt::Last_Music_Player::implementation
         m_libraryHistorySort = tag.c_str();
         HistorySortLabel().Text(item.Text());
         m_librarySongsState = LoadState::Dirty;
-        RunDetached(HydrateLibraryTabAsync(L"History", true));
+        RunDetached(HydrateLibraryTabAsync(
+            m_libraryTracksFilter == L"Most" ? L"MostPlayed" : L"History",
+            true));
+    }
+
+    void MainWindow::LibraryTracksPlayAll_Click(
+        winrt::Windows::Foundation::IInspectable const& sender,
+        winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
+    {
+        (void)sender;
+        (void)args;
+        if (m_librarySongAllResults.empty())
+        {
+            return;
+        }
+        QueueAndPlayVisible(m_librarySongAllResults, m_librarySongAllResults.front());
+    }
+
+    void MainWindow::LibraryFollowArtist_Click(
+        winrt::Windows::Foundation::IInspectable const& sender,
+        winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
+    {
+        (void)sender;
+        (void)args;
+        BrowseButton_Click(nullptr, winrt::Microsoft::UI::Xaml::RoutedEventArgs{});
+        if (GlobalSearchBox())
+        {
+            GlobalSearchBox().Focus(winrt::Microsoft::UI::Xaml::FocusState::Programmatic);
+        }
     }
 
     void MainWindow::SetHistoryGridMode(bool gridMode)
@@ -183,7 +216,9 @@ namespace winrt::Last_Music_Player::implementation
         EnsureAccentBrushes();
 
         using V = winrt::Microsoft::UI::Xaml::Visibility;
+        HistoryListSurface().Visibility(gridMode ? V::Collapsed : V::Visible);
         LibrarySongsListView().Visibility(gridMode ? V::Collapsed : V::Visible);
+        HistoryListHeader().Visibility(gridMode ? V::Collapsed : V::Visible);
         HistoryGridView().Visibility(gridMode ? V::Visible : V::Collapsed);
         HistoryListViewButton().Background(gridMode ? m_brushTransparent : m_brushAccentSoft);
         HistoryGridViewButton().Background(gridMode ? m_brushAccentSoft : m_brushTransparent);
@@ -241,11 +276,13 @@ namespace winrt::Last_Music_Player::implementation
         };
 
         auto hours = static_cast<std::uint64_t>(std::round(m_libraryStats.TotalSeconds / 3600.0));
-        LibrarySubtitle().Text(
-            groupedNumber(static_cast<std::uint64_t>((std::max)(0, m_libraryStats.SongCount))) + L" tracks  ·  "
-            + groupedNumber(static_cast<std::uint64_t>((std::max)(0, m_libraryStats.AlbumCount))) + L" albums  ·  "
-            + groupedNumber(static_cast<std::uint64_t>((std::max)(0, m_libraryStats.ArtistCount))) + L" artists  ·  "
-            + groupedNumber(hours) + L" h");
+        LibraryTrackMetric().Text(
+            groupedNumber(static_cast<std::uint64_t>((std::max)(0, m_libraryStats.SongCount))) + L" tracks");
+        LibraryAlbumMetric().Text(
+            groupedNumber(static_cast<std::uint64_t>((std::max)(0, m_libraryStats.AlbumCount))) + L" albums");
+        LibraryArtistMetric().Text(
+            groupedNumber(static_cast<std::uint64_t>((std::max)(0, m_libraryStats.ArtistCount))) + L" artists");
+        LibraryDurationMetric().Text(groupedNumber(hours) + L" h");
 
         LibTabPlaylistsCount().Text(groupedNumber(m_yourPlaylists.Size() + m_autoPlaylists.Size()));
         auto trackCount = m_librarySongsMatchedCount > 0
@@ -283,6 +320,11 @@ namespace winrt::Last_Music_Player::implementation
         {
             return;
         }
+        auto width = border.ActualWidth();
+        if (width > 0.0 && (std::isnan(border.Height()) || std::abs(border.Height() - width) > 0.5))
+        {
+            border.Height(width);
+        }
         auto track = border.Tag().try_as<winrt::Last_Music_Player::TrackInfo>();
         if (!track)
         {
@@ -313,8 +355,9 @@ namespace winrt::Last_Music_Player::implementation
         auto const& palette = palettes[hash % palettes.size()];
 
         winrt::Microsoft::UI::Xaml::Media::LinearGradientBrush gradient;
-        gradient.StartPoint({ 0, 0 });
-        gradient.EndPoint({ 1, 1 });
+        // CSS linear-gradient(150deg, ...) mapped into the unit square.
+        gradient.StartPoint({ 0.25f, 0.067f });
+        gradient.EndPoint({ 0.75f, 0.933f });
         winrt::Microsoft::UI::Xaml::Media::GradientStop first;
         first.Color(palette.first);
         first.Offset(0.0);
@@ -324,6 +367,63 @@ namespace winrt::Last_Music_Player::implementation
         second.Offset(1.0);
         gradient.GradientStops().Append(second);
         border.Background(gradient);
+    }
+
+    void MainWindow::LibraryArtworkBorder_SizeChanged(
+        winrt::Windows::Foundation::IInspectable const& sender,
+        winrt::Microsoft::UI::Xaml::SizeChangedEventArgs const& args)
+    {
+        auto border = sender.try_as<winrt::Microsoft::UI::Xaml::Controls::Border>();
+        if (!border)
+        {
+            return;
+        }
+        auto width = static_cast<double>(args.NewSize().Width);
+        if (width > 0.0 && (std::isnan(border.Height()) || std::abs(border.Height() - width) > 0.5))
+        {
+            border.Height(width);
+        }
+    }
+
+    void MainWindow::LibraryCardGrid_Loaded(
+        winrt::Windows::Foundation::IInspectable const& sender,
+        winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
+    {
+        (void)args;
+        auto grid = sender.try_as<winrt::Microsoft::UI::Xaml::Controls::GridView>();
+        if (!grid || !LibraryTabsContent())
+        {
+            return;
+        }
+
+        auto panel = grid.ItemsPanelRoot().try_as<winrt::Microsoft::UI::Xaml::Controls::ItemsWrapGrid>();
+        auto availableWidth = LibraryTabsContent().ActualWidth();
+        if (!panel || availableWidth <= 0.0)
+        {
+            return;
+        }
+
+        constexpr double gap = 20.0;
+        constexpr double minimumCardWidth = 170.0;
+        auto columnCount = (std::max)(
+            1,
+            static_cast<int>(std::floor((availableWidth + gap) / (minimumCardWidth + gap))));
+        auto cardWidth = (availableWidth - (columnCount - 1) * gap) / columnCount;
+
+        // ItemsWrapGrid includes the final item's margin in its extent, while
+        // CSS grid does not include a trailing gap. Each GridView extends 20 px
+        // into the right gutter, so a pitch of card + gap reproduces the
+        // prototype's repeat(auto-fill, minmax(170px, 1fr)) calculation.
+        panel.ItemWidth(cardWidth + gap);
+        panel.ItemHeight(grid == LibArtistsGrid() ? 224.0 : cardWidth + 70.0);
+    }
+
+    void MainWindow::LibraryCardGrid_SizeChanged(
+        winrt::Windows::Foundation::IInspectable const& sender,
+        winrt::Microsoft::UI::Xaml::SizeChangedEventArgs const& args)
+    {
+        (void)args;
+        LibraryCardGrid_Loaded(sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs{});
     }
 
     void MainWindow::OpenLibraryHistory()

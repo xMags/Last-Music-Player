@@ -316,7 +316,8 @@ namespace winrt::Last_Music_Player::implementation
             RemoteModeApiKeyStateText(), activeMode == RemoteAccessMode::ApiKey, apiConfigured);
 
         RemoteModeLocalStatusText().Text(
-            winrt::to_hstring(m_libraryStats.SongCount) + L" tracks indexed");
+            winrt::to_hstring(m_libraryStats.SongCount) + L" tracks · "
+            + winrt::to_hstring(m_libraryStats.AlbumCount) + L" albums indexed");
         RemoteModeAccountStatusText().Text(signedIn
             ? (profile.Username.empty() ? winrt::hstring{ L"Signed in" }
                 : winrt::hstring(L"Signed in as @" + std::wstring(profile.Username.c_str())))
@@ -369,6 +370,11 @@ namespace winrt::Last_Music_Player::implementation
         identityCorners.BottomRight = activeMode == RemoteAccessMode::Account ? 0.0 : 12.0;
         identityCorners.BottomLeft = activeMode == RemoteAccessMode::Account ? 0.0 : 12.0;
         SettingsIdentityCard().CornerRadius(identityCorners);
+        SettingsIdentityCard().BorderThickness(winrt::Microsoft::UI::Xaml::Thickness{
+            1.0,
+            0.0,
+            1.0,
+            activeMode == RemoteAccessMode::Account ? 0.0 : 1.0 });
 
         // Only the active mode's connection card is on screen. The other mode's
         // credentials are untouched in the credential store, so switching back
@@ -1113,7 +1119,9 @@ namespace winrt::Last_Music_Player::implementation
 
         auto leftRailWidth = width >= 1500.0 ? 300.0 : 240.0;
         auto rightRailWidth = width >= 1500.0 ? 380.0 : (width >= 1100.0 ? 300.0 : 0.0);
-        auto settingsWidth = (std::max)(0.0, width - leftRailWidth - rightRailWidth - 36.0);
+        // The Settings surface has 24 px on the left, 16 px on the right,
+        // and a 4 px inner scrollbar gutter, exactly like the prototype.
+        auto settingsWidth = (std::max)(0.0, width - leftRailWidth - rightRailWidth - 44.0);
         auto sourceCardWidth = (std::max)(220.0, (settingsWidth - 28.0) / 3.0);
         RemoteModeLocal().Width(sourceCardWidth);
         RemoteModeAccount().Width(sourceCardWidth);
