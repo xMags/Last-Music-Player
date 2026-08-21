@@ -2825,8 +2825,12 @@
                                                         </LinearGradientBrush>
                                                     </Border.Background>
                                                     <Grid>
-                                                        <FontIcon Glyph="{x:Bind ArtworkGlyph}" Visibility="Collapsed" />
+                                                        <!-- Only the system playlists carry a cover brush. It is null
+                                                             everywhere else, which leaves the hashed palette gradient
+                                                             on the parent Border showing through untouched. -->
+                                                        <Border Background="{x:Bind ArtworkBackground}" IsHitTestVisible="False" />
                                                         <Image Source="/Assets/LibraryStripeOverlay.svg" Stretch="Fill" Opacity="{x:Bind GeneratedArtworkOpacity}" IsHitTestVisible="False" />
+                                                        <FontIcon Glyph="{x:Bind ArtworkGlyph}" FontSize="{x:Bind ArtworkGlyphSize}" Opacity="{x:Bind ArtworkGlyphOpacity}" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False" />
                                                         <TextBlock Text="playlist" Visibility="Collapsed" />
                                                         <TextBlock Text="playlist" FontFamily="Consolas" FontSize="9.5" CharacterSpacing="80" Foreground="White" Opacity="{x:Bind GeneratedArtworkOpacity}" VerticalAlignment="Bottom" Margin="12" />
                                                         <Image Source="{x:Bind AlbumArt}" Stretch="UniformToFill" Loaded="AccountArtwork_Loaded" Opacity="{x:Bind ImageArtworkOpacity}" />

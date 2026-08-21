@@ -113,31 +113,83 @@ namespace winrt::Last_Music_Player::implementation
         m_yourPlaylists.Clear();
         m_autoPlaylists.Clear();
 
+        // A cover the three system playlists carry instead of the palette
+        // gradient that LibraryArtworkBorder_Loaded hashes out of the item
+        // identity. That hash is fine for spreading colour across a wall of
+        // mixes, but it has no idea which three tiles are the fixed landmarks,
+        // and it happened to hand Favourites and Most Played two greens that
+        // are hard to tell apart.
+        //
+        // Size and opacity are per cover on purpose: Segoe Fluent Icons draws
+        // the heart filled but the flame and the clock as thin outlines, so a
+        // single pair of values would leave the outlines much fainter than the
+        // heart at the same nominal size.
+        struct CoverDef
+        {
+            wchar_t const* Glyph;
+            double GlyphSize;
+            double GlyphOpacity;
+            winrt::Windows::UI::Color GradientStart;
+            winrt::Windows::UI::Color GradientEnd;
+        };
+
+        static constexpr CoverDef kFavouritesCover{
+            L"\xEB52", 40.0, 0.50, { 255, 0xFF, 0x6B, 0xD0 }, { 255, 0xC0, 0x4B, 0xFE } };
+        static constexpr CoverDef kMostPlayedCover{
+            L"\xECAD", 46.0, 0.85, { 255, 0xFF, 0xA0, 0x42 }, { 255, 0xFF, 0x3B, 0x6A } };
+        static constexpr CoverDef kRecentlyAddedCover{
+            L"\xE823", 46.0, 0.85, { 255, 0x14, 0xA8, 0xBC }, { 255, 0x7F, 0x6C, 0xFF } };
+
+        // Runs on the UI thread, as the whole of RefreshAutoPlaylists does: it
+        // is only ever reached from a dispatched callback or from a coroutine
+        // already touching the bound collections, and a Brush carries the same
+        // thread affinity as any other XAML object.
+        auto makeCoverBrush = [](CoverDef const& cover)
+        {
+            winrt::Microsoft::UI::Xaml::Media::LinearGradientBrush brush;
+            brush.StartPoint({ 0.0f, 0.0f });
+            brush.EndPoint({ 1.0f, 1.0f });
+            winrt::Microsoft::UI::Xaml::Media::GradientStop start;
+            start.Color(cover.GradientStart);
+            start.Offset(0.0);
+            brush.GradientStops().Append(start);
+            winrt::Microsoft::UI::Xaml::Media::GradientStop end;
+            end.Color(cover.GradientEnd);
+            end.Offset(1.0);
+            brush.GradientStops().Append(end);
+            return brush;
+        };
+
         struct AutoPlaylistDef
         {
             wchar_t const* Key;
             wchar_t const* Title;
             wchar_t const* Caption;
+            // Null for the generated mixes, which keep the hashed palette
+            // gradient and show no centre glyph.
+            CoverDef const* Cover;
         };
 
+        // The gradients match the ones Home already paints behind these three
+        // sections, so a playlist keeps one colour identity across both views.
         static constexpr AutoPlaylistDef kSystemPlaylists[] = {
-            { L"smart-liked", L"Favourites", L"Every song you've liked." },
-            { L"smart-most", L"Most Played", L"Your most-played songs." },
-            { L"smart-recent", L"Recently Added", L"The newest songs in your library." },
+            { L"smart-liked", L"Favourites", L"Every song you've liked.", &kFavouritesCover },
+            { L"smart-most", L"Most Played", L"Your most-played songs.", &kMostPlayedCover },
+            { L"smart-recent", L"Recently Added", L"The newest songs in your library.", &kRecentlyAddedCover },
         };
         static constexpr AutoPlaylistDef kAutoMixes[] = {
-            { L"daily1", L"Daily Mix 1", L"Built from recent listening." },
-            { L"daily2", L"Daily Mix 2", L"A second lane through your library." },
-            { L"daily3", L"Daily Mix 3", L"Balanced across your artists." },
-            { L"daily4", L"Daily Mix 4", L"More from a genre you love." },
-            { L"daily5", L"Daily Mix 5", L"Another route through your favourites." },
-            { L"repeat", L"On Repeat", L"Songs you keep coming back to." },
-            { L"discover", L"Discover Weekly", L"A fresh pass through your tracks." },
-            { L"timecapsule", L"Time Capsule", L"Older additions worth revisiting." },
-            { L"fresh", L"Fresh Finds", L"Your newest library additions." },
+            { L"daily1", L"Daily Mix 1", L"Built from recent listening.", nullptr },
+            { L"daily2", L"Daily Mix 2", L"A second lane through your library.", nullptr },
+            { L"daily3", L"Daily Mix 3", L"Balanced across your artists.", nullptr },
+            { L"daily4", L"Daily Mix 4", L"More from a genre you love.", nullptr },
+            { L"daily5", L"Daily Mix 5", L"Another route through your favourites.", nullptr },
+            { L"repeat", L"On Repeat", L"Songs you keep coming back to.", nullptr },
+            { L"discover", L"Discover Weekly", L"A fresh pass through your tracks.", nullptr },
+            { L"timecapsule", L"Time Capsule", L"Older additions worth revisiting.", nullptr },
+            { L"fresh", L"Fresh Finds", L"Your newest library additions.", nullptr },
         };
 
-        auto appendGenerated = [this](
+        auto appendGenerated = [this, &makeCoverBrush](
             AutoPlaylistDef const& def,
             winrt::Windows::Foundation::Collections::IObservableVector<winrt::Last_Music_Player::TrackInfo> const& target,
             wchar_t const* kindLabel,
@@ -161,6 +213,15 @@ namespace winrt::Last_Music_Player::implementation
             playlist.TrackCount(count);
             playlist.ArtworkCaption(def.Caption);
             ResolveArtworkPresentation(playlist, L"auto-playlist");
+            // After the shared resolve, which fills in the default glyph only
+            // when a caller has not already chosen one.
+            if (def.Cover)
+            {
+                playlist.ArtworkGlyph(def.Cover->Glyph);
+                playlist.ArtworkGlyphSize(def.Cover->GlyphSize);
+                playlist.ArtworkGlyphOpacity(def.Cover->GlyphOpacity);
+                playlist.ArtworkBackground(makeCoverBrush(*def.Cover));
+            }
             target.Append(playlist);
         };
 

@@ -590,7 +590,15 @@ namespace winrt::Last_Music_Player::implementation::detail
             }
         }
 
-        track.ArtworkGlyph(L"\xE8D6");
+        // Only the default is filled in here. A caller that has already chosen a
+        // glyph keeps it, because this runs again on the very same object every
+        // time a detail page resolves its hero artwork, and an unconditional
+        // assignment would wipe a system playlist's cover glyph on the way back
+        // out to the grid.
+        if (track.ArtworkGlyph().empty())
+        {
+            track.ArtworkGlyph(L"\xE8D6");
+        }
         track.ArtworkTitle(UpperArtworkText(track.Title(), isCollectionSurface ? winrt::hstring{ L"MUSIC" } : winrt::hstring{ L"MUSIC" }));
 
         if (isManualGeneratedCollection)
