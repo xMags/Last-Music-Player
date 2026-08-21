@@ -1431,7 +1431,7 @@
                 <!-- ========== SETTINGS VIEW ========== -->
                 <!-- Single scrolling page: every section is stacked top to bottom,
                      header included, so there is no section switcher to keep in sync. -->
-                <Grid x:Name="SettingsViewContainer" Visibility="Collapsed" Padding="8,16,0,0">
+                <Grid x:Name="SettingsViewContainer" Visibility="Collapsed" Padding="0,16,0,0">
                     <ScrollViewer x:Name="SettingsScrollViewer" VerticalScrollBarVisibility="Auto">
                         <StackPanel Spacing="36" Padding="0,0,4,40">
 
@@ -1445,7 +1445,7 @@
                                     <TextBlock Text="Settings" Style="{StaticResource TitleH1}" />
                                     <TextBlock Text="Pick where your music comes from, then tune the rest." FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" TextWrapping="Wrap" />
                                 </StackPanel>
-                                <Border Grid.Column="1" Background="{ThemeResource SurfaceBrush}" BorderBrush="{ThemeResource StrokeBrush}" BorderThickness="1" CornerRadius="20" Padding="10,7,14,7" VerticalAlignment="Center" Translation="0,0,4">
+                                <Border Grid.Column="1" Background="{ThemeResource SurfaceBrush}" BorderBrush="{ThemeResource StrokeBrush}" BorderThickness="1" CornerRadius="20" Padding="10,7,14,7" VerticalAlignment="Bottom" Translation="0,0,4">
                                     <Border.Shadow><ThemeShadow /></Border.Shadow>
                                     <StackPanel Orientation="Horizontal" Spacing="7">
                                         <Ellipse x:Name="SettingsSourceStatusDot" Width="8" Height="8" Fill="{ThemeResource SuccessBrush}" VerticalAlignment="Center" />
@@ -1615,6 +1615,28 @@
                                             </StackPanel>
                                             <Button x:Name="AccountClearDataButton" Grid.Column="1" Click="AccountClearData_Click" Style="{StaticResource DesignSecondaryButton}" Content="Clear synced data" IsEnabled="False" />
                                         </Grid>
+                                        <!-- The reference puts the region picker in the active remote
+                                             connection panel, and leaves Integrations with only the
+                                             read-only summary. Here that panel is the account one,
+                                             because the account catalog is the only catalog there is
+                                             to region-switch. Hidden until the session is validated
+                                             (MainWindow.Discover.cpp). -->
+                                        <Border x:Name="SettingsCatalogRegionCard" Visibility="Collapsed" BorderThickness="0" Padding="0">
+                                            <StackPanel Spacing="16">
+                                                <Border Height="1" Background="{ThemeResource StrokeBrush}" />
+                                                <Grid ColumnSpacing="16">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <StackPanel Spacing="4">
+                                                        <TextBlock Text="Catalog region" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" />
+                                                        <TextBlock Text="Which country's charts and featured music appear on Home." Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
+                                                    </StackPanel>
+                                                    <ComboBox x:Name="DiscoverStorefrontSelector" Grid.Column="1" MinWidth="200" VerticalAlignment="Center" SelectionChanged="DiscoverStorefront_SelectionChanged" />
+                                                </Grid>
+                                            </StackPanel>
+                                        </Border>
                                     </StackPanel>
                                 </Border>
 
@@ -1645,7 +1667,10 @@
                                         </Button>
                                         <Button x:Name="ProviderDisconnectButton" Grid.Row="0" Grid.Column="3" Click="DisconnectProvider_Click" Style="{StaticResource DesignSecondaryButton}" Padding="16,8" Content="Disconnect" VerticalAlignment="Bottom" />
                                         <Border Grid.Row="1" Grid.ColumnSpan="4" Background="{ThemeResource StrokeBrush}" />
-                                        <TextBlock x:Name="ProviderTestStatusText" Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="4" Text="Ready" Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
+                                        <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="4" Spacing="14">
+                                            <TextBlock x:Name="ProviderTestStatusText" Text="Ready" Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
+                                            <TextBlock Text="Your provider decides how identifiers resolve, how auth works and where audio comes from. See PROVIDER_API.md." Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
+                                        </StackPanel>
                                     </Grid>
                                 </Border>
                             </StackPanel>
@@ -1679,60 +1704,67 @@
                                     <TextBlock Grid.Column="1" Text="Library" Style="{StaticResource TitleH2}" VerticalAlignment="Center"/>
                                     <Border Grid.Column="2" Height="1" Background="{ThemeResource StrokeBrush}" VerticalAlignment="Center"/>
                                 </Grid>
+                                <!-- One card, as in the reference: the music folder is an inset
+                                     banner and the formats row sits under it, rather than two
+                                     cards stitched together with a negative margin. -->
                                 <Border Style="{StaticResource SettingsCard}" Translation="0,0,4">
                                     <Border.Shadow><ThemeShadow /></Border.Shadow>
-                                    <StackPanel>
+                                    <StackPanel Spacing="18">
                                         <!-- Music folder -->
-                                        <Grid ColumnSpacing="14" Background="{ThemeResource MusicFolderBrush}" Padding="16,14">
-                                            <Grid.RowDefinitions>
-                                                <RowDefinition Height="Auto" />
-                                                <RowDefinition Height="Auto" />
-                                            </Grid.RowDefinitions>
+                                        <Border CornerRadius="10" Background="{ThemeResource MusicFolderBrush}" BorderBrush="{ThemeResource AccentSoft2Brush}" BorderThickness="1" Padding="16,14">
+                                            <Grid ColumnSpacing="14">
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto" />
+                                                    <RowDefinition Height="Auto" />
+                                                </Grid.RowDefinitions>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <Border Grid.Column="0" Width="36" Height="36" CornerRadius="{StaticResource RadiusLg}" Background="{ThemeResource SurfaceBrush}" BorderBrush="{ThemeResource StrokeBrush}" BorderThickness="1" VerticalAlignment="Center">
+                                                    <FontIcon Glyph="&#xED25;" FontSize="16" Foreground="{ThemeResource AccentBrush}" />
+                                                </Border>
+                                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                                                    <TextBlock Text="Music folder" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" />
+                                                    <TextBox x:Name="MusicFolderPathBox" IsReadOnly="True" PlaceholderText="No folder selected" FontFamily="Consolas" FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}" Background="Transparent" BorderThickness="0" Padding="0" MinHeight="0" HorizontalAlignment="Stretch" />
+                                                </StackPanel>
+                                                <StackPanel x:Name="MusicFolderActions" Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                                    <TextBlock Text="Scanned recently" FontSize="12" Foreground="{ThemeResource TextTertiaryBrush}" VerticalAlignment="Center" Margin="0,0,4,0" />
+                                                    <Button x:Name="ChangeFolderButton" Click="ChangeFolderButton_Click" Style="{StaticResource DesignSecondaryButton}">
+                                                        <TextBlock Text="Change" FontSize="12" FontWeight="SemiBold" />
+                                                    </Button>
+                                                    <Button x:Name="OpenFolderButton" Click="OpenFolderButton_Click" Style="{StaticResource DesignSecondaryButton}">
+                                                        <TextBlock Text="Open" FontSize="12" FontWeight="SemiBold" />
+                                                    </Button>
+                                                    <Button x:Name="ScanMusicButton" Click="ScanMusicButton_Click" Style="{StaticResource DesignPrimaryButton}" VerticalAlignment="Center">
+                                                        <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE149;" FontSize="13"/><TextBlock Text="Scan now" FontSize="12" FontWeight="SemiBold"/></StackPanel>
+                                                    </Button>
+                                                </StackPanel>
+                                            </Grid>
+                                        </Border>
+
+                                        <!-- File formats: label column beside a wrapping chip field -->
+                                        <Grid ColumnSpacing="24">
                                             <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="220" />
                                                 <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
-                                            <Border Grid.Column="0" Width="36" Height="36" CornerRadius="{StaticResource RadiusLg}" Background="{ThemeResource SurfaceBrush}" BorderBrush="{ThemeResource StrokeBrush}" BorderThickness="1" VerticalAlignment="Center">
-                                                <FontIcon Glyph="&#xED25;" FontSize="16" Foreground="{ThemeResource AccentBrush}" />
-                                            </Border>
-                                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="4">
-                                                <TextBlock Text="Music folder" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" />
-                                                <TextBox x:Name="MusicFolderPathBox" IsReadOnly="True" PlaceholderText="No folder selected" FontFamily="Consolas" FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}" Background="Transparent" BorderThickness="0" Padding="0" MinHeight="0" HorizontalAlignment="Stretch" />
+                                            <StackPanel Grid.Column="0" Spacing="4" VerticalAlignment="Top">
+                                                <TextBlock Text="File formats" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" />
+                                                <TextBlock Text="Included when scanning. The backend indexes MP3 and FLAC today." Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
                                             </StackPanel>
-                                            <StackPanel x:Name="MusicFolderActions" Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                                                <TextBlock Text="Scanned recently" FontSize="12" Foreground="{ThemeResource TextTertiaryBrush}" VerticalAlignment="Center" Margin="0,0,4,0" />
-                                                <Button x:Name="ChangeFolderButton" Click="ChangeFolderButton_Click" Style="{StaticResource DesignSecondaryButton}">
-                                                    <TextBlock Text="Change" FontSize="12" FontWeight="SemiBold" />
-                                                </Button>
-                                                <Button x:Name="OpenFolderButton" Click="OpenFolderButton_Click" Style="{StaticResource DesignSecondaryButton}">
-                                                    <TextBlock Text="Open" FontSize="12" FontWeight="SemiBold" />
-                                                </Button>
-                                                <Button x:Name="ScanMusicButton" Click="ScanMusicButton_Click" Style="{StaticResource DesignPrimaryButton}" VerticalAlignment="Center">
-                                                    <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE149;" FontSize="13"/><TextBlock Text="Scan now" FontSize="12" FontWeight="SemiBold"/></StackPanel>
-                                                </Button>
-                                            </StackPanel>
+                                            <local:ChipWrapPanel Grid.Column="1" HorizontalSpacing="8" VerticalSpacing="8" VerticalAlignment="Top">
+                                                <ToggleButton x:Name="FmtMp3" Tag=".mp3" Content="MP3" IsChecked="True" Style="{StaticResource DesignChipToggle}" FontSize="12" Padding="14,6" Checked="FormatChip_Toggled" Unchecked="FormatChip_Toggled" />
+                                                <ToggleButton x:Name="FmtFlac" Tag=".flac" Content="FLAC" IsChecked="True" Style="{StaticResource DesignChipToggle}" FontSize="12" Padding="14,6" Checked="FormatChip_Toggled" Unchecked="FormatChip_Toggled" />
+                                                <ToggleButton x:Name="FmtWav" Tag=".wav" Content="WAV" Style="{StaticResource DesignChipToggle}" FontSize="12" Padding="14,6" Checked="FormatChip_Toggled" Unchecked="FormatChip_Toggled" />
+                                                <ToggleButton x:Name="FmtM4a" Tag=".m4a" Content="M4A" Style="{StaticResource DesignChipToggle}" FontSize="12" Padding="14,6" Checked="FormatChip_Toggled" Unchecked="FormatChip_Toggled" />
+                                                <ToggleButton x:Name="FmtAac" Tag=".aac" Content="AAC" Style="{StaticResource DesignChipToggle}" FontSize="12" Padding="14,6" Checked="FormatChip_Toggled" Unchecked="FormatChip_Toggled" />
+                                                <ToggleButton x:Name="FmtOgg" Tag=".ogg" Content="OGG" Style="{StaticResource DesignChipToggle}" FontSize="12" Padding="14,6" Checked="FormatChip_Toggled" Unchecked="FormatChip_Toggled" />
+                                                <ToggleButton x:Name="FmtOpus" Tag=".opus" Content="OPUS" Style="{StaticResource DesignChipToggle}" FontSize="12" Padding="14,6" Checked="FormatChip_Toggled" Unchecked="FormatChip_Toggled" />
+                                                <ToggleButton x:Name="FmtWma" Tag=".wma" Content="WMA" Style="{StaticResource DesignChipToggle}" FontSize="12" Padding="14,6" Checked="FormatChip_Toggled" Unchecked="FormatChip_Toggled" />
+                                            </local:ChipWrapPanel>
                                         </Grid>
-
-                                    </StackPanel>
-                                </Border>
-
-                                <TextBlock Text="File Formats" Visibility="Collapsed" />
-                                <Border Style="{StaticResource SettingsCard}" Margin="0,-16,0,0" CornerRadius="0,0,12,12">
-                                    <StackPanel Spacing="12">
-                                        <TextBlock Text="Formats included when scanning. Backend currently indexes MP3 and FLAC." Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
-                                        <ScrollViewer HorizontalScrollBarVisibility="Hidden" HorizontalScrollMode="Auto" VerticalScrollMode="Enabled" VerticalScrollBarVisibility="Disabled">
-                                            <StackPanel Orientation="Horizontal" Spacing="8">
-                                                <ToggleButton x:Name="FmtMp3" Tag=".mp3" Content="MP3" IsChecked="True" Style="{StaticResource DesignChipToggle}" Checked="FormatChip_Toggled" Unchecked="FormatChip_Toggled" />
-                                                <ToggleButton x:Name="FmtFlac" Tag=".flac" Content="FLAC" IsChecked="True" Style="{StaticResource DesignChipToggle}" Checked="FormatChip_Toggled" Unchecked="FormatChip_Toggled" />
-                                                <ToggleButton x:Name="FmtWav" Tag=".wav" Content="WAV" Style="{StaticResource DesignChipToggle}" Checked="FormatChip_Toggled" Unchecked="FormatChip_Toggled" />
-                                                <ToggleButton x:Name="FmtM4a" Tag=".m4a" Content="M4A" Style="{StaticResource DesignChipToggle}" Checked="FormatChip_Toggled" Unchecked="FormatChip_Toggled" />
-                                                <ToggleButton x:Name="FmtAac" Tag=".aac" Content="AAC" Style="{StaticResource DesignChipToggle}" Checked="FormatChip_Toggled" Unchecked="FormatChip_Toggled" />
-                                                <ToggleButton x:Name="FmtOgg" Tag=".ogg" Content="OGG" Style="{StaticResource DesignChipToggle}" Checked="FormatChip_Toggled" Unchecked="FormatChip_Toggled" />
-                                                <ToggleButton x:Name="FmtOpus" Tag=".opus" Content="OPUS" Style="{StaticResource DesignChipToggle}" Checked="FormatChip_Toggled" Unchecked="FormatChip_Toggled" />
-                                                <ToggleButton x:Name="FmtWma" Tag=".wma" Content="WMA" Style="{StaticResource DesignChipToggle}" Checked="FormatChip_Toggled" Unchecked="FormatChip_Toggled" />
-                                            </StackPanel>
-                                        </ScrollViewer>
                                     </StackPanel>
                                 </Border>
                             </StackPanel>
@@ -1747,9 +1779,9 @@
                                         <Border Height="1" Background="{ThemeResource DividerBrush}" Margin="0,16"/>
                                         <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><StackPanel Spacing="4"><TextBlock Text="Gapless playback" Style="{StaticResource BodyStrong}"/><TextBlock Text="Remove silence between consecutive tracks." Style="{StaticResource CaptionText}" TextWrapping="Wrap"/></StackPanel><ToggleSwitch x:Name="GaplessSwitch" Grid.Column="1" IsOn="True" Toggled="SettingsToggle_Toggled" OnContent="" OffContent="" MinWidth="0" VerticalAlignment="Center"/></Grid>
                                         <Border Height="1" Background="{ThemeResource DividerBrush}" Margin="0,16"/>
-                                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><StackPanel Spacing="4"><TextBlock Text="When closing window" Style="{StaticResource BodyStrong}"/><TextBlock Text="Choose what the close button does." Style="{StaticResource CaptionText}"/></StackPanel><ComboBox x:Name="CloseBehaviorCombo" Grid.Column="1" SelectedIndex="0" MinWidth="160" SelectionChanged="SettingsCombo_SelectionChanged"><ComboBoxItem Content="Minimize to tray"/><ComboBoxItem Content="Quit"/></ComboBox></Grid>
+                                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><StackPanel Spacing="4"><TextBlock Text="When closing window" Style="{StaticResource BodyStrong}"/><TextBlock Text="Choose what the close button does." Style="{StaticResource CaptionText}" TextWrapping="Wrap"/></StackPanel><ComboBox x:Name="CloseBehaviorCombo" Grid.Column="1" SelectedIndex="0" MinWidth="160" SelectionChanged="SettingsCombo_SelectionChanged"><ComboBoxItem Content="Minimize to tray"/><ComboBoxItem Content="Quit"/></ComboBox></Grid>
                                         <Border Height="1" Background="{ThemeResource DividerBrush}" Margin="0,16"/>
-                                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><StackPanel Spacing="4"><TextBlock Text="Output device" Style="{StaticResource BodyStrong}"/><TextBlock Text="Where audio is rendered." Style="{StaticResource CaptionText}"/></StackPanel><ComboBox x:Name="OutputDeviceCombo" Grid.Column="1" SelectedIndex="0" MinWidth="160" SelectionChanged="SettingsCombo_SelectionChanged"><ComboBoxItem Content="System default"/></ComboBox></Grid>
+                                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><StackPanel Spacing="4"><TextBlock Text="Output device" Style="{StaticResource BodyStrong}"/><TextBlock Text="Where audio is rendered." Style="{StaticResource CaptionText}" TextWrapping="Wrap"/></StackPanel><ComboBox x:Name="OutputDeviceCombo" Grid.Column="1" SelectedIndex="0" MinWidth="160" SelectionChanged="SettingsCombo_SelectionChanged"><ComboBoxItem Content="System default"/></ComboBox></Grid>
                                     </StackPanel></Border>
                                 </StackPanel>
 
@@ -1757,15 +1789,25 @@
                                     <Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="28"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Border Width="28" Height="28" CornerRadius="8" Background="{ThemeResource AccentSoftBrush}"><FontIcon Glyph="&#xE790;" FontSize="14" Foreground="{ThemeResource AccentBrush}"/></Border><TextBlock Grid.Column="1" Text="Appearance" Style="{StaticResource TitleH2}"/><Border Grid.Column="2" Height="1" Background="{ThemeResource StrokeBrush}" VerticalAlignment="Center"/></Grid>
                                     <Border Style="{StaticResource SettingsCard}" Translation="0,0,4"><Border.Shadow><ThemeShadow/></Border.Shadow><StackPanel>
                                         <TextBlock Text="Theme" Style="{StaticResource BodyStrong}" Margin="0,0,0,10"/>
-                                        <StackPanel x:Name="ThemeOptionsPanel" Orientation="Horizontal" Spacing="10">
-                                            <ToggleButton x:Name="ThemeLight" Tag="Light" Width="108" Style="{StaticResource ThemeTileToggle}" Checked="ThemeSegment_Checked"><StackPanel><Grid Height="52"><Border Background="#FFF7F7FA" CornerRadius="6"/><Border Width="22" Background="#FFEDEDF2" HorizontalAlignment="Left" CornerRadius="6,0,0,6"/><StackPanel Margin="30,10,6,0" Spacing="5"><Border Height="5" Width="50" Background="#38000000" CornerRadius="3" HorizontalAlignment="Left"/><Border Height="5" Width="34" Background="#38000000" CornerRadius="3" HorizontalAlignment="Left"/><Border Height="5" Width="40" Background="#FF0097B2" CornerRadius="3" HorizontalAlignment="Left"/></StackPanel></Grid><TextBlock Text="Light" FontSize="12" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,8,0,0"/></StackPanel></ToggleButton>
-                                            <ToggleButton x:Name="ThemeDark" Tag="Dark" Width="108" Style="{StaticResource ThemeTileToggle}" Checked="ThemeSegment_Checked"><StackPanel><Grid Height="52"><Border Background="#FF232323" CornerRadius="6"/><Border Width="22" Background="#FF1B1B1B" HorizontalAlignment="Left" CornerRadius="6,0,0,6"/><StackPanel Margin="30,10,6,0" Spacing="5"><Border Height="5" Width="50" Background="#4DFFFFFF" CornerRadius="3" HorizontalAlignment="Left"/><Border Height="5" Width="34" Background="#4DFFFFFF" CornerRadius="3" HorizontalAlignment="Left"/><Border Height="5" Width="40" Background="#FF0097B2" CornerRadius="3" HorizontalAlignment="Left"/></StackPanel></Grid><TextBlock Text="Dark" FontSize="12" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,8,0,0"/></StackPanel></ToggleButton>
-                                            <ToggleButton x:Name="ThemeSystem" Tag="System" Width="108" IsChecked="True" Style="{StaticResource ThemeTileToggle}" Checked="ThemeSegment_Checked"><StackPanel><Grid Height="52"><Border CornerRadius="6"><Border.Background><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#FFF7F7FA" Offset="0.5"/><GradientStop Color="#FF232323" Offset="0.5"/></LinearGradientBrush></Border.Background></Border><Border Width="22" Background="#59787882" HorizontalAlignment="Left" CornerRadius="6,0,0,6"/><StackPanel Margin="30,10,6,0" Spacing="5"><Border Height="5" Width="50" Background="#BF787882" CornerRadius="3" HorizontalAlignment="Left"/><Border Height="5" Width="34" Background="#BF787882" CornerRadius="3" HorizontalAlignment="Left"/><Border Height="5" Width="40" Background="#FF0097B2" CornerRadius="3" HorizontalAlignment="Left"/></StackPanel></Grid><TextBlock Text="System" FontSize="12" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,8,0,0"/></StackPanel></ToggleButton>
-                                        </StackPanel>
+                                        <!-- Three equal columns, as in the reference: the tiles fill
+                                             the card instead of sitting at a fixed 108 px. The preview
+                                             lines are proportional (70 / 45 / 55 percent of the content
+                                             column) so they keep their ratio as the tile grows. -->
+                                        <Grid x:Name="ThemeOptionsPanel" ColumnSpacing="10">
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                            <ToggleButton HorizontalAlignment="Stretch" x:Name="ThemeLight" Grid.Column="0" Tag="Light" Style="{StaticResource ThemeTileToggle}" Checked="ThemeSegment_Checked"><StackPanel><Grid Height="52" CornerRadius="6" Background="#FFF7F7FA"><Grid.ColumnDefinitions><ColumnDefinition Width="22"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Border Grid.Column="0" Background="#FFEDEDF2" CornerRadius="6,0,0,6"/><Grid Grid.Column="1" Margin="6,7,6,0" RowSpacing="5" VerticalAlignment="Top"><Grid.RowDefinitions><RowDefinition Height="5"/><RowDefinition Height="5"/><RowDefinition Height="5"/></Grid.RowDefinitions><Grid.ColumnDefinitions><ColumnDefinition Width="45*"/><ColumnDefinition Width="10*"/><ColumnDefinition Width="15*"/><ColumnDefinition Width="30*"/></Grid.ColumnDefinitions><Border Grid.Row="0" Grid.ColumnSpan="3" Background="#38000000" CornerRadius="3"/><Border Grid.Row="1" Background="#38000000" CornerRadius="3"/><Border Grid.Row="2" Grid.ColumnSpan="2" Background="#FF0097B2" CornerRadius="3"/></Grid></Grid><TextBlock Text="Light" FontSize="12" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,8,0,0"/></StackPanel></ToggleButton>
+                                            <ToggleButton HorizontalAlignment="Stretch" x:Name="ThemeDark" Grid.Column="1" Tag="Dark" Style="{StaticResource ThemeTileToggle}" Checked="ThemeSegment_Checked"><StackPanel><Grid Height="52" CornerRadius="6" Background="#FF232323"><Grid.ColumnDefinitions><ColumnDefinition Width="22"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Border Grid.Column="0" Background="#FF1B1B1B" CornerRadius="6,0,0,6"/><Grid Grid.Column="1" Margin="6,7,6,0" RowSpacing="5" VerticalAlignment="Top"><Grid.RowDefinitions><RowDefinition Height="5"/><RowDefinition Height="5"/><RowDefinition Height="5"/></Grid.RowDefinitions><Grid.ColumnDefinitions><ColumnDefinition Width="45*"/><ColumnDefinition Width="10*"/><ColumnDefinition Width="15*"/><ColumnDefinition Width="30*"/></Grid.ColumnDefinitions><Border Grid.Row="0" Grid.ColumnSpan="3" Background="#4DFFFFFF" CornerRadius="3"/><Border Grid.Row="1" Background="#4DFFFFFF" CornerRadius="3"/><Border Grid.Row="2" Grid.ColumnSpan="2" Background="#FF0097B2" CornerRadius="3"/></Grid></Grid><TextBlock Text="Dark" FontSize="12" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,8,0,0"/></StackPanel></ToggleButton>
+                                            <ToggleButton HorizontalAlignment="Stretch" x:Name="ThemeSystem" Grid.Column="2" Tag="System" IsChecked="True" Style="{StaticResource ThemeTileToggle}" Checked="ThemeSegment_Checked"><StackPanel><Grid Height="52" CornerRadius="6"><Grid.Background><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#FFF7F7FA" Offset="0.5"/><GradientStop Color="#FF232323" Offset="0.5"/></LinearGradientBrush></Grid.Background><Grid.ColumnDefinitions><ColumnDefinition Width="22"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Border Grid.Column="0" Background="#59787882" CornerRadius="6,0,0,6"/><Grid Grid.Column="1" Margin="6,7,6,0" RowSpacing="5" VerticalAlignment="Top"><Grid.RowDefinitions><RowDefinition Height="5"/><RowDefinition Height="5"/><RowDefinition Height="5"/></Grid.RowDefinitions><Grid.ColumnDefinitions><ColumnDefinition Width="45*"/><ColumnDefinition Width="10*"/><ColumnDefinition Width="15*"/><ColumnDefinition Width="30*"/></Grid.ColumnDefinitions><Border Grid.Row="0" Grid.ColumnSpan="3" Background="#BF787882" CornerRadius="3"/><Border Grid.Row="1" Background="#BF787882" CornerRadius="3"/><Border Grid.Row="2" Grid.ColumnSpan="2" Background="#FF0097B2" CornerRadius="3"/></Grid></Grid><TextBlock Text="System" FontSize="12" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,8,0,0"/></StackPanel></ToggleButton>
+                                        </Grid>
                                         <Border Height="1" Background="{ThemeResource DividerBrush}" Margin="0,16"/>
-                                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><StackPanel Spacing="4"><TextBlock Text="Accent color" Style="{StaticResource BodyStrong}"/><TextBlock Text="Recolors highlights, sliders and accents." Style="{StaticResource CaptionText}"/></StackPanel><StackPanel x:Name="AccentSwatchesPanel" Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center"><Ellipse x:Name="AccentSw0" Tag="#FF0097B2" Width="22" Height="22" Fill="#FF0097B2" Stroke="{ThemeResource StrokeStrongBrush}" StrokeThickness="2" Tapped="AccentSwatch_Tapped"/><Ellipse x:Name="AccentSw1" Tag="#FF6B8EFE" Width="22" Height="22" Fill="#FF6B8EFE" Tapped="AccentSwatch_Tapped"/><Ellipse x:Name="AccentSw2" Tag="#FFE0719C" Width="22" Height="22" Fill="#FFE0719C" Tapped="AccentSwatch_Tapped"/><Ellipse x:Name="AccentSw3" Tag="#FF6FBF73" Width="22" Height="22" Fill="#FF6FBF73" Tapped="AccentSwatch_Tapped"/><Ellipse x:Name="AccentSw4" Tag="#FFE8A33D" Width="22" Height="22" Fill="#FFE8A33D" Tapped="AccentSwatch_Tapped"/></StackPanel></Grid>
+                                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><StackPanel Spacing="4"><TextBlock Text="Accent color" Style="{StaticResource BodyStrong}"/><TextBlock Text="Recolors highlights, sliders and accents." Style="{StaticResource CaptionText}" TextWrapping="Wrap"/></StackPanel><!-- The selection marker is a halo outside the swatch (a card-coloured gap
+                                                 then a dark ring), not a stroke drawn over the colour itself, so
+                                                 the chosen colour still reads at full size. Each cell is 30 px
+                                                 wide with a 2 px gap, which keeps the reference's 10 px spacing
+                                                 between the 22 px circles. -->
+                                            <StackPanel x:Name="AccentSwatchesPanel" Grid.Column="1" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center"><Grid Width="30" Height="30"><Ellipse x:Name="AccentRing0" Width="28" Height="28" Stroke="{ThemeResource SelectionRingBrush}" StrokeThickness="2" IsHitTestVisible="False"/><Ellipse x:Name="AccentSw0" Tag="#FF0097B2" Width="22" Height="22" Fill="#FF0097B2" Tapped="AccentSwatch_Tapped"/></Grid><Grid Width="30" Height="30"><Ellipse x:Name="AccentRing1" Width="28" Height="28" Stroke="{ThemeResource SelectionRingBrush}" StrokeThickness="2" Visibility="Collapsed" IsHitTestVisible="False"/><Ellipse x:Name="AccentSw1" Tag="#FF6B8EFE" Width="22" Height="22" Fill="#FF6B8EFE" Tapped="AccentSwatch_Tapped"/></Grid><Grid Width="30" Height="30"><Ellipse x:Name="AccentRing2" Width="28" Height="28" Stroke="{ThemeResource SelectionRingBrush}" StrokeThickness="2" Visibility="Collapsed" IsHitTestVisible="False"/><Ellipse x:Name="AccentSw2" Tag="#FFE0719C" Width="22" Height="22" Fill="#FFE0719C" Tapped="AccentSwatch_Tapped"/></Grid><Grid Width="30" Height="30"><Ellipse x:Name="AccentRing3" Width="28" Height="28" Stroke="{ThemeResource SelectionRingBrush}" StrokeThickness="2" Visibility="Collapsed" IsHitTestVisible="False"/><Ellipse x:Name="AccentSw3" Tag="#FF6FBF73" Width="22" Height="22" Fill="#FF6FBF73" Tapped="AccentSwatch_Tapped"/></Grid><Grid Width="30" Height="30"><Ellipse x:Name="AccentRing4" Width="28" Height="28" Stroke="{ThemeResource SelectionRingBrush}" StrokeThickness="2" Visibility="Collapsed" IsHitTestVisible="False"/><Ellipse x:Name="AccentSw4" Tag="#FFE8A33D" Width="22" Height="22" Fill="#FFE8A33D" Tapped="AccentSwatch_Tapped"/></Grid></StackPanel></Grid>
                                         <Border Height="1" Background="{ThemeResource DividerBrush}" Margin="0,16"/>
-                                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><StackPanel Spacing="4"><TextBlock Text="Album art on player bar" Style="{StaticResource BodyStrong}"/><TextBlock Text="Display artwork next to the now-playing track." Style="{StaticResource CaptionText}"/></StackPanel><ToggleSwitch x:Name="ShowAlbumArtSwitch" Grid.Column="1" IsOn="True" Toggled="SettingsToggle_Toggled" OnContent="" OffContent="" MinWidth="0"/></Grid>
+                                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><StackPanel Spacing="4"><TextBlock Text="Album art on player bar" Style="{StaticResource BodyStrong}"/><TextBlock Text="Display artwork next to the now-playing track." Style="{StaticResource CaptionText}" TextWrapping="Wrap"/></StackPanel><ToggleSwitch x:Name="ShowAlbumArtSwitch" Grid.Column="1" IsOn="True" Toggled="SettingsToggle_Toggled" OnContent="" OffContent="" MinWidth="0"/></Grid>
                                     </StackPanel></Border>
                                 </StackPanel>
                             </Grid>
@@ -1773,34 +1815,46 @@
                             <!-- ===== Audio ===== -->
                             <StackPanel x:Name="SetSecAudio" Spacing="16">
                                 <Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="28"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><Border Width="28" Height="28" CornerRadius="8" Background="{ThemeResource AccentSoftBrush}"><FontIcon Glyph="&#xF4C3;" FontSize="14" Foreground="{ThemeResource AccentBrush}"/></Border><TextBlock Grid.Column="1" Text="Equalizer" Style="{StaticResource TitleH2}"/><TextBlock Grid.Column="2" Text="Local playback only. Cast devices use their own processing." Style="{StaticResource CaptionText}" VerticalAlignment="Center"/><Border Grid.Column="3" Height="1" Background="{ThemeResource StrokeBrush}" VerticalAlignment="Center"/><Border Grid.Column="4" Background="{ThemeResource NeutralFillBrush}" BorderBrush="{ThemeResource StrokeBrush}" BorderThickness="1" CornerRadius="12" Padding="10,4"><TextBlock Text="IN PROGRESS" FontSize="10" FontWeight="Bold" CharacterSpacing="80" Foreground="{ThemeResource TextTertiaryBrush}"/></Border></Grid>
-                                <Border Style="{StaticResource SettingsCard}" Opacity="0.55">
-                                    <StackPanel Spacing="16">
-                                        <StackPanel Orientation="Vertical" Spacing="8">
-                                            <StackPanel Orientation="Horizontal" Spacing="8">
-                                                <ToggleButton x:Name="EqPresetFlat" Tag="Flat" Content="Flat" Style="{StaticResource DesignChipToggle}" Click="EqualizerPreset_Click" IsEnabled="False" />
-                                                <ToggleButton x:Name="EqPresetBass" Tag="Bass" Content="Bass Boost" Style="{StaticResource DesignChipToggle}" Click="EqualizerPreset_Click" IsEnabled="False" />
-                                                <ToggleButton x:Name="EqPresetTreble" Tag="Treble" Content="Treble" Style="{StaticResource DesignChipToggle}" Click="EqualizerPreset_Click" IsEnabled="False" />
-                                                <ToggleButton x:Name="EqPresetVocal" Tag="Vocal" Content="Vocal" Style="{StaticResource DesignChipToggle}" Click="EqualizerPreset_Click" IsEnabled="False" />
-                                            </StackPanel>
-                                            <StackPanel Orientation="Horizontal" Spacing="8">
-                                                <ToggleButton x:Name="EqPresetAcoustic" Tag="Acoustic" Content="Acoustic" Style="{StaticResource DesignChipToggle}" Click="EqualizerPreset_Click" IsEnabled="False" />
-                                                <ToggleButton x:Name="EqPresetElectronic" Tag="Electronic" Content="Electronic" Style="{StaticResource DesignChipToggle}" Click="EqualizerPreset_Click" IsEnabled="False" />
-                                                <ToggleButton x:Name="EqPresetCustom" Tag="Custom" Content="Custom" Style="{StaticResource DesignChipToggle}" IsEnabled="False" IsHitTestVisible="False" IsTabStop="False" ToolTipService.ToolTip="Highlights when bands do not match a preset" />
-                                                <Button x:Name="EqResetButton" Click="EqResetButton_Click" ToolTipService.ToolTip="Zero all bands and preamp" IsEnabled="False">
+                                <!-- Two columns, as in the reference: presets, preamp and the
+                                     "not shipped yet" note on the left, the band stack filling the
+                                     rest. The card itself is not dimmed; the controls that do not
+                                     work yet are, so the section still reads at full contrast. -->
+                                <Border Style="{StaticResource SettingsCard}">
+                                    <Grid ColumnSpacing="28">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="260" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" Spacing="14">
+                                            <local:ChipWrapPanel HorizontalSpacing="8" VerticalSpacing="8">
+                                                <ToggleButton x:Name="EqPresetFlat" Tag="Flat" Content="Flat" Style="{StaticResource DesignChipToggle}" FontSize="12" Padding="14,6" Click="EqualizerPreset_Click" IsEnabled="False" />
+                                                <ToggleButton x:Name="EqPresetBass" Tag="Bass" Content="Bass Boost" Style="{StaticResource DesignChipToggle}" FontSize="12" Padding="14,6" Click="EqualizerPreset_Click" IsEnabled="False" />
+                                                <ToggleButton x:Name="EqPresetTreble" Tag="Treble" Content="Treble" Style="{StaticResource DesignChipToggle}" FontSize="12" Padding="14,6" Click="EqualizerPreset_Click" IsEnabled="False" />
+                                                <ToggleButton x:Name="EqPresetVocal" Tag="Vocal" Content="Vocal" Style="{StaticResource DesignChipToggle}" FontSize="12" Padding="14,6" Click="EqualizerPreset_Click" IsEnabled="False" />
+                                                <ToggleButton x:Name="EqPresetAcoustic" Tag="Acoustic" Content="Acoustic" Style="{StaticResource DesignChipToggle}" FontSize="12" Padding="14,6" Click="EqualizerPreset_Click" IsEnabled="False" />
+                                                <ToggleButton x:Name="EqPresetElectronic" Tag="Electronic" Content="Electronic" Style="{StaticResource DesignChipToggle}" FontSize="12" Padding="14,6" Click="EqualizerPreset_Click" IsEnabled="False" />
+                                                <ToggleButton x:Name="EqPresetCustom" Tag="Custom" Content="Custom" Style="{StaticResource DesignChipToggle}" FontSize="12" Padding="14,6" IsEnabled="False" IsHitTestVisible="False" IsTabStop="False" ToolTipService.ToolTip="Highlights when bands do not match a preset" />
+                                                <Button x:Name="EqResetButton" Click="EqResetButton_Click" Style="{StaticResource DesignSecondaryButton}" CornerRadius="14" Padding="14,6" ToolTipService.ToolTip="Zero all bands and preamp" IsEnabled="False">
                                                     <StackPanel Orientation="Horizontal" Spacing="6">
                                                         <FontIcon Glyph="&#xE777;" FontSize="12" />
-                                                        <TextBlock Text="Reset" />
+                                                        <TextBlock Text="Reset" FontSize="12" FontWeight="SemiBold" />
                                                     </StackPanel>
                                                 </Button>
-                                            </StackPanel>
+                                            </local:ChipWrapPanel>
+                                            <Grid ColumnSpacing="12" Opacity="0.55">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="56" />
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Grid.Column="0" Text="Preamp" Style="{StaticResource CaptionText}" VerticalAlignment="Center" />
+                                                <Slider x:Name="EqPreampSlider" Grid.Column="1" Minimum="-12" Maximum="0" Value="0" StepFrequency="1" VerticalAlignment="Center" ValueChanged="EqPreampSlider_ValueChanged" ToolTipService.ToolTip="Reduce signal before the bands to give boosts headroom" IsEnabled="False" />
+                                                <TextBlock x:Name="EqPreampValueText" Grid.Column="2" Text="0 dB" FontSize="12" Foreground="{ThemeResource TextDisabledBrush}" VerticalAlignment="Center" />
+                                            </Grid>
+                                            <TextBlock Text="Bands unlock once the audio effect ships. Preset chips and the reset action stay disabled until then." Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
                                         </StackPanel>
-                                        <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
-                                            <TextBlock Text="Preamp" Style="{StaticResource CaptionText}" Width="60" VerticalAlignment="Center" />
-                                            <Slider x:Name="EqPreampSlider" Minimum="-12" Maximum="0" Value="0" StepFrequency="1" Width="200" VerticalAlignment="Center" ValueChanged="EqPreampSlider_ValueChanged" ToolTipService.ToolTip="Reduce signal before the bands to give boosts headroom" IsEnabled="False" />
-                                            <TextBlock x:Name="EqPreampValueText" Text="0 dB" Width="56" VerticalAlignment="Center" />
-                                        </StackPanel>
-                                        <StackPanel x:Name="EqualizerBars" Orientation="Horizontal" Spacing="10" HorizontalAlignment="Left" />
-                                    </StackPanel>
+                                        <Grid x:Name="EqualizerBars" Grid.Column="1" Opacity="0.55" VerticalAlignment="Top" />
+                                    </Grid>
                                 </Border>
                             </StackPanel>
 
@@ -1810,22 +1864,25 @@
                                 <StackPanel x:Name="SetSecIntegrations" Spacing="16">
                                     <Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="28"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Border Width="28" Height="28" CornerRadius="8" Background="{ThemeResource AccentSoftBrush}"><FontIcon Glyph="&#xE71B;" FontSize="14" Foreground="{ThemeResource AccentBrush}"/></Border><TextBlock Grid.Column="1" Text="Integrations" Style="{StaticResource TitleH2}"/><Border Grid.Column="2" Height="1" Background="{ThemeResource StrokeBrush}" VerticalAlignment="Center"/></Grid>
                                     <Border Style="{StaticResource SettingsCard}" Translation="0,0,4"><Border.Shadow><ThemeShadow/></Border.Shadow><StackPanel>
-                                        <Border x:Name="SettingsCatalogRegionCard" Visibility="Collapsed" BorderThickness="0" Padding="0,0,0,16"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><StackPanel Spacing="4"><TextBlock Text="Catalog region" Style="{StaticResource BodyStrong}"/><TextBlock Text="Which country's charts and featured music appear on Home." Style="{StaticResource CaptionText}" TextWrapping="Wrap"/></StackPanel><ComboBox x:Name="DiscoverStorefrontSelector" Grid.Column="1" MinWidth="160" SelectionChanged="DiscoverStorefront_SelectionChanged"/></Grid></Border>
                                         <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><StackPanel Spacing="4"><TextBlock Text="Discord Rich Presence" Style="{StaticResource BodyStrong}"/><TextBlock Text="Show what you're listening to. Needs Discord running." Style="{StaticResource CaptionText}" TextWrapping="Wrap"/></StackPanel><ToggleSwitch x:Name="DiscordPresenceSwitch" Grid.Column="1" Toggled="SettingsToggle_Toggled" OnContent="" OffContent="" MinWidth="0"/></Grid>
                                         <Border Height="1" Background="{ThemeResource DividerBrush}" Margin="0,16"/>
-                                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><StackPanel Spacing="4"><TextBlock Text="Windows media controls" Style="{StaticResource BodyStrong}"/><TextBlock Text="System play/pause and media keys (SMTC)." Style="{StaticResource CaptionText}"/></StackPanel><ToggleSwitch x:Name="WindowsMediaControlsSwitch" Grid.Column="1" IsOn="True" Toggled="SettingsToggle_Toggled" OnContent="" OffContent="" MinWidth="0"/></Grid>
+                                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><StackPanel Spacing="4"><TextBlock Text="Windows media controls" Style="{StaticResource BodyStrong}"/><TextBlock Text="System play/pause and media keys (SMTC)." Style="{StaticResource CaptionText}" TextWrapping="Wrap"/></StackPanel><ToggleSwitch x:Name="WindowsMediaControlsSwitch" Grid.Column="1" IsOn="True" Toggled="SettingsToggle_Toggled" OnContent="" OffContent="" MinWidth="0"/></Grid>
                                         <Border Height="1" Background="{ThemeResource DividerBrush}" Margin="0,16"/>
-                                        <Grid x:Name="SettingsCatalogRegionSummaryRow" Opacity="0.45"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><StackPanel Spacing="4"><TextBlock Text="Catalog region" Style="{StaticResource BodyStrong}"/><TextBlock Text="Charts and featured music on Home." Style="{StaticResource CaptionText}"/></StackPanel><Border Grid.Column="1" BorderBrush="{ThemeResource StrokeBrush}" BorderThickness="1" CornerRadius="14" Padding="12,5" VerticalAlignment="Center"><TextBlock x:Name="SettingsCatalogRegionSummaryText" Text="Needs Account" FontSize="12" FontWeight="SemiBold" Foreground="{ThemeResource TextTertiaryBrush}"/></Border></Grid>
+                                        <Grid x:Name="SettingsCatalogRegionSummaryRow" Opacity="0.45"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><StackPanel Spacing="4"><TextBlock Text="Catalog region" Style="{StaticResource BodyStrong}"/><TextBlock Text="Charts and featured music on Home." Style="{StaticResource CaptionText}" TextWrapping="Wrap"/></StackPanel><Border Grid.Column="1" BorderBrush="{ThemeResource StrokeBrush}" BorderThickness="1" CornerRadius="14" Padding="12,5" VerticalAlignment="Center"><TextBlock x:Name="SettingsCatalogRegionSummaryText" Text="Needs Account" FontSize="12" FontWeight="SemiBold" Foreground="{ThemeResource TextTertiaryBrush}"/></Border></Grid>
                                     </StackPanel></Border>
                                 </StackPanel>
 
                                 <StackPanel x:Name="SetSecAbout" Grid.Column="1" Spacing="16">
                                     <Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="28"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Border Width="28" Height="28" CornerRadius="8" Background="{ThemeResource AccentSoftBrush}"><FontIcon Glyph="&#xE946;" FontSize="14" Foreground="{ThemeResource AccentBrush}"/></Border><TextBlock Grid.Column="1" Text="About &amp; data" Style="{StaticResource TitleH2}"/><Border Grid.Column="2" Height="1" Background="{ThemeResource StrokeBrush}" VerticalAlignment="Center"/></Grid>
-                                    <Border Style="{StaticResource SettingsCard}" Translation="0,0,4"><Border.Shadow><ThemeShadow/></Border.Shadow><StackPanel Spacing="16">
-                                        <Grid ColumnSpacing="14"><Grid.ColumnDefinitions><ColumnDefinition Width="48"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Border Width="48" Height="48" CornerRadius="12"><Border.Background><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#FF0097B2" Offset="0"/><GradientStop Color="#FF00B8D4" Offset="1"/></LinearGradientBrush></Border.Background><TextBlock Text="&#x266A;" FontSize="24" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock Text="Last Music Player 1.0.0" FontSize="16" FontWeight="SemiBold"/><TextBlock x:Name="AboutDbStats" Text="Windows App SDK 1.8 · x64 · C++/WinRT · SQLite 3" Style="{StaticResource CaptionText}" TextWrapping="Wrap"/></StackPanel></Grid>
-                                        <StackPanel Orientation="Horizontal" Spacing="10"><Button x:Name="OpenDataFolderButton" Click="OpenDataFolder_Click" Style="{StaticResource DesignSecondaryButton}"><StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xED43;" FontSize="14"/><TextBlock Text="Open data folder"/></StackPanel></Button><Button x:Name="LicensesButton" Click="ShowLicenses_Click" Style="{StaticResource DesignSecondaryButton}" Content="Licenses &amp; credits"/><Button x:Name="ResetDefaultsButton" Click="ResetDefaults_Click" Style="{StaticResource DesignSecondaryButton}" Content="Reset to defaults"/></StackPanel>
-                                        <Border BorderBrush="#47D83B3B" BorderThickness="1" Background="#0AD83B3B" CornerRadius="10" Padding="16,14"><StackPanel Spacing="14"><Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><FontIcon Glyph="&#xE74D;" FontSize="16" Foreground="{ThemeResource DangerBrush}" VerticalAlignment="Center"/><StackPanel Grid.Column="1"><TextBlock Text="Clean up everything" FontWeight="SemiBold" Foreground="{ThemeResource DangerBrush}"/><TextBlock Text="Irreversible. Wipes library, caches, history, queues, settings and credentials." Style="{StaticResource CaptionText}" TextWrapping="Wrap"/><TextBlock x:Name="WipeAllDataStatusText" Style="{StaticResource CaptionText}" Visibility="Collapsed"/></StackPanel><Button x:Name="WipeAllDataRevealButton" Grid.Column="2" Click="WipeAllDataReveal_Click" Content="Clean up…" Background="{ThemeResource SurfaceBrush}" BorderBrush="#59D83B3B" BorderThickness="1" Foreground="{ThemeResource DangerBrush}" CornerRadius="6" Padding="14,7" FontSize="12" FontWeight="SemiBold"/></Grid><Grid x:Name="WipeAllDataConfirmPanel" Visibility="Collapsed" Padding="0,14,0,0" ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="150"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><Border Height="1" Background="#33D83B3B" Grid.ColumnSpan="3" VerticalAlignment="Top" Margin="0,-14,0,0"/><TextBlock Text="Type CLEAN UP to confirm. The app restarts empty." FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}" TextWrapping="Wrap" VerticalAlignment="Center"/><TextBox x:Name="WipeAllDataConfirmBox" Grid.Column="1" PlaceholderText="CLEAN UP" TextChanged="WipeAllDataConfirm_TextChanged"/><Button x:Name="WipeAllDataButton" Grid.Column="2" Click="WipeAllData_Click" Content="Clean up" Background="{ThemeResource DangerBrush}" Foreground="White" BorderThickness="0" CornerRadius="6" Padding="16,7" FontSize="12" FontWeight="SemiBold" IsEnabled="False"/></Grid></StackPanel></Border>
-                                    </StackPanel></Border>
+                                    <!-- Rows rather than a stack, so the danger box stays pinned to
+                                         the bottom of the card the way the reference's margin-top:auto
+                                         puts it, however tall the Integrations card next to it grows. -->
+                                    <Border Style="{StaticResource SettingsCard}" Translation="0,0,4"><Border.Shadow><ThemeShadow/></Border.Shadow><Grid RowSpacing="16">
+                                        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                                        <Grid Grid.Row="0" ColumnSpacing="14"><Grid.ColumnDefinitions><ColumnDefinition Width="48"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Border Width="48" Height="48" CornerRadius="12"><Border.Background><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#FF0097B2" Offset="0"/><GradientStop Color="#FF00B8D4" Offset="1"/></LinearGradientBrush></Border.Background><TextBlock Text="&#x266A;" FontSize="24" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock Text="Last Music Player 1.0.0" FontSize="16" FontWeight="SemiBold"/><TextBlock x:Name="AboutDbStats" Text="Windows App SDK 1.8 · x64 · C++/WinRT · SQLite 3" Style="{StaticResource CaptionText}" TextWrapping="Wrap"/></StackPanel></Grid>
+                                        <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="10"><Button x:Name="OpenDataFolderButton" Click="OpenDataFolder_Click" Style="{StaticResource DesignSecondaryButton}"><StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xED43;" FontSize="14"/><TextBlock Text="Open data folder"/></StackPanel></Button><Button x:Name="LicensesButton" Click="ShowLicenses_Click" Style="{StaticResource DesignSecondaryButton}" Content="Licenses &amp; credits"/><Button x:Name="ResetDefaultsButton" Click="ResetDefaults_Click" Style="{StaticResource DesignSecondaryButton}" Content="Reset to defaults"/></StackPanel>
+                                        <Border Grid.Row="2" VerticalAlignment="Bottom" BorderBrush="#47D83B3B" BorderThickness="1" Background="#0AD83B3B" CornerRadius="10" Padding="16,14"><StackPanel Spacing="14"><Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><FontIcon Glyph="&#xE74D;" FontSize="16" Foreground="{ThemeResource DangerBrush}" VerticalAlignment="Center"/><StackPanel Grid.Column="1"><TextBlock Text="Clean up everything" FontWeight="SemiBold" Foreground="{ThemeResource DangerBrush}"/><TextBlock Text="Irreversible. Wipes library, caches, history, queues, settings and credentials." Style="{StaticResource CaptionText}" TextWrapping="Wrap"/><TextBlock x:Name="WipeAllDataStatusText" Style="{StaticResource CaptionText}" Visibility="Collapsed"/></StackPanel><Button x:Name="WipeAllDataRevealButton" Grid.Column="2" Click="WipeAllDataReveal_Click" Content="Clean up…" Background="{ThemeResource SurfaceBrush}" BorderBrush="#59D83B3B" BorderThickness="1" Foreground="{ThemeResource DangerBrush}" CornerRadius="6" Padding="14,7" FontSize="12" FontWeight="SemiBold"/></Grid><Grid x:Name="WipeAllDataConfirmPanel" Visibility="Collapsed" Padding="0,14,0,0" ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="150"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><Border Height="1" Background="#33D83B3B" Grid.ColumnSpan="3" VerticalAlignment="Top" Margin="0,-14,0,0"/><TextBlock Text="Type CLEAN UP to confirm. The app restarts empty." FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}" TextWrapping="Wrap" VerticalAlignment="Center"/><TextBox x:Name="WipeAllDataConfirmBox" Grid.Column="1" PlaceholderText="CLEAN UP" TextChanged="WipeAllDataConfirm_TextChanged"/><Button x:Name="WipeAllDataButton" Grid.Column="2" Click="WipeAllData_Click" Content="Clean up" Background="{ThemeResource DangerBrush}" Foreground="White" BorderThickness="0" CornerRadius="6" Padding="16,7" FontSize="12" FontWeight="SemiBold" IsEnabled="False"/></Grid></StackPanel></Border>
+                                    </Grid></Border>
                                 </StackPanel>
                             </Grid>
 
@@ -2078,7 +2135,7 @@
                 </Grid>
 
                 <!-- ========== LIBRARY VIEW ========== -->
-                <Grid x:Name="LibraryViewContainer" Visibility="Collapsed" Background="{ThemeResource ContentCanvasBrush}" Margin="-16,-24,-16,0" Padding="24,40,16,0">
+                <Grid x:Name="LibraryViewContainer" Visibility="Collapsed" Background="{ThemeResource ContentCanvasBrush}" Margin="-16,-24,-16,0" Padding="16,40,16,0">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" /> <!-- Title block -->
                         <RowDefinition Height="Auto" /> <!-- Tabs -->
@@ -2091,10 +2148,12 @@
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <StackPanel Grid.Column="0" Spacing="4" Margin="0,0,16,0">
+                        <StackPanel Grid.Column="0" Spacing="4" Margin="0,0,20,0">
                             <TextBlock Text="YOUR COLLECTION" Style="{StaticResource EyebrowText}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
                             <TextBlock Text="Library" Style="{StaticResource TitleH1}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
-                            <StackPanel Orientation="Horizontal" Spacing="10">
+                            <!-- Wraps rather than clipping when the header is narrow, matching
+                                 the reference's flex-wrap metrics line. -->
+                            <local:ChipWrapPanel HorizontalSpacing="10" VerticalSpacing="4">
                                 <TextBlock x:Name="LibraryTrackMetric" Text="0 tracks" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" />
                                 <Ellipse Width="3" Height="3" Fill="{ThemeResource PlaceholderGlyphBrush}" VerticalAlignment="Center" />
                                 <TextBlock x:Name="LibraryAlbumMetric" Text="0 albums" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" />
@@ -2105,10 +2164,10 @@
                                 <Ellipse Width="3" Height="3" Fill="{ThemeResource PlaceholderGlyphBrush}" VerticalAlignment="Center" />
                                 <TextBlock Text="scanned recently" FontSize="13" Foreground="{ThemeResource TextTertiaryBrush}" />
                                 <HyperlinkButton Content="Rescan" Click="SongsRescan_Click" Padding="0" MinHeight="0" FontSize="13" FontWeight="SemiBold" Foreground="{ThemeResource AccentBrush}" />
-                            </StackPanel>
+                            </local:ChipWrapPanel>
                             <TextBlock x:Name="LibraryImportStatusText" Text="" FontSize="12" FontWeight="SemiBold" Foreground="{ThemeResource AccentBrush}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
                         </StackPanel>
-                        <Button x:Name="LibraryAddButton" Grid.Column="1" Width="38" Height="38" Padding="0" Style="{StaticResource DesignPrimaryButton}" CornerRadius="10" VerticalAlignment="Center" AutomationProperties.Name="Add to library" ToolTipService.ToolTip="Add to library">
+                        <Button x:Name="LibraryAddButton" Grid.Column="1" Width="38" Height="38" Padding="0" Style="{StaticResource DesignPrimaryButton}" CornerRadius="10" VerticalAlignment="Bottom" AutomationProperties.Name="Add to library" ToolTipService.ToolTip="Add to library">
                             <FontIcon Glyph="&#xE710;" FontSize="15" />
                             <Button.Flyout>
                                 <Flyout Placement="BottomEdgeAlignedRight">
@@ -2143,7 +2202,7 @@
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
-                        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                        <local:ChipWrapPanel Grid.Row="0" HorizontalSpacing="6" VerticalSpacing="6">
                             <ToggleButton x:Name="LibTabPlaylists" Tag="Playlists" IsChecked="True" Style="{StaticResource DesignChipToggle}" Checked="LibraryTab_Checked"><StackPanel Orientation="Horizontal" Spacing="6"><TextBlock Text="Playlists"/><Border x:Name="LibTabPlaylistsBadge" Background="#38FFFFFF" CornerRadius="8" Padding="6,1"><TextBlock x:Name="LibTabPlaylistsCount" Text="0" FontSize="11" FontWeight="Bold"/></Border></StackPanel></ToggleButton>
                             <ToggleButton x:Name="LibTabHistory" Tag="History" Style="{StaticResource DesignChipToggle}" Checked="LibraryTab_Checked"><StackPanel Orientation="Horizontal" Spacing="6"><TextBlock Text="History"/><Border x:Name="LibTabHistoryBadge" Visibility="Collapsed" Background="#38FFFFFF" CornerRadius="8" Padding="6,1"><TextBlock x:Name="LibTabHistoryCount" Text="0" FontSize="11" FontWeight="Bold"/></Border></StackPanel></ToggleButton>
                             <ToggleButton x:Name="LibTabMostPlayed" Tag="MostPlayed" Style="{StaticResource DesignChipToggle}" Checked="LibraryTab_Checked"><StackPanel Orientation="Horizontal" Spacing="6"><TextBlock Text="Most Played"/><Border x:Name="LibTabMostPlayedBadge" Visibility="Collapsed" Background="#38FFFFFF" CornerRadius="8" Padding="6,1"><TextBlock x:Name="LibTabMostPlayedCount" Text="0" FontSize="11" FontWeight="Bold"/></Border></StackPanel></ToggleButton>
@@ -2154,13 +2213,13 @@
                                  shared with a dozen controls in this panel. The tab shows
                                  only what is on disk, which is what the label says. -->
                             <ToggleButton x:Name="LibTabSongs" Tag="Songs" Style="{StaticResource DesignChipToggle}" Checked="LibraryTab_Checked"><StackPanel Orientation="Horizontal" Spacing="6"><TextBlock Text="Offline"/><Border x:Name="LibTabSongsBadge" Visibility="Collapsed" Background="#38FFFFFF" CornerRadius="8" Padding="6,1"><TextBlock x:Name="LibTabSongsCount" Text="0" FontSize="11" FontWeight="Bold"/></Border></StackPanel></ToggleButton>
-                        </StackPanel>
-                        <StackPanel x:Name="LibraryPlaylistContextRow" Grid.Row="1" Orientation="Horizontal" Spacing="6" Margin="0,12,0,0">
+                        </local:ChipWrapPanel>
+                        <local:ChipWrapPanel x:Name="LibraryPlaylistContextRow" Grid.Row="1" HorizontalSpacing="6" VerticalSpacing="6" Margin="0,12,0,0">
                             <ToggleButton x:Name="LibPlaylistManualFilter" Tag="Manual" Content="Your playlists" IsChecked="True" Style="{StaticResource DesignChipToggle}" Padding="12,6" Checked="LibraryPlaylistFilter_Checked" />
                             <ToggleButton x:Name="LibPlaylistAutoFilter" Tag="Auto" Content="Auto mixes" Style="{StaticResource DesignChipToggle}" Padding="12,6" Checked="LibraryPlaylistFilter_Checked" />
-                        </StackPanel>
+                        </local:ChipWrapPanel>
                         <Grid x:Name="LibrarySongsContextRow" Grid.Row="1" Visibility="Collapsed" Margin="0,12,0,0">
-                            <StackPanel Orientation="Horizontal" Spacing="8">
+                            <local:ChipWrapPanel HorizontalSpacing="8" VerticalSpacing="8">
                                 <DropDownButton x:Name="SongsSortButton" Background="{ThemeResource SurfaceBrush}" BorderBrush="{ThemeResource HairlineStrongBrush}" BorderThickness="1" CornerRadius="8" Padding="12,6">
                                     <TextBlock x:Name="SongsSortLabel" Text="Date added" FontSize="13" FontWeight="SemiBold" />
                                     <DropDownButton.Flyout>
@@ -2191,10 +2250,10 @@
                                 </Button>
                                 <TextBlock x:Name="SongsSubtitle" Text="No tracks scanned yet" Visibility="Collapsed" />
                                 <Button x:Name="SongsRescanButton" Click="SongsRescan_Click" Visibility="Collapsed" />
-                            </StackPanel>
+                            </local:ChipWrapPanel>
                         </Grid>
                         <Grid x:Name="LibraryHistoryContextRow" Grid.Row="1" Visibility="Collapsed" Margin="0,12,0,0">
-                            <StackPanel Orientation="Horizontal" Spacing="8">
+                            <local:ChipWrapPanel HorizontalSpacing="8" VerticalSpacing="8">
                                 <DropDownButton x:Name="HistorySortButton" Background="{ThemeResource SurfaceBrush}" BorderBrush="{ThemeResource HairlineStrongBrush}" BorderThickness="1" CornerRadius="8" Padding="12,6" AutomationProperties.Name="Sort library tracks">
                                     <TextBlock x:Name="HistorySortLabel" Text="Date added" FontSize="13" FontWeight="SemiBold" />
                                     <DropDownButton.Flyout>
@@ -2223,7 +2282,7 @@
                                     </StackPanel>
                                 </Button>
                                 <TextBlock x:Name="HistoryCountText" Text="0 tracks" Visibility="Collapsed" />
-                            </StackPanel>
+                            </local:ChipWrapPanel>
                         </Grid>
                         <Border Grid.Row="2" Height="1" Background="{ThemeResource HairlineStrongBrush}" Margin="0,12,0,0" />
                     </Grid>
@@ -2257,14 +2316,6 @@
                                             </Border.Background>
                                             <Grid>
                                                 <FontIcon Glyph="{x:Bind ArtworkGlyph}" Visibility="Collapsed" />
-                                                <Border IsHitTestVisible="False" CornerRadius="{StaticResource Radius2xl}" Opacity="{x:Bind GeneratedArtworkOpacity}">
-                                                    <Border.Background>
-                                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                                                            <GradientStop Color="#1AFFFFFF" Offset="0.0"/>
-                                                            <GradientStop Color="#00FFFFFF" Offset="0.4"/>
-                                                        </LinearGradientBrush>
-                                                    </Border.Background>
-                                                </Border>
                                                 <Image Source="/Assets/LibraryStripeOverlay.svg" Stretch="Fill" Opacity="{x:Bind GeneratedArtworkOpacity}" IsHitTestVisible="False" />
                                                 <TextBlock Text="album art" Visibility="Collapsed" />
                                                 <TextBlock Text="album art" FontFamily="Consolas" FontSize="9.5" CharacterSpacing="80" Foreground="White" Opacity="{x:Bind GeneratedArtworkOpacity}" VerticalAlignment="Bottom" Margin="12" />
@@ -2272,8 +2323,15 @@
                                             </Grid>
                                         </Border>
                                         <TextBlock Text="{x:Bind Title}" Style="{StaticResource BodyStrong}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
-                                        <TextBlock Text="{x:Bind Artist}" Style="{StaticResource CaptionText}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
-                                        <TextBlock Text="{x:Bind SourceLabel}" Style="{StaticResource CaptionText}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                                        <!-- Subtitle and source badge share one line, as in the reference.
+                                             The badge only appears when the item did not come from this PC. -->
+                                        <Grid ColumnSpacing="7" Margin="0,2,0,0">
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                            <TextBlock Text="{x:Bind Artist}" Style="{StaticResource CaptionText}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" VerticalAlignment="Center" />
+                                            <Border Grid.Column="1" Visibility="{x:Bind SourceBadgeVisibility}" Background="{ThemeResource AccentSoftBrush}" CornerRadius="999" Padding="7,2" VerticalAlignment="Center">
+                                                <TextBlock Text="{x:Bind SourceBadgeText}" FontSize="9" FontWeight="Bold" CharacterSpacing="60" Foreground="{ThemeResource AccentBrush}" />
+                                            </Border>
+                                        </Grid>
                                     </StackPanel>
                                 </DataTemplate>
                             </GridView.ItemTemplate>
@@ -2293,10 +2351,18 @@
                                                 <MenuFlyoutItem Text="Shuffle" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="LibraryGroupMenuShuffle_Click" />
                                             </MenuFlyout>
                                         </StackPanel.ContextFlyout>
-                                        <Border Width="132" Height="132" CornerRadius="66" Background="{ThemeResource NeutralFillBrush}" Margin="33,0,33,12" HorizontalAlignment="Center" Translation="0,0,12">
+                                        <!-- Artist tiles carry no source badge in the reference: the
+                                             circle, name and album count are the whole card. -->
+                                        <Border Width="132" Height="132" CornerRadius="66" BorderBrush="{ThemeResource StrokeBrush}" BorderThickness="1" Margin="33,0,33,12" HorizontalAlignment="Center" Translation="0,0,12">
+                                            <Border.Background>
+                                                <LinearGradientBrush StartPoint="0.32,0.03" EndPoint="0.68,0.97">
+                                                    <GradientStop Color="{ThemeResource ArtistTileGradient1}" Offset="0.0" />
+                                                    <GradientStop Color="{ThemeResource ArtistTileGradient2}" Offset="1.0" />
+                                                </LinearGradientBrush>
+                                            </Border.Background>
                                             <Border.Shadow><ThemeShadow /></Border.Shadow>
                                             <Grid>
-                                                <FontIcon Glyph="&#xE77B;" FontSize="44" Foreground="{ThemeResource PlaceholderGlyphBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                <FontIcon Glyph="&#xE77B;" FontSize="40" Foreground="{ThemeResource PlaceholderGlyphBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
                                                 <Image Source="{x:Bind AlbumArt}" Stretch="UniformToFill"
                                                            HorizontalAlignment="Center" VerticalAlignment="Center"
                                                            Loaded="AccountArtwork_Loaded" />
@@ -2304,9 +2370,6 @@
                                         </Border>
                                         <TextBlock Text="{x:Bind Title}" Style="{StaticResource BodyStrong}" HorizontalAlignment="Center" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
                                         <TextBlock Text="{x:Bind Artist}" Style="{StaticResource CaptionText}" HorizontalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                                        <Border Background="{ThemeResource NeutralFillBrush}" BorderBrush="{ThemeResource StrokeBrush}" BorderThickness="1" CornerRadius="999" Padding="8,2" HorizontalAlignment="Center" Margin="0,6,0,0">
-                                            <TextBlock Text="{x:Bind SourceLabel}" FontSize="10" FontWeight="SemiBold" Foreground="{ThemeResource TextSecondaryBrush}" />
-                                        </Border>
                                     </StackPanel>
                                 </DataTemplate>
                             </GridView.ItemTemplate>
@@ -2518,8 +2581,15 @@
                                                 </Grid>
                                             </Border>
                                             <TextBlock Text="{x:Bind Title}" Style="{StaticResource BodyStrong}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
-                                            <TextBlock Text="{x:Bind Artist}" Style="{StaticResource CaptionText}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
-                                            <TextBlock Text="{x:Bind SourceLabel}" Style="{StaticResource CaptionText}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                                            <!-- Subtitle and source badge share one line, as in the reference.
+                                                 The badge only appears when the item did not come from this PC. -->
+                                            <Grid ColumnSpacing="7" Margin="0,2,0,0">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                                <TextBlock Text="{x:Bind Artist}" Style="{StaticResource CaptionText}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" VerticalAlignment="Center" />
+                                                <Border Grid.Column="1" Visibility="{x:Bind SourceBadgeVisibility}" Background="{ThemeResource AccentSoftBrush}" CornerRadius="999" Padding="7,2" VerticalAlignment="Center">
+                                                    <TextBlock Text="{x:Bind SourceBadgeText}" FontSize="9" FontWeight="Bold" CharacterSpacing="60" Foreground="{ThemeResource AccentBrush}" />
+                                                </Border>
+                                            </Grid>
                                         </StackPanel>
                                     </DataTemplate>
                                 </GridView.ItemTemplate>
@@ -2767,8 +2837,15 @@
                                                     </Grid>
                                                 </Border>
                                                 <TextBlock Text="{x:Bind Title}" Style="{StaticResource BodyStrong}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
-                                                <TextBlock Text="{x:Bind Artist}" Style="{StaticResource CaptionText}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
-                                                <TextBlock Text="{x:Bind SourceLabel}" Style="{StaticResource CaptionText}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                                                <!-- Subtitle and source badge share one line, as in the reference.
+                                                     The badge only appears when the item did not come from this PC. -->
+                                                <Grid ColumnSpacing="7" Margin="0,2,0,0">
+                                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                                    <TextBlock Text="{x:Bind Artist}" Style="{StaticResource CaptionText}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" VerticalAlignment="Center" />
+                                                    <Border Grid.Column="1" Visibility="{x:Bind SourceBadgeVisibility}" Background="{ThemeResource AccentSoftBrush}" CornerRadius="999" Padding="7,2" VerticalAlignment="Center">
+                                                        <TextBlock Text="{x:Bind SourceBadgeText}" FontSize="9" FontWeight="Bold" CharacterSpacing="60" Foreground="{ThemeResource AccentBrush}" />
+                                                    </Border>
+                                                </Grid>
                                             </StackPanel>
                                         </DataTemplate>
                                     </GridView.ItemTemplate>
@@ -2802,8 +2879,15 @@
                                                     </Grid>
                                                 </Border>
                                                 <TextBlock Text="{x:Bind Title}" Style="{StaticResource BodyStrong}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
-                                                <TextBlock Text="{x:Bind Artist}" Style="{StaticResource CaptionText}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
-                                                <TextBlock Text="{x:Bind SourceLabel}" Style="{StaticResource CaptionText}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                                                <!-- Subtitle and source badge share one line, as in the reference.
+                                                     The badge only appears when the item did not come from this PC. -->
+                                                <Grid ColumnSpacing="7" Margin="0,2,0,0">
+                                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                                    <TextBlock Text="{x:Bind Artist}" Style="{StaticResource CaptionText}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" VerticalAlignment="Center" />
+                                                    <Border Grid.Column="1" Visibility="{x:Bind SourceBadgeVisibility}" Background="{ThemeResource AccentSoftBrush}" CornerRadius="999" Padding="7,2" VerticalAlignment="Center">
+                                                        <TextBlock Text="{x:Bind SourceBadgeText}" FontSize="9" FontWeight="Bold" CharacterSpacing="60" Foreground="{ThemeResource AccentBrush}" />
+                                                    </Border>
+                                                </Grid>
                                             </StackPanel>
                                         </DataTemplate>
                                     </GridView.ItemTemplate>

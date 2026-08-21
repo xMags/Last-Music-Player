@@ -1,0 +1,13 @@
+namespace Last_Music_Player
+{
+    [default_interface]
+    runtimeclass ChipWrapPanel : Microsoft.UI.Xaml.Controls.Panel
+    {
+        ChipWrapPanel();
+
+        // Gap between chips on the same line.
+        Double HorizontalSpacing;
+        // Gap between wrapped lines.
+        Double VerticalSpacing;
+    }
+}
