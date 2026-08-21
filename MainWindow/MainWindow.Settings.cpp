@@ -443,21 +443,6 @@ namespace winrt::Last_Music_Player::implementation
             break;
         }
         m_suppressRemoteModeChange = false;
-        if (LibraryScopeSelector())
-        {
-            auto checked = [](winrt::Microsoft::UI::Xaml::Controls::Primitives::ToggleButton const& button)
-            {
-                if (!button) return false;
-                auto value = button.IsChecked();
-                return value && value.Value();
-            };
-            auto scopedTab = checked(LibTabSongs()) || checked(LibTabHistory()) || checked(LibTabPlaylists());
-            LibraryScopeSelector().Visibility(
-                remoteMusic.Mode() == RemoteAccessMode::Account && signedIn && scopedTab
-                ? Visibility::Visible
-                : Visibility::Collapsed);
-        }
-
         // Every sign-in, sign-out, mode change, restore, sync and wipe already
         // routes through here, so this is the one place the shell identity has
         // to be re-applied from.
@@ -911,11 +896,6 @@ namespace winrt::Last_Music_Player::implementation
             RemoteMusicServiceService().SetMode(LastMusicPlayer::Backend::RemoteAccessMode::LocalOnly);
             InvalidateRemoteScopeWork();
             DatabaseService().SetRemoteLibraryContext(L"LocalOnly");
-            m_libraryScope = L"All";
-            if (LibraryScopeSelector())
-            {
-                LibraryScopeSelector().SelectedIndex(0);
-            }
             m_remoteSearchCache.clear();
             MarkLibraryViewsDirty();
             operationLease.reset();
@@ -1059,14 +1039,6 @@ namespace winrt::Last_Music_Player::implementation
         else
         {
             DatabaseService().SetRemoteLibraryContext(std::wstring(LastMusicPlayer::Backend::RemoteAccessModeName(mode).c_str()));
-        }
-        if (mode != LastMusicPlayer::Backend::RemoteAccessMode::Account)
-        {
-            m_libraryScope = L"All";
-            if (LibraryScopeSelector())
-            {
-                LibraryScopeSelector().SelectedIndex(0);
-            }
         }
         m_remoteSearchCache.clear();
         MarkLibraryViewsDirty();
@@ -2302,8 +2274,6 @@ namespace winrt::Last_Music_Player::implementation
             m_songsResultsValid = true;
             m_homePlaySequence = 0;
             m_queue = {};
-            m_libraryScope = L"All";
-
             m_homeTracks.Clear();
             m_recentlyAddedTracks.Clear();
             m_homeMostPlayedTracks.Clear();

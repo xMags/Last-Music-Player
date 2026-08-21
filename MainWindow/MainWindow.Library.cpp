@@ -120,13 +120,6 @@ namespace winrt::Last_Music_Player::implementation
         setVisibility(LibGenresPanel(), tag == L"Genres" ? V::Visible : V::Collapsed);
         setVisibility(LibPlaylistsPanel(), tag == L"Playlists" ? V::Visible : V::Collapsed);
         UpdateLibraryHeaderMetrics();
-        auto scopedTab = tracksTab || tag == L"Playlists";
-        auto accountScopeAvailable = RemoteMusicServiceService().Mode() == LastMusicPlayer::Backend::RemoteAccessMode::Account
-            && RemoteMusicServiceService().IsModeAvailable(LastMusicPlayer::Backend::RemoteAccessMode::Account);
-        if (LibraryScopeSelector())
-        {
-            LibraryScopeSelector().Visibility(scopedTab && accountScopeAvailable ? V::Visible : V::Collapsed);
-        }
         UpdateLibraryActionButtons();
         if (!LibraryViewContainer() || LibraryViewContainer().Visibility() != V::Visible)
         {
@@ -333,23 +326,8 @@ namespace winrt::Last_Music_Player::implementation
         border.Background(gradient);
     }
 
-    void MainWindow::ResetLibraryScopeToAll()
-    {
-        if (m_libraryScope != L"All")
-        {
-            m_libraryScope = L"All";
-            m_librarySongsState = LoadState::Dirty;
-            m_libraryPlaylistsState = LoadState::Dirty;
-        }
-        if (LibraryScopeSelector() && LibraryScopeSelector().SelectedIndex() != 0)
-        {
-            LibraryScopeSelector().SelectedIndex(0);
-        }
-    }
-
     void MainWindow::OpenLibraryHistory()
     {
-        ResetLibraryScopeToAll();
         ShowPrimaryView(L"Library");
         HideLibraryDetail();
         if (!LibTabHistory())
@@ -370,7 +348,6 @@ namespace winrt::Last_Music_Player::implementation
 
     void MainWindow::OpenLibraryPlaylists(bool autoMixes)
     {
-        ResetLibraryScopeToAll();
         ShowPrimaryView(L"Library");
         HideLibraryDetail();
         if (!LibTabPlaylists())
@@ -480,46 +457,6 @@ namespace winrt::Last_Music_Player::implementation
         LibAutoPlaylistsGrid().Visibility(m_libraryPlaylistFilter == L"Auto" ? V::Visible : V::Collapsed);
         UpdateLibraryActionButtons();
     }
-
-    void MainWindow::LibraryScope_SelectionChanged(
-        winrt::Windows::Foundation::IInspectable const& sender,
-        winrt::Microsoft::UI::Xaml::Controls::SelectionChangedEventArgs const& args)
-    {
-        (void)sender;
-        (void)args;
-        if (!m_xamlReadyForEvents || !LibraryScopeSelector())
-        {
-            return;
-        }
-
-        auto selected = LibraryScopeSelector().SelectedItem().try_as<winrt::Microsoft::UI::Xaml::Controls::ComboBoxItem>();
-        auto scope = selected ? ReadTagString(selected.Tag()) : winrt::hstring{ L"All" };
-        auto nextScope = scope == L"Account" ? std::wstring{ L"Account" }
-            : (scope == L"OnThisPc" ? std::wstring{ L"OnThisPc" } : std::wstring{ L"All" });
-        if (m_libraryScope == nextScope)
-        {
-            return;
-        }
-
-        m_libraryScope = std::move(nextScope);
-        m_librarySongsState = LoadState::Dirty;
-        m_libraryPlaylistsState = LoadState::Dirty;
-        UpdateLibraryActionButtons();
-        if (!LibraryViewContainer() || LibraryViewContainer().Visibility() != winrt::Microsoft::UI::Xaml::Visibility::Visible)
-        {
-            return;
-        }
-        if (LibHistoryPanel().Visibility() == winrt::Microsoft::UI::Xaml::Visibility::Visible)
-        {
-            RunDetached(HydrateLibraryTabAsync(L"History", true));
-        }
-        else if (LibPlaylistsPanel().Visibility() == winrt::Microsoft::UI::Xaml::Visibility::Visible)
-        {
-            RunDetached(HydrateLibraryTabAsync(L"Playlists", true));
-        }
-    }
-
-
 
     namespace
     {
