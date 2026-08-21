@@ -339,6 +339,7 @@ namespace winrt::Last_Music_Player::implementation
             m_homeMixes[L"smart-recent"] = std::move(smartRecentlyAdded);
             RefreshAutoPlaylists();
             m_libraryPlaylistsState = LoadState::Loaded;
+            UpdateLibraryHeaderMetrics();
             LibraryImportStatusText().Text(L"");
             m_libraryTabsSkeleton.EndLoading();
             co_return;
@@ -369,6 +370,7 @@ namespace winrt::Last_Music_Player::implementation
                 m_albums.Append(copy);
             }
             m_libraryAlbumsState = LoadState::Loaded;
+            UpdateLibraryHeaderMetrics();
             LibraryImportStatusText().Text(L"");
             m_libraryTabsSkeleton.EndLoading();
             co_return;
@@ -399,6 +401,7 @@ namespace winrt::Last_Music_Player::implementation
                 m_artists.Append(copy);
             }
             m_libraryArtistsState = LoadState::Loaded;
+            UpdateLibraryHeaderMetrics();
             LibraryImportStatusText().Text(L"");
             m_libraryTabsSkeleton.EndLoading();
             co_return;
@@ -429,6 +432,7 @@ namespace winrt::Last_Music_Player::implementation
                 m_libraryGenres.Append(copy);
             }
             m_libraryGenresState = LoadState::Loaded;
+            UpdateLibraryHeaderMetrics();
             LibraryImportStatusText().Text(L"");
             m_libraryTabsSkeleton.EndLoading();
         }

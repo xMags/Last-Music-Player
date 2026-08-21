@@ -278,22 +278,102 @@ namespace winrt::Last_Music_Player::implementation
         AccountSignOutButton().IsEnabled(signedIn);
         AccountSyncButton().Visibility(signedIn ? Visibility::Visible : Visibility::Collapsed);
         AccountSyncButton().IsEnabled(status == AccountSessionStatus::Validated && !MusicSyncServiceService().IsSyncing());
-        // Which identity the app is presenting decides which half of the
-        // identity card is on screen: the rename box, or the read-only account
-        // profile. Never both, and never neither.
-        auto identity = detail::ResolveProfileIdentity();
-        auto usingAccountIdentity =
-            identity.Source == LastMusicPlayer::Backend::ProfileIdentitySource::Account;
+        auto activeMode = remoteMusic.Mode();
+
+        // The source cards and detail header are one state surface. Keep their
+        // labels derived from the same resolved mode used by the backend so a
+        // rejected setup attempt cannot leave a visually selected stale mode.
+        EnsureAccentBrushes();
+        auto makeBrush = [](std::uint8_t red, std::uint8_t green, std::uint8_t blue)
+        {
+            winrt::Windows::UI::Color color{};
+            color.A = 255;
+            color.R = red;
+            color.G = green;
+            color.B = blue;
+            return winrt::Microsoft::UI::Xaml::Media::SolidColorBrush{ color };
+        };
+        auto whiteBrush = makeBrush(255, 255, 255);
+        auto successBrush = makeBrush(111, 191, 115);
+        auto warningBrush = makeBrush(232, 163, 61);
+        auto mutedDotBrush = makeBrush(199, 205, 212);
+
+        auto applyCardState = [&](auto const& pill, auto const& icon, auto const& text,
+                                  bool selected, bool configured)
+        {
+            pill.Background(selected ? m_brushAccent : m_brushStroke);
+            icon.Visibility(selected ? Visibility::Visible : Visibility::Collapsed);
+            text.Text(selected ? L"ACTIVE" : (configured ? L"READY" : L"SET UP"));
+            text.Foreground(selected ? whiteBrush : m_brushGlyphIdle);
+        };
+
+        auto apiConfigured = remoteMusic.IsModeAvailable(RemoteAccessMode::ApiKey);
+        applyCardState(RemoteModeLocalStatePill(), RemoteModeLocalStateIcon(),
+            RemoteModeLocalStateText(), activeMode == RemoteAccessMode::LocalOnly, true);
+        applyCardState(RemoteModeAccountStatePill(), RemoteModeAccountStateIcon(),
+            RemoteModeAccountStateText(), activeMode == RemoteAccessMode::Account, signedIn);
+        applyCardState(RemoteModeApiKeyStatePill(), RemoteModeApiKeyStateIcon(),
+            RemoteModeApiKeyStateText(), activeMode == RemoteAccessMode::ApiKey, apiConfigured);
+
+        RemoteModeLocalStatusText().Text(
+            winrt::to_hstring(m_libraryStats.SongCount) + L" tracks indexed");
+        RemoteModeAccountStatusText().Text(signedIn
+            ? (profile.Username.empty() ? winrt::hstring{ L"Signed in" }
+                : winrt::hstring(L"Signed in as @" + std::wstring(profile.Username.c_str())))
+            : winrt::hstring{ available ? L"Not signed in" : L"Unavailable in this build" });
+        RemoteModeAccountStatusDot().Fill(signedIn ? successBrush : mutedDotBrush);
+        RemoteModeApiKeyStatusText().Text(apiConfigured ? L"Provider configured" : L"No provider configured");
+        RemoteModeApiKeyStatusDot().Fill(apiConfigured ? successBrush : mutedDotBrush);
+
+        switch (activeMode)
+        {
+        case RemoteAccessMode::Account:
+            SettingsSourceModeText().Text(L"Account");
+            SettingsSourceStatusDot().Fill(signedIn ? successBrush : warningBrush);
+            SettingsModeHeaderIcon().Glyph(L"\xE77B");
+            SettingsModeTitle().Text(L"Account connection");
+            SettingsModeStatusText().Text(signedIn ? L"Signed in" : L"Not connected");
+            SettingsModeStatusDot().Fill(signedIn ? successBrush : warningBrush);
+            break;
+        case RemoteAccessMode::ApiKey:
+            SettingsSourceModeText().Text(L"API key");
+            SettingsSourceStatusDot().Fill(apiConfigured ? successBrush : warningBrush);
+            SettingsModeHeaderIcon().Glyph(L"\xE72E");
+            SettingsModeTitle().Text(L"Provider connection");
+            SettingsModeStatusText().Text(apiConfigured ? L"Connected" : L"Not connected");
+            SettingsModeStatusDot().Fill(apiConfigured ? successBrush : warningBrush);
+            break;
+        default:
+            SettingsSourceModeText().Text(L"Offline");
+            SettingsSourceStatusDot().Fill(successBrush);
+            SettingsModeHeaderIcon().Glyph(L"\xED25");
+            SettingsModeTitle().Text(L"Offline library");
+            SettingsModeStatusText().Text(L"This PC only");
+            SettingsModeStatusDot().Fill(successBrush);
+            break;
+        }
+
+        // The active mode decides which detail body is present. Profile identity
+        // remains account-backed elsewhere in the shell, but it must not make an
+        // account detail panel appear while Offline or API-key mode is selected.
+        auto usingAccountIdentity = activeMode == RemoteAccessMode::Account;
         SettingsIdentityAccountPanel().Visibility(
             usingAccountIdentity ? Visibility::Visible : Visibility::Collapsed);
         SettingsIdentityManualPanel().Visibility(
-            usingAccountIdentity ? Visibility::Collapsed : Visibility::Visible);
+            activeMode == RemoteAccessMode::LocalOnly ? Visibility::Visible : Visibility::Collapsed);
+        SettingsIdentityCard().Visibility(
+            activeMode == RemoteAccessMode::ApiKey ? Visibility::Collapsed : Visibility::Visible);
+        winrt::Microsoft::UI::Xaml::CornerRadius identityCorners{};
+        identityCorners.TopLeft = 0.0;
+        identityCorners.TopRight = 0.0;
+        identityCorners.BottomRight = activeMode == RemoteAccessMode::Account ? 0.0 : 12.0;
+        identityCorners.BottomLeft = activeMode == RemoteAccessMode::Account ? 0.0 : 12.0;
+        SettingsIdentityCard().CornerRadius(identityCorners);
 
         // Only the active mode's connection card is on screen. The other mode's
         // credentials are untouched in the credential store, so switching back
         // needs no re-entry; setting one up for the first time happens in the
         // dialogs in MainWindow.ModeSetup.cpp.
-        auto activeMode = remoteMusic.Mode();
         SettingsAccountConnectionCard().Visibility(
             activeMode == RemoteAccessMode::Account ? Visibility::Visible : Visibility::Collapsed);
         SettingsApiKeyCard().Visibility(
@@ -1056,8 +1136,16 @@ namespace winrt::Last_Music_Player::implementation
 
     void MainWindow::ApplySettingsResponsiveLayout(double width)
     {
-        constexpr double compactBreakpoint = 1500.0;
+        constexpr double compactBreakpoint = 1100.0;
         bool compact = width < compactBreakpoint;
+
+        auto leftRailWidth = width >= 1500.0 ? 300.0 : 240.0;
+        auto rightRailWidth = width >= 1500.0 ? 380.0 : (width >= 1100.0 ? 300.0 : 0.0);
+        auto settingsWidth = (std::max)(0.0, width - leftRailWidth - rightRailWidth - 36.0);
+        auto sourceCardWidth = (std::max)(220.0, (settingsWidth - 28.0) / 3.0);
+        RemoteModeLocal().Width(sourceCardWidth);
+        RemoteModeAccount().Width(sourceCardWidth);
+        RemoteModeApiKey().Width(sourceCardWidth);
 
         using winrt::Microsoft::UI::Xaml::FrameworkElement;
         using winrt::Microsoft::UI::Xaml::HorizontalAlignment;
@@ -1866,12 +1954,52 @@ namespace winrt::Last_Music_Player::implementation
         co_await ApplyOutputDeviceAsync();
     }
 
+    void MainWindow::WipeAllDataReveal_Click(
+        winrt::Windows::Foundation::IInspectable const& sender,
+        winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
+    {
+        (void)sender;
+        (void)args;
+        if (m_cleanupInProgress)
+        {
+            return;
+        }
+
+        auto expanded = WipeAllDataConfirmPanel().Visibility()
+            == winrt::Microsoft::UI::Xaml::Visibility::Visible;
+        WipeAllDataConfirmPanel().Visibility(expanded
+            ? winrt::Microsoft::UI::Xaml::Visibility::Collapsed
+            : winrt::Microsoft::UI::Xaml::Visibility::Visible);
+        WipeAllDataRevealButton().Content(winrt::box_value(winrt::hstring{
+            expanded ? L"Clean up\x2026" : L"Cancel" }));
+        if (expanded)
+        {
+            WipeAllDataConfirmBox().Text(L"");
+            WipeAllDataButton().IsEnabled(false);
+        }
+    }
+
+    void MainWindow::WipeAllDataConfirm_TextChanged(
+        winrt::Windows::Foundation::IInspectable const& sender,
+        winrt::Microsoft::UI::Xaml::Controls::TextChangedEventArgs const& args)
+    {
+        (void)args;
+        auto box = sender.try_as<winrt::Microsoft::UI::Xaml::Controls::TextBox>();
+        WipeAllDataButton().IsEnabled(
+            !m_cleanupInProgress && box && box.Text() == L"CLEAN UP");
+    }
+
     winrt::Windows::Foundation::IAsyncAction MainWindow::WipeAllData_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
     {
         (void)sender;
         (void)args;
         if (m_cleanupInProgress)
         {
+            co_return;
+        }
+        if (!WipeAllDataConfirmBox() || WipeAllDataConfirmBox().Text() != L"CLEAN UP")
+        {
+            WipeAllDataButton().IsEnabled(false);
             co_return;
         }
 

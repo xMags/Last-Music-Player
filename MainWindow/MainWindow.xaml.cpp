@@ -1044,6 +1044,15 @@ namespace winrt::Last_Music_Player::implementation
             row.container.Visibility(key == row.id ? Visibility::Visible : Visibility::Collapsed);
         }
 
+        auto usesRedesignedChrome = key == L"Library" || key == L"Settings";
+        auto optionalTransportVisibility = usesRedesignedChrome
+            ? Visibility::Collapsed
+            : Visibility::Visible;
+        CastButton().Visibility(optionalTransportVisibility);
+        ExpandButton().Visibility(optionalTransportVisibility);
+        MuteButton().Visibility(optionalTransportVisibility);
+        VolumeControlHost().Visibility(optionalTransportVisibility);
+
         // Not a destination of its own: the catalog surface opens over Home and
         // keeps Home selected in the rail, so every page switch closes it and
         // the catalog reopens it for itself.
@@ -1087,11 +1096,10 @@ namespace winrt::Last_Music_Player::implementation
     void MainWindow::Card_PointerEntered(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Input::PointerRoutedEventArgs const& e)
     {
         (void)e;
-        // -2px Y translate is a subtle hover "lift" — keep it; this is the
-        // desktop affordance that compensates for the removed play overlay.
+        // The redesign uses a -3px hover lift on every collection tile.
         if (auto root = sender.try_as<winrt::Microsoft::UI::Xaml::UIElement>())
         {
-            root.Translation(winrt::Windows::Foundation::Numerics::float3{ 0.0f, -2.0f, 0.0f });
+            root.Translation(winrt::Windows::Foundation::Numerics::float3{ 0.0f, -3.0f, 0.0f });
         }
     }
 
@@ -1112,7 +1120,7 @@ namespace winrt::Last_Music_Player::implementation
         {
             if (auto root = sender.try_as<winrt::Microsoft::UI::Xaml::UIElement>())
             {
-                root.Translation(winrt::Windows::Foundation::Numerics::float3{ 0.0f, -2.0f, 0.0f });
+                root.Translation(winrt::Windows::Foundation::Numerics::float3{ 0.0f, -3.0f, 0.0f });
             }
         }
         catch (...) {}

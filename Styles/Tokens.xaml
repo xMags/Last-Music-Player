@@ -19,10 +19,16 @@
             <SolidColorBrush x:Key="AccentBrushLight" Color="#FF00B8D4" />
             <SolidColorBrush x:Key="AccentSoftBrush" Color="#1F0097B2" />
             <SolidColorBrush x:Key="AccentSoft2Brush" Color="#330097B2" />
+            <SolidColorBrush x:Key="PrimaryActionBrush" Color="#FF0078D4" />
+            <SolidColorBrush x:Key="PrimaryActionHoverBrush" Color="#FF0069B8" />
 
             <!-- Surfaces -->
             <SolidColorBrush x:Key="SurfaceBrush" Color="#FFFFFFFF" />
             <SolidColorBrush x:Key="SurfaceAltBrush" Color="#FFFBFBFD" />
+            <SolidColorBrush x:Key="CanvasBrush" Color="#FFF3F3F3" />
+            <SolidColorBrush x:Key="ContentCanvasBrush" Color="#FFF7F7F8" />
+            <SolidColorBrush x:Key="TableHeaderBrush" Color="#FFFBFBFD" />
+            <SolidColorBrush x:Key="SecondaryButtonBrush" Color="#FFFDFDFD" />
             <AcrylicBrush x:Key="CarouselArrowBackgroundBrush"
                           TintColor="#FFFFFFFF"
                           TintOpacity="0.64"
@@ -43,12 +49,28 @@
             <Color x:Key="PanelGradient2">#FFF3F0FE</Color>
             <Color x:Key="ArtPlaceholderGrad1">#FFF3EDFC</Color>
             <Color x:Key="ArtPlaceholderGrad2">#FFFCF4FE</Color>
+            <LinearGradientBrush x:Key="SelectedSourceBrush" StartPoint="0,0" EndPoint="1,1">
+                <GradientStop Color="#FFFFFFFF" Offset="0" />
+                <GradientStop Color="#120097B2" Offset="1" />
+            </LinearGradientBrush>
+            <LinearGradientBrush x:Key="PanelHeaderBrush" StartPoint="0,0" EndPoint="1,0">
+                <GradientStop Color="#1A0097B2" Offset="0" />
+                <GradientStop Color="#050097B2" Offset="1" />
+            </LinearGradientBrush>
+            <LinearGradientBrush x:Key="MusicFolderBrush" StartPoint="0,0" EndPoint="1,0">
+                <GradientStop Color="#0F0097B2" Offset="0" />
+                <GradientStop Color="#030097B2" Offset="1" />
+            </LinearGradientBrush>
 
             <!-- Strokes & dividers -->
             <Color x:Key="StrokeStrongColor">#1A000000</Color>
             <SolidColorBrush x:Key="StrokeBrush" Color="#0F000000" />
             <SolidColorBrush x:Key="StrokeStrongBrush" Color="#1A000000" />
             <SolidColorBrush x:Key="DividerBrush" Color="#0F000000" />
+            <SolidColorBrush x:Key="HairlineStrongBrush" Color="#12000000" />
+            <SolidColorBrush x:Key="RowDividerBrush" Color="#0A000000" />
+            <SolidColorBrush x:Key="RowHoverBrush" Color="#06000000" />
+            <SolidColorBrush x:Key="InputUnderlineBrush" Color="#73000000" />
 
             <!-- Text -->
             <SolidColorBrush x:Key="TextPrimaryBrush" Color="#FF1A1A1A" />
@@ -64,6 +86,8 @@
             <SolidColorBrush x:Key="LikedSongsBrush" Color="#FF6B8EFE" />
             <SolidColorBrush x:Key="DangerBrush" Color="#FFD83B3B" />
             <SolidColorBrush x:Key="DangerSoftBrush" Color="#1FD83B3B" />
+            <SolidColorBrush x:Key="SuccessBrush" Color="#FF6FBF73" />
+            <SolidColorBrush x:Key="WarningBrush" Color="#FFE8A33D" />
         </ResourceDictionary>
 
         <ResourceDictionary x:Key="Dark">
@@ -74,10 +98,16 @@
             <SolidColorBrush x:Key="AccentBrushLight" Color="#FF00B8D4" />
             <SolidColorBrush x:Key="AccentSoftBrush" Color="#2E0097B2" />
             <SolidColorBrush x:Key="AccentSoft2Brush" Color="#470097B2" />
+            <SolidColorBrush x:Key="PrimaryActionBrush" Color="#FF0078D4" />
+            <SolidColorBrush x:Key="PrimaryActionHoverBrush" Color="#FF0069B8" />
 
             <!-- Surfaces -->
             <SolidColorBrush x:Key="SurfaceBrush" Color="#FF2B2B2B" />
             <SolidColorBrush x:Key="SurfaceAltBrush" Color="#FF272727" />
+            <SolidColorBrush x:Key="CanvasBrush" Color="#FF202020" />
+            <SolidColorBrush x:Key="ContentCanvasBrush" Color="#FF242424" />
+            <SolidColorBrush x:Key="TableHeaderBrush" Color="#FF272727" />
+            <SolidColorBrush x:Key="SecondaryButtonBrush" Color="#FF303030" />
             <AcrylicBrush x:Key="CarouselArrowBackgroundBrush"
                           TintColor="#FF181818"
                           TintOpacity="0.58"
@@ -97,12 +127,28 @@
             <Color x:Key="PanelGradient2">#FF21202B</Color>
             <Color x:Key="ArtPlaceholderGrad1">#FF2A2233</Color>
             <Color x:Key="ArtPlaceholderGrad2">#FF1F1D2A</Color>
+            <LinearGradientBrush x:Key="SelectedSourceBrush" StartPoint="0,0" EndPoint="1,1">
+                <GradientStop Color="#FF2B2B2B" Offset="0" />
+                <GradientStop Color="#260097B2" Offset="1" />
+            </LinearGradientBrush>
+            <LinearGradientBrush x:Key="PanelHeaderBrush" StartPoint="0,0" EndPoint="1,0">
+                <GradientStop Color="#330097B2" Offset="0" />
+                <GradientStop Color="#140097B2" Offset="1" />
+            </LinearGradientBrush>
+            <LinearGradientBrush x:Key="MusicFolderBrush" StartPoint="0,0" EndPoint="1,0">
+                <GradientStop Color="#240097B2" Offset="0" />
+                <GradientStop Color="#0A0097B2" Offset="1" />
+            </LinearGradientBrush>
 
             <!-- Strokes & dividers -->
             <Color x:Key="StrokeStrongColor">#24FFFFFF</Color>
             <SolidColorBrush x:Key="StrokeBrush" Color="#12FFFFFF" />
             <SolidColorBrush x:Key="StrokeStrongBrush" Color="#24FFFFFF" />
             <SolidColorBrush x:Key="DividerBrush" Color="#14FFFFFF" />
+            <SolidColorBrush x:Key="HairlineStrongBrush" Color="#1FFFFFFF" />
+            <SolidColorBrush x:Key="RowDividerBrush" Color="#14FFFFFF" />
+            <SolidColorBrush x:Key="RowHoverBrush" Color="#0FFFFFFF" />
+            <SolidColorBrush x:Key="InputUnderlineBrush" Color="#73FFFFFF" />
 
             <!-- Text -->
             <SolidColorBrush x:Key="TextPrimaryBrush" Color="#FFFFFFFF" />
@@ -118,6 +164,8 @@
             <SolidColorBrush x:Key="LikedSongsBrush" Color="#FF6B8EFE" />
             <SolidColorBrush x:Key="DangerBrush" Color="#FFFF6B6B" />
             <SolidColorBrush x:Key="DangerSoftBrush" Color="#29FF6B6B" />
+            <SolidColorBrush x:Key="SuccessBrush" Color="#FF6FBF73" />
+            <SolidColorBrush x:Key="WarningBrush" Color="#FFE8A33D" />
         </ResourceDictionary>
 
     </ResourceDictionary.ThemeDictionaries>
@@ -190,6 +238,28 @@
     <SolidColorBrush x:Key="SliderThumbBackground" Color="{ThemeResource AccentColor}" />
     <SolidColorBrush x:Key="SliderThumbBackgroundPointerOver" Color="{ThemeResource AccentColorLight}" />
     <SolidColorBrush x:Key="SliderThumbBackgroundPressed" Color="{ThemeResource AccentColorLight}" />
+
+    <!-- The stock WinUI 1.8 template already has the target 40 x 20 track and
+         12 x 12 knob. These local palette overrides make its states match the
+         reference without replacing the accessible control template. -->
+    <SolidColorBrush x:Key="ToggleSwitchFillOff" Color="Transparent" />
+    <SolidColorBrush x:Key="ToggleSwitchFillOffPointerOver" Color="Transparent" />
+    <SolidColorBrush x:Key="ToggleSwitchFillOffPressed" Color="Transparent" />
+    <SolidColorBrush x:Key="ToggleSwitchStrokeOff" Color="{ThemeResource StrokeStrongColor}" />
+    <SolidColorBrush x:Key="ToggleSwitchStrokeOffPointerOver" Color="{ThemeResource StrokeStrongColor}" />
+    <SolidColorBrush x:Key="ToggleSwitchStrokeOffPressed" Color="{ThemeResource StrokeStrongColor}" />
+    <SolidColorBrush x:Key="ToggleSwitchFillOn" Color="#FF0078D4" />
+    <SolidColorBrush x:Key="ToggleSwitchFillOnPointerOver" Color="#FF0069B8" />
+    <SolidColorBrush x:Key="ToggleSwitchFillOnPressed" Color="#FF0069B8" />
+    <SolidColorBrush x:Key="ToggleSwitchStrokeOn" Color="#FF0078D4" />
+    <SolidColorBrush x:Key="ToggleSwitchStrokeOnPointerOver" Color="#FF0069B8" />
+    <SolidColorBrush x:Key="ToggleSwitchStrokeOnPressed" Color="#FF0069B8" />
+    <SolidColorBrush x:Key="ToggleSwitchKnobFillOff" Color="{ThemeResource TextSecondaryBrush}" />
+    <SolidColorBrush x:Key="ToggleSwitchKnobFillOffPointerOver" Color="{ThemeResource TextSecondaryBrush}" />
+    <SolidColorBrush x:Key="ToggleSwitchKnobFillOffPressed" Color="{ThemeResource TextSecondaryBrush}" />
+    <SolidColorBrush x:Key="ToggleSwitchKnobFillOn" Color="White" />
+    <SolidColorBrush x:Key="ToggleSwitchKnobFillOnPointerOver" Color="White" />
+    <SolidColorBrush x:Key="ToggleSwitchKnobFillOnPressed" Color="White" />
 
     <!-- ToggleButton (filter chip) lightweight overrides: accent when checked -->
     <SolidColorBrush x:Key="ToggleButtonBackgroundPointerOver" Color="{ThemeResource AccentColor}" Opacity="0.08" />
@@ -290,7 +360,150 @@
         <Setter Property="BorderBrush" Value="{ThemeResource StrokeBrush}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="CornerRadius" Value="{StaticResource RadiusXl}" />
-        <Setter Property="Padding" Value="18,20" />
+        <Setter Property="Padding" Value="18" />
+    </Style>
+
+    <Style x:Key="DesignPrimaryButton" TargetType="Button">
+        <Setter Property="Background" Value="{ThemeResource PrimaryActionBrush}" />
+        <Setter Property="Foreground" Value="White" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="Padding" Value="16,7" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="UseSystemFocusVisuals" Value="True" />
+    </Style>
+
+    <Style x:Key="DesignSecondaryButton" TargetType="Button">
+        <Setter Property="Background" Value="{ThemeResource SecondaryButtonBrush}" />
+        <Setter Property="Foreground" Value="{ThemeResource TextPrimaryBrush}" />
+        <Setter Property="BorderBrush" Value="{ThemeResource HairlineStrongBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="6" />
+        <Setter Property="Padding" Value="14,7" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="UseSystemFocusVisuals" Value="True" />
+    </Style>
+
+    <Style x:Key="DesignChipToggle" TargetType="ToggleButton">
+        <Setter Property="MinWidth" Value="0" />
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="Padding" Value="11,6" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="CornerRadius" Value="14" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{ThemeResource TextSecondaryBrush}" />
+        <Setter Property="BorderBrush" Value="{ThemeResource StrokeBrush}" />
+        <Setter Property="UseSystemFocusVisuals" Value="True" />
+    </Style>
+
+    <Style x:Key="SourceModeCard" TargetType="RadioButton">
+        <Setter Property="Background" Value="{ThemeResource SurfaceBrush}" />
+        <Setter Property="BorderBrush" Value="{ThemeResource StrokeBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Padding" Value="18" />
+        <Setter Property="MinHeight" Value="172" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="VerticalContentAlignment" Value="Stretch" />
+        <Setter Property="UseSystemFocusVisuals" Value="True" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RadioButton">
+                    <Grid Background="Transparent">
+                        <Border x:Name="Chrome"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="12"
+                                Padding="{TemplateBinding Padding}"
+                                Translation="0,0,4">
+                            <Border.Shadow>
+                                <ThemeShadow />
+                            </Border.Shadow>
+                            <ContentPresenter Content="{TemplateBinding Content}"
+                                              HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}" />
+                        </Border>
+                        <VisualStateManager.VisualStateGroups>
+                            <VisualStateGroup x:Name="CheckStates">
+                                <VisualState x:Name="Unchecked" />
+                                <VisualState x:Name="Checked">
+                                    <VisualState.Setters>
+                                        <Setter Target="Chrome.Background" Value="{ThemeResource SelectedSourceBrush}" />
+                                        <Setter Target="Chrome.BorderBrush" Value="{ThemeResource AccentBrush}" />
+                                        <Setter Target="Chrome.BorderThickness" Value="2" />
+                                        <Setter Target="Chrome.Padding" Value="17" />
+                                        <Setter Target="Chrome.Translation" Value="0,0,16" />
+                                    </VisualState.Setters>
+                                </VisualState>
+                                <VisualState x:Name="Indeterminate" />
+                            </VisualStateGroup>
+                            <VisualStateGroup x:Name="CommonStates">
+                                <VisualState x:Name="Normal" />
+                                <VisualState x:Name="PointerOver">
+                                    <VisualState.Setters>
+                                        <Setter Target="Chrome.Translation" Value="0,-2,16" />
+                                    </VisualState.Setters>
+                                </VisualState>
+                                <VisualState x:Name="Pressed" />
+                                <VisualState x:Name="Disabled">
+                                    <VisualState.Setters>
+                                        <Setter Target="Chrome.Opacity" Value="0.45" />
+                                    </VisualState.Setters>
+                                </VisualState>
+                            </VisualStateGroup>
+                        </VisualStateManager.VisualStateGroups>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="ThemeTileToggle" TargetType="ToggleButton">
+        <Setter Property="Background" Value="{ThemeResource SurfaceBrush}" />
+        <Setter Property="BorderBrush" Value="{ThemeResource StrokeBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="10" />
+        <Setter Property="Padding" Value="8" />
+        <Setter Property="MinWidth" Value="0" />
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="UseSystemFocusVisuals" Value="True" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Grid Background="Transparent">
+                        <Border x:Name="Chrome" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{TemplateBinding CornerRadius}" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter Content="{TemplateBinding Content}" HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}" />
+                        </Border>
+                        <VisualStateManager.VisualStateGroups>
+                            <VisualStateGroup x:Name="CheckStates">
+                                <VisualState x:Name="Unchecked" />
+                                <VisualState x:Name="Checked">
+                                    <VisualState.Setters>
+                                        <Setter Target="Chrome.BorderBrush" Value="{ThemeResource AccentBrush}" />
+                                        <Setter Target="Chrome.BorderThickness" Value="2" />
+                                        <Setter Target="Chrome.Padding" Value="7" />
+                                    </VisualState.Setters>
+                                </VisualState>
+                                <VisualState x:Name="Indeterminate" />
+                            </VisualStateGroup>
+                            <VisualStateGroup x:Name="CommonStates">
+                                <VisualState x:Name="Normal" />
+                                <VisualState x:Name="PointerOver">
+                                    <VisualState.Setters><Setter Target="Chrome.Translation" Value="0,-1,4" /></VisualState.Setters>
+                                </VisualState>
+                                <VisualState x:Name="Pressed" />
+                                <VisualState x:Name="Disabled"><VisualState.Setters><Setter Target="Chrome.Opacity" Value="0.45" /></VisualState.Setters></VisualState>
+                            </VisualStateGroup>
+                        </VisualStateManager.VisualStateGroups>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
     </Style>
 
     <!-- Filter chip (single-select pill) -->

@@ -1084,6 +1084,14 @@ namespace winrt::Last_Music_Player::implementation
         {
             regionCard.Visibility(available ? Visibility::Visible : Visibility::Collapsed);
         }
+        if (auto summaryRow = SettingsCatalogRegionSummaryRow())
+        {
+            summaryRow.Opacity(available ? 1.0 : 0.45);
+        }
+        if (auto summaryText = SettingsCatalogRegionSummaryText())
+        {
+            summaryText.Text(available ? L"India" : L"Needs Account");
+        }
 
         if (available)
         {
