@@ -51,6 +51,7 @@ namespace winrt::Last_Music_Player::implementation
             LibTabPlaylists().IsChecked(true);
             LibraryTab_Checked(LibTabPlaylists(), nullptr);
         }
+        UpdateLibraryHeaderMetrics();
         RunDetached(HydrateLibraryTabAsync(L"Playlists", false));
     }
 
@@ -118,6 +119,7 @@ namespace winrt::Last_Music_Player::implementation
         setVisibility(LibHistoryPanel(), tracksTab ? V::Visible : V::Collapsed);
         setVisibility(LibGenresPanel(), tag == L"Genres" ? V::Visible : V::Collapsed);
         setVisibility(LibPlaylistsPanel(), tag == L"Playlists" ? V::Visible : V::Collapsed);
+        UpdateLibraryHeaderMetrics();
         auto scopedTab = tracksTab || tag == L"Playlists";
         auto accountScopeAvailable = RemoteMusicServiceService().Mode() == LastMusicPlayer::Backend::RemoteAccessMode::Account
             && RemoteMusicServiceService().IsModeAvailable(LastMusicPlayer::Backend::RemoteAccessMode::Account);
@@ -217,6 +219,118 @@ namespace winrt::Last_Music_Player::implementation
             : m_librarySongAllResults.size();
         HistoryCountText().Text(
             winrt::to_hstring(count) + (count == 1 ? L" track" : L" tracks"));
+        UpdateLibraryHeaderMetrics();
+    }
+
+    void MainWindow::UpdateLibraryHeaderMetrics()
+    {
+        using winrt::Microsoft::UI::Xaml::Visibility;
+
+        auto groupedNumber = [](std::uint64_t value)
+        {
+            auto text = std::to_wstring(value);
+            for (std::ptrdiff_t index = static_cast<std::ptrdiff_t>(text.size()) - 3;
+                 index > 0;
+                 index -= 3)
+            {
+                text.insert(static_cast<std::size_t>(index), 1, L',');
+            }
+            return winrt::hstring{ text };
+        };
+        auto isChecked = [](winrt::Microsoft::UI::Xaml::Controls::Primitives::ToggleButton const& button)
+        {
+            if (!button)
+            {
+                return false;
+            }
+            auto value = button.IsChecked();
+            return value && value.Value();
+        };
+
+        auto hours = static_cast<std::uint64_t>(std::round(m_libraryStats.TotalSeconds / 3600.0));
+        LibrarySubtitle().Text(
+            groupedNumber(static_cast<std::uint64_t>((std::max)(0, m_libraryStats.SongCount))) + L" tracks  ·  "
+            + groupedNumber(static_cast<std::uint64_t>((std::max)(0, m_libraryStats.AlbumCount))) + L" albums  ·  "
+            + groupedNumber(static_cast<std::uint64_t>((std::max)(0, m_libraryStats.ArtistCount))) + L" artists  ·  "
+            + groupedNumber(hours) + L" h");
+
+        LibTabPlaylistsCount().Text(groupedNumber(m_yourPlaylists.Size() + m_autoPlaylists.Size()));
+        auto trackCount = m_librarySongsMatchedCount > 0
+            ? static_cast<std::uint64_t>(m_librarySongsMatchedCount)
+            : static_cast<std::uint64_t>(m_librarySongAllResults.size());
+        if (m_libraryTracksFilter == L"Most")
+        {
+            LibTabMostPlayedCount().Text(groupedNumber(trackCount));
+        }
+        else
+        {
+            LibTabHistoryCount().Text(groupedNumber(trackCount));
+        }
+        LibTabAlbumsCount().Text(groupedNumber(m_albums.Size()));
+        LibTabArtistsCount().Text(groupedNumber(m_artists.Size()));
+        LibTabGenresCount().Text(groupedNumber(m_libraryGenres.Size()));
+        LibTabSongsCount().Text(groupedNumber(static_cast<std::uint64_t>((std::max)(0, m_libraryStats.SongCount))));
+
+        LibTabPlaylistsBadge().Visibility(isChecked(LibTabPlaylists()) ? Visibility::Visible : Visibility::Collapsed);
+        LibTabHistoryBadge().Visibility(isChecked(LibTabHistory()) ? Visibility::Visible : Visibility::Collapsed);
+        LibTabMostPlayedBadge().Visibility(isChecked(LibTabMostPlayed()) ? Visibility::Visible : Visibility::Collapsed);
+        LibTabAlbumsBadge().Visibility(isChecked(LibTabAlbums()) ? Visibility::Visible : Visibility::Collapsed);
+        LibTabArtistsBadge().Visibility(isChecked(LibTabArtists()) ? Visibility::Visible : Visibility::Collapsed);
+        LibTabGenresBadge().Visibility(isChecked(LibTabGenres()) ? Visibility::Visible : Visibility::Collapsed);
+        LibTabSongsBadge().Visibility(isChecked(LibTabSongs()) ? Visibility::Visible : Visibility::Collapsed);
+    }
+
+    void MainWindow::LibraryArtworkBorder_Loaded(
+        winrt::Windows::Foundation::IInspectable const& sender,
+        winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
+    {
+        (void)args;
+        auto border = sender.try_as<winrt::Microsoft::UI::Xaml::Controls::Border>();
+        if (!border)
+        {
+            return;
+        }
+        auto track = border.Tag().try_as<winrt::Last_Music_Player::TrackInfo>();
+        if (!track)
+        {
+            return;
+        }
+
+        std::wstring identity{ track.SourceKind().c_str() };
+        identity += L":";
+        identity += track.Title().c_str();
+        std::uint32_t hash = 2166136261u;
+        for (auto character : identity)
+        {
+            hash ^= static_cast<std::uint32_t>(character);
+            hash *= 16777619u;
+        }
+
+        using ColorPair = std::pair<winrt::Windows::UI::Color, winrt::Windows::UI::Color>;
+        constexpr std::array<ColorPair, 8> palettes{
+            ColorPair{ { 255, 16, 171, 188 }, { 255, 55, 191, 176 } },
+            ColorPair{ { 255, 107, 142, 254 }, { 255, 159, 145, 239 } },
+            ColorPair{ { 255, 218, 116, 102 }, { 255, 233, 156, 118 } },
+            ColorPair{ { 255, 58, 165, 108 }, { 255, 89, 194, 148 } },
+            ColorPair{ { 255, 184, 92, 199 }, { 255, 220, 131, 192 } },
+            ColorPair{ { 255, 16, 150, 202 }, { 255, 106, 164, 235 } },
+            ColorPair{ { 255, 225, 138, 70 }, { 255, 236, 184, 93 } },
+            ColorPair{ { 255, 47, 164, 143 }, { 255, 86, 197, 176 } },
+        };
+        auto const& palette = palettes[hash % palettes.size()];
+
+        winrt::Microsoft::UI::Xaml::Media::LinearGradientBrush gradient;
+        gradient.StartPoint({ 0, 0 });
+        gradient.EndPoint({ 1, 1 });
+        winrt::Microsoft::UI::Xaml::Media::GradientStop first;
+        first.Color(palette.first);
+        first.Offset(0.0);
+        gradient.GradientStops().Append(first);
+        winrt::Microsoft::UI::Xaml::Media::GradientStop second;
+        second.Color(palette.second);
+        second.Offset(1.0);
+        gradient.GradientStops().Append(second);
+        border.Background(gradient);
     }
 
     void MainWindow::ResetLibraryScopeToAll()
