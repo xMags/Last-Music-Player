@@ -36,6 +36,11 @@ namespace Last_Music_Player
         String Provider;
         String SourceUrl;
         String SourceLabel;
+        // Derived from SourceLabel: the card badge names the source only when
+        // the item did not come from this PC, so a local-only library shows no
+        // badges at all.
+        String SourceBadgeText{ get; };
+        Microsoft.UI.Xaml.Visibility SourceBadgeVisibility{ get; };
         Boolean IsLiked;
         String LikeActionText{ get; };
         Int32 TrackCount;

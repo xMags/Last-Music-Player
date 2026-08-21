@@ -90,7 +90,10 @@ namespace winrt::Last_Music_Player::implementation
         void SourceUrl(hstring const& value) { m_sourceUrl = value; }
 
         hstring SourceLabel() { return m_sourceLabel; }
-        void SourceLabel(hstring const& value) { m_sourceLabel = value; }
+        void SourceLabel(hstring const& value);
+
+        hstring SourceBadgeText() { return m_sourceBadgeText; }
+        winrt::Microsoft::UI::Xaml::Visibility SourceBadgeVisibility() { return m_sourceBadgeVisibility; }
 
         bool IsLiked() { return m_isLiked; }
         void IsLiked(bool value) { m_isLiked = value; }
@@ -129,6 +132,9 @@ namespace winrt::Last_Music_Player::implementation
         hstring m_provider;
         hstring m_sourceUrl;
         hstring m_sourceLabel;
+        hstring m_sourceBadgeText;
+        winrt::Microsoft::UI::Xaml::Visibility m_sourceBadgeVisibility{
+            winrt::Microsoft::UI::Xaml::Visibility::Collapsed };
         bool m_isLiked{ false };
         int32_t m_trackCount{ 0 };
     };

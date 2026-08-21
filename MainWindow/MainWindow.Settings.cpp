@@ -1119,9 +1119,9 @@ namespace winrt::Last_Music_Player::implementation
 
         auto leftRailWidth = width >= 1500.0 ? 300.0 : 240.0;
         auto rightRailWidth = width >= 1500.0 ? 380.0 : (width >= 1100.0 ? 300.0 : 0.0);
-        // The Settings surface has 24 px on the left, 16 px on the right,
-        // and a 4 px inner scrollbar gutter, exactly like the prototype.
-        auto settingsWidth = (std::max)(0.0, width - leftRailWidth - rightRailWidth - 44.0);
+        // The Settings surface has 16 px on the left, 16 px on the right, and a
+        // 4 px inner gutter, exactly like the prototype.
+        auto settingsWidth = (std::max)(0.0, width - leftRailWidth - rightRailWidth - 36.0);
         auto sourceCardWidth = (std::max)(220.0, (settingsWidth - 28.0) / 3.0);
         RemoteModeLocal().Width(sourceCardWidth);
         RemoteModeAccount().Width(sourceCardWidth);
@@ -1457,23 +1457,28 @@ namespace winrt::Last_Music_Player::implementation
     {
         EnsureAccentBrushes();
 
-        // Move the selection ring to the chosen swatch.
+        // Move the selection ring to the chosen swatch. The ring is a separate
+        // halo ellipse sitting behind each swatch, so the swatch itself keeps
+        // its full 22 px of colour whether or not it is selected.
         winrt::Microsoft::UI::Xaml::Shapes::Ellipse sws[] = {
             AccentSw0(), AccentSw1(), AccentSw2(), AccentSw3(), AccentSw4()
         };
+        winrt::Microsoft::UI::Xaml::Shapes::Ellipse rings[] = {
+            AccentRing0(), AccentRing1(), AccentRing2(), AccentRing3(), AccentRing4()
+        };
         std::wstring selected{ hex.c_str() };
-        for (auto const& e : sws)
+        for (std::size_t index = 0; index < sizeof(sws) / sizeof(sws[0]); ++index)
         {
-            if (!e)
+            auto const& swatch = sws[index];
+            auto const& ring = rings[index];
+            if (!swatch || !ring)
             {
                 continue;
             }
-            bool isSel = std::wstring{ ReadTagString(e.Tag()).c_str() } == selected;
-            if (isSel && m_brushStroke)
-            {
-                e.Stroke(m_brushStroke);
-            }
-            e.StrokeThickness(isSel ? 2.0 : 0.0);
+            bool isSel = std::wstring{ ReadTagString(swatch.Tag()).c_str() } == selected;
+            ring.Visibility(isSel
+                ? winrt::Microsoft::UI::Xaml::Visibility::Visible
+                : winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
         }
 
         // The captured accent brushes ARE the shared theme-dictionary
@@ -2492,7 +2497,19 @@ namespace winrt::Last_Music_Player::implementation
 
         auto host = EqualizerBars();
         host.Children().Clear();
+        host.ColumnDefinitions().Clear();
         m_equalizerSliders.clear();
+
+        // One star column per band so the ten bands spread evenly across the
+        // card, the way the reference lays them out with space-between. A
+        // StackPanel would bunch them at the left edge instead.
+        for (int i = 0; i < 10; ++i)
+        {
+            winrt::Microsoft::UI::Xaml::Controls::ColumnDefinition definition;
+            definition.Width(winrt::Microsoft::UI::Xaml::GridLength{
+                1.0, winrt::Microsoft::UI::Xaml::GridUnitType::Star });
+            host.ColumnDefinitions().Append(definition);
+        }
 
         // Defer the EQ attach until the user actually drags a band. Calling
         // AddAudioEffect at startup added activation overhead and risked
@@ -2512,7 +2529,7 @@ namespace winrt::Last_Music_Player::implementation
             bar.Maximum(12.0);
             bar.Value(0.0);
             bar.StepFrequency(1.0);
-            bar.Height(132.0);
+            bar.Height(120.0);
             bar.IsEnabled(false);
             bar.HorizontalAlignment(winrt::Microsoft::UI::Xaml::HorizontalAlignment::Center);
 
@@ -2550,6 +2567,7 @@ namespace winrt::Last_Music_Player::implementation
 
             column.Children().Append(bar);
             column.Children().Append(lbl);
+            winrt::Microsoft::UI::Xaml::Controls::Grid::SetColumn(column, i);
             host.Children().Append(column);
             m_equalizerSliders.push_back(bar);
         }

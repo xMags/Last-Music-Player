@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="15.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="packages\Microsoft.Windows.SDK.BuildTools.10.0.26100.7705\build\Microsoft.Windows.SDK.BuildTools.props" Condition="Exists('packages\Microsoft.Windows.SDK.BuildTools.10.0.26100.7705\build\Microsoft.Windows.SDK.BuildTools.props')" />
   <Import Project="packages\Microsoft.Windows.CppWinRT.2.0.250303.1\build\native\Microsoft.Windows.CppWinRT.props" Condition="Exists('packages\Microsoft.Windows.CppWinRT.2.0.250303.1\build\native\Microsoft.Windows.CppWinRT.props')" />
@@ -200,6 +200,7 @@
     <ClInclude Include="Frontend\RoundedCornerClip.h" />
     <ClInclude Include="Frontend\Skeleton.h" />
     <ClInclude Include="Frontend\CarouselArrows.h" />
+    <ClInclude Include="Frontend\ChipWrapPanel.h" />
   </ItemGroup>
   <ItemGroup>
     <ApplicationDefinition Include="App.xaml" />
@@ -300,6 +301,7 @@
     <ClCompile Include="Frontend\RoundedCornerClip.cpp" />
     <ClCompile Include="Frontend\Skeleton.cpp" />
     <ClCompile Include="Frontend\CarouselArrows.cpp" />
+    <ClCompile Include="Frontend\ChipWrapPanel.cpp" />
     <ClCompile Include="packages\Microsoft.WindowsAppSDK.Foundation.1.8.260203002\include\UndockedRegFreeWinRT-AutoInitializer.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PreprocessorDefinitions>MICROSOFT_WINDOWSAPPSDK_UNDOCKEDREGFREEWINRT_AUTO_INITIALIZE_LOADLIBRARY;MICROSOFT_WINDOWSAPPSDK_UNDOCKEDREGFREEWINRT_AUTO_INITIALIZE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -314,6 +316,9 @@
       <SubType>Code</SubType>
     </Midl>
     <Midl Include="Backend\EqualizerEffect.idl">
+      <SubType>Code</SubType>
+    </Midl>
+    <Midl Include="Frontend\ChipWrapPanel.idl">
       <SubType>Code</SubType>
     </Midl>
   </ItemGroup>
