@@ -232,6 +232,7 @@
     <ClCompile Include="MainWindow\MainWindow.Search.cpp" />
     <ClCompile Include="MainWindow\MainWindow.Songs.cpp" />
     <ClCompile Include="MainWindow\MainWindow.Discover.cpp" />
+    <ClCompile Include="MainWindow\MainWindow.DiscoverDetailToolbar.cpp" />
     <ClCompile Include="MainWindow\MainWindow.Library.cpp" />
     <ClCompile Include="MainWindow\MainWindow.LibraryHydration.cpp" />
     <ClCompile Include="MainWindow\MainWindow.LibraryCollections.cpp" />

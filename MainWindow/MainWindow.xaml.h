@@ -331,6 +331,13 @@ namespace winrt::Last_Music_Player::implementation
         void DiscoverDetailPlay_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void DiscoverDetailShuffle_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void DiscoverDetailQueue_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void DiscoverDetailDownload_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void DiscoverDetailMenuPlayNext_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void DiscoverDetailFind_TextChanged(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::TextChangedEventArgs const& args);
+        void DiscoverDetailSort_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void DiscoverDetailListView_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void DiscoverDetailGridView_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void DiscoverDetailGrid_ContainerContentChanging(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::ContainerContentChangingEventArgs const& args);
 
 
     private:
@@ -948,10 +955,17 @@ namespace winrt::Last_Music_Player::implementation
         void UpdateDiscoverDetailHeroMeta(
             winrt::hstring const& subtitle,
             winrt::hstring const& release);
+        void ResetDiscoverDetailToolbar();
+        void RebuildDiscoverDetailProjection();
+        void UpdateDiscoverDetailEmptyState();
+        void SetDiscoverDetailGridMode(bool gridMode);
         void RefreshDiscoverDetailRowStates();
         void SyncDiscoverDetailPlaybackState();
         void ApplyDiscoverDetailRowState(
             winrt::Microsoft::UI::Xaml::Controls::ListViewItem const& container,
+            uint32_t index);
+        void ApplyDiscoverDetailCardState(
+            winrt::Microsoft::UI::Xaml::Controls::GridViewItem const& container,
             uint32_t index);
 
 
@@ -1075,6 +1089,18 @@ namespace winrt::Last_Music_Player::implementation
         winrt::Windows::Foundation::Collections::IObservableVector<winrt::Last_Music_Player::TrackInfo> m_discoverDetailTracks{
             winrt::single_threaded_observable_vector<winrt::Last_Music_Player::TrackInfo>()
         };
+        // Immutable source order from the catalog response. The observable
+        // vector above is the current find/sort projection shown and played.
+        std::vector<winrt::Last_Music_Player::TrackInfo> m_discoverDetailAllResults;
+        std::wstring m_discoverDetailFindText;
+        LastMusicPlayer::Backend::DetailSort m_discoverDetailSort{
+            LastMusicPlayer::Backend::DetailSort::Curated
+        };
+        bool m_discoverDetailGridMode{ false };
+        bool m_discoverDetailFindSuppressed{ false };
+        bool m_discoverDetailLoading{ false };
+        bool m_discoverDetailLoadFailed{ false };
+        uint64_t m_discoverDetailFindDebounceId{ 0 };
         // Last sampled playback position (seconds) for the local sink. Used to
         // resume near where a stream dropped when OnMediaFailed re-opens it.
         double m_lastPlaybackPositionSeconds{ 0.0 };

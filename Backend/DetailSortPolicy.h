@@ -1,6 +1,9 @@
 #pragma once
 
+#include <cstddef>
 #include <string>
+#include <string_view>
+#include <vector>
 
 namespace LastMusicPlayer::Backend
 {
@@ -37,4 +40,23 @@ namespace LastMusicPlayer::Backend
     [[nodiscard]] std::wstring DetailSortQueryValue(DetailSort sort);
 
     [[nodiscard]] std::wstring DetailSortLabel(DetailSort sort);
+
+    // Plain projection of the fields needed to filter and sort an in-memory
+    // detail page. Keeping this independent of TrackInfo makes the policy
+    // reachable from the standalone native tests.
+    struct DetailTrackSortKey
+    {
+        std::wstring Title;
+        std::wstring Artist;
+        std::wstring Album;
+        double DurationSeconds{ 0.0 };
+    };
+
+    // Indices into `keys` in display order. Filtering matches title, artist,
+    // or album case-insensitively. Curated order preserves the source order;
+    // equal explicit sort keys fall back to title and then source order.
+    [[nodiscard]] std::vector<std::size_t> DetailTrackOrder(
+        std::vector<DetailTrackSortKey> const& keys,
+        std::wstring_view query,
+        DetailSort sort);
 }

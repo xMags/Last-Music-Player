@@ -2015,8 +2015,14 @@ namespace winrt::Last_Music_Player::implementation
             ? m_catalogContentStorefront
             : CurrentDiscoverStorefront();
         auto const isPlaylist = kind == L"playlists";
+        ResetDiscoverDetailToolbar();
+        m_discoverDetailLoading = true;
+        m_discoverDetailLoadFailed = false;
+        m_discoverDetailAllResults.clear();
         m_discoverDetailTracks.Clear();
         DiscoverDetailTracksListView().ItemsSource(m_discoverDetailTracks);
+        SetDiscoverDetailGridMode(m_discoverDetailGridMode);
+        UpdateDiscoverDetailEmptyState();
         DiscoverDetailTitleText().Text(title);
         DiscoverDetailBreadcrumbCurrent().Text(title);
         // Read before ShowCatalogSurface pushes this page: the surface still on
@@ -2060,7 +2066,10 @@ namespace winrt::Last_Music_Player::implementation
             {
                 co_return;
             }
+            m_discoverDetailLoading = false;
+            m_discoverDetailLoadFailed = true;
             UpdateDiscoverDetailHeroMeta(L"Could not load this item.", {});
+            UpdateDiscoverDetailEmptyState();
             co_return;
         }
         if (epoch != m_discoverEpoch
@@ -2087,8 +2096,10 @@ namespace winrt::Last_Music_Player::implementation
         int32_t index = 1;
         for (auto const& item : detail.Tracks)
         {
-            m_discoverDetailTracks.Append(CatalogItemToTrack(item, index++));
+            m_discoverDetailAllResults.push_back(CatalogItemToTrack(item, index++));
         }
+        m_discoverDetailLoading = false;
+        RebuildDiscoverDetailProjection();
 
         UpdateDiscoverDetailHeroMeta(
             detail.Resource.Subtitle,
@@ -2149,7 +2160,7 @@ namespace winrt::Last_Music_Player::implementation
             block.Visibility(text.empty() ? Visibility::Collapsed : Visibility::Visible);
         };
 
-        auto const count = m_discoverDetailTracks.Size();
+        auto const count = m_discoverDetailAllResults.size();
         std::wstring countText;
         if (count > 0)
         {
@@ -2161,7 +2172,7 @@ namespace winrt::Last_Music_Player::implementation
         // would quietly under-report the collection.
         double totalSeconds = 0.0;
         bool everyTrackTimed = count > 0;
-        for (auto const& track : m_discoverDetailTracks)
+        for (auto const& track : m_discoverDetailAllResults)
         {
             if (!track || track.DurationSeconds() <= 0.0)
             {
@@ -2247,14 +2258,24 @@ namespace winrt::Last_Music_Player::implementation
                     && AudioPlayerService().GetMediaPlayer().PlaybackSession().PlaybackState()
                         == winrt::Windows::Media::Playback::MediaPlaybackState::Playing));
 
-        if (auto list = DiscoverDetailTracksListView())
+        auto const list = DiscoverDetailTracksListView();
+        auto const grid = DiscoverDetailGridView();
+        for (uint32_t index = 0; index < m_discoverDetailTracks.Size(); ++index)
         {
-            for (uint32_t index = 0; index < m_discoverDetailTracks.Size(); ++index)
+            if (list)
             {
                 if (auto container = list.ContainerFromIndex(static_cast<int32_t>(index))
                     .try_as<winrt::Microsoft::UI::Xaml::Controls::ListViewItem>())
                 {
                     ApplyDiscoverDetailRowState(container, index);
+                }
+            }
+            if (grid)
+            {
+                if (auto container = grid.ContainerFromIndex(static_cast<int32_t>(index))
+                    .try_as<winrt::Microsoft::UI::Xaml::Controls::GridViewItem>())
+                {
+                    ApplyDiscoverDetailCardState(container, index);
                 }
             }
         }
