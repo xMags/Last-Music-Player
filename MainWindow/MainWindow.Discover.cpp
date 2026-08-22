@@ -462,36 +462,7 @@ namespace winrt::Last_Music_Player::implementation
         winrt::Microsoft::UI::Xaml::Controls::ContainerContentChangingEventArgs const& args)
     {
         (void)sender;
-
-        auto container = args.ItemContainer();
-        if (!container)
-        {
-            return;
-        }
-        auto image = FindDescendant<winrt::Microsoft::UI::Xaml::Controls::Image>(
-            container.ContentTemplateRoot());
-        if (!image)
-        {
-            return;
-        }
-
-        if (args.InRecycleQueue())
-        {
-            // Deliberately nothing. Clearing the image here looked like the
-            // tidy thing to do, but several of these templates bind Source to
-            // AlbumArt, and nulling it fights the binding that is the only
-            // thing putting their picture back. The registration below already
-            // clears the source when the container takes on its next item, so
-            // no stale cover survives either way.
-            return;
-        }
-
-        auto track = args.Item().try_as<winrt::Last_Music_Player::TrackInfo>();
-        if (!track)
-        {
-            return;
-        }
-        QueueAccountArtworkImage(image, track.ArtworkUrl(), ArtworkDetail::Tile, track);
+        QueueContainerArtwork(args);
     }
 
     void MainWindow::ObserveAccountArtworkViewport(

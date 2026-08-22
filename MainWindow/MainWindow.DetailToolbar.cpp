@@ -802,6 +802,7 @@ namespace winrt::Last_Music_Player::implementation
         MUXC::ContainerContentChangingEventArgs const& args)
     {
         (void)sender;
+        QueueContainerArtwork(args);
         if (!args.InRecycleQueue())
         {
             MaybeAppendLibraryDetailPage(args.ItemIndex());
