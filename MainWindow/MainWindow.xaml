@@ -3453,11 +3453,10 @@
                          edit, remove-from-playlist, suggestions) are collapsed
                          for the others by ApplyLibraryDetailKindAffordances.
 
-                         The header is pinned rather than scrolling away with
-                         the tracks. A virtualizing ListView cannot be nested in
-                         an outer ScrollViewer without losing virtualization,
-                         and the Library view above already pins its own header
-                         for the same reason. -->
+                         The breadcrumb stays fixed. The hero and action area
+                         move into whichever virtualized track surface is active,
+                         so they scroll away without nesting a ListView/GridView
+                         inside another ScrollViewer. -->
                     <Grid x:Name="LibraryDetailContent" Grid.Row="2" Visibility="Collapsed">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
@@ -3527,6 +3526,15 @@
                                            VerticalAlignment="Center" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" MaxWidth="320" />
                             </StackPanel>
 
+                            <ContentControl x:Name="LibraryDetailStickyToolbarHost"
+                                            HorizontalContentAlignment="Stretch"
+                                            Visibility="Collapsed" />
+
+                            <!-- Parked here only until SetLibraryDetailGridMode moves
+                                 this one shared header into the active track view. -->
+                            <ContentControl x:Name="LibraryDetailHeaderParkingHost" HorizontalContentAlignment="Stretch">
+                                <Grid x:Name="LibraryDetailScrollableHeader" Background="{ThemeResource ContentCanvasBrush}">
+                                    <StackPanel Margin="0,0,0,18">
                             <!-- Hero -->
                             <Grid ColumnSpacing="24" Margin="0,0,0,24">
                                 <Grid.ColumnDefinitions>
@@ -3603,6 +3611,9 @@
                                 </StackPanel>
                             </Grid>
 
+                            <ContentControl x:Name="LibraryDetailInlineToolbarHost" HorizontalContentAlignment="Stretch">
+                                <Grid x:Name="LibraryDetailActionArea" Background="{ThemeResource ContentCanvasBrush}">
+                                    <StackPanel>
                             <!-- Action bar -->
                             <Grid ColumnSpacing="10" Padding="0,0,0,16" BorderBrush="{ThemeResource HairlineStrongBrush}" BorderThickness="0,0,0,1">
                                 <Grid.ColumnDefinitions>
@@ -3740,52 +3751,63 @@
                                     </Button>
                                 </Grid>
                             </Border>
+                                    </StackPanel>
+                                </Grid>
+                            </ContentControl>
+                                    </StackPanel>
+                                </Grid>
+                            </ContentControl>
                         </StackPanel>
 
                         <!-- Track surfaces. The card and the grid occupy the same row
                              and are toggled by SetLibraryDetailGridMode. -->
-                        <Grid Grid.Row="1" Margin="0,18,0,0">
-                            <Border x:Name="LibraryDetailListSurface" Background="{ThemeResource SurfaceBrush}" BorderBrush="{ThemeResource StrokeBrush}" BorderThickness="1" CornerRadius="{StaticResource RadiusXl}">
+                        <Grid Grid.Row="1">
+                            <Border x:Name="LibraryDetailListSurface" Background="Transparent" BorderThickness="0">
                                 <Grid>
                                     <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto" />
                                         <RowDefinition Height="*" />
                                     </Grid.RowDefinitions>
 
-                                    <Grid Grid.Row="0" Padding="18,11" ColumnSpacing="12"
-                                          Background="{ThemeResource TableHeaderBrush}"
-                                          BorderBrush="{ThemeResource DividerBrush}" BorderThickness="0,0,0,1"
-                                          CornerRadius="11,11,0,0">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="40" />
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="150" />
-                                            <ColumnDefinition Width="84" />
-                                            <ColumnDefinition Width="56" />
-                                            <ColumnDefinition Width="40" />
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0" Text="#" Style="{StaticResource TableLabelText}" HorizontalAlignment="Center" />
-                                        <TextBlock Grid.Column="1" Text="TITLE" Style="{StaticResource TableLabelText}" />
-                                        <TextBlock Grid.Column="2" Text="ALBUM" Style="{StaticResource TableLabelText}" />
-                                        <TextBlock Grid.Column="3" Text="ADDED" Style="{StaticResource TableLabelText}" />
-                                        <TextBlock Grid.Column="4" Text="TIME" Style="{StaticResource TableLabelText}" HorizontalAlignment="Right" />
-                                    </Grid>
+                                    <Grid x:Name="LibraryDetailSkeletonHost" Grid.Row="0" Visibility="Collapsed" VerticalAlignment="Top" />
 
-                                    <Grid x:Name="LibraryDetailSkeletonHost" Grid.Row="1" Visibility="Collapsed" VerticalAlignment="Top" />
-
-                                    <TextBlock x:Name="LibraryDetailEmptyFilterText" Grid.Row="1" Visibility="Collapsed"
+                                    <TextBlock x:Name="LibraryDetailEmptyFilterText" Grid.Row="0" Visibility="Collapsed"
                                                Margin="0,44" HorizontalAlignment="Center" VerticalAlignment="Top"
                                                FontSize="13.5" Foreground="{ThemeResource TextTertiaryBrush}"
                                                TextWrapping="Wrap" TextAlignment="Center" />
 
                                     <ListView x:Name="LibraryDetailTracksListView"
-                                              Grid.Row="1"
+                                              Grid.Row="0"
                                               IsItemClickEnabled="True"
                                               ItemClick="LibraryDetailTrack_ItemClick"
                                               ContainerContentChanging="LibraryDetailTracks_ContainerContentChanging"
+                                              Background="{ThemeResource SurfaceBrush}"
                                               ScrollViewer.VerticalScrollMode="Enabled"
                                               ScrollViewer.VerticalScrollBarVisibility="Hidden"
                                               SelectionMode="None">
+                                        <ListView.Header>
+                                            <StackPanel>
+                                                <ContentControl x:Name="LibraryDetailListHeaderHost" HorizontalContentAlignment="Stretch" />
+                                                <Border Background="{ThemeResource TableHeaderBrush}"
+                                                        BorderBrush="{ThemeResource StrokeBrush}" BorderThickness="1"
+                                                        CornerRadius="{StaticResource RadiusXl}" Padding="0">
+                                                    <Grid Padding="18,11" ColumnSpacing="12">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="40" />
+                                                            <ColumnDefinition Width="*" />
+                                                            <ColumnDefinition Width="150" />
+                                                            <ColumnDefinition Width="84" />
+                                                            <ColumnDefinition Width="56" />
+                                                            <ColumnDefinition Width="40" />
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Grid.Column="0" Text="#" Style="{StaticResource TableLabelText}" HorizontalAlignment="Center" />
+                                                        <TextBlock Grid.Column="1" Text="TITLE" Style="{StaticResource TableLabelText}" />
+                                                        <TextBlock Grid.Column="2" Text="ALBUM" Style="{StaticResource TableLabelText}" />
+                                                        <TextBlock Grid.Column="3" Text="ADDED" Style="{StaticResource TableLabelText}" />
+                                                        <TextBlock Grid.Column="4" Text="TIME" Style="{StaticResource TableLabelText}" HorizontalAlignment="Right" />
+                                                    </Grid>
+                                                </Border>
+                                            </StackPanel>
+                                        </ListView.Header>
                                         <ListView.Resources>
                                             <!-- The now-playing and selected washes are painted by
                                                  ApplyLibraryDetailRowState on the row's own Grid, so the
@@ -3908,6 +3930,11 @@
                                       Margin="0,0,-18,0"
                                       Loaded="LibraryCardGrid_Loaded"
                                       SizeChanged="LibraryCardGrid_SizeChanged">
+                                <GridView.Header>
+                                    <ContentControl x:Name="LibraryDetailGridHeaderHost"
+                                                    HorizontalContentAlignment="Stretch"
+                                                    Margin="0,0,18,0" />
+                                </GridView.Header>
                                 <GridView.ItemTemplate>
                                     <DataTemplate x:DataType="local:TrackInfo">
                                         <StackPanel x:Name="CardRoot" Margin="0,0,18,20" VerticalAlignment="Top" PointerEntered="PlaylistCard_PointerEntered" PointerExited="PlaylistCard_PointerExited">
@@ -3927,19 +3954,19 @@
                                                     <MenuFlyoutItem Text="Go to album" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="LibraryRowMenuAlbum_Click" />
                                                 </MenuFlyout>
                                             </StackPanel.ContextFlyout>
-                                            <Border CornerRadius="{StaticResource Radius14}" Margin="0,0,0,10" Translation="0,0,16" Tag="{x:Bind}" Loaded="LibraryArtworkBorder_Loaded" SizeChanged="LibraryArtworkBorder_SizeChanged">
+                                            <Border CornerRadius="{StaticResource Radius14}" Margin="0,0,0,10" Translation="0,0,16" Tag="{x:Bind}" Loaded="LibraryDetailArtworkBorder_Loaded" SizeChanged="LibraryArtworkBorder_SizeChanged">
                                                 <Border.Shadow><ThemeShadow /></Border.Shadow>
                                                 <Grid>
-                                                    <Image Source="/Assets/LibraryStripeOverlay.svg" Stretch="Fill" Opacity="{x:Bind GeneratedArtworkOpacity}" IsHitTestVisible="False" />
-                                                    <Image x:Name="ArtworkImage" Source="{x:Bind AlbumArt}" Stretch="UniformToFill" Loaded="AccountArtwork_Loaded" Opacity="{x:Bind ImageArtworkOpacity}" />
+                                                    <Image Source="/Assets/LibraryStripeOverlay.svg" Stretch="Fill" Opacity="{x:Bind GeneratedArtworkOpacity}" IsHitTestVisible="False" Canvas.ZIndex="0" />
+                                                    <Image x:Name="ArtworkImage" Source="{x:Bind AlbumArt}" Stretch="UniformToFill" Opacity="{x:Bind ImageArtworkOpacity}" Canvas.ZIndex="1" />
                                                     <!-- Shown only on the now-playing card, by
                                                          ApplyLibraryDetailCardState. -->
                                                     <Border Visibility="Collapsed" Background="{ThemeResource SurfaceBrush}" CornerRadius="{StaticResource RadiusPill}" Padding="7,3"
-                                                            HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10">
+                                                            HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10" Canvas.ZIndex="2">
                                                         <TextBlock Text="PLAYING" FontSize="10" FontWeight="Bold" CharacterSpacing="80" Foreground="{ThemeResource AccentBrush}" />
                                                     </Border>
                                                     <TextBlock Text="{x:Bind Duration}" FontSize="11" Foreground="White" Opacity="0.9"
-                                                               HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="10" />
+                                                               HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="10" Canvas.ZIndex="2" />
                                                     <!-- Selection ring. Drawn as an overlay rather than
                                                          as a border on the artwork itself, which would
                                                          inset the image and make a selected card's cover
@@ -3947,7 +3974,7 @@
                                                          so the badge stays at a fixed child index.
                                                          RefreshLibraryDetailRowStates toggles it. -->
                                                     <Border Visibility="Collapsed" BorderBrush="{ThemeResource AccentBrush}" BorderThickness="2"
-                                                            CornerRadius="{StaticResource Radius14}" IsHitTestVisible="False" />
+                                                            CornerRadius="{StaticResource Radius14}" IsHitTestVisible="False" Canvas.ZIndex="2" />
                                                 </Grid>
                                             </Border>
                                             <TextBlock Text="{x:Bind Title}" Style="{StaticResource BodyStrong}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />

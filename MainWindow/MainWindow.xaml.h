@@ -208,6 +208,7 @@ namespace winrt::Last_Music_Player::implementation
         void LibraryDetailFind_TextChanged(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::TextChangedEventArgs const& args);
         void LibraryDetailSort_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void LibraryDetailTrack_ItemClick(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::ItemClickEventArgs const& args);
+        void LibraryDetailArtworkBorder_Loaded(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void LibraryDetailGrid_ContainerContentChanging(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::ContainerContentChangingEventArgs const& args);
         void LibraryDetailRowLike_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void LibraryDetailSelectionAddToQueue_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
@@ -690,6 +691,8 @@ namespace winrt::Last_Music_Player::implementation
         void SetHistoryGridMode(bool gridMode);
         void ObserveLibraryScroll(winrt::Microsoft::UI::Xaml::FrameworkElement const& surface);
         void UpdateLibraryHeaderForScroll(winrt::Microsoft::UI::Xaml::Controls::ScrollViewer const& scroller);
+        void UpdateLibraryDetailToolbarForScroll(winrt::Microsoft::UI::Xaml::Controls::ScrollViewer const& scroller);
+        void SetLibraryDetailToolbarPinned(bool pinned);
         void SetLibraryHeaderCollapsed(bool collapsed);
         void QueueAndPlayVisible(std::vector<winrt::Last_Music_Player::TrackInfo> const& tracks, winrt::Last_Music_Player::TrackInfo const& clickedTrack);
         void QueueAndPlayObservable(winrt::Windows::Foundation::Collections::IObservableVector<winrt::Last_Music_Player::TrackInfo> const& tracks, winrt::Last_Music_Player::TrackInfo const& clickedTrack);
@@ -1281,6 +1284,7 @@ namespace winrt::Last_Music_Player::implementation
             LastMusicPlayer::Backend::DetailSort::DateAdded
         };
         bool m_libraryDetailGridMode{ false };
+        bool m_libraryDetailToolbarPinned{ false };
         bool m_libraryDetailFindSuppressed{ false };
         int64_t m_libraryDetailSelectionAnchor{ -1 };
         // The subtitle the caller handed us is the collection card's caption,

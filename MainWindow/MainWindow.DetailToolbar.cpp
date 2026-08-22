@@ -4,6 +4,7 @@
 
 #include "Backend/DetailSortPolicy.h"
 #include "Backend/PlaylistSuggestionPolicy.h"
+#include "Frontend/RoundedCornerClip.h"
 
 #include <winrt/Microsoft.UI.Input.h>
 #include <winrt/Windows.UI.Core.h>
@@ -238,6 +239,42 @@ namespace winrt::Last_Music_Player::implementation
     {
         m_libraryDetailGridMode = gridMode;
         EnsureAccentBrushes();
+        SetLibraryDetailToolbarPinned(false);
+
+        // The hero and toolbar are one live control tree because code-behind
+        // updates their named elements. Reparent that tree into the active
+        // virtualized surface's header so it scrolls without duplicating state
+        // or placing the ListView/GridView inside an outer ScrollViewer.
+        auto const header = LibraryDetailScrollableHeader();
+        if (header)
+        {
+            if (auto parking = LibraryDetailHeaderParkingHost())
+            {
+                parking.Content(nullptr);
+            }
+            if (gridMode)
+            {
+                if (auto listHost = LibraryDetailListHeaderHost())
+                {
+                    listHost.Content(nullptr);
+                }
+                if (auto gridHost = LibraryDetailGridHeaderHost())
+                {
+                    gridHost.Content(header);
+                }
+            }
+            else
+            {
+                if (auto gridHost = LibraryDetailGridHeaderHost())
+                {
+                    gridHost.Content(nullptr);
+                }
+                if (auto listHost = LibraryDetailListHeaderHost())
+                {
+                    listHost.Content(header);
+                }
+            }
+        }
 
         // The selected half is a neutral inset chip with a dark glyph, not an
         // accent wash: this control chooses a layout, and the reference saves
@@ -272,6 +309,73 @@ namespace winrt::Last_Music_Player::implementation
             }
         }
         RefreshLibraryDetailRowStates();
+    }
+
+    void MainWindow::UpdateLibraryDetailToolbarForScroll(MUXC::ScrollViewer const& scroller)
+    {
+        auto const slot = LibraryDetailInlineToolbarHost();
+        if (!scroller || !slot)
+        {
+            return;
+        }
+
+        double slotTop{};
+        try
+        {
+            slotTop = slot.TransformToVisual(scroller).TransformPoint({ 0.0f, 0.0f }).Y;
+        }
+        catch (...)
+        {
+            return;
+        }
+
+        constexpr double pinAt = 0.0;
+        constexpr double releaseAt = 8.0;
+        if (m_libraryDetailToolbarPinned)
+        {
+            if (slotTop > releaseAt)
+            {
+                SetLibraryDetailToolbarPinned(false);
+            }
+            return;
+        }
+        if (slotTop <= pinAt)
+        {
+            SetLibraryDetailToolbarPinned(true);
+        }
+    }
+
+    void MainWindow::SetLibraryDetailToolbarPinned(bool pinned)
+    {
+        if (m_libraryDetailToolbarPinned == pinned)
+        {
+            return;
+        }
+        auto const actionArea = LibraryDetailActionArea();
+        auto const inlineHost = LibraryDetailInlineToolbarHost();
+        auto const stickyHost = LibraryDetailStickyToolbarHost();
+        if (!actionArea || !inlineHost || !stickyHost)
+        {
+            return;
+        }
+
+        if (pinned)
+        {
+            if (actionArea.ActualHeight() <= 0.0)
+            {
+                return;
+            }
+            inlineHost.Content(nullptr);
+            stickyHost.Content(actionArea);
+            stickyHost.Visibility(Visibility::Visible);
+        }
+        else
+        {
+            stickyHost.Content(nullptr);
+            inlineHost.Content(actionArea);
+            stickyHost.Visibility(Visibility::Collapsed);
+        }
+        m_libraryDetailToolbarPinned = pinned;
     }
 
     void MainWindow::LibraryDetailListView_Click(
@@ -802,11 +906,85 @@ namespace winrt::Last_Music_Player::implementation
         MUXC::ContainerContentChangingEventArgs const& args)
     {
         (void)sender;
-        QueueContainerArtwork(args);
-        if (!args.InRecycleQueue())
+        auto const container = args.ItemContainer();
+        if (!args.InRecycleQueue()
+            && args.Phase() == 0
+            && container
+            && !container.ContentTemplateRoot())
+        {
+            auto const weakThis = get_weak();
+            args.RegisterUpdateCallback(1,
+                [weakThis](MUXC::ListViewBase const& list,
+                           MUXC::ContainerContentChangingEventArgs const& updateArgs)
+                {
+                    if (auto const self = weakThis.get())
+                    {
+                        self->LibraryDetailGrid_ContainerContentChanging(list, updateArgs);
+                    }
+                });
+        }
+        if (args.InRecycleQueue() || args.ItemIndex() < 0)
+        {
+            return;
+        }
+        if (args.Phase() == 0)
         {
             MaybeAppendLibraryDetailPage(args.ItemIndex());
         }
+        auto const gridItem = container.try_as<MUXC::GridViewItem>();
+        auto const root = gridItem
+            ? gridItem.ContentTemplateRoot().try_as<MUXC::StackPanel>()
+            : nullptr;
+        if (!root || root.Children().Size() == 0)
+        {
+            return;
+        }
+        auto const art = root.Children().GetAt(0).try_as<MUXC::Border>();
+        auto const artGrid = art ? art.Child().try_as<MUXC::Grid>() : nullptr;
+        auto const track = args.Item().try_as<winrt::Last_Music_Player::TrackInfo>();
+        if (!artGrid || artGrid.Children().Size() < 2 || !track)
+        {
+            return;
+        }
+        auto const image = artGrid.Children().GetAt(1).try_as<MUXC::Image>();
+        if (!image)
+        {
+            return;
+        }
+        LastMusicPlayer::Frontend::ApplyRoundedCornerClip(artGrid);
+        QueueAccountArtworkImage(
+            image,
+            track.ArtworkUrl(),
+            detail::ArtworkDetail::Tile,
+            track);
+    }
+
+    void MainWindow::LibraryDetailArtworkBorder_Loaded(
+        winrt::Windows::Foundation::IInspectable const& sender,
+        MUX::RoutedEventArgs const& args)
+    {
+        LibraryArtworkBorder_Loaded(sender, args);
+
+        auto const border = sender.try_as<MUXC::Border>();
+        auto const track = border
+            ? border.Tag().try_as<winrt::Last_Music_Player::TrackInfo>()
+            : nullptr;
+        auto const artGrid = border ? border.Child().try_as<MUXC::Grid>() : nullptr;
+        if (!track || !artGrid || artGrid.Children().Size() < 2)
+        {
+            return;
+        }
+        auto const image = artGrid.Children().GetAt(1).try_as<MUXC::Image>();
+        if (!image)
+        {
+            return;
+        }
+        LastMusicPlayer::Frontend::ApplyRoundedCornerClip(artGrid);
+        QueueAccountArtworkImage(
+            image,
+            track.ArtworkUrl(),
+            detail::ArtworkDetail::Tile,
+            track);
     }
 
     // -------------------------------------------------------------- actions

@@ -854,9 +854,51 @@ namespace winrt::Last_Music_Player::implementation
         LibraryDetailArt().Opacity(detailFallbackArt ? 1.0 : 0.0);
         LibraryDetailGeneratedArtwork().Opacity(detailFallbackArt ? 0.0 : 1.0);
         LibraryDetailFallbackIcon().Opacity(0.0);
-        LibraryDetailGeneratedGlyph().Glyph(L"\xE8D6");
-        LibraryDetailGeneratedTitle().Text(UpperArtworkText(title, (kind == L"playlist" || kind == L"auto-playlist") ? winrt::hstring{ L"MUSIC" } : winrt::hstring{ L"ALBUM" }));
-        LibraryDetailGeneratedCaption().Text(subtitle.empty() ? ((kind == L"playlist" || kind == L"auto-playlist") ? winrt::hstring{ L"Playlist collection" } : winrt::hstring{ L"Album collection" }) : subtitle);
+        auto const systemCover = sourceGroup ? sourceGroup.ArtworkBackground() : nullptr;
+        if (systemCover)
+        {
+            LibraryDetailGeneratedArtwork().Background(systemCover);
+            LibraryDetailGeneratedGlyph().Glyph(sourceGroup.ArtworkGlyph());
+            LibraryDetailGeneratedGlyph().FontSize(sourceGroup.ArtworkGlyphSize());
+            LibraryDetailGeneratedGlyph().Opacity(sourceGroup.ArtworkGlyphOpacity());
+            LibraryDetailGeneratedGlyph().HorizontalAlignment(HorizontalAlignment::Center);
+            LibraryDetailGeneratedGlyph().VerticalAlignment(VerticalAlignment::Center);
+            LibraryDetailGeneratedGlyph().Margin({ 0.0, 0.0, 0.0, 0.0 });
+            LibraryDetailGeneratedTitle().Visibility(Visibility::Collapsed);
+            LibraryDetailGeneratedCaption().Text(L"playlist");
+        }
+        else
+        {
+            winrt::Microsoft::UI::Xaml::Media::LinearGradientBrush defaultCover;
+            defaultCover.StartPoint({ 0.0f, 0.0f });
+            defaultCover.EndPoint({ 1.0f, 1.0f });
+            winrt::Microsoft::UI::Xaml::Media::GradientStop start;
+            start.Color({ 255, 0x00, 0x97, 0xB2 });
+            start.Offset(0.0);
+            defaultCover.GradientStops().Append(start);
+            winrt::Microsoft::UI::Xaml::Media::GradientStop end;
+            end.Color({ 255, 0x00, 0xB8, 0xD4 });
+            end.Offset(1.0);
+            defaultCover.GradientStops().Append(end);
+            LibraryDetailGeneratedArtwork().Background(defaultCover);
+            LibraryDetailGeneratedGlyph().Glyph(L"\xE8D6");
+            LibraryDetailGeneratedGlyph().FontSize(78.0);
+            LibraryDetailGeneratedGlyph().Opacity(0.22);
+            LibraryDetailGeneratedGlyph().HorizontalAlignment(HorizontalAlignment::Right);
+            LibraryDetailGeneratedGlyph().VerticalAlignment(VerticalAlignment::Top);
+            LibraryDetailGeneratedGlyph().Margin({ 0.0, -4.0, -8.0, 0.0 });
+            LibraryDetailGeneratedTitle().Visibility(Visibility::Visible);
+            LibraryDetailGeneratedTitle().Text(UpperArtworkText(
+                title,
+                (kind == L"playlist" || kind == L"auto-playlist")
+                    ? winrt::hstring{ L"MUSIC" }
+                    : winrt::hstring{ L"ALBUM" }));
+            LibraryDetailGeneratedCaption().Text(subtitle.empty()
+                ? ((kind == L"playlist" || kind == L"auto-playlist")
+                    ? winrt::hstring{ L"Playlist collection" }
+                    : winrt::hstring{ L"Album collection" })
+                : subtitle);
+        }
         if (detailFallbackArt)
         {
             LibraryDetailArt().Source(detailFallbackArt);
