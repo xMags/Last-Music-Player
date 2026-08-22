@@ -45,16 +45,4 @@ namespace LastMusicPlayer::Backend::DatabaseDetail
     std::string GroupFilterClause(std::wstring const& groupKind);
 
     // ORDER BY for a curated collection (a playlist or an album collection)
-    // whose membership rows carry an explicit position. These queries join
-    // through an aliased Tracks table, so they cannot reuse TrackOrderClause,
-    // which emits unqualified column names for the flat EffectiveTracks view.
-    //
-    // An empty or unrecognised sort keeps the curated position, which is what
-    // the collection was arranged as; the named sorts mirror TrackOrderClause.
-    std::string CollectionOrderClause(std::wstring const& sort, char const* positionColumn);
-
-    // LIKE predicate over the aliased title, artist and album columns, bound to
-    // one parameter index that the caller supplies and binds. Returns an empty
-    // string for empty search text so callers can append it unconditionally.
-    std::string CollectionSearchClause(std::wstring const& searchText, int parameterIndex);
 }

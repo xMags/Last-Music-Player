@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cwctype>
 #include <string>
 #include <string_view>
 
@@ -96,5 +97,63 @@ namespace LastMusicPlayer::Backend::LibraryGroupingSql
             + GroupTitleExpression(kind, "e")
             + " AS GroupTitle FROM EffectiveTracks e WHERE e.IsActive=1 AND "
             + EligibleTrackPredicate("e") + ") ";
+    }
+
+    // Ordering and find clauses for the curated collections, playlists and
+    // album collections, whose membership rows carry an explicit position.
+    // These queries join through an aliased Tracks table, so they cannot reuse
+    // the flat EffectiveTracks ordering, which emits unqualified columns.
+    inline std::wstring FoldSortName(std::wstring value)
+    {
+        for (auto& character : value)
+        {
+            character = static_cast<wchar_t>(std::towlower(character));
+        }
+        return value;
+    }
+
+    // An empty or unrecognised sort keeps the curated position, which is what
+    // the collection was arranged as; the named sorts mirror the flat ones.
+    inline std::string CollectionOrderClause(
+        std::wstring const& sort,
+        std::string_view positionColumn)
+    {
+        auto const normalized = FoldSortName(sort);
+        if (normalized == L"title")
+        {
+            return "ORDER BY t.Title COLLATE NOCASE ASC";
+        }
+        if (normalized == L"artist")
+        {
+            return "ORDER BY t.Artist COLLATE NOCASE ASC, t.Title COLLATE NOCASE ASC";
+        }
+        if (normalized == L"duration")
+        {
+            return "ORDER BY t.DurationSeconds DESC, t.Title COLLATE NOCASE ASC";
+        }
+        if (normalized == L"dateadded")
+        {
+            return "ORDER BY t.DateAddedSortKey DESC, t.Title COLLATE NOCASE ASC";
+        }
+        return "ORDER BY " + std::string{ positionColumn } + " ASC, t.Title COLLATE NOCASE ASC";
+    }
+
+    // LIKE predicate over the aliased title, artist and album columns, bound to
+    // one parameter index that the caller supplies and binds. Returns an empty
+    // string for empty search text so callers can append it unconditionally.
+    inline std::string CollectionSearchClause(
+        std::wstring const& searchText,
+        int parameterIndex)
+    {
+        if (searchText.empty())
+        {
+            return {};
+        }
+
+        auto const parameter = "?" + std::to_string(parameterIndex);
+        std::string clause = " AND (COALESCE(t.Title,'') LIKE " + parameter + " ESCAPE '!'";
+        clause += " OR COALESCE(t.Artist,'') LIKE " + parameter + " ESCAPE '!'";
+        clause += " OR COALESCE(t.Album,'') LIKE " + parameter + " ESCAPE '!')";
+        return clause;
     }
 }

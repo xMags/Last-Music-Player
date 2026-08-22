@@ -206,6 +206,12 @@ namespace LastMusicPlayer::Backend
         std::uint64_t Generation{ 1 };
         std::uint64_t OfflineBytes{};
         std::size_t OfflineTracks{};
+        // Session tally. SessionTransferSeconds counts only the time transfers
+        // were actually running, so an idle queue does not drag the average
+        // speed towards zero.
+        std::size_t SessionCompletedTracks{};
+        std::uint64_t SessionBytes{};
+        double SessionTransferSeconds{};
         int Running{};
         bool Initialized{};
         bool Shutdown{};
@@ -643,6 +649,12 @@ namespace LastMusicPlayer::Backend
         result.OfflineBytes = m_state->OfflineBytes;
         result.OfflineTracks = m_state->OfflineTracks;
         result.AllPaused = m_state->AllPaused;
+        result.SessionCompletedTracks = m_state->SessionCompletedTracks;
+        result.SessionBytes = m_state->SessionBytes;
+        result.SessionAverageBytesPerSecond = m_state->SessionTransferSeconds > 0.0
+            ? static_cast<std::uint64_t>(
+                static_cast<double>(m_state->SessionBytes) / m_state->SessionTransferSeconds)
+            : 0;
         result.OnlyOnWifi = m_state->OnlyOnWifi;
         result.AutoDownloadLiked = m_state->AutoDownloadLiked;
         result.DownloadOnBattery = m_state->DownloadOnBattery;
@@ -975,6 +987,9 @@ namespace LastMusicPlayer::Backend
             remoteScope = state->RemoteMusic->CaptureScope();
         }
 
+        // Only the wall clock this transfer occupies feeds the session average,
+        // so a queue that sat idle between two files does not look slow.
+        auto const transferStartedAt = std::chrono::steady_clock::now();
         auto partPath = rootFolder / (L".lmp-part-" + itemId);
         auto complete = false;
         auto paused = false;
@@ -1167,6 +1182,10 @@ namespace LastMusicPlayer::Backend
                     item->Snapshot.BytesPerSecond = 0;
                     item->Snapshot.Error.clear();
                     item->Snapshot.FinishedAtUnix = UnixNow();
+                    ++state->SessionCompletedTracks;
+                    state->SessionBytes += item->Snapshot.BytesDownloaded;
+                    state->SessionTransferSeconds += std::chrono::duration<double>(
+                        std::chrono::steady_clock::now() - transferStartedAt).count();
                     RefreshStorageUsage(*state);
                 }
                 else if (paused)

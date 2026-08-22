@@ -215,7 +215,7 @@ namespace LastMusicPlayer::Backend
         // and always return the curated order, which silently discarded any
         // find or sort a caller asked a playlist or album collection for.
         auto collectionSearchPattern = EscapedLikePattern(query.SearchText);
-        auto const collectionSearch = CollectionSearchClause(query.SearchText, 3);
+        auto const collectionSearch = LibraryGroupingSql::CollectionSearchClause(query.SearchText, 3);
         auto const collectionLimitIndex = query.SearchText.empty() ? 3 : 4;
         auto bindCollection = [&](sqlite3_stmt* stmt)
         {
@@ -249,7 +249,7 @@ namespace LastMusicPlayer::Backend
                 "JOIN Albums a ON a.Id=at.AlbumId "
                 "JOIN Tracks t ON t.Id=at.TrackId "
                 "WHERE a.AlbumKey=?1 AND (?2=0 OR t.IsActive=1)" + collectionSearch + " " +
-                CollectionOrderClause(query.Sort, "at.TrackOrder");
+                LibraryGroupingSql::CollectionOrderClause(query.Sort, "at.TrackOrder");
             appendCollectionLimit(pageSql);
 
             readCount(countSql, bindCollection);
@@ -370,7 +370,7 @@ namespace LastMusicPlayer::Backend
                 "JOIN Playlists p ON p.Id=pt.PlaylistId "
                 "JOIN Tracks t ON t.Id=pt.TrackId "
                 "WHERE p.PlaylistKey=?1 AND (?2=0 OR t.IsActive=1)" + collectionSearch + " " +
-                CollectionOrderClause(query.Sort, "pt.TrackOrder");
+                LibraryGroupingSql::CollectionOrderClause(query.Sort, "pt.TrackOrder");
             appendCollectionLimit(pageSql);
 
             readCount(countSql, bindCollection);

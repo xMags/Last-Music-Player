@@ -118,7 +118,7 @@ namespace winrt::Last_Music_Player::implementation
         HomeRecentlyAddedGridView().ItemsSource(m_recentlyAddedTracks);
         MusicListView().ItemsSource(m_songsTracks);
         SongsGridView().ItemsSource(m_songsTracks);
-        SearchSongsListView().ItemsSource(m_searchFacets);
+        BrowseFacetGrid().ItemsSource(m_searchFacets);
         SearchResultsListView().ItemsSource(m_searchTracks);
         BrowseResumeGrid().ItemsSource(m_browseResumeTracks);
         BrowseCategoryGrid().ItemsSource(m_browseCategories);
@@ -134,7 +134,10 @@ namespace winrt::Last_Music_Player::implementation
         LibAutoPlaylistsGrid().ItemsSource(m_autoPlaylists);
         LibraryDetailTracksListView().ItemsSource(m_libraryDetailTracks);
         LibraryDetailGridView().ItemsSource(m_libraryDetailTracks);
+        // Both track surfaces carry the shelf in their own scroll footer,
+        // and only the visible one is ever populated on screen.
         LibraryDetailSuggestionsList().ItemsSource(m_libraryDetailSuggestions);
+        LibraryDetailSuggestionsGridList().ItemsSource(m_libraryDetailSuggestions);
         // Every Library tab scrolls its own list, so each one reports its own
         // offset to the shared header.
         winrt::Microsoft::UI::Xaml::FrameworkElement const librarySurfaces[] = {
@@ -1039,6 +1042,11 @@ namespace winrt::Last_Music_Player::implementation
         m_brushTextTertiary = ProbeTextTertiary().Foreground();
         m_brushTransparent = ProbeTransparent().Background();
         m_brushStroke = ProbeStroke().BorderBrush();
+        m_brushRowDivider = ProbeRowDivider().Background();
+        m_brushControlBorder = ProbeControlBorder().BorderBrush();
+        m_brushDanger = ProbeDanger().Foreground();
+        m_brushBadgeOnAccent = winrt::Microsoft::UI::Xaml::Media::SolidColorBrush{
+            winrt::Windows::UI::ColorHelper::FromArgb(56, 255, 255, 255) };
         m_accentBrushesCaptured = true;
     }
 
