@@ -1096,7 +1096,7 @@ namespace winrt::Last_Music_Player::implementation
         LastMusicPlayer::Backend::DetailSort m_discoverDetailSort{
             LastMusicPlayer::Backend::DetailSort::Curated
         };
-        bool m_discoverDetailGridMode{ false };
+        bool m_discoverDetailGridMode{ true };
         bool m_discoverDetailFindSuppressed{ false };
         bool m_discoverDetailLoading{ false };
         bool m_discoverDetailLoadFailed{ false };

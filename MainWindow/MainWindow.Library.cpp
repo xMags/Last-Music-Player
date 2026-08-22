@@ -404,10 +404,17 @@ namespace winrt::Last_Music_Player::implementation
         auto gap = 20.0;
         auto minimumCardWidth = 170.0;
         auto fixedColumns = 0;
-        if (grid == LibraryDetailGridView() || grid == DiscoverDetailGridView())
+        auto maximumColumns = 0;
+        if (grid == LibraryDetailGridView())
         {
             gap = 18.0;
             minimumCardWidth = 150.0;
+        }
+        else if (grid == DiscoverDetailGridView())
+        {
+            gap = 18.0;
+            minimumCardWidth = 150.0;
+            maximumColumns = 4;
         }
         else if (grid == BrowseFacetGrid())
         {
@@ -440,6 +447,10 @@ namespace winrt::Last_Music_Player::implementation
             : (std::max)(
                 1,
                 static_cast<int>(std::floor((availableWidth + gap) / (minimumCardWidth + gap))));
+        if (maximumColumns > 0)
+        {
+            columnCount = (std::min)(columnCount, maximumColumns);
+        }
         auto cardWidth = (availableWidth - (columnCount - 1) * gap) / columnCount;
 
         // ItemsWrapGrid includes the final item's margin in its extent, while
