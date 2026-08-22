@@ -2322,93 +2322,233 @@
                         </ScrollViewer>
                     </Grid>
 
-                    <!-- Album / playlist detail -->
+                    <!-- Album / playlist detail. Built to the same reference as the
+                         library detail page, because they are the same kind of
+                         screen: breadcrumb, 180px hero, an action bar over a
+                         hairline, then the tracks as a bordered card with a table
+                         header. The columns stop at TITLE and TIME: every row here
+                         belongs to one collection, so an ALBUM column would either
+                         repeat the page title or stay blank, and a catalog track
+                         has no date added. -->
                     <Grid x:Name="DiscoverDetailPage" Visibility="Collapsed">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="*" />
                         </Grid.RowDefinitions>
-                        <StackPanel Grid.Row="0" Spacing="20" Margin="0,0,0,20">
-                            <Button Click="DiscoverBack_Click" CornerRadius="{StaticResource RadiusLg}" Padding="12,7" HorizontalAlignment="Left">
-                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <FontIcon Glyph="&#xE72B;" FontSize="13" />
-                                    <TextBlock Text="Back" />
-                                </StackPanel>
-                            </Button>
-                            <Grid ColumnSpacing="24">
+                        <StackPanel Grid.Row="0">
+                            <!-- Breadcrumb. "Discover" unwinds all the way out of the
+                                 catalog; the middle crumb is the page Back returns
+                                 to, and it is only shown when there is one, so it
+                                 never promises a destination that does not exist. -->
+                            <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,0,0,18" VerticalAlignment="Center">
+                                <HyperlinkButton Click="DiscoverBreadcrumbHome_Click"
+                                                 Padding="0" MinWidth="0" MinHeight="0"
+                                                 FontSize="12" FontWeight="SemiBold"
+                                                 Foreground="{ThemeResource AccentBrush}"
+                                                 Content="Discover" />
+                                <FontIcon x:Name="DiscoverDetailBreadcrumbSectionChevron" Glyph="&#xE76C;" FontSize="9" Foreground="{ThemeResource TextTertiaryBrush}" VerticalAlignment="Center" />
+                                <HyperlinkButton x:Name="DiscoverDetailBreadcrumbSection"
+                                                 Click="DiscoverBack_Click"
+                                                 Padding="0" MinWidth="0" MinHeight="0"
+                                                 FontSize="12"
+                                                 Foreground="{ThemeResource TextTertiaryBrush}" />
+                                <FontIcon Glyph="&#xE76C;" FontSize="9" Foreground="{ThemeResource TextTertiaryBrush}" VerticalAlignment="Center" />
+                                <TextBlock x:Name="DiscoverDetailBreadcrumbCurrent" FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}"
+                                           VerticalAlignment="Center" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" MaxWidth="320" />
+                            </StackPanel>
+
+                            <!-- Hero -->
+                            <Grid ColumnSpacing="24" Margin="0,0,0,24">
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="180" />
                                     <ColumnDefinition Width="*" />
                                 </Grid.ColumnDefinitions>
-                                <Border Grid.Column="0" Width="180" Height="180" CornerRadius="{StaticResource Radius2xl}" Background="{ThemeResource NeutralFillBrush}">
+                                <Border Width="180" Height="180" CornerRadius="{StaticResource Radius2xl}" Background="{ThemeResource NeutralFillBrush}" Translation="0,0,24" VerticalAlignment="Bottom">
+                                    <Border.Shadow><ThemeShadow /></Border.Shadow>
                                     <Grid>
-                                        <FontIcon Glyph="&#xE8D6;" FontSize="58" Foreground="{ThemeResource PlaceholderGlyphBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                        <Image x:Name="DiscoverDetailArt" Loaded="ArtworkImage_Loaded" Stretch="UniformToFill" />
+                                        <!-- Stands in until the cover arrives over the
+                                             network, which on this page is always a
+                                             round trip away. The Image on top is the
+                                             one QueueAccountArtworkImage reveals. -->
+                                        <Grid x:Name="DiscoverDetailGeneratedArtwork">
+                                            <Grid.Background>
+                                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                                    <GradientStop Color="#FF0097B2" Offset="0.0"/>
+                                                    <GradientStop Color="#FF00B8D4" Offset="1.0"/>
+                                                </LinearGradientBrush>
+                                            </Grid.Background>
+                                            <FontIcon Glyph="&#xE8D6;" FontSize="78" Foreground="White" Opacity="0.22" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-4,-8,0" IsHitTestVisible="False" />
+                                            <Image Source="/Assets/LibraryStripeOverlay.svg" Stretch="Fill" IsHitTestVisible="False" />
+                                            <Border IsHitTestVisible="False" CornerRadius="{StaticResource Radius2xl}">
+                                                <Border.Background>
+                                                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                        <GradientStop Color="#1AFFFFFF" Offset="0.0"/>
+                                                        <GradientStop Color="#00FFFFFF" Offset="0.4"/>
+                                                    </LinearGradientBrush>
+                                                </Border.Background>
+                                            </Border>
+                                            <TextBlock x:Name="DiscoverDetailGeneratedTitle" Text="ALBUM" FontSize="11" FontWeight="Bold" CharacterSpacing="180" Foreground="White" Opacity="0.95" VerticalAlignment="Top" Margin="14" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                                            <TextBlock x:Name="DiscoverDetailGeneratedCaption" Text="album" FontFamily="Consolas" FontSize="9.5" CharacterSpacing="80" Foreground="White" Opacity="0.94" VerticalAlignment="Bottom" Margin="14" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                                        </Grid>
+                                        <Image x:Name="DiscoverDetailArt" Loaded="ArtworkImage_Loaded" Stretch="UniformToFill" Opacity="0" />
                                     </Grid>
                                 </Border>
-                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="8">
-                                    <TextBlock x:Name="DiscoverDetailKindText" Text="Album" Style="{StaticResource EyebrowText}" />
-                                    <TextBlock x:Name="DiscoverDetailTitleText" Text="Collection" FontSize="38" FontWeight="Bold" Foreground="{ThemeResource TextPrimaryBrush}" TextTrimming="WordEllipsis" TextWrapping="Wrap" MaxLines="2" />
-                                    <TextBlock x:Name="DiscoverDetailSubtitleText" Text="" FontSize="14" Foreground="{ThemeResource TextSecondaryBrush}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
-                                    <TextBlock x:Name="DiscoverDetailDescriptionText" Text="" FontSize="12.5" Foreground="{ThemeResource TextTertiaryBrush}" TextWrapping="Wrap" MaxLines="3" TextTrimming="WordEllipsis" />
-                                    <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,8,0,0">
-                                        <Button x:Name="DiscoverDetailPlayButton" Click="DiscoverDetailPlay_Click" Style="{StaticResource AccentButtonStyle}" CornerRadius="{StaticResource RadiusLg}" Padding="20,11">
-                                            <StackPanel Orientation="Horizontal" Spacing="8">
-                                                <FontIcon Glyph="&#xE768;" FontSize="14" />
-                                                <TextBlock Text="Play" />
-                                            </StackPanel>
-                                        </Button>
-                                        <Button x:Name="DiscoverDetailQueueButton" Click="DiscoverDetailQueue_Click" CornerRadius="{StaticResource RadiusLg}" Padding="18,11">
-                                            <StackPanel Orientation="Horizontal" Spacing="8">
-                                                <FontIcon Glyph="&#xE710;" FontSize="14" />
-                                                <TextBlock Text="Add to queue" />
-                                            </StackPanel>
-                                        </Button>
+
+                                <StackPanel Grid.Column="1" Spacing="6" VerticalAlignment="Bottom">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <TextBlock x:Name="DiscoverDetailKindText" Text="ALBUM" Style="{StaticResource EyebrowText}" VerticalAlignment="Center" />
+                                        <Border Background="{ThemeResource AccentSoftBrush}" CornerRadius="{StaticResource RadiusPill}" Padding="7,2" VerticalAlignment="Center">
+                                            <TextBlock Text="APPLE MUSIC" FontSize="9" FontWeight="Bold" CharacterSpacing="60" Foreground="{ThemeResource AccentBrush}" />
+                                        </Border>
+                                    </StackPanel>
+                                    <TextBlock x:Name="DiscoverDetailTitleText" Text="Collection" Style="{StaticResource TitleHero}" TextTrimming="CharacterEllipsis" TextWrapping="Wrap" MaxLines="2" />
+                                    <TextBlock x:Name="DiscoverDetailDescriptionText" Visibility="Collapsed" FontSize="13.5" Foreground="{ThemeResource TextSecondaryBrush}" MaxWidth="560" HorizontalAlignment="Left" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" />
+                                    <!-- Meta row. Each dot is collapsed with the value it
+                                         precedes, so a resource with no year or no
+                                         duration leaves no orphaned separator behind. -->
+                                    <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,2,0,0">
+                                        <TextBlock x:Name="DiscoverDetailSubtitleText" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" MaxWidth="280" />
+                                        <Ellipse x:Name="DiscoverDetailMetaDot1" Width="3" Height="3" Fill="{ThemeResource PlaceholderGlyphBrush}" VerticalAlignment="Center" />
+                                        <TextBlock x:Name="DiscoverDetailCountText" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                                        <Ellipse x:Name="DiscoverDetailMetaDot2" Width="3" Height="3" Fill="{ThemeResource PlaceholderGlyphBrush}" VerticalAlignment="Center" />
+                                        <TextBlock x:Name="DiscoverDetailDurationText" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                                        <Ellipse x:Name="DiscoverDetailMetaDot3" Width="3" Height="3" Fill="{ThemeResource PlaceholderGlyphBrush}" VerticalAlignment="Center" />
+                                        <TextBlock x:Name="DiscoverDetailReleaseText" FontSize="13" Foreground="{ThemeResource TextTertiaryBrush}" VerticalAlignment="Center" />
                                     </StackPanel>
                                 </StackPanel>
                             </Grid>
+
+                            <!-- Action bar. No download-all or edit here: nothing on
+                                 this page is in the library yet, and a catalog
+                                 resource is not the listener's to rename. -->
+                            <Grid ColumnSpacing="10" Padding="0,0,0,16" BorderBrush="{ThemeResource HairlineStrongBrush}" BorderThickness="0,0,0,1">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+
+                                <Button Grid.Column="0" x:Name="DiscoverDetailPlayButton" Click="DiscoverDetailPlay_Click" Style="{StaticResource DetailActionPrimaryButton}">
+                                    <StackPanel Orientation="Horizontal" Spacing="9">
+                                        <FontIcon x:Name="DiscoverDetailPlayGlyph" Glyph="&#xE768;" FontSize="14" />
+                                        <TextBlock x:Name="DiscoverDetailPlayLabel" Text="Play" />
+                                    </StackPanel>
+                                </Button>
+
+                                <Button Grid.Column="1" Click="DiscoverDetailShuffle_Click" Style="{StaticResource DetailActionSecondaryButton}" AutomationProperties.Name="Shuffle play">
+                                    <StackPanel Orientation="Horizontal" Spacing="9">
+                                        <FontIcon Glyph="&#xE8B1;" FontSize="14" />
+                                        <TextBlock Text="Shuffle" />
+                                    </StackPanel>
+                                </Button>
+
+                                <Button Grid.Column="2" x:Name="DiscoverDetailQueueButton" Click="DiscoverDetailQueue_Click" Style="{StaticResource DetailActionIconButton}" AutomationProperties.Name="Add everything to the queue" ToolTipService.ToolTip="Add to queue">
+                                    <FontIcon Glyph="&#xE710;" FontSize="14" />
+                                </Button>
+                            </Grid>
                         </StackPanel>
-                        <Grid x:Name="DiscoverDetailSkeletonHost" Grid.Row="1" Visibility="Collapsed" VerticalAlignment="Top" />
-                        <ListView x:Name="DiscoverDetailTracksListView"
-                                  Grid.Row="1"
-                                  IsItemClickEnabled="True"
-                                  ItemClick="DiscoverDetailTrack_ItemClick"
-                                  ScrollViewer.VerticalScrollMode="Enabled"
-                                  ScrollViewer.VerticalScrollBarVisibility="Hidden"
-                                  SelectionMode="Single">
-                            <ListView.ItemContainerStyle>
-                                <Style TargetType="ListViewItem">
-                                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-                                    <Setter Property="Padding" Value="0" />
-                                    <Setter Property="MinHeight" Value="52" />
-                                    <Setter Property="Margin" Value="0" />
-                                </Style>
-                            </ListView.ItemContainerStyle>
-                            <ListView.ItemTemplate>
-                                <DataTemplate x:DataType="local:TrackInfo">
-                                    <Grid Height="52" ColumnSpacing="12" Padding="10,0">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="34" />
-                                            <ColumnDefinition Width="44" />
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="52" />
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0" Text="{x:Bind Index}" Foreground="{ThemeResource TextTertiaryBrush}" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                        <Border Grid.Column="1" Width="38" Height="38" CornerRadius="{StaticResource RadiusMd}" Background="{ThemeResource NeutralFillBrush}">
-                                            <Grid>
-                                                <FontIcon Glyph="&#xE8D6;" FontSize="15" Foreground="{ThemeResource PlaceholderGlyphBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                                <Image Stretch="UniformToFill" Loaded="AccountArtwork_Loaded" />
+
+                        <Border Grid.Row="1" Margin="0,18,0,0" Background="{ThemeResource SurfaceBrush}" BorderBrush="{ThemeResource StrokeBrush}" BorderThickness="1" CornerRadius="{StaticResource RadiusXl}">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+
+                                <Grid Grid.Row="0" Padding="18,11" ColumnSpacing="12"
+                                      Background="{ThemeResource TableHeaderBrush}"
+                                      BorderBrush="{ThemeResource DividerBrush}" BorderThickness="0,0,0,1"
+                                      CornerRadius="11,11,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="40" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="56" />
+                                        <ColumnDefinition Width="40" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="#" Style="{StaticResource TableLabelText}" HorizontalAlignment="Center" />
+                                    <TextBlock Grid.Column="1" Text="TITLE" Style="{StaticResource TableLabelText}" />
+                                    <TextBlock Grid.Column="2" Text="TIME" Style="{StaticResource TableLabelText}" HorizontalAlignment="Right" />
+                                </Grid>
+
+                                <Grid x:Name="DiscoverDetailSkeletonHost" Grid.Row="1" Visibility="Collapsed" VerticalAlignment="Top" />
+
+                                <ListView x:Name="DiscoverDetailTracksListView"
+                                          Grid.Row="1"
+                                          IsItemClickEnabled="True"
+                                          ItemClick="DiscoverDetailTrack_ItemClick"
+                                          ContainerContentChanging="DiscoverDetailTracks_ContainerContentChanging"
+                                          ScrollViewer.VerticalScrollMode="Enabled"
+                                          ScrollViewer.VerticalScrollBarVisibility="Hidden"
+                                          SelectionMode="None">
+                                    <ListView.Resources>
+                                        <!-- Same reason as the library detail list: the
+                                             now-playing wash is painted on the row's own
+                                             Grid, so the container must carry hover only,
+                                             or the stock grey covers an accent row the
+                                             moment the pointer crosses it. -->
+                                        <StaticResource x:Key="ListViewItemBackgroundPointerOver" ResourceKey="RowHoverBrush" />
+                                        <StaticResource x:Key="ListViewItemBackgroundPressed" ResourceKey="RowHoverBrush" />
+                                    </ListView.Resources>
+                                    <ListView.ItemContainerStyle>
+                                        <Style TargetType="ListViewItem">
+                                            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                            <Setter Property="Padding" Value="0" />
+                                            <Setter Property="MinHeight" Value="58" />
+                                            <Setter Property="Margin" Value="0" />
+                                        </Style>
+                                    </ListView.ItemContainerStyle>
+                                    <ListView.ItemTemplate>
+                                        <DataTemplate x:DataType="local:TrackInfo">
+                                            <Grid Height="58" ColumnSpacing="12" Padding="18,0" BorderBrush="{ThemeResource RowDividerBrush}" BorderThickness="0,0,0,1">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="40" />
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="56" />
+                                                    <ColumnDefinition Width="40" />
+                                                </Grid.ColumnDefinitions>
+
+                                                <!-- Index. Swapped for a play glyph on the
+                                                     now-playing row by ApplyDiscoverDetailRowState. -->
+                                                <TextBlock Grid.Column="0" Text="{x:Bind Index}" Foreground="{ThemeResource TextTertiaryBrush}" FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center" Typography.NumeralAlignment="Tabular" />
+                                                <FontIcon Grid.Column="0" Glyph="&#xE768;" FontSize="12" Foreground="{ThemeResource AccentBrush}" Visibility="Collapsed" HorizontalAlignment="Center" VerticalAlignment="Center" />
+
+                                                <Grid Grid.Column="1" ColumnSpacing="12" VerticalAlignment="Center">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto" />
+                                                        <ColumnDefinition Width="*" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <Border Grid.Column="0" Width="38" Height="38" CornerRadius="{StaticResource RadiusMd}" Background="{ThemeResource NeutralFillBrush}">
+                                                        <Grid>
+                                                            <FontIcon Glyph="&#xE8D6;" FontSize="15" Foreground="{ThemeResource PlaceholderGlyphBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                                      IsHitTestVisible="False" AutomationProperties.AccessibilityView="Raw" />
+                                                            <Image Source="{x:Bind AlbumArt}" Stretch="UniformToFill"
+                                                                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                                   Loaded="AccountArtwork_Loaded" />
+                                                        </Grid>
+                                                    </Border>
+                                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                        <TextBlock Text="{x:Bind Title}" Style="{StaticResource BodyStrong}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                                                        <TextBlock Text="{x:Bind Artist}" Style="{StaticResource CaptionText}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                                                    </StackPanel>
+                                                </Grid>
+
+                                                <TextBlock Grid.Column="2" Text="{x:Bind Duration}" VerticalAlignment="Center" HorizontalAlignment="Right" Foreground="{ThemeResource TextSecondaryBrush}" FontSize="13" Typography.NumeralAlignment="Tabular" />
+
+                                                <Button Grid.Column="3" Tag="{x:Bind}" Click="BrowseRowMenuLike_Click"
+                                                        Style="{StaticResource IconOnlyButton}" VerticalAlignment="Center"
+                                                        AutomationProperties.Name="{x:Bind LikeActionText}">
+                                                    <Grid>
+                                                        <FontIcon Glyph="&#xEB52;" FontSize="14" Foreground="{ThemeResource AccentBrush}" Visibility="{x:Bind LikedVisibility}" />
+                                                        <FontIcon Glyph="&#xEB51;" FontSize="14" Foreground="{ThemeResource PlaceholderGlyphBrush}" Visibility="{x:Bind UnlikedVisibility}" />
+                                                    </Grid>
+                                                </Button>
                                             </Grid>
-                                        </Border>
-                                        <StackPanel Grid.Column="2" VerticalAlignment="Center">
-                                            <TextBlock Text="{x:Bind Title}" Style="{StaticResource BodyStrong}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
-                                            <TextBlock Text="{x:Bind Artist}" Style="{StaticResource CaptionText}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
-                                        </StackPanel>
-                                        <TextBlock Grid.Column="3" Text="{x:Bind Duration}" Foreground="{ThemeResource TextTertiaryBrush}" FontSize="12" HorizontalAlignment="Right" VerticalAlignment="Center" />
-                                    </Grid>
-                                </DataTemplate>
-                            </ListView.ItemTemplate>
-                        </ListView>
+                                        </DataTemplate>
+                                    </ListView.ItemTemplate>
+                                </ListView>
+                            </Grid>
+                        </Border>
                     </Grid>
                 </Grid>
 
