@@ -404,7 +404,6 @@ namespace winrt::Last_Music_Player::implementation
         auto gap = 20.0;
         auto minimumCardWidth = 170.0;
         auto fixedColumns = 0;
-        auto maximumColumns = 0;
         auto layoutTolerance = 0.0;
         if (grid == LibraryDetailGridView())
         {
@@ -415,8 +414,7 @@ namespace winrt::Last_Music_Player::implementation
         {
             gap = 18.0;
             minimumCardWidth = 150.0;
-            maximumColumns = 4;
-            // Four exact item pitches can round just beyond the ScrollViewer's
+            // Exact item pitches can round just beyond the ScrollViewer's
             // viewport and wrap the last card. Keep a small layout allowance.
             layoutTolerance = 2.0;
         }
@@ -451,10 +449,6 @@ namespace winrt::Last_Music_Player::implementation
             : (std::max)(
                 1,
                 static_cast<int>(std::floor((availableWidth + gap) / (minimumCardWidth + gap))));
-        if (maximumColumns > 0)
-        {
-            columnCount = (std::min)(columnCount, maximumColumns);
-        }
         auto cardWidth = (availableWidth - (columnCount - 1) * gap) / columnCount;
 
         // ItemsWrapGrid includes the final item's margin in its extent, while
