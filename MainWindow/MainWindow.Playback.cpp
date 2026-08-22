@@ -1078,7 +1078,7 @@ namespace winrt::Last_Music_Player::implementation
     {
         if (DownloadManagerService().Snapshot().KeepRecentOffline)
         {
-            EnqueueAutomaticDownload(track, L"Recently played");
+            (void)EnqueueAutomaticDownload(track, L"Recently played");
         }
         if (!DatabaseService().IsInitialized())
         {

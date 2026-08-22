@@ -90,6 +90,7 @@ namespace winrt::Last_Music_Player::implementation
         void DownloadJobCancel_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void DownloadJobRetry_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void DownloadJobDismiss_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void DownloadTrack_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         // Home's bar is only a way in to Browse; both the click and a tap on the
         // surrounding chrome land on the same place.
         void HomeSearchEntry_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
@@ -102,6 +103,7 @@ namespace winrt::Last_Music_Player::implementation
         void BrowseRecentSearch_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void BrowseTopResult_Tapped(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Input::TappedRoutedEventArgs const& args);
         void BrowseTopResultPlay_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void BrowseTopResultDownload_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         winrt::Windows::Foundation::IAsyncAction BrowseTopResultAdd_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void BrowseFacet_ItemClick(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::ItemClickEventArgs const& args);
         void BrowseFacet_ContainerContentChanging(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::ContainerContentChangingEventArgs const& args);
@@ -947,7 +949,7 @@ namespace winrt::Last_Music_Player::implementation
         void InitializeDownloads();
         void RefreshDownloadsView(bool force = false);
         void SetDownloadSettingsOpen(bool open);
-        void EnqueueAutomaticDownload(winrt::Last_Music_Player::TrackInfo const& track, winrt::hstring const& reason);
+        [[nodiscard]] bool EnqueueAutomaticDownload(winrt::Last_Music_Player::TrackInfo const& track, winrt::hstring const& reason);
         [[nodiscard]] std::vector<winrt::Last_Music_Player::TrackInfo> BrowseScopedResults() const;
         winrt::Windows::Foundation::IAsyncAction HydrateBrowseLandingAsync(bool force);
         void RunDebouncedHomeSearch();

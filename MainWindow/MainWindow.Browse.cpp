@@ -239,6 +239,19 @@ namespace winrt::Last_Music_Player::implementation
         PlayTrack(m_searchTopResult);
     }
 
+    void MainWindow::BrowseTopResultDownload_Click(
+        winrt::Windows::Foundation::IInspectable const& sender,
+        MUX::RoutedEventArgs const& args)
+    {
+        (void)sender;
+        (void)args;
+        auto const queued = EnqueueAutomaticDownload(m_searchTopResult, L"Browse result");
+        ShowPlaybackNotice(queued
+            ? winrt::hstring{ L"Queued for offline download" }
+            : winrt::hstring{ L"This track is already on this PC or already queued" });
+        RefreshDownloadsView(true);
+    }
+
     winrt::Windows::Foundation::IAsyncAction MainWindow::BrowseTopResultAdd_Click(
         winrt::Windows::Foundation::IInspectable const& sender,
         MUX::RoutedEventArgs const& args)
