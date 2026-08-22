@@ -552,7 +552,7 @@ namespace winrt::Last_Music_Player::implementation
         request.Artist = track.Artist().c_str();
         request.Album = track.Album().c_str();
         request.ArtworkUrl = track.ArtworkUrl().c_str();
-        detail::DownloadManagerService().Enqueue(
+        (void)detail::DownloadManagerService().Enqueue(
             request.Title,
             reason.c_str(),
             request.ArtworkUrl,
