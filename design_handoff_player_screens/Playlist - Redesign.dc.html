@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<style>
+  body { margin:0; background:#e6e6e6; font-family:'Segoe UI Variable Text','Segoe UI Variable','Segoe UI',system-ui,sans-serif; }
+  a { color:#0097B2; text-decoration:none; }
+  a:hover { color:#00B8D4; }
+  .fi { font-family:'Segoe Fluent Icons','Segoe MDL2 Assets'; font-weight:400; font-style:normal; line-height:1; }
+  ::-webkit-scrollbar { width:0; height:0; }
+</style>
+</helmet>
+<div style="width:1440px;height:900px;display:flex;flex-direction:column;background:#F3F3F3;color:#1A1A1A;overflow:hidden;position:relative;font-size:14px">
+
+  <div style="position:absolute;top:0;left:0;right:0;height:48px;z-index:100;display:flex;align-items:center;gap:10px;padding-left:16px;pointer-events:none">
+    <div style="width:26px;height:26px;border-radius:6px;background:linear-gradient(135deg,#0097B2,#00B8D4);display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px">♪</div>
+    <div style="font-size:12px;font-weight:600">Last Music Player</div>
+  </div>
+
+  <div style="flex:1;display:flex;min-height:0">
+    <div style="width:240px;display:flex;flex-direction:column;border-right:1px solid rgba(0,0,0,0.06)">
+      <div style="height:50px;flex:none"></div>
+      <div style="flex:1;overflow:hidden;padding:20px 16px 0">
+        <div style="font-size:11px;font-weight:700;letter-spacing:0.16em;color:#8A8A8A;margin-bottom:10px">MENU</div>
+        <div style="display:flex;flex-direction:column;gap:2px">
+          <div style="height:42px;border-radius:8px;padding:0 12px;display:flex;align-items:center;gap:20px">
+            <span class="fi" style="font-size:16px;color:#5C5C5C">&#xE80F;</span><span>Home</span>
+          </div>
+          <div style="height:42px;border-radius:8px;padding:0 12px;display:flex;align-items:center;gap:20px">
+            <span class="fi" style="font-size:16px;color:#5C5C5C">&#xE721;</span><span>Browse</span>
+          </div>
+          <div style="height:42px;border-radius:8px;padding:0 12px;display:flex;align-items:center;gap:20px;background:rgba(0,151,178,0.12)">
+            <span class="fi" style="font-size:16px;color:#0097B2">&#xE8D6;</span>
+            <span style="font-weight:600;color:#0097B2">Library</span>
+          </div>
+          <div style="height:42px;border-radius:8px;padding:0 12px;display:flex;align-items:center;gap:20px">
+            <span class="fi" style="font-size:16px;color:#5C5C5C">&#xE713;</span><span>Settings</span>
+          </div>
+        </div>
+        <div style="font-size:11px;font-weight:700;letter-spacing:0.16em;color:#8A8A8A;margin:24px 0 10px">PLAYLISTS</div>
+        <div style="display:flex;flex-direction:column;gap:2px">
+          <div style="padding:12px;display:flex;align-items:center;gap:16px;border-radius:8px">
+            <div style="width:24px;height:24px;border-radius:4px;background:#6B8EFE;display:flex;align-items:center;justify-content:center"><span class="fi" style="font-size:12px;color:#fff">&#xEB51;</span></div>
+            <span>Liked Songs</span>
+          </div>
+          <div style="padding:9px 12px;display:flex;align-items:center;gap:16px;min-height:42px;box-sizing:border-box;border-radius:8px;background:rgba(0,151,178,0.12)">
+            <div style="width:24px;height:24px;border-radius:4px;background:linear-gradient(150deg,oklch(0.62 0.13 262),oklch(0.72 0.11 288));display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px">#</div>
+            <span style="font-weight:600;color:#0097B2">Late night</span>
+          </div>
+          <div style="padding:9px 12px;display:flex;align-items:center;gap:16px;min-height:42px;box-sizing:border-box">
+            <div style="width:24px;height:24px;border-radius:4px;background:#F3F4F6;display:flex;align-items:center;justify-content:center;color:#8A8A8A">#</div>
+            <span>Focus</span>
+          </div>
+        </div>
+      </div>
+      <div style="border-top:1px solid rgba(0,0,0,0.06);padding:20px 16px;display:flex;align-items:center;gap:12px">
+        <div style="width:40px;height:40px;border-radius:20px;border:1.5px solid #0097B2;display:flex;align-items:center;justify-content:center">
+          <span class="fi" style="font-size:22px;color:#0097B2">&#xE77B;</span>
+        </div>
+        <div style="font-weight:600">Listener</div>
+      </div>
+    </div>
+
+    <div style="flex:1;min-width:0;background:#F7F7F8;display:flex;flex-direction:column;overflow:hidden">
+      <div style="flex:1;min-height:0;overflow-y:auto;padding:64px 20px 0">
+
+        <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:#8A8A8A;margin-bottom:18px">
+          <span style="cursor:pointer;font-weight:600;color:#0097B2">Library</span>
+          <span class="fi" style="font-size:9px">&#xE76C;</span>
+          <span>Playlists</span>
+          <span class="fi" style="font-size:9px">&#xE76C;</span>
+          <span style="color:#5C5C5C">Late night</span>
+        </div>
+
+        <div style="display:flex;gap:24px;align-items:flex-end;margin-bottom:24px">
+          <div style="width:180px;height:180px;flex:none;border-radius:16px;position:relative;overflow:hidden;background:linear-gradient(150deg,oklch(0.62 0.13 262),oklch(0.72 0.11 288));box-shadow:0 1px 2px rgba(0,0,0,0.06),0 18px 34px -20px rgba(0,0,0,0.45)">
+            <div style="position:absolute;inset:0;background-image:repeating-linear-gradient(135deg,rgba(255,255,255,0.16) 0 1px,transparent 1px 9px)"></div>
+            <div style="position:absolute;left:14px;bottom:12px;font-family:ui-monospace,'Cascadia Mono',Consolas,monospace;font-size:9.5px;letter-spacing:0.08em;color:rgba(255,255,255,0.82)">playlist art</div>
+          </div>
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px">
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="font-size:11px;font-weight:700;letter-spacing:0.16em;color:#8A8A8A">PLAYLIST</div>
+              <div style="font-size:9px;font-weight:700;letter-spacing:0.06em;color:#0097B2;background:rgba(0,151,178,0.12);border-radius:999px;padding:2px 7px">THIS PC</div>
+            </div>
+            <div contentEditable="false" style="font-family:'Segoe UI Variable Display','Segoe UI',sans-serif;font-size:40px;font-weight:700;line-height:1.05;letter-spacing:-0.01em">Late night</div>
+            <div style="font-size:13.5px;color:#5C5C5C;max-width:560px;text-wrap:pretty">Slow, low-volume tracks for the hours after midnight. Built by hand, trimmed every few weeks.</div>
+            <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:#5C5C5C;flex-wrap:wrap;margin-top:2px">
+              <span>24 tracks</span><span style="width:3px;height:3px;border-radius:2px;background:#C7CDD4"></span>
+              <span>1 h 38 min</span><span style="width:3px;height:3px;border-radius:2px;background:#C7CDD4"></span>
+              <span>22 offline</span><span style="width:3px;height:3px;border-radius:2px;background:#C7CDD4"></span>
+              <span style="color:#8A8A8A">edited 3 days ago</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding-bottom:16px;border-bottom:1px solid rgba(0,0,0,0.07)">
+          <div onClick="{{ togglePlay }}" style-hover="background:#0069b8" style="cursor:pointer;background:#0078D4;color:#fff;border-radius:10px;padding:10px 20px;font-size:13.5px;font-weight:600;display:flex;align-items:center;gap:9px;transition:background .14s ease;box-shadow:0 1px 2px rgba(0,0,0,0.10)">
+            <span class="fi" style="font-size:13px">{{ playGlyph }}</span><span>{{ playLabel }}</span>
+          </div>
+          <div style-hover="background:rgba(0,0,0,0.04)" style="cursor:pointer;border:1px solid rgba(0,0,0,0.08);background:#fff;border-radius:10px;padding:9px 16px;font-size:13.5px;font-weight:600;display:flex;align-items:center;gap:9px;transition:background .14s ease">
+            <span class="fi" style="font-size:13px;color:#5C5C5C">&#xE8B1;</span><span>Shuffle</span>
+          </div>
+          <div style-hover="background:rgba(0,0,0,0.04)" style="cursor:pointer;border:1px solid rgba(0,0,0,0.08);background:#fff;border-radius:10px;width:38px;height:38px;box-sizing:border-box;display:flex;align-items:center;justify-content:center;transition:background .14s ease" title="Download all">
+            <span class="fi" style="font-size:15px;color:#5C5C5C">&#xE896;</span>
+          </div>
+          <div style-hover="background:rgba(0,0,0,0.04)" style="cursor:pointer;border:1px solid rgba(0,0,0,0.08);background:#fff;border-radius:10px;width:38px;height:38px;box-sizing:border-box;display:flex;align-items:center;justify-content:center;transition:background .14s ease" title="Edit playlist">
+            <span class="fi" style="font-size:15px;color:#5C5C5C">&#xE70F;</span>
+          </div>
+          <div style-hover="background:rgba(0,0,0,0.04)" style="cursor:pointer;border:1px solid rgba(0,0,0,0.08);background:#fff;border-radius:10px;width:38px;height:38px;box-sizing:border-box;display:flex;align-items:center;justify-content:center;transition:background .14s ease" title="More">
+            <span class="fi" style="font-size:15px;color:#5C5C5C">&#xE712;</span>
+          </div>
+
+          <div style="flex:1"></div>
+
+          <div style="display:flex;align-items:center;gap:9px;background:#fff;border:1px solid rgba(0,0,0,0.08);border-radius:10px;padding:0 12px;height:38px;width:190px;box-sizing:border-box">
+            <span class="fi" style="font-size:13px;color:#8A8A8A">&#xE721;</span>
+            <input value="{{ query }}" onChange="{{ setQuery }}" placeholder="Find in playlist" style="border:none;outline:none;background:transparent;font:inherit;font-size:13px;width:100%;color:#1A1A1A" />
+          </div>
+          <div onClick="{{ cycleSort }}" style-hover="background:rgba(0,0,0,0.04)" style="cursor:pointer;background:#fff;border:1px solid rgba(0,0,0,0.08);border-radius:10px;height:38px;box-sizing:border-box;padding:0 12px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px;transition:background .14s ease">
+            <span class="fi" style="font-size:12px;color:#8A8A8A">&#xE8CB;</span><span>{{ sort }}</span><span class="fi" style="font-size:10px;color:#8A8A8A">&#xE70D;</span>
+          </div>
+          <div style="border-radius:10px;background:#fff;border:1px solid rgba(0,0,0,0.08);padding:3px;height:38px;box-sizing:border-box;display:flex;gap:2px">
+            <sc-for list="{{ views }}" as="v" hint-placeholder-count="2">
+              <div onClick="{{ v.select }}" title="{{ v.title }}" style="cursor:pointer;border-radius:7px;width:38px;display:flex;align-items:center;justify-content:center;transition:background .14s ease;background:{{ v.bg }}"><span class="fi" style="font-size:15px;color:{{ v.fg }}">{{ v.glyph }}</span></div>
+            </sc-for>
+          </div>
+        </div>
+
+        <sc-if value="{{ hasSelection }}" hint-placeholder-val="{{ false }}">
+          <div style="margin-top:14px;background:rgba(0,151,178,0.10);border:1px solid rgba(0,151,178,0.28);border-radius:10px;padding:9px 14px;display:flex;align-items:center;gap:14px;font-size:13px">
+            <span style="font-weight:600;color:#0097B2">{{ selectedCount }} selected</span>
+            <span style="width:1px;height:16px;background:rgba(0,0,0,0.10)"></span>
+            <span style="cursor:pointer;font-weight:600">Add to queue</span>
+            <span style="cursor:pointer;font-weight:600">Move to…</span>
+            <span style="cursor:pointer;font-weight:600;color:#C0392B">Remove</span>
+            <div style="flex:1"></div>
+            <span onClick="{{ clearSelection }}" class="fi" style="cursor:pointer;font-size:12px;color:#8A8A8A">&#xE711;</span>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isGrid }}" hint-placeholder-val="{{ false }}">
+          <div style="margin-top:18px;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:20px 18px">
+            <sc-for list="{{ rows }}" as="row" hint-placeholder-count="10">
+              <div onClick="{{ row.toggle }}" style-hover="transform:translateY(-3px)" style="cursor:pointer;transition:transform .18s ease">
+                <div style="aspect-ratio:1;border-radius:14px;margin-bottom:10px;position:relative;overflow:hidden;background:{{ row.art }};box-shadow:0 1px 2px rgba(0,0,0,0.06),0 10px 20px -16px rgba(0,0,0,0.35);outline:{{ row.cardRing }};outline-offset:2px">
+                  <div style="position:absolute;inset:0;background-image:repeating-linear-gradient(135deg,rgba(255,255,255,0.16) 0 1px,transparent 1px 9px)"></div>
+                  <sc-if value="{{ row.isCurrent }}" hint-placeholder-val="{{ false }}">
+                    <div style="position:absolute;left:10px;top:10px;background:rgba(255,255,255,0.92);border-radius:999px;padding:3px 9px;font-size:10px;font-weight:700;letter-spacing:0.08em;color:#0097B2">PLAYING</div>
+                  </sc-if>
+                  <div style="position:absolute;right:10px;bottom:10px;font-size:11px;color:rgba(255,255,255,0.9);font-variant-numeric:tabular-nums">{{ row.duration }}</div>
+                </div>
+                <div style="font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:{{ row.titleFg }}">{{ row.title }}</div>
+                <div style="display:flex;align-items:center;gap:6px;margin-top:1px;min-width:0">
+                  <span style="font-size:12px;color:#8A8A8A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ row.artist }}</span>
+                  <sc-if value="{{ row.offline }}" hint-placeholder-val="{{ false }}">
+                    <span class="fi" style="flex:none;font-size:10px;color:#0097B2">&#xE73E;</span>
+                  </sc-if>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isList }}" hint-placeholder-val="{{ true }}">
+        <div style="margin-top:18px;background:#fff;border:1px solid rgba(0,0,0,0.06);border-radius:12px;box-shadow:0 1px 2px rgba(0,0,0,0.04);overflow:hidden">
+          <div style="display:grid;grid-template-columns:40px 1fr 150px 84px 56px 40px;gap:12px;padding:11px 18px;background:#FBFBFD;border-bottom:1px solid rgba(0,0,0,0.06);font-size:11px;font-weight:700;letter-spacing:0.14em;color:#8A8A8A">
+            <div style="text-align:center">#</div><div>TITLE</div><div>ALBUM</div><div>ADDED</div><div style="text-align:right">TIME</div><div></div>
+          </div>
+          <sc-for list="{{ rows }}" as="row" hint-placeholder-count="10">
+            <div onClick="{{ row.toggle }}" style-hover="background:rgba(0,0,0,0.025)" style="cursor:pointer;display:grid;grid-template-columns:40px 1fr 150px 84px 56px 40px;gap:12px;padding:0 18px;height:{{ rowHeight }};align-items:center;border-bottom:1px solid rgba(0,0,0,0.04);transition:background .12s ease;background:{{ row.rowBg }}">
+              <div style="text-align:center;font-size:13px;color:{{ row.numFg }};font-variant-numeric:tabular-nums">
+                <span class="fi" style="font-size:11px">{{ row.numGlyph }}</span>{{ row.index }}
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;min-width:0">
+                <div style="width:{{ artSize }};height:{{ artSize }};border-radius:6px;flex:none;position:relative;overflow:hidden;background:{{ row.art }}">
+                  <div style="position:absolute;inset:0;background-image:repeating-linear-gradient(135deg,rgba(255,255,255,0.18) 0 1px,transparent 1px 8px)"></div>
+                </div>
+                <div style="min-width:0">
+                  <div style="font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:{{ row.titleFg }}">{{ row.title }}</div>
+                  <div style="display:flex;align-items:center;gap:7px;min-width:0">
+                    <span style="font-size:12px;color:#8A8A8A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ row.artist }}</span>
+                    <sc-if value="{{ row.offline }}" hint-placeholder-val="{{ false }}">
+                      <span class="fi" style="flex:none;font-size:10px;color:#0097B2" title="Available offline">&#xE73E;</span>
+                    </sc-if>
+                  </div>
+                </div>
+              </div>
+              <div style="font-size:13px;color:#5C5C5C;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ row.album }}</div>
+              <div style="font-size:13px;color:#8A8A8A">{{ row.added }}</div>
+              <div style="font-size:13px;color:#8A8A8A;text-align:right;font-variant-numeric:tabular-nums">{{ row.duration }}</div>
+              <div style="display:flex;align-items:center;justify-content:center;gap:2px">
+                <span class="fi" style="font-size:14px;color:{{ row.likeFg }}">{{ row.likeGlyph }}</span>
+              </div>
+            </div>
+          </sc-for>
+          <sc-if value="{{ empty }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:44px 18px;text-align:center;color:#8A8A8A;font-size:13.5px">No tracks match “{{ query }}”</div>
+          </sc-if>
+        </div>
+        </sc-if>
+
+        <div style="margin:26px 0 12px;display:flex;align-items:baseline;gap:12px">
+          <div style="font-family:'Segoe UI Variable Display','Segoe UI',sans-serif;font-size:18px;font-weight:700">Fits this playlist</div>
+          <div style="font-size:12.5px;color:#8A8A8A">From your library, matched on tempo and time of day</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:2px;padding-bottom:32px">
+          <sc-for list="{{ suggestions }}" as="s" hint-placeholder-count="3">
+            <div style-hover="background:rgba(0,0,0,0.03)" style="border-radius:10px;padding:9px 12px;display:flex;align-items:center;gap:12px;transition:background .12s ease">
+              <div style="width:38px;height:38px;border-radius:6px;flex:none;position:relative;overflow:hidden;background:{{ s.art }}">
+                <div style="position:absolute;inset:0;background-image:repeating-linear-gradient(135deg,rgba(255,255,255,0.18) 0 1px,transparent 1px 8px)"></div>
+              </div>
+              <div style="min-width:0;flex:1">
+                <div style="font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ s.title }}</div>
+                <div style="font-size:12px;color:#8A8A8A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ s.artist }}</div>
+              </div>
+              <div style="font-size:12px;color:#8A8A8A;font-variant-numeric:tabular-nums">{{ s.duration }}</div>
+              <div style-hover="background:rgba(0,0,0,0.05)" style="cursor:pointer;border:1px solid rgba(0,0,0,0.08);border-radius:8px;padding:5px 12px;font-size:12.5px;font-weight:600;display:flex;align-items:center;gap:7px;transition:background .14s ease">
+                <span class="fi" style="font-size:11px;color:#5C5C5C">&#xE710;</span><span>Add</span>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+
+    <div style="width:300px;background:#fff;border-left:1px solid rgba(0,0,0,0.06);padding-top:48px;box-sizing:border-box;overflow:hidden">
+      <div style="margin:24px 24px 16px;border-radius:8px;background:#F3F4F6;padding:3px;display:flex">
+        <div style="flex:1;background:#fff;border:1px solid rgba(0,0,0,0.06);border-radius:6px;text-align:center;padding:7px 0;font-size:12px;font-weight:600">Up Next</div>
+        <div style="flex:1;text-align:center;padding:7px 0;font-size:12px;font-weight:600;color:#5C5C5C">Lyrics</div>
+      </div>
+      <div style="padding:8px 24px 24px">
+        <div style="font-size:11px;font-weight:700;letter-spacing:0.16em;color:#8A8A8A;margin-bottom:12px">PLAYING FROM</div>
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:22px">
+          <div style="width:36px;height:36px;border-radius:6px;flex:none;background:linear-gradient(150deg,oklch(0.62 0.13 262),oklch(0.72 0.11 288))"></div>
+          <div style="min-width:0">
+            <div style="font-weight:600;font-size:13.5px">Late night</div>
+            <div style="font-size:12px;color:#8A8A8A">Track 3 of 24</div>
+          </div>
+        </div>
+        <div style="font-size:11px;font-weight:700;letter-spacing:0.16em;color:#8A8A8A;margin-bottom:14px">NEXT IN QUEUE</div>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <sc-for list="{{ queue }}" as="q" hint-placeholder-count="4">
+            <div style-hover="background:rgba(0,0,0,0.03)" style="border-radius:8px;padding:7px 8px;display:flex;align-items:center;gap:11px;transition:background .12s ease">
+              <div style="width:34px;height:34px;border-radius:5px;flex:none;position:relative;overflow:hidden;background:{{ q.art }}">
+                <div style="position:absolute;inset:0;background-image:repeating-linear-gradient(135deg,rgba(255,255,255,0.18) 0 1px,transparent 1px 8px)"></div>
+              </div>
+              <div style="min-width:0;flex:1">
+                <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ q.title }}</div>
+                <div style="font-size:11.5px;color:#8A8A8A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ q.artist }}</div>
+              </div>
+              <span class="fi" style="font-size:12px;color:#C7CDD4">&#xE700;</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="height:90px;flex:none;background:#fff;border-top:1px solid rgba(0,0,0,0.06);padding:0 24px;display:flex;align-items:center">
+    <div style="width:300px;display:flex;align-items:center">
+      <div style="width:52px;height:52px;border-radius:8px;background:linear-gradient(150deg,oklch(0.62 0.13 262),oklch(0.72 0.11 288));margin-right:16px;position:relative;overflow:hidden">
+        <div style="position:absolute;inset:0;background-image:repeating-linear-gradient(135deg,rgba(255,255,255,0.18) 0 1px,transparent 1px 9px)"></div>
+      </div>
+      <div style="flex:1">
+        <div style="font-weight:600;font-size:14px">Paper Lantern</div>
+        <div style="font-size:12px;color:#8A8A8A">Ishaan Dey</div>
+      </div>
+      <span class="fi" style="font-size:16px;color:#5C5C5C;margin-left:16px">&#xEB51;</span>
+    </div>
+    <div style="flex:1;display:flex;justify-content:center">
+      <div style="width:400px">
+        <div style="display:flex;justify-content:center;align-items:center;gap:24px;margin-bottom:8px">
+          <span class="fi" style="font-size:16px;color:#8A8A8A">&#xE8B1;</span>
+          <span class="fi" style="font-size:20px;color:#5C5C5C">&#xEB9E;</span>
+          <div onClick="{{ togglePlay }}" style="cursor:pointer;width:40px;height:40px;border-radius:20px;background:#1A202C;display:flex;align-items:center;justify-content:center"><span class="fi" style="font-size:16px;color:#fff">{{ barGlyph }}</span></div>
+          <span class="fi" style="font-size:20px;color:#5C5C5C">&#xE893;</span>
+          <span class="fi" style="font-size:16px;color:#8A8A8A">&#xE8EE;</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <span style="font-size:11px;color:#8A8A8A">0:52</span>
+          <div style="flex:1;height:4px;border-radius:2px;background:rgba(0,0,0,0.10);position:relative">
+            <div style="position:absolute;left:0;top:0;bottom:0;width:31%;border-radius:2px;background:#0097B2"></div>
+          </div>
+          <span style="font-size:11px;color:#8A8A8A">2:56</span>
+        </div>
+      </div>
+    </div>
+    <div style="width:300px;display:flex;justify-content:flex-end;align-items:center;gap:14px">
+      <span class="fi" style="font-size:16px;color:#5C5C5C">&#xE71D;</span>
+      <span class="fi" style="font-size:16px;color:#5C5C5C;opacity:0.5">&#xF4C3;</span>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:900},&quot;density&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Comfortable&quot;,&quot;Compact&quot;],&quot;default&quot;:&quot;Comfortable&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Track list&quot;},&quot;showSuggestions&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Track list&quot;}}">
+const HUES = [262, 196, 288, 152, 318, 232, 46, 178, 22];
+const art = (i) => {
+  const h = HUES[i % HUES.length];
+  return 'linear-gradient(150deg,oklch(0.62 0.13 ' + h + '),oklch(0.72 0.11 ' + ((h + 26) % 360) + '))';
+};
+
+const TRACKS = [
+  { title: 'Blue Hour', artist: 'Tanu Sen', album: 'Blue Hour', added: '12 Aug', duration: '4:40', offline: true, liked: true },
+  { title: 'Two Rooms', artist: 'Meher', album: 'Dust & Glass', added: '12 Aug', duration: '3:55', offline: true, liked: false },
+  { title: 'Paper Lantern', artist: 'Ishaan Dey', album: 'Paper Lantern', added: '09 Aug', duration: '2:56', offline: true, liked: true },
+  { title: 'Slow Signal', artist: 'Neel Rao', album: 'Slow Signal', added: '09 Aug', duration: '4:12', offline: true, liked: false },
+  { title: 'Ferry Lights', artist: 'Kalo Mitra', album: 'Riverbend', added: '04 Aug', duration: '3:07', offline: false, liked: false },
+  { title: 'Northline', artist: 'Vaya', album: 'Northline', added: '01 Aug', duration: '5:03', offline: true, liked: true },
+  { title: 'Winter Tape', artist: 'Neel Rao', album: 'Slow Signal', added: '28 Jul', duration: '4:28', offline: true, liked: false },
+  { title: 'Riverbend', artist: 'Kalo Mitra', album: 'Riverbend', added: '24 Jul', duration: '3:48', offline: false, liked: false },
+  { title: 'Dust & Glass', artist: 'Meher', album: 'Dust & Glass', added: '20 Jul', duration: '3:21', offline: true, liked: false },
+  { title: 'Low Tide', artist: 'Tanu Sen', album: 'Blue Hour', added: '18 Jul', duration: '5:14', offline: true, liked: true },
+];
+
+const SUGGESTIONS = [
+  { title: 'Half Light', artist: 'Vaya', duration: '4:02' },
+  { title: 'Night Bus', artist: 'Meher', duration: '3:36' },
+  { title: 'Quiet Room', artist: 'Ishaan Dey', duration: '4:51' },
+];
+
+const SORTS = ['Custom order', 'Recently added', 'Title', 'Artist', 'Duration'];
+
+class Component extends DCLogic {
+  state = { query: '', sortIndex: 0, playing: true, selected: [], view: 'list' };
+
+  renderVals() {
+    const { query, sortIndex, playing, selected, view } = this.state;
+    const dense = (this.props.density ?? 'Comfortable') === 'Compact';
+    const q = query.trim().toLowerCase();
+
+    let list = TRACKS.map((t, i) => ({ ...t, order: i }));
+    if (q) list = list.filter(t => (t.title + ' ' + t.artist + ' ' + t.album).toLowerCase().includes(q));
+    const sort = SORTS[sortIndex];
+    if (sort === 'Title') list.sort((a, b) => a.title.localeCompare(b.title));
+    if (sort === 'Artist') list.sort((a, b) => a.artist.localeCompare(b.artist));
+    if (sort === 'Duration') list.sort((a, b) => a.duration.localeCompare(b.duration));
+
+    return {
+      query,
+      setQuery: (e) => this.setState({ query: e.target.value }),
+      sort,
+      cycleSort: () => this.setState(s => ({ sortIndex: (s.sortIndex + 1) % SORTS.length })),
+      playGlyph: playing ? '\uE769' : '\uE768',
+      barGlyph: playing ? '\uE769' : '\uE768',
+      playLabel: playing ? 'Pause' : 'Play',
+      togglePlay: () => this.setState(s => ({ playing: !s.playing })),
+      isList: view === 'list',
+      isGrid: view === 'grid',
+      views: [
+        { glyph: '\uEA37', title: 'List view', bg: view === 'list' ? '#F3F4F6' : 'transparent', fg: view === 'list' ? '#1A1A1A' : '#8A8A8A', select: () => this.setState({ view: 'list' }) },
+        { glyph: '\uE80A', title: 'Grid view', bg: view === 'grid' ? '#F3F4F6' : 'transparent', fg: view === 'grid' ? '#1A1A1A' : '#8A8A8A', select: () => this.setState({ view: 'grid' }) },
+      ],
+      empty: list.length === 0 && view === 'list',
+      rowHeight: dense ? '46px' : '58px',
+      artSize: dense ? '30px' : '38px',
+      hasSelection: selected.length > 0,
+      selectedCount: selected.length,
+      clearSelection: () => this.setState({ selected: [] }),
+      rows: list.map((t, i) => {
+        const current = t.order === 2;
+        const isSel = selected.includes(t.order);
+        return {
+          ...t,
+          index: current ? '' : i + 1,
+          numGlyph: current ? '\uE768' : '',
+          numFg: current ? '#0097B2' : '#8A8A8A',
+          titleFg: current ? '#0097B2' : '#1A1A1A',
+          isCurrent: current,
+          cardRing: isSel ? '2px solid #0097B2' : 'none',
+          rowBg: isSel ? 'rgba(0,151,178,0.08)' : current ? 'rgba(0,151,178,0.10)' : 'transparent',
+          art: art(t.order),
+          likeGlyph: t.liked ? '\uEB52' : '\uEB51',
+          likeFg: t.liked ? '#0097B2' : '#C7CDD4',
+          toggle: () => this.setState(s => ({
+            selected: s.selected.includes(t.order) ? s.selected.filter(x => x !== t.order) : s.selected.concat(t.order),
+          })),
+        };
+      }),
+      suggestions: (this.props.showSuggestions ?? true) ? SUGGESTIONS.map((s, i) => ({ ...s, art: art(i + 4) })) : [],
+      queue: TRACKS.slice(3, 7).map(t => ({ ...t, art: art(t.title.length) })),
+    };
+  }
+}
+</script>
+</body>
+</html>
