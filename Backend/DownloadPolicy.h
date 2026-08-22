@@ -21,9 +21,12 @@ namespace LastMusicPlayer::Backend
     [[nodiscard]] double DownloadProgressPercent(
         std::uint64_t downloaded,
         std::uint64_t total) noexcept;
+    // The network rule exists to keep downloads off data the listener pays for.
+    // That is a question about the connection's cost, not about whether it is a
+    // radio: a wired desktop is the cheapest connection there is.
     [[nodiscard]] bool DownloadSchedulingAllowed(
-        bool onlyOnWifi,
-        bool isWifi,
+        bool avoidMeteredNetworks,
+        bool isMetered,
         bool downloadOnBattery,
         bool onBattery,
         bool allPaused,
