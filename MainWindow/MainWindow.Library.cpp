@@ -405,6 +405,7 @@ namespace winrt::Last_Music_Player::implementation
         auto minimumCardWidth = 170.0;
         auto fixedColumns = 0;
         auto maximumColumns = 0;
+        auto layoutTolerance = 0.0;
         if (grid == LibraryDetailGridView())
         {
             gap = 18.0;
@@ -415,6 +416,9 @@ namespace winrt::Last_Music_Player::implementation
             gap = 18.0;
             minimumCardWidth = 150.0;
             maximumColumns = 4;
+            // Four exact item pitches can round just beyond the ScrollViewer's
+            // viewport and wrap the last card. Keep a small layout allowance.
+            layoutTolerance = 2.0;
         }
         else if (grid == BrowseFacetGrid())
         {
@@ -436,7 +440,7 @@ namespace winrt::Last_Music_Player::implementation
         // grid reaches one gap into the right gutter by a negative margin, so
         // its own extent is the content width plus one gap.
         auto panel = grid.ItemsPanelRoot().try_as<winrt::Microsoft::UI::Xaml::Controls::ItemsWrapGrid>();
-        auto availableWidth = grid.ActualWidth() - gap;
+        auto availableWidth = grid.ActualWidth() - gap - layoutTolerance;
         if (!panel || availableWidth <= 0.0)
         {
             return;
