@@ -421,7 +421,6 @@ namespace winrt::Last_Music_Player::implementation
         DownloadsPauseAllLabel().Text(snapshot.AllPaused ? L"Resume all" : L"Pause all");
         DownloadsPauseAllButton().IsEnabled(pending > 0);
         DownloadsFolderText().Text(winrt::hstring(snapshot.RootFolder.wstring()));
-        DownloadSettingsFolderText().Text(winrt::hstring(snapshot.RootFolder.wstring()));
         DownloadSessionTracksText().Text(winrt::hstring(
             std::to_wstring(snapshot.SessionCompletedTracks)
             + (snapshot.SessionCompletedTracks == 1 ? L" track" : L" tracks")));

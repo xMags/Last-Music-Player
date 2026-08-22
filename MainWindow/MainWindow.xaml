@@ -1595,11 +1595,13 @@
                                                 <TextBlock x:Name="DownloadsOtherSizeText" Text="Everything else" FontSize="12.5" Foreground="{ThemeResource TextSecondaryBrush}" TextWrapping="NoWrap"/>
                                             </StackPanel>
                                         </StackPanel>
+                                        <!-- The download folder reads as a caption under what it
+                                             holds, and doubles as the control that changes it. -->
+                                        <Button Click="DownloadsChangeFolder_Click" Background="Transparent" BorderThickness="0" Padding="0" MinHeight="0" HorizontalAlignment="Left" AutomationProperties.Name="Change the offline download folder">
+                                            <TextBlock x:Name="DownloadsFolderText" Text="Offline folder" FontSize="11.5" Foreground="{ThemeResource AccentBrush}" TextTrimming="CharacterEllipsis"/>
+                                        </Button>
                                     </StackPanel>
-                                    <StackPanel Grid.Column="1" HorizontalAlignment="Right" Spacing="6">
-                                        <Button Click="DownloadsClearCache_Click" Content="Clear cache" Style="{StaticResource DetailActionSecondaryButton}" HorizontalAlignment="Right"/>
-                                        <Button Click="DownloadsChangeFolder_Click" Background="Transparent" BorderThickness="0" Padding="0" HorizontalAlignment="Right"><TextBlock x:Name="DownloadsFolderText" Text="Offline folder" FontSize="11.5" Foreground="{ThemeResource AccentBrush}" MaxWidth="280" TextTrimming="CharacterEllipsis"/></Button>
-                                    </StackPanel>
+                                    <Button Grid.Column="1" Click="DownloadsClearCache_Click" Content="Clear cache" Style="{StaticResource DetailActionSecondaryButton}" HorizontalAlignment="Right" VerticalAlignment="Top"/>
                                 </Grid>
                             </Border>
 
@@ -3831,10 +3833,6 @@
                         <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Text="Downloaded" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}"/><TextBlock x:Name="DownloadSessionTracksText" Grid.Column="1" Text="0 tracks" FontSize="13" FontWeight="SemiBold"/></Grid>
                         <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Text="Transferred" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}"/><TextBlock x:Name="DownloadSessionBytesText" Grid.Column="1" Text="0 B" FontSize="13" FontWeight="SemiBold"/></Grid>
                         <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Text="Average speed" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}"/><TextBlock x:Name="DownloadSessionSpeedText" Grid.Column="1" Text="Nothing yet" FontSize="13" FontWeight="SemiBold"/></Grid>
-                        <Border Height="1" Background="{ThemeResource StrokeBrush}" Margin="0,4"/>
-                        <TextBlock Text="STORAGE" Style="{StaticResource EyebrowText}"/>
-                        <Button Click="DownloadsChangeFolder_Click" Style="{StaticResource DetailActionSecondaryButton}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"><StackPanel><TextBlock Text="Change offline folder" FontWeight="SemiBold"/><TextBlock x:Name="DownloadSettingsFolderText" Text="Offline folder" FontSize="11.5" Foreground="{ThemeResource TextTertiaryBrush}" TextTrimming="CharacterEllipsis"/></StackPanel></Button>
-                        <TextBlock Text="Downloads use the source format supplied by your music provider." FontSize="11.5" Foreground="{ThemeResource TextTertiaryBrush}" TextWrapping="Wrap"/>
                     </StackPanel>
                 </ScrollViewer>
             </Grid>
