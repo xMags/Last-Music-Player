@@ -102,13 +102,14 @@ src/Frontend/              Navigation and UI helpers
 Assets/ src/Styles/        Icons and shared application styles
 Resources/                 Native application resources
 ThirdParty/sqlite/         Vendored SQLite amalgamation
+docs/                      Provider contract and standalone project wiki
 installer/                 Inno Setup packaging script
 tests/native/              Native helper tests
 ```
 
 ## Music API Provider
 
-Remote features are intentionally client-side only in this repository. Search, streaming, radio, lyrics, and link import expect an external provider that implements the small HTTP contract in [`PROVIDER_API.md`](PROVIDER_API.md).
+Remote features are intentionally client-side only in this repository. Search, streaming, radio, lyrics, and link import expect an external provider that implements the small HTTP contract in [`docs/PROVIDER_API.md`](docs/PROVIDER_API.md).
 
 To enable remote playback:
 

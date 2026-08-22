@@ -1937,7 +1937,7 @@
                                         <Border Grid.Row="1" Grid.ColumnSpan="4" Background="{ThemeResource StrokeBrush}" />
                                         <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="4" Spacing="14">
                                             <TextBlock x:Name="ProviderTestStatusText" Text="Ready" Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
-                                            <TextBlock Text="Your provider decides how identifiers resolve, how auth works and where audio comes from. See PROVIDER_API.md." Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
+                                            <TextBlock Text="Your provider decides how identifiers resolve, how auth works and where audio comes from. See docs/PROVIDER_API.md." Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
                                         </StackPanel>
                                     </Grid>
                                 </Border>
