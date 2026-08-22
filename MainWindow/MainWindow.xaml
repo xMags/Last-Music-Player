@@ -2330,7 +2330,15 @@
                          belongs to one collection, so an ALBUM column would either
                          repeat the page title or stay blank, and a catalog track
                          has no date added. -->
-                    <Grid x:Name="DiscoverDetailPage" Visibility="Collapsed">
+                    <!-- Bled out of the Home panel's padding and repainted on the
+                         content canvas, so a depth page reads as the same surface
+                         as the library detail rather than as Home. The negative
+                         margins undo the centre panel's 16,24 and this container's
+                         0,16,8, and the padding puts the content back exactly where
+                         the library detail starts: 16 in, 40 down. -->
+                    <Grid x:Name="DiscoverDetailPage" Visibility="Collapsed"
+                          Background="{ThemeResource ContentCanvasBrush}"
+                          Margin="-16,-40,-24,0" Padding="16,40,16,0">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="*" />
