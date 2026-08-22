@@ -1417,6 +1417,9 @@
                                                         <StackPanel Orientation="Horizontal" Spacing="7"><FontIcon Glyph="&#xE768;" FontSize="12" /><TextBlock Text="Play" /></StackPanel>
                                                     </Button>
                                                     <Button Click="BrowseTopResultAdd_Click" Style="{StaticResource DesignSecondaryButton}" Content="Add to playlist" />
+                                                    <Button Click="BrowseTopResultDownload_Click" Style="{StaticResource DesignSecondaryButton}">
+                                                        <StackPanel Orientation="Horizontal" Spacing="7"><FontIcon Glyph="&#xE896;" FontSize="12"/><TextBlock Text="Download"/></StackPanel>
+                                                    </Button>
                                                 </StackPanel>
                                             </StackPanel>
                                         </Border>
@@ -1442,6 +1445,7 @@
                                                                 <MenuFlyoutItem Text="Play next" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuPlayNext_Click" />
                                                                 <MenuFlyoutItem Text="Add to queue" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuAddToQueue_Click" />
                                                                 <MenuFlyoutItem Text="Add to playlist" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="LibraryRowMenuAddToPlaylist_Click" />
+                                                                <MenuFlyoutItem Text="Download for offline use" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="DownloadTrack_Click" />
                                                                 <MenuFlyoutSeparator />
                                                                 <MenuFlyoutItem Text="{x:Bind LikeActionText}" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuLike_Click" />
                                                             </MenuFlyout>
@@ -1472,6 +1476,7 @@
                                                                     <MenuFlyoutItem Text="Play next" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuPlayNext_Click" />
                                                                     <MenuFlyoutItem Text="Add to queue" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuAddToQueue_Click" />
                                                                     <MenuFlyoutItem Text="Add to playlist" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="LibraryRowMenuAddToPlaylist_Click" />
+                                                                    <MenuFlyoutItem Text="Download for offline use" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="DownloadTrack_Click" />
                                                                 </MenuFlyout>
                                                             </Button.Flyout>
                                                             <FontIcon Glyph="&#xE712;" FontSize="12" />
@@ -3198,7 +3203,7 @@
                                     </StackPanel>
                                 </Button>
 
-                                <Button Grid.Column="2" x:Name="LibraryDetailDownloadButton" Click="LibraryDetailDownload_Click" Style="{StaticResource DetailActionIconButton}" AutomationProperties.Name="Download for offline use">
+                                <Button Grid.Column="2" x:Name="LibraryDetailDownloadButton" Click="LibraryDetailDownload_Click" Style="{StaticResource DetailActionIconButton}" AutomationProperties.Name="Download all for offline use" ToolTipService.ToolTip="Download all">
                                     <FontIcon Glyph="&#xE896;" FontSize="14" />
                                 </Button>
 
@@ -3350,6 +3355,7 @@
                                                             <MenuFlyoutItem Text="Play next" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="LibraryRowMenuPlayNext_Click" />
                                                             <MenuFlyoutItem Text="Add to queue" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="LibraryRowMenuAddToQueue_Click" />
                                                             <MenuFlyoutItem Text="Add to playlist" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="LibraryRowMenuAddToPlaylist_Click" />
+                                                            <MenuFlyoutItem Text="Download for offline use" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="DownloadTrack_Click" />
                                                             <MenuFlyoutItem Text="{x:Bind LikeActionText}" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuLike_Click" />
                                                             <MenuFlyoutSeparator Tag="PlaylistTrackAction" />
                                                             <MenuFlyoutItem Text="Move up" Tag="PlaylistTrackActionUp" CommandParameter="{x:Bind}" Click="LibraryRowMenuMoveInPlaylist_Click" />

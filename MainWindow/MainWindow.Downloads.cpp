@@ -532,7 +532,7 @@ namespace winrt::Last_Music_Player::implementation
         RefreshDownloadsView(true);
     }
 
-    void MainWindow::EnqueueAutomaticDownload(
+    bool MainWindow::EnqueueAutomaticDownload(
         winrt::Last_Music_Player::TrackInfo const& track,
         winrt::hstring const& reason)
     {
@@ -540,7 +540,7 @@ namespace winrt::Last_Music_Player::implementation
             || detail::ToLowerCopy(track.SourceKind()) != L"remote"
             || !detail::IsHttpUrl(track.SourceUrl()))
         {
-            return;
+            return false;
         }
         LastMusicPlayer::Backend::DownloadTrackRequest request;
         request.StableKey = detail::DownloadStableKey(
@@ -552,11 +552,24 @@ namespace winrt::Last_Music_Player::implementation
         request.Artist = track.Artist().c_str();
         request.Album = track.Album().c_str();
         request.ArtworkUrl = track.ArtworkUrl().c_str();
-        (void)detail::DownloadManagerService().Enqueue(
+        return detail::DownloadManagerService().Enqueue(
             request.Title,
             reason.c_str(),
             request.ArtworkUrl,
             { std::move(request) });
+    }
+
+    void MainWindow::DownloadTrack_Click(
+        winrt::Windows::Foundation::IInspectable const& sender,
+        MUX::RoutedEventArgs const& args)
+    {
+        (void)args;
+        auto const track = TrackFromActionSender(sender);
+        auto const queued = EnqueueAutomaticDownload(track, L"Single track");
+        ShowPlaybackNotice(queued
+            ? winrt::hstring{ L"Queued for offline download" }
+            : winrt::hstring{ L"This track is already on this PC or already queued" });
+        RefreshDownloadsView(true);
     }
 
     winrt::Windows::Foundation::IAsyncAction MainWindow::LibraryDetailDownload_Click(

@@ -478,7 +478,7 @@ namespace winrt::Last_Music_Player::implementation
 
         if (liked && DownloadManagerService().Snapshot().AutoDownloadLiked)
         {
-            EnqueueAutomaticDownload(track, L"Liked song");
+            (void)EnqueueAutomaticDownload(track, L"Liked song");
         }
 
         auto detailKind = m_libraryDetailKind;
