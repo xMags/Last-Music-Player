@@ -88,6 +88,8 @@
                  from it and from the empty track behind them. -->
             <SolidColorBrush x:Key="StorageCacheBrush" Color="#FF9B8AE6" />
             <SolidColorBrush x:Key="StorageOtherBrush" Color="#29000000" />
+            <SolidColorBrush x:Key="ToggleTrackOffBrush" Color="#2E000000" />
+            <SolidColorBrush x:Key="ToggleKnobBrush" Color="#FFFFFFFF" />
             <!-- Buttons and segmented controls sit between the card hairline
                  (StrokeBrush) and the text-field edge (StrokeStrongBrush). -->
             <SolidColorBrush x:Key="ControlBorderBrush" Color="#14000000" />
@@ -185,6 +187,8 @@
             <SolidColorBrush x:Key="RowHoverBrush" Color="#0FFFFFFF" />
             <SolidColorBrush x:Key="StorageCacheBrush" Color="#FFA99AF0" />
             <SolidColorBrush x:Key="StorageOtherBrush" Color="#3DFFFFFF" />
+            <SolidColorBrush x:Key="ToggleTrackOffBrush" Color="#4DFFFFFF" />
+            <SolidColorBrush x:Key="ToggleKnobBrush" Color="#FFFFFFFF" />
             <SolidColorBrush x:Key="ControlBorderBrush" Color="#1AFFFFFF" />
             <SolidColorBrush x:Key="SubtleHoverBrush" Color="#14FFFFFF" />
             <SolidColorBrush x:Key="ControlHoverBrush" Color="#1AFFFFFF" />
@@ -512,13 +516,67 @@
         <Setter Property="UseSystemFocusVisuals" Value="True" />
     </Style>
 
+    <!-- The stock ToggleSwitch reserves room for its On/Off labels and a header,
+         so pinning it to the reference's 38x20 pill squeezed the default
+         template until the knob disappeared. This template draws the pill
+         itself and keeps the part names ToggleSwitch's own drag handling looks
+         for. The on state is a second track faded in over the off one rather
+         than a colour animation, so the user's accent stays live. -->
     <Style x:Key="DownloadRuleToggle" TargetType="ToggleSwitch">
-        <Setter Property="Width" Value="42" />
-        <Setter Property="MinWidth" Value="42" />
+        <Setter Property="MinWidth" Value="0" />
         <Setter Property="HorizontalAlignment" Value="Right" />
         <Setter Property="VerticalAlignment" Value="Center" />
         <Setter Property="OnContent" Value="{x:Null}" />
         <Setter Property="OffContent" Value="{x:Null}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleSwitch">
+                    <Grid x:Name="TapArea" Background="Transparent" Width="38" Height="20"
+                          HorizontalAlignment="Right" VerticalAlignment="Center">
+                        <Border x:Name="SwitchKnobBounds" Width="38" Height="20" CornerRadius="10"
+                                Background="{ThemeResource ToggleTrackOffBrush}" />
+                        <Border x:Name="OnTrack" Width="38" Height="20" CornerRadius="10"
+                                Background="{ThemeResource AccentBrush}" Opacity="0" />
+                        <Border x:Name="SwitchKnob" Width="16" Height="16" CornerRadius="8"
+                                HorizontalAlignment="Left" VerticalAlignment="Center" Margin="2,0,0,0"
+                                Background="{ThemeResource ToggleKnobBrush}" Translation="0,0,8">
+                            <Border.Shadow>
+                                <ThemeShadow />
+                            </Border.Shadow>
+                            <Border.RenderTransform>
+                                <TranslateTransform x:Name="KnobTranslateTransform" />
+                            </Border.RenderTransform>
+                        </Border>
+                        <VisualStateManager.VisualStateGroups>
+                            <VisualStateGroup x:Name="ToggleStates">
+                                <VisualState x:Name="Dragging" />
+                                <VisualState x:Name="Off" />
+                                <VisualState x:Name="On">
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="OnTrack"
+                                                         Storyboard.TargetProperty="Opacity"
+                                                         To="1" Duration="0:0:0.16" />
+                                        <DoubleAnimation Storyboard.TargetName="KnobTranslateTransform"
+                                                         Storyboard.TargetProperty="X"
+                                                         To="18" Duration="0:0:0.16" />
+                                    </Storyboard>
+                                </VisualState>
+                            </VisualStateGroup>
+                            <VisualStateGroup x:Name="CommonStates">
+                                <VisualState x:Name="Normal" />
+                                <VisualState x:Name="PointerOver" />
+                                <VisualState x:Name="Pressed" />
+                                <VisualState x:Name="Disabled">
+                                    <VisualState.Setters>
+                                        <Setter Target="TapArea.Opacity" Value="0.4" />
+                                    </VisualState.Setters>
+                                </VisualState>
+                            </VisualStateGroup>
+                        </VisualStateManager.VisualStateGroups>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
     </Style>
 
     <Style x:Key="DesignChipToggle" TargetType="ToggleButton">
