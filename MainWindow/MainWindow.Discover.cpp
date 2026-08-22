@@ -17,7 +17,9 @@
 #include <algorithm>
 #include <array>
 #include <chrono>
+#include <cwctype>
 #include <memory>
+#include <random>
 #include <string>
 #include <utility>
 #include <vector>
@@ -167,6 +169,34 @@ namespace winrt::Last_Music_Player::implementation
             {
                 return {};
             }
+        }
+
+        // Positions inside the catalog detail row template, which this file's
+        // own DataTemplate in MainWindow.xaml defines. Every lookup that uses
+        // them is still guarded: a template edit that reorders the cells should
+        // cost the now-playing highlight, never crash.
+        constexpr uint32_t kCatalogRowIndexTextChild = 0;
+        constexpr uint32_t kCatalogRowPlayGlyphChild = 1;
+        constexpr uint32_t kCatalogRowTitleCellChild = 2;
+
+        // The provider sends an ISO-ish release date. Only the year is worth a
+        // slot in the hero meta row, and only when the value really starts with
+        // one: partial and malformed dates do occur in the catalog.
+        winrt::hstring CatalogReleaseYear(winrt::hstring const& releaseDate)
+        {
+            std::wstring text{ releaseDate.c_str() };
+            if (text.size() < 4)
+            {
+                return {};
+            }
+            for (std::size_t position = 0; position < 4; ++position)
+            {
+                if (!std::iswdigit(static_cast<wint_t>(text[position])))
+                {
+                    return {};
+                }
+            }
+            return winrt::hstring{ text.substr(0, 4) };
         }
     }
 
@@ -1984,16 +2014,30 @@ namespace winrt::Last_Music_Player::implementation
         auto storefront = LastMusicPlayer::Backend::IsValidCatalogStorefront(m_catalogContentStorefront)
             ? m_catalogContentStorefront
             : CurrentDiscoverStorefront();
+        auto const isPlaylist = kind == L"playlists";
         m_discoverDetailTracks.Clear();
         DiscoverDetailTracksListView().ItemsSource(m_discoverDetailTracks);
         DiscoverDetailTitleText().Text(title);
-        DiscoverDetailKindText().Text(kind == L"playlists" ? L"Playlist" : L"Album");
+        DiscoverDetailBreadcrumbCurrent().Text(title);
+        // Read before ShowCatalogSurface pushes this page: the surface still on
+        // screen is exactly the one the middle crumb and Back both return to.
+        SetDiscoverDetailSectionCrumb(m_catalogSurface);
+        DiscoverDetailKindText().Text(isPlaylist ? L"PLAYLIST" : L"ALBUM");
+        DiscoverDetailGeneratedTitle().Text(UpperArtworkText(
+            title,
+            isPlaylist ? winrt::hstring{ L"PLAYLIST" } : winrt::hstring{ L"ALBUM" }));
+        DiscoverDetailGeneratedCaption().Text(isPlaylist ? L"playlist" : L"album");
         // Cleared, not relabelled: the track placeholder below is the loading
-        // signal, and this line goes on to carry the real track count.
-        DiscoverDetailSubtitleText().Text(L"");
+        // signal, and the meta row goes on to carry the real counts.
+        UpdateDiscoverDetailHeroMeta({}, {});
         DiscoverDetailDescriptionText().Text(L"");
+        DiscoverDetailDescriptionText().Visibility(Visibility::Collapsed);
+        RefreshDiscoverDetailRowStates();
         DiscoverDetailArt().Tag(nullptr);
         DiscoverDetailArt().Source(nullptr);
+        // Back to the generated cover until this resource's own artwork lands;
+        // QueueAccountArtworkImage is what brings the image back to full opacity.
+        DiscoverDetailArt().Opacity(0.0);
 
         ShowCatalogSurface(CatalogSurface::Detail, true);
         // Scoped, because this coroutine leaves by several routes: a stale
@@ -2016,7 +2060,7 @@ namespace winrt::Last_Music_Player::implementation
             {
                 co_return;
             }
-            DiscoverDetailSubtitleText().Text(L"Could not load this item.");
+            UpdateDiscoverDetailHeroMeta(L"Could not load this item.", {});
             co_return;
         }
         if (epoch != m_discoverEpoch
@@ -2030,8 +2074,15 @@ namespace winrt::Last_Music_Player::implementation
         if (!detail.Resource.Title.empty())
         {
             DiscoverDetailTitleText().Text(detail.Resource.Title);
+            DiscoverDetailBreadcrumbCurrent().Text(detail.Resource.Title);
+            DiscoverDetailGeneratedTitle().Text(UpperArtworkText(
+                detail.Resource.Title,
+                isPlaylist ? winrt::hstring{ L"PLAYLIST" } : winrt::hstring{ L"ALBUM" }));
         }
         DiscoverDetailDescriptionText().Text(detail.Resource.Description);
+        DiscoverDetailDescriptionText().Visibility(detail.Resource.Description.empty()
+            ? Visibility::Collapsed
+            : Visibility::Visible);
 
         int32_t index = 1;
         for (auto const& item : detail.Tracks)
@@ -2039,18 +2090,250 @@ namespace winrt::Last_Music_Player::implementation
             m_discoverDetailTracks.Append(CatalogItemToTrack(item, index++));
         }
 
-        std::wstring subtitle;
-        if (!detail.Resource.Subtitle.empty())
-        {
-            subtitle = std::wstring{ detail.Resource.Subtitle.c_str() } + L" \x00B7 ";
-        }
-        subtitle += std::to_wstring(m_discoverDetailTracks.Size());
-        subtitle += m_discoverDetailTracks.Size() == 1 ? L" song" : L" songs";
-        DiscoverDetailSubtitleText().Text(winrt::hstring{ subtitle });
+        UpdateDiscoverDetailHeroMeta(
+            detail.Resource.Subtitle,
+            CatalogReleaseYear(detail.Resource.ReleaseDate));
+        RefreshDiscoverDetailRowStates();
 
         if (!detail.Resource.ArtworkUrl.empty())
         {
             QueueAccountArtworkImage(DiscoverDetailArt(), detail.Resource.ArtworkUrl, ArtworkDetail::Tile);
+        }
+    }
+
+    void MainWindow::SetDiscoverDetailSectionCrumb(CatalogSurface origin)
+    {
+        using winrt::Microsoft::UI::Xaml::Visibility;
+
+        winrt::hstring label;
+        switch (origin)
+        {
+        case CatalogSurface::Chart:
+            label = DiscoverChartTitleText() ? DiscoverChartTitleText().Text() : winrt::hstring{};
+            break;
+        case CatalogSurface::ChartGallery:
+            label = DiscoverChartGalleryTitle() ? DiscoverChartGalleryTitle().Text() : winrt::hstring{};
+            break;
+        default:
+            // Opened straight from a Home shelf, so the root crumb already
+            // names where Back goes and a second one would only repeat it.
+            break;
+        }
+
+        auto const visibility = label.empty() ? Visibility::Collapsed : Visibility::Visible;
+        if (auto crumb = DiscoverDetailBreadcrumbSection())
+        {
+            crumb.Content(winrt::box_value(label));
+            crumb.Visibility(visibility);
+        }
+        if (auto chevron = DiscoverDetailBreadcrumbSectionChevron())
+        {
+            chevron.Visibility(visibility);
+        }
+    }
+
+    void MainWindow::UpdateDiscoverDetailHeroMeta(
+        winrt::hstring const& subtitle,
+        winrt::hstring const& release)
+    {
+        using winrt::Microsoft::UI::Xaml::Visibility;
+
+        auto setText = [](winrt::Microsoft::UI::Xaml::Controls::TextBlock const& block,
+                          std::wstring const& text)
+        {
+            if (!block)
+            {
+                return;
+            }
+            block.Text(winrt::hstring(text));
+            block.Visibility(text.empty() ? Visibility::Collapsed : Visibility::Visible);
+        };
+
+        auto const count = m_discoverDetailTracks.Size();
+        std::wstring countText;
+        if (count > 0)
+        {
+            countText = std::to_wstring(count) + (count == 1 ? L" song" : L" songs");
+        }
+
+        // Only claimed when every track carried a length. A catalog payload can
+        // omit durations, and a total summed over the ones that did have them
+        // would quietly under-report the collection.
+        double totalSeconds = 0.0;
+        bool everyTrackTimed = count > 0;
+        for (auto const& track : m_discoverDetailTracks)
+        {
+            if (!track || track.DurationSeconds() <= 0.0)
+            {
+                everyTrackTimed = false;
+                break;
+            }
+            totalSeconds += track.DurationSeconds();
+        }
+
+        // Rounded the way a listener reads it: whole minutes under an hour,
+        // hours and minutes above. Same shape as the library detail's meta row.
+        std::wstring duration;
+        if (everyTrackTimed && totalSeconds >= 60.0)
+        {
+            auto const totalMinutes = static_cast<int>(totalSeconds / 60.0);
+            auto const hours = totalMinutes / 60;
+            auto const minutes = totalMinutes % 60;
+            duration = hours > 0
+                ? std::to_wstring(hours) + L" h " + std::to_wstring(minutes) + L" min"
+                : std::to_wstring(minutes) + L" min";
+        }
+
+        std::wstring const subtitleText{ subtitle.c_str() };
+        std::wstring const releaseText{ release.c_str() };
+        setText(DiscoverDetailSubtitleText(), subtitleText);
+        setText(DiscoverDetailCountText(), countText);
+        setText(DiscoverDetailDurationText(), duration);
+        setText(DiscoverDetailReleaseText(), releaseText);
+
+        // A separator needs a value on both sides of it. Checking only the value
+        // that follows, as the library detail can because its first slot is
+        // always filled, would dangle a dot on an album with no artist name.
+        std::array<bool, 4> const present{
+            !subtitleText.empty(),
+            !countText.empty(),
+            !duration.empty(),
+            !releaseText.empty()
+        };
+        auto anythingBefore = [&present](std::size_t slot)
+        {
+            for (std::size_t earlier = 0; earlier < slot; ++earlier)
+            {
+                if (present[earlier])
+                {
+                    return true;
+                }
+            }
+            return false;
+        };
+        auto dot = [](winrt::Microsoft::UI::Xaml::UIElement const& element, bool visible)
+        {
+            if (element)
+            {
+                element.Visibility(visible ? Visibility::Visible : Visibility::Collapsed);
+            }
+        };
+        dot(DiscoverDetailMetaDot1(), present[1] && anythingBefore(1));
+        dot(DiscoverDetailMetaDot2(), present[2] && anythingBefore(2));
+        dot(DiscoverDetailMetaDot3(), present[3] && anythingBefore(3));
+    }
+
+    void MainWindow::RefreshDiscoverDetailRowStates()
+    {
+        using winrt::Microsoft::UI::Xaml::Visibility;
+
+        auto const current = AudioPlayerService().GetCurrentTrack();
+        auto const currentKey = current ? CatalogSourceKey(current) : std::wstring{};
+        auto currentInDetail = false;
+        if (!currentKey.empty())
+        {
+            for (auto const& track : m_discoverDetailTracks)
+            {
+                if (track && CatalogSourceKey(track) == currentKey)
+                {
+                    currentInDetail = true;
+                    break;
+                }
+            }
+        }
+        auto const isPlaying = currentInDetail
+            && ((m_sink == PlaybackSink::Cast && m_castSession.IsPlaying)
+                || (m_sink == PlaybackSink::Local
+                    && AudioPlayerService().GetMediaPlayer().PlaybackSession().PlaybackState()
+                        == winrt::Windows::Media::Playback::MediaPlaybackState::Playing));
+
+        if (auto list = DiscoverDetailTracksListView())
+        {
+            for (uint32_t index = 0; index < m_discoverDetailTracks.Size(); ++index)
+            {
+                if (auto container = list.ContainerFromIndex(static_cast<int32_t>(index))
+                    .try_as<winrt::Microsoft::UI::Xaml::Controls::ListViewItem>())
+                {
+                    ApplyDiscoverDetailRowState(container, index);
+                }
+            }
+        }
+
+        if (auto glyph = DiscoverDetailPlayGlyph())
+        {
+            glyph.Glyph(isPlaying ? L"\xE769" : L"\xE768");
+        }
+        if (auto label = DiscoverDetailPlayLabel())
+        {
+            label.Text(isPlaying ? L"Pause" : L"Play");
+        }
+    }
+
+    void MainWindow::SyncDiscoverDetailPlaybackState()
+    {
+        if (DiscoverDetailPage()
+            && DiscoverDetailPage().Visibility() == winrt::Microsoft::UI::Xaml::Visibility::Visible)
+        {
+            RefreshDiscoverDetailRowStates();
+        }
+    }
+
+    void MainWindow::ApplyDiscoverDetailRowState(
+        winrt::Microsoft::UI::Xaml::Controls::ListViewItem const& container,
+        uint32_t index)
+    {
+        namespace MUXC = winrt::Microsoft::UI::Xaml::Controls;
+        using winrt::Microsoft::UI::Xaml::Visibility;
+
+        if (!container || index >= m_discoverDetailTracks.Size())
+        {
+            return;
+        }
+        EnsureAccentBrushes();
+
+        auto const track = m_discoverDetailTracks.GetAt(index);
+        auto const current = AudioPlayerService().GetCurrentTrack();
+        auto const nowPlaying = track && current
+            && CatalogSourceKey(track) == CatalogSourceKey(current);
+
+        // The wash goes on the row's own Grid, never on the container: a
+        // container background is a local value and the stock PointerOver state
+        // overrides it, which drops an accent row back to grey under the
+        // pointer. The container carries hover alone, scoped in the list's
+        // resources, and this sits above it.
+        auto row = container.ContentTemplateRoot().try_as<MUXC::Grid>();
+        if (!row)
+        {
+            return;
+        }
+        row.Background(nowPlaying ? m_brushAccentNowPlaying : m_brushTransparent);
+
+        if (row.Children().Size() <= kCatalogRowTitleCellChild)
+        {
+            return;
+        }
+        if (auto indexText = row.Children().GetAt(kCatalogRowIndexTextChild).try_as<MUXC::TextBlock>())
+        {
+            indexText.Visibility(nowPlaying ? Visibility::Collapsed : Visibility::Visible);
+        }
+        if (auto playGlyph = row.Children().GetAt(kCatalogRowPlayGlyphChild).try_as<MUXC::FontIcon>())
+        {
+            playGlyph.Visibility(nowPlaying ? Visibility::Visible : Visibility::Collapsed);
+        }
+
+        auto titleCell = row.Children().GetAt(kCatalogRowTitleCellChild).try_as<MUXC::Grid>();
+        if (!titleCell || titleCell.Children().Size() < 2)
+        {
+            return;
+        }
+        auto titleStack = titleCell.Children().GetAt(1).try_as<MUXC::StackPanel>();
+        if (!titleStack || titleStack.Children().Size() == 0)
+        {
+            return;
+        }
+        if (auto titleText = titleStack.Children().GetAt(0).try_as<MUXC::TextBlock>())
+        {
+            titleText.Foreground(nowPlaying ? m_brushAccent : m_brushLabelIdle);
         }
     }
 
@@ -2068,6 +2351,18 @@ namespace winrt::Last_Music_Player::implementation
         auto previous = m_catalogBackStack.back();
         m_catalogBackStack.pop_back();
         ShowCatalogSurface(previous, false);
+    }
+
+    void MainWindow::DiscoverBreadcrumbHome_Click(
+        winrt::Windows::Foundation::IInspectable const& sender,
+        winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
+    {
+        (void)sender;
+        (void)args;
+        // The root crumb leaves the catalog outright rather than stepping back
+        // one page, so the stack it would have unwound goes with it.
+        m_catalogBackStack.clear();
+        ShowCatalogSurface(CatalogSurface::Home, false);
     }
 
     winrt::Windows::Foundation::IAsyncAction MainWindow::DiscoverStorefront_SelectionChanged(
@@ -2193,9 +2488,67 @@ namespace winrt::Last_Music_Player::implementation
         // Queue the whole detail list so the rest of the album or playlist plays
         // on, rather than stopping after the one track that was clicked.
         QueueAndPlayObservable(m_discoverDetailTracks, track);
+        RefreshDiscoverDetailRowStates();
+    }
+
+    void MainWindow::DiscoverDetailTracks_ContainerContentChanging(
+        winrt::Windows::Foundation::IInspectable const& sender,
+        winrt::Microsoft::UI::Xaml::Controls::ContainerContentChangingEventArgs const& args)
+    {
+        (void)sender;
+        if (args.InRecycleQueue() || args.ItemIndex() < 0)
+        {
+            return;
+        }
+        // Paints a row as it is realized. Without this a row scrolled into view
+        // shows the plain treatment until the next playback tick repaints it.
+        if (auto container = args.ItemContainer()
+            .try_as<winrt::Microsoft::UI::Xaml::Controls::ListViewItem>())
+        {
+            ApplyDiscoverDetailRowState(container, static_cast<uint32_t>(args.ItemIndex()));
+        }
     }
 
     void MainWindow::DiscoverDetailPlay_Click(
+        winrt::Windows::Foundation::IInspectable const& sender,
+        winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
+    {
+        (void)sender;
+        if (m_discoverDetailTracks.Size() == 0)
+        {
+            ShowPlaybackNotice(L"There is nothing to play here.");
+            return;
+        }
+
+        auto const current = AudioPlayerService().GetCurrentTrack();
+        auto const currentKey = current ? CatalogSourceKey(current) : std::wstring{};
+        auto currentInDetail = false;
+        if (!currentKey.empty())
+        {
+            for (auto const& track : m_discoverDetailTracks)
+            {
+                if (track && CatalogSourceKey(track) == currentKey)
+                {
+                    currentInDetail = true;
+                    break;
+                }
+            }
+        }
+        if (currentInDetail)
+        {
+            // The hero button and the bottom transport are two faces of the
+            // same playback state, not two independent commands. Restarting the
+            // collection here would be a surprise, and the button says "Pause".
+            PlayPauseButton_Click(PlayPauseButton(), args);
+            SyncDiscoverDetailPlaybackState();
+            return;
+        }
+
+        QueueAndPlayObservable(m_discoverDetailTracks, m_discoverDetailTracks.GetAt(0));
+        RefreshDiscoverDetailRowStates();
+    }
+
+    void MainWindow::DiscoverDetailShuffle_Click(
         winrt::Windows::Foundation::IInspectable const& sender,
         winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
     {
@@ -2206,7 +2559,23 @@ namespace winrt::Last_Music_Player::implementation
             ShowPlaybackNotice(L"There is nothing to play here.");
             return;
         }
-        QueueAndPlayObservable(m_discoverDetailTracks, m_discoverDetailTracks.GetAt(0));
+
+        std::vector<winrt::Last_Music_Player::TrackInfo> tracks;
+        tracks.reserve(m_discoverDetailTracks.Size());
+        for (auto const& track : m_discoverDetailTracks)
+        {
+            tracks.push_back(track);
+        }
+
+        // Pre-shuffled so the first track played is random AND the Up Next rail,
+        // which walks the queue linearly, reflects the shuffle. EnsureShuffleOn
+        // keeps it on for subsequent advances, matching the library detail.
+        std::random_device seed;
+        std::mt19937 generator(seed());
+        std::shuffle(tracks.begin(), tracks.end(), generator);
+        EnsureShuffleOn();
+        QueueAndPlayVisible(tracks, tracks.front());
+        RefreshDiscoverDetailRowStates();
     }
 
     void MainWindow::DiscoverDetailQueue_Click(

@@ -1745,6 +1745,7 @@ namespace winrt::Last_Music_Player::implementation
             icon.Glyph(glyph);
         }
         SyncLibraryDetailPlaybackState();
+        SyncDiscoverDetailPlaybackState();
     }
 
     winrt::Windows::Foundation::IAsyncAction MainWindow::UpdateSMTCMetadata(winrt::Last_Music_Player::TrackInfo track)

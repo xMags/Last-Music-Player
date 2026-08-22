@@ -325,8 +325,11 @@ namespace winrt::Last_Music_Player::implementation
         winrt::Windows::Foundation::IAsyncAction DiscoverStorefront_SelectionChanged(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::SelectionChangedEventArgs const& args);
         winrt::Windows::Foundation::IAsyncAction DiscoverItem_ItemClick(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::ItemClickEventArgs const& args);
         winrt::Windows::Foundation::IAsyncAction DiscoverChartMore_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void DiscoverBreadcrumbHome_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void DiscoverDetailTrack_ItemClick(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::ItemClickEventArgs const& args);
+        void DiscoverDetailTracks_ContainerContentChanging(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::ContainerContentChangingEventArgs const& args);
         void DiscoverDetailPlay_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void DiscoverDetailShuffle_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void DiscoverDetailQueue_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
 
 
@@ -936,6 +939,20 @@ namespace winrt::Last_Music_Player::implementation
         winrt::Last_Music_Player::TrackInfo CatalogItemToTrack(
             LastMusicPlayer::Backend::CatalogItem const& item,
             int32_t index);
+        // Names the middle breadcrumb after the surface the detail was opened
+        // from, or hides it when that surface is the catalog home.
+        void SetDiscoverDetailSectionCrumb(CatalogSurface origin);
+        // Hero meta and now-playing state for the catalog detail page. These
+        // mirror the library detail's equivalents; the catalog page has no
+        // selection or density of its own, so they are the simpler half.
+        void UpdateDiscoverDetailHeroMeta(
+            winrt::hstring const& subtitle,
+            winrt::hstring const& release);
+        void RefreshDiscoverDetailRowStates();
+        void SyncDiscoverDetailPlaybackState();
+        void ApplyDiscoverDetailRowState(
+            winrt::Microsoft::UI::Xaml::Controls::ListViewItem const& container,
+            uint32_t index);
 
 
         // Show a short message in the player bar for a few seconds.
