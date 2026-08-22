@@ -2,6 +2,8 @@
 #include "TrackInfo.g.h"
 #include <winrt/Microsoft.UI.Xaml.Media.h>
 
+#include <string_view>
+
 namespace winrt::Last_Music_Player::implementation
 {
     struct TrackInfo : TrackInfoT<TrackInfo>
@@ -140,6 +142,21 @@ namespace winrt::Last_Music_Player::implementation
         winrt::Microsoft::UI::Xaml::Visibility InLibraryVisibility()
         {
             return m_isInLibrary
+                ? winrt::Microsoft::UI::Xaml::Visibility::Visible
+                : winrt::Microsoft::UI::Xaml::Visibility::Collapsed;
+        }
+
+        // Mirrors the precondition in EnqueueAutomaticDownload so the menu item
+        // and the action agree on what is downloadable.
+        winrt::Microsoft::UI::Xaml::Visibility DownloadVisibility()
+        {
+            std::wstring_view const kind{ m_sourceKind };
+            auto const remote = kind.size() == 6
+                && (kind[0] == L'r' || kind[0] == L'R')
+                && kind.substr(1) == L"emote";
+            std::wstring_view const url{ m_sourceUrl };
+            auto const streamed = url.starts_with(L"http://") || url.starts_with(L"https://");
+            return remote && streamed
                 ? winrt::Microsoft::UI::Xaml::Visibility::Visible
                 : winrt::Microsoft::UI::Xaml::Visibility::Collapsed;
         }

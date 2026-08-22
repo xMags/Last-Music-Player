@@ -71,6 +71,11 @@ namespace Last_Music_Player
         // library, while catalog-only hits are remote but not yet in it.
         Boolean IsInLibrary;
         Microsoft.UI.Xaml.Visibility InLibraryVisibility{ get; };
+        // Whether an offline download is even possible for this row. Only a
+        // remote track streamed over http(s) has anything to fetch; a local
+        // file is already on the machine, so the menu hides the action rather
+        // than offering one that can only report "already on this PC".
+        Microsoft.UI.Xaml.Visibility DownloadVisibility{ get; };
         Int32 TrackCount;
     }
 }
