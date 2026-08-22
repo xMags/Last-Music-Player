@@ -397,7 +397,7 @@ namespace winrt::Last_Music_Player::implementation
         // container hook only the rows realized on the first layout ever ask
         // for artwork and everything scrolled to afterwards stays blank. Listed
         // one by one because these are not all the same control type.
-        ObserveCatalogGridContainers(SearchSongsListView());
+        ObserveCatalogGridContainers(BrowseFacetGrid());
         ObserveCatalogGridContainers(MusicListView());
         ObserveCatalogGridContainers(DiscoverDetailTracksListView());
         ObserveCatalogGridContainers(LibrarySongsListView());
@@ -896,7 +896,23 @@ namespace winrt::Last_Music_Player::implementation
         {
             return;
         }
-        if (auto image = FindDescendant<winrt::Microsoft::UI::Xaml::Controls::Image>(root))
+        // The artwork Image is not the first one in these templates: the stripe
+        // overlay of the generated cover sits above it, so a plain descendant
+        // search hands back the overlay and the real cover never refreshes on a
+        // recycled container. Templates that go through here name their cover
+        // "ArtworkImage"; the descendant search stays as the fallback for the
+        // single-image templates that do not.
+        winrt::Microsoft::UI::Xaml::Controls::Image image{ nullptr };
+        if (auto namescope = root.try_as<winrt::Microsoft::UI::Xaml::FrameworkElement>())
+        {
+            image = namescope.FindName(L"ArtworkImage")
+                .try_as<winrt::Microsoft::UI::Xaml::Controls::Image>();
+        }
+        if (!image)
+        {
+            image = FindDescendant<winrt::Microsoft::UI::Xaml::Controls::Image>(root);
+        }
+        if (image)
         {
             LastMusicPlayer::Frontend::ApplyRoundedCornerClip(image);
             QueueAccountArtworkImage(image, track.ArtworkUrl(), ArtworkDetail::Tile, track);

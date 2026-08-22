@@ -69,6 +69,12 @@ namespace LastMusicPlayer::Backend
         std::uint64_t OfflineBytes{};
         std::size_t OfflineTracks{};
         bool AllPaused{};
+        // Counters for this run of the app only. They are deliberately not
+        // persisted: the panel reports what this session moved, so a restart
+        // starts the tally again.
+        std::size_t SessionCompletedTracks{};
+        std::uint64_t SessionBytes{};
+        std::uint64_t SessionAverageBytesPerSecond{};
         bool OnlyOnWifi{ true };
         bool AutoDownloadLiked{ true };
         bool DownloadOnBattery{};

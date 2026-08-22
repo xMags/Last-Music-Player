@@ -46,6 +46,11 @@
 
 namespace LastMusicPlayer::Backend { class TrayIcon; class DiscordPresence; class ProviderClient; }
 
+// Download snapshots are plain structs from DownloadManager.h. Naming them in
+// signatures does not need the definition, and the Downloads screen is the
+// only translation unit that has to see it.
+namespace LastMusicPlayer::Backend { struct DownloadJobSnapshot; struct DownloadManagerSnapshot; }
+
 // Defined in MainWindow.Internal.h, which is far too heavy to pull in here. An
 // opaque declaration is enough to name the type in signatures and members.
 namespace winrt::Last_Music_Player::implementation::detail { enum class ArtworkDetail; }
@@ -730,6 +735,7 @@ namespace winrt::Last_Music_Player::implementation
         void ApplyLibraryDetailRowState(winrt::Microsoft::UI::Xaml::Controls::ListViewItem const& container, uint32_t index);
         [[nodiscard]] winrt::Last_Music_Player::TrackInfo CurrentLibraryDetailPlaylistGroup();
         winrt::Windows::Foundation::IAsyncAction HydrateLibraryDetailSuggestionsAsync();
+        void ApplyLibraryDetailSuggestionsVisibility();
         void HideLibraryDetail();
         void ApplyPlaybackProgress(double currentSeconds, double totalSeconds);
         void RefreshPlaybackProgress();
@@ -935,7 +941,7 @@ namespace winrt::Last_Music_Player::implementation
         void SetPlaybackQueue(std::vector<winrt::Last_Music_Player::TrackInfo> const& tracks, int selectedIndex);
         void EnterSearchMode(winrt::hstring const& query);
         void ExitSearchMode();
-        void ShowBrowseLanding(bool showMinimumLengthHint);
+        void ShowBrowseLanding();
         void ShowBrowseSearchLoading();
         void ShowBrowseSearchResults(winrt::hstring const& query);
         void ShowBrowseSearchError(winrt::hstring const& message);
@@ -949,6 +955,18 @@ namespace winrt::Last_Music_Player::implementation
         void InitializeDownloads();
         void RefreshDownloadsView(bool force = false);
         void SetDownloadSettingsOpen(bool open);
+        void ApplyDownloadTabVisuals();
+        winrt::Microsoft::UI::Xaml::UIElement JobArtwork(
+            LastMusicPlayer::Backend::DownloadJobSnapshot const& job,
+            double size,
+            double cornerRadius);
+        void ApplyDownloadStorageCard(LastMusicPlayer::Backend::DownloadManagerSnapshot const& snapshot);
+        // One builder per tab: the four states share nothing but the card they
+        // land in, so a single row shape would have to hide most of itself.
+        winrt::Microsoft::UI::Xaml::UIElement BuildActiveDownloadRow(LastMusicPlayer::Backend::DownloadJobSnapshot const& job);
+        winrt::Microsoft::UI::Xaml::UIElement BuildQueuedDownloadRow(LastMusicPlayer::Backend::DownloadJobSnapshot const& job, std::size_t ordinal);
+        winrt::Microsoft::UI::Xaml::UIElement BuildCompletedDownloadRow(LastMusicPlayer::Backend::DownloadJobSnapshot const& job);
+        winrt::Microsoft::UI::Xaml::UIElement BuildFailedDownloadRow(LastMusicPlayer::Backend::DownloadJobSnapshot const& job);
         [[nodiscard]] bool EnqueueAutomaticDownload(winrt::Last_Music_Player::TrackInfo const& track, winrt::hstring const& reason);
         [[nodiscard]] std::vector<winrt::Last_Music_Player::TrackInfo> BrowseScopedResults() const;
         winrt::Windows::Foundation::IAsyncAction HydrateBrowseLandingAsync(bool force);
@@ -1295,6 +1313,12 @@ namespace winrt::Last_Music_Player::implementation
         winrt::Microsoft::UI::Xaml::Media::Brush m_brushLabelIdle{ nullptr };
         winrt::Microsoft::UI::Xaml::Media::Brush m_brushTextTertiary{ nullptr };
         winrt::Microsoft::UI::Xaml::Media::Brush m_brushTransparent{ nullptr };
+        winrt::Microsoft::UI::Xaml::Media::Brush m_brushRowDivider{ nullptr };
+        winrt::Microsoft::UI::Xaml::Media::Brush m_brushControlBorder{ nullptr };
+        winrt::Microsoft::UI::Xaml::Media::Brush m_brushDanger{ nullptr };
+        // Count badge on a selected accent chip. Not a theme resource: it is
+        // white at low alpha in both themes, because it always sits on accent.
+        winrt::Microsoft::UI::Xaml::Media::Brush m_brushBadgeOnAccent{ nullptr };
 
         // Lyrics state. Service holds HTTP + parse + cache; here we only retain
         // what the highlight tick needs on each frame.

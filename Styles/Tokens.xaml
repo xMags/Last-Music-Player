@@ -83,6 +83,11 @@
             <SolidColorBrush x:Key="HairlineStrongBrush" Color="#12000000" />
             <SolidColorBrush x:Key="RowDividerBrush" Color="#0A000000" />
             <SolidColorBrush x:Key="RowHoverBrush" Color="#06000000" />
+            <!-- Storage meter segments. The accent already stands for what the
+                 app keeps offline, so these two only have to read as distinct
+                 from it and from the empty track behind them. -->
+            <SolidColorBrush x:Key="StorageCacheBrush" Color="#FF9B8AE6" />
+            <SolidColorBrush x:Key="StorageOtherBrush" Color="#29000000" />
             <!-- Buttons and segmented controls sit between the card hairline
                  (StrokeBrush) and the text-field edge (StrokeStrongBrush). -->
             <SolidColorBrush x:Key="ControlBorderBrush" Color="#14000000" />
@@ -178,6 +183,8 @@
             <SolidColorBrush x:Key="HairlineStrongBrush" Color="#1FFFFFFF" />
             <SolidColorBrush x:Key="RowDividerBrush" Color="#14FFFFFF" />
             <SolidColorBrush x:Key="RowHoverBrush" Color="#0FFFFFFF" />
+            <SolidColorBrush x:Key="StorageCacheBrush" Color="#FFA99AF0" />
+            <SolidColorBrush x:Key="StorageOtherBrush" Color="#3DFFFFFF" />
             <SolidColorBrush x:Key="ControlBorderBrush" Color="#1AFFFFFF" />
             <SolidColorBrush x:Key="SubtleHoverBrush" Color="#14FFFFFF" />
             <SolidColorBrush x:Key="ControlHoverBrush" Color="#1AFFFFFF" />
@@ -525,6 +532,23 @@
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="Foreground" Value="{ThemeResource TextSecondaryBrush}" />
         <Setter Property="BorderBrush" Value="{ThemeResource StrokeBrush}" />
+        <Setter Property="UseSystemFocusVisuals" Value="True" />
+    </Style>
+
+    <!-- Downloads tab chip. Selection is a background/foreground swap that
+         RefreshDownloadsView drives, because the count badge inside has to
+         change with it and a visual state cannot reach into the content. -->
+    <Style x:Key="DownloadTabChip" TargetType="Button">
+        <Setter Property="MinWidth" Value="0" />
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="Padding" Value="11,6" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="CornerRadius" Value="14" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="{ThemeResource StrokeBrush}" />
+        <Setter Property="Foreground" Value="{ThemeResource TextSecondaryBrush}" />
         <Setter Property="UseSystemFocusVisuals" Value="True" />
     </Style>
 

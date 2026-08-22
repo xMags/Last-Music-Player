@@ -965,6 +965,7 @@ namespace winrt::Last_Music_Player::implementation
         ++m_libraryDetailFindDebounceId;
         ++m_libraryDetailSuggestionEpoch;
         m_libraryDetailSuggestions.Clear();
+        ApplyLibraryDetailSuggestionsVisibility();
         m_libraryDetailAccountBinding.reset();
         m_libraryDetailFallbackArt = nullptr;
         m_libraryDetailTracks.Clear();

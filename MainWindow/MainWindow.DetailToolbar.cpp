@@ -1204,11 +1204,6 @@ namespace winrt::Last_Music_Player::implementation
     winrt::Windows::Foundation::IAsyncAction MainWindow::HydrateLibraryDetailSuggestionsAsync()
     {
         auto lifetime = get_strong();
-        auto panel = LibraryDetailSuggestionsPanel();
-        if (!panel)
-        {
-            co_return;
-        }
 
         // Account-backed playlists are not stored in the local Playlists table,
         // so there is no row to add a local library track to.
@@ -1216,8 +1211,8 @@ namespace winrt::Last_Music_Player::implementation
             || IsAccountPlaylistDetail()
             || !detail::DatabaseService().IsInitialized())
         {
-            panel.Visibility(Visibility::Collapsed);
             m_libraryDetailSuggestions.Clear();
+            ApplyLibraryDetailSuggestionsVisibility();
             co_return;
         }
 
@@ -1290,8 +1285,23 @@ namespace winrt::Last_Music_Player::implementation
             detail::ResolveArtworkPresentation(track, L"track");
             m_libraryDetailSuggestions.Append(track);
         }
-        panel.Visibility(m_libraryDetailSuggestions.Size() == 0
+        ApplyLibraryDetailSuggestionsVisibility();
+    }
+
+    // The shelf exists once per track surface because each rides that surface's
+    // own scroll footer. Both are kept in step; only the mounted one is drawn.
+    void MainWindow::ApplyLibraryDetailSuggestionsVisibility()
+    {
+        auto const visibility = m_libraryDetailSuggestions.Size() == 0
             ? Visibility::Collapsed
-            : Visibility::Visible);
+            : Visibility::Visible;
+        if (auto shelf = LibraryDetailListSuggestions())
+        {
+            shelf.Visibility(visibility);
+        }
+        if (auto shelf = LibraryDetailGridSuggestions())
+        {
+            shelf.Visibility(visibility);
+        }
     }
 }

@@ -374,42 +374,6 @@ namespace LastMusicPlayer::Backend::DatabaseDetail
         return "ORDER BY DateAddedSortKey DESC, Title COLLATE NOCASE ASC";
     }
 
-    std::string CollectionOrderClause(std::wstring const& sort, char const* positionColumn)
-    {
-        auto normalizedSort = ToLowerInvariant(sort);
-        if (normalizedSort == L"title")
-        {
-            return "ORDER BY t.Title COLLATE NOCASE ASC";
-        }
-        if (normalizedSort == L"artist")
-        {
-            return "ORDER BY t.Artist COLLATE NOCASE ASC, t.Title COLLATE NOCASE ASC";
-        }
-        if (normalizedSort == L"duration")
-        {
-            return "ORDER BY t.DurationSeconds DESC, t.Title COLLATE NOCASE ASC";
-        }
-        if (normalizedSort == L"dateadded")
-        {
-            return "ORDER BY t.DateAddedSortKey DESC, t.Title COLLATE NOCASE ASC";
-        }
-        return std::string("ORDER BY ") + positionColumn + " ASC, t.Title COLLATE NOCASE ASC";
-    }
-
-    std::string CollectionSearchClause(std::wstring const& searchText, int parameterIndex)
-    {
-        if (searchText.empty())
-        {
-            return {};
-        }
-
-        auto parameter = std::string("?") + std::to_string(parameterIndex);
-        std::string clause = " AND (COALESCE(t.Title,'') LIKE " + parameter + " ESCAPE '!'";
-        clause += " OR COALESCE(t.Artist,'') LIKE " + parameter + " ESCAPE '!'";
-        clause += " OR COALESCE(t.Album,'') LIKE " + parameter + " ESCAPE '!')";
-        return clause;
-    }
-
     std::string TrackFilterClause(std::wstring const& filter)
     {
         auto normalizedFilter = ToLowerInvariant(filter);

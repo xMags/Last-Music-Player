@@ -72,7 +72,7 @@ namespace winrt::Last_Music_Player::implementation
         auto const query = TrimQuery(GlobalSearchBox().Text());
         if (query.empty())
         {
-            ShowBrowseLanding(false);
+            ShowBrowseLanding();
         }
         else if (!m_searchAllResults.empty())
         {
@@ -148,7 +148,7 @@ namespace winrt::Last_Music_Player::implementation
         auto const query = TrimQuery(GlobalSearchBox().Text());
         if (query.empty())
         {
-            ShowBrowseLanding(false);
+            ShowBrowseLanding();
             return;
         }
 
@@ -275,7 +275,10 @@ namespace winrt::Last_Music_Player::implementation
             return;
         }
 
-        if (facet.SourceKind() == L"search-playlist")
+        // The facet grid only ever holds playlists while the Playlists filter
+        // is the one that built it, so the filter is the discriminator. The
+        // cards themselves are the untouched playlist objects.
+        if (m_searchFilter == L"Playlists")
         {
             ShowPrimaryView(L"Library");
             if (LibTabPlaylists())
@@ -382,12 +385,10 @@ namespace winrt::Last_Music_Player::implementation
         RunDetached(RunHomeSearchAsync());
     }
 
-    void MainWindow::ShowBrowseLanding(bool showMinimumLengthHint)
+    void MainWindow::ShowBrowseLanding()
     {
         BrowseLandingPanel().Visibility(Visibility::Visible);
         BrowseSearchPanel().Visibility(Visibility::Collapsed);
-        BrowseSearchHintText().Visibility(
-            showMinimumLengthHint ? Visibility::Visible : Visibility::Collapsed);
         BrowseClearQueryButton().Visibility(GlobalSearchBox().Text().empty()
             ? Visibility::Collapsed
             : Visibility::Visible);
@@ -550,20 +551,33 @@ namespace winrt::Last_Music_Player::implementation
                 inputs, kind, kBrowseFacetLimit);
             for (auto const& facet : facets)
             {
-                auto source = FirstMatchingFacetSource(scoped, facet);
+                auto const source = FirstMatchingFacetSource(scoped, facet);
                 if (!source)
                 {
                     continue;
                 }
-                auto card = source;
+                // TrackInfo is a runtime class, so assigning one shares the
+                // object rather than copying it. Retitling a result in place
+                // would rewrite the very row the songs list above is showing
+                // and replace its playable SourceUrl. Each card is therefore
+                // its own object carrying only what the tile template, the
+                // artwork fetch and the drill-down read.
+                winrt::Last_Music_Player::TrackInfo card;
                 card.Title(winrt::hstring(facet.Title));
                 card.Artist(kind == LastMusicPlayer::Backend::SearchFacetKind::Artist
                     ? winrt::hstring(std::to_wstring(facet.Count) + (facet.Count == 1 ? L" song" : L" songs"))
                     : winrt::hstring(facet.Subtitle));
+                card.Album(source.Album());
                 card.SourceKind(kind == LastMusicPlayer::Backend::SearchFacetKind::Artist
                     ? L"search-artist"
                     : L"search-album");
-                card.SourceUrl(winrt::hstring(facet.Key));
+                // Carried from the matched track so the artwork pipeline can
+                // still resolve a cover: QueueAccountArtworkImage falls back to
+                // SourceUrl when a card has no direct artwork URL.
+                card.SourceUrl(source.SourceUrl());
+                card.ArtworkUrl(source.ArtworkUrl());
+                card.AlbumArt(source.AlbumArt());
+                card.Provider(source.Provider());
                 card.TrackCount(static_cast<int32_t>(facet.Count));
                 card.IsInLibrary(facet.InLibrary);
                 ResolveArtworkPresentation(card, kind == LastMusicPlayer::Backend::SearchFacetKind::Artist
@@ -575,12 +589,13 @@ namespace winrt::Last_Music_Player::implementation
         }
         else if (wantsPlaylists)
         {
+            // The playlists go in as themselves. Stamping a marker SourceKind
+            // on them would mutate the shared playlist objects the library
+            // surfaces bind to; the click handler reads m_searchFilter instead.
             for (auto const& playlist : m_searchMatchingPlaylists)
             {
-                auto card = playlist;
-                card.SourceKind(L"search-playlist");
-                ResolveArtworkPresentation(card, L"playlist");
-                m_searchFacets.Append(card);
+                ResolveArtworkPresentation(playlist, L"playlist");
+                m_searchFacets.Append(playlist);
             }
             BrowseFacetHeading().Text(L"PLAYLISTS");
         }

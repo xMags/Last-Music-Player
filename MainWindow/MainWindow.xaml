@@ -218,6 +218,9 @@
                         <TextBlock x:Name="ProbeTextTertiary" Foreground="{ThemeResource TextTertiaryBrush}" />
                         <Border x:Name="ProbeTransparent" Background="Transparent" />
                         <Border x:Name="ProbeStroke" BorderBrush="{ThemeResource StrokeBrush}" />
+                        <Border x:Name="ProbeRowDivider" Background="{ThemeResource RowDividerBrush}" />
+                        <Border x:Name="ProbeControlBorder" BorderBrush="{ThemeResource ControlBorderBrush}" />
+                        <TextBlock x:Name="ProbeDanger" Foreground="{ThemeResource DangerBrush}" />
                     </StackPanel>
                 </Border>
 
@@ -1328,7 +1331,6 @@
 
                                 <TextBlock Text="Browse all" Style="{StaticResource TitleH2}" />
                                 <TextBlock Text="Genres across your library" FontSize="12.5" Foreground="{ThemeResource TextTertiaryBrush}" Margin="0,2,0,12" />
-                                <TextBlock x:Name="BrowseSearchHintText" Visibility="Collapsed" Text="Type one more character to search." FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" Margin="0,0,0,12" />
                                 <GridView x:Name="BrowseCategoryGrid"
                                           SelectionMode="None" IsItemClickEnabled="True"
                                           ItemClick="BrowseCategory_ItemClick"
@@ -1490,7 +1492,7 @@
 
                                 <StackPanel x:Name="BrowseFacetSection" Visibility="Collapsed">
                                     <TextBlock x:Name="BrowseFacetHeading" Text="ALBUMS" Style="{StaticResource EyebrowText}" Margin="0,0,0,12" />
-                                    <GridView x:Name="SearchSongsListView" SelectionMode="None" IsItemClickEnabled="True"
+                                    <GridView x:Name="BrowseFacetGrid" SelectionMode="None" IsItemClickEnabled="True"
                                               ItemClick="BrowseFacet_ItemClick"
                                               ContainerContentChanging="BrowseFacet_ContainerContentChanging"
                                               ItemContainerStyle="{StaticResource CardTileContainerStyle}"
@@ -1508,8 +1510,9 @@
                                                     <Border x:Name="SearchFacetArt" Height="160" Margin="0,0,0,10" CornerRadius="{StaticResource RadiusXl}" Tag="{x:Bind}" Loaded="LibraryArtworkBorder_Loaded" Translation="0,0,16">
                                                         <Border.Shadow><ThemeShadow /></Border.Shadow>
                                                         <Grid>
-                                                            <Image Source="/Assets/LibraryStripeOverlay.svg" Stretch="Fill" />
-                                                            <Image Source="{x:Bind AlbumArt}" Stretch="UniformToFill" Loaded="AccountArtwork_Loaded" Opacity="{x:Bind ImageArtworkOpacity}" />
+                                                            <Image Source="/Assets/LibraryStripeOverlay.svg" Stretch="Fill" Opacity="{x:Bind GeneratedArtworkOpacity}" IsHitTestVisible="False" />
+                                                            <TextBlock Text="{x:Bind ArtworkCaption}" FontFamily="Consolas" FontSize="9.5" CharacterSpacing="80" Foreground="White" Opacity="{x:Bind GeneratedArtworkOpacity}" VerticalAlignment="Bottom" Margin="12" TextTrimming="CharacterEllipsis" IsHitTestVisible="False" />
+                                                            <Image x:Name="ArtworkImage" Source="{x:Bind AlbumArt}" Stretch="UniformToFill" Loaded="AccountArtwork_Loaded" Opacity="{x:Bind ImageArtworkOpacity}" />
                                                         </Grid>
                                                     </Border>
                                                     <TextBlock Text="{x:Bind Title}" Style="{StaticResource BodyStrong}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
@@ -1544,18 +1547,50 @@
                                     <Button x:Name="DownloadsPauseAllButton" Click="DownloadsPauseAll_Click" Style="{StaticResource DetailActionPrimaryButton}">
                                         <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon x:Name="DownloadsPauseAllGlyph" Glyph="&#xE769;" FontSize="13"/><TextBlock x:Name="DownloadsPauseAllLabel" Text="Pause all"/></StackPanel>
                                     </Button>
-                                    <Button x:Name="DownloadsSettingsButton" Click="DownloadsSettings_Click" Style="{StaticResource DetailActionIconButton}" AutomationProperties.Name="Download settings"><FontIcon Glyph="&#xE713;" FontSize="14"/></Button>
+                                    <Button x:Name="DownloadsSettingsButton" Click="DownloadsSettings_Click" Style="{StaticResource DetailActionIconButton}" AutomationProperties.Name="Download settings"><FontIcon x:Name="DownloadsSettingsGlyph" Glyph="&#xE713;" FontSize="14"/></Button>
                                 </StackPanel>
                             </Grid>
 
+                            <!-- Storage. The bar is one stacked meter across the whole
+                                 volume: what this app keeps offline, what its stream
+                                 cache holds, and everything else already on the disk.
+                                 RefreshDownloadsView sets the four column weights. -->
                             <Border Margin="0,24,0,0" Background="{ThemeResource SurfaceBrush}" BorderBrush="{ThemeResource StrokeBrush}" BorderThickness="1" CornerRadius="{StaticResource RadiusXl}" Padding="20,18" Translation="0,0,4">
                                 <Border.Shadow><ThemeShadow/></Border.Shadow>
-                                <Grid ColumnSpacing="24">
+                                <Grid ColumnSpacing="32">
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                                     <StackPanel Spacing="10">
-                                        <StackPanel Orientation="Horizontal" Spacing="8"><TextBlock Text="STORAGE" Style="{StaticResource EyebrowText}"/><TextBlock x:Name="DownloadsStorageSummaryText" Text="0 B used for offline music" FontSize="12.5" Foreground="{ThemeResource TextTertiaryBrush}"/></StackPanel>
-                                        <ProgressBar x:Name="DownloadsStorageBar" Minimum="0" Maximum="100" Value="0" Height="10" Foreground="{ThemeResource AccentBrush}" Background="{ThemeResource NeutralFillBrush}"/>
-                                        <StackPanel Orientation="Horizontal" Spacing="18"><TextBlock x:Name="DownloadsMusicSizeText" Text="Music 0 B" FontSize="12.5" Foreground="{ThemeResource TextSecondaryBrush}"/><TextBlock x:Name="DownloadsCacheSizeText" Text="Cache 0 B" FontSize="12.5" Foreground="{ThemeResource TextSecondaryBrush}"/></StackPanel>
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <TextBlock Text="STORAGE" Style="{StaticResource EyebrowText}"/>
+                                            <TextBlock x:Name="DownloadsStorageSummaryText" Text="Checking this PC" FontSize="12.5" Foreground="{ThemeResource TextTertiaryBrush}"/>
+                                        </StackPanel>
+                                        <Border Height="10" CornerRadius="{StaticResource RadiusMd}" Background="{ThemeResource NeutralFillBrush}">
+                                            <Grid x:Name="DownloadsStorageSegments">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition x:Name="DownloadsStorageMusicColumn" Width="0*"/>
+                                                    <ColumnDefinition x:Name="DownloadsStorageCacheColumn" Width="0*"/>
+                                                    <ColumnDefinition x:Name="DownloadsStorageOtherColumn" Width="0*"/>
+                                                    <ColumnDefinition x:Name="DownloadsStorageFreeColumn" Width="1*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <Border Grid.Column="0" Background="{ThemeResource AccentBrush}"/>
+                                                <Border Grid.Column="1" Background="{ThemeResource StorageCacheBrush}"/>
+                                                <Border Grid.Column="2" Background="{ThemeResource StorageOtherBrush}"/>
+                                            </Grid>
+                                        </Border>
+                                        <StackPanel Orientation="Horizontal" Spacing="20">
+                                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                                <Border Width="8" Height="8" CornerRadius="2" Background="{ThemeResource AccentBrush}" VerticalAlignment="Center"/>
+                                                <TextBlock x:Name="DownloadsMusicSizeText" Text="Offline music" FontSize="12.5" Foreground="{ThemeResource TextSecondaryBrush}" TextWrapping="NoWrap"/>
+                                            </StackPanel>
+                                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                                <Border Width="8" Height="8" CornerRadius="2" Background="{ThemeResource StorageCacheBrush}" VerticalAlignment="Center"/>
+                                                <TextBlock x:Name="DownloadsCacheSizeText" Text="Stream cache" FontSize="12.5" Foreground="{ThemeResource TextSecondaryBrush}" TextWrapping="NoWrap"/>
+                                            </StackPanel>
+                                            <StackPanel x:Name="DownloadsOtherLegend" Orientation="Horizontal" Spacing="8">
+                                                <Border Width="8" Height="8" CornerRadius="2" Background="{ThemeResource StorageOtherBrush}" VerticalAlignment="Center"/>
+                                                <TextBlock x:Name="DownloadsOtherSizeText" Text="Everything else" FontSize="12.5" Foreground="{ThemeResource TextSecondaryBrush}" TextWrapping="NoWrap"/>
+                                            </StackPanel>
+                                        </StackPanel>
                                     </StackPanel>
                                     <StackPanel Grid.Column="1" HorizontalAlignment="Right" Spacing="6">
                                         <Button Click="DownloadsClearCache_Click" Content="Clear cache" Style="{StaticResource DetailActionSecondaryButton}" HorizontalAlignment="Right"/>
@@ -1564,16 +1599,71 @@
                                 </Grid>
                             </Border>
 
-                            <Grid Margin="0,26,0,16" Padding="0,0,0,12" BorderBrush="{ThemeResource StrokeBrush}" BorderThickness="0,0,0,1">
-                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                                <Button x:Name="DownloadsTabActive" Tag="Active" Click="DownloadsTab_Click" Style="{StaticResource DetailActionSecondaryButton}"><StackPanel Orientation="Horizontal" Spacing="6"><TextBlock Text="Active"/><TextBlock x:Name="DownloadsActiveCount" Text="0"/></StackPanel></Button>
-                                <Button x:Name="DownloadsTabQueued" Grid.Column="1" Tag="Queued" Click="DownloadsTab_Click" Style="{StaticResource DetailActionSecondaryButton}" Margin="6,0,0,0"><StackPanel Orientation="Horizontal" Spacing="6"><TextBlock Text="Queued"/><TextBlock x:Name="DownloadsQueuedCount" Text="0"/></StackPanel></Button>
-                                <Button x:Name="DownloadsTabCompleted" Grid.Column="2" Tag="Completed" Click="DownloadsTab_Click" Style="{StaticResource DetailActionSecondaryButton}" Margin="6,0,0,0"><StackPanel Orientation="Horizontal" Spacing="6"><TextBlock Text="Completed"/><TextBlock x:Name="DownloadsCompletedCount" Text="0"/></StackPanel></Button>
-                                <Button x:Name="DownloadsTabFailed" Grid.Column="3" Tag="Failed" Click="DownloadsTab_Click" Style="{StaticResource DetailActionSecondaryButton}" Margin="6,0,0,0"><StackPanel Orientation="Horizontal" Spacing="6"><TextBlock Text="Failed"/><TextBlock x:Name="DownloadsFailedCount" Text="0"/></StackPanel></Button>
-                                <Button Grid.Column="5" Click="DownloadsClearCompleted_Click" Content="Clear completed" Style="{StaticResource DetailActionSecondaryButton}"/>
+                            <Grid Margin="0,26,0,16" Padding="0,0,0,12" BorderBrush="{ThemeResource HairlineStrongBrush}" BorderThickness="0,0,0,1">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <Button x:Name="DownloadsTabActive" Tag="Active" Click="DownloadsTab_Click" Style="{StaticResource DownloadTabChip}">
+                                        <StackPanel Orientation="Horizontal" Spacing="7">
+                                            <TextBlock x:Name="DownloadsActiveLabel" Text="Active" VerticalAlignment="Center"/>
+                                            <Border x:Name="DownloadsActiveBadge" CornerRadius="{StaticResource RadiusPill}" Padding="6,0" MinWidth="18">
+                                                <TextBlock x:Name="DownloadsActiveCount" Text="0" FontSize="11" FontWeight="Bold" HorizontalAlignment="Center"/>
+                                            </Border>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button x:Name="DownloadsTabQueued" Tag="Queued" Click="DownloadsTab_Click" Style="{StaticResource DownloadTabChip}">
+                                        <StackPanel Orientation="Horizontal" Spacing="7">
+                                            <TextBlock x:Name="DownloadsQueuedLabel" Text="Queued" VerticalAlignment="Center"/>
+                                            <Border x:Name="DownloadsQueuedBadge" CornerRadius="{StaticResource RadiusPill}" Padding="6,0" MinWidth="18">
+                                                <TextBlock x:Name="DownloadsQueuedCount" Text="0" FontSize="11" FontWeight="Bold" HorizontalAlignment="Center"/>
+                                            </Border>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button x:Name="DownloadsTabCompleted" Tag="Completed" Click="DownloadsTab_Click" Style="{StaticResource DownloadTabChip}">
+                                        <StackPanel Orientation="Horizontal" Spacing="7">
+                                            <TextBlock x:Name="DownloadsCompletedLabel" Text="Completed" VerticalAlignment="Center"/>
+                                            <Border x:Name="DownloadsCompletedBadge" CornerRadius="{StaticResource RadiusPill}" Padding="6,0" MinWidth="18">
+                                                <TextBlock x:Name="DownloadsCompletedCount" Text="0" FontSize="11" FontWeight="Bold" HorizontalAlignment="Center"/>
+                                            </Border>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button x:Name="DownloadsTabFailed" Tag="Failed" Click="DownloadsTab_Click" Style="{StaticResource DownloadTabChip}">
+                                        <StackPanel Orientation="Horizontal" Spacing="7">
+                                            <TextBlock x:Name="DownloadsFailedLabel" Text="Failed" VerticalAlignment="Center"/>
+                                            <Border x:Name="DownloadsFailedBadge" CornerRadius="{StaticResource RadiusPill}" Padding="6,0" MinWidth="18">
+                                                <TextBlock x:Name="DownloadsFailedCount" Text="0" FontSize="11" FontWeight="Bold" HorizontalAlignment="Center"/>
+                                            </Border>
+                                        </StackPanel>
+                                    </Button>
+                                </StackPanel>
+                                <Button x:Name="DownloadsClearCompletedButton" Grid.Column="2" Click="DownloadsClearCompleted_Click" Content="Clear completed" Style="{StaticResource DetailActionSecondaryButton}" VerticalAlignment="Center"/>
                             </Grid>
 
-                            <StackPanel x:Name="DownloadsRowsHost" Spacing="10"/>
+                            <!-- One card per tab, not one card per row: the rows are
+                                 built by RefreshDownloadsView and separated by hairlines,
+                                 and the Completed tab gets the column header above them. -->
+                            <Border x:Name="DownloadsRowsCard" Background="{ThemeResource SurfaceBrush}" BorderBrush="{ThemeResource StrokeBrush}" BorderThickness="1" CornerRadius="{StaticResource RadiusXl}" Translation="0,0,4">
+                                <Border.Shadow><ThemeShadow/></Border.Shadow>
+                                <StackPanel>
+                                    <Grid x:Name="DownloadsTableHeader" Visibility="Collapsed" Padding="18,11" ColumnSpacing="12"
+                                          Background="{ThemeResource TableHeaderBrush}"
+                                          BorderBrush="{ThemeResource DividerBrush}" BorderThickness="0,0,0,1"
+                                          CornerRadius="11,11,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="160"/>
+                                            <ColumnDefinition Width="110"/>
+                                            <ColumnDefinition Width="90"/>
+                                            <ColumnDefinition Width="40"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="ITEM" Style="{StaticResource TableLabelText}"/>
+                                        <TextBlock Grid.Column="1" Text="ALBUM" Style="{StaticResource TableLabelText}"/>
+                                        <TextBlock Grid.Column="2" Text="FINISHED" Style="{StaticResource TableLabelText}"/>
+                                        <TextBlock Grid.Column="3" Text="SIZE" Style="{StaticResource TableLabelText}" HorizontalAlignment="Right"/>
+                                    </Grid>
+                                    <StackPanel x:Name="DownloadsRowsHost"/>
+                                </StackPanel>
+                            </Border>
+
                             <StackPanel x:Name="DownloadsEmptyPanel" Margin="0,64,0,0" HorizontalAlignment="Center">
                                 <FontIcon Glyph="&#xE896;" FontSize="38" Foreground="{ThemeResource PlaceholderGlyphBrush}" HorizontalAlignment="Center"/>
                                 <TextBlock x:Name="DownloadsEmptyTitle" Text="No active downloads" Style="{StaticResource TitleH3}" Margin="0,12,0,0" HorizontalAlignment="Center"/>
@@ -2639,7 +2729,7 @@
                                                     <Grid>
                                                         <FontIcon Glyph="&#xE8D6;" FontSize="14" Foreground="{ThemeResource PlaceholderGlyphBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"
                                                                   IsHitTestVisible="False" AutomationProperties.AccessibilityView="Raw" />
-                                                            <Image Source="{x:Bind AlbumArt}" Stretch="UniformToFill"
+                                                            <Image x:Name="ArtworkImage" Source="{x:Bind AlbumArt}" Stretch="UniformToFill"
                                                            HorizontalAlignment="Center" VerticalAlignment="Center"
                                                            Loaded="AccountArtwork_Loaded" />
                                                     </Grid>
@@ -2734,7 +2824,7 @@
                                                               IsHitTestVisible="False" AutomationProperties.AccessibilityView="Raw" />
                                                     <Image Source="/Assets/LibraryStripeOverlay.svg" Stretch="Fill" Opacity="{x:Bind GeneratedArtworkOpacity}" IsHitTestVisible="False" />
                                                     <TextBlock Text="track" FontFamily="Consolas" FontSize="9.5" CharacterSpacing="80" Foreground="White" Opacity="{x:Bind GeneratedArtworkOpacity}" VerticalAlignment="Bottom" Margin="12" />
-                                                    <Image Source="{x:Bind AlbumArt}" Stretch="UniformToFill"
+                                                    <Image x:Name="ArtworkImage" Source="{x:Bind AlbumArt}" Stretch="UniformToFill"
                                                            HorizontalAlignment="Center" VerticalAlignment="Center"
                                                            Loaded="AccountArtwork_Loaded" />
                                                 </Grid>
@@ -2836,7 +2926,7 @@
                                                 <Border Width="38" Height="38" CornerRadius="6" Background="{ThemeResource NeutralFillBrush}">
                                                     <Grid>
                                                         <FontIcon Glyph="&#xE8D6;" FontSize="14" Foreground="{ThemeResource PlaceholderGlyphBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                                        <Image Source="{x:Bind AlbumArt}" Stretch="UniformToFill" Loaded="AccountArtwork_Loaded" />
+                                                        <Image x:Name="ArtworkImage" Source="{x:Bind AlbumArt}" Stretch="UniformToFill" Loaded="AccountArtwork_Loaded" />
                                                     </Grid>
                                                 </Border>
                                                 <StackPanel Grid.Column="1" VerticalAlignment="Center">
@@ -2911,7 +3001,7 @@
                                                     <FontIcon Glyph="&#xE8D6;" FontSize="40" Foreground="{ThemeResource PlaceholderGlyphBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False" AutomationProperties.AccessibilityView="Raw" />
                                                     <Image Source="/Assets/LibraryStripeOverlay.svg" Stretch="Fill" Opacity="{x:Bind GeneratedArtworkOpacity}" IsHitTestVisible="False" />
                                                     <TextBlock Text="track" FontFamily="Consolas" FontSize="9.5" CharacterSpacing="80" Foreground="White" Opacity="{x:Bind GeneratedArtworkOpacity}" VerticalAlignment="Bottom" Margin="12" />
-                                                    <Image Source="{x:Bind AlbumArt}" Stretch="UniformToFill"
+                                                    <Image x:Name="ArtworkImage" Source="{x:Bind AlbumArt}" Stretch="UniformToFill"
                                                            HorizontalAlignment="Center" VerticalAlignment="Center"
                                                            Loaded="AccountArtwork_Loaded" />
                                                 </Grid>
@@ -3074,8 +3164,48 @@
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="*" />
-                            <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
+
+                        <Grid.Resources>
+                            <!-- The suggestion shelf is mounted as the footer of
+                                 whichever track surface is on screen, so it scrolls
+                                 in behind the tracks instead of standing in a fixed
+                                 row that claims its full height on every playlist.
+                                 List and grid each get their own instance of this
+                                 one template. -->
+                            <DataTemplate x:Key="LibraryDetailSuggestionRowTemplate" x:DataType="local:TrackInfo">
+                                <Grid ColumnSpacing="12" Padding="12,9" CornerRadius="{StaticResource Radius10}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <Border Grid.Column="0" Width="38" Height="38" CornerRadius="{StaticResource RadiusMd}" Background="{ThemeResource NeutralFillBrush}">
+                                        <Grid>
+                                            <FontIcon Glyph="&#xE8D6;" FontSize="15" Foreground="{ThemeResource PlaceholderGlyphBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False" />
+                                            <Image x:Name="ArtworkImage" Source="{x:Bind AlbumArt}" Stretch="UniformToFill" Loaded="AccountArtwork_Loaded" />
+                                        </Grid>
+                                    </Border>
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                        <TextBlock Text="{x:Bind Title}" Style="{StaticResource BodyStrong}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                                        <TextBlock Text="{x:Bind Artist}" Style="{StaticResource CaptionText}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                                    </StackPanel>
+                                    <TextBlock Grid.Column="2" Text="{x:Bind Duration}" FontSize="12" Foreground="{ThemeResource TextTertiaryBrush}" VerticalAlignment="Center" Margin="0,0,4,0" />
+                                    <Button Grid.Column="3" Tag="{x:Bind}" Click="LibraryDetailSuggestionAdd_Click"
+                                            Background="{ThemeResource SurfaceBrush}"
+                                            BorderBrush="{ThemeResource ControlBorderBrush}" BorderThickness="1"
+                                            CornerRadius="{StaticResource Radius9}" Padding="12,5"
+                                            FontSize="12.5" FontWeight="SemiBold"
+                                            AutomationProperties.Name="Add to this playlist">
+                                        <StackPanel Orientation="Horizontal" Spacing="7">
+                                            <FontIcon Glyph="&#xE710;" FontSize="12" />
+                                            <TextBlock Text="Add" />
+                                        </StackPanel>
+                                    </Button>
+                                </Grid>
+                            </DataTemplate>
+                        </Grid.Resources>
 
                         <StackPanel Grid.Row="0">
                             <!-- Breadcrumb. Both links unwind to the library tab
@@ -3389,7 +3519,7 @@
                                                             <Grid>
                                                                 <FontIcon Glyph="&#xE8D6;" FontSize="15" Foreground="{ThemeResource PlaceholderGlyphBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"
                                                                           IsHitTestVisible="False" AutomationProperties.AccessibilityView="Raw" />
-                                                                <Image Source="{x:Bind AlbumArt}" Stretch="UniformToFill"
+                                                                <Image x:Name="ArtworkImage" Source="{x:Bind AlbumArt}" Stretch="UniformToFill"
                                                                        HorizontalAlignment="Center" VerticalAlignment="Center"
                                                                        Loaded="AccountArtwork_Loaded" />
                                                             </Grid>
@@ -3420,6 +3550,13 @@
                                                 </Grid>
                                             </DataTemplate>
                                         </ListView.ItemTemplate>
+                                        <ListView.Footer>
+                                            <StackPanel x:Name="LibraryDetailListSuggestions" Visibility="Collapsed" Margin="0,26,0,0" Padding="18,0,18,18">
+                                                <TextBlock Text="Fits this playlist" Style="{StaticResource TitleH3}" />
+                                                <TextBlock Text="From your library, matched on artist and genre" FontSize="12.5" Foreground="{ThemeResource TextTertiaryBrush}" Margin="0,2,0,12" />
+                                                <ItemsControl x:Name="LibraryDetailSuggestionsList" ItemTemplate="{StaticResource LibraryDetailSuggestionRowTemplate}" />
+                                            </StackPanel>
+                                        </ListView.Footer>
                                     </ListView>
                                 </Grid>
                             </Border>
@@ -3459,7 +3596,7 @@
                                                 <Border.Shadow><ThemeShadow /></Border.Shadow>
                                                 <Grid>
                                                     <Image Source="/Assets/LibraryStripeOverlay.svg" Stretch="Fill" Opacity="{x:Bind GeneratedArtworkOpacity}" IsHitTestVisible="False" />
-                                                    <Image Source="{x:Bind AlbumArt}" Stretch="UniformToFill" Loaded="AccountArtwork_Loaded" Opacity="{x:Bind ImageArtworkOpacity}" />
+                                                    <Image x:Name="ArtworkImage" Source="{x:Bind AlbumArt}" Stretch="UniformToFill" Loaded="AccountArtwork_Loaded" Opacity="{x:Bind ImageArtworkOpacity}" />
                                                     <!-- Shown only on the now-playing card, by
                                                          ApplyLibraryDetailCardState. -->
                                                     <Border Visibility="Collapsed" Background="{ThemeResource SurfaceBrush}" CornerRadius="{StaticResource RadiusPill}" Padding="7,3"
@@ -3480,51 +3617,15 @@
                                         </StackPanel>
                                     </DataTemplate>
                                 </GridView.ItemTemplate>
+                                <GridView.Footer>
+                                    <StackPanel x:Name="LibraryDetailGridSuggestions" Visibility="Collapsed" Margin="0,26,18,18">
+                                        <TextBlock Text="Fits this playlist" Style="{StaticResource TitleH3}" />
+                                        <TextBlock Text="From your library, matched on artist and genre" FontSize="12.5" Foreground="{ThemeResource TextTertiaryBrush}" Margin="0,2,0,12" />
+                                        <ItemsControl x:Name="LibraryDetailSuggestionsGridList" ItemTemplate="{StaticResource LibraryDetailSuggestionRowTemplate}" />
+                                    </StackPanel>
+                                </GridView.Footer>
                             </GridView>
                         </Grid>
-
-                        <!-- Suggestions. Playlists only: there is nothing to add a
-                             track to on an album, artist or genre page. -->
-                        <StackPanel x:Name="LibraryDetailSuggestionsPanel" Grid.Row="2" Visibility="Collapsed" Margin="0,26,0,0">
-                            <TextBlock Text="Fits this playlist" Style="{StaticResource TitleH3}" />
-                            <TextBlock Text="From your library, matched on artist and genre" FontSize="12.5" Foreground="{ThemeResource TextTertiaryBrush}" Margin="0,2,0,12" />
-                            <ItemsControl x:Name="LibraryDetailSuggestionsList">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate x:DataType="local:TrackInfo">
-                                        <Grid ColumnSpacing="12" Padding="12,9" CornerRadius="{StaticResource Radius10}">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="Auto" />
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="Auto" />
-                                                <ColumnDefinition Width="Auto" />
-                                            </Grid.ColumnDefinitions>
-                                            <Border Grid.Column="0" Width="38" Height="38" CornerRadius="{StaticResource RadiusMd}" Background="{ThemeResource NeutralFillBrush}">
-                                                <Grid>
-                                                    <FontIcon Glyph="&#xE8D6;" FontSize="15" Foreground="{ThemeResource PlaceholderGlyphBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False" />
-                                                    <Image Source="{x:Bind AlbumArt}" Stretch="UniformToFill" Loaded="AccountArtwork_Loaded" />
-                                                </Grid>
-                                            </Border>
-                                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                                <TextBlock Text="{x:Bind Title}" Style="{StaticResource BodyStrong}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
-                                                <TextBlock Text="{x:Bind Artist}" Style="{StaticResource CaptionText}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
-                                            </StackPanel>
-                                            <TextBlock Grid.Column="2" Text="{x:Bind Duration}" FontSize="12" Foreground="{ThemeResource TextTertiaryBrush}" VerticalAlignment="Center" Margin="0,0,4,0" />
-                                            <Button Grid.Column="3" Tag="{x:Bind}" Click="LibraryDetailSuggestionAdd_Click"
-                                                    Background="{ThemeResource SurfaceBrush}"
-                                                    BorderBrush="{ThemeResource ControlBorderBrush}" BorderThickness="1"
-                                                    CornerRadius="{StaticResource Radius9}" Padding="12,5"
-                                                    FontSize="12.5" FontWeight="SemiBold"
-                                                    AutomationProperties.Name="Add to this playlist">
-                                                <StackPanel Orientation="Horizontal" Spacing="7">
-                                                    <FontIcon Glyph="&#xE710;" FontSize="12" />
-                                                    <TextBlock Text="Add" />
-                                                </StackPanel>
-                                            </Button>
-                                        </Grid>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </StackPanel>
                     </Grid>
                 </Grid>
 
@@ -3713,6 +3814,11 @@
                         <Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="42"/></Grid.ColumnDefinitions><StackPanel><TextBlock Text="Auto-download liked songs" FontSize="13.5" FontWeight="SemiBold" TextWrapping="Wrap"/><TextBlock Text="Keep newly liked remote tracks offline." FontSize="11.5" Foreground="{ThemeResource TextTertiaryBrush}" TextWrapping="Wrap"/></StackPanel><ToggleSwitch x:Name="DownloadRuleLiked" Grid.Column="1" Tag="Liked" Style="{StaticResource DownloadRuleToggle}" Toggled="DownloadsRule_Toggled"/></Grid>
                         <Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="42"/></Grid.ColumnDefinitions><StackPanel><TextBlock Text="Download on battery" FontSize="13.5" FontWeight="SemiBold" TextWrapping="Wrap"/><TextBlock Text="Allow transfers when this PC is unplugged." FontSize="11.5" Foreground="{ThemeResource TextTertiaryBrush}" TextWrapping="Wrap"/></StackPanel><ToggleSwitch x:Name="DownloadRuleBattery" Grid.Column="1" Tag="Battery" Style="{StaticResource DownloadRuleToggle}" Toggled="DownloadsRule_Toggled"/></Grid>
                         <Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="42"/></Grid.ColumnDefinitions><StackPanel><TextBlock Text="Keep recently played offline" FontSize="13.5" FontWeight="SemiBold" TextWrapping="Wrap"/><TextBlock Text="Download remote tracks after they begin playing." FontSize="11.5" Foreground="{ThemeResource TextTertiaryBrush}" TextWrapping="Wrap"/></StackPanel><ToggleSwitch x:Name="DownloadRuleRecent" Grid.Column="1" Tag="Recent" Style="{StaticResource DownloadRuleToggle}" Toggled="DownloadsRule_Toggled"/></Grid>
+                        <Border Height="1" Background="{ThemeResource StrokeBrush}" Margin="0,4"/>
+                        <TextBlock Text="THIS SESSION" Style="{StaticResource EyebrowText}"/>
+                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Text="Downloaded" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}"/><TextBlock x:Name="DownloadSessionTracksText" Grid.Column="1" Text="0 tracks" FontSize="13" FontWeight="SemiBold"/></Grid>
+                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Text="Transferred" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}"/><TextBlock x:Name="DownloadSessionBytesText" Grid.Column="1" Text="0 B" FontSize="13" FontWeight="SemiBold"/></Grid>
+                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Text="Average speed" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}"/><TextBlock x:Name="DownloadSessionSpeedText" Grid.Column="1" Text="Nothing yet" FontSize="13" FontWeight="SemiBold"/></Grid>
                         <Border Height="1" Background="{ThemeResource StrokeBrush}" Margin="0,4"/>
                         <TextBlock Text="STORAGE" Style="{StaticResource EyebrowText}"/>
                         <Button Click="DownloadsChangeFolder_Click" Style="{StaticResource DetailActionSecondaryButton}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"><StackPanel><TextBlock Text="Change offline folder" FontWeight="SemiBold"/><TextBlock x:Name="DownloadSettingsFolderText" Text="Offline folder" FontSize="11.5" Foreground="{ThemeResource TextTertiaryBrush}" TextTrimming="CharacterEllipsis"/></StackPanel></Button>

@@ -138,7 +138,7 @@ namespace winrt::Last_Music_Player::implementation
         m_searchTracks.Clear();
         m_searchFacets.Clear();
         m_searchTopResult = nullptr;
-        ShowBrowseLanding(false);
+        ShowBrowseLanding();
         RunDetached(HydrateBrowseLandingAsync(false));
     }
 
@@ -151,7 +151,7 @@ namespace winrt::Last_Music_Player::implementation
         if (query.size() < LastMusicPlayer::Backend::kMinimumSearchQueryLength)
         {
             ExitSearchMode();
-            ShowBrowseLanding(query.size() == 1);
+            ShowBrowseLanding();
             return;
         }
 
@@ -196,7 +196,7 @@ namespace winrt::Last_Music_Player::implementation
         if (query.size() < LastMusicPlayer::Backend::kMinimumSearchQueryLength)
         {
             ExitSearchMode();
-            ShowBrowseLanding(query.size() == 1);
+            ShowBrowseLanding();
             co_return;
         }
 
@@ -236,13 +236,10 @@ namespace winrt::Last_Music_Player::implementation
             // provider hits.
             localQuery.IncludeRemote = true;
             localQuery.ActiveOnly = true;
+            // Catalog mode still shows these local hits first and only then
+            // asks the provider for what lies beyond the local index, so both
+            // scopes read the same local page.
             localQuery.Limit = 60;
-            if (m_searchScope == L"Catalog")
-            {
-                // Catalog mode still shows local hits first, but it also asks
-                // the provider for everything beyond this local index.
-                localQuery.Limit = 60;
-            }
 
             auto dispatcher = DispatcherQueue();
             co_await winrt::resume_background();
