@@ -12,7 +12,7 @@
     <Midl Include="MainWindow\MainWindow.idl">
       <Filter>MainWindow</Filter>
     </Midl>
-    <Midl Include="Backend\TrackInfo.idl">
+    <Midl Include="src\Backend\TrackInfo.idl">
       <Filter>Backend</Filter>
     </Midl>
   </ItemGroup>
@@ -145,99 +145,99 @@
     <ClInclude Include="MainWindow\MainWindow.Internal.h">
       <Filter>MainWindow</Filter>
     </ClInclude>
-    <ClInclude Include="Frontend\ViewModels\TrackViewModel.h">
+    <ClInclude Include="src\Frontend\ViewModels\TrackViewModel.h">
       <Filter>Frontend\ViewModels</Filter>
     </ClInclude>
     <!-- Backend Headers -->
-    <ClInclude Include="Backend\TrackInfo.h">
+    <ClInclude Include="src\Backend\TrackInfo.h">
       <Filter>Backend</Filter>
     </ClInclude>
-    <ClInclude Include="Backend\AudioPlayer.h">
+    <ClInclude Include="src\Backend\AudioPlayer.h">
       <Filter>Backend</Filter>
     </ClInclude>
-    <ClInclude Include="Backend\PlaylistManager.h">
+    <ClInclude Include="src\Backend\PlaylistManager.h">
       <Filter>Backend</Filter>
     </ClInclude>
-    <ClInclude Include="Backend\SettingsManager.h">
+    <ClInclude Include="src\Backend\SettingsManager.h">
       <Filter>Backend</Filter>
     </ClInclude>
-    <ClInclude Include="Backend\CredentialStore.h">
+    <ClInclude Include="src\Backend\CredentialStore.h">
       <Filter>Backend</Filter>
     </ClInclude>
-    <ClInclude Include="Backend\BuildConfig.h"><Filter>Backend</Filter></ClInclude>
-    <ClInclude Include="Backend\Pkce.h"><Filter>Backend</Filter></ClInclude>
-    <ClInclude Include="Backend\LoopbackCallback.h"><Filter>Backend</Filter></ClInclude>
-    <ClInclude Include="Backend\AccountClient.h"><Filter>Backend</Filter></ClInclude>
-    <ClInclude Include="Backend\AccountMusicContract.h"><Filter>Backend</Filter></ClInclude>
-    <ClInclude Include="Backend\AccountUrlPolicy.h"><Filter>Backend</Filter></ClInclude>
-    <ClInclude Include="Backend\AccountSessionGateway.h"><Filter>Backend</Filter></ClInclude>
-    <ClInclude Include="Backend\AccountSyncTransport.h"><Filter>Backend</Filter></ClInclude>
-    <ClInclude Include="Backend\AccountSessionService.h"><Filter>Backend</Filter></ClInclude>
-    <ClInclude Include="Backend\RemoteMusicService.h"><Filter>Backend</Filter></ClInclude>
-    <ClInclude Include="Backend\AutoSyncPolicy.h"><Filter>Backend</Filter></ClInclude>
-    <ClInclude Include="Backend\ProfileIdentity.h"><Filter>Backend</Filter></ClInclude>
-    <ClInclude Include="Backend\MusicSyncService.h"><Filter>Backend</Filter></ClInclude>
-    <ClInclude Include="Backend\UserDataOperationGate.h"><Filter>Backend</Filter></ClInclude>
-    <ClInclude Include="Backend\CatalogModels.h"><Filter>Backend</Filter></ClInclude>
-    <ClInclude Include="Backend\CatalogParser.h"><Filter>Backend</Filter></ClInclude>
-    <ClInclude Include="Backend\CatalogPresentation.h"><Filter>Backend</Filter></ClInclude>
-    <ClInclude Include="Backend\EmbeddedArtwork.h"><Filter>Backend</Filter></ClInclude>
-    <ClInclude Include="Backend\PlaybackHistoryQualifier.h"><Filter>Backend</Filter></ClInclude>
-    <ClInclude Include="Backend\ResumePositionPolicy.h"><Filter>Backend</Filter></ClInclude>
-    <ClInclude Include="Backend\HistoryImport.h"><Filter>Backend</Filter></ClInclude>
-    <ClInclude Include="Backend\DatabaseEngine.h">
+    <ClInclude Include="src\Backend\BuildConfig.h"><Filter>Backend</Filter></ClInclude>
+    <ClInclude Include="src\Backend\Pkce.h"><Filter>Backend</Filter></ClInclude>
+    <ClInclude Include="src\Backend\LoopbackCallback.h"><Filter>Backend</Filter></ClInclude>
+    <ClInclude Include="src\Backend\AccountClient.h"><Filter>Backend</Filter></ClInclude>
+    <ClInclude Include="src\Backend\AccountMusicContract.h"><Filter>Backend</Filter></ClInclude>
+    <ClInclude Include="src\Backend\AccountUrlPolicy.h"><Filter>Backend</Filter></ClInclude>
+    <ClInclude Include="src\Backend\AccountSessionGateway.h"><Filter>Backend</Filter></ClInclude>
+    <ClInclude Include="src\Backend\AccountSyncTransport.h"><Filter>Backend</Filter></ClInclude>
+    <ClInclude Include="src\Backend\AccountSessionService.h"><Filter>Backend</Filter></ClInclude>
+    <ClInclude Include="src\Backend\RemoteMusicService.h"><Filter>Backend</Filter></ClInclude>
+    <ClInclude Include="src\Backend\AutoSyncPolicy.h"><Filter>Backend</Filter></ClInclude>
+    <ClInclude Include="src\Backend\ProfileIdentity.h"><Filter>Backend</Filter></ClInclude>
+    <ClInclude Include="src\Backend\MusicSyncService.h"><Filter>Backend</Filter></ClInclude>
+    <ClInclude Include="src\Backend\UserDataOperationGate.h"><Filter>Backend</Filter></ClInclude>
+    <ClInclude Include="src\Backend\CatalogModels.h"><Filter>Backend</Filter></ClInclude>
+    <ClInclude Include="src\Backend\CatalogParser.h"><Filter>Backend</Filter></ClInclude>
+    <ClInclude Include="src\Backend\CatalogPresentation.h"><Filter>Backend</Filter></ClInclude>
+    <ClInclude Include="src\Backend\EmbeddedArtwork.h"><Filter>Backend</Filter></ClInclude>
+    <ClInclude Include="src\Backend\PlaybackHistoryQualifier.h"><Filter>Backend</Filter></ClInclude>
+    <ClInclude Include="src\Backend\ResumePositionPolicy.h"><Filter>Backend</Filter></ClInclude>
+    <ClInclude Include="src\Backend\HistoryImport.h"><Filter>Backend</Filter></ClInclude>
+    <ClInclude Include="src\Backend\DatabaseEngine.h">
       <Filter>Backend</Filter>
     </ClInclude>
-    <ClInclude Include="Backend\DatabaseEngine.Internal.h">
+    <ClInclude Include="src\Backend\DatabaseEngine.Internal.h">
       <Filter>Backend</Filter>
     </ClInclude>
-    <ClInclude Include="Backend\DatabaseAccountSchema.h">
+    <ClInclude Include="src\Backend\DatabaseAccountSchema.h">
       <Filter>Backend</Filter>
     </ClInclude>
-    <ClInclude Include="Backend\LibraryGroupingSql.h">
+    <ClInclude Include="src\Backend\LibraryGroupingSql.h">
       <Filter>Backend</Filter>
     </ClInclude>
-    <ClInclude Include="Backend\ProviderClient.h">
+    <ClInclude Include="src\Backend\ProviderClient.h">
       <Filter>Backend</Filter>
     </ClInclude>
-    <ClInclude Include="Backend\ProviderHelpers.h">
+    <ClInclude Include="src\Backend\ProviderHelpers.h">
       <Filter>Backend</Filter>
     </ClInclude>
-    <ClInclude Include="Backend\DetailSortPolicy.h">
+    <ClInclude Include="src\Backend\DetailSortPolicy.h">
       <Filter>Backend</Filter>
     </ClInclude>
-    <ClInclude Include="Backend\DownloadManager.h">
+    <ClInclude Include="src\Backend\DownloadManager.h">
       <Filter>Backend</Filter>
     </ClInclude>
-    <ClInclude Include="Backend\DownloadPolicy.h">
+    <ClInclude Include="src\Backend\DownloadPolicy.h">
       <Filter>Backend</Filter>
     </ClInclude>
-    <ClInclude Include="Backend\PlaylistSuggestionPolicy.h">
+    <ClInclude Include="src\Backend\PlaylistSuggestionPolicy.h">
       <Filter>Backend</Filter>
     </ClInclude>
-    <ClInclude Include="Backend\RecentSearchStore.h">
+    <ClInclude Include="src\Backend\RecentSearchStore.h">
       <Filter>Backend</Filter>
     </ClInclude>
-    <ClInclude Include="Backend\SearchFacetPolicy.h">
+    <ClInclude Include="src\Backend\SearchFacetPolicy.h">
       <Filter>Backend</Filter>
     </ClInclude>
-    <ClInclude Include="Backend\LyricsService.h">
+    <ClInclude Include="src\Backend\LyricsService.h">
       <Filter>Backend</Filter>
     </ClInclude>
     <ClInclude Include="ThirdParty\sqlite\sqlite3.h">
       <Filter>ThirdParty\sqlite</Filter>
     </ClInclude>
     <!-- Frontend Headers -->
-    <ClInclude Include="Frontend\UIHelpers.h">
+    <ClInclude Include="src\Frontend\UIHelpers.h">
       <Filter>Frontend</Filter>
     </ClInclude>
-    <ClInclude Include="Frontend\NavigationService.h">
+    <ClInclude Include="src\Frontend\NavigationService.h">
       <Filter>Frontend</Filter>
     </ClInclude>
-    <ClInclude Include="Frontend\RoundedCornerClip.h">
+    <ClInclude Include="src\Frontend\RoundedCornerClip.h">
       <Filter>Frontend</Filter>
     </ClInclude>
-    <ClInclude Include="Frontend\Skeleton.h">
+    <ClInclude Include="src\Frontend\Skeleton.h">
       <Filter>Frontend</Filter>
     </ClInclude>
   </ItemGroup>
@@ -308,103 +308,103 @@
     <ClCompile Include="MainWindow\MainWindow.Lyrics.cpp">
       <Filter>MainWindow</Filter>
     </ClCompile>
-    <ClCompile Include="Frontend\ViewModels\TrackViewModel.cpp">
+    <ClCompile Include="src\Frontend\ViewModels\TrackViewModel.cpp">
       <Filter>Frontend\ViewModels</Filter>
     </ClCompile>
     <ClCompile Include="XamlMetadata\XamlMetaDataProvider.Build.cpp">
       <Filter>XamlMetadata</Filter>
     </ClCompile>
     <!-- Backend Sources -->
-    <ClCompile Include="Backend\AudioPlayer.cpp">
+    <ClCompile Include="src\Backend\AudioPlayer.cpp">
       <Filter>Backend</Filter>
     </ClCompile>
-    <ClCompile Include="Backend\PlaylistManager.cpp">
+    <ClCompile Include="src\Backend\PlaylistManager.cpp">
       <Filter>Backend</Filter>
     </ClCompile>
-    <ClCompile Include="Backend\SettingsManager.cpp">
+    <ClCompile Include="src\Backend\SettingsManager.cpp">
       <Filter>Backend</Filter>
     </ClCompile>
-    <ClCompile Include="Backend\CredentialStore.cpp">
+    <ClCompile Include="src\Backend\CredentialStore.cpp">
       <Filter>Backend</Filter>
     </ClCompile>
-    <ClCompile Include="Backend\Pkce.cpp"><Filter>Backend</Filter></ClCompile>
-    <ClCompile Include="Backend\LoopbackCallback.cpp"><Filter>Backend</Filter></ClCompile>
-    <ClCompile Include="Backend\AccountClient.cpp"><Filter>Backend</Filter></ClCompile>
-    <ClCompile Include="Backend\AccountMusicContract.cpp"><Filter>Backend</Filter></ClCompile>
-    <ClCompile Include="Backend\AccountUrlPolicy.cpp"><Filter>Backend</Filter></ClCompile>
-    <ClCompile Include="Backend\AccountSessionGateway.cpp"><Filter>Backend</Filter></ClCompile>
-    <ClCompile Include="Backend\AccountSessionService.cpp"><Filter>Backend</Filter></ClCompile>
-    <ClCompile Include="Backend\RemoteMusicService.cpp"><Filter>Backend</Filter></ClCompile>
-    <ClCompile Include="Backend\AutoSyncPolicy.cpp"><Filter>Backend</Filter></ClCompile>
-    <ClCompile Include="Backend\ProfileIdentity.cpp"><Filter>Backend</Filter></ClCompile>
-    <ClCompile Include="Backend\HistoryImport.cpp"><Filter>Backend</Filter></ClCompile>
-    <ClCompile Include="Backend\MusicSyncService.cpp"><Filter>Backend</Filter></ClCompile>
-    <ClCompile Include="Backend\UserDataOperationGate.cpp"><Filter>Backend</Filter></ClCompile>
-    <ClCompile Include="Backend\CatalogParser.cpp"><Filter>Backend</Filter></ClCompile>
-    <ClCompile Include="Backend\CatalogPresentation.cpp"><Filter>Backend</Filter></ClCompile>
-    <ClCompile Include="Backend\EmbeddedArtwork.cpp"><Filter>Backend</Filter></ClCompile>
-    <ClCompile Include="Backend\DatabaseEngine.cpp">
+    <ClCompile Include="src\Backend\Pkce.cpp"><Filter>Backend</Filter></ClCompile>
+    <ClCompile Include="src\Backend\LoopbackCallback.cpp"><Filter>Backend</Filter></ClCompile>
+    <ClCompile Include="src\Backend\AccountClient.cpp"><Filter>Backend</Filter></ClCompile>
+    <ClCompile Include="src\Backend\AccountMusicContract.cpp"><Filter>Backend</Filter></ClCompile>
+    <ClCompile Include="src\Backend\AccountUrlPolicy.cpp"><Filter>Backend</Filter></ClCompile>
+    <ClCompile Include="src\Backend\AccountSessionGateway.cpp"><Filter>Backend</Filter></ClCompile>
+    <ClCompile Include="src\Backend\AccountSessionService.cpp"><Filter>Backend</Filter></ClCompile>
+    <ClCompile Include="src\Backend\RemoteMusicService.cpp"><Filter>Backend</Filter></ClCompile>
+    <ClCompile Include="src\Backend\AutoSyncPolicy.cpp"><Filter>Backend</Filter></ClCompile>
+    <ClCompile Include="src\Backend\ProfileIdentity.cpp"><Filter>Backend</Filter></ClCompile>
+    <ClCompile Include="src\Backend\HistoryImport.cpp"><Filter>Backend</Filter></ClCompile>
+    <ClCompile Include="src\Backend\MusicSyncService.cpp"><Filter>Backend</Filter></ClCompile>
+    <ClCompile Include="src\Backend\UserDataOperationGate.cpp"><Filter>Backend</Filter></ClCompile>
+    <ClCompile Include="src\Backend\CatalogParser.cpp"><Filter>Backend</Filter></ClCompile>
+    <ClCompile Include="src\Backend\CatalogPresentation.cpp"><Filter>Backend</Filter></ClCompile>
+    <ClCompile Include="src\Backend\EmbeddedArtwork.cpp"><Filter>Backend</Filter></ClCompile>
+    <ClCompile Include="src\Backend\DatabaseEngine.cpp">
       <Filter>Backend</Filter>
     </ClCompile>
-    <ClCompile Include="Backend\DatabaseEngine.Internal.cpp">
+    <ClCompile Include="src\Backend\DatabaseEngine.Internal.cpp">
       <Filter>Backend</Filter>
     </ClCompile>
-    <ClCompile Include="Backend\DatabaseEngine.Schema.cpp">
+    <ClCompile Include="src\Backend\DatabaseEngine.Schema.cpp">
       <Filter>Backend</Filter>
     </ClCompile>
-    <ClCompile Include="Backend\DatabaseEngine.Tracks.cpp">
+    <ClCompile Include="src\Backend\DatabaseEngine.Tracks.cpp">
       <Filter>Backend</Filter>
     </ClCompile>
-    <ClCompile Include="Backend\DatabaseEngine.Collections.cpp">
+    <ClCompile Include="src\Backend\DatabaseEngine.Collections.cpp">
       <Filter>Backend</Filter>
     </ClCompile>
-    <ClCompile Include="Backend\DatabaseEngine.Queries.cpp">
+    <ClCompile Include="src\Backend\DatabaseEngine.Queries.cpp">
       <Filter>Backend</Filter>
     </ClCompile>
-    <ClCompile Include="Backend\DatabaseEngine.Account.cpp">
+    <ClCompile Include="src\Backend\DatabaseEngine.Account.cpp">
       <Filter>Backend</Filter>
     </ClCompile>
-    <ClCompile Include="Backend\ProviderClient.cpp">
+    <ClCompile Include="src\Backend\ProviderClient.cpp">
       <Filter>Backend</Filter>
     </ClCompile>
-    <ClCompile Include="Backend\ProviderHelpers.cpp">
+    <ClCompile Include="src\Backend\ProviderHelpers.cpp">
       <Filter>Backend</Filter>
     </ClCompile>
-    <ClCompile Include="Backend\DetailSortPolicy.cpp">
+    <ClCompile Include="src\Backend\DetailSortPolicy.cpp">
       <Filter>Backend</Filter>
     </ClCompile>
-    <ClCompile Include="Backend\DownloadManager.cpp">
+    <ClCompile Include="src\Backend\DownloadManager.cpp">
       <Filter>Backend</Filter>
     </ClCompile>
-    <ClCompile Include="Backend\DownloadPolicy.cpp">
+    <ClCompile Include="src\Backend\DownloadPolicy.cpp">
       <Filter>Backend</Filter>
     </ClCompile>
-    <ClCompile Include="Backend\PlaylistSuggestionPolicy.cpp">
+    <ClCompile Include="src\Backend\PlaylistSuggestionPolicy.cpp">
       <Filter>Backend</Filter>
     </ClCompile>
-    <ClCompile Include="Backend\RecentSearchStore.cpp">
+    <ClCompile Include="src\Backend\RecentSearchStore.cpp">
       <Filter>Backend</Filter>
     </ClCompile>
-    <ClCompile Include="Backend\SearchFacetPolicy.cpp">
+    <ClCompile Include="src\Backend\SearchFacetPolicy.cpp">
       <Filter>Backend</Filter>
     </ClCompile>
-    <ClCompile Include="Backend\LyricsService.cpp">
+    <ClCompile Include="src\Backend\LyricsService.cpp">
       <Filter>Backend</Filter>
     </ClCompile>
     <ClCompile Include="ThirdParty\sqlite\sqlite3.c">
       <Filter>ThirdParty\sqlite</Filter>
     </ClCompile>
     <!-- Frontend Sources -->
-    <ClCompile Include="Frontend\UIHelpers.cpp">
+    <ClCompile Include="src\Frontend\UIHelpers.cpp">
       <Filter>Frontend</Filter>
     </ClCompile>
-    <ClCompile Include="Frontend\NavigationService.cpp">
+    <ClCompile Include="src\Frontend\NavigationService.cpp">
       <Filter>Frontend</Filter>
     </ClCompile>
-    <ClCompile Include="Frontend\RoundedCornerClip.cpp">
+    <ClCompile Include="src\Frontend\RoundedCornerClip.cpp">
       <Filter>Frontend</Filter>
     </ClCompile>
-    <ClCompile Include="Frontend\Skeleton.cpp">
+    <ClCompile Include="src\Frontend\Skeleton.cpp">
       <Filter>Frontend</Filter>
     </ClCompile>
   </ItemGroup>

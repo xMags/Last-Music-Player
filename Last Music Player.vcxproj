@@ -103,7 +103,7 @@
       <PreprocessorDefinitions>DISABLE_XAML_GENERATED_MAIN;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <LanguageStandard Condition="'$(VisualStudioVersion)' &gt;= '18.0'">stdcpp20</LanguageStandard>
       <LanguageStandard Condition="'$(VisualStudioVersion)' &lt; '18.0'">stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(GeneratedFilesDir);$(IntDir);$(IntDir)MainWindow;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)src;$(GeneratedFilesDir);$(IntDir);$(IntDir)MainWindow;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>%(AdditionalOptions) /bigobj /utf-8</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -153,62 +153,62 @@
       <DependentUpon>MainWindow.xaml</DependentUpon>
     </ClInclude>
     <ClInclude Include="MainWindow\MainWindow.Internal.h" />
-    <ClInclude Include="Frontend\ViewModels\TrackViewModel.h" />
+    <ClInclude Include="src\Frontend\ViewModels\TrackViewModel.h" />
     <!-- Backend Headers -->
-    <ClInclude Include="Backend\TrackInfo.h" />
-    <ClInclude Include="Backend\AppSecrets.example.h" />
-    <ClInclude Include="Backend\AudioPlayer.h" />
-    <ClInclude Include="Backend\PlaylistManager.h" />
-    <ClInclude Include="Backend\SettingsManager.h" />
-    <ClInclude Include="Backend\CredentialStore.h" />
-    <ClInclude Include="Backend\BuildConfig.h" />
-    <ClInclude Include="Backend\Pkce.h" />
-    <ClInclude Include="Backend\LoopbackCallback.h" />
-    <ClInclude Include="Backend\AccountClient.h" />
-    <ClInclude Include="Backend\AccountMusicContract.h" />
-    <ClInclude Include="Backend\AccountUrlPolicy.h" />
-    <ClInclude Include="Backend\AccountSessionGateway.h" />
-    <ClInclude Include="Backend\AccountSyncTransport.h" />
-    <ClInclude Include="Backend\AccountSessionService.h" />
-    <ClInclude Include="Backend\RemoteMusicService.h" />
-    <ClInclude Include="Backend\AutoSyncPolicy.h" />
-    <ClInclude Include="Backend\ProfileIdentity.h" />
-    <ClInclude Include="Backend\MusicSyncService.h" />
-    <ClInclude Include="Backend\UserDataOperationGate.h" />
-    <ClInclude Include="Backend\CatalogModels.h" />
-    <ClInclude Include="Backend\CatalogParser.h" />
-    <ClInclude Include="Backend\CatalogPresentation.h" />
-    <ClInclude Include="Backend\EmbeddedArtwork.h" />
-    <ClInclude Include="Backend\PlaybackHistoryQualifier.h" />
-    <ClInclude Include="Backend\ResumePositionPolicy.h" />
-    <ClInclude Include="Backend\HistoryImport.h" />
-    <ClInclude Include="Backend\StreamCache.h" />
-    <ClInclude Include="Backend\DatabaseEngine.h" />
-    <ClInclude Include="Backend\DatabaseEngine.Internal.h" />
-    <ClInclude Include="Backend\DatabaseAccountSchema.h" />
-    <ClInclude Include="Backend\LibraryGroupingSql.h" />
-    <ClInclude Include="Backend\ProviderClient.h" />
-    <ClInclude Include="Backend\ProviderHelpers.h" />
-    <ClInclude Include="Backend\TrackSearchPolicy.h" />
-    <ClInclude Include="Backend\DetailSortPolicy.h" />
-    <ClInclude Include="Backend\DownloadManager.h" />
-    <ClInclude Include="Backend\DownloadPolicy.h" />
-    <ClInclude Include="Backend\PlaylistSuggestionPolicy.h" />
-    <ClInclude Include="Backend\RecentSearchStore.h" />
-    <ClInclude Include="Backend\SearchFacetPolicy.h" />
-    <ClInclude Include="Backend\CastEngine.h" />
-    <ClInclude Include="Backend\TrayIcon.h" />
-    <ClInclude Include="Backend\DiscordPresence.h" />
-    <ClInclude Include="Backend\LyricsService.h" />
-    <ClInclude Include="Backend\EqualizerEffect.h" />
+    <ClInclude Include="src\Backend\TrackInfo.h" />
+    <ClInclude Include="src\Backend\AppSecrets.example.h" />
+    <ClInclude Include="src\Backend\AudioPlayer.h" />
+    <ClInclude Include="src\Backend\PlaylistManager.h" />
+    <ClInclude Include="src\Backend\SettingsManager.h" />
+    <ClInclude Include="src\Backend\CredentialStore.h" />
+    <ClInclude Include="src\Backend\BuildConfig.h" />
+    <ClInclude Include="src\Backend\Pkce.h" />
+    <ClInclude Include="src\Backend\LoopbackCallback.h" />
+    <ClInclude Include="src\Backend\AccountClient.h" />
+    <ClInclude Include="src\Backend\AccountMusicContract.h" />
+    <ClInclude Include="src\Backend\AccountUrlPolicy.h" />
+    <ClInclude Include="src\Backend\AccountSessionGateway.h" />
+    <ClInclude Include="src\Backend\AccountSyncTransport.h" />
+    <ClInclude Include="src\Backend\AccountSessionService.h" />
+    <ClInclude Include="src\Backend\RemoteMusicService.h" />
+    <ClInclude Include="src\Backend\AutoSyncPolicy.h" />
+    <ClInclude Include="src\Backend\ProfileIdentity.h" />
+    <ClInclude Include="src\Backend\MusicSyncService.h" />
+    <ClInclude Include="src\Backend\UserDataOperationGate.h" />
+    <ClInclude Include="src\Backend\CatalogModels.h" />
+    <ClInclude Include="src\Backend\CatalogParser.h" />
+    <ClInclude Include="src\Backend\CatalogPresentation.h" />
+    <ClInclude Include="src\Backend\EmbeddedArtwork.h" />
+    <ClInclude Include="src\Backend\PlaybackHistoryQualifier.h" />
+    <ClInclude Include="src\Backend\ResumePositionPolicy.h" />
+    <ClInclude Include="src\Backend\HistoryImport.h" />
+    <ClInclude Include="src\Backend\StreamCache.h" />
+    <ClInclude Include="src\Backend\DatabaseEngine.h" />
+    <ClInclude Include="src\Backend\DatabaseEngine.Internal.h" />
+    <ClInclude Include="src\Backend\DatabaseAccountSchema.h" />
+    <ClInclude Include="src\Backend\LibraryGroupingSql.h" />
+    <ClInclude Include="src\Backend\ProviderClient.h" />
+    <ClInclude Include="src\Backend\ProviderHelpers.h" />
+    <ClInclude Include="src\Backend\TrackSearchPolicy.h" />
+    <ClInclude Include="src\Backend\DetailSortPolicy.h" />
+    <ClInclude Include="src\Backend\DownloadManager.h" />
+    <ClInclude Include="src\Backend\DownloadPolicy.h" />
+    <ClInclude Include="src\Backend\PlaylistSuggestionPolicy.h" />
+    <ClInclude Include="src\Backend\RecentSearchStore.h" />
+    <ClInclude Include="src\Backend\SearchFacetPolicy.h" />
+    <ClInclude Include="src\Backend\CastEngine.h" />
+    <ClInclude Include="src\Backend\TrayIcon.h" />
+    <ClInclude Include="src\Backend\DiscordPresence.h" />
+    <ClInclude Include="src\Backend\LyricsService.h" />
+    <ClInclude Include="src\Backend\EqualizerEffect.h" />
     <ClInclude Include="ThirdParty\sqlite\sqlite3.h" />
     <!-- Frontend Headers -->
-    <ClInclude Include="Frontend\UIHelpers.h" />
-    <ClInclude Include="Frontend\NavigationService.h" />
-    <ClInclude Include="Frontend\RoundedCornerClip.h" />
-    <ClInclude Include="Frontend\Skeleton.h" />
-    <ClInclude Include="Frontend\CarouselArrows.h" />
-    <ClInclude Include="Frontend\ChipWrapPanel.h" />
+    <ClInclude Include="src\Frontend\UIHelpers.h" />
+    <ClInclude Include="src\Frontend\NavigationService.h" />
+    <ClInclude Include="src\Frontend\RoundedCornerClip.h" />
+    <ClInclude Include="src\Frontend\Skeleton.h" />
+    <ClInclude Include="src\Frontend\CarouselArrows.h" />
+    <ClInclude Include="src\Frontend\ChipWrapPanel.h" />
   </ItemGroup>
   <ItemGroup>
     <ApplicationDefinition Include="App.xaml" />
@@ -249,56 +249,56 @@
     <ClCompile Include="MainWindow\MainWindow.Queue.cpp" />
     <ClCompile Include="MainWindow\MainWindow.Cast.cpp" />
     <ClCompile Include="MainWindow\MainWindow.Lyrics.cpp" />
-    <ClCompile Include="Frontend\ViewModels\TrackViewModel.cpp" />
-    <ClCompile Include="Backend\TrackInfo.cpp" />
+    <ClCompile Include="src\Frontend\ViewModels\TrackViewModel.cpp" />
+    <ClCompile Include="src\Backend\TrackInfo.cpp" />
     <ClCompile Include="$(GeneratedFilesDir)module.g.cpp" />
     <ClCompile Include="XamlMetadata\XamlMetaDataProvider.Build.cpp" />
     <ClCompile Include="$(IntDir)XamlLibMetadataProvider.g.cpp" />
     <ClCompile Include="$(IntDir)XamlTypeInfo.Impl.g.cpp" />
     <ClCompile Include="$(IntDir)XamlTypeInfo.g.cpp" />
     <!-- Backend Sources -->
-    <ClCompile Include="Backend\AudioPlayer.cpp" />
-    <ClCompile Include="Backend\PlaylistManager.cpp" />
-    <ClCompile Include="Backend\SettingsManager.cpp" />
-    <ClCompile Include="Backend\CredentialStore.cpp" />
-    <ClCompile Include="Backend\Pkce.cpp" />
-    <ClCompile Include="Backend\LoopbackCallback.cpp" />
-    <ClCompile Include="Backend\AccountClient.cpp" />
-    <ClCompile Include="Backend\AccountMusicContract.cpp" />
-    <ClCompile Include="Backend\AccountUrlPolicy.cpp" />
-    <ClCompile Include="Backend\AccountSessionGateway.cpp" />
-    <ClCompile Include="Backend\AccountSessionService.cpp" />
-    <ClCompile Include="Backend\RemoteMusicService.cpp" />
-    <ClCompile Include="Backend\AutoSyncPolicy.cpp" />
-    <ClCompile Include="Backend\ProfileIdentity.cpp" />
-    <ClCompile Include="Backend\HistoryImport.cpp" />
-    <ClCompile Include="Backend\MusicSyncService.cpp" />
-    <ClCompile Include="Backend\UserDataOperationGate.cpp" />
-    <ClCompile Include="Backend\CatalogParser.cpp" />
-    <ClCompile Include="Backend\CatalogPresentation.cpp" />
-    <ClCompile Include="Backend\EmbeddedArtwork.cpp" />
-    <ClCompile Include="Backend\StreamCache.cpp" />
-    <ClCompile Include="Backend\DatabaseEngine.cpp" />
-    <ClCompile Include="Backend\DatabaseEngine.Internal.cpp" />
-    <ClCompile Include="Backend\DatabaseEngine.Schema.cpp" />
-    <ClCompile Include="Backend\DatabaseEngine.Tracks.cpp" />
-    <ClCompile Include="Backend\DatabaseEngine.Collections.cpp" />
-    <ClCompile Include="Backend\DatabaseEngine.Queries.cpp" />
-    <ClCompile Include="Backend\DatabaseEngine.Account.cpp" />
-    <ClCompile Include="Backend\ProviderClient.cpp" />
-    <ClCompile Include="Backend\ProviderHelpers.cpp" />
-    <ClCompile Include="Backend\TrackSearchPolicy.cpp" />
-    <ClCompile Include="Backend\DetailSortPolicy.cpp" />
-    <ClCompile Include="Backend\DownloadManager.cpp" />
-    <ClCompile Include="Backend\DownloadPolicy.cpp" />
-    <ClCompile Include="Backend\PlaylistSuggestionPolicy.cpp" />
-    <ClCompile Include="Backend\RecentSearchStore.cpp" />
-    <ClCompile Include="Backend\SearchFacetPolicy.cpp" />
-    <ClCompile Include="Backend\LyricsService.cpp" />
-    <ClCompile Include="Backend\CastEngine.cpp" />
-    <ClCompile Include="Backend\TrayIcon.cpp" />
-    <ClCompile Include="Backend\DiscordPresence.cpp" />
-    <ClCompile Include="Backend\EqualizerEffect.cpp" />
+    <ClCompile Include="src\Backend\AudioPlayer.cpp" />
+    <ClCompile Include="src\Backend\PlaylistManager.cpp" />
+    <ClCompile Include="src\Backend\SettingsManager.cpp" />
+    <ClCompile Include="src\Backend\CredentialStore.cpp" />
+    <ClCompile Include="src\Backend\Pkce.cpp" />
+    <ClCompile Include="src\Backend\LoopbackCallback.cpp" />
+    <ClCompile Include="src\Backend\AccountClient.cpp" />
+    <ClCompile Include="src\Backend\AccountMusicContract.cpp" />
+    <ClCompile Include="src\Backend\AccountUrlPolicy.cpp" />
+    <ClCompile Include="src\Backend\AccountSessionGateway.cpp" />
+    <ClCompile Include="src\Backend\AccountSessionService.cpp" />
+    <ClCompile Include="src\Backend\RemoteMusicService.cpp" />
+    <ClCompile Include="src\Backend\AutoSyncPolicy.cpp" />
+    <ClCompile Include="src\Backend\ProfileIdentity.cpp" />
+    <ClCompile Include="src\Backend\HistoryImport.cpp" />
+    <ClCompile Include="src\Backend\MusicSyncService.cpp" />
+    <ClCompile Include="src\Backend\UserDataOperationGate.cpp" />
+    <ClCompile Include="src\Backend\CatalogParser.cpp" />
+    <ClCompile Include="src\Backend\CatalogPresentation.cpp" />
+    <ClCompile Include="src\Backend\EmbeddedArtwork.cpp" />
+    <ClCompile Include="src\Backend\StreamCache.cpp" />
+    <ClCompile Include="src\Backend\DatabaseEngine.cpp" />
+    <ClCompile Include="src\Backend\DatabaseEngine.Internal.cpp" />
+    <ClCompile Include="src\Backend\DatabaseEngine.Schema.cpp" />
+    <ClCompile Include="src\Backend\DatabaseEngine.Tracks.cpp" />
+    <ClCompile Include="src\Backend\DatabaseEngine.Collections.cpp" />
+    <ClCompile Include="src\Backend\DatabaseEngine.Queries.cpp" />
+    <ClCompile Include="src\Backend\DatabaseEngine.Account.cpp" />
+    <ClCompile Include="src\Backend\ProviderClient.cpp" />
+    <ClCompile Include="src\Backend\ProviderHelpers.cpp" />
+    <ClCompile Include="src\Backend\TrackSearchPolicy.cpp" />
+    <ClCompile Include="src\Backend\DetailSortPolicy.cpp" />
+    <ClCompile Include="src\Backend\DownloadManager.cpp" />
+    <ClCompile Include="src\Backend\DownloadPolicy.cpp" />
+    <ClCompile Include="src\Backend\PlaylistSuggestionPolicy.cpp" />
+    <ClCompile Include="src\Backend\RecentSearchStore.cpp" />
+    <ClCompile Include="src\Backend\SearchFacetPolicy.cpp" />
+    <ClCompile Include="src\Backend\LyricsService.cpp" />
+    <ClCompile Include="src\Backend\CastEngine.cpp" />
+    <ClCompile Include="src\Backend\TrayIcon.cpp" />
+    <ClCompile Include="src\Backend\DiscordPresence.cpp" />
+    <ClCompile Include="src\Backend\EqualizerEffect.cpp" />
     <ClCompile Include="ThirdParty\sqlite\sqlite3.c">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <CompileAs>CompileAsC</CompileAs>
@@ -314,12 +314,12 @@
       <PreprocessorDefinitions>SQLITE_DEFAULT_MEMSTATUS=0;SQLITE_DEFAULT_WAL_SYNCHRONOUS=1;SQLITE_LIKE_DOESNT_MATCH_BLOBS;SQLITE_OMIT_DEPRECATED;SQLITE_THREADSAFE=2;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <!-- Frontend Sources -->
-    <ClCompile Include="Frontend\UIHelpers.cpp" />
-    <ClCompile Include="Frontend\NavigationService.cpp" />
-    <ClCompile Include="Frontend\RoundedCornerClip.cpp" />
-    <ClCompile Include="Frontend\Skeleton.cpp" />
-    <ClCompile Include="Frontend\CarouselArrows.cpp" />
-    <ClCompile Include="Frontend\ChipWrapPanel.cpp" />
+    <ClCompile Include="src\Frontend\UIHelpers.cpp" />
+    <ClCompile Include="src\Frontend\NavigationService.cpp" />
+    <ClCompile Include="src\Frontend\RoundedCornerClip.cpp" />
+    <ClCompile Include="src\Frontend\Skeleton.cpp" />
+    <ClCompile Include="src\Frontend\CarouselArrows.cpp" />
+    <ClCompile Include="src\Frontend\ChipWrapPanel.cpp" />
     <ClCompile Include="packages\Microsoft.WindowsAppSDK.Foundation.1.8.260203002\include\UndockedRegFreeWinRT-AutoInitializer.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PreprocessorDefinitions>MICROSOFT_WINDOWSAPPSDK_UNDOCKEDREGFREEWINRT_AUTO_INITIALIZE_LOADLIBRARY;MICROSOFT_WINDOWSAPPSDK_UNDOCKEDREGFREEWINRT_AUTO_INITIALIZE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -330,13 +330,13 @@
       <SubType>Code</SubType>
       <DependentUpon>MainWindow.xaml</DependentUpon>
     </Midl>
-    <Midl Include="Backend\TrackInfo.idl">
+    <Midl Include="src\Backend\TrackInfo.idl">
       <SubType>Code</SubType>
     </Midl>
-    <Midl Include="Backend\EqualizerEffect.idl">
+    <Midl Include="src\Backend\EqualizerEffect.idl">
       <SubType>Code</SubType>
     </Midl>
-    <Midl Include="Frontend\ChipWrapPanel.idl">
+    <Midl Include="src\Frontend\ChipWrapPanel.idl">
       <SubType>Code</SubType>
     </Midl>
   </ItemGroup>

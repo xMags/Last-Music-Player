@@ -2,11 +2,11 @@
 
 // Build-private configuration template.
 //
-// Copy this file to "Backend/AppSecrets.local.h" (which is gitignored) and fill
+// Copy this file to "src/Backend/AppSecrets.local.h" (which is gitignored) and fill
 // in the values to enable build-private integrations in your own builds. The
 // app compiles and runs fine without it — these are entirely optional.
 //
-//   copy Backend\AppSecrets.example.h Backend\AppSecrets.local.h
+//   copy src\Backend\AppSecrets.example.h src\Backend\AppSecrets.local.h
 //
 // Currently used:
 //

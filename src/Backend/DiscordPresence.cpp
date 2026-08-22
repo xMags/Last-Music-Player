@@ -11,9 +11,9 @@
 #include <vector>
 
 // The Discord application client id is build-private. Official builds define it
-// in a gitignored Backend/AppSecrets.local.h; public builds compile with the
+// in a gitignored src/Backend/AppSecrets.local.h; public builds compile with the
 // empty default below, which disables Discord Rich Presence. Copy
-// Backend/AppSecrets.example.h to AppSecrets.local.h and fill it in to enable.
+// src/Backend/AppSecrets.example.h to AppSecrets.local.h and fill it in to enable.
 #if !defined(LMP_DISCORD_CLIENT_ID) && __has_include("Backend/AppSecrets.local.h")
 #include "Backend/AppSecrets.local.h"
 #endif

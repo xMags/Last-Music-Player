@@ -38,7 +38,7 @@ node_modules/
 # Local secrets / build-private config (Discord client id, provider auth tokens, etc.)
 .env
 .env.local
-Backend/AppSecrets.local.h
+src/Backend/AppSecrets.local.h
 build/AccountIntegration.local.props
 build/*.local.targets
 build/*.local.rsp

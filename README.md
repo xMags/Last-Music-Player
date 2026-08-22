@@ -96,8 +96,8 @@ Project layout:
 ```text
 App.xaml*                  App startup and shell wiring
 MainWindow/                WinUI views, player UI, search, library, settings
-Backend/                   Playback, database, account/provider clients, playlists
-Frontend/                  Navigation and UI helpers
+src/Backend/               Playback, database, account/provider clients, playlists
+src/Frontend/              Navigation and UI helpers
 Assets/ Styles/ Resources/ Icons, themes, and app resources
 ThirdParty/sqlite/         Vendored SQLite amalgamation
 installer/                 Inno Setup packaging script
@@ -211,13 +211,13 @@ x64/Release/Last_Music_Player.exe
 Some integrations use developer-specific IDs that are intentionally not committed. To enable them in your own builds, copy:
 
 ```text
-Backend/AppSecrets.example.h
+src/Backend/AppSecrets.example.h
 ```
 
 to:
 
 ```text
-Backend/AppSecrets.local.h
+src/Backend/AppSecrets.local.h
 ```
 
 Then fill in the values you need. The local file is gitignored.
