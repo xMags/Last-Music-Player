@@ -11,6 +11,7 @@
 #include <winrt/Windows.Devices.Enumeration.h>
 #include <winrt/Windows.Media.Core.h>
 #include <winrt/Windows.Media.Devices.h>
+#include <winrt/Windows.Networking.Connectivity.h>
 #include <winrt/Windows.Storage.Pickers.h>
 #include <winrt/Windows.System.h>
 #include <winrt/Microsoft.UI.Xaml.Controls.h>
@@ -35,6 +36,22 @@ namespace winrt::Last_Music_Player::implementation
     using namespace detail;
     namespace
     {
+        bool IsCurrentConnectionMetered()
+        {
+            using NetworkInformation = winrt::Windows::Networking::Connectivity::NetworkInformation;
+            using NetworkCostType = winrt::Windows::Networking::Connectivity::NetworkCostType;
+            auto const profile = NetworkInformation::GetInternetConnectionProfile();
+            if (!profile)
+            {
+                return false;
+            }
+            auto const cost = profile.GetConnectionCost();
+            return cost && (cost.NetworkCostType() == NetworkCostType::Fixed
+                || cost.NetworkCostType() == NetworkCostType::Variable
+                || cost.Roaming()
+                || cost.OverDataLimit());
+        }
+
 
         std::wstring NewPlaybackEventId()
         {
@@ -189,7 +206,8 @@ namespace winrt::Last_Music_Player::implementation
             && snapshot.Generation == playbackAccountGeneration
             && snapshot.Profile.Id == winrt::hstring(playbackAccountOwner))
         {
-            RunDetached(SynchronizeAccountLibraryAsync(AccountSyncMode::Implicit));
+            MusicSyncServiceService().ScheduleMutation(
+                LastMusicPlayer::Backend::AccountSyncLane::History);
         }
     }
 
@@ -749,7 +767,10 @@ namespace winrt::Last_Music_Player::implementation
         winrt::hstring payload;
         try
         {
-            payload = co_await remoteMusic.ResolveUrlAsync(track.SourceUrl());
+            auto const lowQuality = accountMode
+                && SettingsManagerService().GetBool(L"DataSaver", false)
+                && IsCurrentConnectionMetered();
+            payload = co_await remoteMusic.ResolveUrlAsync(track.SourceUrl(), lowQuality);
         }
         catch (...)
         {

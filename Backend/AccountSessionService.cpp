@@ -501,7 +501,7 @@ namespace LastMusicPlayer::Backend
             {
                 co_return;
             }
-            if (IsAccountUnauthorized(error) || error.code() == E_ACCESSDENIED)
+            if (IsAccountUnauthorized(error) || AccountHttpStatus(error) == 403)
             {
                 (void)CommitSignedOut(
                     intent,

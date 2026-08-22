@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <string>
 #include <vector>
 #include <mutex>
@@ -71,6 +72,10 @@ namespace LastMusicPlayer::Backend
         std::wstring PlayedAtUtc;
         double PositionSeconds{};
         int AttemptCount{};
+        std::wstring TrackJson;
+        std::int64_t NextAttemptAtUnix{};
+        std::wstring LastFailureCategory;
+        bool Blocked{};
     };
 
     struct PendingLikeRecord
@@ -81,6 +86,40 @@ namespace LastMusicPlayer::Backend
         bool DesiredState{};
         std::wstring UpdatedAtUtc;
         int AttemptCount{};
+        std::wstring TrackJson;
+        std::int64_t NextAttemptAtUnix{};
+        std::wstring LastFailureCategory;
+        bool Blocked{};
+    };
+
+    struct AccountPreferenceRecord
+    {
+        std::wstring AccountId;
+        std::wstring Key;
+        std::wstring ValueJson;
+        std::int64_t Revision{};
+        int AttemptCount{};
+        std::int64_t NextAttemptAtUnix{};
+        std::wstring LastFailureCategory;
+        bool Pending{};
+        bool Blocked{};
+    };
+
+    struct AccountPendingCounts
+    {
+        int PendingHistory{};
+        int BlockedHistory{};
+        int PendingLikes{};
+        int BlockedLikes{};
+        int PendingPreferences{};
+        int BlockedPreferences{};
+    };
+
+    enum class AccountRetryQueue
+    {
+        History,
+        Likes,
+        Preferences,
     };
 
     struct AccountSyncState
@@ -208,15 +247,61 @@ namespace LastMusicPlayer::Backend
 
 
         bool EnqueuePlaybackEvent(PlaybackEventRecord const& event);
-        std::vector<PlaybackEventRecord> LoadPendingPlaybackEvents(std::wstring const& accountId, int limit = 100) const;
+        std::vector<PlaybackEventRecord> LoadPendingPlaybackEvents(
+            std::wstring const& accountId,
+            int limit = 100,
+            bool readyOnly = true) const;
         bool MarkPlaybackEventsAttempted(std::wstring const& accountId, std::vector<std::wstring> const& eventIds);
+        bool MarkPlaybackEventsFailed(
+            std::wstring const& accountId,
+            std::vector<std::wstring> const& eventIds,
+            std::wstring const& category,
+            int retryDelaySeconds,
+            bool blocked);
         bool AcknowledgePlaybackEvents(std::wstring const& accountId, std::vector<std::wstring> const& eventIds);
 
         bool EnqueuePendingLike(PendingLikeRecord const& like);
-        std::vector<PendingLikeRecord> LoadPendingLikes(std::wstring const& accountId, int limit = 100) const;
+        std::vector<PendingLikeRecord> LoadPendingLikes(
+            std::wstring const& accountId,
+            int limit = 100,
+            bool readyOnly = true) const;
         bool MarkPendingLikeAttempted(std::wstring const& accountId, std::wstring const& remoteTrackId);
+        bool MarkPendingLikeFailed(
+            std::wstring const& accountId,
+            std::wstring const& remoteTrackId,
+            std::wstring const& category,
+            int retryDelaySeconds,
+            bool blocked);
         bool AcknowledgePendingLike(std::wstring const& accountId, std::wstring const& remoteTrackId, bool desiredState);
         bool UpdateAccountTrackLike(std::wstring const& accountId, std::wstring const& remoteTrackId, bool liked);
+
+        std::vector<AccountPreferenceRecord> LoadAccountPreferences(
+            std::wstring const& accountId,
+            bool dueOnly = false) const;
+        std::int64_t SavePendingAccountPreference(
+            std::wstring const& accountId,
+            std::wstring const& key,
+            std::wstring const& valueJson);
+        bool MergeRemoteAccountPreference(
+            std::wstring const& accountId,
+            std::wstring const& key,
+            std::wstring const& valueJson,
+            std::int64_t observedRevision);
+        bool AcknowledgeAccountPreference(
+            std::wstring const& accountId,
+            std::wstring const& key,
+            std::int64_t revision);
+        bool MarkAccountPreferencesFailed(
+            std::wstring const& accountId,
+            std::vector<std::wstring> const& keys,
+            std::wstring const& category,
+            int retryDelaySeconds,
+            bool blocked);
+        AccountPendingCounts LoadAccountPendingCounts(std::wstring const& accountId) const;
+        std::optional<int> SecondsUntilNextAccountRetry(
+            std::wstring const& accountId,
+            AccountRetryQueue queue) const;
+        bool ResetAccountRetrySchedule(std::wstring const& accountId);
 
         AccountSyncState LoadAccountSyncState(std::wstring const& accountId) const;
         bool SaveAccountSyncState(AccountSyncState const& state);

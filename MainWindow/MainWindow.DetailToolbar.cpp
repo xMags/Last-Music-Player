@@ -1147,24 +1147,24 @@ namespace winrt::Last_Music_Player::implementation
                 targetBinding->OwnerId,
                 targetPlaylistId);
 
-            std::vector<winrt::hstring> sourceRemoteIds;
-            sourceRemoteIds.reserve(sourceTracks.size());
+            std::vector<winrt::Last_Music_Player::TrackInfo> sourceRemainingTracks;
+            sourceRemainingTracks.reserve(sourceTracks.size());
             for (auto const& track : sourceTracks)
             {
                 if (!track.RemoteId().empty() && !selectedIds.contains(track.RemoteId().c_str()))
                 {
-                    sourceRemoteIds.push_back(track.RemoteId());
+                    sourceRemainingTracks.push_back(track);
                 }
             }
 
-            std::vector<winrt::hstring> targetRemoteIds;
-            targetRemoteIds.reserve(targetTracks.size() + selectedIds.size());
+            std::vector<winrt::Last_Music_Player::TrackInfo> targetReplacementTracks;
+            targetReplacementTracks.reserve(targetTracks.size() + selectedIds.size());
             std::unordered_set<std::wstring> targetIds;
             for (auto const& track : targetTracks)
             {
                 if (!track.RemoteId().empty() && targetIds.emplace(track.RemoteId().c_str()).second)
                 {
-                    targetRemoteIds.push_back(track.RemoteId());
+                    targetReplacementTracks.push_back(track);
                 }
             }
             for (auto const& track : tracks)
@@ -1172,11 +1172,11 @@ namespace winrt::Last_Music_Player::implementation
                 if (track && !track.RemoteId().empty()
                     && targetIds.emplace(track.RemoteId().c_str()).second)
                 {
-                    targetRemoteIds.push_back(track.RemoteId());
+                    targetReplacementTracks.push_back(track);
                 }
             }
-            auto const targetBody = detail::BuildAccountPlaylistUpdateJson(targetTitle, targetRemoteIds);
-            auto const sourceBody = detail::BuildAccountPlaylistUpdateJson(sourceTitle, sourceRemoteIds);
+            auto const targetBody = detail::BuildAccountPlaylistUpdateJson(targetTitle, targetReplacementTracks);
+            auto const sourceBody = detail::BuildAccountPlaylistUpdateJson(sourceTitle, sourceRemainingTracks);
             co_await wil::resume_foreground(dispatcher);
 
             if (!IsCurrentAccountPlaylistDetailContext(*accountContext)
@@ -1322,16 +1322,16 @@ namespace winrt::Last_Music_Player::implementation
             auto const currentTracks = detail::DatabaseService().LoadAccountPlaylistTracks(
                 accountContext->Binding.OwnerId,
                 accountContext->PlaylistId);
-            std::vector<winrt::hstring> remainingIds;
-            remainingIds.reserve(currentTracks.size());
+            std::vector<winrt::Last_Music_Player::TrackInfo> remainingTracks;
+            remainingTracks.reserve(currentTracks.size());
             for (auto const& track : currentTracks)
             {
                 if (!track.RemoteId().empty() && !selectedIds.contains(track.RemoteId().c_str()))
                 {
-                    remainingIds.push_back(track.RemoteId());
+                    remainingTracks.push_back(track);
                 }
             }
-            auto const body = detail::BuildAccountPlaylistUpdateJson(title, remainingIds);
+            auto const body = detail::BuildAccountPlaylistUpdateJson(title, remainingTracks);
             co_await wil::resume_foreground(dispatcher);
             if (!IsCurrentAccountPlaylistDetailContext(*accountContext))
             {

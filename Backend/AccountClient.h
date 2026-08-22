@@ -20,6 +20,8 @@ namespace LastMusicPlayer::Backend
     // this build has no trusted frontend origin configured.
     winrt::hstring AccountManagementUrl() noexcept;
     winrt::hstring SafeAccountErrorMessage(std::uint32_t status) noexcept;
+    std::uint32_t AccountHttpStatus(winrt::hresult_error const& error) noexcept;
+    std::uint32_t AccountRetryAfterSeconds(winrt::hresult_error const& error) noexcept;
     bool IsAccountUnauthorized(winrt::hresult_error const& error) noexcept;
 
     class AccountClient final : public IAccountSyncTransport
@@ -45,7 +47,8 @@ namespace LastMusicPlayer::Backend
             winrt::hstring const& query);
         winrt::Windows::Foundation::IAsyncOperation<winrt::hstring> ResolveUrlAsync(
             winrt::hstring const& bearerSession,
-            winrt::hstring const& sourceUrl);
+            winrt::hstring const& sourceUrl,
+            bool lowQuality = false);
         winrt::Windows::Foundation::IAsyncOperation<winrt::hstring> ImportAsync(
             winrt::hstring const& bearerSession,
             winrt::hstring const& sourceUrl);
@@ -101,6 +104,11 @@ namespace LastMusicPlayer::Backend
         winrt::Windows::Foundation::IAsyncOperation<winrt::hstring> PostHistoryBatchAsync(
             winrt::hstring const& bearerSession,
             winrt::hstring const& batchJson) override;
+        winrt::Windows::Foundation::IAsyncOperation<winrt::hstring> GetPreferencesAsync(
+            winrt::hstring const& bearerSession) override;
+        winrt::Windows::Foundation::IAsyncOperation<winrt::hstring> PutPreferencesAsync(
+            winrt::hstring const& bearerSession,
+            winrt::hstring const& preferencesJson) override;
         winrt::Windows::Foundation::IAsyncOperation<winrt::Windows::Storage::Streams::IBuffer> GetArtworkAsync(
             winrt::hstring const& bearerSession,
             winrt::hstring const& artworkUrl);

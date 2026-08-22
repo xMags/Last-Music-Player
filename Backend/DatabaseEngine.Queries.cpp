@@ -41,7 +41,7 @@ namespace LastMusicPlayer::Backend
         }
 
         static constexpr char kSql[] =
-            "SELECT Id, SourceKind, Provider, SourceUrl, FilePath, Title, Artist, Album, Genre, DurationSeconds, ArtworkUrl, DateAddedSortKey, DateAddedText, DurationText, IsLiked, RemoteId, LastPositionSeconds "
+            "SELECT Id, SourceKind, Provider, SourceUrl, FilePath, Title, Artist, Album, Genre, DurationSeconds, ArtworkUrl, DateAddedSortKey, DateAddedText, DurationText, IsLiked, RemoteId, LastPositionSeconds, RemoteProvider, RemoteCatalogId, AlbumCatalogId, ArtistCatalogId "
             "FROM EffectiveTracks "
             "WHERE (?1=1 OR SourceKind='local') AND (?2=0 OR IsActive=1) "
             "ORDER BY DateAddedSortKey DESC, Title COLLATE NOCASE ASC;";
@@ -71,7 +71,7 @@ namespace LastMusicPlayer::Backend
         }
 
         static constexpr char kSql[] =
-            "SELECT Id, SourceKind, Provider, SourceUrl, FilePath, Title, Artist, Album, Genre, DurationSeconds, ArtworkUrl, DateAddedSortKey, DateAddedText, DurationText, IsLiked, RemoteId, LastPositionSeconds "
+            "SELECT Id, SourceKind, Provider, SourceUrl, FilePath, Title, Artist, Album, Genre, DurationSeconds, ArtworkUrl, DateAddedSortKey, DateAddedText, DurationText, IsLiked, RemoteId, LastPositionSeconds, RemoteProvider, RemoteCatalogId, AlbumCatalogId, ArtistCatalogId "
             "FROM EffectiveTracks "
             "WHERE (?1=1 OR SourceKind='local') AND (?2=0 OR IsActive=1) AND COALESCE(LastPlayedOrder,0)>0 "
             "ORDER BY LastPlayedOrder DESC, Title COLLATE NOCASE ASC;";
@@ -101,7 +101,7 @@ namespace LastMusicPlayer::Backend
 
         static constexpr char kSql[] =
             "SELECT Id, SourceKind, Provider, SourceUrl, FilePath, Title, Artist, Album, Genre, DurationSeconds, ArtworkUrl, "
-            "DateAddedSortKey, DateAddedText, DurationText, IsLiked, RemoteId, LastPositionSeconds, SourceKey, LastPlayed "
+            "DateAddedSortKey, DateAddedText, DurationText, IsLiked, RemoteId, LastPositionSeconds, '', '', '', '', SourceKey, LastPlayed "
             "FROM Tracks WHERE SourceKind='remote' AND COALESCE(PlayCount,0)>0 AND COALESCE(LastPlayedExact,0)=1 "
             "AND COALESCE(SourceUrl,'')<>'' AND COALESCE(LastPlayed,'')<>'' "
             "ORDER BY LastPlayed DESC, Id DESC;";
@@ -116,8 +116,8 @@ namespace LastMusicPlayer::Backend
             LegacyHistoryImportCandidate candidate;
             candidate.Track = TrackFromStatement(stmt.value);
             // Selected after kTrackColumns' fields, so these move with that list.
-            candidate.SourceKey = ColumnText(stmt.value, 17);
-            candidate.LastPlayedUtc = ColumnText(stmt.value, 18);
+            candidate.SourceKey = ColumnText(stmt.value, 21);
+            candidate.LastPlayedUtc = ColumnText(stmt.value, 22);
             if (candidate.Track && !candidate.SourceKey.empty() && !candidate.LastPlayedUtc.empty())
             {
                 candidates.push_back(std::move(candidate));
@@ -137,7 +137,7 @@ namespace LastMusicPlayer::Backend
         }
 
         static constexpr char kSql[] =
-            "SELECT Id, SourceKind, Provider, SourceUrl, FilePath, Title, Artist, Album, Genre, DurationSeconds, ArtworkUrl, DateAddedSortKey, DateAddedText, DurationText, IsLiked, RemoteId, LastPositionSeconds "
+            "SELECT Id, SourceKind, Provider, SourceUrl, FilePath, Title, Artist, Album, Genre, DurationSeconds, ArtworkUrl, DateAddedSortKey, DateAddedText, DurationText, IsLiked, RemoteId, LastPositionSeconds, RemoteProvider, RemoteCatalogId, AlbumCatalogId, ArtistCatalogId "
             "FROM EffectiveTracks "
             "WHERE (?1=1 OR SourceKind='local') AND (?2=0 OR IsActive=1) AND COALESCE(PlayCount,0)>0 "
             "ORDER BY PlayCount DESC, LastPlayedOrder DESC, Title COLLATE NOCASE ASC;";
@@ -473,7 +473,7 @@ namespace LastMusicPlayer::Backend
         // was never added to the library, only passed through in a search
         // result, holds zero here and stays out.
         static constexpr char kSql[] =
-            "SELECT Id, SourceKind, Provider, SourceUrl, FilePath, Title, Artist, Album, Genre, DurationSeconds, ArtworkUrl, DateAddedSortKey, DateAddedText, DurationText, IsLiked, RemoteId, LastPositionSeconds "
+            "SELECT Id, SourceKind, Provider, SourceUrl, FilePath, Title, Artist, Album, Genre, DurationSeconds, ArtworkUrl, DateAddedSortKey, DateAddedText, DurationText, IsLiked, RemoteId, LastPositionSeconds, RemoteProvider, RemoteCatalogId, AlbumCatalogId, ArtistCatalogId "
             "FROM EffectiveTracks "
             "WHERE IsActive=1 AND COALESCE(DateAddedSortKey,0)<>0 "
             "ORDER BY DateAddedSortKey DESC, Title COLLATE NOCASE ASC "
@@ -842,9 +842,9 @@ namespace LastMusicPlayer::Backend
             PlaybackStatSnapshot stat;
             stat.Track = TrackFromStatement(stmt.value);
             // These three follow kTrackColumns, so their indices move with it.
-            stat.SourceKey = ColumnText(stmt.value, 17);
-            stat.PlayCount = static_cast<uint32_t>((std::max)(0, sqlite3_column_int(stmt.value, 18)));
-            stat.LastPlayedOrder = static_cast<uint64_t>((std::max)(sqlite3_int64{ 0 }, sqlite3_column_int64(stmt.value, 19)));
+            stat.SourceKey = ColumnText(stmt.value, 21);
+            stat.PlayCount = static_cast<uint32_t>((std::max)(0, sqlite3_column_int(stmt.value, 22)));
+            stat.LastPlayedOrder = static_cast<uint64_t>((std::max)(sqlite3_int64{ 0 }, sqlite3_column_int64(stmt.value, 23)));
             result.push_back(std::move(stat));
         }
         return result;

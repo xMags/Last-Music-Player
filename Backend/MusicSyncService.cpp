@@ -1,5 +1,9 @@
 #include "pch.h"
 #include "Backend/MusicSyncService.h"
+
+#include "Backend/AccountClient.h"
+#include "Backend/AutoSyncPolicy.h"
+#include "Backend/AccountUrlPolicy.h"
 #include "Backend/ProviderHelpers.h"
 
 #include <algorithm>
@@ -7,122 +11,45 @@
 #include <cmath>
 #include <cwctype>
 #include <optional>
-#include <string>
-#include <string_view>
 #include <unordered_map>
-#include <unordered_set>
-#include <vector>
-
-#include <winrt/Windows.Data.Json.h>
+#include <utility>
 
 namespace LastMusicPlayer::Backend
 {
-    using namespace winrt::Windows::Data::Json;
-
     namespace
     {
-        winrt::hstring JsonString(JsonObject const& object, wchar_t const* key)
+        [[nodiscard]] std::uint32_t Bits(AccountSyncLane lanes) noexcept
         {
-            if (!object || !object.HasKey(key))
+            return static_cast<std::uint32_t>(lanes);
+        }
+
+        [[nodiscard]] bool HasLane(std::uint32_t lanes, AccountSyncLane lane) noexcept
+        {
+            return (lanes & Bits(lane)) != 0;
+        }
+
+        [[nodiscard]] std::size_t LaneIndex(AccountSyncLane lane) noexcept
+        {
+            switch (lane)
             {
-                return {};
+            case AccountSyncLane::History: return 0;
+            case AccountSyncLane::Likes: return 1;
+            case AccountSyncLane::PreferencePush: return 2;
+            case AccountSyncLane::PreferencePull: return 3;
+            case AccountSyncLane::Library: return 4;
+            default: return 0;
             }
-            auto value = object.GetNamedValue(key);
-            return value.ValueType() == JsonValueType::String ? value.GetString() : winrt::hstring{};
         }
 
-        double JsonNumber(JsonObject const& object, wchar_t const* key, double fallback = 0.0)
+        winrt::fire_and_forget StartQueuedSync(MusicSyncService* service, AccountSyncLane lanes)
         {
-            if (!object || !object.HasKey(key))
+            try
             {
-                return fallback;
+                co_await service->RequestSyncAsync(lanes);
             }
-            auto value = object.GetNamedValue(key);
-            return value.ValueType() == JsonValueType::Number ? value.GetNumber() : fallback;
-        }
-
-        bool JsonBoolean(JsonObject const& object, wchar_t const* key, bool fallback = false)
-        {
-            if (!object || !object.HasKey(key))
+            catch (...)
             {
-                return fallback;
             }
-            auto value = object.GetNamedValue(key);
-            return value.ValueType() == JsonValueType::Boolean ? value.GetBoolean() : fallback;
-        }
-
-        JsonObject JsonObjectValue(JsonObject const& object, wchar_t const* key)
-        {
-            if (!object || !object.HasKey(key))
-            {
-                return nullptr;
-            }
-            auto value = object.GetNamedValue(key);
-            return value.ValueType() == JsonValueType::Object ? value.GetObject() : nullptr;
-        }
-
-        JsonArray JsonArrayValue(JsonObject const& object, std::initializer_list<wchar_t const*> keys)
-        {
-            for (auto key : keys)
-            {
-                if (!object || !object.HasKey(key))
-                {
-                    continue;
-                }
-                auto value = object.GetNamedValue(key);
-                if (value.ValueType() == JsonValueType::Array)
-                {
-                    return value.GetArray();
-                }
-            }
-            return nullptr;
-        }
-
-        // Keep every durable remote source that can be resolved by the account
-        // service. Filtering by a specific upstream catalog would make libraries
-        // created on another client arrive partly empty without explanation.
-        bool IsCompatibleSource(JsonObject const& trackObject, winrt::hstring const& sourceUrl)
-        {
-            return IsSyncableRemoteSource(JsonString(trackObject, L"sourceKind"), sourceUrl);
-        }
-
-        winrt::hstring FirstString(JsonObject const& object, std::initializer_list<wchar_t const*> keys)
-        {
-            for (auto key : keys)
-            {
-                auto value = JsonString(object, key);
-                if (!value.empty())
-                {
-                    return value;
-                }
-            }
-            return {};
-        }
-
-        JsonObject TrackObjectFrom(JsonObject const& wrapper)
-        {
-            auto nested = JsonObjectValue(wrapper, L"track");
-            return nested ? nested : wrapper;
-        }
-
-        winrt::hstring RemoteIdFrom(JsonObject const& wrapper, JsonObject const& track)
-        {
-            auto id = FirstString(track, { L"id", L"remoteId", L"trackId" });
-            return id.empty() ? FirstString(wrapper, { L"trackId", L"remoteId", L"id" }) : id;
-        }
-
-        winrt::hstring FormatDuration(double seconds)
-        {
-            if (seconds <= 0.0)
-            {
-                return {};
-            }
-            auto whole = static_cast<long long>(seconds);
-            auto minutes = whole / 60;
-            auto remainder = whole % 60;
-            wchar_t value[32]{};
-            swprintf_s(value, L"%lld:%02lld", minutes, remainder);
-            return value;
         }
 
         std::wstring UtcNow()
@@ -142,357 +69,195 @@ namespace LastMusicPlayer::Backend
             return value;
         }
 
-        winrt::hstring TrackDto(TrackInfo const& track)
+        winrt::hstring FormatDuration(double seconds)
         {
-            JsonObject object;
-            object.Insert(L"id", JsonValue::CreateStringValue(track.RemoteId()));
-            object.Insert(L"title", JsonValue::CreateStringValue(track.Title()));
-            object.Insert(L"artist", JsonValue::CreateStringValue(track.Artist()));
-            object.Insert(L"album", JsonValue::CreateStringValue(track.Album()));
-            object.Insert(L"artworkUrl", JsonValue::CreateStringValue(
-                IsSafeRemoteUrl(track.ArtworkUrl(), RemoteUrlUse::Durable) ? track.ArtworkUrl() : winrt::hstring{}));
-            object.Insert(L"sourceUrl", JsonValue::CreateStringValue(track.SourceUrl()));
-            object.Insert(L"durationMs", JsonValue::CreateNumberValue((std::max)(0.0, track.DurationSeconds()) * 1000.0));
-            return object.Stringify();
+            if (seconds <= 0.0)
+            {
+                return {};
+            }
+            auto const whole = static_cast<long long>(seconds);
+            wchar_t value[32]{};
+            swprintf_s(value, L"%lld:%02lld", whole / 60, whole % 60);
+            return value;
         }
 
-        struct ParsedLibrary
+        PortableAccountTrack PortableTrackFrom(TrackInfo const& track)
         {
-            AccountLibrarySnapshot Snapshot;
-            bool Valid{};
-        };
-
-        ParsedLibrary ParseLibrary(
-            winrt::hstring const& payload,
-            winrt::hstring const& ownerId,
-            AccountProfile const& profile,
-            std::wstring const& synchronizedAt)
-        {
-            if (ownerId.empty() || profile.Id != ownerId)
+            PortableAccountTrack result;
+            if (!track)
             {
-                return {};
+                return result;
             }
-
-            JsonObject root;
-            if (!JsonObject::TryParse(payload, root) || !root)
-            {
-                return {};
-            }
-            auto nestedLibrary = JsonObjectValue(root, L"library");
-            if (nestedLibrary)
-            {
-                root = nestedLibrary;
-            }
-            auto nestedData = JsonObjectValue(root, L"data");
-            if (nestedData)
-            {
-                root = nestedData;
-            }
-
-            auto recognizedShape = root.HasKey(L"tracks") || root.HasKey(L"songs")
-                || root.HasKey(L"liked") || root.HasKey(L"likedTracks")
-                || root.HasKey(L"favourites") || root.HasKey(L"favorites")
-                || root.HasKey(L"history") || root.HasKey(L"recentlyPlayed") || root.HasKey(L"plays")
-                || root.HasKey(L"playlists");
-            if (!recognizedShape)
-            {
-                return {};
-            }
-
-            ParsedLibrary parsed;
-            parsed.Valid = true;
-            parsed.Snapshot.Profile.AccountId = std::wstring(ownerId.c_str());
-            parsed.Snapshot.Profile.DisplayName = std::wstring(profile.DisplayName.c_str());
-            parsed.Snapshot.Profile.Username = std::wstring(profile.Username.c_str());
-            parsed.Snapshot.Profile.AvatarUrl = std::wstring(profile.AvatarUrl.c_str());
-            parsed.Snapshot.Profile.PlanLabel = std::wstring(profile.PlanLabel.c_str());
-            parsed.Snapshot.Profile.UpdatedAtUtc = synchronizedAt;
-            parsed.Snapshot.SynchronizedAtUtc = synchronizedAt;
-
-            std::unordered_map<std::wstring, size_t> trackIndexes;
-            size_t sequence{};
-            auto addTrack = [&](JsonObject const& wrapper, bool liked, JsonObject const& stats) -> winrt::hstring
-            {
-                auto object = TrackObjectFrom(wrapper);
-                if (!object)
-                {
-                    return {};
-                }
-                auto remoteId = RemoteIdFrom(wrapper, object);
-                auto sourceUrl = FirstString(object, { L"sourceUrl", L"url" });
-                auto title = FirstString(object, { L"title", L"name" });
-                auto artworkUrl = FirstString(object, { L"artworkUrl", L"imageUrl" });
-                if (artworkUrl.empty() && object != wrapper)
-                {
-                    artworkUrl = FirstString(wrapper, { L"artworkUrl", L"imageUrl" });
-                }
-                if (remoteId.empty() || title.empty() || sourceUrl.empty() || !IsCompatibleSource(object, sourceUrl))
-                {
-                    return {};
-                }
-
-                auto key = std::wstring(remoteId.c_str());
-                auto found = trackIndexes.find(key);
-                if (found == trackIndexes.end())
-                {
-                    TrackInfo track;
-                    track.RemoteId(remoteId);
-                    track.SourceKind(L"remote");
-                    track.Provider(L"account");
-                    track.SourceLabel(L"Account");
-                    track.SourceUrl(sourceUrl);
-                    track.FilePath(L"");
-                    track.Title(title);
-                    track.Artist(FirstString(object, { L"artist", L"artistName" }));
-                    track.Album(FirstString(object, { L"album", L"albumName" }));
-                    track.Genre(FirstString(object, { L"genre" }));
-                    auto durationSeconds = JsonNumber(object, L"durationSeconds", 0.0);
-                    if (durationSeconds <= 0.0)
-                    {
-                        durationSeconds = JsonNumber(object, L"durationMs", 0.0) / 1000.0;
-                    }
-                    track.DurationSeconds((std::max)(0.0, durationSeconds));
-                    track.Duration(FormatDuration(track.DurationSeconds()));
-                    track.ArtworkUrl(artworkUrl);
-                    track.DateAdded(L"Synced");
-                    auto dateSort = JsonNumber(object, L"dateAddedSortKey", 0.0);
-                    track.DateAddedSortKey(dateSort > 0.0 ? dateSort : -static_cast<double>(sequence++));
-                    track.IsLiked(liked || JsonBoolean(object, L"isLiked", false));
-
-                    AccountTrackSnapshot entry;
-                    entry.Track = track;
-                    entry.PlayCount = static_cast<int64_t>((std::max)(0.0, JsonNumber(stats, L"playCount", JsonNumber(wrapper, L"playCount", 0.0))));
-                    entry.FirstPlayedAtUtc = std::wstring(FirstString(stats, { L"firstPlayedAt", L"firstPlayedAtUtc" }).c_str());
-                    entry.LastPlayedAtUtc = std::wstring(FirstString(stats, { L"lastPlayedAt", L"playedAt", L"playedAtUtc" }).c_str());
-                    if (entry.LastPlayedAtUtc.empty())
-                    {
-                        entry.LastPlayedAtUtc = std::wstring(FirstString(wrapper, { L"lastPlayedAt", L"playedAt", L"playedAtUtc" }).c_str());
-                    }
-                    entry.LastPositionSeconds = (std::max)(0.0, JsonNumber(stats, L"lastPosition", JsonNumber(wrapper, L"position", 0.0)));
-                    trackIndexes.emplace(key, parsed.Snapshot.Tracks.size());
-                    parsed.Snapshot.Tracks.push_back(std::move(entry));
-                    return remoteId;
-                }
-
-                auto& existing = parsed.Snapshot.Tracks[found->second];
-                existing.Track.IsLiked(existing.Track.IsLiked() || liked || JsonBoolean(object, L"isLiked", false));
-                if (existing.Track.ArtworkUrl().empty() && !artworkUrl.empty())
-                {
-                    existing.Track.ArtworkUrl(artworkUrl);
-                }
-                existing.PlayCount = (std::max)(existing.PlayCount,
-                    static_cast<int64_t>((std::max)(0.0, JsonNumber(stats, L"playCount", JsonNumber(wrapper, L"playCount", 0.0)))));
-                auto lastPlayed = FirstString(stats, { L"lastPlayedAt", L"playedAt", L"playedAtUtc" });
-                if (lastPlayed.empty())
-                {
-                    lastPlayed = FirstString(wrapper, { L"lastPlayedAt", L"playedAt", L"playedAtUtc" });
-                }
-                if (!lastPlayed.empty() && std::wstring(lastPlayed.c_str()) > existing.LastPlayedAtUtc)
-                {
-                    existing.LastPlayedAtUtc = std::wstring(lastPlayed.c_str());
-                    existing.LastPositionSeconds = (std::max)(0.0, JsonNumber(stats, L"lastPosition", JsonNumber(wrapper, L"position", 0.0)));
-                }
-                return remoteId;
-            };
-
-            auto allTracks = JsonArrayValue(root, { L"tracks", L"songs" });
-            if (allTracks)
-            {
-                for (uint32_t index = 0; index < allTracks.Size(); ++index)
-                {
-                    auto value = allTracks.GetAt(index);
-                    if (value.ValueType() == JsonValueType::Object)
-                    {
-                        auto object = value.GetObject();
-                        addTrack(object, JsonBoolean(object, L"isLiked", false), object);
-                    }
-                }
-            }
-
-            auto liked = JsonArrayValue(root, { L"liked", L"likedTracks", L"favourites", L"favorites" });
-            if (liked)
-            {
-                for (uint32_t index = 0; index < liked.Size(); ++index)
-                {
-                    auto value = liked.GetAt(index);
-                    if (value.ValueType() == JsonValueType::Object)
-                    {
-                        auto object = value.GetObject();
-                        addTrack(object, true, object);
-                    }
-                }
-            }
-
-            auto history = JsonArrayValue(root, { L"history", L"recentlyPlayed", L"plays" });
-            if (history)
-            {
-                for (uint32_t index = 0; index < history.Size(); ++index)
-                {
-                    auto value = history.GetAt(index);
-                    if (value.ValueType() == JsonValueType::Object)
-                    {
-                        auto object = value.GetObject();
-                        auto stats = JsonObjectValue(object, L"stats");
-                        addTrack(object, JsonBoolean(object, L"isLiked", false), stats ? stats : object);
-                    }
-                }
-            }
-
-            auto playlists = JsonArrayValue(root, { L"playlists" });
-            if (playlists)
-            {
-                std::unordered_set<std::wstring> playlistIds;
-                for (uint32_t index = 0; index < playlists.Size(); ++index)
-                {
-                    auto value = playlists.GetAt(index);
-                    if (value.ValueType() != JsonValueType::Object)
-                    {
-                        continue;
-                    }
-                    auto object = value.GetObject();
-                    auto playlistId = FirstString(object, { L"id", L"playlistId" });
-                    if (playlistId.empty() || !playlistIds.insert(std::wstring(playlistId.c_str())).second)
-                    {
-                        continue;
-                    }
-
-                    AccountPlaylistSnapshot playlist;
-                    playlist.PlaylistId = std::wstring(playlistId.c_str());
-                    playlist.Name = std::wstring(FirstString(object, { L"name", L"title" }).c_str());
-                    playlist.Description = std::wstring(JsonString(object, L"description").c_str());
-                    auto sourceUrl = JsonString(object, L"sourceUrl");
-                    if (IsSafeRemoteUrl(sourceUrl, RemoteUrlUse::Durable))
-                    {
-                        playlist.SourceUrl = std::wstring(sourceUrl.c_str());
-                    }
-                    playlist.UpdatedAtUtc = std::wstring(FirstString(object, { L"updatedAt", L"createdAt" }).c_str());
-                    if (playlist.UpdatedAtUtc.empty())
-                    {
-                        playlist.UpdatedAtUtc = synchronizedAt;
-                    }
-
-                    auto tracks = JsonArrayValue(object, { L"tracks", L"items", L"songs" });
-                    if (tracks)
-                    {
-                        std::unordered_set<std::wstring> playlistTrackIds;
-                        for (uint32_t trackIndex = 0; trackIndex < tracks.Size(); ++trackIndex)
-                        {
-                            auto trackValue = tracks.GetAt(trackIndex);
-                            winrt::hstring remoteId;
-                            if (trackValue.ValueType() == JsonValueType::String)
-                            {
-                                remoteId = trackValue.GetString();
-                            }
-                            else if (trackValue.ValueType() == JsonValueType::Object)
-                            {
-                                auto trackObject = trackValue.GetObject();
-                                remoteId = addTrack(trackObject, JsonBoolean(trackObject, L"isLiked", false), trackObject);
-                            }
-                            auto key = std::wstring(remoteId.c_str());
-                            if (!key.empty() && trackIndexes.contains(key) && playlistTrackIds.insert(key).second)
-                            {
-                                playlist.RemoteTrackIds.push_back(std::move(key));
-                            }
-                        }
-                    }
-                    parsed.Snapshot.Playlists.push_back(std::move(playlist));
-                }
-            }
-
-            return parsed;
-        }
-
-        std::vector<std::wstring> ParseAcknowledgedEvents(
-            winrt::hstring const& payload,
-            std::unordered_set<std::wstring> const& submittedEventIds)
-        {
-            JsonObject root;
-            if (!JsonObject::TryParse(payload, root) || !root)
-            {
-                return {};
-            }
-            std::vector<std::wstring> result;
-            std::unordered_set<std::wstring> seen;
-            for (auto key : { L"accepted", L"duplicates" })
-            {
-                auto values = JsonArrayValue(root, { key });
-                if (!values)
-                {
-                    continue;
-                }
-                for (uint32_t index = 0; index < values.Size(); ++index)
-                {
-                    auto value = values.GetAt(index);
-                    if (value.ValueType() != JsonValueType::String)
-                    {
-                        continue;
-                    }
-                    auto id = std::wstring(value.GetString().c_str());
-                    if (submittedEventIds.contains(id) && seen.insert(id).second)
-                    {
-                        result.push_back(std::move(id));
-                    }
-                }
-            }
+            result.Id = track.RemoteId().c_str();
+            result.Title = track.Title().c_str();
+            result.Artist = track.Artist().c_str();
+            result.Album = track.Album().c_str();
+            result.Genre = track.Genre().c_str();
+            result.ArtworkUrl = IsSafeRemoteUrl(track.ArtworkUrl(), RemoteUrlUse::Durable)
+                ? std::wstring(track.ArtworkUrl().c_str())
+                : std::wstring{};
+            result.SourceKind = track.SourceKind().empty()
+                ? std::wstring{ L"remote" }
+                : std::wstring(track.SourceKind().c_str());
+            result.Provider = track.RemoteProvider().empty()
+                ? (track.Provider() == L"account" ? std::wstring{} : std::wstring(track.Provider().c_str()))
+                : std::wstring(track.RemoteProvider().c_str());
+            result.SourceUrl = IsSafeRemoteUrl(track.SourceUrl(), RemoteUrlUse::Durable)
+                ? std::wstring(track.SourceUrl().c_str())
+                : std::wstring{};
+            result.CatalogId = track.RemoteCatalogId().c_str();
+            result.AlbumCatalogId = track.AlbumCatalogId().c_str();
+            result.ArtistCatalogId = track.ArtistCatalogId().c_str();
+            result.DurationSec = (std::max)(0.0, track.DurationSeconds());
             return result;
         }
 
-        winrt::hstring BuildHistoryBatch(std::vector<PlaybackEventRecord> const& events)
+        std::optional<PortableAccountTrack> PortableTrackFrom(PlaybackEventRecord const& event)
         {
-            JsonArray values;
-            for (auto const& event : events)
+            auto parsed = ParsePortableTrack(winrt::hstring(event.TrackJson));
+            if (parsed)
             {
-                if (!event.Track || event.EventId.empty() || event.PlayedAtUtc.empty())
-                {
-                    continue;
-                }
-                JsonObject value;
-                value.Insert(L"eventId", JsonValue::CreateStringValue(winrt::hstring(event.EventId)));
-                JsonObject track;
-                JsonObject::TryParse(TrackDto(event.Track), track);
-                value.Insert(L"track", track);
-                value.Insert(L"playedAt", JsonValue::CreateStringValue(winrt::hstring(event.PlayedAtUtc)));
-                value.Insert(L"position", JsonValue::CreateNumberValue(std::floor((std::max)(0.0, event.PositionSeconds))));
-                values.Append(value);
+                return parsed;
             }
-            JsonObject root;
-            root.Insert(L"events", values);
-            return root.Stringify();
+            auto fallback = PortableTrackFrom(event.Track);
+            return IsValidPortableTrack(fallback)
+                ? std::optional<PortableAccountTrack>{ std::move(fallback) }
+                : std::nullopt;
+        }
+
+        std::optional<PortableAccountTrack> PortableTrackFrom(PendingLikeRecord const& like)
+        {
+            auto parsed = ParsePortableTrack(winrt::hstring(like.TrackJson));
+            if (parsed)
+            {
+                return parsed;
+            }
+            auto fallback = PortableTrackFrom(like.Track);
+            return IsValidPortableTrack(fallback)
+                ? std::optional<PortableAccountTrack>{ std::move(fallback) }
+                : std::nullopt;
+        }
+
+        TrackInfo TrackFrom(PortableAccountTrack const& value)
+        {
+            TrackInfo track;
+            track.RemoteId(winrt::hstring(value.Id));
+            track.Title(winrt::hstring(value.Title));
+            track.Artist(winrt::hstring(value.Artist));
+            track.Album(winrt::hstring(value.Album));
+            track.Genre(winrt::hstring(value.Genre));
+            track.ArtworkUrl(winrt::hstring(value.ArtworkUrl));
+            track.SourceKind(winrt::hstring(value.SourceKind));
+            track.Provider(L"account");
+            track.RemoteProvider(winrt::hstring(value.Provider));
+            track.SourceUrl(winrt::hstring(value.SourceUrl));
+            track.RemoteCatalogId(winrt::hstring(value.CatalogId));
+            track.AlbumCatalogId(winrt::hstring(value.AlbumCatalogId));
+            track.ArtistCatalogId(winrt::hstring(value.ArtistCatalogId));
+            track.DurationSeconds(value.DurationSec);
+            track.Duration(FormatDuration(value.DurationSec));
+            track.SourceLabel(L"Account");
+            track.FilePath(L"");
+            return track;
+        }
+
+        [[nodiscard]] bool IsTransient(std::uint32_t status) noexcept
+        {
+            return status == 408 || status == 429 || status >= 500;
+        }
+
+        [[nodiscard]] std::chrono::seconds FailureDelay(
+            int attemptCount,
+            std::uint32_t retryAfterSeconds = 0) noexcept
+        {
+            return AccountRetryDelay(
+                attemptCount + 1,
+                retryAfterSeconds);
+        }
+
+        std::wstring LocalPreferenceValue(
+            SettingsManager& settings,
+            PortablePreferenceKey key)
+        {
+            switch (key)
+            {
+            case PortablePreferenceKey::Theme:
+            {
+                auto value = std::wstring(settings.GetString(L"Theme", L"System").c_str());
+                std::transform(value.begin(), value.end(), value.begin(), ::towlower);
+                return L"\"" + value + L"\"";
+            }
+            case PortablePreferenceKey::Accent:
+            {
+                auto value = std::wstring(settings.GetString(L"AccentColor", L"#FF0097B2").c_str());
+                if (value.size() == 9)
+                {
+                    value = L"#" + value.substr(3);
+                }
+                return L"\"" + value + L"\"";
+            }
+            case PortablePreferenceKey::GaplessPlayback:
+                return settings.GetBool(L"Gapless", true) ? L"true" : L"false";
+            case PortablePreferenceKey::DataSaver:
+                return settings.GetBool(L"DataSaver", false) ? L"true" : L"false";
+            case PortablePreferenceKey::Storefront:
+                return L"\"" + std::wstring(settings.GetString(
+                    L"CatalogStorefront",
+                    DefaultCatalogStorefront).c_str()) + L"\"";
+            }
+            return {};
+        }
+
+        void ApplyPreference(
+            SettingsManager& settings,
+            PortablePreferenceKey key,
+            std::wstring const& valueJson)
+        {
+            auto const validated = ValidatePortablePreferenceValue(key, valueJson);
+            if (!validated)
+            {
+                return;
+            }
+            auto values = PortablePreferencesFromValues({ { key, *validated } });
+            switch (key)
+            {
+            case PortablePreferenceKey::Theme:
+                if (values.Theme)
+                {
+                    auto value = *values.Theme;
+                    value.front() = static_cast<wchar_t>(std::towupper(value.front()));
+                    settings.SetString(L"Theme", winrt::hstring(value));
+                }
+                break;
+            case PortablePreferenceKey::Accent:
+                if (values.Accent)
+                {
+                    settings.SetString(L"AccentColor", winrt::hstring(L"#FF" + values.Accent->substr(1)));
+                }
+                break;
+            case PortablePreferenceKey::GaplessPlayback:
+                if (values.GaplessPlayback) settings.SetBool(L"Gapless", *values.GaplessPlayback);
+                break;
+            case PortablePreferenceKey::DataSaver:
+                if (values.DataSaver) settings.SetBool(L"DataSaver", *values.DataSaver);
+                break;
+            case PortablePreferenceKey::Storefront:
+                if (values.Storefront) settings.SetString(L"CatalogStorefront", winrt::hstring(*values.Storefront));
+                break;
+            }
         }
     }
 
     MusicSyncService::MusicSyncService(
         RemoteMusicService& remoteMusic,
         DatabaseEngine& database,
-        UserDataOperationGate& operationGate)
+        UserDataOperationGate& operationGate,
+        SettingsManager& settings)
         : m_remoteMusic(remoteMusic),
           m_database(database),
-          m_operationGate(operationGate)
+          m_operationGate(operationGate),
+          m_settings(settings)
     {
-    }
-
-    bool MusicSyncService::BeginSync() noexcept
-    {
-        std::lock_guard guard{ m_mutex };
-        if (m_syncing)
-        {
-            return false;
-        }
-        m_syncing = true;
-        m_lastSafeError = {};
-        return true;
-    }
-
-    void MusicSyncService::FinishSync() noexcept
-    {
-        std::lock_guard guard{ m_mutex };
-        m_syncing = false;
-    }
-
-    void MusicSyncService::SetSafeError(winrt::hstring const& message)
-    {
-        std::lock_guard guard{ m_mutex };
-        m_lastSafeError = message;
     }
 
     bool MusicSyncService::IsSyncing() const noexcept
@@ -507,276 +272,981 @@ namespace LastMusicPlayer::Backend
         return m_lastSafeError;
     }
 
-    bool MusicSyncService::SaveSyncError(
-        AccountSyncContext const& context,
-        std::wstring const& code)
+    AccountPendingCounts MusicSyncService::PendingCounts() const
     {
-        if (!m_remoteMusic.IsCurrent(context))
+        try
         {
-            return false;
+            auto context = m_remoteMusic.CaptureAccountSyncContext();
+            return m_database.LoadAccountPendingCounts(context.OwnerId().c_str());
         }
-
-        auto accountId = std::wstring(context.OwnerId().c_str());
-        auto state = m_database.LoadAccountSyncState(accountId);
-        if (!m_remoteMusic.IsCurrent(context))
+        catch (...)
         {
-            return false;
+            return {};
         }
-
-        state.AccountId = accountId;
-        state.LastSafeErrorCode = code;
-        return m_remoteMusic.IsCurrent(context)
-            && m_database.SaveAccountSyncState(state);
     }
 
-    bool MusicSyncService::FailSync(
+    std::uint64_t MusicSyncService::LibraryRevision() const noexcept
+    {
+        std::lock_guard guard{ m_mutex };
+        return m_libraryRevision;
+    }
+
+    std::uint64_t MusicSyncService::PreferenceRevision() const noexcept
+    {
+        std::lock_guard guard{ m_mutex };
+        return m_preferenceRevision;
+    }
+
+    void MusicSyncService::SetSafeError(winrt::hstring const& message)
+    {
+        std::lock_guard guard{ m_mutex };
+        m_lastSafeError = message;
+    }
+
+    void MusicSyncService::SaveSyncError(
         AccountSyncContext const& context,
-        winrt::hstring const& message,
         std::wstring const& code)
     {
         if (!m_remoteMusic.IsCurrent(context))
         {
+            return;
+        }
+        auto state = m_database.LoadAccountSyncState(context.OwnerId().c_str());
+        if (!m_remoteMusic.IsCurrent(context))
+        {
+            return;
+        }
+        state.AccountId = context.OwnerId().c_str();
+        state.LastSafeErrorCode = code;
+        (void)m_database.SaveAccountSyncState(state);
+    }
+
+    void MusicSyncService::Requeue(AccountSyncLane lanes) noexcept
+    {
+        std::lock_guard guard{ m_mutex };
+        m_pendingLanes |= Bits(lanes);
+    }
+
+    void MusicSyncService::Finish(bool succeeded) noexcept
+    {
+        std::lock_guard guard{ m_mutex };
+        if (m_syncCompletion)
+        {
+            m_syncCompletion->Succeeded.store(succeeded, std::memory_order_release);
+        }
+        m_syncing = false;
+        if (m_syncCompletion)
+        {
+            ::SetEvent(m_syncCompletion->Event.get());
+        }
+    }
+
+    void MusicSyncService::ScheduleMutation(AccountSyncLane lane)
+    {
+        std::lock_guard guard{ m_mutex };
+        m_debouncedLanes |= Bits(lane);
+        if (m_mutationTimer)
+        {
+            return;
+        }
+        m_mutationTimer = winrt::Windows::System::Threading::ThreadPoolTimer::CreateTimer(
+            [this](winrt::Windows::System::Threading::ThreadPoolTimer const&)
+            {
+                std::uint32_t lanes{};
+                {
+                    std::lock_guard timerGuard{ m_mutex };
+                    lanes = std::exchange(m_debouncedLanes, 0u);
+                    m_mutationTimer = nullptr;
+                }
+                if (lanes != 0)
+                {
+                    StartQueuedSync(this, static_cast<AccountSyncLane>(lanes));
+                }
+            },
+            std::chrono::seconds(1));
+    }
+
+    void MusicSyncService::ScheduleRetry(AccountSyncLane lane, std::chrono::seconds delay)
+    {
+        auto const index = LaneIndex(lane);
+        std::lock_guard guard{ m_mutex };
+        auto const due = std::chrono::steady_clock::now() + delay;
+        if (m_retryTimers[index] && due >= m_retryDue[index])
+        {
+            return;
+        }
+        if (m_retryTimers[index])
+        {
+            m_retryTimers[index].Cancel();
+        }
+        m_retryDue[index] = due;
+        m_retryTimers[index] = winrt::Windows::System::Threading::ThreadPoolTimer::CreateTimer(
+            [this, lane, index](winrt::Windows::System::Threading::ThreadPoolTimer const&)
+            {
+                {
+                    std::lock_guard timerGuard{ m_mutex };
+                    m_retryTimers[index] = nullptr;
+                    m_retryDue[index] = {};
+                }
+                StartQueuedSync(this, lane);
+            },
+            delay);
+    }
+
+    void MusicSyncService::ScheduleNextDurableRetry(
+        AccountSyncContext const& context,
+        AccountSyncLane lane,
+        AccountRetryQueue queue)
+    {
+        if (!m_remoteMusic.IsCurrent(context))
+        {
+            return;
+        }
+        auto const delay = m_database.SecondsUntilNextAccountRetry(
+            context.OwnerId().c_str(),
+            queue);
+        if (delay)
+        {
+            ScheduleRetry(lane, std::chrono::seconds(*delay));
+        }
+    }
+
+    int MusicSyncService::RecordLaneFailure(AccountSyncLane lane) noexcept
+    {
+        std::lock_guard guard{ m_mutex };
+        return ++m_laneFailureAttempts[LaneIndex(lane)];
+    }
+
+    void MusicSyncService::ResetLaneFailure(AccountSyncLane lane) noexcept
+    {
+        std::lock_guard guard{ m_mutex };
+        auto const index = LaneIndex(lane);
+        m_laneFailureAttempts[index] = 0;
+        if (m_retryTimers[index])
+        {
+            m_retryTimers[index].Cancel();
+            m_retryTimers[index] = nullptr;
+            m_retryDue[index] = {};
+        }
+    }
+
+    bool MusicSyncService::SavePortablePreference(
+        PortablePreferenceKey key,
+        std::wstring const& valueJson)
+    {
+        auto const validated = ValidatePortablePreferenceValue(key, valueJson);
+        if (!validated)
+        {
             return false;
         }
-
-        auto saved = SaveSyncError(context, code);
-        if (m_remoteMusic.IsCurrent(context))
+        try
         {
-            SetSafeError(message);
+            auto context = m_remoteMusic.CaptureAccountSyncContext();
+            auto const status = m_remoteMusic.StatusFor(context);
+            if (status != AccountSessionStatus::Validated
+                && status != AccountSessionStatus::Offline)
+            {
+                return false;
+            }
+            auto const revision = m_database.SavePendingAccountPreference(
+                context.OwnerId().c_str(),
+                PortablePreferenceName(key),
+                *validated);
+            if (revision <= 0 || !m_remoteMusic.IsCurrent(context))
+            {
+                return false;
+            }
+            ScheduleMutation(AccountSyncLane::PreferencePush);
+            return true;
         }
-        return saved;
+        catch (...)
+        {
+            return false;
+        }
     }
 
     winrt::Windows::Foundation::IAsyncOperation<bool> MusicSyncService::SyncAsync()
     {
-        auto operationLease = m_operationGate.TryEnter();
-        if (!operationLease || !BeginSync())
         {
-            co_return false;
+            std::lock_guard guard{ m_mutex };
+            for (std::size_t index = 0; index < m_retryTimers.size(); ++index)
+            {
+                if (m_retryTimers[index])
+                {
+                    m_retryTimers[index].Cancel();
+                    m_retryTimers[index] = nullptr;
+                    m_retryDue[index] = {};
+                }
+                m_laneFailureAttempts[index] = 0;
+            }
         }
-        struct FinishGuard
-        {
-            MusicSyncService* Service;
-            ~FinishGuard() { Service->FinishSync(); }
-        } finish{ this };
-
-        std::optional<AccountSyncContext> operation;
         try
         {
-            operation.emplace(m_remoteMusic.CaptureAccountSyncContext());
-            auto const& context = *operation;
-            auto accountId = std::wstring(context.OwnerId().c_str());
-            auto status = m_remoteMusic.StatusFor(context);
-            auto profile = m_remoteMusic.ProfileFor(context);
-
-            if (status == AccountSessionStatus::Offline)
-            {
-                FailSync(
-                    context,
-                    L"Offline. The cached account library is still available.",
-                    L"offline");
-                co_return false;
-            }
-            if (status != AccountSessionStatus::Validated)
-            {
-                FailSync(
-                    context,
-                    L"Sign in to synchronize the account library.",
-                    L"signed-out");
-                co_return false;
-            }
-
-            for (;;)
-            {
-                if (!m_remoteMusic.IsCurrent(context))
-                {
-                    throw winrt::hresult_canceled();
-                }
-
-                auto events = m_database.LoadPendingPlaybackEvents(accountId, 100);
-                if (events.empty())
-                {
-                    break;
-                }
-
-                std::vector<std::wstring> submitted;
-                std::unordered_set<std::wstring> submittedSet;
-                submitted.reserve(events.size());
-                submittedSet.reserve(events.size());
-                for (auto const& event : events)
-                {
-                    if (event.Track && !event.EventId.empty() && !event.PlayedAtUtc.empty()
-                        && submittedSet.insert(event.EventId).second)
-                    {
-                        submitted.push_back(event.EventId);
-                    }
-                }
-                if (submitted.empty())
-                {
-                    FailSync(
-                        context,
-                        L"A pending account history item could not be prepared.",
-                        L"history-payload");
-                    co_return false;
-                }
-                if (!m_remoteMusic.IsCurrent(context))
-                {
-                    throw winrt::hresult_canceled();
-                }
-                if (!m_database.MarkPlaybackEventsAttempted(accountId, submitted))
-                {
-                    FailSync(
-                        context,
-                        L"Could not update the pending account history.",
-                        L"history-attempt");
-                    co_return false;
-                }
-
-                auto response = co_await m_remoteMusic.PostAccountHistoryBatchAsync(
-                    context,
-                    BuildHistoryBatch(events));
-                if (!m_remoteMusic.IsCurrent(context))
-                {
-                    throw winrt::hresult_canceled();
-                }
-
-                auto acknowledged = ParseAcknowledgedEvents(response, submittedSet);
-                if (acknowledged.empty())
-                {
-                    FailSync(
-                        context,
-                        L"The account history response was not accepted.",
-                        L"history-response");
-                    co_return false;
-                }
-                if (!m_database.AcknowledgePlaybackEvents(accountId, acknowledged))
-                {
-                    FailSync(
-                        context,
-                        L"Could not acknowledge the synchronized account history.",
-                        L"history-acknowledgement");
-                    co_return false;
-                }
-                if (acknowledged.size() < submitted.size())
-                {
-                    break;
-                }
-            }
-
-            if (!m_remoteMusic.IsCurrent(context))
-            {
-                throw winrt::hresult_canceled();
-            }
-            auto likes = m_database.LoadPendingLikes(accountId, 100);
-            for (auto const& like : likes)
-            {
-                if (!m_remoteMusic.IsCurrent(context))
-                {
-                    throw winrt::hresult_canceled();
-                }
-                if (!m_database.MarkPendingLikeAttempted(accountId, like.RemoteTrackId))
-                {
-                    FailSync(
-                        context,
-                        L"Could not update a pending account like.",
-                        L"like-attempt");
-                    co_return false;
-                }
-
-                co_await m_remoteMusic.SetAccountLikedAsync(
-                    context,
-                    TrackDto(like.Track),
-                    like.DesiredState,
-                    winrt::hstring(like.RemoteTrackId));
-                if (!m_remoteMusic.IsCurrent(context))
-                {
-                    throw winrt::hresult_canceled();
-                }
-                if (!m_database.AcknowledgePendingLike(
-                    accountId,
-                    like.RemoteTrackId,
-                    like.DesiredState))
-                {
-                    FailSync(
-                        context,
-                        L"Could not acknowledge a synchronized account like.",
-                        L"like-acknowledgement");
-                    co_return false;
-                }
-            }
-
-            auto payload = co_await m_remoteMusic.GetAccountLibraryAsync(context);
-            if (!m_remoteMusic.IsCurrent(context))
-            {
-                throw winrt::hresult_canceled();
-            }
-
-            auto synchronizedAt = UtcNow();
-            auto parsed = ParseLibrary(payload, context.OwnerId(), profile, synchronizedAt);
-            if (!parsed.Valid || parsed.Snapshot.Profile.AccountId != accountId)
-            {
-                FailSync(
-                    context,
-                    L"The account library response was not accepted.",
-                    L"library-response");
-                co_return false;
-            }
-            if (!m_remoteMusic.IsCurrent(context))
-            {
-                throw winrt::hresult_canceled();
-            }
-            if (!m_database.ReplaceAccountLibrary(accountId, parsed.Snapshot))
-            {
-                FailSync(
-                    context,
-                    L"Could not save the synchronized account library.",
-                    L"cache-write");
-                co_return false;
-            }
-            if (!m_remoteMusic.IsCurrent(context))
-            {
-                co_return false;
-            }
-
-            SetSafeError({});
-            co_return true;
-        }
-        catch (winrt::hresult_canceled const&)
-        {
-            if (operation && m_remoteMusic.IsCurrent(*operation))
-            {
-                FailSync(*operation, L"Account synchronization was canceled.", L"canceled");
-            }
-        }
-        catch (winrt::hresult_error const& error)
-        {
-            if (operation && m_remoteMusic.IsCurrent(*operation))
-            {
-                auto message = error.message();
-                FailSync(
-                    *operation,
-                    message.empty() ? winrt::hstring{ L"Account synchronization failed." } : message,
-                    IsAccountUnauthorized(error) ? L"unauthorized" : L"request-failed");
-            }
-            else if (!operation)
-            {
-                auto message = error.message();
-                SetSafeError(message.empty()
-                    ? winrt::hstring{ L"Account mode is not active." }
-                    : message);
-            }
+            auto context = m_remoteMusic.CaptureAccountSyncContext();
+            (void)m_database.ResetAccountRetrySchedule(context.OwnerId().c_str());
         }
         catch (...)
         {
-            if (operation && m_remoteMusic.IsCurrent(*operation))
+        }
+        co_return co_await RequestSyncAsync(AccountSyncLane::All);
+    }
+
+    winrt::Windows::Foundation::IAsyncOperation<bool> MusicSyncService::RequestSyncAsync(
+        AccountSyncLane requestedLanes)
+    {
+        std::shared_ptr<SyncCompletionState> waitState;
+        {
+            std::lock_guard guard{ m_mutex };
+            m_pendingLanes |= Bits(requestedLanes);
+            if (m_syncing)
             {
-                FailSync(*operation, L"Account synchronization failed.", L"unexpected");
+                waitState = m_syncCompletion;
             }
-            else if (!operation)
+            else
             {
-                SetSafeError(L"Account synchronization failed.");
+                auto const completion = ::CreateEventW(nullptr, TRUE, FALSE, nullptr);
+                winrt::check_pointer(completion);
+                m_syncCompletion = std::make_shared<SyncCompletionState>();
+                m_syncCompletion->Event = winrt::handle{ completion };
+                m_syncing = true;
             }
         }
-        co_return false;
+
+        if (waitState)
+        {
+            co_await winrt::resume_on_signal(waitState->Event.get());
+            co_return waitState->Succeeded.load(std::memory_order_acquire);
+        }
+
+        auto operationLease = m_operationGate.TryEnter();
+        if (!operationLease)
+        {
+            Finish(false);
+            co_return false;
+        }
+
+        bool allSucceeded = true;
+        bool refreshedAuthentication{};
+        for (;;)
+        {
+            std::uint32_t lanes{};
+            bool finished{};
+            {
+                std::lock_guard guard{ m_mutex };
+                lanes = std::exchange(m_pendingLanes, 0u);
+                if (lanes == 0)
+                {
+                    if (allSucceeded)
+                    {
+                        m_lastSafeError = {};
+                    }
+                    if (m_syncCompletion)
+                    {
+                        m_syncCompletion->Succeeded.store(allSucceeded, std::memory_order_release);
+                    }
+                    m_syncing = false;
+                    if (m_syncCompletion)
+                    {
+                        ::SetEvent(m_syncCompletion->Event.get());
+                    }
+                    finished = true;
+                }
+            }
+            if (finished)
+            {
+                co_return allSucceeded;
+            }
+
+            std::optional<AccountSyncContext> context;
+            try
+            {
+                context.emplace(m_remoteMusic.CaptureAccountSyncContext());
+                auto const status = m_remoteMusic.StatusFor(*context);
+                if (status != AccountSessionStatus::Validated)
+                {
+                    SetSafeError(status == AccountSessionStatus::Offline
+                        ? winrt::hstring{ L"Offline. Pending account changes are saved." }
+                        : winrt::hstring{ L"Sign in to synchronize the account library." });
+                    SaveSyncError(*context, status == AccountSessionStatus::Offline ? L"offline" : L"signed-out");
+                    Finish(false);
+                    co_return false;
+                }
+
+                auto runLane = [&](AccountSyncLane lane)
+                    -> winrt::Windows::Foundation::IAsyncOperation<int>
+                {
+                    switch (lane)
+                    {
+                    case AccountSyncLane::History: co_return co_await RunHistoryLaneAsync(*context);
+                    case AccountSyncLane::Likes: co_return co_await RunLikesLaneAsync(*context);
+                    case AccountSyncLane::PreferencePush: co_return co_await RunPreferencePushLaneAsync(*context);
+                    case AccountSyncLane::PreferencePull: co_return co_await RunPreferencePullLaneAsync(*context);
+                    case AccountSyncLane::Library: co_return co_await RunLibraryLaneAsync(*context);
+                    default: co_return LaneOutcome::Succeeded;
+                    }
+                };
+
+                bool restart{};
+                for (auto lane : { AccountSyncLane::History, AccountSyncLane::Likes,
+                    AccountSyncLane::PreferencePush, AccountSyncLane::PreferencePull,
+                    AccountSyncLane::Library })
+                {
+                    if (!HasLane(lanes, lane))
+                    {
+                        continue;
+                    }
+                    auto const outcome = co_await runLane(lane);
+                    if (outcome == LaneOutcome::Failed)
+                    {
+                        allSucceeded = false;
+                        continue;
+                    }
+                    if (outcome != LaneOutcome::Unauthorized)
+                    {
+                        continue;
+                    }
+
+                    if (refreshedAuthentication)
+                    {
+                        m_remoteMusic.HandleAccountSyncUnauthorized(*context);
+                        SetSafeError(L"Your account session has expired. Sign in again to resume synchronization.");
+                        SaveSyncError(*context, L"unauthorized");
+                        Finish(false);
+                        co_return false;
+                    }
+
+                    refreshedAuthentication = true;
+                    Requeue(static_cast<AccountSyncLane>(lanes));
+                    if (!co_await m_remoteMusic.RefreshAccountSessionAsync())
+                    {
+                        SetSafeError(L"Your account session has expired. Sign in again to resume synchronization.");
+                        Finish(false);
+                        co_return false;
+                    }
+                    restart = true;
+                    break;
+                }
+                if (restart)
+                {
+                    continue;
+                }
+            }
+            catch (winrt::hresult_canceled const&)
+            {
+                Finish(false);
+                co_return false;
+            }
+            catch (...)
+            {
+                if (context && m_remoteMusic.IsCurrent(*context))
+                {
+                    SetSafeError(L"Account synchronization failed.");
+                    SaveSyncError(*context, L"unexpected");
+                }
+                Finish(false);
+                co_return false;
+            }
+        }
+    }
+
+    winrt::Windows::Foundation::IAsyncOperation<int>
+        MusicSyncService::RunHistoryLaneAsync(AccountSyncContext const& context)
+    {
+        bool failed{};
+        for (;;)
+        {
+            if (!m_remoteMusic.IsCurrent(context))
+            {
+                co_return LaneOutcome::Failed;
+            }
+            auto events = m_database.LoadPendingPlaybackEvents(context.OwnerId().c_str(), 100);
+            if (events.empty())
+            {
+                ScheduleNextDurableRetry(
+                    context,
+                    AccountSyncLane::History,
+                    AccountRetryQueue::History);
+                co_return failed ? LaneOutcome::Failed : LaneOutcome::Succeeded;
+            }
+            auto const outcome = co_await UploadHistoryBatchAsync(context, std::move(events));
+            if (outcome == LaneOutcome::Unauthorized)
+            {
+                co_return outcome;
+            }
+            if (outcome == LaneOutcome::Failed)
+            {
+                failed = true;
+            }
+        }
+    }
+
+    winrt::Windows::Foundation::IAsyncOperation<int>
+        MusicSyncService::UploadHistoryBatchAsync(
+            AccountSyncContext const& context,
+            std::vector<PlaybackEventRecord> events)
+    {
+        auto const accountId = std::wstring(context.OwnerId().c_str());
+        std::vector<AccountHistoryEventDto> payloadEvents;
+        std::vector<std::wstring> submitted;
+        payloadEvents.reserve(events.size());
+        submitted.reserve(events.size());
+        for (auto const& event : events)
+        {
+            auto track = PortableTrackFrom(event);
+            if (!track || event.EventId.empty() || event.PlayedAtUtc.empty())
+            {
+                if (m_remoteMusic.IsCurrent(context))
+                {
+                    (void)m_database.MarkPlaybackEventsFailed(
+                        accountId, { event.EventId }, L"invalid-payload", 0, true);
+                }
+                continue;
+            }
+            payloadEvents.push_back(AccountHistoryEventDto{
+                event.EventId,
+                std::move(*track),
+                event.PlayedAtUtc,
+                event.PositionSeconds });
+            submitted.push_back(event.EventId);
+        }
+        if (submitted.empty())
+        {
+            SetSafeError(L"One or more pending history items need attention.");
+            co_return LaneOutcome::Failed;
+        }
+
+        bool permanentRequestFailure{};
+        try
+        {
+            auto const response = co_await m_remoteMusic.PostAccountHistoryBatchAsync(
+                context,
+                SerializeHistoryBatch(payloadEvents));
+            if (!m_remoteMusic.IsCurrent(context))
+            {
+                co_return LaneOutcome::Failed;
+            }
+            auto const acknowledged = ParseAcknowledgedHistoryEvents(response, submitted);
+            if (!acknowledged.empty())
+            {
+                (void)m_database.AcknowledgePlaybackEvents(accountId, acknowledged);
+            }
+            std::vector<PlaybackEventRecord> rejected;
+            for (auto& event : events)
+            {
+                if (std::find(acknowledged.begin(), acknowledged.end(), event.EventId) == acknowledged.end())
+                {
+                    rejected.push_back(std::move(event));
+                }
+            }
+            if (rejected.empty())
+            {
+                co_return LaneOutcome::Succeeded;
+            }
+            if (rejected.size() == 1)
+            {
+                (void)m_database.MarkPlaybackEventsFailed(
+                    accountId, { rejected.front().EventId }, L"rejected", 0, true);
+                SetSafeError(L"One pending history item was rejected. Other account data will keep synchronizing.");
+                co_return LaneOutcome::Failed;
+            }
+            auto middle = rejected.begin() + static_cast<std::ptrdiff_t>(rejected.size() / 2);
+            std::vector<PlaybackEventRecord> left(rejected.begin(), middle);
+            std::vector<PlaybackEventRecord> right(middle, rejected.end());
+            auto const leftResult = co_await UploadHistoryBatchAsync(context, std::move(left));
+            if (leftResult == LaneOutcome::Unauthorized) co_return leftResult;
+            auto const rightResult = co_await UploadHistoryBatchAsync(context, std::move(right));
+            if (rightResult == LaneOutcome::Unauthorized) co_return rightResult;
+            co_return leftResult == LaneOutcome::Succeeded && rightResult == LaneOutcome::Succeeded
+                ? LaneOutcome::Succeeded
+                : LaneOutcome::Failed;
+        }
+        catch (winrt::hresult_canceled const&)
+        {
+            throw;
+        }
+        catch (winrt::hresult_error const& error)
+        {
+            auto const status = AccountHttpStatus(error);
+            if (status == 401)
+            {
+                co_return LaneOutcome::Unauthorized;
+            }
+            if (status != 0 && !IsTransient(status))
+            {
+                permanentRequestFailure = true;
+            }
+            else
+            {
+            auto const maxAttempt = std::max_element(events.begin(), events.end(), [](auto const& left, auto const& right)
+            {
+                return left.AttemptCount < right.AttemptCount;
+            })->AttemptCount;
+            auto const delay = FailureDelay(maxAttempt, AccountRetryAfterSeconds(error));
+            if (m_remoteMusic.IsCurrent(context))
+            {
+                (void)m_database.MarkPlaybackEventsFailed(
+                    accountId,
+                    submitted,
+                    status == 0 ? L"network" : L"transient",
+                    static_cast<int>(delay.count()),
+                    false);
+                ScheduleRetry(AccountSyncLane::History, delay);
+            }
+            SetSafeError(L"History upload will retry automatically.");
+            co_return LaneOutcome::Failed;
+            }
+        }
+
+        if (permanentRequestFailure && events.size() > 1)
+        {
+            auto middle = events.begin() + static_cast<std::ptrdiff_t>(events.size() / 2);
+            std::vector<PlaybackEventRecord> left(events.begin(), middle);
+            std::vector<PlaybackEventRecord> right(middle, events.end());
+            auto const leftResult = co_await UploadHistoryBatchAsync(context, std::move(left));
+            if (leftResult == LaneOutcome::Unauthorized) co_return leftResult;
+            auto const rightResult = co_await UploadHistoryBatchAsync(context, std::move(right));
+            if (rightResult == LaneOutcome::Unauthorized) co_return rightResult;
+            co_return leftResult == LaneOutcome::Succeeded && rightResult == LaneOutcome::Succeeded
+                ? LaneOutcome::Succeeded
+                : LaneOutcome::Failed;
+        }
+        if (m_remoteMusic.IsCurrent(context))
+        {
+            (void)m_database.MarkPlaybackEventsFailed(
+                accountId, submitted, L"rejected", 0, true);
+        }
+        SetSafeError(L"One pending history item was rejected. Other account data will keep synchronizing.");
+        co_return LaneOutcome::Failed;
+    }
+
+    winrt::Windows::Foundation::IAsyncOperation<int>
+        MusicSyncService::RunLikesLaneAsync(AccountSyncContext const& context)
+    {
+        bool failed{};
+        auto const accountId = std::wstring(context.OwnerId().c_str());
+        for (;;)
+        {
+            if (!m_remoteMusic.IsCurrent(context))
+            {
+                co_return LaneOutcome::Failed;
+            }
+            auto likes = m_database.LoadPendingLikes(accountId, 100);
+            if (likes.empty())
+            {
+                ScheduleNextDurableRetry(
+                    context,
+                    AccountSyncLane::Likes,
+                    AccountRetryQueue::Likes);
+                if (failed)
+                {
+                    SetSafeError(L"Some likes are pending and will retry automatically.");
+                }
+                co_return failed ? LaneOutcome::Failed : LaneOutcome::Succeeded;
+            }
+
+            for (auto const& like : likes)
+            {
+                auto track = PortableTrackFrom(like);
+                if (!track)
+                {
+                    if (m_remoteMusic.IsCurrent(context))
+                    {
+                        (void)m_database.MarkPendingLikeFailed(
+                            accountId, like.RemoteTrackId, L"invalid-payload", 0, true);
+                    }
+                    failed = true;
+                    continue;
+                }
+                try
+                {
+                    co_await m_remoteMusic.SetAccountLikedAsync(
+                        context,
+                        SerializePortableTrack(*track),
+                        like.DesiredState,
+                        winrt::hstring(like.RemoteTrackId));
+                    if (!m_remoteMusic.IsCurrent(context))
+                    {
+                        co_return LaneOutcome::Failed;
+                    }
+                    (void)m_database.AcknowledgePendingLike(
+                        accountId, like.RemoteTrackId, like.DesiredState);
+                }
+                catch (winrt::hresult_canceled const&)
+                {
+                    throw;
+                }
+                catch (winrt::hresult_error const& error)
+                {
+                    auto const status = AccountHttpStatus(error);
+                    if (status == 401)
+                    {
+                        co_return LaneOutcome::Unauthorized;
+                    }
+                    auto const transient = status == 0 || IsTransient(status);
+                    auto const delay = FailureDelay(
+                        like.AttemptCount,
+                        AccountRetryAfterSeconds(error));
+                    if (m_remoteMusic.IsCurrent(context))
+                    {
+                        (void)m_database.MarkPendingLikeFailed(
+                            accountId,
+                            like.RemoteTrackId,
+                            status == 0 ? L"network" : (transient ? L"transient" : L"rejected"),
+                            transient ? static_cast<int>(delay.count()) : 0,
+                            !transient);
+                        if (transient) ScheduleRetry(AccountSyncLane::Likes, delay);
+                    }
+                    failed = true;
+                }
+            }
+        }
+    }
+
+    winrt::Windows::Foundation::IAsyncOperation<int>
+        MusicSyncService::RunPreferencePushLaneAsync(AccountSyncContext const& context)
+    {
+        auto const accountId = std::wstring(context.OwnerId().c_str());
+        auto records = m_database.LoadAccountPreferences(accountId, true);
+        if (records.empty())
+        {
+            co_return LaneOutcome::Succeeded;
+        }
+        std::unordered_map<PortablePreferenceKey, std::wstring> values;
+        std::vector<std::pair<std::wstring, std::int64_t>> submitted;
+        std::vector<std::wstring> invalidKeys;
+        int maxAttempt{};
+        for (auto const& record : records)
+        {
+            auto const key = ParsePortablePreferenceName(record.Key);
+            auto const value = key
+                ? ValidatePortablePreferenceValue(*key, record.ValueJson)
+                : std::nullopt;
+            if (!key || !value)
+            {
+                invalidKeys.push_back(record.Key);
+                continue;
+            }
+            values[*key] = *value;
+            submitted.emplace_back(record.Key, record.Revision);
+            maxAttempt = (std::max)(maxAttempt, record.AttemptCount);
+        }
+        bool invalidFailed = !invalidKeys.empty();
+        if (invalidFailed && m_remoteMusic.IsCurrent(context))
+        {
+            (void)m_database.MarkAccountPreferencesFailed(
+                accountId,
+                invalidKeys,
+                L"invalid-payload",
+                0,
+                true);
+        }
+        if (values.empty())
+        {
+            SetSafeError(L"One or more preference changes need attention.");
+            co_return LaneOutcome::Failed;
+        }
+        try
+        {
+            co_await m_remoteMusic.PutAccountPreferencesAsync(
+                context,
+                SerializePortablePreferences(PortablePreferencesFromValues(values)));
+            if (!m_remoteMusic.IsCurrent(context))
+            {
+                co_return LaneOutcome::Failed;
+            }
+            for (auto const& [key, revision] : submitted)
+            {
+                if (!m_remoteMusic.IsCurrent(context))
+                {
+                    co_return LaneOutcome::Failed;
+                }
+                (void)m_database.AcknowledgeAccountPreference(
+                    accountId, key, revision);
+            }
+            ScheduleNextDurableRetry(
+                context,
+                AccountSyncLane::PreferencePush,
+                AccountRetryQueue::Preferences);
+            if (invalidFailed)
+            {
+                SetSafeError(L"One or more preference changes need attention.");
+                co_return LaneOutcome::Failed;
+            }
+            co_return LaneOutcome::Succeeded;
+        }
+        catch (winrt::hresult_canceled const&)
+        {
+            throw;
+        }
+        catch (winrt::hresult_error const& error)
+        {
+            auto const status = AccountHttpStatus(error);
+            if (status == 401) co_return LaneOutcome::Unauthorized;
+            auto const transient = status == 0 || IsTransient(status);
+            auto const delay = FailureDelay(
+                maxAttempt,
+                AccountRetryAfterSeconds(error));
+            if (m_remoteMusic.IsCurrent(context))
+            {
+                std::vector<std::wstring> keys;
+                keys.reserve(submitted.size());
+                for (auto const& entry : submitted) keys.push_back(entry.first);
+                (void)m_database.MarkAccountPreferencesFailed(
+                    accountId,
+                    keys,
+                    status == 0 ? L"network" : (transient ? L"transient" : L"rejected"),
+                    transient ? static_cast<int>(delay.count()) : 0,
+                    !transient);
+                if (transient) ScheduleRetry(AccountSyncLane::PreferencePush, delay);
+            }
+        }
+        ScheduleNextDurableRetry(
+            context,
+            AccountSyncLane::PreferencePush,
+            AccountRetryQueue::Preferences);
+        SetSafeError(L"Some preference changes are still pending.");
+        co_return LaneOutcome::Failed;
+    }
+
+    winrt::Windows::Foundation::IAsyncOperation<int>
+        MusicSyncService::RunPreferencePullLaneAsync(AccountSyncContext const& context)
+    {
+        auto const accountId = std::wstring(context.OwnerId().c_str());
+        auto before = m_database.LoadAccountPreferences(accountId, false);
+        std::unordered_map<std::wstring, AccountPreferenceRecord> observed;
+        for (auto const& record : before) observed.emplace(record.Key, record);
+        try
+        {
+            auto const payload = co_await m_remoteMusic.GetAccountPreferencesAsync(context);
+            auto const remote = PortablePreferenceValues(ParsePortablePreferences(payload));
+            for (auto key : { PortablePreferenceKey::Theme, PortablePreferenceKey::Accent,
+                PortablePreferenceKey::GaplessPlayback, PortablePreferenceKey::DataSaver,
+                PortablePreferenceKey::Storefront })
+            {
+                auto const name = std::wstring(PortablePreferenceName(key));
+                auto const foundRemote = remote.find(key);
+                auto const foundLocal = observed.find(name);
+                if (foundRemote == remote.end())
+                {
+                    // A cached row is also the durable marker that this key was
+                    // already backfilled. Re-enqueuing every absent field on
+                    // every GET would turn a one-time compatibility write into
+                    // a permanent upload loop.
+                    if (foundLocal == observed.end())
+                    {
+                        auto const localValue = ValidatePortablePreferenceValue(
+                            key,
+                            LocalPreferenceValue(m_settings, key));
+                        if (localValue && m_remoteMusic.IsCurrent(context))
+                        {
+                            (void)m_database.SavePendingAccountPreference(
+                                accountId, name, *localValue);
+                            ScheduleMutation(AccountSyncLane::PreferencePush);
+                        }
+                    }
+                    continue;
+                }
+                auto const revision = foundLocal == observed.end() ? 0 : foundLocal->second.Revision;
+                if (foundLocal != observed.end() && foundLocal->second.Pending)
+                {
+                    continue;
+                }
+                if (!m_remoteMusic.IsCurrent(context))
+                {
+                    co_return LaneOutcome::Failed;
+                }
+                (void)m_database.MergeRemoteAccountPreference(
+                    accountId, name, foundRemote->second, revision);
+            }
+            if (!m_remoteMusic.IsCurrent(context))
+            {
+                co_return LaneOutcome::Failed;
+            }
+            auto current = m_database.LoadAccountPreferences(accountId, false);
+            for (auto const& record : current)
+            {
+                if (!record.Pending)
+                {
+                    auto const key = ParsePortablePreferenceName(record.Key);
+                    if (!m_remoteMusic.IsCurrent(context))
+                    {
+                        co_return LaneOutcome::Failed;
+                    }
+                    if (key) ApplyPreference(m_settings, *key, record.ValueJson);
+                }
+            }
+            ResetLaneFailure(AccountSyncLane::PreferencePull);
+            {
+                std::lock_guard guard{ m_mutex };
+                ++m_preferenceRevision;
+            }
+            co_return LaneOutcome::Succeeded;
+        }
+        catch (winrt::hresult_canceled const&)
+        {
+            throw;
+        }
+        catch (winrt::hresult_error const& error)
+        {
+            auto const status = AccountHttpStatus(error);
+            if (status == 401) co_return LaneOutcome::Unauthorized;
+            if (status == 0 || IsTransient(status))
+            {
+                auto const delay = AccountRetryDelay(
+                    RecordLaneFailure(AccountSyncLane::PreferencePull),
+                    AccountRetryAfterSeconds(error));
+                ScheduleRetry(AccountSyncLane::PreferencePull, delay);
+            }
+        }
+        SetSafeError(L"Cloud preferences could not be refreshed. Cached values remain active.");
+        co_return LaneOutcome::Failed;
+    }
+
+    winrt::Windows::Foundation::IAsyncOperation<int>
+        MusicSyncService::RunLibraryLaneAsync(AccountSyncContext const& context)
+    {
+        try
+        {
+            auto const payload = co_await m_remoteMusic.GetAccountLibraryAsync(context);
+            auto parsed = ParseAccountLibrary(payload);
+            if (!parsed.Valid || !m_remoteMusic.IsCurrent(context))
+            {
+                SetSafeError(L"The account library response was not accepted.");
+                SaveSyncError(context, L"library-response");
+                co_return LaneOutcome::Failed;
+            }
+
+            auto const accountId = std::wstring(context.OwnerId().c_str());
+            auto const profile = m_remoteMusic.ProfileFor(context);
+            AccountLibrarySnapshot snapshot;
+            snapshot.Profile.AccountId = accountId;
+            snapshot.Profile.DisplayName = profile.DisplayName.c_str();
+            snapshot.Profile.Username = profile.Username.c_str();
+            snapshot.Profile.AvatarUrl = profile.AvatarUrl.c_str();
+            snapshot.Profile.PlanLabel = profile.PlanLabel.c_str();
+            snapshot.Profile.UpdatedAtUtc = UtcNow();
+            snapshot.SynchronizedAtUtc = snapshot.Profile.UpdatedAtUtc;
+
+            std::unordered_map<std::wstring, std::size_t> indexes;
+            std::size_t sequence{ 1 };
+            for (auto const& remote : parsed.Tracks)
+            {
+                AccountTrackSnapshot entry;
+                entry.Track = TrackFrom(remote.Track);
+                entry.Track.IsLiked(remote.Liked);
+                entry.Track.DateAdded(winrt::hstring(remote.AddedAt));
+                entry.Track.DateAddedSortKey(remote.LegacyAddedSortKey > 0.0
+                    ? remote.LegacyAddedSortKey
+                    : (remote.AddedAt.empty() ? -static_cast<double>(sequence++) : 0.0));
+                entry.PlayCount = remote.PlayCount;
+                entry.FirstPlayedAtUtc = remote.FirstPlayedAt;
+                entry.LastPlayedAtUtc = remote.LastPlayedAt;
+                entry.LastPositionSeconds = remote.LastPositionSec;
+                indexes.emplace(remote.Track.Id, snapshot.Tracks.size());
+                snapshot.Tracks.push_back(std::move(entry));
+            }
+
+            auto existing = m_database.LoadAccountLibrary(accountId);
+            std::unordered_map<std::wstring, AccountTrackSnapshot> existingTracks;
+            if (existing)
+            {
+                for (auto const& track : existing->Tracks)
+                {
+                    existingTracks.emplace(track.Track.RemoteId().c_str(), track);
+                }
+            }
+
+            auto ensureTrack = [&](std::wstring const& remoteId, TrackInfo const& fallback) -> AccountTrackSnapshot*
+            {
+                auto found = indexes.find(remoteId);
+                if (found != indexes.end())
+                {
+                    return &snapshot.Tracks[found->second];
+                }
+                if (!fallback)
+                {
+                    return nullptr;
+                }
+                AccountTrackSnapshot entry;
+                entry.Track = fallback;
+                entry.Track.CatalogId(0);
+                indexes.emplace(remoteId, snapshot.Tracks.size());
+                snapshot.Tracks.push_back(std::move(entry));
+                return &snapshot.Tracks.back();
+            };
+
+            for (auto const& like : m_database.LoadPendingLikes(accountId, 10000, false))
+            {
+                if (auto entry = ensureTrack(like.RemoteTrackId, like.Track))
+                {
+                    entry->Track.IsLiked(like.DesiredState);
+                }
+            }
+            for (auto const& event : m_database.LoadPendingPlaybackEvents(accountId, 10000, false))
+            {
+                if (auto entry = ensureTrack(event.RemoteTrackId, event.Track))
+                {
+                    auto const found = existingTracks.find(event.RemoteTrackId);
+                    if (found != existingTracks.end())
+                    {
+                        entry->PlayCount = (std::max)(entry->PlayCount, found->second.PlayCount);
+                        if (found->second.LastPlayedAtUtc > entry->LastPlayedAtUtc)
+                        {
+                            entry->LastPlayedAtUtc = found->second.LastPlayedAtUtc;
+                            entry->LastPositionSeconds = found->second.LastPositionSeconds;
+                        }
+                    }
+                    if (event.PlayedAtUtc > entry->LastPlayedAtUtc)
+                    {
+                        entry->LastPlayedAtUtc = event.PlayedAtUtc;
+                        entry->LastPositionSeconds = event.PositionSeconds;
+                    }
+                }
+            }
+
+            for (auto const& remote : parsed.Playlists)
+            {
+                AccountPlaylistSnapshot playlist;
+                playlist.PlaylistId = remote.Id;
+                playlist.Name = remote.Name;
+                playlist.Description = remote.Description;
+                playlist.SourceUrl = remote.SourceUrl;
+                playlist.UpdatedAtUtc = remote.UpdatedAt;
+                playlist.RemoteTrackIds = remote.TrackIds;
+                snapshot.Playlists.push_back(std::move(playlist));
+            }
+            if (!m_remoteMusic.IsCurrent(context)
+                || !m_database.ReplaceAccountLibrary(accountId, snapshot))
+            {
+                SetSafeError(L"Could not save the synchronized account library.");
+                SaveSyncError(context, L"cache-write");
+                co_return LaneOutcome::Failed;
+            }
+            ResetLaneFailure(AccountSyncLane::Library);
+            {
+                std::lock_guard guard{ m_mutex };
+                ++m_libraryRevision;
+            }
+            co_return LaneOutcome::Succeeded;
+        }
+        catch (winrt::hresult_canceled const&)
+        {
+            throw;
+        }
+        catch (winrt::hresult_error const& error)
+        {
+            auto const status = AccountHttpStatus(error);
+            if (status == 401) co_return LaneOutcome::Unauthorized;
+            if (status == 0 || IsTransient(status))
+            {
+                auto const delay = AccountRetryDelay(
+                    RecordLaneFailure(AccountSyncLane::Library),
+                    AccountRetryAfterSeconds(error));
+                ScheduleRetry(AccountSyncLane::Library, delay);
+            }
+        }
+        SetSafeError(L"The account library could not be refreshed. Cached data remains available.");
+        SaveSyncError(context, L"library-request");
+        co_return LaneOutcome::Failed;
     }
 }

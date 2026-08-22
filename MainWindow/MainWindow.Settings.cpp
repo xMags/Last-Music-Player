@@ -199,12 +199,17 @@ namespace winrt::Last_Music_Player::implementation
             LastMusicPlayer::Backend::TrackInfo track;
             track.RemoteId(remoteId);
             track.SourceKind(L"remote");
-            track.Provider(trackObject.GetNamedString(L"provider", legacy.Provider()));
+            track.Provider(L"account");
+            track.RemoteProvider(trackObject.GetNamedString(L"provider", legacy.RemoteProvider()));
             track.SourceLabel(L"Account");
             track.SourceUrl(sourceUrl);
             track.Title(trackObject.GetNamedString(L"title", trackObject.GetNamedString(L"name", legacy.Title())));
             track.Artist(trackObject.GetNamedString(L"artist", legacy.Artist()));
             track.Album(trackObject.GetNamedString(L"album", legacy.Album()));
+            track.Genre(trackObject.GetNamedString(L"genre", legacy.Genre()));
+            track.RemoteCatalogId(trackObject.GetNamedString(L"catalogId", legacy.RemoteCatalogId()));
+            track.AlbumCatalogId(trackObject.GetNamedString(L"albumCatalogId", legacy.AlbumCatalogId()));
+            track.ArtistCatalogId(trackObject.GetNamedString(L"artistCatalogId", legacy.ArtistCatalogId()));
             auto artworkUrl = trackObject.GetNamedString(
                 L"artworkUrl",
                 trackObject.GetNamedString(L"imageUrl", L""));
@@ -215,7 +220,9 @@ namespace winrt::Last_Music_Player::implementation
                     result.GetNamedString(L"imageUrl", legacy.ArtworkUrl()));
             }
             track.ArtworkUrl(artworkUrl.empty() ? legacy.ArtworkUrl() : artworkUrl);
-            auto durationSeconds = trackObject.GetNamedNumber(L"durationSeconds", legacy.DurationSeconds());
+            auto durationSeconds = trackObject.GetNamedNumber(
+                L"durationSec",
+                trackObject.GetNamedNumber(L"durationSeconds", legacy.DurationSeconds()));
             auto durationMs = trackObject.GetNamedNumber(L"durationMs", 0.0);
             track.DurationSeconds(durationMs > 0.0 ? durationMs / 1000.0 : durationSeconds);
             track.Duration(track.DurationSeconds() > 0.0
@@ -226,7 +233,8 @@ namespace winrt::Last_Music_Player::implementation
 
         bool IsSkippableLegacyResolveError(winrt::hresult_error const& error) noexcept
         {
-            return error.code() == HRESULT_FROM_WIN32(ERROR_NOT_FOUND)
+            return LastMusicPlayer::Backend::AccountHttpStatus(error) == 404
+                || error.code() == HRESULT_FROM_WIN32(ERROR_NOT_FOUND)
                 || error.code() == E_INVALIDARG
                 || error.code() == E_FAIL;
         }
@@ -411,13 +419,35 @@ namespace winrt::Last_Music_Player::implementation
         {
             auto ownerId = std::wstring(profile.Id.c_str());
             auto syncState = DatabaseService().LoadAccountSyncState(ownerId);
-            AccountLastSyncText().Text(syncState.LastSuccessfulSyncUtc.empty()
+            auto syncSummary = syncState.LastSuccessfulSyncUtc.empty()
                 ? winrt::hstring{ L"Not synchronized yet" }
-                : winrt::hstring(L"Last synchronized " + syncState.LastSuccessfulSyncUtc));
+                : winrt::hstring(L"Last synchronized " + syncState.LastSuccessfulSyncUtc);
+            if (!syncState.LastSafeErrorCode.empty())
+            {
+                auto const stateText = syncState.LastSafeErrorCode == L"unauthorized"
+                    || syncState.LastSafeErrorCode == L"signed-out"
+                    ? winrt::hstring{ L"sign-in required" }
+                    : syncState.LastSafeErrorCode == L"offline"
+                        ? winrt::hstring{ L"waiting for connection" }
+                        : winrt::hstring{ L"last refresh incomplete" };
+                syncSummary = syncSummary + L" · " + stateText;
+            }
+            auto const pending = DatabaseService().LoadAccountPendingCounts(ownerId);
+            auto const pendingTotal = pending.PendingHistory + pending.PendingLikes + pending.PendingPreferences;
+            auto const blockedTotal = pending.BlockedHistory + pending.BlockedLikes + pending.BlockedPreferences;
+            if (pendingTotal > 0)
+            {
+                syncSummary = syncSummary + L" · " + winrt::to_hstring(pendingTotal) + L" pending";
+            }
+            if (blockedTotal > 0)
+            {
+                syncSummary = syncSummary + L" · " + winrt::to_hstring(blockedTotal) + L" blocked";
+            }
+            AccountLastSyncText().Text(syncSummary);
             auto cached = DatabaseService().LoadAccountLibrary(ownerId);
             hasCachedData = cached && (!cached->Tracks.empty() || !cached->Playlists.empty())
-                || !DatabaseService().LoadPendingPlaybackEvents(ownerId, 1).empty()
-                || !DatabaseService().LoadPendingLikes(ownerId, 1).empty();
+                || pendingTotal > 0
+                || blockedTotal > 0;
         }
         else
         {
@@ -511,17 +541,41 @@ namespace winrt::Last_Music_Player::implementation
         }
         AccountSyncButton().IsEnabled(false);
 
-        auto synchronized = co_await MusicSyncServiceService().SyncAsync();
-        if (synchronized)
+        std::wstring openPlaylistId;
+        if (auto const openPlaylist = CaptureAccountPlaylistDetailContext())
         {
-            // Clearing the bindings orphans an open account playlist, so the
-            // interactive paths close that view first. A background sync is
-            // only ever started when no such view is open (EvaluateAutoSync
-            // refuses otherwise), so it has nothing to close.
-            if (!background && (IsAccountPlaylistDetail() || m_libraryDetailAccountBinding))
+            openPlaylistId = openPlaylist->PlaylistId;
+            CaptureAccountPlaylistViewRestore();
+        }
+
+        auto const libraryRevision = MusicSyncServiceService().LibraryRevision();
+        auto const preferenceRevision = MusicSyncServiceService().PreferenceRevision();
+        auto synchronized = mode == AccountSyncMode::Interactive
+            ? co_await MusicSyncServiceService().SyncAsync()
+            : co_await MusicSyncServiceService().RequestSyncAsync(
+                LastMusicPlayer::Backend::AccountSyncLane::All);
+        auto const libraryChanged = MusicSyncServiceService().LibraryRevision() != libraryRevision;
+        auto const preferencesChanged = MusicSyncServiceService().PreferenceRevision() != preferenceRevision;
+
+        if (preferencesChanged)
+        {
+            auto const previousStorefront = m_discoverStorefront;
+            LoadSettingsIntoUi();
+            m_discoverStorefront = SettingsManagerService().GetString(
+                L"CatalogStorefront",
+                LastMusicPlayer::Backend::DefaultCatalogStorefront);
+            if (!previousStorefront.empty() && previousStorefront != m_discoverStorefront)
             {
-                HideLibraryDetail();
+                ++m_discoverEpoch;
+                m_discoverLoaded = false;
+                m_catalogDiscovery = {};
+                m_catalogContentStorefront.clear();
+                ClearAccountArtworkCache();
             }
+        }
+
+        if (libraryChanged)
+        {
             m_accountPlaylistBindings.clear();
             MarkLibraryViewsDirty();
             m_remoteSearchCache.clear();
@@ -549,6 +603,32 @@ namespace winrt::Last_Music_Player::implementation
                 if (accountPlaylist)
                 {
                     BindAccountPlaylist(copy, remoteScope, accountOwnerId);
+                }
+            }
+
+            if (!openPlaylistId.empty())
+            {
+                auto const playlists = DatabaseService().LoadPlaylists();
+                auto const found = std::find_if(playlists.begin(), playlists.end(), [&](auto const& playlist)
+                {
+                    return playlist.Provider() == L"account"
+                        && playlist.RemoteId() == winrt::hstring(openPlaylistId);
+                });
+                if (found == playlists.end())
+                {
+                    m_accountPlaylistViewRestore.reset();
+                    HideLibraryDetail();
+                }
+                else
+                {
+                    BindAccountPlaylist(*found, remoteScope, accountOwnerId);
+                    ShowLibraryDetail(
+                        L"playlist",
+                        found->SourceUrl(),
+                        found->Title(),
+                        found->Artist(),
+                        nullptr,
+                        *found);
                 }
             }
 
@@ -612,15 +692,8 @@ namespace winrt::Last_Music_Player::implementation
         auto lifetime = get_strong();
 
         LastMusicPlayer::Backend::AutoSyncConditions conditions;
-        conditions.Enabled = SettingsManagerService().GetBool(L"AutoSyncAccount", true);
         conditions.Mode = RemoteMusicServiceService().Mode();
         conditions.Status = AccountSessionService().Snapshot().Status;
-        conditions.Syncing = MusicSyncServiceService().IsSyncing();
-        conditions.WindowInteractive = m_hwnd
-            && ::IsWindowVisible(m_hwnd)
-            && !::IsIconic(m_hwnd);
-        conditions.AccountDetailOpen = IsAccountPlaylistDetail()
-            || m_libraryDetailAccountBinding.has_value();
 
         auto const now = std::chrono::steady_clock::now();
         if (m_lastAutoSyncAttempt)
@@ -640,26 +713,42 @@ namespace winrt::Last_Music_Player::implementation
         co_await SynchronizeAccountLibraryAsync(AccountSyncMode::Background);
     }
 
-    void MainWindow::ApplyAutoSyncSetting()
+    winrt::Windows::Foundation::IAsyncAction MainWindow::RecoverAccountConnectionAsync()
+    {
+        auto lifetime = get_strong();
+        if (RemoteMusicServiceService().Mode()
+            != LastMusicPlayer::Backend::RemoteAccessMode::Account)
+        {
+            co_return;
+        }
+
+        auto snapshot = AccountSessionService().Snapshot();
+        if (snapshot.Status == LastMusicPlayer::Backend::AccountSessionStatus::Offline)
+        {
+            co_await AccountSessionService().RestoreAsync();
+            snapshot = AccountSessionService().Snapshot();
+        }
+        if (snapshot.Status != LastMusicPlayer::Backend::AccountSessionStatus::Validated
+            || RemoteMusicServiceService().Mode()
+                != LastMusicPlayer::Backend::RemoteAccessMode::Account)
+        {
+            co_return;
+        }
+
+        co_await RequestBackgroundAccountSyncAsync(
+            LastMusicPlayer::Backend::AutoSyncTrigger::Timer);
+    }
+
+    void MainWindow::EnsureAccountSyncSchedulerStarted()
     {
         if (!m_autoSyncTimer)
         {
             return;
         }
 
-        // The timer only gates the periodic poll. Whether a given tick actually
-        // syncs is still EvaluateAutoSync's call, so there is no need to also
-        // start and stop it as the mode or session changes.
-        if (SettingsManagerService().GetBool(L"AutoSyncAccount", true))
+        if (!m_autoSyncTimer.IsRunning())
         {
-            if (!m_autoSyncTimer.IsRunning())
-            {
-                m_autoSyncTimer.Start();
-            }
-        }
-        else if (m_autoSyncTimer.IsRunning())
-        {
-            m_autoSyncTimer.Stop();
+            m_autoSyncTimer.Start();
         }
     }
 
@@ -1209,6 +1298,14 @@ namespace winrt::Last_Music_Player::implementation
         if (!m_loadingSettings)
         {
             SettingsManagerService().SetString(L"Theme", tag);
+            auto cloudTheme = std::wstring(tag.c_str());
+            std::transform(cloudTheme.begin(), cloudTheme.end(), cloudTheme.begin(), [](wchar_t character)
+            {
+                return static_cast<wchar_t>(std::towlower(character));
+            });
+            (void)MusicSyncServiceService().SavePortablePreference(
+                LastMusicPlayer::Backend::PortablePreferenceKey::Theme,
+                L"\"" + cloudTheme + L"\"");
         }
     }
 
@@ -1264,7 +1361,7 @@ namespace winrt::Last_Music_Player::implementation
         if (n == L"GaplessSwitch")             return L"Gapless";
         if (n == L"AutoplaySwitch")            return L"Autoplay";
         if (n == L"DiscordPresenceSwitch")     return L"DiscordPresence";
-        if (n == L"AutoSyncSwitch")            return L"AutoSyncAccount";
+        if (n == L"DataSaverSwitch")           return L"DataSaver";
         if (n == L"CloseBehaviorCombo")        return L"CloseBehavior";
         if (n == L"OutputDeviceCombo")         return L"OutputDeviceIndex";
         return {};
@@ -1283,6 +1380,15 @@ namespace winrt::Last_Music_Player::implementation
         if (!key.empty() && !m_loadingSettings)
         {
             SettingsManagerService().SetBool(key, ts.IsOn());
+            if (name == L"GaplessSwitch" || name == L"DataSaverSwitch")
+            {
+                auto const cloudKey = name == L"GaplessSwitch"
+                    ? LastMusicPlayer::Backend::PortablePreferenceKey::GaplessPlayback
+                    : LastMusicPlayer::Backend::PortablePreferenceKey::DataSaver;
+                (void)MusicSyncServiceService().SavePortablePreference(
+                    cloudKey,
+                    ts.IsOn() ? L"true" : L"false");
+            }
         }
         if (name == L"ShowAlbumArtSwitch")
         {
@@ -1295,10 +1401,6 @@ namespace winrt::Last_Music_Player::implementation
         else if (name == L"DiscordPresenceSwitch")
         {
             ApplyDiscordPresence();
-        }
-        else if (name == L"AutoSyncSwitch")
-        {
-            ApplyAutoSyncSetting();
         }
         else if (name == L"GaplessSwitch")
         {
@@ -1375,6 +1477,14 @@ namespace winrt::Last_Music_Player::implementation
         if (!m_loadingSettings)
         {
             SettingsManagerService().SetString(L"AccentColor", hex);
+            auto cloudAccent = std::wstring(hex.c_str());
+            if (cloudAccent.size() == 9)
+            {
+                cloudAccent = L"#" + cloudAccent.substr(3);
+                (void)MusicSyncServiceService().SavePortablePreference(
+                    LastMusicPlayer::Backend::PortablePreferenceKey::Accent,
+                    L"\"" + cloudAccent + L"\"");
+            }
         }
         ApplyAccentColor(hex);
     }
@@ -2480,7 +2590,7 @@ namespace winrt::Last_Music_Player::implementation
         if (GaplessSwitch())              GaplessSwitch().IsOn(s.GetBool(L"Gapless", true));
         if (AutoplaySwitch())             AutoplaySwitch().IsOn(s.GetBool(L"Autoplay", true));
         if (DiscordPresenceSwitch())      DiscordPresenceSwitch().IsOn(s.GetBool(L"DiscordPresence", false));
-        if (AutoSyncSwitch())             AutoSyncSwitch().IsOn(s.GetBool(L"AutoSyncAccount", true));
+        if (DataSaverSwitch())            DataSaverSwitch().IsOn(s.GetBool(L"DataSaver", false));
 
         if (CloseBehaviorCombo())         CloseBehaviorCombo().SelectedIndex(s.GetInt(L"CloseBehavior", 0));
 

@@ -110,14 +110,16 @@ namespace LastMusicPlayer::Backend
         winrt::Windows::Foundation::IAsyncOperation<winrt::hstring> GetRelatedAsync(
             winrt::hstring const& sourceUrl);
         winrt::Windows::Foundation::IAsyncOperation<winrt::hstring> ResolveUrlAsync(
-            winrt::hstring const& sourceUrl);
+            winrt::hstring const& sourceUrl,
+            bool lowQuality = false);
         // Resolves one durable catalog URL into a short-lived media URL and
         // validates it for the captured remote scope. Callers may use the
         // result for an immediate transfer, but must never persist it.
         winrt::Windows::Foundation::IAsyncOperation<winrt::hstring> ResolveStreamUrlAsync(
             RemoteScopeSnapshot const& scope,
             winrt::hstring const& sourceUrl,
-            winrt::hstring const& provider);
+            winrt::hstring const& provider,
+            bool lowQuality = false);
         winrt::Windows::Foundation::IAsyncOperation<winrt::hstring> ImportAsync(
             winrt::hstring const& sourceUrl);
         winrt::Windows::Foundation::IAsyncOperation<winrt::hstring> ImportAsync(
@@ -171,6 +173,13 @@ namespace LastMusicPlayer::Backend
         winrt::Windows::Foundation::IAsyncOperation<winrt::hstring> PostAccountHistoryBatchAsync(
             AccountSyncContext const& context,
             winrt::hstring const& batchJson);
+        winrt::Windows::Foundation::IAsyncOperation<winrt::hstring> GetAccountPreferencesAsync(
+            AccountSyncContext const& context);
+        winrt::Windows::Foundation::IAsyncOperation<winrt::hstring> PutAccountPreferencesAsync(
+            AccountSyncContext const& context,
+            winrt::hstring const& preferencesJson);
+        winrt::Windows::Foundation::IAsyncOperation<bool> RefreshAccountSessionAsync();
+        void HandleAccountSyncUnauthorized(AccountSyncContext const& context) noexcept;
 
     private:
         winrt::hstring ProviderBaseUrl() const;

@@ -21,5 +21,10 @@ namespace LastMusicPlayer::Backend
         virtual winrt::Windows::Foundation::IAsyncOperation<winrt::hstring> PostHistoryBatchAsync(
             winrt::hstring const& bearerSession,
             winrt::hstring const& batchJson) = 0;
+        virtual winrt::Windows::Foundation::IAsyncOperation<winrt::hstring> GetPreferencesAsync(
+            winrt::hstring const& bearerSession) = 0;
+        virtual winrt::Windows::Foundation::IAsyncOperation<winrt::hstring> PutPreferencesAsync(
+            winrt::hstring const& bearerSession,
+            winrt::hstring const& preferencesJson) = 0;
     };
 }

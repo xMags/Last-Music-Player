@@ -168,6 +168,7 @@
     <ClInclude Include="Backend\Pkce.h"><Filter>Backend</Filter></ClInclude>
     <ClInclude Include="Backend\LoopbackCallback.h"><Filter>Backend</Filter></ClInclude>
     <ClInclude Include="Backend\AccountClient.h"><Filter>Backend</Filter></ClInclude>
+    <ClInclude Include="Backend\AccountMusicContract.h"><Filter>Backend</Filter></ClInclude>
     <ClInclude Include="Backend\AccountUrlPolicy.h"><Filter>Backend</Filter></ClInclude>
     <ClInclude Include="Backend\AccountSessionGateway.h"><Filter>Backend</Filter></ClInclude>
     <ClInclude Include="Backend\AccountSyncTransport.h"><Filter>Backend</Filter></ClInclude>
@@ -329,6 +330,7 @@
     <ClCompile Include="Backend\Pkce.cpp"><Filter>Backend</Filter></ClCompile>
     <ClCompile Include="Backend\LoopbackCallback.cpp"><Filter>Backend</Filter></ClCompile>
     <ClCompile Include="Backend\AccountClient.cpp"><Filter>Backend</Filter></ClCompile>
+    <ClCompile Include="Backend\AccountMusicContract.cpp"><Filter>Backend</Filter></ClCompile>
     <ClCompile Include="Backend\AccountUrlPolicy.cpp"><Filter>Backend</Filter></ClCompile>
     <ClCompile Include="Backend\AccountSessionGateway.cpp"><Filter>Backend</Filter></ClCompile>
     <ClCompile Include="Backend\AccountSessionService.cpp"><Filter>Backend</Filter></ClCompile>

@@ -2,16 +2,15 @@
 
 #include "Backend/AutoSyncPolicy.h"
 
+#include <algorithm>
+#include <iterator>
+
 namespace LastMusicPlayer::Backend
 {
     AutoSyncDecision EvaluateAutoSync(
         AutoSyncConditions const& conditions,
         AutoSyncTrigger trigger) noexcept
     {
-        if (!conditions.Enabled)
-        {
-            return AutoSyncDecision::Disabled;
-        }
         if (conditions.Mode != RemoteAccessMode::Account)
         {
             return AutoSyncDecision::NotAccountMode;
@@ -25,27 +24,6 @@ namespace LastMusicPlayer::Backend
         {
             return AutoSyncDecision::NotSignedIn;
         }
-        if (conditions.Syncing)
-        {
-            return AutoSyncDecision::AlreadySyncing;
-        }
-
-        // Closing to the tray leaves the process running. An app the user
-        // cannot see has no reason to keep talking to the account service.
-        if (!conditions.WindowInteractive)
-        {
-            return AutoSyncDecision::WindowNotInteractive;
-        }
-
-        // A sync invalidates the bindings behind an open account playlist, so
-        // the interactive path closes that view first. A background sync must
-        // not close anything, so it waits for the next trigger instead of
-        // changing the world underneath a view the user is reading.
-        if (conditions.AccountDetailOpen)
-        {
-            return AutoSyncDecision::AccountDetailOpen;
-        }
-
         if (trigger == AutoSyncTrigger::WindowFocus
             && conditions.SinceLastAttempt < kAutoSyncFocusDebounce)
         {
@@ -53,5 +31,23 @@ namespace LastMusicPlayer::Backend
         }
 
         return AutoSyncDecision::Run;
+    }
+
+    std::chrono::seconds AccountRetryDelay(
+        int attemptCount,
+        std::uint32_t retryAfterSeconds) noexcept
+    {
+        constexpr std::chrono::seconds delays[]{
+            std::chrono::seconds{ 5 },
+            std::chrono::seconds{ 30 },
+            std::chrono::minutes{ 2 },
+            std::chrono::minutes{ 10 },
+            std::chrono::minutes{ 30 },
+        };
+        auto const index = static_cast<std::size_t>((std::clamp)(
+            attemptCount - 1,
+            0,
+            static_cast<int>(std::size(delays) - 1)));
+        return (std::max)(delays[index], std::chrono::seconds{ retryAfterSeconds });
     }
 }

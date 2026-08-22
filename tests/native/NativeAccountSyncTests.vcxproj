@@ -102,6 +102,7 @@
     <ClCompile Include="..\..\Backend\Pkce.cpp" />
     <ClCompile Include="..\..\Backend\LoopbackCallback.cpp" />
     <ClCompile Include="..\..\Backend\AccountClient.cpp" />
+    <ClCompile Include="..\..\Backend\AccountMusicContract.cpp" />
     <ClCompile Include="..\..\Backend\AccountUrlPolicy.cpp" />
     <ClCompile Include="..\..\Backend\AccountSessionGateway.cpp" />
     <ClCompile Include="..\..\Backend\AccountSessionService.cpp" />

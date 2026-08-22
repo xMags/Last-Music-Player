@@ -50,15 +50,25 @@ namespace LastMusicPlayer::Backend
 
             JsonObject object;
             InsertString(object, L"remoteId", track.RemoteId());
+            InsertString(object, L"id", track.RemoteId());
+            InsertString(object, L"sourceKind", track.SourceKind());
+            auto const remoteProvider = track.RemoteProvider().empty()
+                ? (track.Provider() == L"account" ? winrt::hstring{} : track.Provider())
+                : track.RemoteProvider();
+            InsertString(object, L"provider", remoteProvider);
             InsertString(object, L"sourceUrl", winrt::hstring(SanitizeAccountUrl(track.SourceUrl())));
             InsertString(object, L"title", track.Title());
             InsertString(object, L"artist", track.Artist());
             InsertString(object, L"album", track.Album());
             InsertString(object, L"genre", track.Genre());
             InsertString(object, L"artworkUrl", winrt::hstring(SanitizeAccountUrl(track.ArtworkUrl())));
+            InsertString(object, L"catalogId", track.RemoteCatalogId());
+            InsertString(object, L"albumCatalogId", track.AlbumCatalogId());
+            InsertString(object, L"artistCatalogId", track.ArtistCatalogId());
             InsertString(object, L"dateAdded", track.DateAdded());
             InsertString(object, L"duration", track.Duration());
             object.Insert(L"durationSeconds", JsonValue::CreateNumberValue(track.DurationSeconds()));
+            object.Insert(L"durationSec", JsonValue::CreateNumberValue(track.DurationSeconds()));
             object.Insert(L"dateAddedSortKey", JsonValue::CreateNumberValue(track.DateAddedSortKey()));
             object.Insert(L"isLiked", JsonValue::CreateBooleanValue(track.IsLiked()));
             return std::wstring(object.Stringify().c_str());
@@ -73,7 +83,7 @@ namespace LastMusicPlayer::Backend
             }
 
             TrackInfo track;
-            track.RemoteId(object.GetNamedString(L"remoteId", L""));
+            track.RemoteId(object.GetNamedString(L"id", object.GetNamedString(L"remoteId", L"")));
             track.SourceUrl(object.GetNamedString(L"sourceUrl", L""));
             track.Title(object.GetNamedString(L"title", L""));
             track.Artist(object.GetNamedString(L"artist", L""));
@@ -82,11 +92,17 @@ namespace LastMusicPlayer::Backend
             track.ArtworkUrl(object.GetNamedString(L"artworkUrl", L""));
             track.DateAdded(object.GetNamedString(L"dateAdded", L""));
             track.Duration(object.GetNamedString(L"duration", L""));
-            track.DurationSeconds(object.GetNamedNumber(L"durationSeconds", 0.0));
+            track.DurationSeconds(object.GetNamedNumber(
+                L"durationSec",
+                object.GetNamedNumber(L"durationSeconds", 0.0)));
             track.DateAddedSortKey(object.GetNamedNumber(L"dateAddedSortKey", 0.0));
             track.IsLiked(object.GetNamedBoolean(L"isLiked", false));
-            track.SourceKind(L"remote");
+            track.SourceKind(object.GetNamedString(L"sourceKind", L"remote"));
             track.Provider(L"account");
+            track.RemoteProvider(object.GetNamedString(L"provider", L""));
+            track.RemoteCatalogId(object.GetNamedString(L"catalogId", L""));
+            track.AlbumCatalogId(object.GetNamedString(L"albumCatalogId", L""));
+            track.ArtistCatalogId(object.GetNamedString(L"artistCatalogId", L""));
             track.SourceLabel(L"Account");
             track.FilePath(L"");
             return track;
@@ -108,6 +124,10 @@ namespace LastMusicPlayer::Backend
             track.DateAdded(winrt::hstring(ColumnText(stmt, firstColumn + 10)));
             track.Duration(winrt::hstring(ColumnText(stmt, firstColumn + 11)));
             track.IsLiked(sqlite3_column_int(stmt, firstColumn + 12) != 0);
+            track.RemoteProvider(winrt::hstring(ColumnText(stmt, firstColumn + 13)));
+            track.RemoteCatalogId(winrt::hstring(ColumnText(stmt, firstColumn + 14)));
+            track.AlbumCatalogId(winrt::hstring(ColumnText(stmt, firstColumn + 15)));
+            track.ArtistCatalogId(winrt::hstring(ColumnText(stmt, firstColumn + 16)));
             track.SourceKind(L"remote");
             track.Provider(L"account");
             track.SourceLabel(L"Account");
@@ -142,8 +162,8 @@ namespace LastMusicPlayer::Backend
 
             Statement stmt{ db,
                 "INSERT INTO AccountTracks (AccountId, RemoteId, SourceUrl, Title, Artist, Album, Genre, DurationSeconds, ArtworkUrl, "
-                "DateAddedSortKey, DateAddedText, DurationText, IsLiked, UpdatedAtUtc) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now')) "
+                "DateAddedSortKey, DateAddedText, DurationText, IsLiked, RemoteProvider, RemoteCatalogId, AlbumCatalogId, ArtistCatalogId, UpdatedAtUtc) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now')) "
                 "ON CONFLICT(AccountId, RemoteId) DO UPDATE SET "
                 "SourceUrl=excluded.SourceUrl, "
                 "Title=CASE WHEN excluded.Title<>'' THEN excluded.Title ELSE AccountTracks.Title END, "
@@ -155,6 +175,10 @@ namespace LastMusicPlayer::Backend
                 "DateAddedSortKey=CASE WHEN excluded.DateAddedSortKey>0 THEN excluded.DateAddedSortKey ELSE AccountTracks.DateAddedSortKey END, "
                 "DateAddedText=CASE WHEN excluded.DateAddedText<>'' THEN excluded.DateAddedText ELSE AccountTracks.DateAddedText END, "
                 "DurationText=CASE WHEN excluded.DurationText<>'' THEN excluded.DurationText ELSE AccountTracks.DurationText END, "
+                "RemoteProvider=CASE WHEN excluded.RemoteProvider<>'' THEN excluded.RemoteProvider ELSE AccountTracks.RemoteProvider END, "
+                "RemoteCatalogId=CASE WHEN excluded.RemoteCatalogId<>'' THEN excluded.RemoteCatalogId ELSE AccountTracks.RemoteCatalogId END, "
+                "AlbumCatalogId=CASE WHEN excluded.AlbumCatalogId<>'' THEN excluded.AlbumCatalogId ELSE AccountTracks.AlbumCatalogId END, "
+                "ArtistCatalogId=CASE WHEN excluded.ArtistCatalogId<>'' THEN excluded.ArtistCatalogId ELSE AccountTracks.ArtistCatalogId END, "
                 "UpdatedAtUtc=datetime('now');" };
             if (!stmt)
             {
@@ -174,6 +198,10 @@ namespace LastMusicPlayer::Backend
             BindText(stmt.value, 11, std::wstring(track.DateAdded().c_str()));
             BindText(stmt.value, 12, std::wstring(track.Duration().c_str()));
             sqlite3_bind_int(stmt.value, 13, track.IsLiked() ? 1 : 0);
+            BindText(stmt.value, 14, std::wstring(track.RemoteProvider().c_str()));
+            BindText(stmt.value, 15, std::wstring(track.RemoteCatalogId().c_str()));
+            BindText(stmt.value, 16, std::wstring(track.AlbumCatalogId().c_str()));
+            BindText(stmt.value, 17, std::wstring(track.ArtistCatalogId().c_str()));
             return sqlite3_step(stmt.value) == SQLITE_DONE;
         }
 
@@ -296,8 +324,9 @@ namespace LastMusicPlayer::Backend
 
         Statement insertTrack{ m_db,
             "INSERT INTO AccountTracks (AccountId, RemoteId, SourceUrl, Title, Artist, Album, Genre, DurationSeconds, ArtworkUrl, "
-            "DateAddedSortKey, DateAddedText, DurationText, IsLiked, PlayCount, FirstPlayedAtUtc, LastPlayedAtUtc, LastPositionSeconds, UpdatedAtUtc) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);" };
+            "DateAddedSortKey, DateAddedText, DurationText, IsLiked, RemoteProvider, RemoteCatalogId, AlbumCatalogId, ArtistCatalogId, "
+            "PlayCount, FirstPlayedAtUtc, LastPlayedAtUtc, LastPositionSeconds, UpdatedAtUtc) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);" };
         if (!insertTrack)
         {
             return fail();
@@ -332,11 +361,15 @@ namespace LastMusicPlayer::Backend
             BindText(insertTrack.value, 11, std::wstring(track.DateAdded().c_str()));
             BindText(insertTrack.value, 12, std::wstring(track.Duration().c_str()));
             sqlite3_bind_int(insertTrack.value, 13, track.IsLiked() ? 1 : 0);
-            sqlite3_bind_int64(insertTrack.value, 14, entry.PlayCount);
-            BindText(insertTrack.value, 15, entry.FirstPlayedAtUtc);
-            BindText(insertTrack.value, 16, entry.LastPlayedAtUtc);
-            sqlite3_bind_double(insertTrack.value, 17, entry.LastPositionSeconds);
-            BindText(insertTrack.value, 18, snapshot.SynchronizedAtUtc);
+            BindText(insertTrack.value, 14, std::wstring(track.RemoteProvider().c_str()));
+            BindText(insertTrack.value, 15, std::wstring(track.RemoteCatalogId().c_str()));
+            BindText(insertTrack.value, 16, std::wstring(track.AlbumCatalogId().c_str()));
+            BindText(insertTrack.value, 17, std::wstring(track.ArtistCatalogId().c_str()));
+            sqlite3_bind_int64(insertTrack.value, 18, entry.PlayCount);
+            BindText(insertTrack.value, 19, entry.FirstPlayedAtUtc);
+            BindText(insertTrack.value, 20, entry.LastPlayedAtUtc);
+            sqlite3_bind_double(insertTrack.value, 21, entry.LastPositionSeconds);
+            BindText(insertTrack.value, 22, snapshot.SynchronizedAtUtc);
             if (sqlite3_step(insertTrack.value) != SQLITE_DONE)
             {
                 return fail();
@@ -434,7 +467,8 @@ namespace LastMusicPlayer::Backend
 
         Statement tracks{ m_db,
             "SELECT rowid, RemoteId, SourceUrl, Title, Artist, Album, Genre, DurationSeconds, ArtworkUrl, DateAddedSortKey, "
-            "DateAddedText, DurationText, IsLiked, PlayCount, FirstPlayedAtUtc, LastPlayedAtUtc, LastPositionSeconds, UpdatedAtUtc "
+            "DateAddedText, DurationText, IsLiked, RemoteProvider, RemoteCatalogId, AlbumCatalogId, ArtistCatalogId, "
+            "PlayCount, FirstPlayedAtUtc, LastPlayedAtUtc, LastPositionSeconds, UpdatedAtUtc "
             "FROM AccountTracks WHERE AccountId=? ORDER BY DateAddedSortKey DESC, Title COLLATE NOCASE ASC;" };
         if (!tracks)
         {
@@ -445,11 +479,11 @@ namespace LastMusicPlayer::Backend
         {
             AccountTrackSnapshot entry;
             entry.Track = AccountTrackFromStatement(tracks.value);
-            entry.PlayCount = sqlite3_column_int64(tracks.value, 13);
-            entry.FirstPlayedAtUtc = ColumnText(tracks.value, 14);
-            entry.LastPlayedAtUtc = ColumnText(tracks.value, 15);
-            entry.LastPositionSeconds = sqlite3_column_double(tracks.value, 16);
-            snapshot.SynchronizedAtUtc = (std::max)(snapshot.SynchronizedAtUtc, ColumnText(tracks.value, 17));
+            entry.PlayCount = sqlite3_column_int64(tracks.value, 17);
+            entry.FirstPlayedAtUtc = ColumnText(tracks.value, 18);
+            entry.LastPlayedAtUtc = ColumnText(tracks.value, 19);
+            entry.LastPositionSeconds = sqlite3_column_double(tracks.value, 20);
+            snapshot.SynchronizedAtUtc = (std::max)(snapshot.SynchronizedAtUtc, ColumnText(tracks.value, 21));
             snapshot.Tracks.push_back(std::move(entry));
         }
 
@@ -506,7 +540,8 @@ namespace LastMusicPlayer::Backend
 
         Statement stmt{ m_db,
             "SELECT t.rowid, t.RemoteId, t.SourceUrl, t.Title, t.Artist, t.Album, t.Genre, t.DurationSeconds, t.ArtworkUrl, "
-            "t.DateAddedSortKey, t.DateAddedText, t.DurationText, t.IsLiked "
+            "t.DateAddedSortKey, t.DateAddedText, t.DurationText, t.IsLiked, t.RemoteProvider, t.RemoteCatalogId, "
+            "t.AlbumCatalogId, t.ArtistCatalogId "
             "FROM AccountPlaylistTracks pt JOIN AccountTracks t ON t.AccountId=pt.AccountId AND t.RemoteId=pt.RemoteId "
             "WHERE pt.AccountId=? AND pt.PlaylistId=? ORDER BY pt.TrackOrder, t.Title COLLATE NOCASE;" };
         if (!stmt)
@@ -599,7 +634,10 @@ namespace LastMusicPlayer::Backend
         return sqlite3_step(stmt.value) == SQLITE_DONE;
     }
 
-    std::vector<PlaybackEventRecord> DatabaseEngine::LoadPendingPlaybackEvents(std::wstring const& accountId, int limit) const
+    std::vector<PlaybackEventRecord> DatabaseEngine::LoadPendingPlaybackEvents(
+        std::wstring const& accountId,
+        int limit,
+        bool readyOnly) const
     {
         std::scoped_lock lock{ m_mutex };
         std::vector<PlaybackEventRecord> result;
@@ -608,9 +646,15 @@ namespace LastMusicPlayer::Backend
             return result;
         }
 
-        Statement stmt{ m_db,
-            "SELECT EventId, AccountId, RemoteId, TrackJson, PlayedAtUtc, PositionSeconds, AttemptCount "
-            "FROM PlaybackEvents WHERE AccountId=? ORDER BY PlayedAtUtc, EventId LIMIT ?;" };
+        auto const sql = readyOnly
+            ? "SELECT EventId, AccountId, RemoteId, TrackJson, PlayedAtUtc, PositionSeconds, AttemptCount, "
+              "COALESCE(NextAttemptAtUnix,0), COALESCE(LastFailureCategory,''), COALESCE(IsBlocked,0) "
+              "FROM PlaybackEvents WHERE AccountId=? AND COALESCE(IsBlocked,0)=0 "
+              "AND COALESCE(NextAttemptAtUnix,0)<=unixepoch() ORDER BY PlayedAtUtc, EventId LIMIT ?;"
+            : "SELECT EventId, AccountId, RemoteId, TrackJson, PlayedAtUtc, PositionSeconds, AttemptCount, "
+              "COALESCE(NextAttemptAtUnix,0), COALESCE(LastFailureCategory,''), COALESCE(IsBlocked,0) "
+              "FROM PlaybackEvents WHERE AccountId=? ORDER BY PlayedAtUtc, EventId LIMIT ?;";
+        Statement stmt{ m_db, sql };
         if (!stmt)
         {
             return result;
@@ -623,14 +667,15 @@ namespace LastMusicPlayer::Backend
             event.EventId = ColumnText(stmt.value, 0);
             event.AccountId = ColumnText(stmt.value, 1);
             event.RemoteTrackId = ColumnText(stmt.value, 2);
-            event.Track = DeserializeTrack(ColumnText(stmt.value, 3));
+            event.TrackJson = ColumnText(stmt.value, 3);
+            event.Track = DeserializeTrack(event.TrackJson);
             event.PlayedAtUtc = ColumnText(stmt.value, 4);
             event.PositionSeconds = sqlite3_column_double(stmt.value, 5);
             event.AttemptCount = sqlite3_column_int(stmt.value, 6);
-            if (event.Track)
-            {
-                result.push_back(std::move(event));
-            }
+            event.NextAttemptAtUnix = sqlite3_column_int64(stmt.value, 7);
+            event.LastFailureCategory = ColumnText(stmt.value, 8);
+            event.Blocked = sqlite3_column_int(stmt.value, 9) != 0;
+            result.push_back(std::move(event));
         }
         return result;
     }
@@ -655,6 +700,46 @@ namespace LastMusicPlayer::Backend
             sqlite3_clear_bindings(stmt.value);
             BindText(stmt.value, 1, accountId);
             BindText(stmt.value, 2, id);
+            if (sqlite3_step(stmt.value) != SQLITE_DONE)
+            {
+                TryExec(m_db, "ROLLBACK;");
+                return false;
+            }
+        }
+        return CommitOrRollback(m_db);
+    }
+
+    bool DatabaseEngine::MarkPlaybackEventsFailed(
+        std::wstring const& accountId,
+        std::vector<std::wstring> const& eventIds,
+        std::wstring const& category,
+        int retryDelaySeconds,
+        bool blocked)
+    {
+        std::scoped_lock lock{ m_mutex };
+        if (!m_db || accountId.empty() || !Exec(m_db, "BEGIN IMMEDIATE;"))
+        {
+            return false;
+        }
+        Statement stmt{ m_db,
+            "UPDATE PlaybackEvents SET AttemptCount=AttemptCount+1, LastAttemptAtUtc=datetime('now'), "
+            "NextAttemptAtUnix=CASE WHEN ? THEN 0 ELSE unixepoch()+? END, LastFailureCategory=?, IsBlocked=? "
+            "WHERE AccountId=? AND EventId=?;" };
+        if (!stmt)
+        {
+            TryExec(m_db, "ROLLBACK;");
+            return false;
+        }
+        for (auto const& id : eventIds)
+        {
+            sqlite3_reset(stmt.value);
+            sqlite3_clear_bindings(stmt.value);
+            sqlite3_bind_int(stmt.value, 1, blocked ? 1 : 0);
+            sqlite3_bind_int(stmt.value, 2, (std::max)(0, retryDelaySeconds));
+            BindText(stmt.value, 3, category);
+            sqlite3_bind_int(stmt.value, 4, blocked ? 1 : 0);
+            BindText(stmt.value, 5, accountId);
+            BindText(stmt.value, 6, id);
             if (sqlite3_step(stmt.value) != SQLITE_DONE)
             {
                 TryExec(m_db, "ROLLBACK;");
@@ -707,7 +792,8 @@ namespace LastMusicPlayer::Backend
         Statement stmt{ m_db,
             "INSERT INTO PendingLikes (AccountId, RemoteId, DesiredState, TrackJson, UpdatedAtUtc, AttemptCount, LastAttemptAtUtc) "
             "VALUES (?, ?, ?, ?, ?, 0, NULL) ON CONFLICT(AccountId, RemoteId) DO UPDATE SET "
-            "DesiredState=excluded.DesiredState, TrackJson=excluded.TrackJson, UpdatedAtUtc=excluded.UpdatedAtUtc, AttemptCount=0, LastAttemptAtUtc=NULL;" };
+            "DesiredState=excluded.DesiredState, TrackJson=excluded.TrackJson, UpdatedAtUtc=excluded.UpdatedAtUtc, "
+            "AttemptCount=0, LastAttemptAtUtc=NULL, NextAttemptAtUnix=0, LastFailureCategory='', IsBlocked=0;" };
         if (!stmt)
         {
             return false;
@@ -720,7 +806,10 @@ namespace LastMusicPlayer::Backend
         return sqlite3_step(stmt.value) == SQLITE_DONE;
     }
 
-    std::vector<PendingLikeRecord> DatabaseEngine::LoadPendingLikes(std::wstring const& accountId, int limit) const
+    std::vector<PendingLikeRecord> DatabaseEngine::LoadPendingLikes(
+        std::wstring const& accountId,
+        int limit,
+        bool readyOnly) const
     {
         std::scoped_lock lock{ m_mutex };
         std::vector<PendingLikeRecord> result;
@@ -729,9 +818,15 @@ namespace LastMusicPlayer::Backend
             return result;
         }
 
-        Statement stmt{ m_db,
-            "SELECT AccountId, RemoteId, DesiredState, TrackJson, UpdatedAtUtc, AttemptCount "
-            "FROM PendingLikes WHERE AccountId=? ORDER BY UpdatedAtUtc, RemoteId LIMIT ?;" };
+        auto const sql = readyOnly
+            ? "SELECT AccountId, RemoteId, DesiredState, TrackJson, UpdatedAtUtc, AttemptCount, "
+              "COALESCE(NextAttemptAtUnix,0), COALESCE(LastFailureCategory,''), COALESCE(IsBlocked,0) "
+              "FROM PendingLikes WHERE AccountId=? AND COALESCE(IsBlocked,0)=0 "
+              "AND COALESCE(NextAttemptAtUnix,0)<=unixepoch() ORDER BY UpdatedAtUtc, RemoteId LIMIT ?;"
+            : "SELECT AccountId, RemoteId, DesiredState, TrackJson, UpdatedAtUtc, AttemptCount, "
+              "COALESCE(NextAttemptAtUnix,0), COALESCE(LastFailureCategory,''), COALESCE(IsBlocked,0) "
+              "FROM PendingLikes WHERE AccountId=? ORDER BY UpdatedAtUtc, RemoteId LIMIT ?;";
+        Statement stmt{ m_db, sql };
         if (!stmt)
         {
             return result;
@@ -744,13 +839,14 @@ namespace LastMusicPlayer::Backend
             like.AccountId = ColumnText(stmt.value, 0);
             like.RemoteTrackId = ColumnText(stmt.value, 1);
             like.DesiredState = sqlite3_column_int(stmt.value, 2) != 0;
-            like.Track = DeserializeTrack(ColumnText(stmt.value, 3));
+            like.TrackJson = ColumnText(stmt.value, 3);
+            like.Track = DeserializeTrack(like.TrackJson);
             like.UpdatedAtUtc = ColumnText(stmt.value, 4);
             like.AttemptCount = sqlite3_column_int(stmt.value, 5);
-            if (like.Track)
-            {
-                result.push_back(std::move(like));
-            }
+            like.NextAttemptAtUnix = sqlite3_column_int64(stmt.value, 6);
+            like.LastFailureCategory = ColumnText(stmt.value, 7);
+            like.Blocked = sqlite3_column_int(stmt.value, 8) != 0;
+            result.push_back(std::move(like));
         }
         return result;
     }
@@ -770,6 +866,35 @@ namespace LastMusicPlayer::Backend
         }
         BindText(stmt.value, 1, accountId);
         BindText(stmt.value, 2, remoteTrackId);
+        return sqlite3_step(stmt.value) == SQLITE_DONE;
+    }
+
+    bool DatabaseEngine::MarkPendingLikeFailed(
+        std::wstring const& accountId,
+        std::wstring const& remoteTrackId,
+        std::wstring const& category,
+        int retryDelaySeconds,
+        bool blocked)
+    {
+        std::scoped_lock lock{ m_mutex };
+        if (!m_db || accountId.empty() || remoteTrackId.empty())
+        {
+            return false;
+        }
+        Statement stmt{ m_db,
+            "UPDATE PendingLikes SET AttemptCount=AttemptCount+1, LastAttemptAtUtc=datetime('now'), "
+            "NextAttemptAtUnix=CASE WHEN ? THEN 0 ELSE unixepoch()+? END, LastFailureCategory=?, IsBlocked=? "
+            "WHERE AccountId=? AND RemoteId=?;" };
+        if (!stmt)
+        {
+            return false;
+        }
+        sqlite3_bind_int(stmt.value, 1, blocked ? 1 : 0);
+        sqlite3_bind_int(stmt.value, 2, (std::max)(0, retryDelaySeconds));
+        BindText(stmt.value, 3, category);
+        sqlite3_bind_int(stmt.value, 4, blocked ? 1 : 0);
+        BindText(stmt.value, 5, accountId);
+        BindText(stmt.value, 6, remoteTrackId);
         return sqlite3_step(stmt.value) == SQLITE_DONE;
     }
 
@@ -815,6 +940,272 @@ namespace LastMusicPlayer::Backend
         BindText(stmt.value, 2, accountId);
         BindText(stmt.value, 3, remoteTrackId);
         return sqlite3_step(stmt.value) == SQLITE_DONE;
+    }
+
+    std::vector<AccountPreferenceRecord> DatabaseEngine::LoadAccountPreferences(
+        std::wstring const& accountId,
+        bool dueOnly) const
+    {
+        std::scoped_lock lock{ m_mutex };
+        std::vector<AccountPreferenceRecord> result;
+        if (!m_db || accountId.empty())
+        {
+            return result;
+        }
+        auto const sql = dueOnly
+            ? "SELECT AccountId, PreferenceKey, ValueJson, Revision, Pending, AttemptCount, NextAttemptAtUnix, "
+              "COALESCE(LastFailureCategory,''), IsBlocked FROM AccountPreferences WHERE AccountId=? AND Pending=1 "
+              "AND IsBlocked=0 AND NextAttemptAtUnix<=unixepoch() ORDER BY PreferenceKey;"
+            : "SELECT AccountId, PreferenceKey, ValueJson, Revision, Pending, AttemptCount, NextAttemptAtUnix, "
+              "COALESCE(LastFailureCategory,''), IsBlocked FROM AccountPreferences WHERE AccountId=? ORDER BY PreferenceKey;";
+        Statement stmt{ m_db, sql };
+        if (!stmt)
+        {
+            return result;
+        }
+        BindText(stmt.value, 1, accountId);
+        while (sqlite3_step(stmt.value) == SQLITE_ROW)
+        {
+            AccountPreferenceRecord record;
+            record.AccountId = ColumnText(stmt.value, 0);
+            record.Key = ColumnText(stmt.value, 1);
+            record.ValueJson = ColumnText(stmt.value, 2);
+            record.Revision = sqlite3_column_int64(stmt.value, 3);
+            record.Pending = sqlite3_column_int(stmt.value, 4) != 0;
+            record.AttemptCount = sqlite3_column_int(stmt.value, 5);
+            record.NextAttemptAtUnix = sqlite3_column_int64(stmt.value, 6);
+            record.LastFailureCategory = ColumnText(stmt.value, 7);
+            record.Blocked = sqlite3_column_int(stmt.value, 8) != 0;
+            result.push_back(std::move(record));
+        }
+        return result;
+    }
+
+    std::int64_t DatabaseEngine::SavePendingAccountPreference(
+        std::wstring const& accountId,
+        std::wstring const& key,
+        std::wstring const& valueJson)
+    {
+        std::scoped_lock lock{ m_mutex };
+        if (!m_db || accountId.empty() || key.empty() || valueJson.empty()
+            || !EnsureAccountProfile(m_db, accountId))
+        {
+            return 0;
+        }
+        Statement stmt{ m_db,
+            "INSERT INTO AccountPreferences (AccountId, PreferenceKey, ValueJson, Revision, Pending, UpdatedAtUtc) "
+            "VALUES (?, ?, ?, 1, 1, datetime('now')) ON CONFLICT(AccountId, PreferenceKey) DO UPDATE SET "
+            "ValueJson=excluded.ValueJson, Revision=AccountPreferences.Revision+1, Pending=1, AttemptCount=0, "
+            "NextAttemptAtUnix=0, LastFailureCategory='', IsBlocked=0, UpdatedAtUtc=datetime('now') "
+            "RETURNING Revision;" };
+        if (!stmt)
+        {
+            return 0;
+        }
+        BindText(stmt.value, 1, accountId);
+        BindText(stmt.value, 2, key);
+        BindText(stmt.value, 3, valueJson);
+        return sqlite3_step(stmt.value) == SQLITE_ROW
+            ? sqlite3_column_int64(stmt.value, 0)
+            : 0;
+    }
+
+    bool DatabaseEngine::MergeRemoteAccountPreference(
+        std::wstring const& accountId,
+        std::wstring const& key,
+        std::wstring const& valueJson,
+        std::int64_t observedRevision)
+    {
+        std::scoped_lock lock{ m_mutex };
+        if (!m_db || accountId.empty() || key.empty() || valueJson.empty()
+            || !EnsureAccountProfile(m_db, accountId))
+        {
+            return false;
+        }
+        Statement stmt{ m_db,
+            "INSERT INTO AccountPreferences (AccountId, PreferenceKey, ValueJson, Revision, Pending, UpdatedAtUtc) "
+            "VALUES (?, ?, ?, 0, 0, datetime('now')) ON CONFLICT(AccountId, PreferenceKey) DO UPDATE SET "
+            "ValueJson=excluded.ValueJson, UpdatedAtUtc=datetime('now') "
+            "WHERE AccountPreferences.Revision=? AND AccountPreferences.Pending=0;" };
+        if (!stmt)
+        {
+            return false;
+        }
+        BindText(stmt.value, 1, accountId);
+        BindText(stmt.value, 2, key);
+        BindText(stmt.value, 3, valueJson);
+        sqlite3_bind_int64(stmt.value, 4, observedRevision);
+        return sqlite3_step(stmt.value) == SQLITE_DONE;
+    }
+
+    bool DatabaseEngine::AcknowledgeAccountPreference(
+        std::wstring const& accountId,
+        std::wstring const& key,
+        std::int64_t revision)
+    {
+        std::scoped_lock lock{ m_mutex };
+        if (!m_db || accountId.empty() || key.empty() || revision <= 0)
+        {
+            return false;
+        }
+        Statement stmt{ m_db,
+            "UPDATE AccountPreferences SET Pending=0, AttemptCount=0, NextAttemptAtUnix=0, "
+            "LastFailureCategory='', IsBlocked=0 WHERE AccountId=? AND PreferenceKey=? AND Revision=?;" };
+        if (!stmt)
+        {
+            return false;
+        }
+        BindText(stmt.value, 1, accountId);
+        BindText(stmt.value, 2, key);
+        sqlite3_bind_int64(stmt.value, 3, revision);
+        return sqlite3_step(stmt.value) == SQLITE_DONE;
+    }
+
+    bool DatabaseEngine::MarkAccountPreferencesFailed(
+        std::wstring const& accountId,
+        std::vector<std::wstring> const& keys,
+        std::wstring const& category,
+        int retryDelaySeconds,
+        bool blocked)
+    {
+        std::scoped_lock lock{ m_mutex };
+        if (!m_db || accountId.empty() || !Exec(m_db, "BEGIN IMMEDIATE;"))
+        {
+            return false;
+        }
+        Statement stmt{ m_db,
+            "UPDATE AccountPreferences SET AttemptCount=AttemptCount+1, "
+            "NextAttemptAtUnix=CASE WHEN ? THEN 0 ELSE unixepoch()+? END, "
+            "LastFailureCategory=?, IsBlocked=? WHERE AccountId=? AND PreferenceKey=? AND Pending=1;" };
+        if (!stmt)
+        {
+            TryExec(m_db, "ROLLBACK;");
+            return false;
+        }
+        for (auto const& key : keys)
+        {
+            sqlite3_reset(stmt.value);
+            sqlite3_clear_bindings(stmt.value);
+            sqlite3_bind_int(stmt.value, 1, blocked ? 1 : 0);
+            sqlite3_bind_int(stmt.value, 2, (std::max)(0, retryDelaySeconds));
+            BindText(stmt.value, 3, category);
+            sqlite3_bind_int(stmt.value, 4, blocked ? 1 : 0);
+            BindText(stmt.value, 5, accountId);
+            BindText(stmt.value, 6, key);
+            if (sqlite3_step(stmt.value) != SQLITE_DONE)
+            {
+                TryExec(m_db, "ROLLBACK;");
+                return false;
+            }
+        }
+        return CommitOrRollback(m_db);
+    }
+
+    AccountPendingCounts DatabaseEngine::LoadAccountPendingCounts(std::wstring const& accountId) const
+    {
+        std::scoped_lock lock{ m_mutex };
+        AccountPendingCounts counts;
+        if (!m_db || accountId.empty())
+        {
+            return counts;
+        }
+        Statement stmt{ m_db,
+            "SELECT "
+            "(SELECT count(*) FROM PlaybackEvents WHERE AccountId=? AND IsBlocked=0),"
+            "(SELECT count(*) FROM PlaybackEvents WHERE AccountId=? AND IsBlocked=1),"
+            "(SELECT count(*) FROM PendingLikes WHERE AccountId=? AND IsBlocked=0),"
+            "(SELECT count(*) FROM PendingLikes WHERE AccountId=? AND IsBlocked=1),"
+            "(SELECT count(*) FROM AccountPreferences WHERE AccountId=? AND Pending=1 AND IsBlocked=0),"
+            "(SELECT count(*) FROM AccountPreferences WHERE AccountId=? AND Pending=1 AND IsBlocked=1);" };
+        if (!stmt)
+        {
+            return counts;
+        }
+        for (int index = 1; index <= 6; ++index)
+        {
+            BindText(stmt.value, index, accountId);
+        }
+        if (sqlite3_step(stmt.value) == SQLITE_ROW)
+        {
+            counts.PendingHistory = sqlite3_column_int(stmt.value, 0);
+            counts.BlockedHistory = sqlite3_column_int(stmt.value, 1);
+            counts.PendingLikes = sqlite3_column_int(stmt.value, 2);
+            counts.BlockedLikes = sqlite3_column_int(stmt.value, 3);
+            counts.PendingPreferences = sqlite3_column_int(stmt.value, 4);
+            counts.BlockedPreferences = sqlite3_column_int(stmt.value, 5);
+        }
+        return counts;
+    }
+
+    std::optional<int> DatabaseEngine::SecondsUntilNextAccountRetry(
+        std::wstring const& accountId,
+        AccountRetryQueue queue) const
+    {
+        std::scoped_lock lock{ m_mutex };
+        if (!m_db || accountId.empty())
+        {
+            return std::nullopt;
+        }
+
+        char const* sql{};
+        switch (queue)
+        {
+        case AccountRetryQueue::History:
+            sql = "SELECT MIN(NextAttemptAtUnix)-unixepoch() FROM PlaybackEvents "
+                "WHERE AccountId=? AND IsBlocked=0 AND NextAttemptAtUnix>unixepoch();";
+            break;
+        case AccountRetryQueue::Likes:
+            sql = "SELECT MIN(NextAttemptAtUnix)-unixepoch() FROM PendingLikes "
+                "WHERE AccountId=? AND IsBlocked=0 AND NextAttemptAtUnix>unixepoch();";
+            break;
+        case AccountRetryQueue::Preferences:
+            sql = "SELECT MIN(NextAttemptAtUnix)-unixepoch() FROM AccountPreferences "
+                "WHERE AccountId=? AND Pending=1 AND IsBlocked=0 AND NextAttemptAtUnix>unixepoch();";
+            break;
+        }
+
+        Statement stmt{ m_db, sql };
+        if (!stmt)
+        {
+            return std::nullopt;
+        }
+        BindText(stmt.value, 1, accountId);
+        if (sqlite3_step(stmt.value) != SQLITE_ROW || sqlite3_column_type(stmt.value, 0) == SQLITE_NULL)
+        {
+            return std::nullopt;
+        }
+        return (std::max)(1, sqlite3_column_int(stmt.value, 0));
+    }
+
+    bool DatabaseEngine::ResetAccountRetrySchedule(std::wstring const& accountId)
+    {
+        std::scoped_lock lock{ m_mutex };
+        if (!m_db || accountId.empty() || !Exec(m_db, "BEGIN IMMEDIATE;"))
+        {
+            return false;
+        }
+        Statement history{ m_db,
+            "UPDATE PlaybackEvents SET NextAttemptAtUnix=0, LastFailureCategory='', IsBlocked=0 WHERE AccountId=?;" };
+        Statement likes{ m_db,
+            "UPDATE PendingLikes SET NextAttemptAtUnix=0, LastFailureCategory='', IsBlocked=0 WHERE AccountId=?;" };
+        Statement preferences{ m_db,
+            "UPDATE AccountPreferences SET NextAttemptAtUnix=0, LastFailureCategory='', IsBlocked=0 "
+            "WHERE AccountId=? AND Pending=1;" };
+        if (!history || !likes || !preferences)
+        {
+            TryExec(m_db, "ROLLBACK;");
+            return false;
+        }
+        for (auto* stmt : { history.value, likes.value, preferences.value })
+        {
+            BindText(stmt, 1, accountId);
+            if (sqlite3_step(stmt) != SQLITE_DONE)
+            {
+                TryExec(m_db, "ROLLBACK;");
+                return false;
+            }
+        }
+        return CommitOrRollback(m_db);
     }
 
     AccountSyncState DatabaseEngine::LoadAccountSyncState(std::wstring const& accountId) const

@@ -191,7 +191,7 @@ namespace winrt::Last_Music_Player::implementation::detail
     winrt::hstring BuildAccountPlaylistImportJson(winrt::hstring const& sourceUrl);
     winrt::hstring BuildAccountPlaylistUpdateJson(
         winrt::hstring const& name,
-        std::vector<winrt::hstring> const& remoteTrackIds);
+        std::vector<winrt::Last_Music_Player::TrackInfo> const& tracks);
     winrt::Last_Music_Player::TrackInfo TrackSnapshotFromJson(winrt::Windows::Data::Json::JsonObject const& object);
     winrt::Last_Music_Player::TrackInfo TrackFromProviderJson(winrt::Windows::Data::Json::JsonObject const& item);
     std::vector<winrt::Last_Music_Player::TrackInfo> ParseProviderTracks(winrt::hstring const& payload, size_t limit);

@@ -101,6 +101,9 @@ namespace winrt::Last_Music_Player::implementation
         hstring Provider() { return m_provider; }
         void Provider(hstring const& value) { m_provider = value; }
 
+        hstring RemoteProvider() { return m_remoteProvider; }
+        void RemoteProvider(hstring const& value) { m_remoteProvider = value; }
+
         hstring SourceUrl() { return m_sourceUrl; }
         void SourceUrl(hstring const& value) { m_sourceUrl = value; }
 
@@ -230,6 +233,7 @@ namespace winrt::Last_Music_Player::implementation
         hstring m_artistCatalogId;
         hstring m_sourceKind;
         hstring m_provider;
+        hstring m_remoteProvider;
         hstring m_sourceUrl;
         hstring m_sourceLabel;
         hstring m_sourceBadgeText;

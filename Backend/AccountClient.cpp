@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Backend/AccountClient.h"
 
+#include "Backend/AccountMusicContract.h"
 #include "Backend/BuildConfig.h"
 
 #include <windows.h>
@@ -47,16 +48,53 @@ namespace LastMusicPlayer::Backend
             return valid ? winrt::hstring{ value } : winrt::hstring{ DefaultCatalogStorefront };
         }
 
-        HRESULT StatusHresult(std::uint32_t status)
+        constexpr std::uint32_t AccountHttpFacilityBase = 0x300;
+        constexpr std::uint32_t AccountHttpFacilityMaximum = AccountHttpFacilityBase + 599;
+        constexpr std::uint32_t AccountHttpErrorBits = 0xA0000000u;
+        constexpr std::uint32_t AccountHttpScaledDelayBit = 0x10000000u;
+
+        HRESULT AccountHttpHresult(std::uint32_t status, std::uint32_t retryAfterSeconds) noexcept
         {
-            if (status == 401) return AccountUnauthorizedHresult;
-            if (status == 403) return E_ACCESSDENIED;
-            if (status == 404) return HRESULT_FROM_WIN32(ERROR_NOT_FOUND);
-            if (status == 408) return HRESULT_FROM_WIN32(ERROR_TIMEOUT);
-            if (status == 409) return HRESULT_FROM_WIN32(ERROR_OBJECT_ALREADY_EXISTS);
-            if (status == 429) return HRESULT_FROM_WIN32(ERROR_RETRY);
-            if (status >= 500) return HRESULT_FROM_WIN32(ERROR_CONNECTION_UNAVAIL);
-            return E_FAIL;
+            auto scaled = retryAfterSeconds > 0xffffu;
+            auto const encodedDelay = scaled
+                ? (std::min)(0xffffu, (retryAfterSeconds + 1u) / 2u)
+                : retryAfterSeconds;
+            auto const facility = AccountHttpFacilityBase + (std::min)(status, 599u);
+            auto const value = AccountHttpErrorBits
+                | (scaled ? AccountHttpScaledDelayBit : 0u)
+                | (facility << 16u)
+                | encodedDelay;
+            return static_cast<HRESULT>(value);
+        }
+
+        std::uint32_t RetryAfterSeconds(
+            winrt::Windows::Web::Http::HttpResponseMessage const& response) noexcept
+        {
+            try
+            {
+                auto const retryAfter = response.Headers().RetryAfter();
+                if (!retryAfter)
+                {
+                    return 0;
+                }
+                if (auto const delta = retryAfter.Delta())
+                {
+                    auto const seconds = std::chrono::duration_cast<std::chrono::seconds>(
+                        delta.Value()).count();
+                    return static_cast<std::uint32_t>((std::clamp)(seconds, 0ll, 86400ll));
+                }
+                if (auto const date = retryAfter.Date())
+                {
+                    auto const seconds = std::chrono::duration_cast<std::chrono::seconds>(
+                        date.Value() - winrt::clock::now()).count();
+                    return static_cast<std::uint32_t>((std::clamp)(seconds, 0ll, 86400ll));
+                }
+                return 0;
+            }
+            catch (...)
+            {
+                return 0;
+            }
         }
 
         void EnsureAccountSuccess(winrt::Windows::Web::Http::HttpResponseMessage const& response)
@@ -66,7 +104,9 @@ namespace LastMusicPlayer::Backend
                 return;
             }
             auto status = static_cast<std::uint32_t>(response.StatusCode());
-            throw winrt::hresult_error(StatusHresult(status), SafeAccountErrorMessage(status));
+            throw winrt::hresult_error(
+                AccountHttpHresult(status, RetryAfterSeconds(response)),
+                SafeAccountErrorMessage(status));
         }
 
         winrt::Windows::Foundation::IAsyncOperation<winrt::Windows::Web::Http::HttpResponseMessage> WithAccountTimeout(
@@ -151,7 +191,34 @@ namespace LastMusicPlayer::Backend
 
     bool IsAccountUnauthorized(winrt::hresult_error const& error) noexcept
     {
-        return error.code() == AccountUnauthorizedHresult;
+        return AccountHttpStatus(error) == 401
+            || error.code() == AccountUnauthorizedHresult;
+    }
+
+    std::uint32_t AccountHttpStatus(winrt::hresult_error const& error) noexcept
+    {
+        auto const value = static_cast<std::uint32_t>(error.code());
+        if ((value & 0xE0000000u) != AccountHttpErrorBits)
+        {
+            return 0;
+        }
+        auto const facility = (value >> 16u) & 0x7ffu;
+        if (facility < AccountHttpFacilityBase || facility > AccountHttpFacilityMaximum)
+        {
+            return 0;
+        }
+        return facility - AccountHttpFacilityBase;
+    }
+
+    std::uint32_t AccountRetryAfterSeconds(winrt::hresult_error const& error) noexcept
+    {
+        if (AccountHttpStatus(error) == 0)
+        {
+            return 0;
+        }
+        auto const value = static_cast<std::uint32_t>(error.code());
+        auto const delay = value & 0xffffu;
+        return (value & AccountHttpScaledDelayBit) != 0 ? delay * 2u : delay;
     }
 
     AccountClient::AccountClient()
@@ -297,10 +364,15 @@ namespace LastMusicPlayer::Backend
 
     winrt::Windows::Foundation::IAsyncOperation<winrt::hstring> AccountClient::ResolveUrlAsync(
         winrt::hstring const& bearerSession,
-        winrt::hstring const& sourceUrl)
+        winrt::hstring const& sourceUrl,
+        bool lowQuality)
     {
         winrt::Windows::Data::Json::JsonObject payload;
         payload.Insert(L"url", winrt::Windows::Data::Json::JsonValue::CreateStringValue(sourceUrl));
+        if (lowQuality)
+        {
+            payload.Insert(L"quality", winrt::Windows::Data::Json::JsonValue::CreateStringValue(L"low"));
+        }
         co_return co_await SendJsonAsync(
             winrt::Windows::Web::Http::HttpMethod::Post(),
             L"/v1/music/resolve",
@@ -384,7 +456,7 @@ namespace LastMusicPlayer::Backend
                 winrt::Windows::Web::Http::HttpMethod::Post(),
                 L"/v1/music/liked",
                 bearerSession,
-                trackJson);
+                WrapTrackRequest(trackJson));
         }
         co_return co_await SendJsonAsync(
             winrt::Windows::Web::Http::HttpMethod::Delete(),
@@ -434,7 +506,7 @@ namespace LastMusicPlayer::Backend
             winrt::Windows::Web::Http::HttpMethod::Post(),
             L"/v1/music/playlists/" + winrt::Windows::Foundation::Uri::EscapeComponent(playlistId) + L"/tracks",
             bearerSession,
-            trackJson);
+            WrapTrackRequest(trackJson));
     }
 
     winrt::Windows::Foundation::IAsyncOperation<winrt::hstring> AccountClient::PostHistoryBatchAsync(
@@ -446,6 +518,26 @@ namespace LastMusicPlayer::Backend
             L"/v1/music/history/batch",
             bearerSession,
             batchJson);
+    }
+
+    winrt::Windows::Foundation::IAsyncOperation<winrt::hstring> AccountClient::GetPreferencesAsync(
+        winrt::hstring const& bearerSession)
+    {
+        co_return co_await SendJsonAsync(
+            winrt::Windows::Web::Http::HttpMethod::Get(),
+            L"/v1/music/preferences",
+            bearerSession);
+    }
+
+    winrt::Windows::Foundation::IAsyncOperation<winrt::hstring> AccountClient::PutPreferencesAsync(
+        winrt::hstring const& bearerSession,
+        winrt::hstring const& preferencesJson)
+    {
+        co_return co_await SendJsonAsync(
+            winrt::Windows::Web::Http::HttpMethod::Put(),
+            L"/v1/music/preferences",
+            bearerSession,
+            preferencesJson);
     }
 
     winrt::Windows::Foundation::IAsyncOperation<winrt::hstring> AccountClient::GetCatalogStorefrontsAsync(

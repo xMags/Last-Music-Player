@@ -1,7 +1,9 @@
 #include "pch.h"
 #include "MainWindow.Internal.h"
 
+#include "Backend/AccountMusicContract.h"
 #include "Backend/BuildConfig.h"
+#include "Backend/ProviderHelpers.h"
 
 #include <wil/cppwinrt_helpers.h>
 
@@ -154,7 +156,8 @@ namespace winrt::Last_Music_Player::implementation::detail
         static LastMusicPlayer::Backend::MusicSyncService service{
             RemoteMusicServiceService(),
             DatabaseService(),
-            UserDataOperationGateService()
+            UserDataOperationGateService(),
+            SettingsManagerService()
         };
         return service;
     }
@@ -1091,15 +1094,27 @@ namespace winrt::Last_Music_Player::implementation::detail
         {
             return {};
         }
-        winrt::Windows::Data::Json::JsonObject object;
-        InsertJsonString(object, L"id", track.RemoteId());
-        InsertJsonString(object, L"title", track.Title());
-        InsertJsonString(object, L"artist", track.Artist());
-        InsertJsonString(object, L"album", track.Album());
-        InsertJsonString(object, L"sourceUrl", track.SourceUrl());
-        object.Insert(L"durationMs", winrt::Windows::Data::Json::JsonValue::CreateNumberValue(
-            (std::max)(0.0, track.DurationSeconds()) * 1000.0));
-        return object.Stringify();
+        LastMusicPlayer::Backend::PortableAccountTrack value;
+        value.Id = track.RemoteId().c_str();
+        value.Title = track.Title().c_str();
+        value.Artist = track.Artist().c_str();
+        value.Album = track.Album().c_str();
+        value.Genre = track.Genre().c_str();
+        value.ArtworkUrl = LastMusicPlayer::Backend::IsSafeRemoteUrl(
+            track.ArtworkUrl(),
+            LastMusicPlayer::Backend::RemoteUrlUse::Durable)
+            ? std::wstring(track.ArtworkUrl().c_str())
+            : std::wstring{};
+        value.SourceKind = track.SourceKind().c_str();
+        value.Provider = track.RemoteProvider().empty()
+            ? (track.Provider() == L"account" ? std::wstring{} : std::wstring(track.Provider().c_str()))
+            : std::wstring(track.RemoteProvider().c_str());
+        value.SourceUrl = track.SourceUrl().c_str();
+        value.CatalogId = track.RemoteCatalogId().c_str();
+        value.AlbumCatalogId = track.AlbumCatalogId().c_str();
+        value.ArtistCatalogId = track.ArtistCatalogId().c_str();
+        value.DurationSec = track.DurationSeconds();
+        return LastMusicPlayer::Backend::SerializePortableTrack(value);
     }
 
     winrt::hstring BuildAccountPlaylistJson(winrt::hstring const& name)
@@ -1127,24 +1142,21 @@ namespace winrt::Last_Music_Player::implementation::detail
 
     winrt::hstring BuildAccountPlaylistUpdateJson(
         winrt::hstring const& name,
-        std::vector<winrt::hstring> const& remoteTrackIds)
+        std::vector<winrt::Last_Music_Player::TrackInfo> const& tracks)
     {
-        winrt::Windows::Data::Json::JsonObject object;
         auto title = TrimQuery(name);
-        if (!title.empty())
+        std::vector<LastMusicPlayer::Backend::PortableAccountTrack> portableTracks;
+        portableTracks.reserve(tracks.size());
+        for (auto const& track : tracks)
         {
-            InsertJsonString(object, L"name", title);
-        }
-        winrt::Windows::Data::Json::JsonArray trackIds;
-        for (auto const& remoteId : remoteTrackIds)
-        {
-            if (!remoteId.empty())
+            auto const payload = BuildAccountTrackJson(track);
+            auto parsed = LastMusicPlayer::Backend::ParsePortableTrack(payload);
+            if (parsed)
             {
-                trackIds.Append(winrt::Windows::Data::Json::JsonValue::CreateStringValue(remoteId));
+                portableTracks.push_back(std::move(*parsed));
             }
         }
-        object.Insert(L"trackIds", trackIds);
-        return object.Stringify();
+        return LastMusicPlayer::Backend::SerializePlaylistReplacement(title, portableTracks);
     }
 
 
@@ -1211,9 +1223,13 @@ namespace winrt::Last_Music_Player::implementation::detail
         InsertJsonString(object, L"duration", track.Duration());
         InsertJsonString(object, L"sourceKind", track.SourceKind());
         InsertJsonString(object, L"provider", track.Provider());
+        InsertJsonString(object, L"remoteProvider", track.RemoteProvider());
         InsertJsonString(object, L"sourceUrl", safeSourceUrl);
         InsertJsonString(object, L"sourceLabel", track.SourceLabel());
         InsertJsonString(object, L"remoteId", track.RemoteId());
+        InsertJsonString(object, L"remoteCatalogId", track.RemoteCatalogId());
+        InsertJsonString(object, L"albumCatalogId", track.AlbumCatalogId());
+        InsertJsonString(object, L"artistCatalogId", track.ArtistCatalogId());
         object.Insert(L"durationSeconds", winrt::Windows::Data::Json::JsonValue::CreateNumberValue(track.DurationSeconds()));
         object.Insert(L"dateAddedSortKey", winrt::Windows::Data::Json::JsonValue::CreateNumberValue(track.DateAddedSortKey()));
         object.Insert(L"isLiked", winrt::Windows::Data::Json::JsonValue::CreateBooleanValue(track.IsLiked()));
@@ -1233,8 +1249,12 @@ namespace winrt::Last_Music_Player::implementation::detail
         track.Duration(object.GetNamedString(L"duration", L""));
         track.SourceKind(object.GetNamedString(L"sourceKind", IsHttpUrl(track.FilePath()) ? L"remote" : L"local"));
         track.Provider(object.GetNamedString(L"provider", L""));
+        track.RemoteProvider(object.GetNamedString(L"remoteProvider", L""));
         track.SourceUrl(object.GetNamedString(L"sourceUrl", L""));
         track.RemoteId(object.GetNamedString(L"remoteId", L""));
+        track.RemoteCatalogId(object.GetNamedString(L"remoteCatalogId", L""));
+        track.AlbumCatalogId(object.GetNamedString(L"albumCatalogId", L""));
+        track.ArtistCatalogId(object.GetNamedString(L"artistCatalogId", L""));
         track.SourceLabel(object.GetNamedString(L"sourceLabel", track.SourceKind() == L"remote" ? L"Remote" : L"Local"));
         track.IsLiked(object.GetNamedBoolean(L"isLiked", false));
         track.DurationSeconds(object.GetNamedNumber(L"durationSeconds", 0.0));

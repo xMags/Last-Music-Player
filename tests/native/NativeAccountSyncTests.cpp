@@ -4,10 +4,14 @@
 #include <ws2tcpip.h>
 #include <windows.h>
 #include <wincred.h>
+#include <crtdbg.h>
+
+#include <winrt/Windows.Data.Json.h>
 
 #include "Backend/CredentialStore.h"
 #include "Backend/SettingsManager.h"
 #include "Backend/AccountClient.h"
+#include "Backend/AccountMusicContract.h"
 #include "Backend/AccountSessionGateway.h"
 #include "Backend/AccountSessionService.h"
 #include "Backend/BuildConfig.h"
@@ -54,6 +58,13 @@ namespace account = LastMusicPlayer::Backend;
 
 namespace
 {
+    template <typename Test>
+    void RunTest(char const* name, Test&& test)
+    {
+        std::cout << "Running " << name << "\n" << std::flush;
+        std::forward<Test>(test)();
+    }
+
     void Expect(bool condition, char const* message)
     {
         if (!condition)
@@ -242,6 +253,43 @@ namespace
                     accepted,
                     buffer.data(),
                     static_cast<int>(buffer.size()),
+                    0);
+                if (received <= 0)
+                {
+                    break;
+                }
+                request.append(buffer.data(), static_cast<std::size_t>(received));
+            }
+
+            auto const headerEnd = request.find("\r\n\r\n");
+            std::size_t contentLength{};
+            if (headerEnd != std::string::npos)
+            {
+                auto const marker = request.find("Content-Length:");
+                if (marker != std::string::npos && marker < headerEnd)
+                {
+                    auto cursor = marker + std::string_view("Content-Length:").size();
+                    while (cursor < headerEnd && (request[cursor] == ' ' || request[cursor] == '\t'))
+                    {
+                        ++cursor;
+                    }
+                    while (cursor < headerEnd && request[cursor] >= '0' && request[cursor] <= '9')
+                    {
+                        contentLength = contentLength * 10
+                            + static_cast<std::size_t>(request[cursor] - '0');
+                        ++cursor;
+                    }
+                }
+            }
+            auto const expectedSize = headerEnd == std::string::npos
+                ? request.size()
+                : headerEnd + 4 + contentLength;
+            while (request.size() < expectedSize && request.size() < 64 * 1024)
+            {
+                auto received = ::recv(
+                    accepted,
+                    buffer.data(),
+                    static_cast<int>((std::min)(buffer.size(), expectedSize - request.size())),
                     0);
                 if (received <= 0)
                 {
@@ -726,6 +774,19 @@ namespace
                 m_historyScript,
                 { CallKind::History, bearerSession.c_str(), batchJson.c_str() });
             co_return Complete(script);
+        }
+
+        winrt::Windows::Foundation::IAsyncOperation<winrt::hstring> GetPreferencesAsync(
+            winrt::hstring const&) override
+        {
+            co_return winrt::hstring{ L"{}" };
+        }
+
+        winrt::Windows::Foundation::IAsyncOperation<winrt::hstring> PutPreferencesAsync(
+            winrt::hstring const&,
+            winrt::hstring const&) override
+        {
+            co_return winrt::hstring{ L"{}" };
         }
 
         void SetLibraryScript(Script script)
@@ -1448,6 +1509,331 @@ namespace
         }
     }
 
+    account::PortableAccountTrack PortableTrackFixture()
+    {
+        account::PortableAccountTrack track;
+        track.Id = L"track-a";
+        track.Title = L"Track A";
+        track.Artist = L"Artist A";
+        track.Album = L"Album A";
+        track.Genre = L"Electronic";
+        track.ArtworkUrl = L"https://images.example.test/track-a.jpg";
+        track.SourceKind = L"remote";
+        track.Provider = L"provider-a";
+        track.SourceUrl = L"https://music.example.test/tracks/track-a";
+        track.CatalogId = L"catalog-track-a";
+        track.AlbumCatalogId = L"catalog-album-a";
+        track.ArtistCatalogId = L"catalog-artist-a";
+        track.DurationSec = 245.5;
+        return track;
+    }
+
+    winrt::Windows::Data::Json::JsonObject RequestBody(std::string const& request)
+    {
+        auto const separator = request.find("\r\n\r\n");
+        Expect(separator != std::string::npos, "HTTP request did not contain a header separator");
+        winrt::Windows::Data::Json::JsonObject body;
+        Expect(winrt::Windows::Data::Json::JsonObject::TryParse(
+            winrt::to_hstring(request.substr(separator + 4)),
+            body),
+            "HTTP request body was not a JSON object");
+        return body;
+    }
+
+    void TestCanonicalAccountMusicContract()
+    {
+        using winrt::Windows::Data::Json::JsonObject;
+        using winrt::Windows::Data::Json::JsonValueType;
+
+        auto const track = PortableTrackFixture();
+        auto const serializedTrack = account::SerializePortableTrack(track);
+        JsonObject trackObject;
+        Expect(JsonObject::TryParse(serializedTrack, trackObject), "portable track was not valid JSON");
+        for (auto const key : { L"id", L"title", L"artist", L"album", L"genre", L"artworkUrl",
+            L"sourceKind", L"provider", L"sourceUrl", L"catalogId", L"albumCatalogId",
+            L"artistCatalogId", L"durationSec" })
+        {
+            Expect(trackObject.HasKey(key), "portable track omitted a canonical field");
+        }
+        Expect(!trackObject.HasKey(L"durationMs") && !trackObject.HasKey(L"durationSeconds"),
+            "portable track emitted a legacy duration field");
+        Expect(trackObject.GetNamedNumber(L"durationSec") == 245.5,
+            "portable track changed durationSec");
+
+        account::AccountHistoryEventDto event{
+            L"event-a", track, L"2026-08-23T10:20:30Z", 17.9
+        };
+        JsonObject history;
+        Expect(JsonObject::TryParse(account::SerializeHistoryBatch({ event }), history),
+            "history batch was not valid JSON");
+        auto events = history.GetNamedArray(L"events");
+        Expect(events.Size() == 1, "history batch did not contain one event");
+        auto eventObject = events.GetObjectAt(0);
+        Expect(eventObject.GetNamedString(L"eventId") == L"event-a"
+            && eventObject.GetNamedString(L"playedAt") == L"2026-08-23T10:20:30Z",
+            "history batch changed event identity or time");
+        Expect(eventObject.GetNamedNumber(L"positionSec") == 17.0
+            && !eventObject.HasKey(L"position"),
+            "history batch did not use canonical positionSec");
+        Expect(eventObject.GetNamedObject(L"track").GetNamedString(L"provider") == L"provider-a",
+            "history batch omitted the complete track object");
+
+        auto wrapped = account::WrapTrackRequest(serializedTrack);
+        JsonObject wrappedObject;
+        Expect(JsonObject::TryParse(wrapped, wrappedObject)
+            && wrappedObject.GetNamedObject(L"track").GetNamedString(L"id") == L"track-a",
+            "track mutation body did not use the track wrapper");
+
+        JsonObject replacement;
+        Expect(JsonObject::TryParse(
+            account::SerializePlaylistReplacement(L"Playlist A", { track }),
+            replacement),
+            "playlist replacement was not valid JSON");
+        Expect(replacement.GetNamedString(L"name") == L"Playlist A"
+            && replacement.GetNamedArray(L"tracks").Size() == 1
+            && !replacement.HasKey(L"trackIds"),
+            "playlist replacement did not carry canonical tracks");
+
+        auto library = account::ParseAccountLibrary(LR"json({
+          "data": {
+            "tracks": [
+              {
+                "track": {
+                  "id": "track-a", "title": "Track A", "artist": "Artist A",
+                  "album": "Album A", "genre": "Electronic",
+                  "artworkUrl": "https://images.example.test/track-a.jpg",
+                  "sourceKind": "remote", "provider": "provider-a",
+                  "sourceUrl": "https://music.example.test/tracks/track-a",
+                  "catalogId": "catalog-track-a", "albumCatalogId": "catalog-album-a",
+                  "artistCatalogId": "catalog-artist-a", "durationSec": 245.5
+                },
+                "liked": true, "addedAt": "2026-08-23T10:00:00Z",
+                "playCount": 4, "lastPositionSec": 37.5
+              },
+              {
+                "id": "track-b", "title": "Track B", "sourceKind": "remote",
+                "sourceUrl": "https://music.example.test/tracks/track-b", "durationSec": 90
+              }
+            ],
+            "playlists": [
+              { "id": "playlist-a", "name": "Playlist A", "tracks": ["track-a", "track-b"] }
+            ]
+          }
+        })json");
+        Expect(library.Valid && library.Tracks.size() == 2,
+            "canonical library fixture was not parsed");
+        Expect(library.Tracks[0].Track.DurationSec == 245.5
+            && library.Tracks[0].Liked
+            && library.Tracks[0].AddedAt == L"2026-08-23T10:00:00Z"
+            && library.Tracks[0].LastPositionSec == 37.5,
+            "canonical library state was not preserved");
+        Expect(library.Tracks[0].Track.ArtworkUrl == L"https://images.example.test/track-a.jpg"
+            && library.Tracks[0].Track.Provider == L"provider-a",
+            "canonical provider or artwork was not preserved");
+        Expect(library.Tracks[0].Track.Id == L"track-a" && library.Tracks[1].Track.Id == L"track-b",
+            "canonical library ordering changed");
+        Expect(library.Playlists.size() == 1
+            && library.Playlists[0].TrackIds == std::vector<std::wstring>{ L"track-a", L"track-b" },
+            "canonical playlist contents were not parsed");
+
+        auto unsafeArtwork = account::ParsePortableTrack(LR"json({
+          "id":"track-a", "title":"Track A", "sourceKind":"remote",
+          "sourceUrl":"https://music.example.test/tracks/track-a",
+          "artworkUrl":"javascript:alert(1)"
+        })json");
+        Expect(unsafeArtwork && unsafeArtwork->ArtworkUrl.empty(),
+            "unsafe cloud artwork survived contract validation");
+
+        auto preferences = account::ParsePortablePreferences(LR"({
+          "data": { "preferences": {
+            "theme":"dark", "accent":"#12abEF", "gaplessPlayback":true,
+            "dataSaver":false, "storefront":"IN"
+          }}
+        })");
+        Expect(preferences.Theme == L"dark" && preferences.Accent == L"#12ABEF"
+            && preferences.GaplessPlayback == true && preferences.DataSaver == false
+            && preferences.Storefront == L"in",
+            "portable cloud preferences were not normalized");
+        auto invalidPreferences = account::ParsePortablePreferences(
+            LR"({"theme":"sepia","accent":"red","gaplessPlayback":"yes","storefront":"india"})");
+        Expect(!invalidPreferences.Theme && !invalidPreferences.Accent
+            && !invalidPreferences.GaplessPlayback && !invalidPreferences.Storefront,
+            "invalid cloud preferences crossed the contract boundary");
+    }
+
+    void TestAccountMusicHttpContract()
+    {
+#ifdef _DEBUG
+        auto const response = std::string{
+            "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 2\r\nConnection: close\r\n\r\n{}"
+        };
+        auto const trackJson = account::SerializePortableTrack(PortableTrackFixture());
+
+        {
+            TestHttpServer server{ response };
+            account::AccountClient client{ winrt::hstring(server.Url()) };
+            (void)client.SetLikedAsync(L"test-bearer", trackJson, true, L"track-a").get();
+            server.Join();
+            auto const request = server.Request();
+            Expect(request.starts_with("POST /v1/music/liked HTTP/1.1\r\n"),
+                "like request used the wrong method or path");
+            Expect(request.find("Authorization: Bearer test-bearer\r\n") != std::string::npos,
+                "like request omitted its bearer");
+            Expect(RequestBody(request).GetNamedObject(L"track").GetNamedString(L"id") == L"track-a",
+                "like request did not wrap the portable track");
+        }
+        {
+            TestHttpServer server{ response };
+            account::AccountClient client{ winrt::hstring(server.Url()) };
+            (void)client.SetLikedAsync(L"test-bearer", trackJson, false, L"track a").get();
+            server.Join();
+            Expect(server.Request().starts_with(
+                "DELETE /v1/music/liked?id=track%20a HTTP/1.1\r\n"),
+                "unlike request used the wrong method, path, or query");
+        }
+        {
+            TestHttpServer server{ response };
+            account::AccountClient client{ winrt::hstring(server.Url()) };
+            (void)client.AddPlaylistTrackAsync(
+                L"test-bearer", L"playlist a", trackJson).get();
+            server.Join();
+            auto const request = server.Request();
+            Expect(request.starts_with(
+                "POST /v1/music/playlists/playlist%20a/tracks HTTP/1.1\r\n"),
+                "playlist-track request used the wrong method or path");
+            Expect(RequestBody(request).GetNamedObject(L"track").GetNamedString(L"id") == L"track-a",
+                "playlist-track request did not wrap the portable track");
+        }
+        {
+            TestHttpServer server{ response };
+            account::AccountClient client{ winrt::hstring(server.Url()) };
+            auto const body = account::SerializePlaylistReplacement(
+                L"Renamed", { PortableTrackFixture() });
+            (void)client.UpdatePlaylistAsync(L"test-bearer", L"playlist-a", body).get();
+            server.Join();
+            auto const request = server.Request();
+            Expect(request.starts_with(
+                "PATCH /v1/music/playlists/playlist-a HTTP/1.1\r\n"),
+                "playlist replacement used the wrong method or path");
+            auto const parsed = RequestBody(request);
+            Expect(parsed.GetNamedString(L"name") == L"Renamed"
+                && parsed.GetNamedArray(L"tracks").Size() == 1
+                && !parsed.HasKey(L"trackIds"),
+                "playlist replacement used a non-canonical body");
+        }
+        {
+            TestHttpServer server{ response };
+            account::AccountClient client{ winrt::hstring(server.Url()) };
+            account::AccountHistoryEventDto event{
+                L"event-a", PortableTrackFixture(), L"2026-08-23T10:20:30Z", 18.0
+            };
+            (void)client.PostHistoryBatchAsync(
+                L"test-bearer", account::SerializeHistoryBatch({ event })).get();
+            server.Join();
+            auto const request = server.Request();
+            Expect(request.starts_with("POST /v1/music/history/batch HTTP/1.1\r\n"),
+                "history request used the wrong method or path");
+            Expect(RequestBody(request).GetNamedArray(L"events").GetObjectAt(0)
+                .GetNamedNumber(L"positionSec") == 18.0,
+                "history request did not send canonical events");
+        }
+        {
+            TestHttpServer server{ response };
+            account::AccountClient client{ winrt::hstring(server.Url()) };
+            (void)client.GetPreferencesAsync(L"test-bearer").get();
+            server.Join();
+            Expect(server.Request().starts_with("GET /v1/music/preferences HTTP/1.1\r\n"),
+                "preference read used the wrong method or path");
+        }
+        {
+            TestHttpServer server{ response };
+            account::AccountClient client{ winrt::hstring(server.Url()) };
+            account::PortablePreferences preferences;
+            preferences.Theme = L"dark";
+            preferences.DataSaver = true;
+            (void)client.PutPreferencesAsync(
+                L"test-bearer", account::SerializePortablePreferences(preferences)).get();
+            server.Join();
+            auto const request = server.Request();
+            Expect(request.starts_with("PUT /v1/music/preferences HTTP/1.1\r\n"),
+                "preference write used the wrong method or path");
+            auto const body = RequestBody(request);
+            Expect(body.GetNamedString(L"theme") == L"dark"
+                && body.GetNamedBoolean(L"dataSaver")
+                && body.Size() == 2,
+                "preference write was not a partial portable update");
+        }
+        {
+            TestHttpServer server{ response };
+            account::AccountClient client{ winrt::hstring(server.Url()) };
+            (void)client.ResolveUrlAsync(
+                L"test-bearer", L"https://music.example.test/tracks/track-a", true).get();
+            server.Join();
+            auto const request = server.Request();
+            Expect(request.starts_with("POST /v1/music/resolve HTTP/1.1\r\n"),
+                "low-quality resolve used the wrong method or path");
+            Expect(RequestBody(request).GetNamedString(L"quality") == L"low",
+                "metered resolve did not request the low-quality account stream");
+        }
+        {
+            TestHttpServer server{
+                "HTTP/1.1 429 Too Many Requests\r\nRetry-After: 70001\r\nContent-Length: 2\r\nConnection: close\r\n\r\n{}"
+            };
+            account::AccountClient client{ winrt::hstring(server.Url()) };
+            try
+            {
+                (void)client.GetLibraryAsync(L"test-bearer").get();
+                Expect(false, "429 response was accepted");
+            }
+            catch (winrt::hresult_error const& error)
+            {
+                Expect(account::AccountHttpStatus(error) == 429
+                    && account::AccountRetryAfterSeconds(error) >= 70001,
+                    "Retry-After metadata was not preserved");
+            }
+        }
+#endif
+    }
+
+    void TestAccountMutationVisibleAfterLibraryReload()
+    {
+#ifdef _DEBUG
+        auto const trackJson = account::SerializePortableTrack(PortableTrackFixture());
+        auto const successResponse = std::string{
+            "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 2\r\nConnection: close\r\n\r\n{}"
+        };
+        {
+            TestHttpServer mutationServer{ successResponse };
+            account::AccountClient windowsClient{ winrt::hstring(mutationServer.Url()) };
+            (void)windowsClient.SetLikedAsync(
+                L"windows-session", trackJson, true, L"track-a").get();
+            mutationServer.Join();
+            auto const request = mutationServer.Request();
+            Expect(request.starts_with("POST /v1/music/liked HTTP/1.1\r\n")
+                && RequestBody(request).GetNamedObject(L"track").GetNamedString(L"id") == L"track-a",
+                "the Windows mutation was not accepted by the deterministic service stub");
+        }
+
+        auto const libraryBody = std::string{
+            R"({"tracks":[{"track":{"id":"track-a","title":"Track A","artist":"Artist A","album":"Album A","genre":"Electronic","artworkUrl":"https://images.example.test/track-a.jpg","sourceKind":"remote","provider":"provider-a","sourceUrl":"https://music.example.test/tracks/track-a","catalogId":"catalog-track-a","albumCatalogId":"catalog-album-a","artistCatalogId":"catalog-artist-a","durationSec":245.5},"liked":true,"addedAt":"2026-08-23T10:00:00Z","lastPositionSec":17}]})"
+        };
+        auto const libraryResponse = std::string{
+            "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: "
+        } + std::to_string(libraryBody.size()) + "\r\nConnection: close\r\n\r\n" + libraryBody;
+        TestHttpServer reloadServer{ libraryResponse };
+        account::AccountClient reloadingClient{ winrt::hstring(reloadServer.Url()) };
+        auto const reloaded = account::ParseAccountLibrary(
+            reloadingClient.GetLibraryAsync(L"android-web-session").get());
+        reloadServer.Join();
+        Expect(reloadServer.Request().starts_with("GET /v1/music/library HTTP/1.1\r\n")
+            && reloaded.Valid
+            && reloaded.Tracks.size() == 1
+            && reloaded.Tracks.front().Track.Id == L"track-a"
+            && reloaded.Tracks.front().Liked,
+            "a normal Android or web style library reload did not observe the Windows mutation");
+#endif
+    }
+
     void TestAutoSyncPolicy()
     {
         using account::AutoSyncDecision;
@@ -1458,12 +1844,8 @@ namespace
         auto ready = []
         {
             account::AutoSyncConditions conditions;
-            conditions.Enabled = true;
             conditions.Mode = account::RemoteAccessMode::Account;
             conditions.Status = account::AccountSessionStatus::Validated;
-            conditions.Syncing = false;
-            conditions.WindowInteractive = true;
-            conditions.AccountDetailOpen = false;
             conditions.SinceLastAttempt = account::kAutoSyncFocusDebounce;
             return conditions;
         };
@@ -1472,13 +1854,6 @@ namespace
             "a fully eligible timer tick did not sync");
         Expect(account::EvaluateAutoSync(ready(), AutoSyncTrigger::WindowFocus) == AutoSyncDecision::Run,
             "a fully eligible focus trigger did not sync");
-
-        // Each skip reason in isolation, so a future reordering of the checks
-        // cannot let one condition mask another.
-        auto disabled = ready();
-        disabled.Enabled = false;
-        Expect(account::EvaluateAutoSync(disabled, AutoSyncTrigger::Timer) == AutoSyncDecision::Disabled,
-            "the auto sync setting was ignored");
 
         for (auto mode : { account::RemoteAccessMode::LocalOnly, account::RemoteAccessMode::ApiKey })
         {
@@ -1502,25 +1877,6 @@ namespace
                 "a session that cannot sync was polled anyway");
         }
 
-        auto busy = ready();
-        busy.Syncing = true;
-        Expect(account::EvaluateAutoSync(busy, AutoSyncTrigger::Timer) == AutoSyncDecision::AlreadySyncing,
-            "a second sync was started while one was running");
-
-        auto hidden = ready();
-        hidden.WindowInteractive = false;
-        Expect(account::EvaluateAutoSync(hidden, AutoSyncTrigger::Timer)
-            == AutoSyncDecision::WindowNotInteractive,
-            "a window hidden to the tray kept polling");
-
-        // A sync clears the bindings behind an open account playlist, so the
-        // background path waits rather than pulling the view out from under it.
-        auto detailOpen = ready();
-        detailOpen.AccountDetailOpen = true;
-        Expect(account::EvaluateAutoSync(detailOpen, AutoSyncTrigger::Timer)
-            == AutoSyncDecision::AccountDetailOpen,
-            "a background sync ran under an open account playlist");
-
         // The focus debounce boundary. The timer's own interval is its
         // debounce, so it is deliberately not subject to this one.
         auto justSynced = ready();
@@ -1536,6 +1892,15 @@ namespace
         Expect(account::EvaluateAutoSync(neverSynced, AutoSyncTrigger::WindowFocus)
             == AutoSyncDecision::Run,
             "the first activation of a session did not sync");
+
+        Expect(account::AccountRetryDelay(1) == std::chrono::seconds(5),
+            "the first retry was not scheduled after five seconds");
+        Expect(account::AccountRetryDelay(5) == std::chrono::minutes(30),
+            "the bounded retry schedule did not reach thirty minutes");
+        Expect(account::AccountRetryDelay(20) == std::chrono::minutes(30),
+            "retry backoff exceeded its thirty-minute cap");
+        Expect(account::AccountRetryDelay(2, 90) == std::chrono::seconds(90),
+            "a longer Retry-After value was ignored");
     }
 
     void TestInlineProfileImageValidation()
@@ -2293,9 +2658,10 @@ namespace
         exec(account::DatabaseAccountSchema::CreateEffectiveTracksViewSql);
         exec(
             "INSERT INTO AccountProfiles (AccountId,DisplayName) VALUES ('owner-a','A'),('owner-b','B');"
-            "INSERT INTO AccountTracks (AccountId,RemoteId,SourceUrl,Title,IsLiked,PlayCount) VALUES "
-            "('owner-a','remote-a','https://music.example/a','Account A song',1,4),"
-            "('owner-b','remote-b','https://music.example/b','Account B song',0,2);"
+            "INSERT INTO AccountTracks (AccountId,RemoteId,SourceUrl,Title,IsLiked,PlayCount,RemoteProvider,RemoteCatalogId,AlbumCatalogId,ArtistCatalogId,DateAddedText) VALUES "
+            "('owner-a','remote-a','https://music.example/a','Account A song',1,4,'youtube','catalog-a','album-a','artist-a','2026-08-20T10:00:00Z'),"
+            "('owner-a','remote-new','https://music.example/new','Newer account song',0,0,'youtube','catalog-new','album-a','artist-a','2026-08-22T10:00:00Z'),"
+            "('owner-b','remote-b','https://music.example/b','Account B song',0,2,'tidal','catalog-b','album-b','artist-b','2026-08-21T10:00:00Z');"
             "INSERT INTO PlaybackEvents (EventId,AccountId,RemoteId,TrackJson,PlayedAtUtc) VALUES "
             "('event-a','owner-a','remote-a','{}','2026-08-01T00:00:00Z'),"
             "('event-b','owner-b','remote-b','{}','2026-08-01T00:00:01Z');"
@@ -2308,6 +2674,12 @@ namespace
         exec("INSERT INTO ActiveAccountContext (SingletonId,RemoteMode,AccountId) VALUES (1,'Account','owner-a');");
         Expect(scalar("SELECT COUNT(*) FROM EffectiveTracks WHERE Provider='account' AND Title='Account A song';") == 1,
             "active owner A track was not visible");
+        Expect(scalar("SELECT COUNT(*) FROM EffectiveTracks WHERE RemoteProvider='youtube' AND RemoteCatalogId='catalog-a' "
+            "AND AlbumCatalogId='album-a' AND ArtistCatalogId='artist-a';") == 1,
+            "portable account identifiers were not exposed to track readers");
+        Expect(scalar("SELECT (SELECT Title FROM EffectiveTracks WHERE Provider='account' "
+            "ORDER BY DateAddedSortKey DESC LIMIT 1)='Newer account song';") == 1,
+            "canonical addedAt timestamps did not drive recently-added ordering");
         Expect(scalar("SELECT COUNT(*) FROM EffectiveTracks WHERE Provider='account' AND Title='Account B song';") == 0,
             "owner B track leaked into owner A library");
         Expect(scalar("SELECT COUNT(*) FROM EffectiveTracks WHERE Title='API duplicate';") == 0,
@@ -2362,6 +2734,89 @@ namespace
         Expect(scalar("SELECT COUNT(*) FROM AccountSyncState WHERE AccountId='owner-b';") == 1,
             "clearing owner A profile removed owner B import state");
     }
+
+    void TestOutboxSchemaMigrationPreservesBacklog()
+    {
+        sqlite3* raw{};
+        Expect(sqlite3_open(":memory:", &raw) == SQLITE_OK,
+            "unable to open migration fixture database");
+        std::unique_ptr<sqlite3, decltype(&sqlite3_close)> database{ raw, sqlite3_close };
+        auto exec = [&](char const* sql)
+        {
+            char* error{};
+            auto const result = sqlite3_exec(database.get(), sql, nullptr, nullptr, &error);
+            std::string message = error ? error : "SQLite migration statement failed";
+            sqlite3_free(error);
+            if (result != SQLITE_OK)
+            {
+                throw std::runtime_error(message);
+            }
+        };
+        auto scalar = [&](char const* sql)
+        {
+            sqlite3_stmt* rawStatement{};
+            Expect(sqlite3_prepare_v2(database.get(), sql, -1, &rawStatement, nullptr) == SQLITE_OK,
+                "unable to prepare migration scalar");
+            std::unique_ptr<sqlite3_stmt, decltype(&sqlite3_finalize)> statement{
+                rawStatement, sqlite3_finalize
+            };
+            Expect(sqlite3_step(statement.get()) == SQLITE_ROW,
+                "migration scalar returned no row");
+            return sqlite3_column_int(statement.get(), 0);
+        };
+
+        exec(
+            "PRAGMA foreign_keys=ON;"
+            "CREATE TABLE AccountProfiles (AccountId TEXT PRIMARY KEY);"
+            "INSERT INTO AccountProfiles (AccountId) VALUES ('owner-a');"
+            "CREATE TABLE PlaybackEvents ("
+            "EventId TEXT PRIMARY KEY, AccountId TEXT NOT NULL, RemoteId TEXT NOT NULL, TrackJson TEXT NOT NULL, "
+            "PlayedAtUtc TEXT NOT NULL, PositionSeconds REAL DEFAULT 0, AttemptCount INTEGER DEFAULT 0, LastAttemptAtUtc TEXT);"
+            "CREATE TABLE PendingLikes ("
+            "AccountId TEXT NOT NULL, RemoteId TEXT NOT NULL, DesiredState INTEGER NOT NULL, TrackJson TEXT NOT NULL, "
+            "UpdatedAtUtc TEXT NOT NULL, AttemptCount INTEGER DEFAULT 0, LastAttemptAtUtc TEXT, "
+            "PRIMARY KEY (AccountId, RemoteId));"
+            "CREATE TABLE AccountTracks ("
+            "AccountId TEXT NOT NULL, RemoteId TEXT NOT NULL, SourceUrl TEXT, Title TEXT, "
+            "PRIMARY KEY (AccountId, RemoteId));"
+            "INSERT INTO AccountTracks (AccountId,RemoteId,SourceUrl,Title) VALUES "
+            "('owner-a','existing-track','https://music.example/existing','Existing track');"
+            "WITH RECURSIVE sequence(value) AS ("
+            "SELECT 1 UNION ALL SELECT value+1 FROM sequence WHERE value<208) "
+            "INSERT INTO PlaybackEvents (EventId,AccountId,RemoteId,TrackJson,PlayedAtUtc) "
+            "SELECT printf('event-%03d',value),'owner-a',printf('track-%03d',value),"
+            "printf('{\"legacy\":%d}',value),'2026-08-01T00:00:00Z' FROM sequence;"
+            "INSERT INTO PendingLikes (AccountId,RemoteId,DesiredState,TrackJson,UpdatedAtUtc) "
+            "VALUES ('owner-a','liked-a',1,'{\"legacy\":true}','2026-08-01T00:00:00Z');");
+
+        exec(account::DatabaseAccountSchema::CreateTablesSql);
+        exec(account::DatabaseAccountSchema::AddPlaybackNextAttemptSql);
+        exec(account::DatabaseAccountSchema::AddPlaybackFailureCategorySql);
+        exec(account::DatabaseAccountSchema::AddPlaybackBlockedSql);
+        exec(account::DatabaseAccountSchema::AddLikeNextAttemptSql);
+        exec(account::DatabaseAccountSchema::AddLikeFailureCategorySql);
+        exec(account::DatabaseAccountSchema::AddLikeBlockedSql);
+        exec(account::DatabaseAccountSchema::AddAccountTrackProviderSql);
+        exec(account::DatabaseAccountSchema::AddAccountTrackCatalogIdSql);
+        exec(account::DatabaseAccountSchema::AddAccountTrackAlbumCatalogIdSql);
+        exec(account::DatabaseAccountSchema::AddAccountTrackArtistCatalogIdSql);
+
+        Expect(scalar("SELECT COUNT(*) FROM PlaybackEvents;") == 208,
+            "outbox migration did not preserve all 208 pending history rows");
+        Expect(scalar("SELECT COUNT(*) FROM PlaybackEvents WHERE TrackJson LIKE '{\"legacy\":%';") == 208,
+            "outbox migration changed existing history payloads");
+        Expect(scalar("SELECT COUNT(*) FROM PlaybackEvents WHERE NextAttemptAtUnix=0 AND IsBlocked=0;") == 208,
+            "outbox migration did not make existing history rows retryable");
+        Expect(scalar("SELECT COUNT(*) FROM PendingLikes WHERE NextAttemptAtUnix=0 AND IsBlocked=0;") == 1,
+            "outbox migration did not preserve the pending like");
+        Expect(scalar("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='AccountPreferences';") == 1,
+            "outbox migration did not create account-scoped preferences");
+        Expect(scalar("SELECT COUNT(*) FROM AccountTracks WHERE RemoteId='existing-track' "
+            "AND COALESCE(RemoteProvider,'')='' AND COALESCE(RemoteCatalogId,'')='' "
+            "AND COALESCE(AlbumCatalogId,'')='' AND COALESCE(ArtistCatalogId,'')='';") == 1,
+            "portable track migration did not preserve the existing account cache");
+    }
+
     void TestPlaybackHistoryQualification()
     {
         account::PlaybackHistoryQualifier qualifier;
@@ -3129,6 +3584,11 @@ namespace
 
 int wmain()
 {
+#ifdef _DEBUG
+    _CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_FILE);
+    _CrtSetReportFile(_CRT_ERROR, _CRTDBG_FILE_STDERR);
+#endif
+
     auto localAppData = std::filesystem::temp_directory_path()
         / (L"LastMusicNativeAccountTests-" + std::to_wstring(::GetCurrentProcessId()));
     std::error_code ec;
@@ -3150,49 +3610,62 @@ int wmain()
     try
     {
         winrt::init_apartment();
-        TestCredentialReadWriteDelete();
-        TestSuccessfulLegacyMigration(localAppData);
-        TestPkce();
-        TestLoopbackRequestParsing();
-        TestConfiguredAccountBuild();
-        TestAccountGatewayProtocol();
-        TestLoopbackListenerLifecycle();
-        TestAccountRedirectProtection();
-        TestAccountOriginAndSafeErrors();
-        TestAutoSyncPolicy();
-        TestInlineProfileImageValidation();
-        TestProfileIdentitySelection();
-        TestSyncableRemoteSources();
-        TestCatalogDiscoveryParsing();
-        TestCatalogChartAndDetailParsing();
-        TestCatalogTrustBoundaryValidation();
-        TestCatalogChartRequestConstruction();
-        TestCatalogPresentationRules();
-        TestCatalogParsingSurvivesBadInput();
-        TestFailedSecureWritePreservesLegacySource(localAppData);
-        TestFailedVerificationPreservesLegacySource();
-        TestOwnerScopedAccountSchema();
-        TestPlaybackHistoryQualification();
-        TestHistoryImportEventIds();
-        TestRestoreCannotResurrectRemovedSession();
-        TestConcurrentSignInsKeepLatestSession();
-        TestSupersededSignInCannotPublishAfterFinalIntentCheck();
-        TestStaleLogoutCannotClearReplacementSession();
-        TestUnauthorizedContextCannotClearAnotherSession();
-        TestCredentialDeleteFailurePreservesSession();
-        TestOwnerCallbackExceptionsAreIsolated();
-        TestRemoteScopeCacheKeys();
-        TestApiKeyScopePartitionsProviderConfiguration();
-        TestAccountPlaylistScopeRejectsReplacementBeforeDispatch();
-        TestAccountSyncContextBindsBearerAndPayloads();
-        TestAccountSyncContextRejectsReplacementBeforeDispatch();
-        TestAccountSyncContextRejectsInFlightReplacement();
-        TestAccountSyncContextRejectsRemoteModeChanges();
-        TestStaleSyncUnauthorizedCannotClearReplacementSession();
-        TestStreamCacheRejectsStaleAttemptPublication(localAppData);
-        TestStreamCacheRetiredTransfersCountTowardCap(localAppData);
-        TestUserDataOperationGate();
+        RunTest("TestCredentialReadWriteDelete", TestCredentialReadWriteDelete);
+        RunTest("TestSuccessfulLegacyMigration", [&] { TestSuccessfulLegacyMigration(localAppData); });
+        RunTest("TestPkce", TestPkce);
+        RunTest("TestLoopbackRequestParsing", TestLoopbackRequestParsing);
+        RunTest("TestConfiguredAccountBuild", TestConfiguredAccountBuild);
+        RunTest("TestAccountGatewayProtocol", TestAccountGatewayProtocol);
+        RunTest("TestLoopbackListenerLifecycle", TestLoopbackListenerLifecycle);
+        RunTest("TestAccountRedirectProtection", TestAccountRedirectProtection);
+        RunTest("TestAccountOriginAndSafeErrors", TestAccountOriginAndSafeErrors);
+        RunTest("TestCanonicalAccountMusicContract", TestCanonicalAccountMusicContract);
+        RunTest("TestAccountMusicHttpContract", TestAccountMusicHttpContract);
+        RunTest("TestAccountMutationVisibleAfterLibraryReload", TestAccountMutationVisibleAfterLibraryReload);
+        RunTest("TestAutoSyncPolicy", TestAutoSyncPolicy);
+        RunTest("TestInlineProfileImageValidation", TestInlineProfileImageValidation);
+        RunTest("TestProfileIdentitySelection", TestProfileIdentitySelection);
+        RunTest("TestSyncableRemoteSources", TestSyncableRemoteSources);
+        RunTest("TestCatalogDiscoveryParsing", TestCatalogDiscoveryParsing);
+        RunTest("TestCatalogChartAndDetailParsing", TestCatalogChartAndDetailParsing);
+        RunTest("TestCatalogTrustBoundaryValidation", TestCatalogTrustBoundaryValidation);
+        RunTest("TestCatalogChartRequestConstruction", TestCatalogChartRequestConstruction);
+        RunTest("TestCatalogPresentationRules", TestCatalogPresentationRules);
+        RunTest("TestCatalogParsingSurvivesBadInput", TestCatalogParsingSurvivesBadInput);
+        RunTest("TestFailedSecureWritePreservesLegacySource", [&] { TestFailedSecureWritePreservesLegacySource(localAppData); });
+        RunTest("TestFailedVerificationPreservesLegacySource", TestFailedVerificationPreservesLegacySource);
+        RunTest("TestOwnerScopedAccountSchema", TestOwnerScopedAccountSchema);
+        RunTest("TestOutboxSchemaMigrationPreservesBacklog", TestOutboxSchemaMigrationPreservesBacklog);
+        RunTest("TestPlaybackHistoryQualification", TestPlaybackHistoryQualification);
+        RunTest("TestHistoryImportEventIds", TestHistoryImportEventIds);
+        RunTest("TestRestoreCannotResurrectRemovedSession", TestRestoreCannotResurrectRemovedSession);
+        RunTest("TestConcurrentSignInsKeepLatestSession", TestConcurrentSignInsKeepLatestSession);
+        RunTest("TestSupersededSignInCannotPublishAfterFinalIntentCheck", TestSupersededSignInCannotPublishAfterFinalIntentCheck);
+        RunTest("TestStaleLogoutCannotClearReplacementSession", TestStaleLogoutCannotClearReplacementSession);
+        RunTest("TestUnauthorizedContextCannotClearAnotherSession", TestUnauthorizedContextCannotClearAnotherSession);
+        RunTest("TestCredentialDeleteFailurePreservesSession", TestCredentialDeleteFailurePreservesSession);
+        RunTest("TestOwnerCallbackExceptionsAreIsolated", TestOwnerCallbackExceptionsAreIsolated);
+        RunTest("TestRemoteScopeCacheKeys", TestRemoteScopeCacheKeys);
+        RunTest("TestApiKeyScopePartitionsProviderConfiguration", TestApiKeyScopePartitionsProviderConfiguration);
+        RunTest("TestAccountPlaylistScopeRejectsReplacementBeforeDispatch", TestAccountPlaylistScopeRejectsReplacementBeforeDispatch);
+        RunTest("TestAccountSyncContextBindsBearerAndPayloads", TestAccountSyncContextBindsBearerAndPayloads);
+        RunTest("TestAccountSyncContextRejectsReplacementBeforeDispatch", TestAccountSyncContextRejectsReplacementBeforeDispatch);
+        RunTest("TestAccountSyncContextRejectsInFlightReplacement", TestAccountSyncContextRejectsInFlightReplacement);
+        RunTest("TestAccountSyncContextRejectsRemoteModeChanges", TestAccountSyncContextRejectsRemoteModeChanges);
+        RunTest("TestStaleSyncUnauthorizedCannotClearReplacementSession", TestStaleSyncUnauthorizedCannotClearReplacementSession);
+        RunTest("TestStreamCacheRejectsStaleAttemptPublication", [&] { TestStreamCacheRejectsStaleAttemptPublication(localAppData); });
+        RunTest("TestStreamCacheRetiredTransfersCountTowardCap", [&] { TestStreamCacheRetiredTransfersCountTowardCap(localAppData); });
+        RunTest("TestUserDataOperationGate", TestUserDataOperationGate);
         std::wcout << L"Native account sync tests passed.\n";
+    }
+    catch (winrt::hresult_error const& error)
+    {
+        std::wcerr << L"Native account sync tests failed with HRESULT 0x"
+            << std::hex << static_cast<std::uint32_t>(error.code())
+            << L": " << error.message().c_str() << L"\n";
+        _wputenv_s(L"LOCALAPPDATA", oldLocalAppData.c_str());
+        std::filesystem::remove_all(localAppData, ec);
+        return 1;
     }
     catch (std::exception const& ex)
     {

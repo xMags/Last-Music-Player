@@ -490,7 +490,8 @@ namespace winrt::Last_Music_Player::implementation
         RunDetached(HydrateHomeAsync(false));
         if (accountTrack)
         {
-            RunDetached(SynchronizeAccountLibraryAsync(AccountSyncMode::Implicit));
+            MusicSyncServiceService().ScheduleMutation(
+                LastMusicPlayer::Backend::AccountSyncLane::Likes);
         }
 
         if (!detailKind.empty() && !detailKey.empty())

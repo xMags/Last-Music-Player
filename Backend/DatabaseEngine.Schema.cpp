@@ -114,7 +114,7 @@ namespace LastMusicPlayer::Backend
         // never read (~46s startup on a real library). Run it only when the
         // DB predates kSchemaVersion. Index creation stays unconditional —
         // it is idempotent (IF NOT EXISTS) and must also cover fresh DBs.
-        static constexpr int kSchemaVersion = 10;
+        static constexpr int kSchemaVersion = 12;
         int userVersion = 0;
         {
             Statement versionStmt{ m_db, "PRAGMA user_version;" };
@@ -124,6 +124,24 @@ namespace LastMusicPlayer::Backend
             }
         }
         const bool migrationNeeded = userVersion < kSchemaVersion;
+
+        if (migrationNeeded && userVersion < 12)
+        {
+            TryExec(m_db, DatabaseAccountSchema::AddAccountTrackProviderSql);
+            TryExec(m_db, DatabaseAccountSchema::AddAccountTrackCatalogIdSql);
+            TryExec(m_db, DatabaseAccountSchema::AddAccountTrackAlbumCatalogIdSql);
+            TryExec(m_db, DatabaseAccountSchema::AddAccountTrackArtistCatalogIdSql);
+        }
+
+        if (migrationNeeded && userVersion < 11)
+        {
+            TryExec(m_db, DatabaseAccountSchema::AddPlaybackNextAttemptSql);
+            TryExec(m_db, DatabaseAccountSchema::AddPlaybackFailureCategorySql);
+            TryExec(m_db, DatabaseAccountSchema::AddPlaybackBlockedSql);
+            TryExec(m_db, DatabaseAccountSchema::AddLikeNextAttemptSql);
+            TryExec(m_db, DatabaseAccountSchema::AddLikeFailureCategorySql);
+            TryExec(m_db, DatabaseAccountSchema::AddLikeBlockedSql);
+        }
 
         if (migrationNeeded && userVersion < 10)
         {
@@ -257,6 +275,9 @@ namespace LastMusicPlayer::Backend
         TryExec(m_db, "CREATE INDEX IF NOT EXISTS IX_AccountPlaylistTracks_Track ON AccountPlaylistTracks(AccountId, RemoteId);");
         TryExec(m_db, "CREATE INDEX IF NOT EXISTS IX_PlaybackEvents_Account ON PlaybackEvents(AccountId, PlayedAtUtc);");
         TryExec(m_db, "CREATE INDEX IF NOT EXISTS IX_PendingLikes_Account ON PendingLikes(AccountId, UpdatedAtUtc);");
+        TryExec(m_db, "CREATE INDEX IF NOT EXISTS IX_PlaybackEvents_Retry ON PlaybackEvents(AccountId, IsBlocked, NextAttemptAtUnix);");
+        TryExec(m_db, "CREATE INDEX IF NOT EXISTS IX_PendingLikes_Retry ON PendingLikes(AccountId, IsBlocked, NextAttemptAtUnix);");
+        TryExec(m_db, "CREATE INDEX IF NOT EXISTS IX_AccountPreferences_Retry ON AccountPreferences(AccountId, Pending, IsBlocked, NextAttemptAtUnix);");
 
         if (!Exec(m_db, DatabaseAccountSchema::CreateEffectiveTracksViewSql))
         {
@@ -269,7 +290,7 @@ namespace LastMusicPlayer::Backend
             {
                 return false;
             }
-            if (!Exec(m_db, "PRAGMA user_version=10;"))
+            if (!Exec(m_db, "PRAGMA user_version=12;"))
             {
                 return false;
             }

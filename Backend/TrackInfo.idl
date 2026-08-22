@@ -51,6 +51,9 @@ namespace Last_Music_Player
         String ArtistCatalogId;
         String SourceKind;
         String Provider;
+        // The provider named by the account service. Provider remains the
+        // local origin marker used by Account and On This PC filtering.
+        String RemoteProvider;
         String SourceUrl;
         String SourceLabel;
         // Derived from SourceLabel: the card badge names the source only when

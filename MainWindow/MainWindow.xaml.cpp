@@ -705,12 +705,40 @@ namespace winrt::Last_Music_Player::implementation
             {
                 if (auto self = weak.get())
                 {
-                    RunDetached(self->RequestBackgroundAccountSyncAsync(
-                        LastMusicPlayer::Backend::AutoSyncTrigger::Timer));
+                    RunDetached(self->RecoverAccountConnectionAsync());
                 }
             });
-            ApplyAutoSyncSetting();
+            EnsureAccountSyncSchedulerStarted();
         }
+        m_networkStatusChanged = winrt::Windows::Networking::Connectivity::NetworkInformation::NetworkStatusChanged(
+            [weak = get_weak()](winrt::Windows::Foundation::IInspectable const&)
+            {
+                try
+                {
+                    auto const profile = winrt::Windows::Networking::Connectivity::NetworkInformation::
+                        GetInternetConnectionProfile();
+                    if (!profile
+                        || profile.GetNetworkConnectivityLevel()
+                            != winrt::Windows::Networking::Connectivity::NetworkConnectivityLevel::InternetAccess)
+                    {
+                        return;
+                    }
+                }
+                catch (...)
+                {
+                    return;
+                }
+                if (auto self = weak.get())
+                {
+                    self->DispatcherQueue().TryEnqueue([weak]()
+                    {
+                        if (auto current = weak.get())
+                        {
+                            RunDetached(current->RecoverAccountConnectionAsync());
+                        }
+                    });
+                }
+            });
         this->Activated({ this, &MainWindow::OnWindowActivated });
 
         QueueStartupDataLoad(savedLibraryPath);
@@ -1327,6 +1355,12 @@ namespace winrt::Last_Music_Player::implementation
         }
         if (m_forceExit)
         {
+            if (m_networkStatusChanged.value != 0)
+            {
+                winrt::Windows::Networking::Connectivity::NetworkInformation::NetworkStatusChanged(
+                    m_networkStatusChanged);
+                m_networkStatusChanged = {};
+            }
             if (m_downloadsTimer && m_downloadsTimer.IsRunning())
             {
                 m_downloadsTimer.Stop();

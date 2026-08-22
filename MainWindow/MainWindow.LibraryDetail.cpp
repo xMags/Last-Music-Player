@@ -42,6 +42,29 @@ namespace winrt::Last_Music_Player::implementation
 
     namespace
     {
+        template <typename T>
+        T FindDetailScrollHost(winrt::Microsoft::UI::Xaml::DependencyObject const& root)
+        {
+            if (!root)
+            {
+                return nullptr;
+            }
+            if (auto result = root.try_as<T>())
+            {
+                return result;
+            }
+            auto const children = winrt::Microsoft::UI::Xaml::Media::VisualTreeHelper::GetChildrenCount(root);
+            for (int index = 0; index < children; ++index)
+            {
+                auto const child = winrt::Microsoft::UI::Xaml::Media::VisualTreeHelper::GetChild(root, index);
+                if (auto result = FindDetailScrollHost<T>(child))
+                {
+                    return result;
+                }
+            }
+            return nullptr;
+        }
+
         bool DetailTrackIsOffline(
             winrt::Last_Music_Player::TrackInfo const& track,
             LastMusicPlayer::Backend::RemoteScopeSnapshot const& remoteScope)
@@ -162,6 +185,7 @@ namespace winrt::Last_Music_Player::implementation
         UpdateLibraryDetailEmptyState();
         RefreshLibraryDetailRowStates();
         ApplyLibraryDetailPlaylistCollage();
+        RestoreAccountPlaylistView();
         if (offset == 0)
         {
             RunDetached(HydrateLibraryDetailSuggestionsAsync());
@@ -410,6 +434,99 @@ namespace winrt::Last_Music_Player::implementation
             && current.Scope.CachePartition == context.Binding.Scope.CachePartition
             && current.Playlist.RemoteId() == winrt::hstring(context.PlaylistId)
             && IsCurrentAccountPlaylistBinding(current);
+    }
+
+    void MainWindow::CaptureAccountPlaylistViewRestore()
+    {
+        auto const context = CaptureAccountPlaylistDetailContext();
+        if (!context)
+        {
+            m_accountPlaylistViewRestore.reset();
+            return;
+        }
+
+        AccountPlaylistViewRestore restore;
+        restore.PlaylistId = context->PlaylistId;
+        auto const surface = m_libraryDetailGridMode
+            ? LibraryDetailGridView().try_as<winrt::Microsoft::UI::Xaml::Controls::ListViewBase>()
+            : LibraryDetailTracksListView().try_as<winrt::Microsoft::UI::Xaml::Controls::ListViewBase>();
+        if (surface)
+        {
+            for (auto const& selected : surface.SelectedItems())
+            {
+                auto const track = selected.try_as<winrt::Last_Music_Player::TrackInfo>();
+                if (track && !track.RemoteId().empty())
+                {
+                    restore.SelectedRemoteIds.emplace_back(track.RemoteId().c_str());
+                }
+            }
+            auto const scroller = FindDetailScrollHost<winrt::Microsoft::UI::Xaml::Controls::ScrollViewer>(surface);
+            if (scroller)
+            {
+                restore.VerticalOffset = scroller.VerticalOffset();
+            }
+        }
+        m_accountPlaylistViewRestore = std::move(restore);
+    }
+
+    void MainWindow::RestoreAccountPlaylistView()
+    {
+        if (!m_accountPlaylistViewRestore
+            || !IsAccountPlaylistDetail()
+            || !m_libraryDetailAccountBinding
+            || m_libraryDetailAccountBinding->Playlist.RemoteId()
+                != winrt::hstring(m_accountPlaylistViewRestore->PlaylistId))
+        {
+            return;
+        }
+
+        auto const surface = m_libraryDetailGridMode
+            ? LibraryDetailGridView().try_as<winrt::Microsoft::UI::Xaml::Controls::ListViewBase>()
+            : LibraryDetailTracksListView().try_as<winrt::Microsoft::UI::Xaml::Controls::ListViewBase>();
+        if (!surface)
+        {
+            return;
+        }
+        std::unordered_set<std::wstring> selected{
+            m_accountPlaylistViewRestore->SelectedRemoteIds.begin(),
+            m_accountPlaylistViewRestore->SelectedRemoteIds.end() };
+        std::unordered_set<std::wstring> alreadySelected;
+        for (auto const& item : surface.SelectedItems())
+        {
+            auto const track = item.try_as<winrt::Last_Music_Player::TrackInfo>();
+            if (track && !track.RemoteId().empty())
+            {
+                alreadySelected.emplace(track.RemoteId().c_str());
+            }
+        }
+        for (auto const& track : m_libraryDetailAllResults)
+        {
+            if (track
+                && selected.contains(track.RemoteId().c_str())
+                && alreadySelected.emplace(track.RemoteId().c_str()).second)
+            {
+                surface.SelectedItems().Append(track);
+            }
+        }
+        if (!m_accountPlaylistViewRestore->ScrollRestored)
+        {
+            auto const scroller = FindDetailScrollHost<winrt::Microsoft::UI::Xaml::Controls::ScrollViewer>(surface);
+            if (scroller)
+            {
+                (void)scroller.ChangeView(
+                    nullptr,
+                    m_accountPlaylistViewRestore->VerticalOffset,
+                    nullptr,
+                    true);
+                m_accountPlaylistViewRestore->ScrollRestored =
+                    std::abs(scroller.VerticalOffset() - m_accountPlaylistViewRestore->VerticalOffset) < 1.0
+                    || static_cast<int>(m_libraryDetailAllResults.size()) >= m_libraryDetailMatchedCount;
+            }
+        }
+        if (static_cast<int>(m_libraryDetailAllResults.size()) >= m_libraryDetailMatchedCount)
+        {
+            m_accountPlaylistViewRestore.reset();
+        }
     }
 
     winrt::Windows::Foundation::IAsyncAction MainWindow::LibraryGroup_ItemClick(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::ItemClickEventArgs const& args)
@@ -995,6 +1112,7 @@ namespace winrt::Last_Music_Player::implementation
     {
         ++m_libraryDetailHydrationEpoch;
         ++m_libraryDetailPageLoadId;
+        m_accountPlaylistViewRestore.reset();
         m_libraryDetailKind.clear();
         m_libraryDetailKey.clear();
         m_libraryDetailSubtitle.clear();

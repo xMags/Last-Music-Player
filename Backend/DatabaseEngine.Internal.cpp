@@ -319,6 +319,10 @@ namespace LastMusicPlayer::Backend::DatabaseDetail
         }
         track.RemoteId(winrt::hstring(ColumnText(stmt, 15)));
         track.ResumePositionSeconds(sqlite3_column_double(stmt, 16));
+        track.RemoteProvider(winrt::hstring(ColumnText(stmt, 17)));
+        track.RemoteCatalogId(winrt::hstring(ColumnText(stmt, 18)));
+        track.AlbumCatalogId(winrt::hstring(ColumnText(stmt, 19)));
+        track.ArtistCatalogId(winrt::hstring(ColumnText(stmt, 20)));
         return track;
     }
 
@@ -326,10 +330,10 @@ namespace LastMusicPlayer::Backend::DatabaseDetail
     // so anything appended here has to be appended to both lists and to any
     // query that selects extra columns after them.
     extern char const kTrackColumns[] =
-        "Id, SourceKind, Provider, SourceUrl, FilePath, Title, Artist, Album, Genre, DurationSeconds, ArtworkUrl, DateAddedSortKey, DateAddedText, DurationText, IsLiked, RemoteId, LastPositionSeconds";
+        "Id, SourceKind, Provider, SourceUrl, FilePath, Title, Artist, Album, Genre, DurationSeconds, ArtworkUrl, DateAddedSortKey, DateAddedText, DurationText, IsLiked, RemoteId, LastPositionSeconds, RemoteProvider, RemoteCatalogId, AlbumCatalogId, ArtistCatalogId";
 
     extern char const kJoinedTrackColumns[] =
-        "t.Id, t.SourceKind, t.Provider, t.SourceUrl, t.FilePath, t.Title, t.Artist, t.Album, t.Genre, t.DurationSeconds, t.ArtworkUrl, t.DateAddedSortKey, t.DateAddedText, t.DurationText, t.IsLiked, t.RemoteId, t.LastPositionSeconds";
+        "t.Id, t.SourceKind, t.Provider, t.SourceUrl, t.FilePath, t.Title, t.Artist, t.Album, t.Genre, t.DurationSeconds, t.ArtworkUrl, t.DateAddedSortKey, t.DateAddedText, t.DurationText, t.IsLiked, t.RemoteId, t.LastPositionSeconds, '', '', '', ''";
 
     std::string TrackOrderClause(std::wstring const& filter, std::wstring const& sort)
     {

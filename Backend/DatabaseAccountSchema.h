@@ -2,6 +2,27 @@
 
 namespace LastMusicPlayer::Backend::DatabaseAccountSchema
 {
+    inline constexpr char AddPlaybackNextAttemptSql[] =
+        "ALTER TABLE PlaybackEvents ADD COLUMN NextAttemptAtUnix INTEGER DEFAULT 0;";
+    inline constexpr char AddPlaybackFailureCategorySql[] =
+        "ALTER TABLE PlaybackEvents ADD COLUMN LastFailureCategory TEXT;";
+    inline constexpr char AddPlaybackBlockedSql[] =
+        "ALTER TABLE PlaybackEvents ADD COLUMN IsBlocked INTEGER DEFAULT 0;";
+    inline constexpr char AddLikeNextAttemptSql[] =
+        "ALTER TABLE PendingLikes ADD COLUMN NextAttemptAtUnix INTEGER DEFAULT 0;";
+    inline constexpr char AddLikeFailureCategorySql[] =
+        "ALTER TABLE PendingLikes ADD COLUMN LastFailureCategory TEXT;";
+    inline constexpr char AddLikeBlockedSql[] =
+        "ALTER TABLE PendingLikes ADD COLUMN IsBlocked INTEGER DEFAULT 0;";
+    inline constexpr char AddAccountTrackProviderSql[] =
+        "ALTER TABLE AccountTracks ADD COLUMN RemoteProvider TEXT;";
+    inline constexpr char AddAccountTrackCatalogIdSql[] =
+        "ALTER TABLE AccountTracks ADD COLUMN RemoteCatalogId TEXT;";
+    inline constexpr char AddAccountTrackAlbumCatalogIdSql[] =
+        "ALTER TABLE AccountTracks ADD COLUMN AlbumCatalogId TEXT;";
+    inline constexpr char AddAccountTrackArtistCatalogIdSql[] =
+        "ALTER TABLE AccountTracks ADD COLUMN ArtistCatalogId TEXT;";
+
     inline constexpr char CreateTablesSql[] =
         "CREATE TABLE IF NOT EXISTS AccountProfiles ("
         "AccountId TEXT PRIMARY KEY,"
@@ -14,6 +35,10 @@ namespace LastMusicPlayer::Backend::DatabaseAccountSchema
         "AccountId TEXT NOT NULL,"
         "RemoteId TEXT NOT NULL,"
         "SourceUrl TEXT,"
+        "RemoteProvider TEXT,"
+        "RemoteCatalogId TEXT,"
+        "AlbumCatalogId TEXT,"
+        "ArtistCatalogId TEXT,"
         "Title TEXT,"
         "Artist TEXT,"
         "Album TEXT,"
@@ -57,6 +82,9 @@ namespace LastMusicPlayer::Backend::DatabaseAccountSchema
         "PositionSeconds REAL DEFAULT 0,"
         "AttemptCount INTEGER DEFAULT 0,"
         "LastAttemptAtUtc TEXT,"
+        "NextAttemptAtUnix INTEGER DEFAULT 0,"
+        "LastFailureCategory TEXT,"
+        "IsBlocked INTEGER DEFAULT 0,"
         "FOREIGN KEY (AccountId) REFERENCES AccountProfiles(AccountId) ON DELETE CASCADE);"
         "CREATE TABLE IF NOT EXISTS PendingLikes ("
         "AccountId TEXT NOT NULL,"
@@ -66,6 +94,9 @@ namespace LastMusicPlayer::Backend::DatabaseAccountSchema
         "UpdatedAtUtc TEXT NOT NULL,"
         "AttemptCount INTEGER DEFAULT 0,"
         "LastAttemptAtUtc TEXT,"
+        "NextAttemptAtUnix INTEGER DEFAULT 0,"
+        "LastFailureCategory TEXT,"
+        "IsBlocked INTEGER DEFAULT 0,"
         "PRIMARY KEY (AccountId, RemoteId),"
         "FOREIGN KEY (AccountId) REFERENCES AccountProfiles(AccountId) ON DELETE CASCADE);"
         "CREATE TABLE IF NOT EXISTS AccountSyncState ("
@@ -73,6 +104,19 @@ namespace LastMusicPlayer::Backend::DatabaseAccountSchema
         "LastSuccessfulSyncUtc TEXT,"
         "LastSafeErrorCode TEXT,"
         "LegacyHistoryImportState TEXT,"
+        "FOREIGN KEY (AccountId) REFERENCES AccountProfiles(AccountId) ON DELETE CASCADE);"
+        "CREATE TABLE IF NOT EXISTS AccountPreferences ("
+        "AccountId TEXT NOT NULL,"
+        "PreferenceKey TEXT NOT NULL,"
+        "ValueJson TEXT NOT NULL,"
+        "Revision INTEGER NOT NULL DEFAULT 1,"
+        "Pending INTEGER NOT NULL DEFAULT 0,"
+        "AttemptCount INTEGER NOT NULL DEFAULT 0,"
+        "NextAttemptAtUnix INTEGER NOT NULL DEFAULT 0,"
+        "LastFailureCategory TEXT,"
+        "IsBlocked INTEGER NOT NULL DEFAULT 0,"
+        "UpdatedAtUtc TEXT,"
+        "PRIMARY KEY (AccountId, PreferenceKey),"
         "FOREIGN KEY (AccountId) REFERENCES AccountProfiles(AccountId) ON DELETE CASCADE);"
         "CREATE TABLE IF NOT EXISTS ActiveAccountContext ("
         "SingletonId INTEGER PRIMARY KEY CHECK (SingletonId=1),"
@@ -137,7 +181,8 @@ namespace LastMusicPlayer::Backend::DatabaseAccountSchema
         "t.LastPlayedOrder, t.IsLiked, t.IsActive, t.UpdatedAt, t.LastPlayed, t.RemoteId, "
         // Aliased because callers select this view by column name, and a bare
         // COALESCE would take an implementation-defined one.
-        "COALESCE(t.LastPositionSeconds,0) AS LastPositionSeconds "
+        "COALESCE(t.LastPositionSeconds,0) AS LastPositionSeconds, "
+        "'' AS RemoteProvider, '' AS RemoteCatalogId, '' AS AlbumCatalogId, '' AS ArtistCatalogId "
         "FROM Tracks t WHERE t.SourceKind<>'remote' OR EXISTS ("
         "SELECT 1 FROM ActiveAccountContext c WHERE c.SingletonId=1 AND c.RemoteMode='ApiKey') "
         "UNION ALL "
@@ -151,11 +196,13 @@ namespace LastMusicPlayer::Backend::DatabaseAccountSchema
         // This is the same chain the web client uses: addedAt, firstPlayedAt,
         // lastPlayedAt, so both clients order the shelf alike.
         "CASE WHEN COALESCE(a.DateAddedSortKey,0)<>0 THEN a.DateAddedSortKey "
-        "ELSE COALESCE(CAST(strftime('%s', a.FirstPlayedAtUtc) AS REAL), "
+        "ELSE COALESCE(CAST(strftime('%s', a.DateAddedText) AS REAL), "
+        "CAST(strftime('%s', a.FirstPlayedAtUtc) AS REAL), "
         "CAST(strftime('%s', a.LastPlayedAtUtc) AS REAL), 0) END, "
         "a.DateAddedText, a.DurationText, a.PlayCount, "
         "COALESCE(CAST(strftime('%s', a.LastPlayedAtUtc) AS INTEGER),0), a.IsLiked, 1, "
         "COALESCE(CAST(strftime('%s', a.UpdatedAtUtc) AS INTEGER),0), a.LastPlayedAtUtc, a.RemoteId, "
-        "COALESCE(a.LastPositionSeconds,0) "
+        "COALESCE(a.LastPositionSeconds,0), COALESCE(a.RemoteProvider,''), "
+        "COALESCE(a.RemoteCatalogId,''), COALESCE(a.AlbumCatalogId,''), COALESCE(a.ArtistCatalogId,'') "
         "FROM AccountTracks a JOIN ActiveAccountContext c ON c.SingletonId=1 AND c.RemoteMode='Account' AND c.AccountId=a.AccountId;";
 }

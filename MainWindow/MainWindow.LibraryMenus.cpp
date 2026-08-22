@@ -288,18 +288,18 @@ namespace winrt::Last_Music_Player::implementation
             auto tracks = DatabaseService().LoadAccountPlaylistTracks(
                 accountContext->Binding.OwnerId,
                 accountContext->PlaylistId);
-            std::vector<winrt::hstring> remoteIds;
-            remoteIds.reserve(tracks.size());
+            std::vector<winrt::Last_Music_Player::TrackInfo> remainingTracks;
+            remainingTracks.reserve(tracks.size());
             for (auto const& item : tracks)
             {
                 if (!item.RemoteId().empty() && item.RemoteId() != track.RemoteId())
                 {
-                    remoteIds.push_back(item.RemoteId());
+                    remainingTracks.push_back(item);
                 }
             }
             try
             {
-                auto body = BuildAccountPlaylistUpdateJson(title, remoteIds);
+                auto body = BuildAccountPlaylistUpdateJson(title, remainingTracks);
                 auto operationLease = UserDataOperationGateService().TryEnter();
                 if (!operationLease)
                 {
@@ -426,15 +426,9 @@ namespace winrt::Last_Music_Player::implementation
                 LibraryImportStatusText().Text(L"The account playlist changed. Refresh and try again.");
                 co_return;
             }
-            std::vector<winrt::hstring> remoteIds;
-            remoteIds.reserve(tracks.size());
-            for (auto const& candidate : tracks)
-            {
-                remoteIds.push_back(candidate.RemoteId());
-            }
             try
             {
-                auto body = BuildAccountPlaylistUpdateJson(title, remoteIds);
+                auto body = BuildAccountPlaylistUpdateJson(title, tracks);
                 auto operationLease = UserDataOperationGateService().TryEnter();
                 if (!operationLease)
                 {

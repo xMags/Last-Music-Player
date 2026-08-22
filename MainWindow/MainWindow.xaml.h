@@ -23,6 +23,7 @@
 #include <winrt/Microsoft.UI.Xaml.Media.Imaging.h>
 #include <winrt/Windows.Storage.Streams.h>
 #include <winrt/Windows.Media.h>
+#include <winrt/Windows.Networking.Connectivity.h>
 #include <winrt/Windows.Media.Playback.h>
 #include <winrt/Microsoft.UI.Xaml.h>
 #include <winrt/Microsoft.UI.Xaml.Input.h>
@@ -432,6 +433,14 @@ namespace winrt::Last_Music_Player::implementation
             uint64_t DetailEpoch{};
         };
 
+        struct AccountPlaylistViewRestore
+        {
+            std::wstring PlaylistId;
+            std::vector<std::wstring> SelectedRemoteIds;
+            double VerticalOffset{};
+            bool ScrollRestored{};
+        };
+
         struct AccountArtworkTarget
         {
             winrt::Microsoft::UI::Xaml::Controls::Image Image{ nullptr };
@@ -568,7 +577,8 @@ namespace winrt::Last_Music_Player::implementation
         // allow it. Both background triggers go through here.
         winrt::Windows::Foundation::IAsyncAction RequestBackgroundAccountSyncAsync(
             LastMusicPlayer::Backend::AutoSyncTrigger trigger);
-        void ApplyAutoSyncSetting();
+        winrt::Windows::Foundation::IAsyncAction RecoverAccountConnectionAsync();
+        void EnsureAccountSyncSchedulerStarted();
         void OnWindowActivated(
             winrt::Windows::Foundation::IInspectable const& sender,
             winrt::Microsoft::UI::Xaml::WindowActivatedEventArgs const& args);
@@ -662,6 +672,8 @@ namespace winrt::Last_Music_Player::implementation
         std::optional<AccountPlaylistDetailContext> CaptureAccountPlaylistDetailContext();
         bool IsCurrentAccountPlaylistDetailContext(
             AccountPlaylistDetailContext const& context);
+        void CaptureAccountPlaylistViewRestore();
+        void RestoreAccountPlaylistView();
         void UpdateSongsStats();
         // How many tracks the Offline tab can actually list. Shared so the tab's
         // subtitle and its count badge cannot disagree.
@@ -1274,6 +1286,7 @@ namespace winrt::Last_Music_Player::implementation
         bool m_libraryHistoryGridMode{ true };
         std::vector<AccountPlaylistBinding> m_accountPlaylistBindings;
         std::optional<AccountPlaylistBinding> m_libraryDetailAccountBinding;
+        std::optional<AccountPlaylistViewRestore> m_accountPlaylistViewRestore;
         std::wstring m_libraryDetailKind;
         std::wstring m_libraryDetailKey;
         std::wstring m_libraryDetailSubtitle;
@@ -1351,6 +1364,7 @@ namespace winrt::Last_Music_Player::implementation
         // timer is kept alive by the dispatcher queue and a strong capture
         // would drag the window along with it.
         winrt::Microsoft::UI::Dispatching::DispatcherQueueTimer m_autoSyncTimer{ nullptr };
+        winrt::event_token m_networkStatusChanged{};
 
         // Loading placeholders, one per surface. Each owns its own delay gate,
         // so a load that resolves quickly never puts anything on screen.

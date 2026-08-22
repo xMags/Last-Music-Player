@@ -2,6 +2,7 @@
 #include "MainWindow.xaml.h"
 #include "MainWindow.Internal.h"
 
+#include "Backend/AccountClient.h"
 #include "Backend/CatalogParser.h"
 #include "Backend/CatalogPresentation.h"
 #include "Frontend/RoundedCornerClip.h"
@@ -134,9 +135,13 @@ namespace winrt::Last_Music_Player::implementation
         bool IsTransientAccountArtworkError(winrt::hresult_error const& error) noexcept
         {
             auto code = error.code();
+            auto const status = LastMusicPlayer::Backend::AccountHttpStatus(error);
             return code == HRESULT_FROM_WIN32(ERROR_TIMEOUT)
                 || code == HRESULT_FROM_WIN32(ERROR_CONNECTION_UNAVAIL)
-                || code == HRESULT_FROM_WIN32(ERROR_RETRY);
+                || code == HRESULT_FROM_WIN32(ERROR_RETRY)
+                || status == 408
+                || status == 429
+                || status >= 500;
         }
 
         winrt::hstring ResolvedArtworkUrl(winrt::hstring const& payload)
@@ -2396,6 +2401,9 @@ namespace winrt::Last_Music_Player::implementation
 
         m_discoverStorefront = code;
         SettingsManagerService().SetString(L"CatalogStorefront", code);
+        (void)MusicSyncServiceService().SavePortablePreference(
+            LastMusicPlayer::Backend::PortablePreferenceKey::Storefront,
+            L"\"" + std::wstring(code.c_str()) + L"\"");
         // Artwork is per-storefront content; keeping the old entries would only
         // hold memory for images no longer on screen.
         ClearAccountArtworkCache();

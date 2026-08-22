@@ -478,7 +478,8 @@ namespace LastMusicPlayer::Backend
     }
 
     winrt::Windows::Foundation::IAsyncOperation<winrt::hstring> RemoteMusicService::ResolveUrlAsync(
-        winrt::hstring const& sourceUrl)
+        winrt::hstring const& sourceUrl,
+        bool lowQuality)
     {
         auto scope = CaptureScope();
         if (scope.Mode == RemoteAccessMode::ApiKey)
@@ -493,7 +494,10 @@ namespace LastMusicPlayer::Backend
         CheckScope(scope, context);
         try
         {
-            auto payload = co_await m_accountClient.ResolveUrlAsync(context.m_session.BearerSession, sourceUrl);
+            auto payload = co_await m_accountClient.ResolveUrlAsync(
+                context.m_session.BearerSession,
+                sourceUrl,
+                lowQuality);
             CheckScope(scope, context);
             co_return payload;
         }
@@ -512,7 +516,8 @@ namespace LastMusicPlayer::Backend
         RemoteMusicService::ResolveStreamUrlAsync(
             RemoteScopeSnapshot const& scope,
             winrt::hstring const& sourceUrl,
-            winrt::hstring const& provider)
+            winrt::hstring const& provider,
+            bool lowQuality)
     {
         if (sourceUrl.empty() || scope.Mode == RemoteAccessMode::LocalOnly || !IsCurrent(scope))
         {
@@ -526,7 +531,7 @@ namespace LastMusicPlayer::Backend
             ? ProviderApiKey()
             : winrt::hstring{};
 
-        auto const payload = co_await ResolveUrlAsync(sourceUrl);
+        auto const payload = co_await ResolveUrlAsync(sourceUrl, lowQuality);
         if (payload.empty() || !IsCurrent(scope))
         {
             co_return winrt::hstring{};
@@ -780,13 +785,12 @@ namespace LastMusicPlayer::Backend
             CheckCurrent(context);
             co_return payload;
         }
-        catch (winrt::hresult_error const& error)
+        catch (winrt::hresult_error const&)
         {
             if (!IsCurrent(context))
             {
                 throw winrt::hresult_canceled();
             }
-            HandleAccountError(context.m_session, error);
             throw;
         }
     }
@@ -808,13 +812,12 @@ namespace LastMusicPlayer::Backend
             CheckCurrent(context);
             co_return payload;
         }
-        catch (winrt::hresult_error const& error)
+        catch (winrt::hresult_error const&)
         {
             if (!IsCurrent(context))
             {
                 throw winrt::hresult_canceled();
             }
-            HandleAccountError(context.m_session, error);
             throw;
         }
     }
@@ -940,14 +943,73 @@ namespace LastMusicPlayer::Backend
             CheckCurrent(context);
             co_return payload;
         }
-        catch (winrt::hresult_error const& error)
+        catch (winrt::hresult_error const&)
         {
             if (!IsCurrent(context))
             {
                 throw winrt::hresult_canceled();
             }
-            HandleAccountError(context.m_session, error);
             throw;
+        }
+    }
+
+    winrt::Windows::Foundation::IAsyncOperation<winrt::hstring>
+        RemoteMusicService::GetAccountPreferencesAsync(AccountSyncContext const& context)
+    {
+        CheckCurrent(context);
+        try
+        {
+            auto payload = co_await m_accountSyncTransport.GetPreferencesAsync(
+                context.m_session.BearerSession);
+            CheckCurrent(context);
+            co_return payload;
+        }
+        catch (winrt::hresult_error const&)
+        {
+            if (!IsCurrent(context))
+            {
+                throw winrt::hresult_canceled();
+            }
+            throw;
+        }
+    }
+
+    winrt::Windows::Foundation::IAsyncOperation<winrt::hstring>
+        RemoteMusicService::PutAccountPreferencesAsync(
+            AccountSyncContext const& context,
+            winrt::hstring const& preferencesJson)
+    {
+        CheckCurrent(context);
+        try
+        {
+            auto payload = co_await m_accountSyncTransport.PutPreferencesAsync(
+                context.m_session.BearerSession,
+                preferencesJson);
+            CheckCurrent(context);
+            co_return payload;
+        }
+        catch (winrt::hresult_error const&)
+        {
+            if (!IsCurrent(context))
+            {
+                throw winrt::hresult_canceled();
+            }
+            throw;
+        }
+    }
+
+    winrt::Windows::Foundation::IAsyncOperation<bool> RemoteMusicService::RefreshAccountSessionAsync()
+    {
+        co_await m_accountSession.RestoreAsync();
+        co_return Mode() == RemoteAccessMode::Account
+            && m_accountSession.Status() == AccountSessionStatus::Validated;
+    }
+
+    void RemoteMusicService::HandleAccountSyncUnauthorized(AccountSyncContext const& context) noexcept
+    {
+        if (IsCurrent(context))
+        {
+            m_accountSession.HandleUnauthorized(context.m_session);
         }
     }
 }

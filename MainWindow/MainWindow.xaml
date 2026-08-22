@@ -84,6 +84,10 @@
                             <Setter Target="GaplessSwitch.(Grid.Row)" Value="1" />
                             <Setter Target="GaplessSwitch.HorizontalAlignment" Value="Left" />
                             <Setter Target="GaplessSwitch.Margin" Value="0,12,0,0" />
+                            <Setter Target="DataSaverSwitch.(Grid.Column)" Value="0" />
+                            <Setter Target="DataSaverSwitch.(Grid.Row)" Value="1" />
+                            <Setter Target="DataSaverSwitch.HorizontalAlignment" Value="Left" />
+                            <Setter Target="DataSaverSwitch.Margin" Value="0,12,0,0" />
                             <Setter Target="CloseBehaviorCombo.(Grid.Column)" Value="0" />
                             <Setter Target="CloseBehaviorCombo.(Grid.Row)" Value="1" />
                             <Setter Target="CloseBehaviorCombo.HorizontalAlignment" Value="Left" />
@@ -135,6 +139,10 @@
                             <Setter Target="GaplessSwitch.(Grid.Row)" Value="1" />
                             <Setter Target="GaplessSwitch.HorizontalAlignment" Value="Left" />
                             <Setter Target="GaplessSwitch.Margin" Value="0,12,0,0" />
+                            <Setter Target="DataSaverSwitch.(Grid.Column)" Value="0" />
+                            <Setter Target="DataSaverSwitch.(Grid.Row)" Value="1" />
+                            <Setter Target="DataSaverSwitch.HorizontalAlignment" Value="Left" />
+                            <Setter Target="DataSaverSwitch.Margin" Value="0,12,0,0" />
                             <Setter Target="CloseBehaviorCombo.(Grid.Column)" Value="0" />
                             <Setter Target="CloseBehaviorCombo.(Grid.Row)" Value="1" />
                             <Setter Target="CloseBehaviorCombo.HorizontalAlignment" Value="Left" />
@@ -1870,18 +1878,6 @@
                                                 <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
                                             <StackPanel Spacing="4">
-                                                <TextBlock Text="Keep this PC up to date" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" />
-                                                <TextBlock Text="Check for changes made on your other devices while the app is open." Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
-                                            </StackPanel>
-                                            <ToggleSwitch x:Name="AutoSyncSwitch" Grid.Column="1" IsOn="True" Toggled="SettingsToggle_Toggled" OnContent="" OffContent="" MinWidth="0" VerticalAlignment="Center" />
-                                        </Grid>
-                                        <Border Height="1" Background="{ThemeResource StrokeBrush}" />
-                                        <Grid ColumnSpacing="16">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="Auto" />
-                                            </Grid.ColumnDefinitions>
-                                            <StackPanel Spacing="4">
                                                 <TextBlock Text="Account library on this PC" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" />
                                                 <TextBlock x:Name="AccountLastSyncText" Text="Not synchronized yet" Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
                                             </StackPanel>
@@ -2051,6 +2047,8 @@
                                         <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><StackPanel Spacing="4"><TextBlock Text="Autoplay" Style="{StaticResource BodyStrong}"/><TextBlock Text="Keep playing related songs when your queue ends." Style="{StaticResource CaptionText}" TextWrapping="Wrap"/></StackPanel><ToggleSwitch x:Name="AutoplaySwitch" Grid.Column="1" IsOn="True" Toggled="SettingsToggle_Toggled" OnContent="" OffContent="" MinWidth="0" VerticalAlignment="Center"/></Grid>
                                         <Border Height="1" Background="{ThemeResource DividerBrush}" Margin="0,16"/>
                                         <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><StackPanel Spacing="4"><TextBlock Text="Gapless playback" Style="{StaticResource BodyStrong}"/><TextBlock Text="Remove silence between consecutive tracks." Style="{StaticResource CaptionText}" TextWrapping="Wrap"/></StackPanel><ToggleSwitch x:Name="GaplessSwitch" Grid.Column="1" IsOn="True" Toggled="SettingsToggle_Toggled" OnContent="" OffContent="" MinWidth="0" VerticalAlignment="Center"/></Grid>
+                                        <Border Height="1" Background="{ThemeResource DividerBrush}" Margin="0,16"/>
+                                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><StackPanel Spacing="4"><TextBlock Text="Data Saver" Style="{StaticResource BodyStrong}"/><TextBlock Text="Use a lower-quality account stream on metered Windows connections. Downloads are unchanged." Style="{StaticResource CaptionText}" TextWrapping="Wrap"/></StackPanel><ToggleSwitch x:Name="DataSaverSwitch" Grid.Column="1" IsOn="False" Toggled="SettingsToggle_Toggled" OnContent="" OffContent="" MinWidth="0" VerticalAlignment="Center"/></Grid>
                                         <Border Height="1" Background="{ThemeResource DividerBrush}" Margin="0,16"/>
                                         <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><StackPanel Spacing="4"><TextBlock Text="When closing window" Style="{StaticResource BodyStrong}"/><TextBlock Text="Choose what the close button does." Style="{StaticResource CaptionText}" TextWrapping="Wrap"/></StackPanel><ComboBox x:Name="CloseBehaviorCombo" Grid.Column="1" SelectedIndex="0" MinWidth="160" SelectionChanged="SettingsCombo_SelectionChanged"><ComboBoxItem Content="Minimize to tray"/><ComboBoxItem Content="Quit"/></ComboBox></Grid>
                                         <Border Height="1" Background="{ThemeResource DividerBrush}" Margin="0,16"/>
