@@ -151,6 +151,7 @@ namespace winrt::Last_Music_Player::implementation
             MusicListView(),
             SongsGridView(),
             LibraryDetailTracksListView(),
+            LibraryDetailGridView(),
         };
         for (auto const& surface : librarySurfaces)
         {

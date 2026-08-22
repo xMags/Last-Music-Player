@@ -690,6 +690,21 @@ namespace winrt::Last_Music_Player::implementation
     void MainWindow::UpdateLibraryHeaderForScroll(
         winrt::Microsoft::UI::Xaml::Controls::ScrollViewer const& scroller)
     {
+        if (LibraryDetailContent()
+            && LibraryDetailContent().Visibility() == winrt::Microsoft::UI::Xaml::Visibility::Visible)
+        {
+            auto const activeSurface = m_libraryDetailGridMode
+                ? LibraryDetailGridView().try_as<winrt::Microsoft::UI::Xaml::FrameworkElement>()
+                : LibraryDetailTracksListView().try_as<winrt::Microsoft::UI::Xaml::FrameworkElement>();
+            auto const activeScroller = FindScrollHost<winrt::Microsoft::UI::Xaml::Controls::ScrollViewer>(
+                activeSurface);
+            if (scroller && scroller == activeScroller)
+            {
+                UpdateLibraryDetailToolbarForScroll(scroller);
+            }
+            return;
+        }
+
         auto header = LibraryHeaderBar();
         if (!scroller || !header)
         {
