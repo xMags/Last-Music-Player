@@ -2861,7 +2861,7 @@
                                                 <Image Source="/Assets/LibraryStripeOverlay.svg" Stretch="Fill" Opacity="{x:Bind GeneratedArtworkOpacity}" IsHitTestVisible="False" />
                                                 <TextBlock Text="album" Visibility="Collapsed" />
                                                 <TextBlock Text="album" FontFamily="Consolas" FontSize="9.5" CharacterSpacing="80" Foreground="White" Opacity="{x:Bind GeneratedArtworkOpacity}" VerticalAlignment="Bottom" Margin="12" />
-                                                <Image Source="{x:Bind AlbumArt}" Stretch="UniformToFill" Loaded="AccountArtwork_Loaded" Opacity="{x:Bind ImageArtworkOpacity}" />
+                                                <Image x:Name="ArtworkImage" Source="{x:Bind AlbumArt}" Stretch="UniformToFill" Loaded="AccountArtwork_Loaded" Opacity="{x:Bind ImageArtworkOpacity}" />
                                             </Grid>
                                         </Border>
                                         <TextBlock Text="{x:Bind Title}" Style="{StaticResource BodyStrong}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
@@ -3384,7 +3384,7 @@
                                                         <FontIcon Glyph="{x:Bind ArtworkGlyph}" FontSize="{x:Bind ArtworkGlyphSize}" Opacity="{x:Bind ArtworkGlyphOpacity}" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False" />
                                                         <TextBlock Text="playlist" Visibility="Collapsed" />
                                                         <TextBlock Text="playlist" FontFamily="Consolas" FontSize="9.5" CharacterSpacing="80" Foreground="White" Opacity="{x:Bind GeneratedArtworkOpacity}" VerticalAlignment="Bottom" Margin="12" />
-                                                        <Image Source="{x:Bind AlbumArt}" Stretch="UniformToFill" Loaded="AccountArtwork_Loaded" Opacity="{x:Bind ImageArtworkOpacity}" />
+                                                        <Image x:Name="ArtworkImage" Source="{x:Bind AlbumArt}" Stretch="UniformToFill" Loaded="AccountArtwork_Loaded" Opacity="{x:Bind ImageArtworkOpacity}" />
                                                     </Grid>
                                                 </Border>
                                                 <TextBlock Text="{x:Bind Title}" Style="{StaticResource BodyStrong}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
