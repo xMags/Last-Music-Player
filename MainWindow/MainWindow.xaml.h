@@ -4,6 +4,7 @@
 #include "Backend/DatabaseEngine.h"
 #include "Backend/PlaybackHistoryQualifier.h"
 #include "Backend/AutoSyncPolicy.h"
+#include "Backend/DetailSortPolicy.h"
 #include "Frontend/Skeleton.h"
 // The generated XamlTypeInfo activator for a code-only local control only
 // sees implementation types through the XAML pages' own headers, so the
@@ -76,11 +77,34 @@ namespace winrt::Last_Music_Player::implementation
         void SettingsNav_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void OpenLibrarySongs();
         void BrowseButton_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void DownloadsNav_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void DownloadsPauseAll_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void DownloadsSettings_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void DownloadsSettingsClose_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void DownloadsTab_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void DownloadsClearCompleted_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void DownloadsClearCache_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        winrt::Windows::Foundation::IAsyncAction DownloadsChangeFolder_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void DownloadsRule_Toggled(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void DownloadJobPause_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void DownloadJobCancel_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void DownloadJobRetry_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void DownloadJobDismiss_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         // Home's bar is only a way in to Browse; both the click and a tap on the
         // surrounding chrome land on the same place.
         void HomeSearchEntry_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void HomeSearchEntry_Tapped(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Input::TappedRoutedEventArgs const& args);
         void BrowseCategory_ItemClick(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::ItemClickEventArgs const& args);
+        void BrowseClearQuery_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void BrowseScope_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void BrowseFilter_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void BrowseClearRecent_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void BrowseRecentSearch_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void BrowseTopResult_Tapped(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Input::TappedRoutedEventArgs const& args);
+        void BrowseTopResultPlay_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        winrt::Windows::Foundation::IAsyncAction BrowseTopResultAdd_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void BrowseFacet_ItemClick(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::ItemClickEventArgs const& args);
+        void BrowseFacet_ContainerContentChanging(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::ContainerContentChangingEventArgs const& args);
         void SearchListView_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void SearchGridView_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void SearchSort_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
@@ -168,6 +192,23 @@ namespace winrt::Last_Music_Player::implementation
         void LibraryDetailBack_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void LibraryDetailPlay_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void LibraryDetailShuffle_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void LibraryDetailListView_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void LibraryDetailGridView_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void LibraryDetailFind_TextChanged(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::TextChangedEventArgs const& args);
+        void LibraryDetailSort_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void LibraryDetailTrack_ItemClick(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::ItemClickEventArgs const& args);
+        void LibraryDetailGrid_ContainerContentChanging(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::ContainerContentChangingEventArgs const& args);
+        void LibraryDetailRowLike_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void LibraryDetailSelectionAddToQueue_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        winrt::Windows::Foundation::IAsyncAction LibraryDetailSelectionMove_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        winrt::Windows::Foundation::IAsyncAction LibraryDetailSelectionRemove_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void LibraryDetailMoreMenu_Opening(winrt::Windows::Foundation::IInspectable const& sender, winrt::Windows::Foundation::IInspectable const& args);
+        void LibraryDetailMenuPlayNext_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void LibraryDetailMenuAddToQueue_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        winrt::Windows::Foundation::IAsyncAction LibraryDetailEdit_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        winrt::Windows::Foundation::IAsyncAction LibraryDetailMenuDelete_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void LibraryDetailSuggestionAdd_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        winrt::Windows::Foundation::IAsyncAction LibraryDetailDownload_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         winrt::Windows::Foundation::IAsyncAction LibrarySongsListView_ItemClick(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::ItemClickEventArgs const& args);
         void LibrarySongs_ContainerContentChanging(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::ContainerContentChangingEventArgs const& args);
         void LibraryDetailTracks_ContainerContentChanging(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::ContainerContentChangingEventArgs const& args);
@@ -669,6 +710,24 @@ namespace winrt::Last_Music_Player::implementation
             std::wstring const& key) const;
         [[nodiscard]] winrt::hstring LibraryDetailCountText(int count) const;
         void ApplyLibraryDetailPlaylistCollage();
+        [[nodiscard]] bool LibraryDetailSupportsCuratedOrder() const;
+        [[nodiscard]] bool IsLibraryDetailPlaylist() const;
+        void ResetLibraryDetailToolbar();
+        void ApplyLibraryDetailKindAffordances();
+        void UpdateLibraryDetailHeroMeta();
+        void SetLibraryDetailGridMode(bool gridMode);
+        void ReloadLibraryDetailTracks();
+        void UpdateLibraryDetailEmptyState();
+        void ClearLibraryDetailSelection();
+        void UpdateLibraryDetailSelectionBar();
+        [[nodiscard]] std::vector<winrt::Last_Music_Player::TrackInfo> LibraryDetailSelectedTracks() const;
+        winrt::Windows::Foundation::IAsyncOperation<winrt::Last_Music_Player::TrackInfo> ChooseLibraryDetailMoveTargetAsync();
+        void ToggleLibraryDetailSelection(uint32_t index, bool extendRange);
+        void RefreshLibraryDetailRowStates();
+        void SyncLibraryDetailPlaybackState();
+        void ApplyLibraryDetailRowState(winrt::Microsoft::UI::Xaml::Controls::ListViewItem const& container, uint32_t index);
+        [[nodiscard]] winrt::Last_Music_Player::TrackInfo CurrentLibraryDetailPlaylistGroup();
+        winrt::Windows::Foundation::IAsyncAction HydrateLibraryDetailSuggestionsAsync();
         void HideLibraryDetail();
         void ApplyPlaybackProgress(double currentSeconds, double totalSeconds);
         void RefreshPlaybackProgress();
@@ -880,6 +939,16 @@ namespace winrt::Last_Music_Player::implementation
         void ShowBrowseSearchError(winrt::hstring const& message);
         void SetSearchGridMode(bool gridMode);
         void ApplySearchResultSort();
+        void RebuildBrowseResults();
+        void RebuildBrowseRecentChips();
+        void RecordBrowseRecentSearch(winrt::hstring const& query);
+        void ApplyBrowseScopeVisuals();
+        void ApplyBrowseFilterVisuals();
+        void InitializeDownloads();
+        void RefreshDownloadsView(bool force = false);
+        void SetDownloadSettingsOpen(bool open);
+        void EnqueueAutomaticDownload(winrt::Last_Music_Player::TrackInfo const& track, winrt::hstring const& reason);
+        [[nodiscard]] std::vector<winrt::Last_Music_Player::TrackInfo> BrowseScopedResults() const;
         winrt::Windows::Foundation::IAsyncAction HydrateBrowseLandingAsync(bool force);
         void RunDebouncedHomeSearch();
         winrt::Windows::Foundation::IAsyncAction RunHomeSearchAsync();
@@ -986,6 +1055,12 @@ namespace winrt::Last_Music_Player::implementation
         winrt::Windows::Foundation::Collections::IObservableVector<winrt::Last_Music_Player::TrackInfo> m_searchTracks{
             winrt::single_threaded_observable_vector<winrt::Last_Music_Player::TrackInfo>()
         };
+        winrt::Windows::Foundation::Collections::IObservableVector<winrt::Last_Music_Player::TrackInfo> m_searchFacets{
+            winrt::single_threaded_observable_vector<winrt::Last_Music_Player::TrackInfo>()
+        };
+        winrt::Windows::Foundation::Collections::IObservableVector<winrt::Last_Music_Player::TrackInfo> m_browseResumeTracks{
+            winrt::single_threaded_observable_vector<winrt::Last_Music_Player::TrackInfo>()
+        };
         winrt::Windows::Foundation::Collections::IObservableVector<winrt::Last_Music_Player::TrackInfo> m_browseCategories{
             winrt::single_threaded_observable_vector<winrt::Last_Music_Player::TrackInfo>()
         };
@@ -1011,6 +1086,9 @@ namespace winrt::Last_Music_Player::implementation
             winrt::single_threaded_observable_vector<winrt::Last_Music_Player::TrackInfo>()
         };
         winrt::Windows::Foundation::Collections::IObservableVector<winrt::Last_Music_Player::TrackInfo> m_libraryDetailTracks{
+            winrt::single_threaded_observable_vector<winrt::Last_Music_Player::TrackInfo>()
+        };
+        winrt::Windows::Foundation::Collections::IObservableVector<winrt::Last_Music_Player::TrackInfo> m_libraryDetailSuggestions{
             winrt::single_threaded_observable_vector<winrt::Last_Music_Player::TrackInfo>()
         };
         winrt::Windows::Foundation::Collections::IObservableVector<winrt::Last_Music_Player::TrackInfo> m_upNextQueue{
@@ -1055,9 +1133,11 @@ namespace winrt::Last_Music_Player::implementation
         LastMusicPlayer::Backend::LibraryStats m_libraryStats;
         std::vector<winrt::Last_Music_Player::TrackInfo> m_catalogTracks;
         std::vector<winrt::Last_Music_Player::TrackInfo> m_searchAllResults;
+        std::vector<winrt::Last_Music_Player::TrackInfo> m_searchMatchingPlaylists;
         std::vector<winrt::Last_Music_Player::TrackInfo> m_songsAllResults;
         std::vector<winrt::Last_Music_Player::TrackInfo> m_librarySongAllResults;
         std::vector<winrt::Last_Music_Player::TrackInfo> m_libraryDetailAllResults;
+        std::vector<uint32_t> m_libraryDetailSelection;
         std::wstring m_songsFilter{ L"All" };
         std::wstring m_songsSort{ L"DateAdded" };
         bool m_songsGridMode{ true };
@@ -1101,6 +1181,15 @@ namespace winrt::Last_Music_Player::implementation
         std::wstring m_libraryDetailKind;
         std::wstring m_libraryDetailKey;
         std::wstring m_libraryDetailSubtitle;
+        std::wstring m_libraryDetailDescription;
+        std::wstring m_libraryDetailEditedText;
+        std::wstring m_libraryDetailFindText;
+        LastMusicPlayer::Backend::DetailSort m_libraryDetailSort{
+            LastMusicPlayer::Backend::DetailSort::DateAdded
+        };
+        bool m_libraryDetailGridMode{ false };
+        bool m_libraryDetailFindSuppressed{ false };
+        int64_t m_libraryDetailSelectionAnchor{ -1 };
         // The subtitle the caller handed us is the collection card's caption,
         // which the detail header cannot print verbatim; this is what it prints.
         std::wstring m_libraryDetailMeta;
@@ -1113,14 +1202,25 @@ namespace winrt::Last_Music_Player::implementation
         uint64_t m_songsHydrationEpoch{ 0 };
         uint64_t m_libraryHydrationEpoch{ 0 };
         uint64_t m_libraryDetailHydrationEpoch{ 0 };
+        uint64_t m_libraryDetailFindDebounceId{ 0 };
+        uint64_t m_libraryDetailSuggestionEpoch{ 0 };
         uint64_t m_searchDebounceId{ 0 };
         uint64_t m_searchRequestId{ 0 };
         uint64_t m_browseLandingEpoch{ 0 };
         uint64_t m_nowPlayingArtworkEpoch{ 0 };
         winrt::Microsoft::UI::Xaml::DispatcherTimer m_playbackProgressTimer{ nullptr };
         std::wstring m_searchSort{ L"Relevance" };
+        std::wstring m_searchScope{ L"Library" };
+        std::wstring m_searchFilter{ L"All" };
+        std::vector<std::wstring> m_recentSearches;
+        winrt::Last_Music_Player::TrackInfo m_searchTopResult{ nullptr };
         bool m_searchGridMode{ true };
         bool m_browseLandingLoaded{ false };
+        winrt::Microsoft::UI::Dispatching::DispatcherQueueTimer m_downloadsTimer{ nullptr };
+        std::wstring m_downloadsTab{ L"Active" };
+        std::uint64_t m_downloadsRevision{};
+        bool m_downloadsSettingsOpen{};
+        bool m_loadingDownloadRules{};
         bool m_isSearchMode{ false };
         bool m_isUpdatingSlider = false;
         bool m_loadingSettings = false;
@@ -1180,9 +1280,18 @@ namespace winrt::Last_Music_Player::implementation
         bool m_accentBrushesCaptured = false;
         winrt::Microsoft::UI::Xaml::Media::Brush m_brushAccent{ nullptr };
         winrt::Microsoft::UI::Xaml::Media::Brush m_brushAccentSoft{ nullptr };
+        // The three lighter/heavier accent washes the detail and browse
+        // surfaces use. Captured alongside the two above so ApplyAccentColor
+        // can recolor them together; each keeps its own alpha.
+        winrt::Microsoft::UI::Xaml::Media::Brush m_brushAccentSelection{ nullptr };
+        winrt::Microsoft::UI::Xaml::Media::Brush m_brushAccentNowPlaying{ nullptr };
+        winrt::Microsoft::UI::Xaml::Media::Brush m_brushAccentBorder{ nullptr };
+        winrt::Microsoft::UI::Xaml::Media::Brush m_brushNeutralFill{ nullptr };
+        winrt::Microsoft::UI::Xaml::Media::Brush m_brushSurface{ nullptr };
         winrt::Microsoft::UI::Xaml::Media::Brush m_brushStroke{ nullptr };
         winrt::Microsoft::UI::Xaml::Media::Brush m_brushGlyphIdle{ nullptr };
         winrt::Microsoft::UI::Xaml::Media::Brush m_brushLabelIdle{ nullptr };
+        winrt::Microsoft::UI::Xaml::Media::Brush m_brushTextTertiary{ nullptr };
         winrt::Microsoft::UI::Xaml::Media::Brush m_brushTransparent{ nullptr };
 
         // Lyrics state. Service holds HTTP + parse + cache; here we only retain

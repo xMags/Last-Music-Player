@@ -188,6 +188,12 @@
     <ClInclude Include="Backend\ProviderClient.h" />
     <ClInclude Include="Backend\ProviderHelpers.h" />
     <ClInclude Include="Backend\TrackSearchPolicy.h" />
+    <ClInclude Include="Backend\DetailSortPolicy.h" />
+    <ClInclude Include="Backend\DownloadManager.h" />
+    <ClInclude Include="Backend\DownloadPolicy.h" />
+    <ClInclude Include="Backend\PlaylistSuggestionPolicy.h" />
+    <ClInclude Include="Backend\RecentSearchStore.h" />
+    <ClInclude Include="Backend\SearchFacetPolicy.h" />
     <ClInclude Include="Backend\CastEngine.h" />
     <ClInclude Include="Backend\TrayIcon.h" />
     <ClInclude Include="Backend\DiscordPresence.h" />
@@ -229,6 +235,8 @@
     <ClCompile Include="MainWindow\MainWindow.LibraryHydration.cpp" />
     <ClCompile Include="MainWindow\MainWindow.LibraryCollections.cpp" />
     <ClCompile Include="MainWindow\MainWindow.LibraryDetail.cpp" />
+    <ClCompile Include="MainWindow\MainWindow.DetailToolbar.cpp" />
+    <ClCompile Include="MainWindow\MainWindow.Downloads.cpp" />
     <ClCompile Include="MainWindow\MainWindow.LibraryMenus.cpp" />
     <ClCompile Include="MainWindow\MainWindow.Settings.cpp" />
     <ClCompile Include="MainWindow\MainWindow.ModeSetup.cpp" />
@@ -276,6 +284,12 @@
     <ClCompile Include="Backend\ProviderClient.cpp" />
     <ClCompile Include="Backend\ProviderHelpers.cpp" />
     <ClCompile Include="Backend\TrackSearchPolicy.cpp" />
+    <ClCompile Include="Backend\DetailSortPolicy.cpp" />
+    <ClCompile Include="Backend\DownloadManager.cpp" />
+    <ClCompile Include="Backend\DownloadPolicy.cpp" />
+    <ClCompile Include="Backend\PlaylistSuggestionPolicy.cpp" />
+    <ClCompile Include="Backend\RecentSearchStore.cpp" />
+    <ClCompile Include="Backend\SearchFacetPolicy.cpp" />
     <ClCompile Include="Backend\LyricsService.cpp" />
     <ClCompile Include="Backend\CastEngine.cpp" />
     <ClCompile Include="Backend\TrayIcon.cpp" />

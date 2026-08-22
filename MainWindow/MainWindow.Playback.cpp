@@ -202,16 +202,21 @@ namespace winrt::Last_Music_Player::implementation
             auto remoteScope = remoteMusic.CaptureScope();
             auto remoteMode = remoteScope.Mode;
             auto remote = !file && (IsHttpUrl(filePath) || IsHttpUrl(track.SourceUrl()));
-            if (remote && remoteMode == LastMusicPlayer::Backend::RemoteAccessMode::LocalOnly)
+            auto downloaded = DownloadManagerService().ReadyPath(DownloadStableKey(remoteScope, track));
+            if (remote
+                && remoteMode == LastMusicPlayer::Backend::RemoteAccessMode::LocalOnly
+                && downloaded.empty())
             {
                 return nullptr;
             }
 
             auto providerStreamUrl = ProviderStreamUrlFor(track);
             auto cacheKey = ApiKeyStreamCacheKey(remoteScope, track);
-            auto cached = !cacheKey.empty() && remoteMusic.IsCurrent(remoteScope)
-                ? StreamCacheService().ReadyPath(cacheKey)
-                : std::wstring{};
+            auto cached = std::move(downloaded);
+            if (cached.empty() && !cacheKey.empty() && remoteMusic.IsCurrent(remoteScope))
+            {
+                cached = StreamCacheService().ReadyPath(cacheKey);
+            }
             if (!cached.empty())
             {
                 filePath = winrt::hstring{ cached };
@@ -401,19 +406,27 @@ namespace winrt::Last_Music_Player::implementation
             track.ArtworkUrl(ProviderArtworkUrlFor(rawArtworkUrl));
         }
         auto remote = !file && (IsHttpUrl(filePath) || IsHttpUrl(track.SourceUrl()));
-        if (remote && remoteMode == LastMusicPlayer::Backend::RemoteAccessMode::LocalOnly)
+        auto downloadedFilePath = m_sink == PlaybackSink::Local && remote
+            ? DownloadManagerService().ReadyPath(DownloadStableKey(remoteScope, track))
+            : std::wstring{};
+        if (remote
+            && remoteMode == LastMusicPlayer::Backend::RemoteAccessMode::LocalOnly
+            && downloadedFilePath.empty())
         {
             ShowPlaybackNotice(L"Select a remote integration to play this track.");
             return false;
         }
 
         auto cacheKey = ApiKeyStreamCacheKey(remoteScope, track);
-        auto cachedFilePath = m_sink == PlaybackSink::Local
+        auto cachedFilePath = std::move(downloadedFilePath);
+        if (cachedFilePath.empty()
+            && m_sink == PlaybackSink::Local
             && remote
             && !cacheKey.empty()
-            && remoteMusic.IsCurrent(remoteScope)
-            ? StreamCacheService().ReadyPath(cacheKey)
-            : std::wstring{};
+            && remoteMusic.IsCurrent(remoteScope))
+        {
+            cachedFilePath = StreamCacheService().ReadyPath(cacheKey);
+        }
         bool requiresResolve = cachedFilePath.empty() && (accountMode
             ? !LastMusicPlayer::Backend::IsSafeEphemeralMediaUrl(providerStreamUrl)
             : providerStreamUrl.empty());
@@ -1063,6 +1076,10 @@ namespace winrt::Last_Music_Player::implementation
         std::wstring const& accountOwnerId,
         uint64_t accountGeneration)
     {
+        if (DownloadManagerService().Snapshot().KeepRecentOffline)
+        {
+            EnqueueAutomaticDownload(track, L"Recently played");
+        }
         if (!DatabaseService().IsInitialized())
         {
             return;
@@ -1621,6 +1638,7 @@ namespace winrt::Last_Music_Player::implementation
         {
             icon.Glyph(glyph);
         }
+        SyncLibraryDetailPlaybackState();
     }
 
     winrt::Windows::Foundation::IAsyncAction MainWindow::UpdateSMTCMetadata(winrt::Last_Music_Player::TrackInfo track)

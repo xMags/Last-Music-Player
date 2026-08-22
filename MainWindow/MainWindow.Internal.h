@@ -5,6 +5,7 @@
 #include "Backend/AccountSessionService.h"
 #include "Backend/CredentialStore.h"
 #include "Backend/DatabaseEngine.h"
+#include "Backend/DownloadManager.h"
 #include "Backend/ProfileIdentity.h"
 #include "Backend/ProviderHelpers.h"
 #include "Backend/SettingsManager.h"
@@ -97,6 +98,7 @@ namespace winrt::Last_Music_Player::implementation::detail
     LastMusicPlayer::Backend::DatabaseEngine& DatabaseService();
     LastMusicPlayer::Backend::MusicSyncService& MusicSyncServiceService();
     LastMusicPlayer::Backend::StreamCache& StreamCacheService();
+    LastMusicPlayer::Backend::DownloadManager& DownloadManagerService();
     LastMusicPlayer::Backend::UserDataOperationGate& UserDataOperationGateService();
     LastMusicPlayer::Frontend::NavigationService& NavigationService();
 
@@ -134,6 +136,9 @@ namespace winrt::Last_Music_Player::implementation::detail
     std::wstring HomeQueueDedupeKey(winrt::Last_Music_Player::TrackInfo const& track);
     std::wstring CatalogSourceKey(winrt::Last_Music_Player::TrackInfo const& track);
     std::wstring ApiKeyStreamCacheKey(
+        LastMusicPlayer::Backend::RemoteScopeSnapshot const& scope,
+        winrt::Last_Music_Player::TrackInfo const& track);
+    std::wstring DownloadStableKey(
         LastMusicPlayer::Backend::RemoteScopeSnapshot const& scope,
         winrt::Last_Music_Player::TrackInfo const& track);
     std::wstring FilePathToUri(winrt::hstring const& filePath);

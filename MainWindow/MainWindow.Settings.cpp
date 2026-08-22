@@ -1492,11 +1492,27 @@ namespace winrt::Last_Music_Player::implementation
         {
             ab.Color(color);
         }
-        if (auto sb = m_brushAccentSoft.try_as<winrt::Microsoft::UI::Xaml::Media::SolidColorBrush>())
+
+        // The washes differ from each other only in alpha, and that alpha is
+        // what separates a selected row from a now-playing one. Recolor the hue
+        // and leave each brush's own alpha alone, or they collapse into one
+        // shade and the detail track list loses its state distinctions.
+        winrt::Microsoft::UI::Xaml::Media::Brush const washes[] = {
+            m_brushAccentSoft,
+            m_brushAccentSelection,
+            m_brushAccentNowPlaying,
+            m_brushAccentBorder
+        };
+        for (auto const& wash : washes)
         {
-            auto soft = color;
-            soft.A = sb.Color().A; // keep the soft brush's translucency
-            sb.Color(soft);
+            auto brush = wash.try_as<winrt::Microsoft::UI::Xaml::Media::SolidColorBrush>();
+            if (!brush)
+            {
+                continue;
+            }
+            auto tinted = color;
+            tinted.A = brush.Color().A;
+            brush.Color(tinted);
         }
     }
 

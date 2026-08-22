@@ -14,6 +14,12 @@
 
 namespace LastMusicPlayer::Backend
 {
+    struct StreamCacheUsage
+    {
+        std::uint64_t Bytes{};
+        std::size_t Files{};
+    };
+
     class IStreamCacheTransport
     {
     public:
@@ -73,6 +79,7 @@ namespace LastMusicPlayer::Backend
         // Delete all cache files. Returns false while a download is still active,
         // so callers cannot race recursive deletion against a transfer.
         [[nodiscard]] bool Clear();
+        [[nodiscard]] StreamCacheUsage Usage() const;
 
     private:
         enum class Status { InFlight, Publishing, Ready, Failed };

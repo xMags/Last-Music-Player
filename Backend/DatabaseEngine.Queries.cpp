@@ -210,35 +210,53 @@ namespace LastMusicPlayer::Backend
             }
         };
 
+        // The curated-collection branches below honour SearchText and Sort the
+        // same way the flat branch at the bottom does. They used to ignore both
+        // and always return the curated order, which silently discarded any
+        // find or sort a caller asked a playlist or album collection for.
+        auto collectionSearchPattern = EscapedLikePattern(query.SearchText);
+        auto const collectionSearch = CollectionSearchClause(query.SearchText, 3);
+        auto const collectionLimitIndex = query.SearchText.empty() ? 3 : 4;
+        auto bindCollection = [&](sqlite3_stmt* stmt)
+        {
+            BindText(stmt, 1, query.GroupKey);
+            sqlite3_bind_int(stmt, 2, query.ActiveOnly ? 1 : 0);
+            if (!query.SearchText.empty())
+            {
+                BindText(stmt, 3, collectionSearchPattern);
+            }
+        };
+        auto appendCollectionLimit = [&](std::string& sql)
+        {
+            if (limit <= 0)
+            {
+                return;
+            }
+            sql += " LIMIT ?" + std::to_string(collectionLimitIndex);
+            sql += " OFFSET ?" + std::to_string(collectionLimitIndex + 1);
+        };
+
         if (groupKind == L"album-collection")
         {
-            auto countSql =
+            auto countSql = std::string(
                 "SELECT COUNT(*), COALESCE(SUM(t.DurationSeconds),0) "
                 "FROM AlbumTracks at "
                 "JOIN Albums a ON a.Id=at.AlbumId "
                 "JOIN Tracks t ON t.Id=at.TrackId "
-                "WHERE a.AlbumKey=?1 AND (?2=0 OR t.IsActive=1)";
+                "WHERE a.AlbumKey=?1 AND (?2=0 OR t.IsActive=1)") + collectionSearch;
             auto pageSql = std::string("SELECT ") + kJoinedTrackColumns +
                 " FROM AlbumTracks at "
                 "JOIN Albums a ON a.Id=at.AlbumId "
                 "JOIN Tracks t ON t.Id=at.TrackId "
-                "WHERE a.AlbumKey=?1 AND (?2=0 OR t.IsActive=1) "
-                "ORDER BY at.TrackOrder ASC, t.Title COLLATE NOCASE ASC";
-            if (limit > 0)
-            {
-                pageSql += " LIMIT ?3 OFFSET ?4";
-            }
+                "WHERE a.AlbumKey=?1 AND (?2=0 OR t.IsActive=1)" + collectionSearch + " " +
+                CollectionOrderClause(query.Sort, "at.TrackOrder");
+            appendCollectionLimit(pageSql);
 
-            auto binder = [&](sqlite3_stmt* stmt)
-            {
-                BindText(stmt, 1, query.GroupKey);
-                sqlite3_bind_int(stmt, 2, query.ActiveOnly ? 1 : 0);
-            };
-            readCount(countSql, binder);
+            readCount(countSql, bindCollection);
             readTracks(pageSql, [&](sqlite3_stmt* stmt)
             {
-                binder(stmt);
-                bindLimitOffset(stmt, 3);
+                bindCollection(stmt);
+                bindLimitOffset(stmt, collectionLimitIndex);
             });
             return page;
         }
@@ -252,6 +270,74 @@ namespace LastMusicPlayer::Backend
             }
             auto playlistId = query.GroupKey.substr(std::size(kAccountPlaylistPrefix) - 1);
             auto tracks = LoadAccountPlaylistTracks(query.AccountOwnerId, playlistId);
+
+            // This playlist is served from memory rather than SQL, so the find
+            // and sort the other collection branches push into the query have
+            // to be applied here by hand to keep the three paths consistent.
+            if (!query.SearchText.empty())
+            {
+                auto const needle = ToLowerInvariant(query.SearchText);
+                auto const matches = [&needle](TrackInfo const& track)
+                {
+                    auto const contains = [&needle](winrt::hstring const& field)
+                    {
+                        return ToLowerInvariant(std::wstring{ field.c_str() }).find(needle)
+                            != std::wstring::npos;
+                    };
+                    return contains(track.Title()) || contains(track.Artist()) || contains(track.Album());
+                };
+                std::erase_if(tracks, [&matches](TrackInfo const& track) { return !matches(track); });
+            }
+
+            auto const sort = ToLowerInvariant(query.Sort);
+            auto const byTitle = [](TrackInfo const& left, TrackInfo const& right)
+            {
+                return ToLowerInvariant(std::wstring{ left.Title().c_str() })
+                    < ToLowerInvariant(std::wstring{ right.Title().c_str() });
+            };
+            if (sort == L"title")
+            {
+                std::stable_sort(tracks.begin(), tracks.end(), byTitle);
+            }
+            else if (sort == L"artist")
+            {
+                std::stable_sort(tracks.begin(), tracks.end(),
+                    [&byTitle](TrackInfo const& left, TrackInfo const& right)
+                    {
+                        auto const leftArtist = ToLowerInvariant(std::wstring{ left.Artist().c_str() });
+                        auto const rightArtist = ToLowerInvariant(std::wstring{ right.Artist().c_str() });
+                        if (leftArtist != rightArtist)
+                        {
+                            return leftArtist < rightArtist;
+                        }
+                        return byTitle(left, right);
+                    });
+            }
+            else if (sort == L"duration")
+            {
+                std::stable_sort(tracks.begin(), tracks.end(),
+                    [&byTitle](TrackInfo const& left, TrackInfo const& right)
+                    {
+                        if (left.DurationSeconds() != right.DurationSeconds())
+                        {
+                            return left.DurationSeconds() > right.DurationSeconds();
+                        }
+                        return byTitle(left, right);
+                    });
+            }
+            else if (sort == L"dateadded")
+            {
+                std::stable_sort(tracks.begin(), tracks.end(),
+                    [&byTitle](TrackInfo const& left, TrackInfo const& right)
+                    {
+                        if (left.DateAddedSortKey() != right.DateAddedSortKey())
+                        {
+                            return left.DateAddedSortKey() > right.DateAddedSortKey();
+                        }
+                        return byTitle(left, right);
+                    });
+            }
+
             page.TotalCount = static_cast<int>(tracks.size());
             for (auto const& track : tracks)
             {
@@ -273,33 +359,25 @@ namespace LastMusicPlayer::Backend
         }
         if (groupKind == L"playlist")
         {
-            auto countSql =
+            auto countSql = std::string(
                 "SELECT COUNT(*), COALESCE(SUM(t.DurationSeconds),0) "
                 "FROM PlaylistTracks pt "
                 "JOIN Playlists p ON p.Id=pt.PlaylistId "
                 "JOIN Tracks t ON t.Id=pt.TrackId "
-                "WHERE p.PlaylistKey=?1 AND (?2=0 OR t.IsActive=1)";
+                "WHERE p.PlaylistKey=?1 AND (?2=0 OR t.IsActive=1)") + collectionSearch;
             auto pageSql = std::string("SELECT ") + kJoinedTrackColumns +
                 " FROM PlaylistTracks pt "
                 "JOIN Playlists p ON p.Id=pt.PlaylistId "
                 "JOIN Tracks t ON t.Id=pt.TrackId "
-                "WHERE p.PlaylistKey=?1 AND (?2=0 OR t.IsActive=1) "
-                "ORDER BY pt.TrackOrder ASC, t.Title COLLATE NOCASE ASC";
-            if (limit > 0)
-            {
-                pageSql += " LIMIT ?3 OFFSET ?4";
-            }
+                "WHERE p.PlaylistKey=?1 AND (?2=0 OR t.IsActive=1)" + collectionSearch + " " +
+                CollectionOrderClause(query.Sort, "pt.TrackOrder");
+            appendCollectionLimit(pageSql);
 
-            auto binder = [&](sqlite3_stmt* stmt)
-            {
-                BindText(stmt, 1, query.GroupKey);
-                sqlite3_bind_int(stmt, 2, query.ActiveOnly ? 1 : 0);
-            };
-            readCount(countSql, binder);
+            readCount(countSql, bindCollection);
             readTracks(pageSql, [&](sqlite3_stmt* stmt)
             {
-                binder(stmt);
-                bindLimitOffset(stmt, 3);
+                bindCollection(stmt);
+                bindLimitOffset(stmt, collectionLimitIndex);
             });
             return page;
         }
@@ -489,7 +567,8 @@ namespace LastMusicPlayer::Backend
 
         Statement stmt{ m_db,
             "SELECT Id, PlaylistKey, Title, Description, ArtworkUrl, SourceKind, Provider, SourceUrl, SourceLabel, "
-            "(SELECT COUNT(*) FROM PlaylistTracks WHERE PlaylistId=Playlists.Id) "
+            "(SELECT COUNT(*) FROM PlaylistTracks WHERE PlaylistId=Playlists.Id), "
+            "COALESCE(NULLIF(UpdatedAt,0),CreatedAt,0) "
             "FROM Playlists ORDER BY UpdatedAt DESC, Title COLLATE NOCASE ASC;" };
         if (!stmt) return groups;
 
@@ -510,6 +589,7 @@ namespace LastMusicPlayer::Backend
             group.SourceKind(L"playlist");
             group.SourceLabel(L"On this PC");
             group.TrackCount(count);
+            group.DateAddedSortKey(sqlite3_column_double(stmt.value, 10));
             groups.push_back(group);
         }
 
@@ -518,7 +598,8 @@ namespace LastMusicPlayer::Backend
             "(SELECT COUNT(*) FROM AccountPlaylistTracks pt WHERE pt.AccountId=p.AccountId AND pt.PlaylistId=p.PlaylistId), "
             "COALESCE((SELECT t.ArtworkUrl FROM AccountPlaylistTracks pt JOIN AccountTracks t ON t.AccountId=pt.AccountId AND t.RemoteId=pt.RemoteId "
             "WHERE pt.AccountId=p.AccountId AND pt.PlaylistId=p.PlaylistId AND COALESCE(t.ArtworkUrl,'')<>'' "
-            "ORDER BY pt.TrackOrder LIMIT 1),'') "
+            "ORDER BY pt.TrackOrder LIMIT 1),''), "
+            "COALESCE(CAST(strftime('%s', p.UpdatedAtUtc) AS INTEGER),0) "
             "FROM AccountPlaylists p JOIN ActiveAccountContext c ON c.SingletonId=1 AND c.AccountId=p.AccountId "
             "ORDER BY p.UpdatedAtUtc DESC, p.Name COLLATE NOCASE ASC;" };
         if (accountStmt)
@@ -540,6 +621,7 @@ namespace LastMusicPlayer::Backend
                 group.SourceKind(L"playlist");
                 group.SourceLabel(L"Synced");
                 group.TrackCount(count);
+                group.DateAddedSortKey(sqlite3_column_double(accountStmt.value, 6));
                 groups.push_back(group);
             }
         }

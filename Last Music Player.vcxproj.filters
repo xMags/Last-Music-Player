@@ -201,6 +201,24 @@
     <ClInclude Include="Backend\ProviderHelpers.h">
       <Filter>Backend</Filter>
     </ClInclude>
+    <ClInclude Include="Backend\DetailSortPolicy.h">
+      <Filter>Backend</Filter>
+    </ClInclude>
+    <ClInclude Include="Backend\DownloadManager.h">
+      <Filter>Backend</Filter>
+    </ClInclude>
+    <ClInclude Include="Backend\DownloadPolicy.h">
+      <Filter>Backend</Filter>
+    </ClInclude>
+    <ClInclude Include="Backend\PlaylistSuggestionPolicy.h">
+      <Filter>Backend</Filter>
+    </ClInclude>
+    <ClInclude Include="Backend\RecentSearchStore.h">
+      <Filter>Backend</Filter>
+    </ClInclude>
+    <ClInclude Include="Backend\SearchFacetPolicy.h">
+      <Filter>Backend</Filter>
+    </ClInclude>
     <ClInclude Include="Backend\LyricsService.h">
       <Filter>Backend</Filter>
     </ClInclude>
@@ -253,6 +271,12 @@
       <Filter>MainWindow</Filter>
     </ClCompile>
     <ClCompile Include="MainWindow\MainWindow.LibraryDetail.cpp">
+      <Filter>MainWindow</Filter>
+    </ClCompile>
+    <ClCompile Include="MainWindow\MainWindow.DetailToolbar.cpp">
+      <Filter>MainWindow</Filter>
+    </ClCompile>
+    <ClCompile Include="MainWindow\MainWindow.Downloads.cpp">
       <Filter>MainWindow</Filter>
     </ClCompile>
     <ClCompile Include="MainWindow\MainWindow.LibraryMenus.cpp">
@@ -341,6 +365,24 @@
       <Filter>Backend</Filter>
     </ClCompile>
     <ClCompile Include="Backend\ProviderHelpers.cpp">
+      <Filter>Backend</Filter>
+    </ClCompile>
+    <ClCompile Include="Backend\DetailSortPolicy.cpp">
+      <Filter>Backend</Filter>
+    </ClCompile>
+    <ClCompile Include="Backend\DownloadManager.cpp">
+      <Filter>Backend</Filter>
+    </ClCompile>
+    <ClCompile Include="Backend\DownloadPolicy.cpp">
+      <Filter>Backend</Filter>
+    </ClCompile>
+    <ClCompile Include="Backend\PlaylistSuggestionPolicy.cpp">
+      <Filter>Backend</Filter>
+    </ClCompile>
+    <ClCompile Include="Backend\RecentSearchStore.cpp">
+      <Filter>Backend</Filter>
+    </ClCompile>
+    <ClCompile Include="Backend\SearchFacetPolicy.cpp">
       <Filter>Backend</Filter>
     </ClCompile>
     <ClCompile Include="Backend\LyricsService.cpp">

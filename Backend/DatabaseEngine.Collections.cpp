@@ -3,6 +3,8 @@
 #include "Backend/DatabaseEngine.Internal.h"
 #include "Backend/ProviderHelpers.h"
 
+#include <unordered_set>
+
 namespace LastMusicPlayer::Backend
 {
     using namespace DatabaseDetail;
@@ -484,6 +486,210 @@ namespace LastMusicPlayer::Backend
         {
             BindText(touch.value, 1, playlistKey);
             sqlite3_step(touch.value);
+        }
+        return true;
+    }
+
+    bool DatabaseEngine::RemoveTracksFromPlaylist(
+        std::wstring const& playlistKey,
+        std::vector<int64_t> const& trackIds)
+    {
+        std::scoped_lock lock{ m_mutex };
+        if (!m_db || playlistKey.empty() || trackIds.empty())
+        {
+            return false;
+        }
+
+        if (!Exec(m_db, "BEGIN IMMEDIATE;"))
+        {
+            return false;
+        }
+
+        Statement lookup{ m_db, "SELECT Id FROM Playlists WHERE PlaylistKey=?1;" };
+        if (!lookup)
+        {
+            TryExec(m_db, "ROLLBACK;");
+            return false;
+        }
+        BindText(lookup.value, 1, playlistKey);
+        if (sqlite3_step(lookup.value) != SQLITE_ROW)
+        {
+            TryExec(m_db, "ROLLBACK;");
+            return false;
+        }
+        auto const playlistId = sqlite3_column_int64(lookup.value, 0);
+
+        Statement remove{ m_db,
+            "DELETE FROM PlaylistTracks WHERE PlaylistId=?1 AND TrackId=?2;" };
+        if (!remove)
+        {
+            TryExec(m_db, "ROLLBACK;");
+            return false;
+        }
+
+        std::unordered_set<int64_t> uniqueIds;
+        auto removed = 0;
+        for (auto const trackId : trackIds)
+        {
+            if (trackId <= 0 || !uniqueIds.insert(trackId).second)
+            {
+                continue;
+            }
+
+            sqlite3_reset(remove.value);
+            sqlite3_clear_bindings(remove.value);
+            sqlite3_bind_int64(remove.value, 1, playlistId);
+            sqlite3_bind_int64(remove.value, 2, trackId);
+            if (sqlite3_step(remove.value) != SQLITE_DONE)
+            {
+                TryExec(m_db, "ROLLBACK;");
+                return false;
+            }
+            removed += sqlite3_changes(m_db);
+        }
+
+        if (removed == 0)
+        {
+            TryExec(m_db, "ROLLBACK;");
+            return false;
+        }
+
+        Statement touch{ m_db,
+            "UPDATE Playlists SET UpdatedAt=strftime('%s','now') WHERE Id=?1;" };
+        if (!touch)
+        {
+            TryExec(m_db, "ROLLBACK;");
+            return false;
+        }
+        sqlite3_bind_int64(touch.value, 1, playlistId);
+        if (sqlite3_step(touch.value) != SQLITE_DONE || !Exec(m_db, "COMMIT;"))
+        {
+            TryExec(m_db, "ROLLBACK;");
+            return false;
+        }
+        return true;
+    }
+
+    bool DatabaseEngine::MoveTracksBetweenPlaylists(
+        std::wstring const& sourcePlaylistKey,
+        std::wstring const& targetPlaylistKey,
+        std::vector<int64_t> const& trackIds)
+    {
+        std::scoped_lock lock{ m_mutex };
+        if (!m_db
+            || sourcePlaylistKey.empty()
+            || targetPlaylistKey.empty()
+            || sourcePlaylistKey == targetPlaylistKey
+            || trackIds.empty())
+        {
+            return false;
+        }
+
+        if (!Exec(m_db, "BEGIN IMMEDIATE;"))
+        {
+            return false;
+        }
+
+        auto playlistId = [&](std::wstring const& key) -> int64_t
+        {
+            Statement lookup{ m_db, "SELECT Id FROM Playlists WHERE PlaylistKey=?1;" };
+            if (!lookup)
+            {
+                return 0;
+            }
+            BindText(lookup.value, 1, key);
+            return sqlite3_step(lookup.value) == SQLITE_ROW
+                ? sqlite3_column_int64(lookup.value, 0)
+                : 0;
+        };
+        auto const sourceId = playlistId(sourcePlaylistKey);
+        auto const targetId = playlistId(targetPlaylistKey);
+        if (sourceId <= 0 || targetId <= 0)
+        {
+            TryExec(m_db, "ROLLBACK;");
+            return false;
+        }
+
+        Statement nextOrderStatement{ m_db,
+            "SELECT COALESCE(MAX(TrackOrder),0)+1 FROM PlaylistTracks WHERE PlaylistId=?1;" };
+        if (!nextOrderStatement)
+        {
+            TryExec(m_db, "ROLLBACK;");
+            return false;
+        }
+        sqlite3_bind_int64(nextOrderStatement.value, 1, targetId);
+        auto nextOrder = sqlite3_step(nextOrderStatement.value) == SQLITE_ROW
+            ? sqlite3_column_int(nextOrderStatement.value, 0)
+            : 1;
+
+        Statement append{ m_db,
+            "INSERT OR IGNORE INTO PlaylistTracks (PlaylistId, TrackId, TrackOrder) "
+            "SELECT ?1, TrackId, ?2 FROM PlaylistTracks "
+            "WHERE PlaylistId=?3 AND TrackId=?4;" };
+        Statement remove{ m_db,
+            "DELETE FROM PlaylistTracks WHERE PlaylistId=?1 AND TrackId=?2;" };
+        if (!append || !remove)
+        {
+            TryExec(m_db, "ROLLBACK;");
+            return false;
+        }
+
+        std::unordered_set<int64_t> uniqueIds;
+        auto moved = 0;
+        for (auto const trackId : trackIds)
+        {
+            if (trackId <= 0 || !uniqueIds.insert(trackId).second)
+            {
+                continue;
+            }
+
+            sqlite3_reset(append.value);
+            sqlite3_clear_bindings(append.value);
+            sqlite3_bind_int64(append.value, 1, targetId);
+            sqlite3_bind_int(append.value, 2, nextOrder);
+            sqlite3_bind_int64(append.value, 3, sourceId);
+            sqlite3_bind_int64(append.value, 4, trackId);
+            if (sqlite3_step(append.value) != SQLITE_DONE)
+            {
+                TryExec(m_db, "ROLLBACK;");
+                return false;
+            }
+            if (sqlite3_changes(m_db) > 0)
+            {
+                ++nextOrder;
+            }
+
+            sqlite3_reset(remove.value);
+            sqlite3_clear_bindings(remove.value);
+            sqlite3_bind_int64(remove.value, 1, sourceId);
+            sqlite3_bind_int64(remove.value, 2, trackId);
+            if (sqlite3_step(remove.value) != SQLITE_DONE)
+            {
+                TryExec(m_db, "ROLLBACK;");
+                return false;
+            }
+            moved += sqlite3_changes(m_db);
+        }
+
+        if (moved == 0)
+        {
+            TryExec(m_db, "ROLLBACK;");
+            return false;
+        }
+
+        Statement touch{ m_db,
+            "UPDATE Playlists SET UpdatedAt=strftime('%s','now') WHERE Id IN (?1,?2);" };
+        if (!touch)
+        {
+            TryExec(m_db, "ROLLBACK;");
+            return false;
+        }
+        sqlite3_bind_int64(touch.value, 1, sourceId);
+        sqlite3_bind_int64(touch.value, 2, targetId);
+        if (sqlite3_step(touch.value) != SQLITE_DONE || !Exec(m_db, "COMMIT;"))
+        {
+            TryExec(m_db, "ROLLBACK;");
+            return false;
         }
         return true;
     }

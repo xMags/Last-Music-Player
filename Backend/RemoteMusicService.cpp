@@ -1,12 +1,14 @@
 #include "pch.h"
 #include "Backend/RemoteMusicService.h"
 
+#include "Backend/BuildConfig.h"
 #include "Backend/ProviderClient.h"
 #include "Backend/ProviderHelpers.h"
 
 #include <windows.h>
 #include <bcrypt.h>
 #include <winrt/Windows.Foundation.h>
+#include <winrt/Windows.Data.Json.h>
 
 #include <array>
 #include <limits>
@@ -504,6 +506,66 @@ namespace LastMusicPlayer::Backend
             HandleAccountError(context, error);
             throw;
         }
+    }
+
+    winrt::Windows::Foundation::IAsyncOperation<winrt::hstring>
+        RemoteMusicService::ResolveStreamUrlAsync(
+            RemoteScopeSnapshot const& scope,
+            winrt::hstring const& sourceUrl,
+            winrt::hstring const& provider)
+    {
+        if (sourceUrl.empty() || scope.Mode == RemoteAccessMode::LocalOnly || !IsCurrent(scope))
+        {
+            co_return winrt::hstring{};
+        }
+
+        auto const baseUrl = scope.Mode == RemoteAccessMode::ApiKey
+            ? ProviderBaseUrl()
+            : winrt::hstring{};
+        auto const apiKey = scope.Mode == RemoteAccessMode::ApiKey
+            ? ProviderApiKey()
+            : winrt::hstring{};
+
+        auto const payload = co_await ResolveUrlAsync(sourceUrl);
+        if (payload.empty() || !IsCurrent(scope))
+        {
+            co_return winrt::hstring{};
+        }
+
+        winrt::hstring streamUrl;
+        winrt::hstring artworkUrl;
+        try
+        {
+            auto const root = winrt::Windows::Data::Json::JsonObject::Parse(payload);
+            auto const result = root.GetNamedObject(L"result", nullptr);
+            if (result)
+            {
+                streamUrl = result.GetNamedString(L"streamUrl", L"");
+                artworkUrl = result.GetNamedString(L"artworkUrl", L"");
+            }
+        }
+        catch (...)
+        {
+            co_return winrt::hstring{};
+        }
+
+        if (scope.Mode == RemoteAccessMode::Account)
+        {
+            co_return IsTrustedAccountMediaUrl(
+                streamUrl,
+                BuildConfig::AccountMediaOrigin,
+                L"stream")
+                ? streamUrl
+                : winrt::hstring{};
+        }
+
+        co_return BuildProviderStreamUrl(
+            streamUrl,
+            sourceUrl,
+            provider,
+            artworkUrl,
+            baseUrl,
+            apiKey);
     }
 
     winrt::Windows::Foundation::IAsyncOperation<winrt::hstring> RemoteMusicService::ImportAsync(

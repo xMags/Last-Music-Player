@@ -175,6 +175,16 @@ namespace winrt::Last_Music_Player::implementation::detail
         return service;
     }
 
+    LastMusicPlayer::Backend::DownloadManager& DownloadManagerService()
+    {
+        static LastMusicPlayer::Backend::DownloadManager service{
+            SettingsManagerService(),
+            RemoteMusicServiceService(),
+            UserDataOperationGateService()
+        };
+        return service;
+    }
+
     LastMusicPlayer::Frontend::NavigationService& NavigationService()
     {
         static LastMusicPlayer::Frontend::NavigationService service;
@@ -735,6 +745,31 @@ namespace winrt::Last_Music_Player::implementation::detail
         key += L"\n";
         key += track.SourceUrl().c_str();
         return key;
+    }
+
+    std::wstring DownloadStableKey(
+        LastMusicPlayer::Backend::RemoteScopeSnapshot const& scope,
+        winrt::Last_Music_Player::TrackInfo const& track)
+    {
+        auto const trackKey = CatalogSourceKey(track);
+        if (trackKey.empty())
+        {
+            return {};
+        }
+        if (ToLowerCopy(track.SourceKind()) != L"remote")
+        {
+            return trackKey;
+        }
+        if (scope.Mode == LastMusicPlayer::Backend::RemoteAccessMode::LocalOnly)
+        {
+            return {};
+        }
+        auto scopeKey = LastMusicPlayer::Backend::RemoteScopeCacheKey(scope);
+        if (scopeKey.empty())
+        {
+            return {};
+        }
+        return L"download|" + scopeKey + L"\n" + trackKey;
     }
 
     std::wstring FilePathToUri(winrt::hstring const& filePath)

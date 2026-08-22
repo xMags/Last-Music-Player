@@ -111,6 +111,13 @@ namespace LastMusicPlayer::Backend
             winrt::hstring const& sourceUrl);
         winrt::Windows::Foundation::IAsyncOperation<winrt::hstring> ResolveUrlAsync(
             winrt::hstring const& sourceUrl);
+        // Resolves one durable catalog URL into a short-lived media URL and
+        // validates it for the captured remote scope. Callers may use the
+        // result for an immediate transfer, but must never persist it.
+        winrt::Windows::Foundation::IAsyncOperation<winrt::hstring> ResolveStreamUrlAsync(
+            RemoteScopeSnapshot const& scope,
+            winrt::hstring const& sourceUrl,
+            winrt::hstring const& provider);
         winrt::Windows::Foundation::IAsyncOperation<winrt::hstring> ImportAsync(
             winrt::hstring const& sourceUrl);
         winrt::Windows::Foundation::IAsyncOperation<winrt::hstring> ImportAsync(

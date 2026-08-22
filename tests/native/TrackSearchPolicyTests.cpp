@@ -173,8 +173,8 @@ namespace
 
     void TestMinimumQueryLength()
     {
-        Expect(policy::kMinimumSearchQueryLength == 2,
-            "the other clients issue no request below two characters");
+        Expect(policy::kMinimumSearchQueryLength == 1,
+            "the redesigned Browse surface should search every non-empty query");
     }
 }
 
