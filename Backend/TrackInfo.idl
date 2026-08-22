@@ -33,6 +33,13 @@ namespace Last_Music_Player
         String Genre;
         String DateAdded;
         Double DateAddedSortKey;
+        // Where playback last stopped in this track. Zero means start from the
+        // beginning: it is cleared on a natural finish and never set for a stop
+        // close to either end, so a resume offer always has something left.
+        Double ResumePositionSeconds;
+        // "2:14 left", or empty when there is nothing to resume.
+        String ResumeCaption{ get; };
+        Microsoft.UI.Xaml.Visibility ResumeCaptionVisibility{ get; };
         String Duration;
         Int32 Index;
         // Local database row id. Not a catalog identifier: account tracks store a

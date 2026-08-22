@@ -4,6 +4,7 @@
 #include "Backend/DownloadPolicy.h"
 #include "Backend/PlaylistSuggestionPolicy.h"
 #include "Backend/RecentSearchStore.h"
+#include "Backend/ResumePositionPolicy.h"
 #include "Backend/SearchFacetPolicy.h"
 
 #include <exception>
@@ -164,6 +165,102 @@ namespace
         Expect(!policy::DownloadSchedulingAllowed(false, true, true, false, true, false),
             "global pause should override available network and power");
     }
+
+    policy::SearchFacetInput Candidate(
+        std::wstring title,
+        std::wstring artist,
+        std::wstring album,
+        bool inLibrary = false)
+    {
+        policy::SearchFacetInput input;
+        input.Title = std::move(title);
+        input.Artist = std::move(artist);
+        input.Album = std::move(album);
+        input.InLibrary = inLibrary;
+        return input;
+    }
+
+    void TestTopSearchResult()
+    {
+        policy::TopSearchResult result;
+        Expect(!policy::ChooseTopSearchResult({}, L"anything", result),
+            "no candidates should mean no top result");
+
+        // The exact title match is last, where a date-added ordering would
+        // leave it, so taking the first row would have picked the wrong song.
+        std::vector<policy::SearchFacetInput> tracks{
+            Candidate(L"Monsoon Interlude", L"Other Artist", L"Other Album"),
+            Candidate(L"Monsoon Nights Revisited", L"Someone", L"Someone Album"),
+            Candidate(L"Monsoon", L"Tanu Sen", L"Rain Sessions")
+        };
+        Expect(policy::ChooseTopSearchResult(tracks, L"Monsoon", result),
+            "a populated result set should yield a top result");
+        Expect(result.Index == 2, "an exact title match should outrank a prefix match");
+        Expect(result.Kind == policy::TopResultKind::Song, "a track match should stay a song");
+        Expect(result.Title == L"Monsoon", "the song result should be titled by its track");
+
+        Expect(policy::ChooseTopSearchResult(tracks, L"monsoon", result),
+            "matching should be case-insensitive");
+        Expect(result.Index == 2, "case should not change which candidate wins");
+
+        // A title only ever containing the query loses to an artist whose whole
+        // name is the query.
+        std::vector<policy::SearchFacetInput> byArtist{
+            Candidate(L"A Song About Tanu Sen", L"Nobody", L"Nothing"),
+            Candidate(L"Unrelated", L"Tanu Sen", L"Rain Sessions")
+        };
+        Expect(policy::ChooseTopSearchResult(byArtist, L"Tanu Sen", result),
+            "an artist query should still produce a result");
+        Expect(result.Index == 1, "a whole-artist match should beat a title substring");
+
+        // Two tracks of the named album promote it to an album result.
+        std::vector<policy::SearchFacetInput> albumTracks{
+            Candidate(L"Track One", L"Tanu Sen", L"Rain Sessions"),
+            Candidate(L"Track Two", L"Tanu Sen", L"Rain Sessions")
+        };
+        Expect(policy::ChooseTopSearchResult(albumTracks, L"Rain Sessions", result),
+            "an album query should produce a result");
+        Expect(result.Kind == policy::TopResultKind::Album,
+            "a named album holding several tracks should take the card");
+        Expect(result.Title == L"Rain Sessions", "an album result should be titled by its album");
+        Expect(result.Index == 0, "an album result should point at its first held track");
+
+        std::vector<policy::SearchFacetInput> loneTrack{
+            Candidate(L"Track One", L"Tanu Sen", L"Rain Sessions")
+        };
+        Expect(policy::ChooseTopSearchResult(loneTrack, L"Rain Sessions", result),
+            "a single album track should still produce a result");
+        Expect(result.Kind == policy::TopResultKind::Song,
+            "one track is not enough of an album to promote it");
+
+        // Provenance only settles an otherwise equal pair.
+        std::vector<policy::SearchFacetInput> tie{
+            Candidate(L"Echoes", L"A", L"X", false),
+            Candidate(L"Echoes", L"B", L"Y", true)
+        };
+        Expect(policy::ChooseTopSearchResult(tie, L"Echoes", result),
+            "tied candidates should still produce a result");
+        Expect(result.Index == 1, "an in-library track should settle a tie");
+    }
+
+    void TestResumePositionPolicy()
+    {
+        Expect(policy::ResumePositionToStore(5.0, 300.0) == 0.0,
+            "a glance at the opening should not become a resume point");
+        Expect(policy::ResumePositionToStore(120.0, 300.0) == 120.0,
+            "a stop in the middle should be stored as-is");
+        Expect(policy::ResumePositionToStore(295.0, 300.0) == 0.0,
+            "a stop in the outro should clear rather than store");
+        Expect(policy::ResumePositionToStore(120.0, 0.0) == 120.0,
+            "an unknown duration should still store past the head margin");
+
+        Expect(!policy::CanResumeFrom(0.0, 300.0),
+            "an unset position is not resumable");
+        Expect(policy::CanResumeFrom(120.0, 300.0),
+            "a stored middle position is resumable");
+        Expect(!policy::CanResumeFrom(120.0, 130.0),
+            "a position past a shorter replacement file is not resumable");
+    }
 }
 
 int main()
@@ -174,6 +271,8 @@ int main()
         TestPlaylistSuggestionPolicy();
         TestRecentSearchStore();
         TestSearchFacetPolicy();
+        TestTopSearchResult();
+        TestResumePositionPolicy();
         TestDownloadPolicy();
         std::wcout << L"PlayerScreenPolicyTests passed" << std::endl;
         return 0;

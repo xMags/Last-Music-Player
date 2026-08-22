@@ -5,6 +5,7 @@
 #include "Backend/BuildConfig.h"
 #include "Backend/ProviderClient.h"
 #include "Backend/DiscordPresence.h"
+#include "Backend/ResumePositionPolicy.h"
 
 #include <winrt/Windows.Data.Json.h>
 #include <winrt/Windows.Devices.Enumeration.h>
@@ -1085,6 +1086,13 @@ namespace winrt::Last_Music_Player::implementation
             return;
         }
 
+        // This play is about to change what "recently played" means, and the
+        // Browse landing caches its resume row for the whole session. Dropping
+        // the flag makes the next visit re-read it; without this the row still
+        // showed whatever was recent when the app started.
+        m_browseLandingLoaded = false;
+        ++m_browseLandingEpoch;
+
         if (RemoteMusicServiceService().Mode() == LastMusicPlayer::Backend::RemoteAccessMode::Account)
         {
             auto snapshot = AccountSessionService().Snapshot();
@@ -1117,6 +1125,92 @@ namespace winrt::Last_Music_Player::implementation
         }
 
         DatabaseService().RecordPlayback(key, m_homePlaySequence);
+    }
+
+    void MainWindow::PersistResumePosition(
+        winrt::Last_Music_Player::TrackInfo const& track,
+        double positionSeconds,
+        double durationSeconds,
+        bool force)
+    {
+        if (!track || !DatabaseService().IsInitialized())
+        {
+            return;
+        }
+        auto const key = CatalogSourceKey(track);
+        if (key.empty())
+        {
+            return;
+        }
+
+        auto const stored = LastMusicPlayer::Backend::ResumePositionToStore(
+            positionSeconds,
+            durationSeconds);
+
+        // The progress poll runs twice a second, and writing the same row that
+        // often would be pure churn on the database file. A periodic save only
+        // lands once the point has moved far enough to be worth keeping; the
+        // transitions that end playback force the exact value through.
+        static constexpr double kPeriodicSaveSeconds = 10.0;
+        auto const sameTrack = key == m_persistedResumeKey;
+        if (!force
+            && sameTrack
+            && std::abs(stored - m_persistedResumeSeconds) < kPeriodicSaveSeconds)
+        {
+            return;
+        }
+        // Nothing to clear and nothing to store: skip the write entirely rather
+        // than rewriting a zero over a zero for every track played start to end.
+        if (stored <= 0.0 && sameTrack && m_persistedResumeSeconds <= 0.0)
+        {
+            return;
+        }
+
+        m_persistedResumeSeconds = stored;
+        m_persistedResumeKey = key;
+        DatabaseService().RecordPlaybackPosition(std::wstring(key.c_str()), stored);
+        track.ResumePositionSeconds(stored);
+    }
+
+    void MainWindow::PersistResumePositionForCurrentTrack()
+    {
+        if (m_sink != PlaybackSink::Local)
+        {
+            return;
+        }
+        auto const track = AudioPlayerService().GetCurrentTrack();
+        if (!track)
+        {
+            return;
+        }
+        auto const mediaPlayer = AudioPlayerService().GetMediaPlayer();
+        if (!mediaPlayer)
+        {
+            return;
+        }
+        auto const session = mediaPlayer.PlaybackSession();
+        PersistResumePosition(
+            track,
+            static_cast<double>(session.Position().count()) / 10000000.0,
+            static_cast<double>(session.NaturalDuration().count()) / 10000000.0,
+            true);
+    }
+
+    void MainWindow::ClearResumePosition(winrt::Last_Music_Player::TrackInfo const& track)
+    {
+        if (!track || !DatabaseService().IsInitialized())
+        {
+            return;
+        }
+        auto const key = CatalogSourceKey(track);
+        if (key.empty())
+        {
+            return;
+        }
+        m_persistedResumeKey = key;
+        m_persistedResumeSeconds = 0.0;
+        DatabaseService().RecordPlaybackPosition(std::wstring(key.c_str()), 0.0);
+        track.ResumePositionSeconds(0.0);
     }
 
     void MainWindow::UpdateLikeButton(winrt::Last_Music_Player::TrackInfo const& track)
@@ -1400,6 +1494,10 @@ namespace winrt::Last_Music_Player::implementation
         else
         {
             AudioPlayerService().GetMediaPlayer().Pause();
+            // Pausing is the most likely moment for a listener to walk away,
+            // so the exact point goes in now rather than waiting for the next
+            // periodic save.
+            PersistResumePositionForCurrentTrack();
         }
         PlayPauseIcon().Glyph(L"\xE768");
         if (FsPlayPauseIcon()) FsPlayPauseIcon().Glyph(L"\xE768");
@@ -1613,6 +1711,14 @@ namespace winrt::Last_Music_Player::implementation
         {
             m_lastPlaybackPositionSeconds = currentSeconds;
         }
+        // Persisted from the poll rather than only on pause, so a resume point
+        // survives a kill or a power loss. PersistResumePosition drops writes
+        // that would not move the stored value, so this is not a per-tick write.
+        PersistResumePosition(
+            AudioPlayerService().GetCurrentTrack(),
+            currentSeconds,
+            totalSeconds,
+            false);
         ApplyPlaybackProgress(currentSeconds, totalSeconds);
         if (m_railOnLyrics && !m_currentLyricsSynced.empty())
         {

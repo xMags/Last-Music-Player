@@ -147,6 +147,8 @@ namespace LastMusicPlayer::Backend
         int64_t UpsertLocalTrack(TrackInfo const& track, std::wstring const& sourceKey);
         int64_t UpsertRemoteTrack(TrackInfo const& track, std::wstring const& sourceKey);
         void RecordPlayback(std::wstring const& sourceKey, uint64_t playOrder);
+        // Where playback stopped, for the resume shelf. Zero clears it.
+        void RecordPlaybackPosition(std::wstring const& sourceKey, double positionSeconds);
         void MergePlaybackStats(std::wstring const& sourceKey, uint32_t playCount, uint64_t lastPlayedOrder);
         uint64_t MaxLastPlayedOrder() const;
         void SetLiked(std::wstring const& sourceKey, bool liked);

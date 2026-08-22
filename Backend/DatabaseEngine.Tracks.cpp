@@ -222,6 +222,24 @@ namespace LastMusicPlayer::Backend
         }
     }
 
+    void DatabaseEngine::RecordPlaybackPosition(std::wstring const& sourceKey, double positionSeconds)
+    {
+        std::scoped_lock lock{ m_mutex };
+        if (!m_db || sourceKey.empty())
+        {
+            return;
+        }
+
+        Statement stmt{ m_db, "UPDATE Tracks SET LastPositionSeconds=? WHERE SourceKey=?;" };
+        if (!stmt) return;
+        sqlite3_bind_double(stmt.value, 1, positionSeconds > 0.0 ? positionSeconds : 0.0);
+        BindText(stmt.value, 2, sourceKey);
+        if (sqlite3_step(stmt.value) != SQLITE_DONE)
+        {
+            return;
+        }
+    }
+
     void DatabaseEngine::MergePlaybackStats(std::wstring const& sourceKey, uint32_t playCount, uint64_t lastPlayedOrder)
     {
         std::scoped_lock lock{ m_mutex };

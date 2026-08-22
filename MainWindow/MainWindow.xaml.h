@@ -91,6 +91,9 @@ namespace winrt::Last_Music_Player::implementation
         void DownloadsClearCache_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         winrt::Windows::Foundation::IAsyncAction DownloadsChangeFolder_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void DownloadsRule_Toggled(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void DownloadsRuleRow_PointerEntered(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Input::PointerRoutedEventArgs const& args);
+        void DownloadsRuleRow_PointerExited(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Input::PointerRoutedEventArgs const& args);
+        void DownloadsRuleRow_Tapped(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Input::TappedRoutedEventArgs const& args);
         void DownloadJobPause_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void DownloadJobCancel_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void DownloadJobRetry_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
@@ -101,6 +104,7 @@ namespace winrt::Last_Music_Player::implementation
         void HomeSearchEntry_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void HomeSearchEntry_Tapped(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Input::TappedRoutedEventArgs const& args);
         void BrowseCategory_ItemClick(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::ItemClickEventArgs const& args);
+        void BrowseResume_ItemClick(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::ItemClickEventArgs const& args);
         void BrowseClearQuery_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void BrowseScope_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void BrowseFilter_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
@@ -207,6 +211,9 @@ namespace winrt::Last_Music_Player::implementation
         void LibraryDetailGrid_ContainerContentChanging(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::ContainerContentChangingEventArgs const& args);
         void LibraryDetailRowLike_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void LibraryDetailSelectionAddToQueue_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void LibraryDetailSelectionClear_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void LibraryDetailDensity_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void LibraryDetailRowMenuSelect_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         winrt::Windows::Foundation::IAsyncAction LibraryDetailSelectionMove_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         winrt::Windows::Foundation::IAsyncAction LibraryDetailSelectionRemove_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void LibraryDetailMoreMenu_Opening(winrt::Windows::Foundation::IInspectable const& sender, winrt::Windows::Foundation::IInspectable const& args);
@@ -763,6 +770,16 @@ namespace winrt::Last_Music_Player::implementation
             uint64_t accountGeneration);
         void BeginPlaybackQualification(winrt::Last_Music_Player::TrackInfo const& track);
         void ObservePlaybackQualification(bool playing, double positionSeconds);
+        // Resume points for the "pick up where you left off" shelf. force
+        // bypasses the periodic-save threshold for the transitions that end
+        // playback; ClearResumePosition drops the stored point outright.
+        void PersistResumePosition(
+            winrt::Last_Music_Player::TrackInfo const& track,
+            double positionSeconds,
+            double durationSeconds,
+            bool force);
+        void PersistResumePositionForCurrentTrack();
+        void ClearResumePosition(winrt::Last_Music_Player::TrackInfo const& track);
         void UpdateLikeButton(winrt::Last_Music_Player::TrackInfo const& track);
         void ApplySettingsResponsiveLayout(double width);
         void ApplyLibraryHeaderResponsive(double width);
@@ -948,7 +965,12 @@ namespace winrt::Last_Music_Player::implementation
         void SetSearchGridMode(bool gridMode);
         void ApplySearchResultSort();
         void RebuildBrowseResults();
+        void LoadLibraryDetailDensity();
+        void ApplyLibraryDetailDensityVisuals();
         void RebuildBrowseRecentChips();
+        void PlayTopSearchResult();
+        void LoadPersistedRecentSearches();
+        void ScheduleRecentSearchRecord(winrt::hstring const& query, uint64_t requestId);
         void RecordBrowseRecentSearch(winrt::hstring const& query);
         void ApplyBrowseScopeVisuals();
         void ApplyBrowseFilterVisuals();
@@ -1039,6 +1061,10 @@ namespace winrt::Last_Music_Player::implementation
         // Last sampled playback position (seconds) for the local sink. Used to
         // resume near where a stream dropped when OnMediaFailed re-opens it.
         double m_lastPlaybackPositionSeconds{ 0.0 };
+        // Last resume point written to the database, so the progress poll can
+        // skip a write that would not move it.
+        winrt::hstring m_persistedResumeKey;
+        double m_persistedResumeSeconds{ 0.0 };
         LastMusicPlayer::Backend::PlaybackHistoryQualifier m_playbackHistoryQualifier;
         winrt::Last_Music_Player::TrackInfo m_pendingPlaybackTrack{ nullptr };
         std::wstring m_pendingPlaybackIdentity;
@@ -1158,6 +1184,9 @@ namespace winrt::Last_Music_Player::implementation
         std::vector<winrt::Last_Music_Player::TrackInfo> m_librarySongAllResults;
         std::vector<winrt::Last_Music_Player::TrackInfo> m_libraryDetailAllResults;
         std::vector<uint32_t> m_libraryDetailSelection;
+        // Compact drops the track rows from 58 to 46 px and their artwork from
+        // 38 to 30, per the reference's two densities.
+        bool m_libraryDetailCompact{ false };
         std::wstring m_songsFilter{ L"All" };
         std::wstring m_songsSort{ L"DateAdded" };
         bool m_songsGridMode{ true };
@@ -1234,6 +1263,9 @@ namespace winrt::Last_Music_Player::implementation
         std::wstring m_searchFilter{ L"All" };
         std::vector<std::wstring> m_recentSearches;
         winrt::Last_Music_Player::TrackInfo m_searchTopResult{ nullptr };
+        // What the top-result card's play action enqueues: the one track for a
+        // song result, every held track of the album for an album result.
+        std::vector<winrt::Last_Music_Player::TrackInfo> m_searchTopResultQueue;
         bool m_searchGridMode{ true };
         bool m_browseLandingLoaded{ false };
         winrt::Microsoft::UI::Dispatching::DispatcherQueueTimer m_downloadsTimer{ nullptr };
@@ -1314,6 +1346,7 @@ namespace winrt::Last_Music_Player::implementation
         winrt::Microsoft::UI::Xaml::Media::Brush m_brushTextTertiary{ nullptr };
         winrt::Microsoft::UI::Xaml::Media::Brush m_brushTransparent{ nullptr };
         winrt::Microsoft::UI::Xaml::Media::Brush m_brushRowDivider{ nullptr };
+        winrt::Microsoft::UI::Xaml::Media::Brush m_brushRowHover{ nullptr };
         winrt::Microsoft::UI::Xaml::Media::Brush m_brushControlBorder{ nullptr };
         winrt::Microsoft::UI::Xaml::Media::Brush m_brushDanger{ nullptr };
         // Count badge on a selected accent chip. Not a theme resource: it is

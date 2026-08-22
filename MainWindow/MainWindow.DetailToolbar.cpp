@@ -41,6 +41,26 @@ namespace winrt::Last_Music_Player::implementation
         constexpr uint32_t kRowPlayGlyphChild = 1;
         constexpr uint32_t kRowTitleBlockChild = 2;
 
+        // Comfortable and Compact row metrics from the reference.
+        constexpr double kRowHeightComfortable = 58.0;
+        constexpr double kRowHeightCompact = 46.0;
+        constexpr double kRowArtComfortable = 38.0;
+        constexpr double kRowArtCompact = 30.0;
+
+        MUXC::Border RowArtworkBorder(MUXC::Grid const& row)
+        {
+            if (!row || row.Children().Size() <= kRowTitleBlockChild)
+            {
+                return nullptr;
+            }
+            auto titleCell = row.Children().GetAt(kRowTitleBlockChild).try_as<MUXC::Grid>();
+            if (!titleCell || titleCell.Children().Size() == 0)
+            {
+                return nullptr;
+            }
+            return titleCell.Children().GetAt(0).try_as<MUXC::Border>();
+        }
+
         MUXC::TextBlock RowTitleTextBlock(MUXC::Grid const& row)
         {
             if (!row || row.Children().Size() <= kRowTitleBlockChild)
@@ -219,21 +239,24 @@ namespace winrt::Last_Music_Player::implementation
         m_libraryDetailGridMode = gridMode;
         EnsureAccentBrushes();
 
+        // The selected half is a neutral inset chip with a dark glyph, not an
+        // accent wash: this control chooses a layout, and the reference saves
+        // the accent for things that say what is playing or what is selected.
         if (auto listButton = LibraryDetailListViewButton())
         {
-            listButton.Background(gridMode ? m_brushTransparent : m_brushAccentSoft);
+            listButton.Background(gridMode ? m_brushTransparent : m_brushNeutralFill);
         }
         if (auto gridButton = LibraryDetailGridViewButton())
         {
-            gridButton.Background(gridMode ? m_brushAccentSoft : m_brushTransparent);
+            gridButton.Background(gridMode ? m_brushNeutralFill : m_brushTransparent);
         }
         if (auto glyph = LibraryDetailListViewGlyph())
         {
-            glyph.Foreground(gridMode ? m_brushGlyphIdle : m_brushAccent);
+            glyph.Foreground(gridMode ? m_brushGlyphIdle : m_brushLabelIdle);
         }
         if (auto glyph = LibraryDetailGridViewGlyph())
         {
-            glyph.Foreground(gridMode ? m_brushAccent : m_brushGlyphIdle);
+            glyph.Foreground(gridMode ? m_brushLabelIdle : m_brushGlyphIdle);
         }
 
         if (auto surface = LibraryDetailListSurface())
@@ -267,6 +290,59 @@ namespace winrt::Last_Music_Player::implementation
         (void)sender;
         (void)args;
         SetLibraryDetailGridMode(true);
+    }
+
+    // ------------------------------------------------------------- density
+
+    void MainWindow::LoadLibraryDetailDensity()
+    {
+        m_libraryDetailCompact = detail::SettingsManagerService()
+            .GetString(L"LibraryDetailDensity", L"Comfortable") == L"Compact";
+        ApplyLibraryDetailDensityVisuals();
+    }
+
+    void MainWindow::ApplyLibraryDetailDensityVisuals()
+    {
+        if (auto item = LibraryDetailDensityComfortable())
+        {
+            item.IsChecked(!m_libraryDetailCompact);
+        }
+        if (auto item = LibraryDetailDensityCompact())
+        {
+            item.IsChecked(m_libraryDetailCompact);
+        }
+    }
+
+    void MainWindow::LibraryDetailDensity_Click(
+        winrt::Windows::Foundation::IInspectable const& sender,
+        MUX::RoutedEventArgs const& args)
+    {
+        (void)args;
+        auto const element = sender.try_as<MUX::FrameworkElement>();
+        auto const tag = element ? detail::ReadTagString(element.Tag()) : winrt::hstring{};
+        if (tag != L"Comfortable" && tag != L"Compact")
+        {
+            return;
+        }
+
+        m_libraryDetailCompact = tag == L"Compact";
+        detail::SettingsManagerService().SetString(L"LibraryDetailDensity", tag);
+        ApplyLibraryDetailDensityVisuals();
+
+        // Containers already realized keep the metrics they were measured with,
+        // so the rows have to be re-measured rather than merely repainted.
+        RefreshLibraryDetailRowStates();
+        if (auto list = LibraryDetailTracksListView())
+        {
+            for (uint32_t index = 0; index < m_libraryDetailTracks.Size(); ++index)
+            {
+                if (auto container = list.ContainerFromIndex(static_cast<int32_t>(index))
+                    .try_as<MUXC::ListViewItem>())
+                {
+                    ApplyLibraryDetailRowState(container, index);
+                }
+            }
+        }
     }
 
     // ------------------------------------------------------- find and sort
@@ -605,15 +681,22 @@ namespace winrt::Last_Music_Player::implementation
             auto art = root.Children().GetAt(0).try_as<MUXC::Border>();
             if (art)
             {
-                art.BorderBrush(selected ? m_brushAccent : m_brushTransparent);
-                art.BorderThickness(selected ? MUX::Thickness{ 2 } : MUX::Thickness{ 0 });
-
                 auto artGrid = art.Child().try_as<MUXC::Grid>();
                 if (artGrid && artGrid.Children().Size() > 2)
                 {
                     if (auto badge = artGrid.Children().GetAt(2).try_as<MUXC::Border>())
                     {
                         badge.Visibility(nowPlaying ? Visibility::Visible : Visibility::Collapsed);
+                    }
+                }
+                // The ring is the last child of the artwork grid; see the
+                // template. Toggling it leaves the cover at full size, which a
+                // border on the artwork itself would not.
+                if (artGrid && artGrid.Children().Size() > 4)
+                {
+                    if (auto ring = artGrid.Children().GetAt(4).try_as<MUXC::Border>())
+                    {
+                        ring.Visibility(selected ? Visibility::Visible : Visibility::Collapsed);
                     }
                 }
             }
@@ -662,13 +745,40 @@ namespace winrt::Last_Music_Player::implementation
         auto const nowPlaying = track && current
             && detail::CatalogSourceKey(track) == detail::CatalogSourceKey(current);
 
+        auto row = container.ContentTemplateRoot().try_as<MUXC::Grid>();
+
         // Now playing wins over selection: it says what the app is doing,
         // while selection only says what the listener is about to act on.
-        container.Background(nowPlaying
-            ? m_brushAccentNowPlaying
-            : (selected ? m_brushAccentSelection : m_brushTransparent));
+        //
+        // The wash goes on the row's own Grid rather than on the container.
+        // A container background is a local value, and the default
+        // ListViewItem PointerOver state overrides it, which dropped an accent
+        // row back to stock grey the moment the pointer crossed it. The
+        // container now carries only hover, scoped to the reference's row
+        // hover in the list's resources, and these translucent washes sit
+        // above it.
+        if (row)
+        {
+            row.Background(nowPlaying
+                ? m_brushAccentNowPlaying
+                : (selected ? m_brushAccentSelection : m_brushTransparent));
+        }
+        // Density. The template ships the Comfortable metrics, so Compact is
+        // applied per realized row; a recycled container is re-measured here
+        // too, which is what keeps the two densities from mixing mid-list.
+        auto const compact = m_libraryDetailCompact;
+        container.MinHeight(compact ? kRowHeightCompact : kRowHeightComfortable);
+        if (row)
+        {
+            row.Height(compact ? kRowHeightCompact : kRowHeightComfortable);
+        }
+        if (auto art = RowArtworkBorder(row))
+        {
+            auto const size = compact ? kRowArtCompact : kRowArtComfortable;
+            art.Width(size);
+            art.Height(size);
+        }
 
-        auto row = container.ContentTemplateRoot().try_as<MUXC::Grid>();
         if (!row || row.Children().Size() <= kRowPlayGlyphChild)
         {
             return;
@@ -747,6 +857,36 @@ namespace winrt::Last_Music_Player::implementation
     {
         (void)args;
         ToggleTrackLiked(TrackFromActionSender(sender));
+    }
+
+    void MainWindow::LibraryDetailSelectionClear_Click(
+        winrt::Windows::Foundation::IInspectable const& sender,
+        MUX::RoutedEventArgs const& args)
+    {
+        (void)sender;
+        (void)args;
+        ClearLibraryDetailSelection();
+    }
+
+    void MainWindow::LibraryDetailRowMenuSelect_Click(
+        winrt::Windows::Foundation::IInspectable const& sender,
+        MUX::RoutedEventArgs const& args)
+    {
+        (void)args;
+        // Clicking a row plays it, so selection is reachable by keyboard only
+        // through Ctrl and Shift. This gives the pointer its own way in, which
+        // the card grid otherwise has no route to at all.
+        auto const track = TrackFromActionSender(sender);
+        if (!track)
+        {
+            return;
+        }
+        uint32_t index = 0;
+        if (!m_libraryDetailTracks.IndexOf(track, index))
+        {
+            return;
+        }
+        ToggleLibraryDetailSelection(index, false);
     }
 
     void MainWindow::LibraryDetailSelectionAddToQueue_Click(

@@ -545,7 +545,7 @@ namespace winrt::Last_Music_Player::implementation
 
     winrt::hstring MainWindow::LibraryDetailCountText(int count) const
     {
-        auto text = std::to_wstring(count) + (count == 1 ? L" song" : L" songs");
+        auto text = std::to_wstring(count) + (count == 1 ? L" track" : L" tracks");
         if (!m_libraryDetailMeta.empty())
         {
             text += L" - " + m_libraryDetailMeta;

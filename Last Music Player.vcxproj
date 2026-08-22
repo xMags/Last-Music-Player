@@ -179,6 +179,7 @@
     <ClInclude Include="Backend\CatalogPresentation.h" />
     <ClInclude Include="Backend\EmbeddedArtwork.h" />
     <ClInclude Include="Backend\PlaybackHistoryQualifier.h" />
+    <ClInclude Include="Backend\ResumePositionPolicy.h" />
     <ClInclude Include="Backend\HistoryImport.h" />
     <ClInclude Include="Backend\StreamCache.h" />
     <ClInclude Include="Backend\DatabaseEngine.h" />

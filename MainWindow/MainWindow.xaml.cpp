@@ -625,6 +625,8 @@ namespace winrt::Last_Music_Player::implementation
             DatabaseService().Initialize();
         }
         InitializeDownloads();
+        LoadPersistedRecentSearches();
+        LoadLibraryDetailDensity();
         auto weakWindow = get_weak();
         AccountSessionService().SetOwnerChangedCallback([weakWindow](winrt::hstring const& ownerId)
         {
@@ -1043,6 +1045,7 @@ namespace winrt::Last_Music_Player::implementation
         m_brushTransparent = ProbeTransparent().Background();
         m_brushStroke = ProbeStroke().BorderBrush();
         m_brushRowDivider = ProbeRowDivider().Background();
+        m_brushRowHover = ProbeRowHover().Background();
         m_brushControlBorder = ProbeControlBorder().BorderBrush();
         m_brushDanger = ProbeDanger().Foreground();
         m_brushBadgeOnAccent = winrt::Microsoft::UI::Xaml::Media::SolidColorBrush{

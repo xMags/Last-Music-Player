@@ -182,6 +182,7 @@
     <ClInclude Include="Backend\CatalogPresentation.h"><Filter>Backend</Filter></ClInclude>
     <ClInclude Include="Backend\EmbeddedArtwork.h"><Filter>Backend</Filter></ClInclude>
     <ClInclude Include="Backend\PlaybackHistoryQualifier.h"><Filter>Backend</Filter></ClInclude>
+    <ClInclude Include="Backend\ResumePositionPolicy.h"><Filter>Backend</Filter></ClInclude>
     <ClInclude Include="Backend\HistoryImport.h"><Filter>Backend</Filter></ClInclude>
     <ClInclude Include="Backend\DatabaseEngine.h">
       <Filter>Backend</Filter>

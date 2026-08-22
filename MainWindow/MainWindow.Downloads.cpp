@@ -27,6 +27,18 @@ namespace winrt::Last_Music_Player::implementation
         namespace MUXM = winrt::Microsoft::UI::Xaml::Media;
         using LastMusicPlayer::Backend::DownloadItemState;
 
+        // Thousands separators for the offline tally, which reaches four and
+        // five digits on a real library and reads as a run of digits without them.
+        std::wstring GroupedCount(std::size_t value)
+        {
+            auto text = std::to_wstring(value);
+            for (auto position = static_cast<int>(text.size()) - 3; position > 0; position -= 3)
+            {
+                text.insert(static_cast<std::size_t>(position), L",");
+            }
+            return text;
+        }
+
         std::wstring FormatBytes(std::uint64_t bytes)
         {
             static constexpr wchar_t const* units[]{ L"B", L"KB", L"MB", L"GB", L"TB" };
@@ -54,11 +66,11 @@ namespace winrt::Last_Music_Player::implementation
                 auto text = std::to_wstring(completed) + L" of " + std::to_wstring(total);
                 if (job.BytesPerSecond > 0)
                 {
-                    text += L"  ·  " + FormatBytes(job.BytesPerSecond) + L"/s";
+                    text += L" · " + FormatBytes(job.BytesPerSecond) + L"/s";
                     if (job.BytesTotal > job.BytesDownloaded)
                     {
                         auto const seconds = (job.BytesTotal - job.BytesDownloaded) / job.BytesPerSecond;
-                        text += L"  ·  " + std::to_wstring((seconds + 59) / 60) + L" min left";
+                        text += L" · " + std::to_wstring((seconds + 59) / 60) + L" min left";
                     }
                 }
                 return text;
@@ -68,10 +80,10 @@ namespace winrt::Last_Music_Player::implementation
                 auto const percent = job.BytesTotal > 0
                     ? static_cast<int>(job.BytesDownloaded * 100 / job.BytesTotal)
                     : 0;
-                return L"Paused  ·  " + std::to_wstring(percent) + L"%";
+                return L"Paused · " + std::to_wstring(percent) + L"%";
             }
             case DownloadItemState::Completed:
-                return std::to_wstring(total) + (total == 1 ? L" track  ·  " : L" tracks  ·  ")
+                return std::to_wstring(total) + (total == 1 ? L" track · " : L" tracks · ")
                     + FormatBytes(job.BytesDownloaded);
             case DownloadItemState::Failed:
                 return job.Error.empty() ? L"Download failed" : job.Error;
@@ -125,13 +137,42 @@ namespace winrt::Last_Music_Player::implementation
             return text;
         }
 
-        // Rows sit inside one shared card, so the frame carries only padding and
-        // the hairline the caller decides to draw beneath it.
-        MUXC::Border RowFrame(MUXC::Grid const& row, MUX::Thickness const& padding)
+        // Rows sit inside one shared card, so the frame carries only padding,
+        // hover, and the hairline the caller decides to draw beneath it.
+        // The handlers capture only the two brushes and read the row back off
+        // the sender, so nothing here outlives the row it belongs to.
+        MUXC::Border RowFrame(
+            MUXC::Grid const& row,
+            MUX::Thickness const& padding,
+            MUXM::Brush const& hover,
+            MUXM::Brush const& idle)
         {
             MUXC::Border frame;
             frame.Padding(padding);
+            frame.Background(idle);
             frame.Child(row);
+            if (!hover || !idle)
+            {
+                return frame;
+            }
+            frame.PointerEntered([hover](
+                winrt::Windows::Foundation::IInspectable const& sender,
+                MUX::Input::PointerRoutedEventArgs const&)
+            {
+                if (auto const border = sender.try_as<MUXC::Border>())
+                {
+                    border.Background(hover);
+                }
+            });
+            frame.PointerExited([idle](
+                winrt::Windows::Foundation::IInspectable const& sender,
+                MUX::Input::PointerRoutedEventArgs const&)
+            {
+                if (auto const border = sender.try_as<MUXC::Border>())
+                {
+                    border.Background(idle);
+                }
+            });
             return frame;
         }
 
@@ -264,7 +305,7 @@ namespace winrt::Last_Music_Player::implementation
             button.BorderThickness(MUX::Thickness{ 0 });
             MUXC::FontIcon icon;
             icon.Glyph(L"\xE712");
-            icon.FontSize(13);
+            icon.FontSize(15);
             button.Content(icon);
             MUXA::AutomationProperties::SetName(button, accessibleName);
 
@@ -375,6 +416,9 @@ namespace winrt::Last_Music_Player::implementation
         DownloadsQueuedCount().Text(winrt::to_hstring(queued));
         DownloadsCompletedCount().Text(winrt::to_hstring(completed));
         DownloadsFailedCount().Text(winrt::to_hstring(failed));
+        // Nothing to clear reads better as an unavailable action than as a
+        // button that answers a click with no visible change.
+        DownloadsClearCompletedButton().IsEnabled(completed > 0);
         auto const pending = active + queued;
         DownloadsNavCount().Text(winrt::to_hstring(pending));
         DownloadsNavBadge().Visibility(pending == 0 ? MUX::Visibility::Collapsed : MUX::Visibility::Visible);
@@ -393,14 +437,14 @@ namespace winrt::Last_Music_Player::implementation
         else if (active > 0 || queued > 0)
         {
             DownloadsStatusText().Text(winrt::hstring(
-                std::to_wstring(active) + L" active  ·  " + std::to_wstring(queued) + L" queued"));
+                std::to_wstring(active) + L" downloading · " + std::to_wstring(queued) + L" queued"));
         }
         else
         {
             DownloadsStatusText().Text(L"Nothing queued");
         }
         DownloadsOfflineCountText().Text(winrt::hstring(
-            std::to_wstring(snapshot.OfflineTracks)
+            GroupedCount(snapshot.OfflineTracks)
             + (snapshot.OfflineTracks == 1 ? L" track offline" : L" tracks offline")));
         if (formats.empty())
         {
@@ -694,7 +738,7 @@ namespace winrt::Last_Music_Player::implementation
         MUXC::Grid::SetColumn(actions, 2);
         row.Children().Append(actions);
 
-        return RowFrame(row, MUX::Thickness{ 18, 14, 18, 14 });
+        return RowFrame(row, MUX::Thickness{ 18, 14, 18, 14 }, m_brushRowHover, m_brushTransparent);
     }
 
     winrt::Microsoft::UI::Xaml::UIElement MainWindow::BuildQueuedDownloadRow(
@@ -743,7 +787,7 @@ namespace winrt::Last_Music_Player::implementation
         MUXC::Grid::SetColumn(overflow, 4);
         row.Children().Append(overflow);
 
-        return RowFrame(row, MUX::Thickness{ 18, 12, 18, 12 });
+        return RowFrame(row, MUX::Thickness{ 18, 12, 18, 12 }, m_brushRowHover, m_brushTransparent);
     }
 
     winrt::Microsoft::UI::Xaml::UIElement MainWindow::BuildCompletedDownloadRow(
@@ -819,7 +863,7 @@ namespace winrt::Last_Music_Player::implementation
         MUXC::Grid::SetColumn(overflow, 4);
         row.Children().Append(overflow);
 
-        return RowFrame(row, MUX::Thickness{ 18, 0, 18, 0 });
+        return RowFrame(row, MUX::Thickness{ 18, 0, 18, 0 }, m_brushRowHover, m_brushTransparent);
     }
 
     winrt::Microsoft::UI::Xaml::UIElement MainWindow::BuildFailedDownloadRow(
@@ -877,7 +921,7 @@ namespace winrt::Last_Music_Player::implementation
         MUXC::Grid::SetColumn(dismiss, 3);
         row.Children().Append(dismiss);
 
-        return RowFrame(row, MUX::Thickness{ 18, 14, 18, 14 });
+        return RowFrame(row, MUX::Thickness{ 18, 14, 18, 14 }, m_brushRowHover, m_brushTransparent);
     }
 
     void MainWindow::DownloadsPauseAll_Click(
@@ -951,9 +995,12 @@ namespace winrt::Last_Music_Player::implementation
     {
         (void)sender;
         (void)args;
-        DownloadsStatusText().Text(detail::StreamCacheService().Clear()
-            ? L"Playback cache cleared"
-            : L"Cache is busy. Try again after the current transfer finishes.");
+        // The header status line is the queue summary the reference defines, and
+        // RefreshDownloadsView rewrites it on every revision tick. Confirmations
+        // go to the transient notice instead, which owns its own dwell time.
+        ShowPlaybackNotice(detail::StreamCacheService().Clear()
+            ? winrt::hstring{ L"Playback cache cleared" }
+            : winrt::hstring{ L"Cache is busy. Try again after the current transfer finishes." });
         RefreshDownloadsView(true);
     }
 
@@ -975,7 +1022,7 @@ namespace winrt::Last_Music_Player::implementation
         if (!folder) co_return;
         if (!detail::DownloadManagerService().SetRootFolder(std::filesystem::path(folder.Path().c_str())))
         {
-            DownloadsStatusText().Text(L"Pause active downloads before changing the folder");
+            ShowPlaybackNotice(L"Pause active downloads before changing the folder");
             co_return;
         }
         RefreshDownloadsView(true);
@@ -995,6 +1042,62 @@ namespace winrt::Last_Music_Player::implementation
         else if (tag == L"Battery") detail::DownloadManagerService().SetDownloadOnBattery(toggle.IsOn());
         else if (tag == L"Recent") detail::DownloadManagerService().SetKeepRecentOffline(toggle.IsOn());
         RefreshDownloadsView(true);
+    }
+
+    void MainWindow::DownloadsRuleRow_PointerEntered(
+        winrt::Windows::Foundation::IInspectable const& sender,
+        MUX::Input::PointerRoutedEventArgs const& args)
+    {
+        (void)args;
+        if (auto row = sender.try_as<MUXC::Border>())
+        {
+            EnsureAccentBrushes();
+            row.Background(m_brushRowHover);
+        }
+    }
+
+    void MainWindow::DownloadsRuleRow_PointerExited(
+        winrt::Windows::Foundation::IInspectable const& sender,
+        MUX::Input::PointerRoutedEventArgs const& args)
+    {
+        (void)args;
+        if (auto row = sender.try_as<MUXC::Border>())
+        {
+            row.Background(m_brushTransparent);
+        }
+    }
+
+    void MainWindow::DownloadsRuleRow_Tapped(
+        winrt::Windows::Foundation::IInspectable const& sender,
+        MUX::Input::TappedRoutedEventArgs const& args)
+    {
+        auto row = sender.try_as<MUXC::Border>();
+        if (!row)
+        {
+            return;
+        }
+
+        // A tap that landed on the switch has already toggled it, and the
+        // switch marks that tap handled. Flipping again here would undo it.
+        if (args.Handled())
+        {
+            return;
+        }
+
+        auto const tag = detail::ReadTagString(row.Tag());
+        MUXC::ToggleSwitch toggle{ nullptr };
+        if (tag == L"Metered") toggle = DownloadRuleMetered();
+        else if (tag == L"Liked") toggle = DownloadRuleLiked();
+        else if (tag == L"Battery") toggle = DownloadRuleBattery();
+        else if (tag == L"Recent") toggle = DownloadRuleRecent();
+        if (!toggle)
+        {
+            return;
+        }
+
+        // Toggled runs from this, which is what persists the rule.
+        toggle.IsOn(!toggle.IsOn());
+        args.Handled(true);
     }
 
     void MainWindow::DownloadJobPause_Click(
