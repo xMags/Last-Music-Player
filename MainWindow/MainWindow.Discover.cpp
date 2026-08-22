@@ -295,6 +295,17 @@ namespace winrt::Last_Music_Player::implementation
 
         target.Image.Source(bitmap);
         target.Image.Opacity(1.0);
+        if (target.Track && target.Image.Name() == L"DiscoverDetailArtworkImage")
+        {
+            // TrackInfo does not notify XAML when the async loader changes its
+            // presentation fields, so hide this realized placeholder directly.
+            auto const parent = winrt::Microsoft::UI::Xaml::Media::VisualTreeHelper::GetParent(target.Image)
+                .try_as<winrt::Microsoft::UI::Xaml::Controls::Grid>();
+            if (parent && parent.Children().Size() > 0)
+            {
+                parent.Children().GetAt(0).Opacity(0.0);
+            }
+        }
     }
 
     void MainWindow::QueueAccountArtworkImage(

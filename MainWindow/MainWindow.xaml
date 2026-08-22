@@ -2643,18 +2643,18 @@
                             <GridView.ItemTemplate>
                                 <DataTemplate x:DataType="local:TrackInfo">
                                     <StackPanel Margin="0,0,18,20" VerticalAlignment="Top" PointerEntered="PlaylistCard_PointerEntered" PointerExited="PlaylistCard_PointerExited">
-                                        <Border CornerRadius="{StaticResource Radius14}" Margin="0,0,0,10" Translation="0,0,16" Tag="{x:Bind}" Loaded="LibraryArtworkBorder_Loaded" SizeChanged="LibraryArtworkBorder_SizeChanged">
+                                        <Border CornerRadius="{StaticResource Radius14}" Margin="0,0,0,10" Translation="0,0,16" Tag="{x:Bind}" Loaded="DiscoverDetailArtworkBorder_Loaded" SizeChanged="LibraryArtworkBorder_SizeChanged">
                                             <Border.Shadow><ThemeShadow /></Border.Shadow>
                                             <Grid>
-                                                <Image Source="/Assets/LibraryStripeOverlay.svg" Stretch="Fill" Opacity="{x:Bind GeneratedArtworkOpacity}" IsHitTestVisible="False" />
-                                                <Image x:Name="ArtworkImage" Source="{x:Bind AlbumArt}" Stretch="UniformToFill" Loaded="AccountArtwork_Loaded" Opacity="{x:Bind ImageArtworkOpacity}" />
+                                                <Image Source="/Assets/LibraryStripeOverlay.svg" Stretch="Fill" Opacity="{x:Bind GeneratedArtworkOpacity}" IsHitTestVisible="False" Canvas.ZIndex="0" />
+                                                <Image x:Name="DiscoverDetailArtworkImage" Stretch="UniformToFill" Opacity="0" Canvas.ZIndex="1" />
                                                 <!-- Shown only on the now-playing card, by
                                                      ApplyDiscoverDetailCardState. -->
-                                                <Border Visibility="Collapsed" Background="{ThemeResource SurfaceBrush}" CornerRadius="{StaticResource RadiusPill}" Padding="7,3"
+                                                <Border Visibility="Collapsed" Background="{ThemeResource SurfaceBrush}" CornerRadius="{StaticResource RadiusPill}" Padding="7,3" Canvas.ZIndex="2"
                                                         HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10">
                                                     <TextBlock Text="PLAYING" FontSize="10" FontWeight="Bold" CharacterSpacing="80" Foreground="{ThemeResource AccentBrush}" />
                                                 </Border>
-                                                <TextBlock Text="{x:Bind Duration}" FontSize="11" Foreground="White" Opacity="0.9"
+                                                <TextBlock Text="{x:Bind Duration}" FontSize="11" Foreground="White" Opacity="0.9" Canvas.ZIndex="2"
                                                            HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="10" />
                                             </Grid>
                                         </Border>

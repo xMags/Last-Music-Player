@@ -3,6 +3,7 @@
 #include "MainWindow.Internal.h"
 
 #include "Backend/DetailSortPolicy.h"
+#include "Frontend/RoundedCornerClip.h"
 
 #include <chrono>
 #include <string>
@@ -259,15 +260,64 @@ namespace winrt::Last_Music_Player::implementation
                     }
                 });
         }
-        QueueContainerArtwork(args);
         if (args.InRecycleQueue() || args.ItemIndex() < 0)
         {
             return;
         }
         if (auto const gridItem = container.try_as<MUXC::GridViewItem>())
         {
+            auto const root = gridItem.ContentTemplateRoot().try_as<MUXC::StackPanel>();
+            if (root && root.Children().Size() > 0)
+            {
+                auto const art = root.Children().GetAt(0).try_as<MUXC::Border>();
+                auto const artGrid = art ? art.Child().try_as<MUXC::Grid>() : nullptr;
+                auto const track = args.Item().try_as<winrt::Last_Music_Player::TrackInfo>();
+                if (artGrid && artGrid.Children().Size() > 1 && track)
+                {
+                    auto const image = artGrid.Children().GetAt(1).try_as<MUXC::Image>();
+                    if (image)
+                    {
+                        LastMusicPlayer::Frontend::ApplyRoundedCornerClip(artGrid);
+                        QueueAccountArtworkImage(
+                            image,
+                            track.ArtworkUrl(),
+                            detail::ArtworkDetail::Tile,
+                            track);
+                    }
+                }
+            }
             ApplyDiscoverDetailCardState(gridItem, static_cast<uint32_t>(args.ItemIndex()));
         }
+    }
+
+    void MainWindow::DiscoverDetailArtworkBorder_Loaded(
+        winrt::Windows::Foundation::IInspectable const& sender,
+        MUX::RoutedEventArgs const& args)
+    {
+        LibraryArtworkBorder_Loaded(sender, args);
+
+        auto const border = sender.try_as<MUXC::Border>();
+        auto const track = border
+            ? border.Tag().try_as<winrt::Last_Music_Player::TrackInfo>()
+            : nullptr;
+        auto const artGrid = border ? border.Child().try_as<MUXC::Grid>() : nullptr;
+        if (!track || !artGrid || artGrid.Children().Size() < 2)
+        {
+            return;
+        }
+
+        auto const image = artGrid.Children().GetAt(1).try_as<MUXC::Image>();
+        if (!image)
+        {
+            return;
+        }
+
+        LastMusicPlayer::Frontend::ApplyRoundedCornerClip(artGrid);
+        QueueAccountArtworkImage(
+            image,
+            track.ArtworkUrl(),
+            detail::ArtworkDetail::Tile,
+            track);
     }
 
     void MainWindow::ApplyDiscoverDetailCardState(
