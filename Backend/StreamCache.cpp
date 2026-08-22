@@ -660,4 +660,33 @@ namespace LastMusicPlayer::Backend
         auto remains = std::filesystem::exists(dir, existsError);
         return !existsError && !remains;
     }
+
+    StreamCacheUsage StreamCache::Usage() const
+    {
+        StreamCacheUsage usage;
+        std::error_code error;
+        auto const directory = CacheDir();
+        if (!std::filesystem::is_directory(directory, error))
+        {
+            return usage;
+        }
+        for (std::filesystem::directory_iterator it{ directory, error }, end;
+             !error && it != end;
+             it.increment(error))
+        {
+            if (!it->is_regular_file(error) || it->path().extension() == L".part")
+            {
+                error.clear();
+                continue;
+            }
+            auto const size = it->file_size(error);
+            if (!error)
+            {
+                usage.Bytes += size;
+                ++usage.Files;
+            }
+            error.clear();
+        }
+        return usage;
+    }
 }

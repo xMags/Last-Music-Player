@@ -118,8 +118,9 @@ namespace winrt::Last_Music_Player::implementation
         HomeRecentlyAddedGridView().ItemsSource(m_recentlyAddedTracks);
         MusicListView().ItemsSource(m_songsTracks);
         SongsGridView().ItemsSource(m_songsTracks);
-        SearchSongsListView().ItemsSource(m_searchTracks);
+        SearchSongsListView().ItemsSource(m_searchFacets);
         SearchResultsListView().ItemsSource(m_searchTracks);
+        BrowseResumeGrid().ItemsSource(m_browseResumeTracks);
         BrowseCategoryGrid().ItemsSource(m_browseCategories);
         UpNextListView().ItemsSource(m_upNextQueue);
         FsUpNext().ItemsSource(m_upNextQueue);
@@ -132,6 +133,8 @@ namespace winrt::Last_Music_Player::implementation
         LibManualPlaylistsGrid().ItemsSource(m_yourPlaylists);
         LibAutoPlaylistsGrid().ItemsSource(m_autoPlaylists);
         LibraryDetailTracksListView().ItemsSource(m_libraryDetailTracks);
+        LibraryDetailGridView().ItemsSource(m_libraryDetailTracks);
+        LibraryDetailSuggestionsList().ItemsSource(m_libraryDetailSuggestions);
         // Every Library tab scrolls its own list, so each one reports its own
         // offset to the shared header.
         winrt::Microsoft::UI::Xaml::FrameworkElement const librarySurfaces[] = {
@@ -618,6 +621,7 @@ namespace winrt::Last_Music_Player::implementation
         {
             DatabaseService().Initialize();
         }
+        InitializeDownloads();
         auto weakWindow = get_weak();
         AccountSessionService().SetOwnerChangedCallback([weakWindow](winrt::hstring const& ownerId)
         {
@@ -1025,8 +1029,14 @@ namespace winrt::Last_Music_Player::implementation
         // whose Foreground/Background we overwrite in UpdateNavSelection).
         m_brushAccent = ProbeAccent().Foreground();
         m_brushAccentSoft = ProbeAccentSoft().Background();
+        m_brushAccentSelection = ProbeAccentSelection().Background();
+        m_brushAccentNowPlaying = ProbeAccentNowPlaying().Background();
+        m_brushAccentBorder = ProbeAccentBorder().Background();
+        m_brushNeutralFill = ProbeNeutralFill().Background();
+        m_brushSurface = ProbeSurface().Background();
         m_brushGlyphIdle = ProbeGlyphIdle().Foreground();
         m_brushLabelIdle = ProbeLabelIdle().Foreground();
+        m_brushTextTertiary = ProbeTextTertiary().Foreground();
         m_brushTransparent = ProbeTransparent().Background();
         m_brushStroke = ProbeStroke().BorderBrush();
         m_accentBrushesCaptured = true;
@@ -1047,6 +1057,7 @@ namespace winrt::Last_Music_Player::implementation
             { HomeViewContainer(), L"Home" },
             { BrowseViewContainer(), L"Browse" },
             { LibraryViewContainer(), L"Library" },
+            { DownloadsViewContainer(), L"Downloads" },
             { SettingsViewContainer(), L"Settings" },
         };
 
@@ -1068,6 +1079,10 @@ namespace winrt::Last_Music_Player::implementation
         // keeps Home selected in the rail, so every page switch closes it and
         // the catalog reopens it for itself.
         HomeCatalogViewContainer().Visibility(Visibility::Collapsed);
+        if (key != L"Downloads" && m_downloadsSettingsOpen)
+        {
+            SetDownloadSettingsOpen(false);
+        }
         UpdateNavSelection(key);
     }
 
@@ -1091,6 +1106,7 @@ namespace winrt::Last_Music_Player::implementation
             { HomeButton(), HomeGlyph(), HomeLabel(), L"Home" },
             { BrowseButton(), BrowseGlyph(), BrowseLabel(), L"Browse" },
             { LibraryButton(), LibraryGlyph(), LibraryLabel(), L"Library" },
+            { DownloadsButton(), DownloadsGlyph(), DownloadsLabel(), L"Downloads" },
             { SettingsButton(), SettingsGlyph(), SettingsLabel(), L"Settings" },
         };
 
@@ -1101,6 +1117,15 @@ namespace winrt::Last_Music_Player::implementation
             r.glyph.Foreground(selected ? m_brushAccent : m_brushGlyphIdle);
             r.label.Foreground(selected ? m_brushAccent : m_brushLabelIdle);
             r.label.FontWeight(selected ? FontWeights::SemiBold() : FontWeights::Normal());
+        }
+        if (DownloadsNavBadge() && DownloadsNavBadge().Visibility() == Visibility::Visible)
+        {
+            auto const selected = key == L"Downloads";
+            DownloadsNavBadge().Background(selected ? m_brushAccent : m_brushNeutralFill);
+            DownloadsNavCount().Foreground(selected
+                ? winrt::Microsoft::UI::Xaml::Media::SolidColorBrush{
+                    winrt::Windows::UI::ColorHelper::FromArgb(255, 255, 255, 255) }
+                : m_brushTextTertiary);
         }
     }
 
@@ -1290,6 +1315,11 @@ namespace winrt::Last_Music_Player::implementation
         }
         if (m_forceExit)
         {
+            if (m_downloadsTimer && m_downloadsTimer.IsRunning())
+            {
+                m_downloadsTimer.Stop();
+            }
+            DownloadManagerService().Shutdown();
             if (m_autoSyncTimer && m_autoSyncTimer.IsRunning())
             {
                 m_autoSyncTimer.Stop();
@@ -1316,6 +1346,11 @@ namespace winrt::Last_Music_Player::implementation
         }
         else
         {
+            if (m_downloadsTimer && m_downloadsTimer.IsRunning())
+            {
+                m_downloadsTimer.Stop();
+            }
+            DownloadManagerService().Shutdown();
             m_cast.Disconnect();
             ClearCastCallbacks();
         }

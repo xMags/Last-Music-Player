@@ -19,6 +19,17 @@
             <SolidColorBrush x:Key="AccentBrushLight" Color="#FF00B8D4" />
             <SolidColorBrush x:Key="AccentSoftBrush" Color="#1F0097B2" />
             <SolidColorBrush x:Key="AccentSoft2Brush" Color="#330097B2" />
+            <!-- Accent washes lighter than AccentSoftBrush, plus the border
+                 weight that marks an accent-tinted container's edge. Ordered
+                 selection < now-playing < soft < border so a selected row
+                 inside a now-playing list still reads as distinct.
+                 ApplyAccentColor recolors all of these in place and preserves
+                 each brush's own alpha, so a new one added here must also be
+                 probed in BrushProbes and captured in EnsureAccentBrushes or
+                 it will keep the default teal after the user picks an accent. -->
+            <SolidColorBrush x:Key="AccentSelectionBrush" Color="#140097B2" />
+            <SolidColorBrush x:Key="AccentNowPlayingBrush" Color="#1A0097B2" />
+            <SolidColorBrush x:Key="AccentBorderBrush" Color="#470097B2" />
             <SolidColorBrush x:Key="PrimaryActionBrush" Color="#FF0078D4" />
             <SolidColorBrush x:Key="PrimaryActionHoverBrush" Color="#FF0069B8" />
 
@@ -72,6 +83,13 @@
             <SolidColorBrush x:Key="HairlineStrongBrush" Color="#12000000" />
             <SolidColorBrush x:Key="RowDividerBrush" Color="#0A000000" />
             <SolidColorBrush x:Key="RowHoverBrush" Color="#06000000" />
+            <!-- Buttons and segmented controls sit between the card hairline
+                 (StrokeBrush) and the text-field edge (StrokeStrongBrush). -->
+            <SolidColorBrush x:Key="ControlBorderBrush" Color="#14000000" />
+            <!-- Two hover weights above RowHoverBrush: the lighter one for rows
+                 inside an already-elevated card, the heavier for bare controls. -->
+            <SolidColorBrush x:Key="SubtleHoverBrush" Color="#08000000" />
+            <SolidColorBrush x:Key="ControlHoverBrush" Color="#0A000000" />
             <SolidColorBrush x:Key="InputUnderlineBrush" Color="#73000000" />
             <!-- Selection halo around the accent swatches. Heavier than the
                  hairline strokes so it reads as a marker, not an edge. -->
@@ -103,6 +121,11 @@
             <SolidColorBrush x:Key="AccentBrushLight" Color="#FF00B8D4" />
             <SolidColorBrush x:Key="AccentSoftBrush" Color="#2E0097B2" />
             <SolidColorBrush x:Key="AccentSoft2Brush" Color="#470097B2" />
+            <!-- Same ordering as Light, pitched up: a translucent wash over a
+                 dark surface lifts far less than the same alpha over white. -->
+            <SolidColorBrush x:Key="AccentSelectionBrush" Color="#1F0097B2" />
+            <SolidColorBrush x:Key="AccentNowPlayingBrush" Color="#260097B2" />
+            <SolidColorBrush x:Key="AccentBorderBrush" Color="#660097B2" />
             <SolidColorBrush x:Key="PrimaryActionBrush" Color="#FF0078D4" />
             <SolidColorBrush x:Key="PrimaryActionHoverBrush" Color="#FF0069B8" />
 
@@ -155,6 +178,9 @@
             <SolidColorBrush x:Key="HairlineStrongBrush" Color="#1FFFFFFF" />
             <SolidColorBrush x:Key="RowDividerBrush" Color="#14FFFFFF" />
             <SolidColorBrush x:Key="RowHoverBrush" Color="#0FFFFFFF" />
+            <SolidColorBrush x:Key="ControlBorderBrush" Color="#1AFFFFFF" />
+            <SolidColorBrush x:Key="SubtleHoverBrush" Color="#14FFFFFF" />
+            <SolidColorBrush x:Key="ControlHoverBrush" Color="#1AFFFFFF" />
             <SolidColorBrush x:Key="InputUnderlineBrush" Color="#73FFFFFF" />
             <SolidColorBrush x:Key="SelectionRingBrush" Color="#59FFFFFF" />
 
@@ -186,11 +212,33 @@
     <CornerRadius x:Key="RadiusLg">8</CornerRadius>
     <CornerRadius x:Key="RadiusXl">12</CornerRadius>
     <CornerRadius x:Key="Radius2xl">16</CornerRadius>
+    <!-- The detail and browse surfaces use eleven distinct radii, more than the
+         t-shirt scale above can name without inventing steps like "RadiusLgPlus".
+         The in-between values are keyed by their literal size instead, so the
+         XAML that consumes them can be read against the design without a lookup:
+         7 segmented-control inner buttons and small artwork, 9 secondary buttons
+         and toggle rows, 10 action-bar controls, 14 grid card artwork and tiles. -->
+    <CornerRadius x:Key="Radius7">7</CornerRadius>
+    <CornerRadius x:Key="Radius9">9</CornerRadius>
+    <CornerRadius x:Key="Radius10">10</CornerRadius>
+    <CornerRadius x:Key="Radius14">14</CornerRadius>
+    <CornerRadius x:Key="RadiusPill">999</CornerRadius>
 
     <!-- Sizes -->
     <x:Double x:Key="NavItemHeight">42</x:Double>
 
     <!-- ===================== Text styles ===================== -->
+
+    <!-- Detail-page hero title. LineHeight is the design's 1.05 ratio resolved
+         at 40px; CharacterSpacing is in 1/1000 em, so -0.01em is -10. -->
+    <Style x:Key="TitleHero" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="Segoe UI Variable Display" />
+        <Setter Property="FontSize" Value="40" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="LineHeight" Value="42" />
+        <Setter Property="CharacterSpacing" Value="-10" />
+        <Setter Property="Foreground" Value="{ThemeResource TextPrimaryBrush}" />
+    </Style>
 
     <Style x:Key="TitleH1" TargetType="TextBlock">
         <Setter Property="FontFamily" Value="Segoe UI Variable Display" />
@@ -231,6 +279,25 @@
         <Setter Property="FontSize" Value="11" />
         <Setter Property="FontWeight" Value="Bold" />
         <Setter Property="CharacterSpacing" Value="160" />
+        <Setter Property="Foreground" Value="{ThemeResource TextTertiaryBrush}" />
+    </Style>
+
+    <!-- Rail and panel headings: one step below TitleH2, still on the display
+         face so it matches the section titles it sits under. -->
+    <Style x:Key="TitlePanel" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="Segoe UI Variable Display" />
+        <Setter Property="FontSize" Value="17" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="Foreground" Value="{ThemeResource TextPrimaryBrush}" />
+    </Style>
+
+    <!-- Track-table column headers. Tighter tracking than EyebrowText (0.14em
+         against 0.16em) because these sit in a dense row, not over open space. -->
+    <Style x:Key="TableLabelText" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="Segoe UI Variable Text" />
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="CharacterSpacing" Value="140" />
         <Setter Property="Foreground" Value="{ThemeResource TextTertiaryBrush}" />
     </Style>
 
@@ -391,6 +458,50 @@
         <Setter Property="Padding" Value="14,7" />
         <Setter Property="FontSize" Value="12" />
         <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="UseSystemFocusVisuals" Value="True" />
+    </Style>
+
+    <!-- Detail-page action bar. Deliberately separate from DesignPrimaryButton
+         and DesignSecondaryButton above: those are the Settings metrics
+         (radius 6-8, 12-13px) and are consumed by shipped screens, so the
+         action bar's heavier radius-10, 13.5px treatment gets its own keys
+         rather than shifting theirs. Hover comes from WinUI's default button
+         states, as it does everywhere else in this redesign. -->
+    <Style x:Key="DetailActionPrimaryButton" TargetType="Button">
+        <Setter Property="Background" Value="{ThemeResource PrimaryActionBrush}" />
+        <Setter Property="Foreground" Value="White" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="CornerRadius" Value="{StaticResource Radius10}" />
+        <Setter Property="Padding" Value="20,10" />
+        <Setter Property="FontSize" Value="13.5" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="UseSystemFocusVisuals" Value="True" />
+    </Style>
+
+    <Style x:Key="DetailActionSecondaryButton" TargetType="Button">
+        <Setter Property="Background" Value="{ThemeResource SurfaceBrush}" />
+        <Setter Property="Foreground" Value="{ThemeResource TextPrimaryBrush}" />
+        <Setter Property="BorderBrush" Value="{ThemeResource ControlBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{StaticResource Radius10}" />
+        <Setter Property="Padding" Value="16,9" />
+        <Setter Property="FontSize" Value="13.5" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="UseSystemFocusVisuals" Value="True" />
+    </Style>
+
+    <!-- Square 38x38 sibling of the above, for glyph-only actions. -->
+    <Style x:Key="DetailActionIconButton" TargetType="Button">
+        <Setter Property="Width" Value="38" />
+        <Setter Property="Height" Value="38" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Background" Value="{ThemeResource SurfaceBrush}" />
+        <Setter Property="Foreground" Value="{ThemeResource TextSecondaryBrush}" />
+        <Setter Property="BorderBrush" Value="{ThemeResource ControlBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{StaticResource Radius10}" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
         <Setter Property="UseSystemFocusVisuals" Value="True" />
     </Style>
 

@@ -25,6 +25,7 @@
 #include <filesystem>
 #include <limits>
 #include <memory>
+#include <numeric>
 #include <random>
 #include <string>
 #include <unordered_map>
@@ -38,6 +39,42 @@ using namespace Microsoft::UI::Xaml;
 namespace winrt::Last_Music_Player::implementation
 {
     using namespace detail;
+
+    namespace
+    {
+        bool DetailTrackIsOffline(
+            winrt::Last_Music_Player::TrackInfo const& track,
+            LastMusicPlayer::Backend::RemoteScopeSnapshot const& remoteScope)
+        {
+            if (!track)
+            {
+                return false;
+            }
+
+            auto const downloaded = detail::DownloadManagerService().ReadyPath(
+                detail::DownloadStableKey(remoteScope, track));
+            if (!downloaded.empty())
+            {
+                return true;
+            }
+
+            if (ToLowerCopy(track.SourceKind()) != L"remote")
+            {
+                auto const path = std::wstring(track.FilePath().c_str());
+                if (path.empty() || IsHttpUrl(track.FilePath()))
+                {
+                    return false;
+                }
+                std::error_code error;
+                return std::filesystem::is_regular_file(path, error);
+            }
+
+            auto const key = ApiKeyStreamCacheKey(remoteScope, track);
+            return !key.empty()
+                && RemoteMusicServiceService().IsCurrent(remoteScope)
+                && !StreamCacheService().ReadyPath(key).empty();
+        }
+    }
 
     winrt::Windows::Foundation::IAsyncAction MainWindow::HydrateLibraryDetailTracksAsync()
     {
@@ -63,6 +100,7 @@ namespace winrt::Last_Music_Player::implementation
         }
 
         auto dispatcher = this->DispatcherQueue();
+        auto remoteScope = RemoteMusicServiceService().CaptureScope();
         auto epoch = m_libraryDetailHydrationEpoch;
         auto offset = static_cast<uint32_t>(m_libraryDetailAllResults.size());
         auto query = CurrentLibraryDetailQuery(
@@ -83,6 +121,10 @@ namespace winrt::Last_Music_Player::implementation
 
         co_await winrt::resume_background();
         auto page = DatabaseService().LoadTrackPage(query);
+        for (auto& track : page.Tracks)
+        {
+            track.IsOffline(DetailTrackIsOffline(track, remoteScope));
+        }
 
         co_await wil::resume_foreground(dispatcher);
         if (epoch != m_libraryDetailHydrationEpoch || pageLoadId != m_libraryDetailPageLoadId)
@@ -116,7 +158,14 @@ namespace winrt::Last_Music_Player::implementation
         m_libraryDetailState = LoadState::Loaded;
 
         LibraryDetailSubtitleText().Text(LibraryDetailCountText(m_libraryDetailMatchedCount));
+        UpdateLibraryDetailHeroMeta();
+        UpdateLibraryDetailEmptyState();
+        RefreshLibraryDetailRowStates();
         ApplyLibraryDetailPlaylistCollage();
+        if (offset == 0)
+        {
+            RunDetached(HydrateLibraryDetailSuggestionsAsync());
+        }
     }
 
     winrt::Windows::Foundation::IAsyncAction MainWindow::LoadLibrarySongsQueueAndPlayAsync(winrt::Last_Music_Player::TrackInfo clickedTrack)
@@ -632,6 +681,60 @@ namespace winrt::Last_Music_Player::implementation
         m_libraryDetailKey = std::move(requestedKey);
         m_libraryDetailSubtitle = std::wstring(subtitle.c_str());
         m_libraryDetailMeta = LibraryDetailMeta(m_libraryDetailKind, m_libraryDetailKey, subtitle);
+
+        // A group card carries playlist description in Artist and its source
+        // and updated time in the normal TrackInfo metadata fields. Reopening
+        // the same detail after a row action may not carry the sourceGroup, so
+        // keep the prior values only in that one case; a different detail must
+        // never inherit another collection's description or edit date.
+        if (!sameDetail)
+        {
+            m_libraryDetailDescription.clear();
+            m_libraryDetailEditedText.clear();
+        }
+        if (sourceGroup)
+        {
+            if (m_libraryDetailKind == L"playlist")
+            {
+                auto description = std::wstring(sourceGroup.Artist().c_str());
+                auto const genericCount = std::to_wstring(sourceGroup.TrackCount())
+                    + (sourceGroup.TrackCount() == 1 ? L" song" : L" songs");
+                m_libraryDetailDescription = description == genericCount ? std::wstring{} : std::move(description);
+
+                auto const updatedAt = static_cast<std::int64_t>(sourceGroup.DateAddedSortKey());
+                if (updatedAt > 0)
+                {
+                    auto const updated = std::chrono::system_clock::from_time_t(updatedAt);
+                    auto const age = std::chrono::system_clock::now() - updated;
+                    auto const days = (std::max<std::int64_t>)(0,
+                        std::chrono::duration_cast<std::chrono::hours>(age).count() / 24);
+                    if (days == 0)
+                    {
+                        m_libraryDetailEditedText = L"edited today";
+                    }
+                    else if (days == 1)
+                    {
+                        m_libraryDetailEditedText = L"edited yesterday";
+                    }
+                    else
+                    {
+                        m_libraryDetailEditedText = L"edited " + std::to_wstring(days) + L" days ago";
+                    }
+                }
+            }
+        }
+
+        if (!sameDetail)
+        {
+            ResetLibraryDetailToolbar();
+        }
+        else
+        {
+            // Row actions re-open the same detail after mutating its data. Keep
+            // the listener's find, sort and list/grid choices through that
+            // refresh; selection is action-specific and must not survive it.
+            ClearLibraryDetailSelection();
+        }
         ++m_libraryDetailHydrationEpoch;
 
         m_libraryDetailTracks.Clear();
@@ -646,8 +749,54 @@ namespace winrt::Last_Music_Player::implementation
             auto mixIt = m_homeMixes.find(m_libraryDetailKey);
             if (mixIt != m_homeMixes.end())
             {
+                auto tracks = mixIt->second;
+                if (!m_libraryDetailFindText.empty())
+                {
+                    auto const needle = winrt::hstring(m_libraryDetailFindText);
+                    std::erase_if(tracks, [&needle](auto const& track)
+                    {
+                        return !ContainsFolded(track.Title(), needle)
+                            && !ContainsFolded(track.Artist(), needle)
+                            && !ContainsFolded(track.Album(), needle);
+                    });
+                }
+                auto const sort = LastMusicPlayer::Backend::DetailSortQueryValue(m_libraryDetailSort);
+                auto const foldedTitle = [](auto const& track)
+                {
+                    return ToLowerCopy(track.Title());
+                };
+                if (sort == L"Title")
+                {
+                    std::stable_sort(tracks.begin(), tracks.end(),
+                        [&foldedTitle](auto const& left, auto const& right)
+                        {
+                            return foldedTitle(left) < foldedTitle(right);
+                        });
+                }
+                else if (sort == L"Artist")
+                {
+                    std::stable_sort(tracks.begin(), tracks.end(),
+                        [&foldedTitle](auto const& left, auto const& right)
+                        {
+                            auto const leftArtist = ToLowerCopy(left.Artist());
+                            auto const rightArtist = ToLowerCopy(right.Artist());
+                            return leftArtist == rightArtist
+                                ? foldedTitle(left) < foldedTitle(right)
+                                : leftArtist < rightArtist;
+                        });
+                }
+                else if (sort == L"Duration")
+                {
+                    std::stable_sort(tracks.begin(), tracks.end(),
+                        [&foldedTitle](auto const& left, auto const& right)
+                        {
+                            return left.DurationSeconds() == right.DurationSeconds()
+                                ? foldedTitle(left) < foldedTitle(right)
+                                : left.DurationSeconds() > right.DurationSeconds();
+                        });
+                }
                 int index = 1;
-                for (auto const& source : mixIt->second)
+                for (auto const& source : tracks)
                 {
                     auto track = source;
                     track.Index(index++);
@@ -655,8 +804,17 @@ namespace winrt::Last_Music_Player::implementation
                 }
             }
             m_libraryDetailMatchedCount = static_cast<int>(m_libraryDetailAllResults.size());
+            m_libraryDetailMatchedSeconds = std::accumulate(
+                m_libraryDetailAllResults.begin(),
+                m_libraryDetailAllResults.end(),
+                0.0,
+                [](double total, auto const& track) { return total + track.DurationSeconds(); });
             m_libraryDetailState = LoadState::Loaded;
             AppendLibraryDetailPage();
+            UpdateLibraryDetailHeroMeta();
+            UpdateLibraryDetailEmptyState();
+            RefreshLibraryDetailRowStates();
+            RunDetached(HydrateLibraryDetailSuggestionsAsync());
         }
         else
         {
@@ -670,9 +828,26 @@ namespace winrt::Last_Music_Player::implementation
         UpdateLibraryActionButtons();
         LibraryDetailKindText().Text(LibraryDetailEyebrow(m_libraryDetailKind, m_libraryDetailKey));
         LibraryDetailTitleText().Text(title);
+        LibraryDetailBreadcrumbCurrent().Text(title);
         LibraryDetailSubtitleText().Text(m_libraryDetailState == LoadState::Loading
-            ? winrt::hstring{ L"Loading songs..." }
+            ? winrt::hstring{ L"Loading tracks..." }
             : LibraryDetailCountText(m_libraryDetailMatchedCount));
+        if (auto badge = LibraryDetailSourceBadgeText())
+        {
+            auto const sourceText = accountDetail
+                ? winrt::hstring{ L"SYNCED" }
+                : (sourceGroup && !sourceGroup.SourceBadgeText().empty()
+                    ? sourceGroup.SourceBadgeText()
+                    : winrt::hstring{ L"THIS PC" });
+            badge.Text(sourceText);
+            LibraryDetailSourceBadge().Visibility(sourceText.empty()
+                ? winrt::Microsoft::UI::Xaml::Visibility::Collapsed
+                : winrt::Microsoft::UI::Xaml::Visibility::Visible);
+        }
+        ApplyLibraryDetailKindAffordances();
+        SetLibraryDetailGridMode(m_libraryDetailGridMode);
+        UpdateLibraryDetailHeroMeta();
+        UpdateLibraryDetailEmptyState();
         // Invalidates any relay response started for the previously open detail.
         LibraryDetailArt().Tag(nullptr);
         LibraryDetailArt().Source(nullptr);
@@ -693,6 +868,7 @@ namespace winrt::Last_Music_Player::implementation
             QueueAccountArtworkImage(LibraryDetailArt(), accountArtworkUrl, ArtworkDetail::Tile, sourceGroup);
         }
         ApplyLibraryDetailPlaylistCollage();
+        RunDetached(HydrateLibraryDetailSuggestionsAsync());
     }
 
     void MainWindow::ApplyLibraryDetailPlaylistCollage()
@@ -780,7 +956,15 @@ namespace winrt::Last_Music_Player::implementation
         m_libraryDetailKind.clear();
         m_libraryDetailKey.clear();
         m_libraryDetailSubtitle.clear();
+        m_libraryDetailDescription.clear();
+        m_libraryDetailEditedText.clear();
+        m_libraryDetailFindText.clear();
         m_libraryDetailMeta.clear();
+        m_libraryDetailSelection.clear();
+        m_libraryDetailSelectionAnchor = -1;
+        ++m_libraryDetailFindDebounceId;
+        ++m_libraryDetailSuggestionEpoch;
+        m_libraryDetailSuggestions.Clear();
         m_libraryDetailAccountBinding.reset();
         m_libraryDetailFallbackArt = nullptr;
         m_libraryDetailTracks.Clear();
@@ -817,11 +1001,31 @@ namespace winrt::Last_Music_Player::implementation
     void MainWindow::LibraryDetailPlay_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
     {
         (void)sender;
-        (void)args;
-        if (!m_libraryDetailAllResults.empty() || m_libraryDetailMatchedCount > 0)
+        if (m_libraryDetailAllResults.empty() && m_libraryDetailMatchedCount <= 0)
         {
-            RunDetached(LoadLibraryDetailQueueAndPlayAsync(winrt::Last_Music_Player::TrackInfo{ nullptr }));
+            return;
         }
+
+        auto const current = AudioPlayerService().GetCurrentTrack();
+        auto const currentKey = current ? CatalogSourceKey(current) : std::wstring{};
+        auto const currentInDetail = current && !currentKey.empty()
+            && std::any_of(
+                m_libraryDetailAllResults.begin(),
+                m_libraryDetailAllResults.end(),
+                [&currentKey](auto const& track)
+                {
+                    return track && CatalogSourceKey(track) == currentKey;
+                });
+        if (currentInDetail)
+        {
+            // The hero button and the bottom transport are two faces of the
+            // same playback state, not two independent commands.
+            PlayPauseButton_Click(PlayPauseButton(), args);
+            SyncLibraryDetailPlaybackState();
+            return;
+        }
+
+        RunDetached(LoadLibraryDetailQueueAndPlayAsync(winrt::Last_Music_Player::TrackInfo{ nullptr }));
     }
 
     void MainWindow::LibraryDetailShuffle_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)

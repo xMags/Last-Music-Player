@@ -613,8 +613,9 @@ namespace winrt::Last_Music_Player::implementation
     {
         LastMusicPlayer::Backend::TrackQuery query;
         query.Filter = L"All";
-        query.Sort = L"DateAdded";
+        query.Sort = LastMusicPlayer::Backend::DetailSortQueryValue(m_libraryDetailSort);
         query.GroupKind = m_libraryDetailKind;
+        query.SearchText = m_libraryDetailFindText;
         query.GroupKey = m_libraryDetailKey;
         query.AccountOwnerId = accountOwnerId;
         query.Offset = static_cast<int>(offset);

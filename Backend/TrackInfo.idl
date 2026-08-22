@@ -53,6 +53,24 @@ namespace Last_Music_Player
         Microsoft.UI.Xaml.Visibility SourceBadgeVisibility{ get; };
         Boolean IsLiked;
         String LikeActionText{ get; };
+        // Paired visibilities for the two-glyph like control: a filled heart
+        // and an outline heart stacked in the same cell, one of them shown.
+        // A single glyph would need its Foreground swapped at runtime, which
+        // a one-time binding cannot do and which would not survive a theme
+        // change; two theme-bound icons do.
+        Microsoft.UI.Xaml.Visibility LikedVisibility{ get; };
+        Microsoft.UI.Xaml.Visibility UnlikedVisibility{ get; };
+        // Whether the audio for this track is on this machine: a local file
+        // that still exists, or a remote track with a published stream-cache
+        // file. Set by the surface that builds the row, since deciding it
+        // needs disk access that must not happen during binding.
+        Boolean IsOffline;
+        Microsoft.UI.Xaml.Visibility OfflineVisibility{ get; };
+        // Search-result provenance. This is deliberately separate from
+        // SourceKind: remote/account tracks can still be members of the local
+        // library, while catalog-only hits are remote but not yet in it.
+        Boolean IsInLibrary;
+        Microsoft.UI.Xaml.Visibility InLibraryVisibility{ get; };
         Int32 TrackCount;
     }
 }

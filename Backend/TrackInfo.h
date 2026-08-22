@@ -110,6 +110,40 @@ namespace winrt::Last_Music_Player::implementation
 
         hstring LikeActionText() { return m_isLiked ? L"Unlike" : L"Like"; }
 
+        winrt::Microsoft::UI::Xaml::Visibility LikedVisibility()
+        {
+            return m_isLiked
+                ? winrt::Microsoft::UI::Xaml::Visibility::Visible
+                : winrt::Microsoft::UI::Xaml::Visibility::Collapsed;
+        }
+
+        winrt::Microsoft::UI::Xaml::Visibility UnlikedVisibility()
+        {
+            return m_isLiked
+                ? winrt::Microsoft::UI::Xaml::Visibility::Collapsed
+                : winrt::Microsoft::UI::Xaml::Visibility::Visible;
+        }
+
+        bool IsOffline() { return m_isOffline; }
+        void IsOffline(bool value) { m_isOffline = value; }
+
+        winrt::Microsoft::UI::Xaml::Visibility OfflineVisibility()
+        {
+            return m_isOffline
+                ? winrt::Microsoft::UI::Xaml::Visibility::Visible
+                : winrt::Microsoft::UI::Xaml::Visibility::Collapsed;
+        }
+
+        bool IsInLibrary() { return m_isInLibrary; }
+        void IsInLibrary(bool value) { m_isInLibrary = value; }
+
+        winrt::Microsoft::UI::Xaml::Visibility InLibraryVisibility()
+        {
+            return m_isInLibrary
+                ? winrt::Microsoft::UI::Xaml::Visibility::Visible
+                : winrt::Microsoft::UI::Xaml::Visibility::Collapsed;
+        }
+
         int32_t TrackCount() { return m_trackCount; }
         void TrackCount(int32_t value) { m_trackCount = value; }
 
@@ -152,6 +186,8 @@ namespace winrt::Last_Music_Player::implementation
         winrt::Microsoft::UI::Xaml::Visibility m_sourceBadgeVisibility{
             winrt::Microsoft::UI::Xaml::Visibility::Collapsed };
         bool m_isLiked{ false };
+        bool m_isOffline{ false };
+        bool m_isInLibrary{ false };
         int32_t m_trackCount{ 0 };
     };
 }

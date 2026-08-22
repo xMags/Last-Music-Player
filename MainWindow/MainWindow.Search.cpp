@@ -134,7 +134,10 @@ namespace winrt::Last_Music_Player::implementation
         ++m_searchRequestId;
         m_isSearchMode = false;
         m_searchAllResults.clear();
+        m_searchMatchingPlaylists.clear();
         m_searchTracks.Clear();
+        m_searchFacets.Clear();
+        m_searchTopResult = nullptr;
         ShowBrowseLanding(false);
         RunDetached(HydrateBrowseLandingAsync(false));
     }
@@ -199,6 +202,7 @@ namespace winrt::Last_Music_Player::implementation
 
         ++m_searchDebounceId;
         EnterSearchMode(query);
+        RecordBrowseRecentSearch(query);
         auto const requestId = ++m_searchRequestId;
         co_await RunHomeSearchNowAsync(query, requestId);
     }
@@ -213,22 +217,45 @@ namespace winrt::Last_Music_Player::implementation
         }
 
         m_searchAllResults.clear();
+        m_searchMatchingPlaylists.clear();
         m_searchTracks.Clear();
+        m_searchFacets.Clear();
+        m_searchTopResult = nullptr;
         ShowBrowseSearchLoading();
 
         std::vector<winrt::Last_Music_Player::TrackInfo> localTracks;
+        std::vector<winrt::Last_Music_Player::TrackInfo> localPlaylists;
         if (DatabaseService().IsInitialized())
         {
             LastMusicPlayer::Backend::TrackQuery localQuery;
             localQuery.SearchText = std::wstring(query.c_str());
             localQuery.Sort = L"DateAdded";
-            localQuery.IncludeRemote = false;
+            // "Library" means membership in the local index, not local-file
+            // origin. Include synced/imported remote tracks that live in the
+            // library; IsInLibrary below distinguishes them from catalog-only
+            // provider hits.
+            localQuery.IncludeRemote = true;
             localQuery.ActiveOnly = true;
             localQuery.Limit = 60;
+            if (m_searchScope == L"Catalog")
+            {
+                // Catalog mode still shows local hits first, but it also asks
+                // the provider for everything beyond this local index.
+                localQuery.Limit = 60;
+            }
 
             auto dispatcher = DispatcherQueue();
             co_await winrt::resume_background();
             localTracks = DatabaseService().LoadTrackPage(localQuery).Tracks;
+            auto const playlists = DatabaseService().LoadPlaylists();
+            for (auto const& playlist : playlists)
+            {
+                if (ContainsFolded(playlist.Title(), query)
+                    || ContainsFolded(playlist.Artist(), query))
+                {
+                    localPlaylists.push_back(playlist);
+                }
+            }
             co_await wil::resume_foreground(dispatcher);
             if (requestId != m_searchRequestId || !m_isSearchMode)
             {
@@ -250,6 +277,7 @@ namespace winrt::Last_Music_Player::implementation
                     || ContainsFolded(track.Artist(), query)
                     || ContainsFolded(track.Album(), query))
                 {
+                    track.IsInLibrary(true);
                     localTracks.push_back(track);
                     if (localTracks.size() >= 60)
                     {
@@ -259,6 +287,7 @@ namespace winrt::Last_Music_Player::implementation
             }
         }
 
+        m_searchMatchingPlaylists = std::move(localPlaylists);
         LastMusicPlayer::Frontend::SkeletonLoadScope searchSkeleton{ m_searchSkeleton, true };
         std::unordered_map<std::wstring, int> visibleKeys;
         auto appendVisibleTrack = [&](winrt::Last_Music_Player::TrackInfo const& track) -> bool
@@ -275,8 +304,10 @@ namespace winrt::Last_Music_Player::implementation
         };
 
         size_t localMatches = 0;
-        for (auto const& track : localTracks)
+        for (auto const& source : localTracks)
         {
+            auto track = source;
+            track.IsInLibrary(true);
             if (appendVisibleTrack(track))
             {
                 ++localMatches;
@@ -290,6 +321,13 @@ namespace winrt::Last_Music_Player::implementation
             ApplySearchResultSort();
             ShowBrowseSearchResults(query);
             m_searchSkeleton.EndLoading();
+        }
+
+        if (m_searchScope == L"Library")
+        {
+            ApplySearchResultSort();
+            ShowBrowseSearchResults(query);
+            co_return;
         }
 
         size_t remoteMatches = 0;
@@ -432,6 +470,7 @@ namespace winrt::Last_Music_Player::implementation
         }
 
         MusicListView().SelectedItem(clickedTrack);
+        RecordBrowseRecentSearch(TrimQuery(GlobalSearchBox().Text()));
 
         // Search is not a durable collection. Clicking a result plays only that
         // track; multi-track queueing stays an explicit action.

@@ -20,7 +20,10 @@ namespace LastMusicPlayer::Backend
     // A query shorter than this is not sent anywhere. Both other clients use
     // two, and the landing page is what fills the gap while the user is still
     // typing the first character.
-    inline constexpr std::size_t kMinimumSearchQueryLength = 2;
+    // The redesigned surface treats every non-empty query as a search state.
+    // Local SQLite search handles one character cheaply, and catalog mode only
+    // sends one-character queries when the listener explicitly widens scope.
+    inline constexpr std::size_t kMinimumSearchQueryLength = 1;
 
     enum class SearchResultSort
     {
