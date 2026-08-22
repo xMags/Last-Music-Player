@@ -94,6 +94,11 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <Import Project="build\AccountIntegration.props" />
+  <PropertyGroup>
+    <IntDir>$(ProjectDir).build\obj\app\$(Platform)\$(Configuration)\</IntDir>
+    <XamlMetaDataProviderIdl>$(IntDir)Generated Files\XamlMetaDataProvider.idl</XamlMetaDataProviderIdl>
+    <XamlMetaDataProviderCpp>$(IntDir)Generated Files\XamlMetaDataProvider.cpp</XamlMetaDataProviderCpp>
+  </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
       <PrecompiledHeader>Use</PrecompiledHeader>

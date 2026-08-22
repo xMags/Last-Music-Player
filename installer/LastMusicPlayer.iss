@@ -59,7 +59,7 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 
 [Files]
 ; Ship the self-contained Release folder, excluding build-only artifacts and
-; leftover MSIX-layout files. Everything else (exe, resources.pri, *.xbf, all
+; leftover MSIX-layout files. Everything else (exe, app *.pri, *.xbf, all
 ; runtime *.dll, Assets, and compiled src resources) is required at runtime.
 Source: "{#BuildDir}\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdirs ignoreversion; \
   Excludes: "*.pdb,*.exp,*.lib,*.winmd,*.appxrecipe,*.build.appxrecipe,AppxManifest.xml,Microsoft.Web.WebView2.Core.winmd,microsoft.system.package.metadata\*,LICENSE,TERMS.txt,THIRD-PARTY-NOTICES.txt,Licenses\*"

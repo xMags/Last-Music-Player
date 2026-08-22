@@ -42,8 +42,8 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
     <RepoRoot>$(MSBuildThisFileDirectory)..\..</RepoRoot>
-    <OutDir>$(MSBuildThisFileDirectory)$(Platform)\$(Configuration)\</OutDir>
-    <IntDir>$(MSBuildThisFileDirectory)$(Platform)\$(Configuration)\obj\EmbeddedArtworkTests\</IntDir>
+    <OutDir>$(RepoRoot)\.build\tests\bin\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(RepoRoot)\.build\tests\obj\$(MSBuildProjectName)\$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>

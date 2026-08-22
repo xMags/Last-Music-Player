@@ -1,4 +1,5 @@
 # Build outputs
+/.build/
 x64/
 Debug/
 Release/
@@ -11,8 +12,6 @@ installer/Output/
 # Visual Studio / WinUI generated state
 .vs/
 Generated Files/
-/XamlMetaDataProvider.cpp
-/XamlMetaDataProvider.idl
 *.aps
 *.user
 *.VC.db
@@ -42,10 +41,6 @@ src/Backend/AppSecrets.local.h
 build/AccountIntegration.local.props
 build/*.local.targets
 build/*.local.rsp
-
-# MIDL output that lands in the repo root instead of the build directory
-/MainWindow.h
-/MainWindow.winmd
 
 # OS/editor noise
 Thumbs.db

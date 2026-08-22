@@ -56,6 +56,7 @@ function Get-MSBuildPath {
 $repoRoot = Resolve-Path -LiteralPath (Join-Path $PSScriptRoot "..")
 $project = Join-Path $repoRoot "tests\native\NativeAccountSyncTests.vcxproj"
 $accountBuildScript = Join-Path $repoRoot "tools\Build-WithAccountIntegration.ps1"
+$accountVariantRoot = Join-Path $repoRoot ".build\tests\account-variants\$Platform\$Configuration"
 
 $msbuild = Get-MSBuildPath
 $stableMsBuildProperties = @(
@@ -74,7 +75,7 @@ function Invoke-NativeAccountVariant {
         [string[]]$AdditionalProperties
     )
 
-    $variantRoot = Join-Path $repoRoot "tests\native\$Platform\$Configuration\account-variants\$Name"
+    $variantRoot = Join-Path $accountVariantRoot $Name
     $outDir = (Join-Path $variantRoot "bin") + "\"
     $intDir = (Join-Path $variantRoot "obj") + "\"
     $arguments = @(
@@ -107,7 +108,7 @@ function Assert-NativeAccountBuildFails {
         [string[]]$AdditionalProperties
     )
 
-    $variantRoot = Join-Path $repoRoot "tests\native\$Platform\$Configuration\account-variants\invalid-$Name"
+    $variantRoot = Join-Path $accountVariantRoot "invalid-$Name"
     $outDir = (Join-Path $variantRoot "bin") + "\"
     $intDir = (Join-Path $variantRoot "obj") + "\"
     $arguments = @(

@@ -33,6 +33,6 @@ if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
 }
 
-$exe = Join-Path $repoRoot "tests\native\$Platform\$Configuration\PlayerScreenPolicyTests.exe"
+$exe = Join-Path $repoRoot ".build\tests\bin\$Platform\$Configuration\PlayerScreenPolicyTests.exe"
 & $exe
 exit $LASTEXITCODE

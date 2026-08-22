@@ -33,6 +33,6 @@ if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
 }
 
-$exe = Join-Path $repoRoot "tests\native\$Platform\$Configuration\EmbeddedArtworkTests.exe"
+$exe = Join-Path $repoRoot ".build\tests\bin\$Platform\$Configuration\EmbeddedArtworkTests.exe"
 & $exe
 exit $LASTEXITCODE
