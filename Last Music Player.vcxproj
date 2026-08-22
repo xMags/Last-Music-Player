@@ -103,7 +103,7 @@
       <PreprocessorDefinitions>DISABLE_XAML_GENERATED_MAIN;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <LanguageStandard Condition="'$(VisualStudioVersion)' &gt;= '18.0'">stdcpp20</LanguageStandard>
       <LanguageStandard Condition="'$(VisualStudioVersion)' &lt; '18.0'">stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)src;$(GeneratedFilesDir);$(IntDir);$(IntDir)MainWindow;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)src;$(ProjectDir)src\App;$(GeneratedFilesDir);$(IntDir);$(IntDir)src\App;$(IntDir)src\MainWindow;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>%(AdditionalOptions) /bigobj /utf-8</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -145,14 +145,14 @@
     <ResourceCompile Include="Resources\AppIcon.rc" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="pch.h" />
-    <ClInclude Include="App.xaml.h">
+    <ClInclude Include="src\App\pch.h" />
+    <ClInclude Include="src\App\App.xaml.h">
       <DependentUpon>App.xaml</DependentUpon>
     </ClInclude>
-    <ClInclude Include="MainWindow\MainWindow.xaml.h">
+    <ClInclude Include="src\MainWindow\MainWindow.xaml.h">
       <DependentUpon>MainWindow.xaml</DependentUpon>
     </ClInclude>
-    <ClInclude Include="MainWindow\MainWindow.Internal.h" />
+    <ClInclude Include="src\MainWindow\MainWindow.Internal.h" />
     <ClInclude Include="src\Frontend\ViewModels\TrackViewModel.h" />
     <!-- Backend Headers -->
     <ClInclude Include="src\Backend\TrackInfo.h" />
@@ -212,47 +212,47 @@
   </ItemGroup>
   <ItemGroup>
     <ApplicationDefinition Include="App.xaml" />
-    <Page Include="MainWindow\MainWindow.xaml" />
-    <Page Include="Styles\Tokens.xaml">
+    <Page Include="src\MainWindow\MainWindow.xaml" />
+    <Page Include="src\Styles\Tokens.xaml">
       <SubType>Designer</SubType>
     </Page>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="pch.cpp">
+    <ClCompile Include="src\App\pch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="App.xaml.cpp">
+    <ClCompile Include="src\App\App.xaml.cpp">
       <DependentUpon>App.xaml</DependentUpon>
     </ClCompile>
-    <ClCompile Include="MainWindow\MainWindow.xaml.cpp">
+    <ClCompile Include="src\MainWindow\MainWindow.xaml.cpp">
       <DependentUpon>MainWindow.xaml</DependentUpon>
     </ClCompile>
-    <ClCompile Include="MainWindow\MainWindow.Internal.cpp" />
-    <ClCompile Include="MainWindow\MainWindow.Home.cpp" />
-    <ClCompile Include="MainWindow\MainWindow.Browse.cpp" />
-    <ClCompile Include="MainWindow\MainWindow.Search.cpp" />
-    <ClCompile Include="MainWindow\MainWindow.Songs.cpp" />
-    <ClCompile Include="MainWindow\MainWindow.Discover.cpp" />
-    <ClCompile Include="MainWindow\MainWindow.DiscoverDetailToolbar.cpp" />
-    <ClCompile Include="MainWindow\MainWindow.Library.cpp" />
-    <ClCompile Include="MainWindow\MainWindow.LibraryHydration.cpp" />
-    <ClCompile Include="MainWindow\MainWindow.LibraryCollections.cpp" />
-    <ClCompile Include="MainWindow\MainWindow.LibraryDetail.cpp" />
-    <ClCompile Include="MainWindow\MainWindow.DetailToolbar.cpp" />
-    <ClCompile Include="MainWindow\MainWindow.Downloads.cpp" />
-    <ClCompile Include="MainWindow\MainWindow.LibraryMenus.cpp" />
-    <ClCompile Include="MainWindow\MainWindow.Settings.cpp" />
-    <ClCompile Include="MainWindow\MainWindow.ModeSetup.cpp" />
-    <ClCompile Include="MainWindow\MainWindow.TrackActions.cpp" />
-    <ClCompile Include="MainWindow\MainWindow.LibraryScan.cpp" />
-    <ClCompile Include="MainWindow\MainWindow.Playback.cpp" />
-    <ClCompile Include="MainWindow\MainWindow.Queue.cpp" />
-    <ClCompile Include="MainWindow\MainWindow.Cast.cpp" />
-    <ClCompile Include="MainWindow\MainWindow.Lyrics.cpp" />
+    <ClCompile Include="src\MainWindow\MainWindow.Internal.cpp" />
+    <ClCompile Include="src\MainWindow\MainWindow.Home.cpp" />
+    <ClCompile Include="src\MainWindow\MainWindow.Browse.cpp" />
+    <ClCompile Include="src\MainWindow\MainWindow.Search.cpp" />
+    <ClCompile Include="src\MainWindow\MainWindow.Songs.cpp" />
+    <ClCompile Include="src\MainWindow\MainWindow.Discover.cpp" />
+    <ClCompile Include="src\MainWindow\MainWindow.DiscoverDetailToolbar.cpp" />
+    <ClCompile Include="src\MainWindow\MainWindow.Library.cpp" />
+    <ClCompile Include="src\MainWindow\MainWindow.LibraryHydration.cpp" />
+    <ClCompile Include="src\MainWindow\MainWindow.LibraryCollections.cpp" />
+    <ClCompile Include="src\MainWindow\MainWindow.LibraryDetail.cpp" />
+    <ClCompile Include="src\MainWindow\MainWindow.DetailToolbar.cpp" />
+    <ClCompile Include="src\MainWindow\MainWindow.Downloads.cpp" />
+    <ClCompile Include="src\MainWindow\MainWindow.LibraryMenus.cpp" />
+    <ClCompile Include="src\MainWindow\MainWindow.Settings.cpp" />
+    <ClCompile Include="src\MainWindow\MainWindow.ModeSetup.cpp" />
+    <ClCompile Include="src\MainWindow\MainWindow.TrackActions.cpp" />
+    <ClCompile Include="src\MainWindow\MainWindow.LibraryScan.cpp" />
+    <ClCompile Include="src\MainWindow\MainWindow.Playback.cpp" />
+    <ClCompile Include="src\MainWindow\MainWindow.Queue.cpp" />
+    <ClCompile Include="src\MainWindow\MainWindow.Cast.cpp" />
+    <ClCompile Include="src\MainWindow\MainWindow.Lyrics.cpp" />
     <ClCompile Include="src\Frontend\ViewModels\TrackViewModel.cpp" />
     <ClCompile Include="src\Backend\TrackInfo.cpp" />
     <ClCompile Include="$(GeneratedFilesDir)module.g.cpp" />
-    <ClCompile Include="XamlMetadata\XamlMetaDataProvider.Build.cpp" />
+    <ClCompile Include="src\XamlMetadata\XamlMetaDataProvider.Build.cpp" />
     <ClCompile Include="$(IntDir)XamlLibMetadataProvider.g.cpp" />
     <ClCompile Include="$(IntDir)XamlTypeInfo.Impl.g.cpp" />
     <ClCompile Include="$(IntDir)XamlTypeInfo.g.cpp" />
@@ -326,7 +326,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <Midl Include="MainWindow\MainWindow.idl">
+    <Midl Include="src\MainWindow\MainWindow.idl">
       <SubType>Code</SubType>
       <DependentUpon>MainWindow.xaml</DependentUpon>
     </Midl>

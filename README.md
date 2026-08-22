@@ -94,11 +94,13 @@ flowchart LR
 Project layout:
 
 ```text
-App.xaml*                  App startup and shell wiring
-MainWindow/                WinUI views, player UI, search, library, settings
+App.xaml                   WinUI application definition
+src/App/                   App startup implementation and shared precompiled header
+src/MainWindow/            WinUI views, player UI, search, library, settings
 src/Backend/               Playback, database, account/provider clients, playlists
 src/Frontend/              Navigation and UI helpers
-Assets/ Styles/ Resources/ Icons, themes, and app resources
+Assets/ src/Styles/        Icons and shared application styles
+Resources/                 Native application resources
 ThirdParty/sqlite/         Vendored SQLite amalgamation
 installer/                 Inno Setup packaging script
 tests/native/              Native helper tests

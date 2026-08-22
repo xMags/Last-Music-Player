@@ -12,7 +12,7 @@
 #define MyAppURL "https://lastprojects.com/"
 #define MyAppExeName "Last_Music_Player.exe"
 #define MyAppId "{41601A2E-D487-4E17-83C3-F81B146BD9E6}"
-; AUMID must match SetCurrentProcessExplicitAppUserModelID in App.xaml.cpp so the
+; AUMID must match SetCurrentProcessExplicitAppUserModelID in src\App\App.xaml.cpp so the
 ; media/volume flyout (SMTC / Win+V) resolves the app name + icon.
 #define MyAppUserModelId "LastMusicPlayer.App"
 ; Source folder holding the self-contained Release build (relative to this script).
@@ -60,7 +60,7 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 [Files]
 ; Ship the self-contained Release folder, excluding build-only artifacts and
 ; leftover MSIX-layout files. Everything else (exe, resources.pri, *.xbf, all
-; runtime *.dll, Assets, Styles, MainWindow) is required at runtime.
+; runtime *.dll, Assets, and compiled src resources) is required at runtime.
 Source: "{#BuildDir}\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdirs ignoreversion; \
   Excludes: "*.pdb,*.exp,*.lib,*.winmd,*.appxrecipe,*.build.appxrecipe,AppxManifest.xml,Microsoft.Web.WebView2.Core.winmd,microsoft.system.package.metadata\*,LICENSE,TERMS.txt,THIRD-PARTY-NOTICES.txt,Licenses\*"
 ; Legal documents are sourced from the repository so a stale Release folder

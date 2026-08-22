@@ -4,12 +4,12 @@
     <ApplicationDefinition Include="App.xaml" />
   </ItemGroup>
   <ItemGroup>
-    <Page Include="MainWindow\MainWindow.xaml">
+    <Page Include="src\MainWindow\MainWindow.xaml">
       <Filter>MainWindow</Filter>
     </Page>
   </ItemGroup>
   <ItemGroup>
-    <Midl Include="MainWindow\MainWindow.idl">
+    <Midl Include="src\MainWindow\MainWindow.idl">
       <Filter>MainWindow</Filter>
     </Midl>
     <Midl Include="src\Backend\TrackInfo.idl">
@@ -17,11 +17,11 @@
     </Midl>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="pch.cpp" />
+    <ClCompile Include="src\App\pch.cpp" />
     <ClCompile Include="$(GeneratedFilesDir)module.g.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="pch.h" />
+    <ClInclude Include="src\App\pch.h" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="Assets\Wide310x150Logo.scale-200.png">
@@ -139,10 +139,10 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="MainWindow\MainWindow.xaml.h">
+    <ClInclude Include="src\MainWindow\MainWindow.xaml.h">
       <Filter>MainWindow</Filter>
     </ClInclude>
-    <ClInclude Include="MainWindow\MainWindow.Internal.h">
+    <ClInclude Include="src\MainWindow\MainWindow.Internal.h">
       <Filter>MainWindow</Filter>
     </ClInclude>
     <ClInclude Include="src\Frontend\ViewModels\TrackViewModel.h">
@@ -242,76 +242,76 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="MainWindow\MainWindow.xaml.cpp">
+    <ClCompile Include="src\MainWindow\MainWindow.xaml.cpp">
       <Filter>MainWindow</Filter>
     </ClCompile>
-    <ClCompile Include="MainWindow\MainWindow.Internal.cpp">
+    <ClCompile Include="src\MainWindow\MainWindow.Internal.cpp">
       <Filter>MainWindow</Filter>
     </ClCompile>
-    <ClCompile Include="MainWindow\MainWindow.Home.cpp">
+    <ClCompile Include="src\MainWindow\MainWindow.Home.cpp">
       <Filter>MainWindow</Filter>
     </ClCompile>
-    <ClCompile Include="MainWindow\MainWindow.Browse.cpp">
+    <ClCompile Include="src\MainWindow\MainWindow.Browse.cpp">
       <Filter>MainWindow</Filter>
     </ClCompile>
-    <ClCompile Include="MainWindow\MainWindow.Search.cpp">
+    <ClCompile Include="src\MainWindow\MainWindow.Search.cpp">
       <Filter>MainWindow</Filter>
     </ClCompile>
-    <ClCompile Include="MainWindow\MainWindow.Songs.cpp">
+    <ClCompile Include="src\MainWindow\MainWindow.Songs.cpp">
       <Filter>MainWindow</Filter>
     </ClCompile>
-    <ClCompile Include="MainWindow\MainWindow.Discover.cpp">
+    <ClCompile Include="src\MainWindow\MainWindow.Discover.cpp">
       <Filter>MainWindow</Filter>
     </ClCompile>
-    <ClCompile Include="MainWindow\MainWindow.Library.cpp">
+    <ClCompile Include="src\MainWindow\MainWindow.Library.cpp">
       <Filter>MainWindow</Filter>
     </ClCompile>
-    <ClCompile Include="MainWindow\MainWindow.LibraryHydration.cpp">
+    <ClCompile Include="src\MainWindow\MainWindow.LibraryHydration.cpp">
       <Filter>MainWindow</Filter>
     </ClCompile>
-    <ClCompile Include="MainWindow\MainWindow.LibraryCollections.cpp">
+    <ClCompile Include="src\MainWindow\MainWindow.LibraryCollections.cpp">
       <Filter>MainWindow</Filter>
     </ClCompile>
-    <ClCompile Include="MainWindow\MainWindow.LibraryDetail.cpp">
+    <ClCompile Include="src\MainWindow\MainWindow.LibraryDetail.cpp">
       <Filter>MainWindow</Filter>
     </ClCompile>
-    <ClCompile Include="MainWindow\MainWindow.DetailToolbar.cpp">
+    <ClCompile Include="src\MainWindow\MainWindow.DetailToolbar.cpp">
       <Filter>MainWindow</Filter>
     </ClCompile>
-    <ClCompile Include="MainWindow\MainWindow.Downloads.cpp">
+    <ClCompile Include="src\MainWindow\MainWindow.Downloads.cpp">
       <Filter>MainWindow</Filter>
     </ClCompile>
-    <ClCompile Include="MainWindow\MainWindow.LibraryMenus.cpp">
+    <ClCompile Include="src\MainWindow\MainWindow.LibraryMenus.cpp">
       <Filter>MainWindow</Filter>
     </ClCompile>
-    <ClCompile Include="MainWindow\MainWindow.Settings.cpp">
+    <ClCompile Include="src\MainWindow\MainWindow.Settings.cpp">
       <Filter>MainWindow</Filter>
     </ClCompile>
-    <ClCompile Include="MainWindow\MainWindow.ModeSetup.cpp">
+    <ClCompile Include="src\MainWindow\MainWindow.ModeSetup.cpp">
       <Filter>MainWindow</Filter>
     </ClCompile>
-    <ClCompile Include="MainWindow\MainWindow.TrackActions.cpp">
+    <ClCompile Include="src\MainWindow\MainWindow.TrackActions.cpp">
       <Filter>MainWindow</Filter>
     </ClCompile>
-    <ClCompile Include="MainWindow\MainWindow.LibraryScan.cpp">
+    <ClCompile Include="src\MainWindow\MainWindow.LibraryScan.cpp">
       <Filter>MainWindow</Filter>
     </ClCompile>
-    <ClCompile Include="MainWindow\MainWindow.Playback.cpp">
+    <ClCompile Include="src\MainWindow\MainWindow.Playback.cpp">
       <Filter>MainWindow</Filter>
     </ClCompile>
-    <ClCompile Include="MainWindow\MainWindow.Queue.cpp">
+    <ClCompile Include="src\MainWindow\MainWindow.Queue.cpp">
       <Filter>MainWindow</Filter>
     </ClCompile>
-    <ClCompile Include="MainWindow\MainWindow.Cast.cpp">
+    <ClCompile Include="src\MainWindow\MainWindow.Cast.cpp">
       <Filter>MainWindow</Filter>
     </ClCompile>
-    <ClCompile Include="MainWindow\MainWindow.Lyrics.cpp">
+    <ClCompile Include="src\MainWindow\MainWindow.Lyrics.cpp">
       <Filter>MainWindow</Filter>
     </ClCompile>
     <ClCompile Include="src\Frontend\ViewModels\TrackViewModel.cpp">
       <Filter>Frontend\ViewModels</Filter>
     </ClCompile>
-    <ClCompile Include="XamlMetadata\XamlMetaDataProvider.Build.cpp">
+    <ClCompile Include="src\XamlMetadata\XamlMetaDataProvider.Build.cpp">
       <Filter>XamlMetadata</Filter>
     </ClCompile>
     <!-- Backend Sources -->
