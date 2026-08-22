@@ -240,14 +240,33 @@ namespace winrt::Last_Music_Player::implementation
         MUXC::ContainerContentChangingEventArgs const& args)
     {
         (void)sender;
+        auto const container = args.ItemContainer();
+        // Phase zero can arrive before WinUI has expanded the card template.
+        // Retry at phase one so the named artwork Image and card state exist.
+        if (!args.InRecycleQueue()
+            && args.Phase() == 0
+            && container
+            && !container.ContentTemplateRoot())
+        {
+            auto const weakThis = get_weak();
+            args.RegisterUpdateCallback(1,
+                [weakThis](MUXC::ListViewBase const& list,
+                           MUXC::ContainerContentChangingEventArgs const& updateArgs)
+                {
+                    if (auto const self = weakThis.get())
+                    {
+                        self->DiscoverDetailGrid_ContainerContentChanging(list, updateArgs);
+                    }
+                });
+        }
         QueueContainerArtwork(args);
         if (args.InRecycleQueue() || args.ItemIndex() < 0)
         {
             return;
         }
-        if (auto const container = args.ItemContainer().try_as<MUXC::GridViewItem>())
+        if (auto const gridItem = container.try_as<MUXC::GridViewItem>())
         {
-            ApplyDiscoverDetailCardState(container, static_cast<uint32_t>(args.ItemIndex()));
+            ApplyDiscoverDetailCardState(gridItem, static_cast<uint32_t>(args.ItemIndex()));
         }
     }
 
