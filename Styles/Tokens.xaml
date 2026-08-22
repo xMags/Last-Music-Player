@@ -583,6 +583,26 @@
         <Setter Property="Template" Value="{StaticResource FillPreservingButtonTemplate}" />
     </Style>
 
+    <!-- One half of the detail-page list/grid segmented control. Its explicit
+         height fills the inset track instead of letting the stock Button
+         measure itself to the glyph, and the shared template keeps the active
+         half visible through hover and press states. -->
+    <Style x:Key="DetailViewModeButton" TargetType="Button">
+        <Setter Property="Width" Value="38" />
+        <Setter Property="Height" Value="32" />
+        <Setter Property="MinWidth" Value="0" />
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="CornerRadius" Value="{StaticResource Radius7}" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="UseSystemFocusVisuals" Value="True" />
+        <Setter Property="Template" Value="{StaticResource FillPreservingButtonTemplate}" />
+    </Style>
+
     <!-- The stock ToggleSwitch reserves room for its On/Off labels and a header,
          so pinning it to the reference's 38x20 pill squeezed the default
          template until the knob disappeared. This template draws the pill
