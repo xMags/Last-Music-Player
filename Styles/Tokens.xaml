@@ -505,6 +505,15 @@
         <Setter Property="UseSystemFocusVisuals" Value="True" />
     </Style>
 
+    <Style x:Key="DownloadRuleToggle" TargetType="ToggleSwitch">
+        <Setter Property="Width" Value="42" />
+        <Setter Property="MinWidth" Value="42" />
+        <Setter Property="HorizontalAlignment" Value="Right" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="OnContent" Value="{x:Null}" />
+        <Setter Property="OffContent" Value="{x:Null}" />
+    </Style>
+
     <Style x:Key="DesignChipToggle" TargetType="ToggleButton">
         <Setter Property="MinWidth" Value="0" />
         <Setter Property="MinHeight" Value="0" />
