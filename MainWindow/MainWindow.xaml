@@ -2482,8 +2482,9 @@
                                                  PlaceholderText="Find in this list"
                                                  AutomationProperties.Name="Find in this collection"
                                                  TextChanged="DiscoverDetailFind_TextChanged"
-                                                 BorderThickness="0" Background="Transparent" Padding="0"
-                                                 VerticalAlignment="Center" FontSize="13"
+                                                 BorderThickness="0" Background="Transparent"
+                                                 Height="32" MinWidth="0" MinHeight="0" Padding="0,5,0,0"
+                                                 VerticalAlignment="Center" VerticalContentAlignment="Center" FontSize="13"
                                                  Foreground="{ThemeResource TextPrimaryBrush}" />
                                     </Grid>
                                 </Border>
@@ -2510,11 +2511,11 @@
                                 </DropDownButton>
 
                                 <Border Grid.Column="7" Height="38" Background="{ThemeResource SurfaceBrush}" BorderBrush="{ThemeResource ControlBorderBrush}" BorderThickness="1" CornerRadius="{StaticResource Radius10}" Padding="3">
-                                    <StackPanel Orientation="Horizontal" Spacing="2">
-                                        <Button x:Name="DiscoverDetailListViewButton" Click="DiscoverDetailListView_Click" Width="38" CornerRadius="{StaticResource Radius7}" BorderThickness="0" Padding="0" Background="Transparent" AutomationProperties.Name="List view">
+                                    <StackPanel Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
+                                        <Button x:Name="DiscoverDetailListViewButton" Click="DiscoverDetailListView_Click" Style="{StaticResource DetailViewModeButton}" AutomationProperties.Name="List view" ToolTipService.ToolTip="List view">
                                             <FontIcon x:Name="DiscoverDetailListViewGlyph" Glyph="&#xEA37;" FontSize="14" />
                                         </Button>
-                                        <Button x:Name="DiscoverDetailGridViewButton" Click="DiscoverDetailGridView_Click" Width="38" CornerRadius="{StaticResource Radius7}" BorderThickness="0" Padding="0" Background="Transparent" AutomationProperties.Name="Grid view">
+                                        <Button x:Name="DiscoverDetailGridViewButton" Click="DiscoverDetailGridView_Click" Style="{StaticResource DetailViewModeButton}" AutomationProperties.Name="Grid view" ToolTipService.ToolTip="Grid view">
                                             <FontIcon x:Name="DiscoverDetailGridViewGlyph" Glyph="&#xE80A;" FontSize="14" />
                                         </Button>
                                     </StackPanel>
@@ -3671,8 +3672,9 @@
                                                  PlaceholderText="Find in playlist"
                                                  AutomationProperties.Name="Find in this collection"
                                                  TextChanged="LibraryDetailFind_TextChanged"
-                                                 BorderThickness="0" Background="Transparent" Padding="0"
-                                                 VerticalAlignment="Center" FontSize="13"
+                                                 BorderThickness="0" Background="Transparent"
+                                                 Height="32" MinWidth="0" MinHeight="0" Padding="0,5,0,0"
+                                                 VerticalAlignment="Center" VerticalContentAlignment="Center" FontSize="13"
                                                  Foreground="{ThemeResource TextPrimaryBrush}" />
                                     </Grid>
                                 </Border>
@@ -3698,11 +3700,11 @@
                                 </DropDownButton>
 
                                 <Border Grid.Column="8" Height="38" Background="{ThemeResource SurfaceBrush}" BorderBrush="{ThemeResource ControlBorderBrush}" BorderThickness="1" CornerRadius="{StaticResource Radius10}" Padding="3">
-                                    <StackPanel Orientation="Horizontal" Spacing="2">
-                                        <Button x:Name="LibraryDetailListViewButton" Click="LibraryDetailListView_Click" Width="38" CornerRadius="{StaticResource Radius7}" BorderThickness="0" Padding="0" Background="Transparent" AutomationProperties.Name="List view">
+                                    <StackPanel Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
+                                        <Button x:Name="LibraryDetailListViewButton" Click="LibraryDetailListView_Click" Style="{StaticResource DetailViewModeButton}" AutomationProperties.Name="List view" ToolTipService.ToolTip="List view">
                                             <FontIcon x:Name="LibraryDetailListViewGlyph" Glyph="&#xEA37;" FontSize="14" />
                                         </Button>
-                                        <Button x:Name="LibraryDetailGridViewButton" Click="LibraryDetailGridView_Click" Width="38" CornerRadius="{StaticResource Radius7}" BorderThickness="0" Padding="0" Background="Transparent" AutomationProperties.Name="Grid view">
+                                        <Button x:Name="LibraryDetailGridViewButton" Click="LibraryDetailGridView_Click" Style="{StaticResource DetailViewModeButton}" AutomationProperties.Name="Grid view" ToolTipService.ToolTip="Grid view">
                                             <FontIcon x:Name="LibraryDetailGridViewGlyph" Glyph="&#xE80A;" FontSize="14" />
                                         </Button>
                                     </StackPanel>
