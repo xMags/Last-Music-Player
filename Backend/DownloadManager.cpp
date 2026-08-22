@@ -807,6 +807,7 @@ namespace LastMusicPlayer::Backend
             std::lock_guard lock{ state->Mutex };
             if (!state->Initialized || state->Shutdown || state->AllPaused) return;
 
+            auto stranded = false;
             for (auto& job : state->Jobs)
             {
                 for (auto& item : job.Items)
@@ -816,6 +817,16 @@ namespace LastMusicPlayer::Backend
                     if (item.Snapshot.StableKey.starts_with(L"download|")
                         && !item.Snapshot.StableKey.starts_with(currentScopePrefix))
                     {
+                        // Queued while a different account was signed in. Its
+                        // offline identity belongs to that account, so this
+                        // session can neither start it nor count it as offline.
+                        // It used to sit in the queue forever with no error and
+                        // no way to tell why nothing was happening.
+                        item.Snapshot.State = DownloadItemState::Failed;
+                        item.Snapshot.Error = L"Queued while a different account was signed in";
+                        item.Snapshot.BytesPerSecond = 0;
+                        ++state->Revision;
+                        stranded = true;
                         continue;
                     }
                     auto lease = state->OperationGate->TryEnter();
@@ -836,7 +847,7 @@ namespace LastMusicPlayer::Backend
                 }
                 if (state->Running >= kMaxConcurrentTransfers) break;
             }
-            if (!starts.empty()) Save(state);
+            if (!starts.empty() || stranded) Save(state);
         }
 
         for (auto& start : starts)
