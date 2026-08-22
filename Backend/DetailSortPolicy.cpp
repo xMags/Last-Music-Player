@@ -17,6 +17,11 @@ namespace LastMusicPlayer::Backend
                 });
             return value;
         }
+
+        bool ContainsFolded(std::wstring const& field, std::wstring const& needle)
+        {
+            return Folded(field).find(needle) != std::wstring::npos;
+        }
     }
 
     bool KindSupportsCuratedOrder(std::wstring const& detailKind)
@@ -92,5 +97,56 @@ namespace LastMusicPlayer::Backend
         default:
             return L"Custom order";
         }
+    }
+
+    std::vector<std::size_t> DetailTrackOrder(
+        std::vector<DetailTrackSortKey> const& keys,
+        std::wstring_view query,
+        DetailSort sort)
+    {
+        auto const needle = Folded(std::wstring{ query });
+        std::vector<std::size_t> order;
+        order.reserve(keys.size());
+        for (std::size_t index = 0; index < keys.size(); ++index)
+        {
+            auto const& key = keys[index];
+            if (needle.empty()
+                || ContainsFolded(key.Title, needle)
+                || ContainsFolded(key.Artist, needle)
+                || ContainsFolded(key.Album, needle))
+            {
+                order.push_back(index);
+            }
+        }
+
+        if (sort == DetailSort::Curated || sort == DetailSort::DateAdded)
+        {
+            // Catalog details have no date-added value. DateAdded is accepted
+            // defensively as source order so a stale tag cannot scramble them.
+            return order;
+        }
+
+        std::stable_sort(order.begin(), order.end(),
+            [&keys, sort](std::size_t left, std::size_t right)
+            {
+                auto const& leftKey = keys[left];
+                auto const& rightKey = keys[right];
+                if (sort == DetailSort::Duration
+                    && leftKey.DurationSeconds != rightKey.DurationSeconds)
+                {
+                    return leftKey.DurationSeconds > rightKey.DurationSeconds;
+                }
+                if (sort == DetailSort::Artist)
+                {
+                    auto const leftArtist = Folded(leftKey.Artist);
+                    auto const rightArtist = Folded(rightKey.Artist);
+                    if (leftArtist != rightArtist)
+                    {
+                        return leftArtist < rightArtist;
+                    }
+                }
+                return Folded(leftKey.Title) < Folded(rightKey.Title);
+            });
+        return order;
     }
 }

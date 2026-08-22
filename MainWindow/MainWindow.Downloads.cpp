@@ -1196,6 +1196,66 @@ namespace winrt::Last_Music_Player::implementation
         RefreshDownloadsView(true);
     }
 
+    void MainWindow::DiscoverDetailDownload_Click(
+        winrt::Windows::Foundation::IInspectable const& sender,
+        MUX::RoutedEventArgs const& args)
+    {
+        (void)sender;
+        (void)args;
+
+        std::vector<LastMusicPlayer::Backend::DownloadTrackRequest> requests;
+        requests.reserve(m_discoverDetailAllResults.size());
+        auto const scope = detail::RemoteMusicServiceService().CaptureScope();
+        for (auto const& track : m_discoverDetailAllResults)
+        {
+            if (!track
+                || detail::ToLowerCopy(track.SourceKind()) != L"remote"
+                || !detail::IsHttpUrl(track.SourceUrl()))
+            {
+                continue;
+            }
+
+            LastMusicPlayer::Backend::DownloadTrackRequest request;
+            request.StableKey = detail::DownloadStableKey(scope, track);
+            request.SourceUrl = track.SourceUrl().c_str();
+            request.Provider = track.Provider().c_str();
+            request.Title = track.Title().c_str();
+            request.Artist = track.Artist().c_str();
+            request.Album = track.Album().c_str();
+            request.ArtworkUrl = track.ArtworkUrl().c_str();
+            requests.push_back(std::move(request));
+        }
+
+        if (requests.empty())
+        {
+            ShowPlaybackNotice(L"This collection has no downloadable tracks.");
+            return;
+        }
+
+        auto const title = DiscoverDetailTitleText()
+            ? std::wstring{ DiscoverDetailTitleText().Text().c_str() }
+            : std::wstring{ L"Catalog collection" };
+        auto const subtitle = DiscoverDetailSubtitleText()
+            ? std::wstring{ DiscoverDetailSubtitleText().Text().c_str() }
+            : std::wstring{};
+        auto const artwork = requests.front().ArtworkUrl;
+        auto const count = requests.size();
+        if (!detail::DownloadManagerService().Enqueue(
+                title,
+                subtitle,
+                artwork,
+                std::move(requests)))
+        {
+            ShowPlaybackNotice(L"These tracks are already queued or offline.");
+            return;
+        }
+
+        ShowPlaybackNotice(winrt::hstring(
+            std::to_wstring(count)
+            + (count == 1 ? L" track queued for download." : L" tracks queued for download.")));
+        RefreshDownloadsView(true);
+    }
+
     winrt::Windows::Foundation::IAsyncAction MainWindow::LibraryDetailDownload_Click(
         winrt::Windows::Foundation::IInspectable const& sender,
         MUX::RoutedEventArgs const& args)

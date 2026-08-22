@@ -404,7 +404,7 @@ namespace winrt::Last_Music_Player::implementation
         auto gap = 20.0;
         auto minimumCardWidth = 170.0;
         auto fixedColumns = 0;
-        if (grid == LibraryDetailGridView())
+        if (grid == LibraryDetailGridView() || grid == DiscoverDetailGridView())
         {
             gap = 18.0;
             minimumCardWidth = 150.0;

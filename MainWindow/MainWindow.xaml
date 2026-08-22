@@ -2426,15 +2426,19 @@
                                 </StackPanel>
                             </Grid>
 
-                            <!-- Action bar. No download-all or edit here: nothing on
-                                 this page is in the library yet, and a catalog
-                                 resource is not the listener's to rename. -->
+                            <!-- Action bar. Same set as the library detail's, minus
+                                 the edit button: a catalog resource is not the
+                                 listener's to rename. -->
                             <Grid ColumnSpacing="10" Padding="0,0,0,16" BorderBrush="{ThemeResource HairlineStrongBrush}" BorderThickness="0,0,0,1">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto" />
                                     <ColumnDefinition Width="Auto" />
                                     <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
                                     <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
 
                                 <Button Grid.Column="0" x:Name="DiscoverDetailPlayButton" Click="DiscoverDetailPlay_Click" Style="{StaticResource DetailActionPrimaryButton}">
@@ -2451,13 +2455,77 @@
                                     </StackPanel>
                                 </Button>
 
-                                <Button Grid.Column="2" x:Name="DiscoverDetailQueueButton" Click="DiscoverDetailQueue_Click" Style="{StaticResource DetailActionIconButton}" AutomationProperties.Name="Add everything to the queue" ToolTipService.ToolTip="Add to queue">
-                                    <FontIcon Glyph="&#xE710;" FontSize="14" />
+                                <Button Grid.Column="2" x:Name="DiscoverDetailDownloadButton" Click="DiscoverDetailDownload_Click" Style="{StaticResource DetailActionIconButton}" AutomationProperties.Name="Download all for offline use" ToolTipService.ToolTip="Download all">
+                                    <FontIcon Glyph="&#xE896;" FontSize="14" />
                                 </Button>
+
+                                <Button Grid.Column="3" x:Name="DiscoverDetailMoreButton" Style="{StaticResource DetailActionIconButton}" AutomationProperties.Name="More options">
+                                    <Button.Flyout>
+                                        <MenuFlyout>
+                                            <MenuFlyoutItem Text="Play next" Click="DiscoverDetailMenuPlayNext_Click" />
+                                            <MenuFlyoutItem Text="Add to queue" Click="DiscoverDetailQueue_Click" />
+                                            <MenuFlyoutSeparator />
+                                            <MenuFlyoutItem Text="Download all for offline use" Click="DiscoverDetailDownload_Click" />
+                                        </MenuFlyout>
+                                    </Button.Flyout>
+                                    <FontIcon Glyph="&#xE712;" FontSize="14" />
+                                </Button>
+
+                                <Border Grid.Column="5" Width="190" Height="38" Background="{ThemeResource SurfaceBrush}" BorderBrush="{ThemeResource ControlBorderBrush}" BorderThickness="1" CornerRadius="{StaticResource Radius10}" Padding="12,0">
+                                    <Grid ColumnSpacing="8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <FontIcon Glyph="&#xE721;" FontSize="13" Foreground="{ThemeResource TextTertiaryBrush}" VerticalAlignment="Center" />
+                                        <TextBox x:Name="DiscoverDetailFindBox" Grid.Column="1"
+                                                 PlaceholderText="Find in this list"
+                                                 AutomationProperties.Name="Find in this collection"
+                                                 TextChanged="DiscoverDetailFind_TextChanged"
+                                                 BorderThickness="0" Background="Transparent" Padding="0"
+                                                 VerticalAlignment="Center" FontSize="13"
+                                                 Foreground="{ThemeResource TextPrimaryBrush}" />
+                                    </Grid>
+                                </Border>
+
+                                <!-- "Recently added" is absent on purpose: a catalog
+                                     track has no date added to sort by. -->
+                                <DropDownButton Grid.Column="6" Height="38" CornerRadius="{StaticResource Radius10}" Padding="12,0"
+                                                Background="{ThemeResource SurfaceBrush}"
+                                                BorderBrush="{ThemeResource ControlBorderBrush}" BorderThickness="1"
+                                                AutomationProperties.Name="Sort order">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <FontIcon Glyph="&#xE8CB;" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" />
+                                        <TextBlock x:Name="DiscoverDetailSortLabel" Text="Custom order" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                        <FontIcon Glyph="&#xE70D;" FontSize="11" Foreground="{ThemeResource TextTertiaryBrush}" />
+                                    </StackPanel>
+                                    <DropDownButton.Flyout>
+                                        <MenuFlyout>
+                                            <MenuFlyoutItem Text="Custom order" Tag="Custom" Click="DiscoverDetailSort_Click" />
+                                            <MenuFlyoutItem Text="Title" Tag="Title" Click="DiscoverDetailSort_Click" />
+                                            <MenuFlyoutItem Text="Artist" Tag="Artist" Click="DiscoverDetailSort_Click" />
+                                            <MenuFlyoutItem Text="Duration" Tag="Duration" Click="DiscoverDetailSort_Click" />
+                                        </MenuFlyout>
+                                    </DropDownButton.Flyout>
+                                </DropDownButton>
+
+                                <Border Grid.Column="7" Height="38" Background="{ThemeResource SurfaceBrush}" BorderBrush="{ThemeResource ControlBorderBrush}" BorderThickness="1" CornerRadius="{StaticResource Radius10}" Padding="3">
+                                    <StackPanel Orientation="Horizontal" Spacing="2">
+                                        <Button x:Name="DiscoverDetailListViewButton" Click="DiscoverDetailListView_Click" Width="38" CornerRadius="{StaticResource Radius7}" BorderThickness="0" Padding="0" Background="Transparent" AutomationProperties.Name="List view">
+                                            <FontIcon x:Name="DiscoverDetailListViewGlyph" Glyph="&#xEA37;" FontSize="14" />
+                                        </Button>
+                                        <Button x:Name="DiscoverDetailGridViewButton" Click="DiscoverDetailGridView_Click" Width="38" CornerRadius="{StaticResource Radius7}" BorderThickness="0" Padding="0" Background="Transparent" AutomationProperties.Name="Grid view">
+                                            <FontIcon x:Name="DiscoverDetailGridViewGlyph" Glyph="&#xE80A;" FontSize="14" />
+                                        </Button>
+                                    </StackPanel>
+                                </Border>
                             </Grid>
                         </StackPanel>
 
-                        <Border Grid.Row="1" Margin="0,18,0,0" Background="{ThemeResource SurfaceBrush}" BorderBrush="{ThemeResource StrokeBrush}" BorderThickness="1" CornerRadius="{StaticResource RadiusXl}">
+                        <!-- Track surfaces. The card and the grid occupy the same row
+                             and are toggled by SetDiscoverDetailGridMode. -->
+                        <Grid Grid.Row="1" Margin="0,18,0,0">
+                        <Border x:Name="DiscoverDetailListSurface" Background="{ThemeResource SurfaceBrush}" BorderBrush="{ThemeResource StrokeBrush}" BorderThickness="1" CornerRadius="{StaticResource RadiusXl}">
                             <Grid>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto" />
@@ -2557,6 +2625,53 @@
                                 </ListView>
                             </Grid>
                         </Border>
+
+                        <GridView x:Name="DiscoverDetailGridView"
+                                  Visibility="Collapsed"
+                                  SelectionMode="None"
+                                  IsItemClickEnabled="True"
+                                  ItemClick="DiscoverDetailTrack_ItemClick"
+                                  ContainerContentChanging="DiscoverDetailGrid_ContainerContentChanging"
+                                  ItemContainerStyle="{StaticResource CardTileContainerStyle}"
+                                  ScrollViewer.VerticalScrollBarVisibility="Hidden"
+                                  ScrollViewer.HorizontalScrollMode="Disabled"
+                                  ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                  Padding="0,0,0,24"
+                                  Margin="0,0,-18,0"
+                                  Loaded="LibraryCardGrid_Loaded"
+                                  SizeChanged="LibraryCardGrid_SizeChanged">
+                            <GridView.ItemTemplate>
+                                <DataTemplate x:DataType="local:TrackInfo">
+                                    <StackPanel Margin="0,0,18,20" VerticalAlignment="Top" PointerEntered="PlaylistCard_PointerEntered" PointerExited="PlaylistCard_PointerExited">
+                                        <Border CornerRadius="{StaticResource Radius14}" Margin="0,0,0,10" Translation="0,0,16" Tag="{x:Bind}" Loaded="LibraryArtworkBorder_Loaded" SizeChanged="LibraryArtworkBorder_SizeChanged">
+                                            <Border.Shadow><ThemeShadow /></Border.Shadow>
+                                            <Grid>
+                                                <Image Source="/Assets/LibraryStripeOverlay.svg" Stretch="Fill" Opacity="{x:Bind GeneratedArtworkOpacity}" IsHitTestVisible="False" />
+                                                <Image x:Name="ArtworkImage" Source="{x:Bind AlbumArt}" Stretch="UniformToFill" Loaded="AccountArtwork_Loaded" Opacity="{x:Bind ImageArtworkOpacity}" />
+                                                <!-- Shown only on the now-playing card, by
+                                                     ApplyDiscoverDetailCardState. -->
+                                                <Border Visibility="Collapsed" Background="{ThemeResource SurfaceBrush}" CornerRadius="{StaticResource RadiusPill}" Padding="7,3"
+                                                        HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10">
+                                                    <TextBlock Text="PLAYING" FontSize="10" FontWeight="Bold" CharacterSpacing="80" Foreground="{ThemeResource AccentBrush}" />
+                                                </Border>
+                                                <TextBlock Text="{x:Bind Duration}" FontSize="11" Foreground="White" Opacity="0.9"
+                                                           HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="10" />
+                                            </Grid>
+                                        </Border>
+                                        <TextBlock Text="{x:Bind Title}" Style="{StaticResource BodyStrong}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                                        <TextBlock Text="{x:Bind Artist}" Style="{StaticResource CaptionText}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" Margin="0,2,0,0" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </GridView.ItemTemplate>
+                        </GridView>
+
+                        <!-- Shared by list and grid mode so an empty filter never
+                             turns the selected layout into an unexplained blank. -->
+                        <TextBlock x:Name="DiscoverDetailEmptyFilterText" Visibility="Collapsed"
+                                   Margin="0,44" HorizontalAlignment="Center" VerticalAlignment="Top"
+                                   FontSize="13.5" Foreground="{ThemeResource TextTertiaryBrush}"
+                                   TextWrapping="Wrap" TextAlignment="Center" IsHitTestVisible="False" />
+                        </Grid>
                     </Grid>
                 </Grid>
 

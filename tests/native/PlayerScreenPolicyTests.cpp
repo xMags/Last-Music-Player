@@ -45,6 +45,27 @@ namespace
             "curated order should use the collection position fallback");
         Expect(policy::DetailSortLabel(policy::DetailSort::DateAdded) == L"Recently added",
             "date-added sort should use listener-facing copy");
+
+        std::vector<policy::DetailTrackSortKey> const tracks{
+            { L"Zulu", L"Beta", L"One", 120.0 },
+            { L"alpha", L"Gamma", L"Two", 300.0 },
+            { L"Bravo", L"beta", L"Three", 180.0 },
+        };
+        Expect(policy::DetailTrackOrder(tracks, L"", policy::DetailSort::Curated)
+                == std::vector<std::size_t>{ 0, 1, 2 },
+            "custom order should preserve the catalog's source order");
+        Expect(policy::DetailTrackOrder(tracks, L"two", policy::DetailSort::Curated)
+                == std::vector<std::size_t>{ 1 },
+            "detail find should match album text case-insensitively");
+        Expect(policy::DetailTrackOrder(tracks, L"BETA", policy::DetailSort::Title)
+                == std::vector<std::size_t>{ 2, 0 },
+            "filtered title sort should be case-insensitive");
+        Expect(policy::DetailTrackOrder(tracks, L"", policy::DetailSort::Artist)
+                == std::vector<std::size_t>{ 2, 0, 1 },
+            "artist ties should be ordered by title");
+        Expect(policy::DetailTrackOrder(tracks, L"", policy::DetailSort::Duration)
+                == std::vector<std::size_t>{ 1, 2, 0 },
+            "duration sort should put the longest track first");
     }
 
     void TestPlaylistSuggestionPolicy()
