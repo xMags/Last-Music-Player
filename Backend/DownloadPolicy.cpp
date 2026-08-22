@@ -45,15 +45,15 @@ namespace LastMusicPlayer::Backend
     }
 
     bool DownloadSchedulingAllowed(
-        bool onlyOnWifi,
-        bool isWifi,
+        bool avoidMeteredNetworks,
+        bool isMetered,
         bool downloadOnBattery,
         bool onBattery,
         bool allPaused,
         bool shuttingDown) noexcept
     {
         if (allPaused || shuttingDown) return false;
-        if (onlyOnWifi && !isWifi) return false;
+        if (avoidMeteredNetworks && isMetered) return false;
         if (!downloadOnBattery && onBattery) return false;
         return true;
     }

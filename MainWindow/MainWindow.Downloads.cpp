@@ -307,7 +307,7 @@ namespace winrt::Last_Music_Player::implementation
 
         auto const snapshot = manager.Snapshot();
         m_loadingDownloadRules = true;
-        DownloadRuleWifi().IsOn(snapshot.OnlyOnWifi);
+        DownloadRuleMetered().IsOn(snapshot.AvoidMeteredNetworks);
         DownloadRuleLiked().IsOn(snapshot.AutoDownloadLiked);
         DownloadRuleBattery().IsOn(snapshot.DownloadOnBattery);
         DownloadRuleRecent().IsOn(snapshot.KeepRecentOffline);
@@ -991,7 +991,7 @@ namespace winrt::Last_Music_Player::implementation
         auto toggle = sender.try_as<MUXC::ToggleSwitch>();
         if (!toggle) return;
         auto const tag = detail::ReadTagString(toggle.Tag());
-        if (tag == L"Wifi") detail::DownloadManagerService().SetOnlyOnWifi(toggle.IsOn());
+        if (tag == L"Metered") detail::DownloadManagerService().SetAvoidMeteredNetworks(toggle.IsOn());
         else if (tag == L"Liked") detail::DownloadManagerService().SetAutoDownloadLiked(toggle.IsOn());
         else if (tag == L"Battery") detail::DownloadManagerService().SetDownloadOnBattery(toggle.IsOn());
         else if (tag == L"Recent") detail::DownloadManagerService().SetKeepRecentOffline(toggle.IsOn());

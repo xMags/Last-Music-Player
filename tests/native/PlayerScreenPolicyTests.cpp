@@ -150,8 +150,13 @@ namespace
             "progress should clamp oversized responses");
         Expect(policy::DownloadProgressPercent(1, 0) == 0.0,
             "unknown totals should not divide by zero");
-        Expect(!policy::DownloadSchedulingAllowed(true, false, true, false, false, false),
-            "Wi-Fi-only jobs should wait on a non-Wi-Fi connection");
+        Expect(!policy::DownloadSchedulingAllowed(true, true, true, false, false, false),
+            "the network rule should hold jobs back on a metered connection");
+        Expect(policy::DownloadSchedulingAllowed(true, false, true, false, false, false),
+            "an unmetered connection should run even with the network rule on: "
+            "a wired desktop is not a data plan");
+        Expect(policy::DownloadSchedulingAllowed(false, true, true, false, false, false),
+            "turning the network rule off should allow a metered connection");
         Expect(!policy::DownloadSchedulingAllowed(false, false, false, true, false, false),
             "battery-blocked jobs should wait while unplugged");
         Expect(policy::DownloadSchedulingAllowed(false, false, true, true, false, false),

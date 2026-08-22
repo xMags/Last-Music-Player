@@ -75,7 +75,7 @@ namespace LastMusicPlayer::Backend
         std::size_t SessionCompletedTracks{};
         std::uint64_t SessionBytes{};
         std::uint64_t SessionAverageBytesPerSecond{};
-        bool OnlyOnWifi{ true };
+        bool AvoidMeteredNetworks{ true };
         bool AutoDownloadLiked{ true };
         bool DownloadOnBattery{};
         bool KeepRecentOffline{ true };
@@ -115,7 +115,7 @@ namespace LastMusicPlayer::Backend
         [[nodiscard]] DownloadManagerSnapshot Snapshot() const;
         [[nodiscard]] std::wstring ReadyPath(std::wstring const& stableKey) const;
 
-        void SetOnlyOnWifi(bool value);
+        void SetAvoidMeteredNetworks(bool value);
         void SetAutoDownloadLiked(bool value);
         void SetDownloadOnBattery(bool value);
         void SetKeepRecentOffline(bool value);

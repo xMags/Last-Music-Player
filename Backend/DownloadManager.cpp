@@ -216,7 +216,7 @@ namespace LastMusicPlayer::Backend
         bool Initialized{};
         bool Shutdown{};
         bool AllPaused{};
-        bool OnlyOnWifi{ true };
+        bool AvoidMeteredNetworks{ true };
         bool AutoDownloadLiked{ true };
         bool DownloadOnBattery{};
         bool KeepRecentOffline{ true };
@@ -336,7 +336,7 @@ namespace LastMusicPlayer::Backend
             m_state->RootFolder = configured.empty()
                 ? DefaultDownloadDirectory()
                 : std::filesystem::path{ configured };
-            m_state->OnlyOnWifi = m_settings.GetBool(L"DownloadOnlyOnWifi", true);
+            m_state->AvoidMeteredNetworks = m_settings.GetBool(L"DownloadOnlyOnWifi", true);
             m_state->AutoDownloadLiked = m_settings.GetBool(L"AutoDownloadLiked", true);
             m_state->DownloadOnBattery = m_settings.GetBool(L"DownloadOnBattery", false);
             m_state->KeepRecentOffline = m_settings.GetBool(L"KeepRecentOffline", true);
@@ -655,7 +655,7 @@ namespace LastMusicPlayer::Backend
             ? static_cast<std::uint64_t>(
                 static_cast<double>(m_state->SessionBytes) / m_state->SessionTransferSeconds)
             : 0;
-        result.OnlyOnWifi = m_state->OnlyOnWifi;
+        result.AvoidMeteredNetworks = m_state->AvoidMeteredNetworks;
         result.AutoDownloadLiked = m_state->AutoDownloadLiked;
         result.DownloadOnBattery = m_state->DownloadOnBattery;
         result.KeepRecentOffline = m_state->KeepRecentOffline;
@@ -715,10 +715,10 @@ namespace LastMusicPlayer::Backend
         return {};
     }
 
-    void DownloadManager::SetOnlyOnWifi(bool value)
+    void DownloadManager::SetAvoidMeteredNetworks(bool value)
     {
         std::lock_guard lock{ m_state->Mutex };
-        m_state->OnlyOnWifi = value;
+        m_state->AvoidMeteredNetworks = value;
         m_settings.SetBool(L"DownloadOnlyOnWifi", value);
         ++m_state->Revision;
         Pump(m_state);
@@ -751,29 +751,43 @@ namespace LastMusicPlayer::Backend
 
     bool DownloadManager::SchedulingAllowed(std::shared_ptr<SharedState> const& state)
     {
-        bool onlyOnWifi{};
+        bool avoidMeteredNetworks{};
         bool downloadOnBattery{};
         bool allPaused{};
         bool shuttingDown{};
         {
             std::lock_guard lock{ state->Mutex };
-            onlyOnWifi = state->OnlyOnWifi;
+            avoidMeteredNetworks = state->AvoidMeteredNetworks;
             downloadOnBattery = state->DownloadOnBattery;
             allPaused = state->AllPaused;
             shuttingDown = state->Shutdown;
         }
 
-        auto isWifi = true;
-        if (onlyOnWifi)
+        // Ask what the connection costs, not what it is made of. The old check
+        // was IsWlanConnectionProfile, which treats every wired desktop as if
+        // it were on cellular data and stalls its queue forever.
+        auto isMetered = false;
+        if (avoidMeteredNetworks)
         {
             auto const profile = WNC::NetworkInformation::GetInternetConnectionProfile();
-            isWifi = profile && profile.IsWlanConnectionProfile();
+            if (!profile)
+            {
+                // No route out at all. Nothing to schedule against.
+                isMetered = true;
+            }
+            else if (auto const cost = profile.GetConnectionCost())
+            {
+                isMetered = cost.NetworkCostType() == WNC::NetworkCostType::Fixed
+                    || cost.NetworkCostType() == WNC::NetworkCostType::Variable
+                    || cost.Roaming()
+                    || cost.OverDataLimit();
+            }
         }
         auto const onBattery = WSP::PowerManager::PowerSupplyStatus()
             == WSP::PowerSupplyStatus::NotPresent;
         return DownloadSchedulingAllowed(
-            onlyOnWifi,
-            isWifi,
+            avoidMeteredNetworks,
+            isMetered,
             downloadOnBattery,
             onBattery,
             allPaused,
