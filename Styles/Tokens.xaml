@@ -472,12 +472,67 @@
         <Setter Property="UseSystemFocusVisuals" Value="True" />
     </Style>
 
+    <!-- Hover and press as a translucent scrim laid over whatever fill the
+         control already carries. WinUI's default button states replace
+         Background outright with a grey theme brush, which meant every
+         accent-filled control in this redesign - the primary action button, the
+         selected Downloads tab, the active gear - reverted to stock grey under
+         the pointer and lost the state it was drawn to express. A scrim
+         darkens instead of replacing: a white control lands on the reference's
+         rgba(0,0,0,0.04) hover, and the blue primary lands next to its #0069B8.
+         The 0.14s fade is the reference's 0.12-0.16s background transition. -->
+    <ControlTemplate x:Key="FillPreservingButtonTemplate" TargetType="Button">
+        <Grid x:Name="Root" Background="Transparent">
+            <Border x:Name="Chrome"
+                    Background="{TemplateBinding Background}"
+                    BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="{TemplateBinding BorderThickness}"
+                    CornerRadius="{TemplateBinding CornerRadius}" />
+            <Border x:Name="Scrim" Background="Black" Opacity="0"
+                    CornerRadius="{TemplateBinding CornerRadius}"
+                    IsHitTestVisible="False" />
+            <ContentPresenter Padding="{TemplateBinding Padding}"
+                              Foreground="{TemplateBinding Foreground}"
+                              HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                              VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}" />
+            <VisualStateManager.VisualStateGroups>
+                <VisualStateGroup x:Name="CommonStates">
+                    <VisualState x:Name="Normal">
+                        <Storyboard>
+                            <DoubleAnimation Storyboard.TargetName="Scrim"
+                                             Storyboard.TargetProperty="Opacity"
+                                             To="0" Duration="0:0:0.14" />
+                        </Storyboard>
+                    </VisualState>
+                    <VisualState x:Name="PointerOver">
+                        <Storyboard>
+                            <DoubleAnimation Storyboard.TargetName="Scrim"
+                                             Storyboard.TargetProperty="Opacity"
+                                             To="0.05" Duration="0:0:0.14" />
+                        </Storyboard>
+                    </VisualState>
+                    <VisualState x:Name="Pressed">
+                        <Storyboard>
+                            <DoubleAnimation Storyboard.TargetName="Scrim"
+                                             Storyboard.TargetProperty="Opacity"
+                                             To="0.10" Duration="0:0:0.08" />
+                        </Storyboard>
+                    </VisualState>
+                    <VisualState x:Name="Disabled">
+                        <VisualState.Setters>
+                            <Setter Target="Root.Opacity" Value="0.45" />
+                        </VisualState.Setters>
+                    </VisualState>
+                </VisualStateGroup>
+            </VisualStateManager.VisualStateGroups>
+        </Grid>
+    </ControlTemplate>
+
     <!-- Detail-page action bar. Deliberately separate from DesignPrimaryButton
          and DesignSecondaryButton above: those are the Settings metrics
          (radius 6-8, 12-13px) and are consumed by shipped screens, so the
          action bar's heavier radius-10, 13.5px treatment gets its own keys
-         rather than shifting theirs. Hover comes from WinUI's default button
-         states, as it does everywhere else in this redesign. -->
+         rather than shifting theirs. -->
     <Style x:Key="DetailActionPrimaryButton" TargetType="Button">
         <Setter Property="Background" Value="{ThemeResource PrimaryActionBrush}" />
         <Setter Property="Foreground" Value="White" />
@@ -487,6 +542,7 @@
         <Setter Property="FontSize" Value="13.5" />
         <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="UseSystemFocusVisuals" Value="True" />
+        <Setter Property="Template" Value="{StaticResource FillPreservingButtonTemplate}" />
     </Style>
 
     <Style x:Key="DetailActionSecondaryButton" TargetType="Button">
@@ -499,6 +555,16 @@
         <Setter Property="FontSize" Value="13.5" />
         <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="UseSystemFocusVisuals" Value="True" />
+        <Setter Property="Template" Value="{StaticResource FillPreservingButtonTemplate}" />
+    </Style>
+
+    <!-- Compact sibling for the Downloads card actions ("Clear cache", "Clear
+         completed"), which the reference draws a step smaller than the
+         playlist action bar's controls. -->
+    <Style x:Key="CompactSecondaryButton" TargetType="Button" BasedOn="{StaticResource DetailActionSecondaryButton}">
+        <Setter Property="CornerRadius" Value="{StaticResource Radius9}" />
+        <Setter Property="Padding" Value="14,8" />
+        <Setter Property="FontSize" Value="13" />
     </Style>
 
     <!-- Square 38x38 sibling of the above, for glyph-only actions. -->
@@ -514,6 +580,7 @@
         <Setter Property="HorizontalContentAlignment" Value="Center" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
         <Setter Property="UseSystemFocusVisuals" Value="True" />
+        <Setter Property="Template" Value="{StaticResource FillPreservingButtonTemplate}" />
     </Style>
 
     <!-- The stock ToggleSwitch reserves room for its On/Off labels and a header,
@@ -595,7 +662,9 @@
 
     <!-- Downloads tab chip. Selection is a background/foreground swap that
          RefreshDownloadsView drives, because the count badge inside has to
-         change with it and a visual state cannot reach into the content. -->
+         change with it and a visual state cannot reach into the content. That
+         swap is a local value, so the chip needs the fill-preserving template:
+         the default states would drop the selected chip's accent on hover. -->
     <Style x:Key="DownloadTabChip" TargetType="Button">
         <Setter Property="MinWidth" Value="0" />
         <Setter Property="MinHeight" Value="0" />
@@ -608,6 +677,7 @@
         <Setter Property="BorderBrush" Value="{ThemeResource StrokeBrush}" />
         <Setter Property="Foreground" Value="{ThemeResource TextSecondaryBrush}" />
         <Setter Property="UseSystemFocusVisuals" Value="True" />
+        <Setter Property="Template" Value="{StaticResource FillPreservingButtonTemplate}" />
     </Style>
 
     <Style x:Key="SourceModeCard" TargetType="RadioButton">

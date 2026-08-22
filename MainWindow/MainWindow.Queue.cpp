@@ -149,6 +149,10 @@ namespace winrt::Last_Music_Player::implementation
 
         DispatcherQueue().TryEnqueue([this, duration]()
         {
+            // Played to the end, so there is nothing to come back to. Clearing
+            // here is what stops a finished track from sitting in the resume
+            // shelf offering its last few seconds.
+            ClearResumePosition(AudioPlayerService().GetCurrentTrack());
             // Snap the timeline to 100% before AdvanceQueue runs. The 500 ms
             // progress poll typically leaves Slider.Value 0.1–0.5 s short
             // of NaturalDuration at end-of-track, which renders as a

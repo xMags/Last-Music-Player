@@ -134,7 +134,10 @@ namespace LastMusicPlayer::Backend::DatabaseAccountSchema
         "SELECT t.Id, t.SourceKey, t.SourceKind, t.Provider, t.SourceUrl, t.FilePath, "
         "t.Title, t.Artist, t.Album, t.Genre, t.DurationSeconds, t.ArtworkUrl, "
         "t.DateAddedSortKey, t.DateAddedText, t.DurationText, t.PlayCount, "
-        "t.LastPlayedOrder, t.IsLiked, t.IsActive, t.UpdatedAt, t.LastPlayed, t.RemoteId "
+        "t.LastPlayedOrder, t.IsLiked, t.IsActive, t.UpdatedAt, t.LastPlayed, t.RemoteId, "
+        // Aliased because callers select this view by column name, and a bare
+        // COALESCE would take an implementation-defined one.
+        "COALESCE(t.LastPositionSeconds,0) AS LastPositionSeconds "
         "FROM Tracks t WHERE t.SourceKind<>'remote' OR EXISTS ("
         "SELECT 1 FROM ActiveAccountContext c WHERE c.SingletonId=1 AND c.RemoteMode='ApiKey') "
         "UNION ALL "
@@ -152,6 +155,7 @@ namespace LastMusicPlayer::Backend::DatabaseAccountSchema
         "CAST(strftime('%s', a.LastPlayedAtUtc) AS REAL), 0) END, "
         "a.DateAddedText, a.DurationText, a.PlayCount, "
         "COALESCE(CAST(strftime('%s', a.LastPlayedAtUtc) AS INTEGER),0), a.IsLiked, 1, "
-        "COALESCE(CAST(strftime('%s', a.UpdatedAtUtc) AS INTEGER),0), a.LastPlayedAtUtc, a.RemoteId "
+        "COALESCE(CAST(strftime('%s', a.UpdatedAtUtc) AS INTEGER),0), a.LastPlayedAtUtc, a.RemoteId, "
+        "COALESCE(a.LastPositionSeconds,0) "
         "FROM AccountTracks a JOIN ActiveAccountContext c ON c.SingletonId=1 AND c.RemoteMode='Account' AND c.AccountId=a.AccountId;";
 }

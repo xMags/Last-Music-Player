@@ -219,6 +219,7 @@
                         <Border x:Name="ProbeTransparent" Background="Transparent" />
                         <Border x:Name="ProbeStroke" BorderBrush="{ThemeResource StrokeBrush}" />
                         <Border x:Name="ProbeRowDivider" Background="{ThemeResource RowDividerBrush}" />
+                        <Border x:Name="ProbeRowHover" Background="{ThemeResource RowHoverBrush}" />
                         <Border x:Name="ProbeControlBorder" BorderBrush="{ThemeResource ControlBorderBrush}" />
                         <TextBlock x:Name="ProbeDanger" Foreground="{ThemeResource DangerBrush}" />
                     </StackPanel>
@@ -1244,7 +1245,7 @@
                                     </Button>
                                     <Border Grid.Column="3" Height="22" CornerRadius="5"
                                             BorderThickness="1" BorderBrush="{ThemeResource StrokeStrongBrush}"
-                                            Background="{ThemeResource NeutralFillBrush}" Padding="8,0"
+                                            Background="Transparent" Padding="6,2"
                                             VerticalAlignment="Center" IsHitTestVisible="False">
                                         <TextBlock Text="Ctrl K" FontSize="11" Foreground="{ThemeResource TextTertiaryBrush}" VerticalAlignment="Center" />
                                     </Border>
@@ -1293,12 +1294,14 @@
                                 <StackPanel x:Name="BrowseResumeSection" Visibility="Collapsed" Margin="0,0,0,34">
                                     <TextBlock Text="Pick up where you left off" Style="{StaticResource TitleH2}" Margin="0,0,0,12" />
                                     <GridView x:Name="BrowseResumeGrid" SelectionMode="None" IsItemClickEnabled="True"
-                                              ItemClick="SearchResult_ItemClick"
+                                              ItemClick="BrowseResume_ItemClick"
                                               ItemContainerStyle="{StaticResource CardTileContainerStyle}"
                                               ScrollViewer.VerticalScrollMode="Disabled"
                                               ScrollViewer.VerticalScrollBarVisibility="Hidden"
                                               ScrollViewer.HorizontalScrollMode="Disabled"
-                                              ScrollViewer.HorizontalScrollBarVisibility="Hidden">
+                                              ScrollViewer.HorizontalScrollBarVisibility="Hidden"
+                                              Loaded="LibraryCardGrid_Loaded"
+                                              SizeChanged="LibraryCardGrid_SizeChanged">
                                         <GridView.ItemsPanel>
                                             <ItemsPanelTemplate>
                                                 <ItemsWrapGrid Orientation="Horizontal" ItemWidth="330" ItemHeight="78" />
@@ -1306,7 +1309,7 @@
                                         </GridView.ItemsPanel>
                                         <GridView.ItemTemplate>
                                             <DataTemplate x:DataType="local:TrackInfo">
-                                                <Grid Width="318" Height="66" Margin="0,0,12,12" Padding="12" ColumnSpacing="13"
+                                                <Grid Height="66" Margin="0,0,12,12" Padding="12" ColumnSpacing="13"
                                                       Background="{ThemeResource SurfaceBrush}"
                                                       BorderBrush="{ThemeResource StrokeBrush}" BorderThickness="1"
                                                       CornerRadius="{StaticResource RadiusXl}"
@@ -1324,7 +1327,11 @@
                                                     </Border>
                                                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                                         <TextBlock Text="{x:Bind Title}" Style="{StaticResource BodyStrong}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
-                                                        <TextBlock Text="{x:Bind Artist}" Style="{StaticResource CaptionText}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                                            <TextBlock Text="{x:Bind Artist}" Style="{StaticResource CaptionText}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                                                            <TextBlock Text="&#xB7;" Style="{StaticResource CaptionText}" Visibility="{x:Bind ResumeCaptionVisibility}" />
+                                                            <TextBlock Text="{x:Bind ResumeCaption}" Style="{StaticResource CaptionText}" Visibility="{x:Bind ResumeCaptionVisibility}" TextWrapping="NoWrap" />
+                                                        </StackPanel>
                                                     </StackPanel>
                                                     <FontIcon Grid.Column="2" Glyph="&#xE768;" FontSize="13" Foreground="{ThemeResource AccentBrush}" VerticalAlignment="Center" />
                                                 </Grid>
@@ -1350,6 +1357,9 @@
                                     </GridView.ItemsPanel>
                                     <GridView.ItemTemplate>
                                         <DataTemplate x:DataType="local:TrackInfo">
+                                            <!-- Fixed 1.5:1, unlike the square card grids: the tile
+                                                 artwork shares LibraryArtworkBorder_Loaded, which
+                                                 squares a border to its own width. -->
                                             <Grid Width="170" Height="114" Margin="0,0,16,16"
                                                   PointerEntered="PlaylistCard_PointerEntered" PointerExited="PlaylistCard_PointerExited">
                                                 <Border CornerRadius="{StaticResource Radius14}" Tag="{x:Bind}" Loaded="LibraryArtworkBorder_Loaded" Translation="0,0,16">
@@ -1401,7 +1411,13 @@
                                         <ColumnDefinition Width="340" />
                                         <ColumnDefinition Width="*" />
                                     </Grid.ColumnDefinitions>
-                                    <Border x:Name="BrowseTopResultButton" Tapped="BrowseTopResult_Tapped" HorizontalAlignment="Stretch"
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="*" />
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Text="TOP RESULT" Style="{StaticResource EyebrowText}" Margin="0,0,0,10" />
+                                    <TextBlock Grid.Column="1" x:Name="BrowseSongsHeading" Text="SONGS" Style="{StaticResource EyebrowText}" Margin="0,0,0,10" />
+                                    <Border x:Name="BrowseTopResultButton" Grid.Row="1" Tapped="BrowseTopResult_Tapped" HorizontalAlignment="Stretch"
                                             Background="{ThemeResource SurfaceBrush}" BorderBrush="{ThemeResource StrokeBrush}" BorderThickness="1"
                                             CornerRadius="{StaticResource Radius14}" Padding="18">
                                         <StackPanel Spacing="12">
@@ -1414,7 +1430,7 @@
                                                 <TextBlock x:Name="BrowseTopResultTitle" FontFamily="Segoe UI Variable Display" FontSize="22" FontWeight="Bold" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
                                                 <StackPanel Orientation="Horizontal" Spacing="8">
                                                     <Border Background="{ThemeResource AccentSoftBrush}" CornerRadius="{StaticResource RadiusPill}" Padding="7,2">
-                                                        <TextBlock Text="SONG" FontSize="10" FontWeight="Bold" CharacterSpacing="80" Foreground="{ThemeResource AccentBrush}" />
+                                                        <TextBlock x:Name="BrowseTopResultKindText" Text="SONG" FontSize="10" FontWeight="Bold" CharacterSpacing="80" Foreground="{ThemeResource AccentBrush}" />
                                                     </Border>
                                                     <TextBlock x:Name="BrowseTopResultSubtitle" FontSize="12.5" Foreground="{ThemeResource TextSecondaryBrush}" VerticalAlignment="Center" />
                                                 </StackPanel>
@@ -1430,7 +1446,7 @@
                                             </StackPanel>
                                         </Border>
 
-                                    <Border Grid.Column="1" Background="{ThemeResource SurfaceBrush}" BorderBrush="{ThemeResource StrokeBrush}" BorderThickness="1" CornerRadius="{StaticResource RadiusXl}">
+                                    <Border Grid.Row="1" Grid.Column="1" VerticalAlignment="Top" Background="{ThemeResource SurfaceBrush}" BorderBrush="{ThemeResource StrokeBrush}" BorderThickness="1" CornerRadius="{StaticResource RadiusXl}">
                                         <ListView x:Name="SearchResultsListView" SelectionMode="None" IsItemClickEnabled="True"
                                                   ItemClick="SearchResult_ItemClick"
                                                   ScrollViewer.VerticalScrollMode="Disabled"
@@ -1459,7 +1475,10 @@
                                                         <Grid.ColumnDefinitions>
                                                             <ColumnDefinition Width="38" />
                                                             <ColumnDefinition Width="*" />
-                                                            <ColumnDefinition Width="150" />
+                                                            <!-- Sized to the album name rather than a
+                                                                 fixed 150, which left a gap before the
+                                                                 duration on short titles. -->
+                                                            <ColumnDefinition Width="Auto" />
                                                             <ColumnDefinition Width="42" />
                                                             <ColumnDefinition Width="32" />
                                                         </Grid.ColumnDefinitions>
@@ -1473,8 +1492,8 @@
                                                                 <FontIcon Glyph="&#xE73E;" FontSize="10" Foreground="{ThemeResource AccentBrush}" Visibility="{x:Bind InLibraryVisibility}" />
                                                             </StackPanel>
                                                         </StackPanel>
-                                                        <TextBlock Grid.Column="2" Text="{x:Bind Album}" FontSize="12.5" Foreground="{ThemeResource TextTertiaryBrush}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                                                        <TextBlock Grid.Column="3" Text="{x:Bind Duration}" FontSize="12.5" Foreground="{ThemeResource TextSecondaryBrush}" VerticalAlignment="Center" HorizontalAlignment="Right" />
+                                                        <TextBlock Grid.Column="2" Text="{x:Bind Album}" FontSize="12.5" MaxWidth="190" Foreground="{ThemeResource TextTertiaryBrush}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                                                        <TextBlock Grid.Column="3" Text="{x:Bind Duration}" FontSize="12.5" Foreground="{ThemeResource TextSecondaryBrush}" VerticalAlignment="Center" HorizontalAlignment="Right" Typography.NumeralAlignment="Tabular" />
                                                         <Button Grid.Column="4" Tag="{x:Bind}" Style="{StaticResource IconOnlyButton}" AutomationProperties.Name="More options">
                                                             <Button.Flyout>
                                                                 <MenuFlyout>
@@ -1504,14 +1523,16 @@
                                               ScrollViewer.VerticalScrollBarVisibility="Hidden"
                                               ScrollViewer.HorizontalScrollMode="Disabled"
                                               ScrollViewer.HorizontalScrollBarVisibility="Hidden"
-                                              Padding="0,0,0,24" Margin="0,0,-18,0">
+                                              Padding="0,0,0,24" Margin="0,0,-18,0"
+                                              Loaded="LibraryCardGrid_Loaded"
+                                              SizeChanged="LibraryCardGrid_SizeChanged">
                                         <GridView.ItemsPanel>
                                             <ItemsPanelTemplate><ItemsWrapGrid Orientation="Horizontal" ItemWidth="178" ItemHeight="230" /></ItemsPanelTemplate>
                                         </GridView.ItemsPanel>
                                         <GridView.ItemTemplate>
                                             <DataTemplate x:DataType="local:TrackInfo">
-                                                <StackPanel Width="160" Margin="0,0,18,20" PointerEntered="PlaylistCard_PointerEntered" PointerExited="PlaylistCard_PointerExited">
-                                                    <Border x:Name="SearchFacetArt" Height="160" Margin="0,0,0,10" CornerRadius="{StaticResource RadiusXl}" Tag="{x:Bind}" Loaded="LibraryArtworkBorder_Loaded" Translation="0,0,16">
+                                                <StackPanel Margin="0,0,18,20" PointerEntered="PlaylistCard_PointerEntered" PointerExited="PlaylistCard_PointerExited">
+                                                    <Border x:Name="SearchFacetArt" Margin="0,0,0,10" CornerRadius="{StaticResource RadiusXl}" Tag="{x:Bind}" Loaded="LibraryArtworkBorder_Loaded" SizeChanged="LibraryArtworkBorder_SizeChanged" Translation="0,0,16">
                                                         <Border.Shadow><ThemeShadow /></Border.Shadow>
                                                         <Grid>
                                                             <Image Source="/Assets/LibraryStripeOverlay.svg" Stretch="Fill" Opacity="{x:Bind GeneratedArtworkOpacity}" IsHitTestVisible="False" />
@@ -1548,10 +1569,10 @@
                                     </StackPanel>
                                 </StackPanel>
                                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Bottom">
-                                    <Button x:Name="DownloadsPauseAllButton" Click="DownloadsPauseAll_Click" Style="{StaticResource DetailActionPrimaryButton}">
+                                    <Button x:Name="DownloadsPauseAllButton" Click="DownloadsPauseAll_Click" Style="{StaticResource DetailActionPrimaryButton}" Padding="18,10">
                                         <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon x:Name="DownloadsPauseAllGlyph" Glyph="&#xE769;" FontSize="13"/><TextBlock x:Name="DownloadsPauseAllLabel" Text="Pause all"/></StackPanel>
                                     </Button>
-                                    <Button x:Name="DownloadsSettingsButton" Click="DownloadsSettings_Click" Style="{StaticResource DetailActionIconButton}" AutomationProperties.Name="Download settings"><FontIcon x:Name="DownloadsSettingsGlyph" Glyph="&#xE713;" FontSize="14"/></Button>
+                                    <Button x:Name="DownloadsSettingsButton" Click="DownloadsSettings_Click" Style="{StaticResource DetailActionIconButton}" AutomationProperties.Name="Download settings"><FontIcon x:Name="DownloadsSettingsGlyph" Glyph="&#xE713;" FontSize="15"/></Button>
                                 </StackPanel>
                             </Grid>
 
@@ -1601,7 +1622,7 @@
                                             <TextBlock x:Name="DownloadsFolderText" Text="Offline folder" FontSize="11.5" Foreground="{ThemeResource AccentBrush}" TextTrimming="CharacterEllipsis"/>
                                         </Button>
                                     </StackPanel>
-                                    <Button Grid.Column="1" Click="DownloadsClearCache_Click" Content="Clear cache" Style="{StaticResource DetailActionSecondaryButton}" HorizontalAlignment="Right" VerticalAlignment="Top"/>
+                                    <Button Grid.Column="1" Click="DownloadsClearCache_Click" Content="Clear cache" Style="{StaticResource CompactSecondaryButton}" HorizontalAlignment="Right" VerticalAlignment="Top"/>
                                 </Grid>
                             </Border>
 
@@ -1641,7 +1662,7 @@
                                         </StackPanel>
                                     </Button>
                                 </StackPanel>
-                                <Button x:Name="DownloadsClearCompletedButton" Grid.Column="2" Click="DownloadsClearCompleted_Click" Content="Clear completed" Style="{StaticResource DetailActionSecondaryButton}" VerticalAlignment="Center"/>
+                                <Button x:Name="DownloadsClearCompletedButton" Grid.Column="2" Click="DownloadsClearCompleted_Click" Content="Clear completed" Style="{StaticResource CompactSecondaryButton}" Padding="13,7" VerticalAlignment="Center"/>
                             </Grid>
 
                             <!-- One card per tab, not one card per row: the rows are
@@ -3208,7 +3229,7 @@
                                     <Button Grid.Column="3" Tag="{x:Bind}" Click="LibraryDetailSuggestionAdd_Click"
                                             Background="{ThemeResource SurfaceBrush}"
                                             BorderBrush="{ThemeResource ControlBorderBrush}" BorderThickness="1"
-                                            CornerRadius="{StaticResource Radius9}" Padding="12,5"
+                                            CornerRadius="{StaticResource RadiusLg}" Padding="12,5"
                                             FontSize="12.5" FontWeight="SemiBold"
                                             AutomationProperties.Name="Add to this playlist">
                                         <StackPanel Orientation="Horizontal" Spacing="7">
@@ -3360,6 +3381,15 @@
                                             <MenuFlyoutItem Text="Play next" Click="LibraryDetailMenuPlayNext_Click" />
                                             <MenuFlyoutItem Text="Add to queue" Click="LibraryDetailMenuAddToQueue_Click" />
                                             <MenuFlyoutSeparator />
+                                            <!-- The reference treats density as a property of the
+                                                 track list without saying where it is set. The
+                                                 overflow menu is where the other list-wide actions
+                                                 already live. -->
+                                            <MenuFlyoutSubItem Text="Density">
+                                                <ToggleMenuFlyoutItem x:Name="LibraryDetailDensityComfortable" Text="Comfortable" Tag="Comfortable" Click="LibraryDetailDensity_Click" />
+                                                <ToggleMenuFlyoutItem x:Name="LibraryDetailDensityCompact" Text="Compact" Tag="Compact" Click="LibraryDetailDensity_Click" />
+                                            </MenuFlyoutSubItem>
+                                            <MenuFlyoutSeparator />
                                             <MenuFlyoutItem x:Name="LibraryDetailMenuRename" Text="Rename playlist" Click="LibraryDetailEdit_Click" />
                                             <MenuFlyoutItem x:Name="LibraryDetailMenuDelete" Text="Delete playlist" Click="LibraryDetailMenuDelete_Click" />
                                         </MenuFlyout>
@@ -3422,13 +3452,28 @@
                                     Background="{ThemeResource AccentNowPlayingBrush}"
                                     BorderBrush="{ThemeResource AccentBorderBrush}" BorderThickness="1"
                                     CornerRadius="{StaticResource Radius10}" Padding="14,9">
-                                <StackPanel Orientation="Horizontal" Spacing="14" VerticalAlignment="Center">
-                                    <TextBlock x:Name="LibraryDetailSelectionCountText" FontSize="13" FontWeight="SemiBold" Foreground="{ThemeResource AccentBrush}" VerticalAlignment="Center" />
-                                    <Border Width="1" Height="16" Background="{ThemeResource AccentBorderBrush}" VerticalAlignment="Center" />
-                                    <HyperlinkButton Click="LibraryDetailSelectionAddToQueue_Click" Padding="0" MinWidth="0" MinHeight="0" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" Content="Add to queue" />
-                                    <HyperlinkButton x:Name="LibraryDetailSelectionMoveButton" Click="LibraryDetailSelectionMove_Click" Padding="0" MinWidth="0" MinHeight="0" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" Content="Add to playlist" />
-                                    <HyperlinkButton x:Name="LibraryDetailSelectionRemoveButton" Click="LibraryDetailSelectionRemove_Click" Padding="0" MinWidth="0" MinHeight="0" FontSize="13" Foreground="{ThemeResource DangerBrush}" Content="Remove" />
-                                </StackPanel>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Orientation="Horizontal" Spacing="14" VerticalAlignment="Center">
+                                        <TextBlock x:Name="LibraryDetailSelectionCountText" FontSize="13" FontWeight="SemiBold" Foreground="{ThemeResource AccentBrush}" VerticalAlignment="Center" />
+                                        <Border Width="1" Height="16" Background="{ThemeResource AccentBorderBrush}" VerticalAlignment="Center" />
+                                        <HyperlinkButton Click="LibraryDetailSelectionAddToQueue_Click" Padding="0" MinWidth="0" MinHeight="0" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" Content="Add to queue" />
+                                        <HyperlinkButton x:Name="LibraryDetailSelectionMoveButton" Click="LibraryDetailSelectionMove_Click" Padding="0" MinWidth="0" MinHeight="0" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" Content="Add to playlist" />
+                                        <HyperlinkButton x:Name="LibraryDetailSelectionRemoveButton" Click="LibraryDetailSelectionRemove_Click" Padding="0" MinWidth="0" MinHeight="0" FontSize="13" Foreground="{ThemeResource DangerBrush}" Content="Remove" />
+                                    </StackPanel>
+                                    <Button Grid.Column="1" Click="LibraryDetailSelectionClear_Click"
+                                            Width="24" Height="24" Padding="0" MinWidth="0" MinHeight="0"
+                                            Background="Transparent" BorderThickness="0"
+                                            CornerRadius="{StaticResource RadiusMd}"
+                                            VerticalAlignment="Center"
+                                            AutomationProperties.Name="Clear selection"
+                                            ToolTipService.ToolTip="Clear selection">
+                                        <FontIcon Glyph="&#xE711;" FontSize="12" Foreground="{ThemeResource TextTertiaryBrush}" />
+                                    </Button>
+                                </Grid>
                             </Border>
                         </StackPanel>
 
@@ -3476,6 +3521,15 @@
                                               ScrollViewer.VerticalScrollMode="Enabled"
                                               ScrollViewer.VerticalScrollBarVisibility="Hidden"
                                               SelectionMode="None">
+                                        <ListView.Resources>
+                                            <!-- The now-playing and selected washes are painted by
+                                                 ApplyLibraryDetailRowState on the row's own Grid, so the
+                                                 container background is free to carry hover alone. Pinning
+                                                 it to the reference's row hover keeps the stock grey from
+                                                 covering an accent row under the pointer. -->
+                                            <StaticResource x:Key="ListViewItemBackgroundPointerOver" ResourceKey="RowHoverBrush" />
+                                            <StaticResource x:Key="ListViewItemBackgroundPressed" ResourceKey="RowHoverBrush" />
+                                        </ListView.Resources>
                                         <ListView.ItemsPanel>
                                             <ItemsPanelTemplate>
                                                 <ItemsStackPanel Orientation="Vertical" />
@@ -3497,6 +3551,7 @@
                                                             <MenuFlyoutItem Text="Play now" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="LibraryRowMenuPlayNow_Click" />
                                                             <MenuFlyoutItem Text="Play next" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="LibraryRowMenuPlayNext_Click" />
                                                             <MenuFlyoutItem Text="Add to queue" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="LibraryRowMenuAddToQueue_Click" />
+                                                            <MenuFlyoutItem Text="Select" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="LibraryDetailRowMenuSelect_Click" />
                                                             <MenuFlyoutItem Text="Add to playlist" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="LibraryRowMenuAddToPlaylist_Click" />
                                                             <MenuFlyoutItem Text="Download for offline use" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="DownloadTrack_Click" Visibility="{x:Bind DownloadVisibility}" />
                                                             <MenuFlyoutItem Text="{x:Bind LikeActionText}" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuLike_Click" />
@@ -3520,7 +3575,7 @@
 
                                                     <!-- Index. Swapped for a play glyph on the
                                                          now-playing row by ApplyLibraryDetailRowState. -->
-                                                    <TextBlock Grid.Column="0" Text="{x:Bind Index}" Foreground="{ThemeResource TextTertiaryBrush}" FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                    <TextBlock Grid.Column="0" Text="{x:Bind Index}" Foreground="{ThemeResource TextTertiaryBrush}" FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center" Typography.NumeralAlignment="Tabular" />
                                                     <FontIcon Grid.Column="0" Glyph="&#xE768;" FontSize="12" Foreground="{ThemeResource AccentBrush}" Visibility="Collapsed" HorizontalAlignment="Center" VerticalAlignment="Center" />
 
                                                     <Grid Grid.Column="1" ColumnSpacing="12" VerticalAlignment="Center">
@@ -3549,8 +3604,8 @@
                                                     </Grid>
 
                                                     <TextBlock Grid.Column="2" Text="{x:Bind Album}" VerticalAlignment="Center" Foreground="{ThemeResource TextSecondaryBrush}" FontSize="13" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
-                                                    <TextBlock Grid.Column="3" Text="{x:Bind DateAdded}" VerticalAlignment="Center" Foreground="{ThemeResource TextTertiaryBrush}" FontSize="13" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
-                                                    <TextBlock Grid.Column="4" Text="{x:Bind Duration}" VerticalAlignment="Center" HorizontalAlignment="Right" Foreground="{ThemeResource TextSecondaryBrush}" FontSize="13" />
+                                                    <TextBlock Grid.Column="3" Text="{x:Bind DateAdded}" VerticalAlignment="Center" Foreground="{ThemeResource TextTertiaryBrush}" FontSize="13" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" Typography.NumeralAlignment="Tabular" />
+                                                    <TextBlock Grid.Column="4" Text="{x:Bind Duration}" VerticalAlignment="Center" HorizontalAlignment="Right" Foreground="{ThemeResource TextSecondaryBrush}" FontSize="13" Typography.NumeralAlignment="Tabular" />
 
                                                     <Button Grid.Column="5" Tag="{x:Bind}" Click="LibraryDetailRowLike_Click"
                                                             Style="{StaticResource IconOnlyButton}" VerticalAlignment="Center"
@@ -3565,7 +3620,7 @@
                                         </ListView.ItemTemplate>
                                         <ListView.Footer>
                                             <StackPanel x:Name="LibraryDetailListSuggestions" Visibility="Collapsed" Margin="0,26,0,0" Padding="18,0,18,18">
-                                                <TextBlock Text="Fits this playlist" Style="{StaticResource TitleH3}" />
+                                                <TextBlock Text="Fits this playlist" FontFamily="Segoe UI Variable Display" FontSize="18" FontWeight="Bold" />
                                                 <TextBlock Text="From your library, matched on artist and genre" FontSize="12.5" Foreground="{ThemeResource TextTertiaryBrush}" Margin="0,2,0,12" />
                                                 <ItemsControl x:Name="LibraryDetailSuggestionsList" ItemTemplate="{StaticResource LibraryDetailSuggestionRowTemplate}" />
                                             </StackPanel>
@@ -3596,6 +3651,7 @@
                                                     <MenuFlyoutItem Text="Play now" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="LibraryRowMenuPlayNow_Click" />
                                                     <MenuFlyoutItem Text="Play next" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="LibraryRowMenuPlayNext_Click" />
                                                     <MenuFlyoutItem Text="Add to queue" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="LibraryRowMenuAddToQueue_Click" />
+                                                    <MenuFlyoutItem Text="Select" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="LibraryDetailRowMenuSelect_Click" />
                                                     <MenuFlyoutItem Text="Add to playlist" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="LibraryRowMenuAddToPlaylist_Click" />
                                                     <MenuFlyoutItem Text="Download for offline use" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="DownloadTrack_Click" Visibility="{x:Bind DownloadVisibility}" />
                                                     <MenuFlyoutItem Text="{x:Bind LikeActionText}" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuLike_Click" />
@@ -3619,6 +3675,14 @@
                                                     </Border>
                                                     <TextBlock Text="{x:Bind Duration}" FontSize="11" Foreground="White" Opacity="0.9"
                                                                HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="10" />
+                                                    <!-- Selection ring. Drawn as an overlay rather than
+                                                         as a border on the artwork itself, which would
+                                                         inset the image and make a selected card's cover
+                                                         visibly smaller than its neighbours. Added last
+                                                         so the badge stays at a fixed child index.
+                                                         RefreshLibraryDetailRowStates toggles it. -->
+                                                    <Border Visibility="Collapsed" BorderBrush="{ThemeResource AccentBrush}" BorderThickness="2"
+                                                            CornerRadius="{StaticResource Radius14}" IsHitTestVisible="False" />
                                                 </Grid>
                                             </Border>
                                             <TextBlock Text="{x:Bind Title}" Style="{StaticResource BodyStrong}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
@@ -3633,7 +3697,7 @@
                                 </GridView.ItemTemplate>
                                 <GridView.Footer>
                                     <StackPanel x:Name="LibraryDetailGridSuggestions" Visibility="Collapsed" Margin="0,26,18,18">
-                                        <TextBlock Text="Fits this playlist" Style="{StaticResource TitleH3}" />
+                                        <TextBlock Text="Fits this playlist" FontFamily="Segoe UI Variable Display" FontSize="18" FontWeight="Bold" />
                                         <TextBlock Text="From your library, matched on artist and genre" FontSize="12.5" Foreground="{ThemeResource TextTertiaryBrush}" Margin="0,2,0,12" />
                                         <ItemsControl x:Name="LibraryDetailSuggestionsGridList" ItemTemplate="{StaticResource LibraryDetailSuggestionRowTemplate}" />
                                     </StackPanel>
@@ -3820,14 +3884,30 @@
                     <StackPanel Padding="24,24,24,28" Spacing="18">
                         <Grid>
                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                            <TextBlock Text="Download settings" Style="{StaticResource TitleH3}" VerticalAlignment="Center"/>
-                            <Button Grid.Column="1" Click="DownloadsSettingsClose_Click" Style="{StaticResource IconOnlyButton}" AutomationProperties.Name="Close download settings"><FontIcon Glyph="&#xE711;" FontSize="12"/></Button>
+                            <TextBlock Text="Download settings" FontFamily="Segoe UI Variable Display" FontSize="17" FontWeight="Bold" VerticalAlignment="Center"/>
+                            <Button Grid.Column="1" Click="DownloadsSettingsClose_Click" Style="{StaticResource IconOnlyButton}" Width="30" Height="30" CornerRadius="{StaticResource RadiusLg}" AutomationProperties.Name="Close download settings"><FontIcon Glyph="&#xE711;" FontSize="12"/></Button>
                         </Grid>
                         <TextBlock Text="DOWNLOAD RULES" Style="{StaticResource EyebrowText}"/>
-                        <Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="42"/></Grid.ColumnDefinitions><StackPanel><TextBlock Text="Only on unmetered networks" FontSize="13.5" FontWeight="SemiBold" TextWrapping="Wrap"/><TextBlock Text="Wait while this PC is on a metered or roaming connection." FontSize="11.5" Foreground="{ThemeResource TextTertiaryBrush}" TextWrapping="Wrap"/></StackPanel><ToggleSwitch x:Name="DownloadRuleMetered" Grid.Column="1" Tag="Metered" Style="{StaticResource DownloadRuleToggle}" Toggled="DownloadsRule_Toggled"/></Grid>
-                        <Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="42"/></Grid.ColumnDefinitions><StackPanel><TextBlock Text="Auto-download liked songs" FontSize="13.5" FontWeight="SemiBold" TextWrapping="Wrap"/><TextBlock Text="Keep newly liked remote tracks offline." FontSize="11.5" Foreground="{ThemeResource TextTertiaryBrush}" TextWrapping="Wrap"/></StackPanel><ToggleSwitch x:Name="DownloadRuleLiked" Grid.Column="1" Tag="Liked" Style="{StaticResource DownloadRuleToggle}" Toggled="DownloadsRule_Toggled"/></Grid>
-                        <Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="42"/></Grid.ColumnDefinitions><StackPanel><TextBlock Text="Download on battery" FontSize="13.5" FontWeight="SemiBold" TextWrapping="Wrap"/><TextBlock Text="Allow transfers when this PC is unplugged." FontSize="11.5" Foreground="{ThemeResource TextTertiaryBrush}" TextWrapping="Wrap"/></StackPanel><ToggleSwitch x:Name="DownloadRuleBattery" Grid.Column="1" Tag="Battery" Style="{StaticResource DownloadRuleToggle}" Toggled="DownloadsRule_Toggled"/></Grid>
-                        <Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="42"/></Grid.ColumnDefinitions><StackPanel><TextBlock Text="Keep recently played offline" FontSize="13.5" FontWeight="SemiBold" TextWrapping="Wrap"/><TextBlock Text="Download remote tracks after they begin playing." FontSize="11.5" Foreground="{ThemeResource TextTertiaryBrush}" TextWrapping="Wrap"/></StackPanel><ToggleSwitch x:Name="DownloadRuleRecent" Grid.Column="1" Tag="Recent" Style="{StaticResource DownloadRuleToggle}" Toggled="DownloadsRule_Toggled"/></Grid>
+                        <!-- Each rule is one hit target: the reference toggles the
+                             switch from anywhere on the row, so the label and the
+                             hint are as clickable as the switch itself. The rows
+                             carry their own padding and hover, which is what
+                             separates them, so they sit tighter than the 18 px
+                             rhythm the rest of this panel uses. -->
+                        <StackPanel Spacing="2" Margin="0,-4,0,-4">
+                            <Border Tag="Metered" Background="Transparent" CornerRadius="{StaticResource Radius9}" Padding="10,11" PointerEntered="DownloadsRuleRow_PointerEntered" PointerExited="DownloadsRuleRow_PointerExited" Tapped="DownloadsRuleRow_Tapped">
+                                <Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="42"/></Grid.ColumnDefinitions><StackPanel><TextBlock Text="Only on unmetered networks" FontSize="13.5" FontWeight="SemiBold" TextWrapping="Wrap"/><TextBlock Text="Wait while this PC is on a metered or roaming connection." FontSize="11.5" Foreground="{ThemeResource TextTertiaryBrush}" TextWrapping="Wrap"/></StackPanel><ToggleSwitch x:Name="DownloadRuleMetered" Grid.Column="1" Tag="Metered" Style="{StaticResource DownloadRuleToggle}" Toggled="DownloadsRule_Toggled"/></Grid>
+                            </Border>
+                            <Border Tag="Liked" Background="Transparent" CornerRadius="{StaticResource Radius9}" Padding="10,11" PointerEntered="DownloadsRuleRow_PointerEntered" PointerExited="DownloadsRuleRow_PointerExited" Tapped="DownloadsRuleRow_Tapped">
+                                <Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="42"/></Grid.ColumnDefinitions><StackPanel><TextBlock Text="Auto-download liked songs" FontSize="13.5" FontWeight="SemiBold" TextWrapping="Wrap"/><TextBlock Text="Keep newly liked remote tracks offline." FontSize="11.5" Foreground="{ThemeResource TextTertiaryBrush}" TextWrapping="Wrap"/></StackPanel><ToggleSwitch x:Name="DownloadRuleLiked" Grid.Column="1" Tag="Liked" Style="{StaticResource DownloadRuleToggle}" Toggled="DownloadsRule_Toggled"/></Grid>
+                            </Border>
+                            <Border Tag="Battery" Background="Transparent" CornerRadius="{StaticResource Radius9}" Padding="10,11" PointerEntered="DownloadsRuleRow_PointerEntered" PointerExited="DownloadsRuleRow_PointerExited" Tapped="DownloadsRuleRow_Tapped">
+                                <Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="42"/></Grid.ColumnDefinitions><StackPanel><TextBlock Text="Download on battery" FontSize="13.5" FontWeight="SemiBold" TextWrapping="Wrap"/><TextBlock Text="Allow transfers when this PC is unplugged." FontSize="11.5" Foreground="{ThemeResource TextTertiaryBrush}" TextWrapping="Wrap"/></StackPanel><ToggleSwitch x:Name="DownloadRuleBattery" Grid.Column="1" Tag="Battery" Style="{StaticResource DownloadRuleToggle}" Toggled="DownloadsRule_Toggled"/></Grid>
+                            </Border>
+                            <Border Tag="Recent" Background="Transparent" CornerRadius="{StaticResource Radius9}" Padding="10,11" PointerEntered="DownloadsRuleRow_PointerEntered" PointerExited="DownloadsRuleRow_PointerExited" Tapped="DownloadsRuleRow_Tapped">
+                                <Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="42"/></Grid.ColumnDefinitions><StackPanel><TextBlock Text="Keep recently played offline" FontSize="13.5" FontWeight="SemiBold" TextWrapping="Wrap"/><TextBlock Text="Download remote tracks after they begin playing." FontSize="11.5" Foreground="{ThemeResource TextTertiaryBrush}" TextWrapping="Wrap"/></StackPanel><ToggleSwitch x:Name="DownloadRuleRecent" Grid.Column="1" Tag="Recent" Style="{StaticResource DownloadRuleToggle}" Toggled="DownloadsRule_Toggled"/></Grid>
+                            </Border>
+                        </StackPanel>
                         <Border Height="1" Background="{ThemeResource StrokeBrush}" Margin="0,4"/>
                         <TextBlock Text="THIS SESSION" Style="{StaticResource EyebrowText}"/>
                         <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Text="Downloaded" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}"/><TextBlock x:Name="DownloadSessionTracksText" Grid.Column="1" Text="0 tracks" FontSize="13" FontWeight="SemiBold"/></Grid>

@@ -394,31 +394,73 @@ namespace winrt::Last_Music_Player::implementation
     {
         (void)args;
         auto grid = sender.try_as<winrt::Microsoft::UI::Xaml::Controls::GridView>();
-        if (!grid || !LibraryTabsContent())
+        if (!grid)
         {
             return;
         }
 
+        // Gutter and minimum card width per surface, from the reference's
+        // repeat(auto-fill, minmax(N, 1fr)) for each grid.
+        auto gap = 20.0;
+        auto minimumCardWidth = 170.0;
+        auto fixedColumns = 0;
+        if (grid == LibraryDetailGridView())
+        {
+            gap = 18.0;
+            minimumCardWidth = 150.0;
+        }
+        else if (grid == BrowseFacetGrid())
+        {
+            gap = 18.0;
+            minimumCardWidth = 160.0;
+        }
+        else if (grid == BrowseResumeGrid())
+        {
+            // The resume shelf is three across in the reference rather than
+            // auto-filled, so it keeps a column count instead of a minimum.
+            gap = 12.0;
+            fixedColumns = 3;
+        }
+
+        // Measured from the grid itself rather than from a containing panel:
+        // the detail grid's old width source was the library tab host, which is
+        // collapsed whenever the detail surface is up, so the guard below always
+        // fired and the cards kept whatever pitch the panel defaulted to. Each
+        // grid reaches one gap into the right gutter by a negative margin, so
+        // its own extent is the content width plus one gap.
         auto panel = grid.ItemsPanelRoot().try_as<winrt::Microsoft::UI::Xaml::Controls::ItemsWrapGrid>();
-        auto availableWidth = LibraryTabsContent().ActualWidth();
+        auto availableWidth = grid.ActualWidth() - gap;
         if (!panel || availableWidth <= 0.0)
         {
             return;
         }
 
-        constexpr double gap = 20.0;
-        constexpr double minimumCardWidth = 170.0;
-        auto columnCount = (std::max)(
-            1,
-            static_cast<int>(std::floor((availableWidth + gap) / (minimumCardWidth + gap))));
+        auto columnCount = fixedColumns > 0
+            ? fixedColumns
+            : (std::max)(
+                1,
+                static_cast<int>(std::floor((availableWidth + gap) / (minimumCardWidth + gap))));
         auto cardWidth = (availableWidth - (columnCount - 1) * gap) / columnCount;
 
         // ItemsWrapGrid includes the final item's margin in its extent, while
-        // CSS grid does not include a trailing gap. Each GridView extends 20 px
-        // into the right gutter, so a pitch of card + gap reproduces the
-        // prototype's repeat(auto-fill, minmax(170px, 1fr)) calculation.
+        // CSS grid does not include a trailing gap. A pitch of card + gap
+        // therefore reproduces the prototype's repeat(auto-fill, minmax(N, 1fr)).
         panel.ItemWidth(cardWidth + gap);
-        panel.ItemHeight(grid == LibArtistsGrid() ? 224.0 : cardWidth + 70.0);
+
+        // Card height follows the artwork, which is square everywhere except
+        // the browse tiles (1.5:1) and the resume row (one fixed-height row).
+        if (grid == BrowseResumeGrid())
+        {
+            panel.ItemHeight(78.0);
+        }
+        else if (grid == LibArtistsGrid())
+        {
+            panel.ItemHeight(224.0);
+        }
+        else
+        {
+            panel.ItemHeight(cardWidth + 70.0);
+        }
     }
 
     void MainWindow::LibraryCardGrid_SizeChanged(

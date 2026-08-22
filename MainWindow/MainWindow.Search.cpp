@@ -190,6 +190,36 @@ namespace winrt::Last_Music_Player::implementation
         }(get_weak(), DispatcherQueue(), debounceId, query);
     }
 
+    void MainWindow::ScheduleRecentSearchRecord(winrt::hstring const& query, uint64_t requestId)
+    {
+        // Typing a query and reading the results is a search, but only pressing
+        // Enter or opening a result used to leave a chip behind. Recording on
+        // every keystroke instead would fill the row with prefixes of one word,
+        // so the query has to settle first: this fires only if the same request
+        // is still the current one and the box still reads the same after the
+        // dwell, which no intermediate prefix survives.
+        [](winrt::weak_ref<MainWindow> weakThis,
+           winrt::Microsoft::UI::Dispatching::DispatcherQueue dispatcher,
+           uint64_t requestId,
+           winrt::hstring query) -> winrt::fire_and_forget
+        {
+            co_await winrt::resume_after(std::chrono::seconds(2));
+            dispatcher.TryEnqueue([weakThis, requestId, query]()
+            {
+                auto self = weakThis.get();
+                if (!self || !self->m_isSearchMode || requestId != self->m_searchRequestId)
+                {
+                    return;
+                }
+                if (TrimQuery(self->GlobalSearchBox().Text()) != query)
+                {
+                    return;
+                }
+                self->RecordBrowseRecentSearch(query);
+            });
+        }(get_weak(), DispatcherQueue(), requestId, query);
+    }
+
     winrt::Windows::Foundation::IAsyncAction MainWindow::RunHomeSearchAsync()
     {
         auto query = TrimQuery(GlobalSearchBox().Text());
@@ -222,6 +252,7 @@ namespace winrt::Last_Music_Player::implementation
         m_searchFacets.Clear();
         m_searchTopResult = nullptr;
         ShowBrowseSearchLoading();
+        ScheduleRecentSearchRecord(query, requestId);
 
         std::vector<winrt::Last_Music_Player::TrackInfo> localTracks;
         std::vector<winrt::Last_Music_Player::TrackInfo> localPlaylists;

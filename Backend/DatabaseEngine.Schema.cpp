@@ -36,6 +36,10 @@ namespace LastMusicPlayer::Backend
             "UpdatedAt INTEGER DEFAULT 0,"
             "LastPlayed DATETIME,"
             "LastPlayedExact INTEGER DEFAULT 0,"
+            // Where playback stopped, so a track can be picked up rather than
+            // restarted. Zero means "from the beginning": a track played to the
+            // end clears it, and so does one stopped near either edge.
+            "LastPositionSeconds REAL DEFAULT 0,"
             "RemoteId TEXT);";
 
         if (!Exec(m_db, kCreateTracksTableSql))
@@ -110,7 +114,7 @@ namespace LastMusicPlayer::Backend
         // never read (~46s startup on a real library). Run it only when the
         // DB predates kSchemaVersion. Index creation stays unconditional —
         // it is idempotent (IF NOT EXISTS) and must also cover fresh DBs.
-        static constexpr int kSchemaVersion = 9;
+        static constexpr int kSchemaVersion = 10;
         int userVersion = 0;
         {
             Statement versionStmt{ m_db, "PRAGMA user_version;" };
@@ -120,6 +124,15 @@ namespace LastMusicPlayer::Backend
             }
         }
         const bool migrationNeeded = userVersion < kSchemaVersion;
+
+        if (migrationNeeded && userVersion < 10)
+        {
+            // Resume positions. AccountTracks has carried its own
+            // LastPositionSeconds since the account schema landed; this gives
+            // the local table the same column so both halves of the
+            // EffectiveTracks view can expose one.
+            TryExec(m_db, "ALTER TABLE Tracks ADD COLUMN LastPositionSeconds REAL DEFAULT 0;");
+        }
 
         if (migrationNeeded && userVersion < 9)
         {
@@ -256,7 +269,7 @@ namespace LastMusicPlayer::Backend
             {
                 return false;
             }
-            if (!Exec(m_db, "PRAGMA user_version=9;"))
+            if (!Exec(m_db, "PRAGMA user_version=10;"))
             {
                 return false;
             }

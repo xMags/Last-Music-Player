@@ -70,6 +70,9 @@ namespace winrt::Last_Music_Player::implementation
         double DateAddedSortKey() { return m_dateAddedSortKey; }
         void DateAddedSortKey(double value) { m_dateAddedSortKey = value; }
 
+        double ResumePositionSeconds() { return m_resumePositionSeconds; }
+        void ResumePositionSeconds(double value) { m_resumePositionSeconds = value; }
+
         hstring Duration() { return m_duration; }
         void Duration(hstring const& value) { m_duration = value; }
 
@@ -111,6 +114,35 @@ namespace winrt::Last_Music_Player::implementation
         void IsLiked(bool value) { m_isLiked = value; }
 
         hstring LikeActionText() { return m_isLiked ? L"Unlike" : L"Like"; }
+
+        // "2:14 left" for a track with somewhere to resume from, empty
+        // otherwise. Computed rather than stored so nothing has to rewrite the
+        // row's artist to say it, which the player bar reads too.
+        hstring ResumeCaption()
+        {
+            auto const remaining = m_durationSeconds - m_resumePositionSeconds;
+            if (m_resumePositionSeconds <= 0.0 || m_durationSeconds <= 0.0 || remaining <= 0.0)
+            {
+                return {};
+            }
+            auto const total = static_cast<int>(remaining);
+            auto const minutes = total / 60;
+            auto const seconds = total % 60;
+            auto text = std::to_wstring(minutes) + L":";
+            if (seconds < 10)
+            {
+                text += L"0";
+            }
+            text += std::to_wstring(seconds) + L" left";
+            return hstring(text);
+        }
+
+        winrt::Microsoft::UI::Xaml::Visibility ResumeCaptionVisibility()
+        {
+            return ResumeCaption().empty()
+                ? winrt::Microsoft::UI::Xaml::Visibility::Collapsed
+                : winrt::Microsoft::UI::Xaml::Visibility::Visible;
+        }
 
         winrt::Microsoft::UI::Xaml::Visibility LikedVisibility()
         {
@@ -188,6 +220,7 @@ namespace winrt::Last_Music_Player::implementation
         hstring m_genre;
         hstring m_dateAdded;
         double m_dateAddedSortKey{ 0.0 };
+        double m_resumePositionSeconds{ 0.0 };
         hstring m_duration;
         int32_t m_index{ 0 };
         int64_t m_catalogId{ 0 };

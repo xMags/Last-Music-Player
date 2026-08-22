@@ -2274,7 +2274,9 @@ namespace
             "Id INTEGER PRIMARY KEY AUTOINCREMENT, SourceKey TEXT, SourceKind TEXT, Provider TEXT, SourceUrl TEXT, FilePath TEXT, "
             "Title TEXT, Artist TEXT, Album TEXT, Genre TEXT, DurationSeconds REAL, ArtworkUrl TEXT, DateAddedSortKey REAL, "
             "DateAddedText TEXT, DurationText TEXT, PlayCount INTEGER, LastPlayedOrder INTEGER, IsLiked INTEGER, IsActive INTEGER, "
-            "UpdatedAt INTEGER, LastPlayed TEXT, RemoteId TEXT);"
+            // Mirrors the production Tracks table, which the EffectiveTracks
+            // view selects from by name.
+            "UpdatedAt INTEGER, LastPlayed TEXT, LastPositionSeconds REAL DEFAULT 0, RemoteId TEXT);"
             "INSERT INTO Tracks (SourceKey,SourceKind,Provider,SourceUrl,FilePath,Title,IsActive,RemoteId) VALUES "
             "('local|one','local','','','C:/Music/local.flac','Local song',1,''),"
             "('remote|api|a','remote','api','https://music.example/a','https://stream.example/a?media_token=secret','API duplicate',1,'remote-a'),"
