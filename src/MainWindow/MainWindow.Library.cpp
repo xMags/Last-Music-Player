@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "MainWindow.xaml.h"
 #include "MainWindow.Internal.h"
+#include "Frontend/ResponsiveCardLayout.h"
 
 #include "Backend/ProviderClient.h"
 #include "Backend/SettingsManager.h"
@@ -439,15 +440,14 @@ namespace winrt::Last_Music_Player::implementation
             return;
         }
 
-        auto columnCount = (std::max)(
-            1,
-            static_cast<int>(std::floor((availableWidth + gap) / (minimumCardWidth + gap))));
-        auto cardWidth = (availableWidth - (columnCount - 1) * gap) / columnCount;
+        auto const layout = LastMusicPlayer::Frontend::CalculateResponsiveCardLayout(
+            availableWidth, gap, minimumCardWidth);
+        auto const cardWidth = layout.CardWidth;
 
         // ItemsWrapGrid includes the final item's margin in its extent, while
         // CSS grid does not include a trailing gap. A pitch of card + gap
         // therefore reproduces the prototype's repeat(auto-fill, minmax(N, 1fr)).
-        panel.ItemWidth(cardWidth + gap);
+        panel.ItemWidth(layout.ItemWidth);
 
         if (grid == BrowseSongsGrid()
             || grid == BrowseAlbumsGrid()

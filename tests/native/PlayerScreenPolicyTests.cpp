@@ -7,6 +7,7 @@
 #include "Backend/PlaylistSuggestionPolicy.h"
 #include "Backend/RecentSearchStore.h"
 #include "Backend/ResumePositionPolicy.h"
+#include "Frontend/ResponsiveCardLayout.h"
 
 #include <exception>
 #include <iostream>
@@ -235,6 +236,26 @@ namespace
             "a missing view preference should safely fall back to grid");
     }
 
+    void TestResponsiveCardLayout()
+    {
+        auto const layout = LastMusicPlayer::Frontend::CalculateResponsiveCardLayout(
+            740.0, 20.0, 170.0);
+        Expect(layout.ColumnCount == 4,
+            "a 740px Library surface should fit four responsive cards");
+        Expect(layout.CardWidth == 170.0,
+            "four minimum-width cards should preserve the 170px artwork contract");
+        Expect(layout.ItemWidth == 190.0,
+            "the item pitch should include the shared 20px gutter");
+
+        auto const expanded = LastMusicPlayer::Frontend::CalculateResponsiveCardLayout(
+            800.0, 20.0, 170.0);
+        Expect(expanded.ColumnCount == 4 && expanded.CardWidth == 185.0,
+            "extra width should be divided equally across the same columns");
+        Expect(LastMusicPlayer::Frontend::CalculateResponsiveCardLayout(
+                0.0, 20.0, 170.0).ColumnCount == 0,
+            "an unmeasured surface should not invent a card layout");
+    }
+
     void TestDownloadPolicy()
     {
         Expect(policy::AggregateDownloadState({
@@ -301,6 +322,7 @@ int main()
         TestRecentSearchStore();
         TestGenreArtworkRecipe();
         TestBrowseGroupingPolicy();
+        TestResponsiveCardLayout();
         TestResumePositionPolicy();
         TestDownloadPolicy();
         std::wcout << L"PlayerScreenPolicyTests passed" << std::endl;

@@ -2095,11 +2095,14 @@
                             </StackPanel>
                         </StackPanel>
                         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Hidden" VerticalScrollMode="Enabled">
-                            <!-- The chart button remains 184 by 212. The larger
-                                 cell pitch supplies the gallery-only 18px column
-                                 and 22px row gutters without changing Home's
-                                 separately spaced carousel cards. -->
-                            <VariableSizedWrapGrid x:Name="DiscoverChartGalleryPanel" Orientation="Horizontal" ItemWidth="202" ItemHeight="234" MaximumRowsOrColumns="20" />
+                            <!-- Mirrors Library playlists/favourites: responsive
+                                 square cards with a 170px minimum and 20px gutter.
+                                 The negative trailing margin matches the Library
+                                 grids, whose final cell pitch includes its gutter. -->
+                            <VariableSizedWrapGrid x:Name="DiscoverChartGalleryPanel" Orientation="Horizontal"
+                                                   ItemWidth="190" ItemHeight="220" MaximumRowsOrColumns="20"
+                                                   Margin="0,0,-20,0" HorizontalAlignment="Stretch"
+                                                   SizeChanged="DiscoverChartGalleryPanel_SizeChanged" />
                         </ScrollViewer>
                     </Grid>
 

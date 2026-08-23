@@ -8,6 +8,7 @@
 #include "Backend/CatalogPresentation.h"
 #include "Frontend/RoundedCornerClip.h"
 #include "Frontend/CarouselArrows.h"
+#include "Frontend/ResponsiveCardLayout.h"
 
 #include <winrt/Windows.Storage.Streams.h>
 #include <winrt/Microsoft.UI.Xaml.Controls.h>
@@ -1965,6 +1966,55 @@ namespace winrt::Last_Music_Player::implementation
             panel.Children().Append(BuildCatalogChartCard(chart));
         }
         ShowCatalogSurface(CatalogSurface::ChartGallery, true);
+    }
+
+    void MainWindow::DiscoverChartGalleryPanel_SizeChanged(
+        winrt::Windows::Foundation::IInspectable const& sender,
+        winrt::Microsoft::UI::Xaml::SizeChangedEventArgs const& args)
+    {
+        using winrt::Microsoft::UI::Xaml::Controls::Border;
+        using winrt::Microsoft::UI::Xaml::Controls::Button;
+        using winrt::Microsoft::UI::Xaml::Controls::StackPanel;
+        using winrt::Microsoft::UI::Xaml::Controls::VariableSizedWrapGrid;
+
+        auto panel = sender.try_as<VariableSizedWrapGrid>();
+        constexpr double gap = 20.0;
+        constexpr double minimumCardWidth = 170.0;
+        auto const availableWidth = args.NewSize().Width - gap;
+        if (!panel || availableWidth <= 0.0)
+        {
+            return;
+        }
+
+        // This is the same column and artwork-width contract used by
+        // LibraryCardGrid_Loaded for playlists and favourites. The panel's
+        // negative right margin reserves the trailing cell gutter exactly as
+        // the Library GridViews do.
+        auto const layout = LastMusicPlayer::Frontend::CalculateResponsiveCardLayout(
+            availableWidth, gap, minimumCardWidth);
+        auto const cardWidth = layout.CardWidth;
+        panel.ItemWidth(layout.ItemWidth);
+        // Chart cards have one caption line rather than Library's title and
+        // subtitle. Keep the same 22px row gutter without inventing a blank
+        // subtitle row.
+        panel.ItemHeight(cardWidth + 50.0);
+
+        for (auto const& child : panel.Children())
+        {
+            auto button = child.try_as<Button>();
+            auto content = button ? button.Content().try_as<StackPanel>() : nullptr;
+            auto artwork = content && content.Children().Size() > 0
+                ? content.Children().GetAt(0).try_as<Border>()
+                : nullptr;
+            if (!button || !artwork)
+            {
+                continue;
+            }
+            button.Width(cardWidth);
+            button.Height(cardWidth + 28.0);
+            artwork.Width(cardWidth);
+            artwork.Height(cardWidth);
+        }
     }
 
     void MainWindow::OpenDiscoverShelf(
