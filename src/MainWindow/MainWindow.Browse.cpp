@@ -13,6 +13,7 @@
 #include <winrt/Windows.System.h>
 
 #include <algorithm>
+#include <cmath>
 #include <random>
 #include <string>
 #include <unordered_map>
@@ -118,6 +119,34 @@ namespace winrt::Last_Music_Player::implementation
         BrowseButton_Click(nullptr, nullptr);
         GlobalSearchBox().Focus(MUX::FocusState::Programmatic);
         args.Handled(true);
+    }
+
+    void MainWindow::BrowseResultsContent_SizeChanged(
+        winrt::Windows::Foundation::IInspectable const& sender,
+        MUX::SizeChangedEventArgs const& args)
+    {
+        auto scrollViewer = sender.try_as<MUXC::ScrollViewer>();
+        auto viewportContent = BrowseResultsViewport();
+        if (!scrollViewer || !viewportContent)
+        {
+            return;
+        }
+
+        auto width = scrollViewer.ViewportWidth();
+        if (!std::isfinite(width) || width <= 0.0)
+        {
+            width = args.NewSize().Width;
+        }
+        if (!std::isfinite(width) || width <= 0.0)
+        {
+            return;
+        }
+
+        auto const currentWidth = viewportContent.Width();
+        if (std::isnan(currentWidth) || std::abs(currentWidth - width) > 0.5)
+        {
+            viewportContent.Width(width);
+        }
     }
 
     void MainWindow::BrowseCategory_ItemClick(
@@ -823,13 +852,19 @@ namespace winrt::Last_Music_Player::implementation
             button.Background(m_brushSurface);
             button.BorderBrush(m_brushStroke);
             button.BorderThickness({ 1 });
-            button.CornerRadius({ 999 });
-            button.Padding({ 14, 7, 14, 7 });
-            button.FontSize(13);
+            button.CornerRadius({ 14 });
+            button.MinWidth(0);
+            button.MinHeight(0);
+            button.Padding({ 11, 6, 11, 6 });
+            button.FontSize(12.5);
+            button.HorizontalContentAlignment(MUX::HorizontalAlignment::Center);
+            button.VerticalContentAlignment(MUX::VerticalAlignment::Center);
+            button.UseSystemFocusVisuals(true);
 
             MUXC::StackPanel content;
             content.Orientation(MUXC::Orientation::Horizontal);
-            content.Spacing(9);
+            content.Spacing(8);
+            content.VerticalAlignment(MUX::VerticalAlignment::Center);
             MUXC::FontIcon history;
             history.Glyph(L"\xE823");
             history.FontSize(11);

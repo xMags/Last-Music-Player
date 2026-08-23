@@ -1261,8 +1261,8 @@
                                 </Grid.ColumnDefinitions>
                                 <FontIcon Glyph="&#xE721;" FontSize="15" Foreground="{ThemeResource TextTertiaryBrush}" VerticalAlignment="Center" />
                                 <TextBox x:Name="GlobalSearchBox" Grid.Column="1" PlaceholderText="Search your library and the catalog"
-                                         AutomationProperties.Name="Search your library and the catalog" BorderThickness="0" Background="Transparent" Padding="0"
-                                         VerticalAlignment="Center" FontSize="15" Foreground="{ThemeResource TextPrimaryBrush}"
+                                         AutomationProperties.Name="Search your library and the catalog" Style="{StaticResource BrowseSearchTextBox}"
+                                         VerticalAlignment="Stretch" FontSize="15" Foreground="{ThemeResource TextPrimaryBrush}"
                                          GotFocus="GlobalSearchBox_GotFocus" LostFocus="GlobalSearchBox_LostFocus"
                                          KeyDown="GlobalSearchBox_KeyDown" TextChanged="GlobalSearchBox_TextChanged" />
                                 <Button x:Name="BrowseClearQueryButton" Grid.Column="2" Visibility="Collapsed" Click="BrowseClearQuery_Click"
@@ -1278,9 +1278,9 @@
                     </Border>
 
                     <ScrollViewer x:Name="BrowseResultsContent" Grid.Row="1" VerticalScrollBarVisibility="Hidden"
-                                  HorizontalContentAlignment="Stretch"
+                                  SizeChanged="BrowseResultsContent_SizeChanged"
                                   HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Hidden">
-                        <Grid Padding="0,22,20,32">
+                        <Grid x:Name="BrowseResultsViewport" Padding="0,22,20,32">
                             <StackPanel x:Name="BrowseLandingPanel">
                                 <StackPanel x:Name="BrowseRecentSearchesSection" Visibility="Collapsed">
                                     <Grid Margin="0,0,0,12" ColumnSpacing="12">
@@ -1306,7 +1306,8 @@
                                     <GridView.ItemsPanel><ItemsPanelTemplate><ItemsWrapGrid Orientation="Horizontal" ItemWidth="186" ItemHeight="130" /></ItemsPanelTemplate></GridView.ItemsPanel>
                                     <GridView.ItemTemplate>
                                         <DataTemplate x:DataType="local:TrackInfo">
-                                            <Grid Width="170" Height="114" Margin="0,0,16,16" PointerEntered="PlaylistCard_PointerEntered" PointerExited="PlaylistCard_PointerExited">
+                                            <Grid Width="170" Height="114" Margin="0,0,16,16" Background="Transparent"
+                                                  PointerEntered="PlaylistCard_PointerEntered" PointerExited="PlaylistCard_PointerExited">
                                                 <Border CornerRadius="{StaticResource Radius14}" Translation="0,0,16">
                                                     <Border.Shadow><ThemeShadow /></Border.Shadow>
                                                     <Grid>

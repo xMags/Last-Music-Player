@@ -106,6 +106,9 @@ namespace winrt::Last_Music_Player::implementation
         // surrounding chrome land on the same place.
         void HomeSearchEntry_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void HomeSearchEntry_Tapped(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Input::TappedRoutedEventArgs const& args);
+        void BrowseResultsContent_SizeChanged(
+            winrt::Windows::Foundation::IInspectable const& sender,
+            winrt::Microsoft::UI::Xaml::SizeChangedEventArgs const& args);
         void BrowseCategory_ItemClick(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::ItemClickEventArgs const& args);
         void BrowseCategory_ContainerContentChanging(
             winrt::Microsoft::UI::Xaml::Controls::ListViewBase const& sender,
