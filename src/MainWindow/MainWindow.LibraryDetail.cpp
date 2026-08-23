@@ -3,6 +3,7 @@
 #include "MainWindow.Internal.h"
 
 #include "Backend/ProviderClient.h"
+#include "Backend/ProviderHelpers.h"
 #include "Backend/SettingsManager.h"
 #include "Backend/TrayIcon.h"
 #include "Backend/DiscordPresence.h"
@@ -678,6 +679,23 @@ namespace winrt::Last_Music_Player::implementation
         winrt::Microsoft::UI::Xaml::Media::ImageSource const& fallbackArt,
         winrt::Last_Music_Player::TrackInfo const& sourceGroup)
     {
+        if (kind == L"artist")
+        {
+            auto artistSourceUrl = sourceGroup
+                && sourceGroup.SourceKind() == L"artist"
+                && LastMusicPlayer::Backend::IsSafeRemoteUrl(
+                    sourceGroup.SourceUrl(),
+                    LastMusicPlayer::Backend::RemoteUrlUse::Durable)
+                ? sourceGroup.SourceUrl()
+                : winrt::hstring{};
+            OpenArtistDetail(
+                title.empty() ? key : title,
+                sourceGroup ? sourceGroup.ArtistCatalogId() : winrt::hstring{},
+                artistSourceUrl,
+                sourceGroup ? sourceGroup.ArtworkUrl() : winrt::hstring{},
+                sourceGroup);
+            return;
+        }
         auto accountArtworkUrl = sourceGroup
             ? NormalizeMusicArtworkUrl(sourceGroup.ArtworkUrl())
             : winrt::hstring{};

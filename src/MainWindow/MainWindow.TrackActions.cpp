@@ -615,7 +615,12 @@ namespace winrt::Last_Music_Player::implementation
 
         auto artist = track.Artist().empty() ? winrt::hstring{ L"Unknown Artist" } : track.Artist();
         ShowPrimaryView(L"Library");
-        ShowLibraryDetail(L"artist", artist, artist, L"");
+        OpenArtistDetail(
+            artist,
+            track.ArtistCatalogId(),
+            {},
+            track.ArtworkUrl(),
+            track);
     }
 
     void MainWindow::OpenSongsTrackAlbum(winrt::Last_Music_Player::TrackInfo const& track)

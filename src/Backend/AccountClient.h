@@ -3,7 +3,9 @@
 #include "Backend/AccountSyncTransport.h"
 #include "Backend/AccountUrlPolicy.h"
 #include "Backend/CatalogModels.h"
+#include "Backend/RemoteDetailContract.h"
 
+#include <chrono>
 #include <cstdint>
 
 #include <winrt/Windows.Foundation.h>
@@ -79,6 +81,12 @@ namespace LastMusicPlayer::Backend
             winrt::hstring const& kind,
             winrt::hstring const& id,
             winrt::hstring const& storefront);
+        winrt::Windows::Foundation::IAsyncOperation<winrt::hstring> GetArtistDetailAsync(
+            winrt::hstring const& bearerSession,
+            RemoteDetailIdentity const& identity);
+        winrt::Windows::Foundation::IAsyncOperation<winrt::hstring> GetAlbumDetailAsync(
+            winrt::hstring const& bearerSession,
+            RemoteDetailIdentity const& identity);
 
         winrt::Windows::Foundation::IAsyncOperation<winrt::hstring> GetLibraryAsync(
             winrt::hstring const& bearerSession) override;
@@ -124,12 +132,14 @@ namespace LastMusicPlayer::Backend
             winrt::hstring const& bearerSession,
             winrt::hstring const& jsonBody,
             winrt::Windows::Web::Http::HttpCompletionOption completion =
-                winrt::Windows::Web::Http::HttpCompletionOption::ResponseContentRead);
+                winrt::Windows::Web::Http::HttpCompletionOption::ResponseContentRead,
+            std::chrono::seconds timeout = std::chrono::seconds(20));
         winrt::Windows::Foundation::IAsyncOperation<winrt::hstring> SendJsonAsync(
             winrt::Windows::Web::Http::HttpMethod const& method,
             winrt::hstring const& trustedPathAndQuery,
             winrt::hstring const& bearerSession,
-            winrt::hstring const& jsonBody = L"");
+            winrt::hstring const& jsonBody = L"",
+            std::chrono::seconds timeout = std::chrono::seconds(20));
 
         winrt::hstring m_baseOrigin;
         winrt::Windows::Web::Http::HttpClient m_httpClient;

@@ -112,7 +112,8 @@ namespace LastMusicPlayer::Backend
         winrt::Windows::Foundation::IAsyncOperation<winrt::Windows::Web::Http::HttpResponseMessage> WithAccountTimeout(
             winrt::Windows::Foundation::IAsyncOperationWithProgress<
                 winrt::Windows::Web::Http::HttpResponseMessage,
-                winrt::Windows::Web::Http::HttpProgress> operation)
+                winrt::Windows::Web::Http::HttpProgress> operation,
+            std::chrono::seconds timeout)
         {
             auto timer = winrt::Windows::System::Threading::ThreadPoolTimer::CreateTimer(
                 [operation](winrt::Windows::System::Threading::ThreadPoolTimer const&)
@@ -125,7 +126,7 @@ namespace LastMusicPlayer::Backend
                     {
                     }
                 },
-                std::chrono::seconds(20));
+                timeout);
 
             try
             {
@@ -260,7 +261,8 @@ namespace LastMusicPlayer::Backend
         winrt::hstring const& trustedPathAndQuery,
         winrt::hstring const& bearerSession,
         winrt::hstring const& jsonBody,
-        winrt::Windows::Web::Http::HttpCompletionOption completion)
+        winrt::Windows::Web::Http::HttpCompletionOption completion,
+        std::chrono::seconds timeout)
     {
         auto cancellation = co_await winrt::get_cancellation_token();
         cancellation.enable_propagation();
@@ -290,7 +292,7 @@ namespace LastMusicPlayer::Backend
 
         try
         {
-            co_return co_await WithAccountTimeout(m_httpClient.SendRequestAsync(request, completion));
+            co_return co_await WithAccountTimeout(m_httpClient.SendRequestAsync(request, completion), timeout);
         }
         catch (winrt::hresult_error const& error)
         {
@@ -308,9 +310,11 @@ namespace LastMusicPlayer::Backend
         winrt::Windows::Web::Http::HttpMethod const& method,
         winrt::hstring const& trustedPathAndQuery,
         winrt::hstring const& bearerSession,
-        winrt::hstring const& jsonBody)
+        winrt::hstring const& jsonBody,
+        std::chrono::seconds timeout)
     {
-        auto response = co_await SendAsync(method, trustedPathAndQuery, bearerSession, jsonBody);
+        auto response = co_await SendAsync(method, trustedPathAndQuery, bearerSession, jsonBody,
+            winrt::Windows::Web::Http::HttpCompletionOption::ResponseContentRead, timeout);
         EnsureAccountSuccess(response);
         co_return co_await response.Content().ReadAsStringAsync();
     }
@@ -622,6 +626,40 @@ namespace LastMusicPlayer::Backend
             winrt::Windows::Web::Http::HttpMethod::Get(),
             winrt::hstring{ path },
             bearerSession);
+    }
+
+    winrt::Windows::Foundation::IAsyncOperation<winrt::hstring> AccountClient::GetArtistDetailAsync(
+        winrt::hstring const& bearerSession,
+        RemoteDetailIdentity const& identity)
+    {
+        auto query = BuildRemoteDetailQuery(identity);
+        if (!query)
+        {
+            throw winrt::hresult_invalid_argument(L"Artist identity is invalid.");
+        }
+        co_return co_await SendJsonAsync(
+            winrt::Windows::Web::Http::HttpMethod::Get(),
+            L"/v1/music/catalog/artists/detail?" + *query,
+            bearerSession,
+            L"",
+            std::chrono::seconds(5));
+    }
+
+    winrt::Windows::Foundation::IAsyncOperation<winrt::hstring> AccountClient::GetAlbumDetailAsync(
+        winrt::hstring const& bearerSession,
+        RemoteDetailIdentity const& identity)
+    {
+        auto query = BuildRemoteDetailQuery(identity);
+        if (!query)
+        {
+            throw winrt::hresult_invalid_argument(L"Album identity is invalid.");
+        }
+        co_return co_await SendJsonAsync(
+            winrt::Windows::Web::Http::HttpMethod::Get(),
+            L"/v1/music/catalog/albums/detail?" + *query,
+            bearerSession,
+            L"",
+            std::chrono::seconds(5));
     }
 
     winrt::Windows::Foundation::IAsyncOperation<winrt::Windows::Storage::Streams::IBuffer> AccountClient::GetArtworkAsync(

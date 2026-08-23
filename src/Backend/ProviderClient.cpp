@@ -24,52 +24,20 @@ namespace LastMusicPlayer::Backend
             return winrt::hstring{ trimmed };
         }
 
-        winrt::hstring ProviderErrorMessage(uint32_t status, winrt::hstring const& body)
+        winrt::hstring ProviderErrorMessage(uint32_t status)
         {
-            winrt::hstring code;
-            winrt::hstring message;
-            winrt::Windows::Data::Json::JsonObject object{ nullptr };
-            if (!body.empty() && winrt::Windows::Data::Json::JsonObject::TryParse(body, object))
+            switch (status)
             {
-                auto namedString = [&](wchar_t const* name) -> winrt::hstring
-                {
-                    if (!object.HasKey(name))
-                    {
-                        return {};
-                    }
-
-                    auto value = object.GetNamedValue(name);
-                    return value.ValueType() == winrt::Windows::Data::Json::JsonValueType::String
-                        ? value.GetString()
-                        : winrt::hstring{};
-                };
-
-                code = namedString(L"code");
-                if (code.empty())
-                {
-                    code = namedString(L"error");
-                }
-                message = namedString(L"message");
+            case 400: return L"The provider request was not accepted.";
+            case 401: return L"The provider API key was rejected.";
+            case 403: return L"The provider did not allow this request.";
+            case 404: return L"The requested provider item was not found.";
+            case 429: return L"The provider is busy. Try again shortly.";
+            default:
+                return status >= 500
+                    ? winrt::hstring{ L"The provider is temporarily unavailable." }
+                    : winrt::hstring{ L"The provider request failed." };
             }
-
-            std::wstring text = L"Provider returned " + std::to_wstring(status);
-            if (!message.empty())
-            {
-                text += L": ";
-                text += message.c_str();
-                if (!code.empty())
-                {
-                    text += L" (";
-                    text += code.c_str();
-                    text += L")";
-                }
-            }
-            else if (!body.empty())
-            {
-                text += L": ";
-                text += body.c_str();
-            }
-            return winrt::hstring{ text };
         }
 
         winrt::Windows::Foundation::IAsyncAction EnsureProviderSuccessAsync(
@@ -80,18 +48,20 @@ namespace LastMusicPlayer::Backend
                 co_return;
             }
 
-            auto body = co_await response.Content().ReadAsStringAsync();
             throw winrt::hresult_error(
                 E_FAIL,
-                ProviderErrorMessage(static_cast<uint32_t>(response.StatusCode()), body));
+                ProviderErrorMessage(static_cast<uint32_t>(response.StatusCode())));
         }
 
         winrt::Windows::Foundation::IAsyncOperation<winrt::Windows::Web::Http::HttpResponseMessage> WithProviderTimeout(
             winrt::Windows::Foundation::IAsyncOperationWithProgress<
                 winrt::Windows::Web::Http::HttpResponseMessage,
                 winrt::Windows::Web::Http::HttpProgress> operation,
-            wchar_t const* operationName)
+            wchar_t const* operationName,
+            std::chrono::seconds timeout = std::chrono::seconds(15))
         {
+            auto cancellation = co_await winrt::get_cancellation_token();
+            cancellation.enable_propagation();
             auto timer = winrt::Windows::System::Threading::ThreadPoolTimer::CreateTimer(
                 [operation](winrt::Windows::System::Threading::ThreadPoolTimer const&)
                 {
@@ -103,7 +73,7 @@ namespace LastMusicPlayer::Backend
                     {
                     }
                 },
-                std::chrono::seconds(15));
+                timeout);
 
             try
             {
@@ -114,7 +84,9 @@ namespace LastMusicPlayer::Backend
             catch (winrt::hresult_canceled const&)
             {
                 timer.Cancel();
-                throw winrt::hresult_error(E_ABORT, winrt::hstring(operationName) + L" timed out.");
+                throw winrt::hresult_error(
+                    HRESULT_FROM_WIN32(ERROR_TIMEOUT),
+                    winrt::hstring(operationName) + L" timed out.");
             }
             catch (...)
             {
@@ -174,6 +146,40 @@ namespace LastMusicPlayer::Backend
         auto response = co_await WithProviderTimeout(
             m_httpClient.GetAsync(winrt::Windows::Foundation::Uri(BuildUrl(L"/v1/search?q=" + escaped))),
             L"Provider search request");
+        co_await EnsureProviderSuccessAsync(response);
+        co_return co_await response.Content().ReadAsStringAsync();
+    }
+
+    winrt::Windows::Foundation::IAsyncOperation<winrt::hstring> ProviderClient::GetArtistDetailAsync(
+        RemoteDetailIdentity const& identity)
+    {
+        auto query = BuildRemoteDetailQuery(identity);
+        if (!query)
+        {
+            throw winrt::hresult_invalid_argument(L"Artist identity is invalid.");
+        }
+        auto response = co_await WithProviderTimeout(
+            m_httpClient.GetAsync(winrt::Windows::Foundation::Uri(
+                BuildUrl(L"/v1/artists/detail?" + *query))),
+            L"Provider artist request",
+            std::chrono::seconds(5));
+        co_await EnsureProviderSuccessAsync(response);
+        co_return co_await response.Content().ReadAsStringAsync();
+    }
+
+    winrt::Windows::Foundation::IAsyncOperation<winrt::hstring> ProviderClient::GetAlbumDetailAsync(
+        RemoteDetailIdentity const& identity)
+    {
+        auto query = BuildRemoteDetailQuery(identity);
+        if (!query)
+        {
+            throw winrt::hresult_invalid_argument(L"Album identity is invalid.");
+        }
+        auto response = co_await WithProviderTimeout(
+            m_httpClient.GetAsync(winrt::Windows::Foundation::Uri(
+                BuildUrl(L"/v1/albums/detail?" + *query))),
+            L"Provider album request",
+            std::chrono::seconds(5));
         co_await EnsureProviderSuccessAsync(response);
         co_return co_await response.Content().ReadAsStringAsync();
     }

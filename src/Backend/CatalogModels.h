@@ -84,6 +84,9 @@ namespace LastMusicPlayer::Backend
         winrt::hstring AlbumName;
         winrt::hstring ArtworkUrl;
         winrt::hstring SourceUrl;
+        // Optional short-lived media URL. Provider-detail responses may omit it;
+        // SourceUrl remains the durable identity resolved when playback starts.
+        winrt::hstring StreamUrl;
         winrt::hstring Provider;
         winrt::hstring AlbumCatalogId;
         winrt::hstring ArtistCatalogId;

@@ -347,6 +347,16 @@ namespace winrt::Last_Music_Player::implementation
         void DiscoverDetailGridView_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void DiscoverDetailArtworkBorder_Loaded(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void DiscoverDetailGrid_ContainerContentChanging(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::ContainerContentChangingEventArgs const& args);
+        void ArtistDetailBack_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void ArtistDetailRetry_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void ArtistDetailPlay_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void ArtistDetailShuffle_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void ArtistTopSong_ItemClick(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::ItemClickEventArgs const& args);
+        void ArtistRelease_ItemClick(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::ItemClickEventArgs const& args);
+        void RelatedArtist_ItemClick(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::ItemClickEventArgs const& args);
+        void ArtistAboutToggle_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void ArtistDetail_SizeChanged(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::SizeChangedEventArgs const& args);
+        void ProviderAlbumTrack_ItemClick(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::ItemClickEventArgs const& args);
 
 
     private:
@@ -360,6 +370,17 @@ namespace winrt::Last_Music_Player::implementation
             Loading,
             Loaded,
             Dirty
+        };
+        struct ArtistHistoryEntry
+        {
+            LastMusicPlayer::Backend::RemoteArtistDetail Detail;
+            LastMusicPlayer::Backend::RemoteDetailIdentity Identity;
+            bool LocalFallback{ false };
+        };
+        struct LocalArtistDetailResult
+        {
+            LastMusicPlayer::Backend::RemoteArtistDetail Detail;
+            std::vector<winrt::Last_Music_Player::TrackInfo> Tracks;
         };
 
         enum class PlaybackSink
@@ -750,6 +771,34 @@ namespace winrt::Last_Music_Player::implementation
             winrt::hstring const& subtitle,
             winrt::Microsoft::UI::Xaml::Media::ImageSource const& fallbackArt = nullptr,
             winrt::Last_Music_Player::TrackInfo const& sourceGroup = nullptr);
+        void OpenArtistDetail(
+            winrt::hstring const& name,
+            winrt::hstring const& catalogId = {},
+            winrt::hstring const& sourceUrl = {},
+            winrt::hstring const& artworkUrl = {},
+            winrt::Last_Music_Player::TrackInfo const& sourceGroup = nullptr);
+        winrt::Windows::Foundation::IAsyncAction LoadArtistDetailAsync(
+            LastMusicPlayer::Backend::RemoteDetailIdentity identity,
+            winrt::hstring artworkUrl,
+            uint64_t requestEpoch,
+            bool manualRetry);
+        void RenderArtistDetail(LastMusicPlayer::Backend::RemoteArtistDetail const& detail, bool localFallback);
+        void ReflowArtistTopSongs(double width);
+        void ApplyArtistHeroArtwork(winrt::hstring const& artworkUrl);
+        LocalArtistDetailResult BuildLocalArtistDetail(
+            winrt::hstring const& artistName,
+            winrt::hstring const& artworkUrl);
+        void HideArtistDetail(bool restoreOrigin);
+        void OpenProviderAlbum(winrt::Last_Music_Player::TrackInfo const& release);
+        winrt::Windows::Foundation::IAsyncAction LoadProviderAlbumAsync(
+            winrt::Last_Music_Player::TrackInfo release,
+            uint64_t requestEpoch);
+        void RenderProviderAlbum(
+            LastMusicPlayer::Backend::RemoteAlbumDetail const& detail,
+            bool localFallback);
+        winrt::Last_Music_Player::TrackInfo ArtistTrackFromCatalogItem(
+            LastMusicPlayer::Backend::CatalogItem const& item,
+            int32_t index);
         [[nodiscard]] bool IsAutoMixDetail(std::wstring const& key) const;
         // What follows the song count in the detail header, empty when the
         // count already says everything the reference clients show there.
@@ -1255,6 +1304,39 @@ namespace winrt::Last_Music_Player::implementation
         std::vector<winrt::Last_Music_Player::TrackInfo> m_songsAllResults;
         std::vector<winrt::Last_Music_Player::TrackInfo> m_librarySongAllResults;
         std::vector<winrt::Last_Music_Player::TrackInfo> m_libraryDetailAllResults;
+        winrt::Windows::Foundation::Collections::IObservableVector<winrt::Last_Music_Player::TrackInfo> m_artistTopSongsLeft{
+            winrt::single_threaded_observable_vector<winrt::Last_Music_Player::TrackInfo>()
+        };
+        winrt::Windows::Foundation::Collections::IObservableVector<winrt::Last_Music_Player::TrackInfo> m_artistTopSongsRight{
+            winrt::single_threaded_observable_vector<winrt::Last_Music_Player::TrackInfo>()
+        };
+        winrt::Windows::Foundation::Collections::IObservableVector<winrt::Last_Music_Player::TrackInfo> m_artistAlbums{
+            winrt::single_threaded_observable_vector<winrt::Last_Music_Player::TrackInfo>()
+        };
+        winrt::Windows::Foundation::Collections::IObservableVector<winrt::Last_Music_Player::TrackInfo> m_artistSingles{
+            winrt::single_threaded_observable_vector<winrt::Last_Music_Player::TrackInfo>()
+        };
+        winrt::Windows::Foundation::Collections::IObservableVector<winrt::Last_Music_Player::TrackInfo> m_artistRelated{
+            winrt::single_threaded_observable_vector<winrt::Last_Music_Player::TrackInfo>()
+        };
+        winrt::Windows::Foundation::Collections::IObservableVector<winrt::Last_Music_Player::TrackInfo> m_providerAlbumTracks{
+            winrt::single_threaded_observable_vector<winrt::Last_Music_Player::TrackInfo>()
+        };
+        std::vector<winrt::Last_Music_Player::TrackInfo> m_artistTopSongs;
+        std::vector<winrt::Last_Music_Player::TrackInfo> m_artistLocalAllTracks;
+        LastMusicPlayer::Backend::RemoteArtistDetail m_currentArtistDetail;
+        LastMusicPlayer::Backend::RemoteDetailIdentity m_currentArtistIdentity;
+        std::unordered_map<std::wstring, LastMusicPlayer::Backend::RemoteArtistDetail> m_artistDetailCache;
+        std::unordered_map<std::wstring, LastMusicPlayer::Backend::RemoteAlbumDetail> m_albumDetailCache;
+        std::vector<ArtistHistoryEntry> m_artistBackStack;
+        std::wstring m_artistOriginNav;
+        uint64_t m_artistRequestEpoch{ 0 };
+        bool m_artistAlbumOpen{ false };
+        bool m_artistAboutExpanded{ false };
+        bool m_artistUsingLocalFallback{ false };
+        double m_artistScrollOffset{ 0.0 };
+        winrt::Windows::Foundation::IAsyncAction m_artistLoadOperation{ nullptr };
+        winrt::Windows::Foundation::IAsyncAction m_albumLoadOperation{ nullptr };
         std::vector<uint32_t> m_libraryDetailSelection;
         // Compact drops the track rows from 58 to 46 px and their artwork from
         // 38 to 30, per the reference's two densities.

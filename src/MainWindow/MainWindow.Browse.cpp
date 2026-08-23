@@ -265,6 +265,17 @@ namespace winrt::Last_Music_Player::implementation
             return;
         }
         RecordBrowseRecentSearch(TrimQuery(GlobalSearchBox().Text()));
+        if (item.Kind() == L"artist")
+        {
+            auto representative = winrt::get_self<BrowseResultItem>(item)->RepresentativeTrack();
+            OpenArtistDetail(
+                item.Title(),
+                representative ? representative.ArtistCatalogId() : winrt::hstring{},
+                {},
+                item.ArtworkUrl(),
+                representative);
+            return;
+        }
         RunDetached(PlayBrowseResultAsync(item, false));
     }
 

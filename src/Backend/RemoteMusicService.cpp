@@ -653,6 +653,136 @@ namespace LastMusicPlayer::Backend
     }
 
 
+    winrt::Windows::Foundation::IAsyncOperation<bool> RemoteMusicService::SupportsRemoteDetailAsync(
+        RemoteScopeSnapshot const& scope,
+        std::wstring_view capability)
+    {
+        auto cancellation = co_await winrt::get_cancellation_token();
+        cancellation.enable_propagation();
+        CheckScope(scope);
+        if (scope.Mode == RemoteAccessMode::Account)
+        {
+            // Account endpoints are versioned with this contract. An older
+            // deployment returns a sanitized 404 from the detail route, which
+            // the page treats exactly like unsupported capability.
+            co_return true;
+        }
+        RequireMode(scope.Mode, RemoteAccessMode::ApiKey);
+
+        auto const cacheKey = RemoteScopeCacheKey(scope);
+        {
+            std::scoped_lock lock{ m_capabilityMutex };
+            auto found = m_capabilityCache.find(cacheKey);
+            if (found != m_capabilityCache.end())
+            {
+                co_return capability == ArtistDetailCapability
+                    ? found->second.ArtistDetail
+                    : found->second.AlbumDetail;
+            }
+        }
+
+        auto client = ProviderFor(ProviderBaseUrl(), ProviderApiKey());
+        auto payload = co_await client.GetProvidersAsync();
+        CheckScope(scope);
+        CapabilitySnapshot supported{
+            ProviderSupportsCapability(payload, ArtistDetailCapability),
+            ProviderSupportsCapability(payload, AlbumDetailCapability)
+        };
+        {
+            std::scoped_lock lock{ m_capabilityMutex };
+            if (m_capabilityCache.size() >= 16)
+            {
+                m_capabilityCache.clear();
+            }
+            m_capabilityCache[cacheKey] = supported;
+        }
+        co_return capability == ArtistDetailCapability
+            ? supported.ArtistDetail
+            : supported.AlbumDetail;
+    }
+
+    winrt::Windows::Foundation::IAsyncOperation<winrt::hstring> RemoteMusicService::GetArtistDetailAsync(
+        RemoteScopeSnapshot const& scope,
+        RemoteDetailIdentity const& identity)
+    {
+        auto cancellation = co_await winrt::get_cancellation_token();
+        cancellation.enable_propagation();
+        CheckScope(scope);
+        if (!co_await SupportsRemoteDetailAsync(scope, ArtistDetailCapability))
+        {
+            throw winrt::hresult_error(E_NOTIMPL, L"This provider does not support artist pages.");
+        }
+        CheckScope(scope);
+        if (scope.Mode == RemoteAccessMode::ApiKey)
+        {
+            auto client = ProviderFor(ProviderBaseUrl(), ProviderApiKey());
+            auto payload = co_await client.GetArtistDetailAsync(identity);
+            CheckScope(scope);
+            co_return payload;
+        }
+
+        auto context = CaptureAccountSyncContext();
+        CheckScope(scope, context);
+        try
+        {
+            auto payload = co_await m_accountClient.GetArtistDetailAsync(
+                context.m_session.BearerSession,
+                identity);
+            CheckScope(scope, context);
+            co_return payload;
+        }
+        catch (winrt::hresult_error const& error)
+        {
+            if (!IsCurrent(context))
+            {
+                throw winrt::hresult_canceled();
+            }
+            HandleAccountError(context, error);
+            throw;
+        }
+    }
+
+    winrt::Windows::Foundation::IAsyncOperation<winrt::hstring> RemoteMusicService::GetAlbumDetailAsync(
+        RemoteScopeSnapshot const& scope,
+        RemoteDetailIdentity const& identity)
+    {
+        auto cancellation = co_await winrt::get_cancellation_token();
+        cancellation.enable_propagation();
+        CheckScope(scope);
+        if (!co_await SupportsRemoteDetailAsync(scope, AlbumDetailCapability))
+        {
+            throw winrt::hresult_error(E_NOTIMPL, L"This provider does not support album pages.");
+        }
+        CheckScope(scope);
+        if (scope.Mode == RemoteAccessMode::ApiKey)
+        {
+            auto client = ProviderFor(ProviderBaseUrl(), ProviderApiKey());
+            auto payload = co_await client.GetAlbumDetailAsync(identity);
+            CheckScope(scope);
+            co_return payload;
+        }
+
+        auto context = CaptureAccountSyncContext();
+        CheckScope(scope, context);
+        try
+        {
+            auto payload = co_await m_accountClient.GetAlbumDetailAsync(
+                context.m_session.BearerSession,
+                identity);
+            CheckScope(scope, context);
+            co_return payload;
+        }
+        catch (winrt::hresult_error const& error)
+        {
+            if (!IsCurrent(context))
+            {
+                throw winrt::hresult_canceled();
+            }
+            HandleAccountError(context, error);
+            throw;
+        }
+    }
+
     winrt::Windows::Foundation::IAsyncOperation<winrt::hstring> RemoteMusicService::GetCatalogStorefrontsAsync()
     {
         RequireMode(Mode(), RemoteAccessMode::Account);

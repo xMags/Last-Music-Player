@@ -182,7 +182,8 @@ namespace LastMusicPlayer::Backend::DatabaseAccountSchema
         // Aliased because callers select this view by column name, and a bare
         // COALESCE would take an implementation-defined one.
         "COALESCE(t.LastPositionSeconds,0) AS LastPositionSeconds, "
-        "'' AS RemoteProvider, '' AS RemoteCatalogId, '' AS AlbumCatalogId, '' AS ArtistCatalogId "
+        "'' AS RemoteProvider, COALESCE(t.RemoteCatalogId,'') AS RemoteCatalogId, "
+        "COALESCE(t.AlbumCatalogId,'') AS AlbumCatalogId, COALESCE(t.ArtistCatalogId,'') AS ArtistCatalogId "
         "FROM Tracks t WHERE t.SourceKind<>'remote' OR EXISTS ("
         "SELECT 1 FROM ActiveAccountContext c WHERE c.SingletonId=1 AND c.RemoteMode='ApiKey') "
         "UNION ALL "

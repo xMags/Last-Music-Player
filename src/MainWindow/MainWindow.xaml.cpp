@@ -144,6 +144,12 @@ namespace winrt::Last_Music_Player::implementation
         // and only the visible one is ever populated on screen.
         LibraryDetailSuggestionsList().ItemsSource(m_libraryDetailSuggestions);
         LibraryDetailSuggestionsGridList().ItemsSource(m_libraryDetailSuggestions);
+        ArtistTopSongsLeft().ItemsSource(m_artistTopSongsLeft);
+        ArtistTopSongsRight().ItemsSource(m_artistTopSongsRight);
+        ArtistAlbumsGrid().ItemsSource(m_artistAlbums);
+        ArtistSinglesGrid().ItemsSource(m_artistSingles);
+        ArtistRelatedGrid().ItemsSource(m_artistRelated);
+        ProviderAlbumTracksList().ItemsSource(m_providerAlbumTracks);
         // Every Library tab scrolls its own list, so each one reports its own
         // offset to the shared header.
         winrt::Microsoft::UI::Xaml::FrameworkElement const librarySurfaces[] = {
@@ -1157,6 +1163,12 @@ namespace winrt::Last_Music_Player::implementation
     {
         using winrt::Microsoft::UI::Xaml::UIElement;
         using winrt::Microsoft::UI::Xaml::Visibility;
+
+        if (key != L"Library" && ArtistDetailContent()
+            && ArtistDetailContent().Visibility() == Visibility::Visible)
+        {
+            HideArtistDetail(false);
+        }
 
         struct ViewRow
         {

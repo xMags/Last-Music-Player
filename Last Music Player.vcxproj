@@ -185,6 +185,7 @@
     <ClInclude Include="src\Backend\CatalogModels.h" />
     <ClInclude Include="src\Backend\CatalogParser.h" />
     <ClInclude Include="src\Backend\CatalogPresentation.h" />
+    <ClInclude Include="src\Backend\RemoteDetailContract.h" />
     <ClInclude Include="src\Backend\EmbeddedArtwork.h" />
     <ClInclude Include="src\Backend\PlaybackHistoryQualifier.h" />
     <ClInclude Include="src\Backend\ResumePositionPolicy.h" />
@@ -193,6 +194,7 @@
     <ClInclude Include="src\Backend\DatabaseEngine.h" />
     <ClInclude Include="src\Backend\DatabaseEngine.Internal.h" />
     <ClInclude Include="src\Backend\DatabaseAccountSchema.h" />
+    <ClInclude Include="src\Backend\DatabaseTrackSchema.h" />
     <ClInclude Include="src\Backend\LibraryGroupingSql.h" />
     <ClInclude Include="src\Backend\ProviderClient.h" />
     <ClInclude Include="src\Backend\ProviderHelpers.h" />
@@ -250,6 +252,7 @@
     <ClCompile Include="src\MainWindow\MainWindow.LibraryHydration.cpp" />
     <ClCompile Include="src\MainWindow\MainWindow.LibraryCollections.cpp" />
     <ClCompile Include="src\MainWindow\MainWindow.LibraryDetail.cpp" />
+    <ClCompile Include="src\MainWindow\MainWindow.ArtistDetail.cpp" />
     <ClCompile Include="src\MainWindow\MainWindow.DetailToolbar.cpp" />
     <ClCompile Include="src\MainWindow\MainWindow.Downloads.cpp" />
     <ClCompile Include="src\MainWindow\MainWindow.LibraryMenus.cpp" />
@@ -289,6 +292,7 @@
     <ClCompile Include="src\Backend\UserDataOperationGate.cpp" />
     <ClCompile Include="src\Backend\CatalogParser.cpp" />
     <ClCompile Include="src\Backend\CatalogPresentation.cpp" />
+    <ClCompile Include="src\Backend\RemoteDetailContract.cpp" />
     <ClCompile Include="src\Backend\EmbeddedArtwork.cpp" />
     <ClCompile Include="src\Backend\StreamCache.cpp" />
     <ClCompile Include="src\Backend\DatabaseEngine.cpp" />

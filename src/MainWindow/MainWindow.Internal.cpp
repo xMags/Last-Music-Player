@@ -1279,7 +1279,14 @@ namespace winrt::Last_Music_Player::implementation::detail
     winrt::Last_Music_Player::TrackInfo TrackFromProviderJson(winrt::Windows::Data::Json::JsonObject const& item)
     {
         auto streamUrl = item.GetNamedString(L"streamUrl", L"");
-        if (streamUrl.empty())
+        auto sourceUrl = item.GetNamedString(L"sourceUrl", L"");
+        if ((!streamUrl.empty() && !LastMusicPlayer::Backend::IsSafeRemoteUrl(
+                streamUrl,
+                LastMusicPlayer::Backend::RemoteUrlUse::EphemeralMedia))
+            || (!sourceUrl.empty() && !LastMusicPlayer::Backend::IsSafeRemoteUrl(
+                sourceUrl,
+                LastMusicPlayer::Backend::RemoteUrlUse::Durable))
+            || (streamUrl.empty() && sourceUrl.empty()))
         {
             return nullptr;
         }
@@ -1296,12 +1303,11 @@ namespace winrt::Last_Music_Player::implementation::detail
         track.Album(item.GetNamedString(L"album", provider));
         track.Genre(L"Remote");
         track.FilePath(streamUrl);
-        track.SourceUrl(item.GetNamedString(L"sourceUrl", L""));
+        track.SourceUrl(sourceUrl);
         track.RemoteId(item.GetNamedString(L"id", L""));
-        if (track.SourceUrl().empty())
-        {
-            track.SourceUrl(streamUrl);
-        }
+        track.RemoteCatalogId(item.GetNamedString(L"catalogId", L""));
+        track.AlbumCatalogId(item.GetNamedString(L"albumCatalogId", L""));
+        track.ArtistCatalogId(item.GetNamedString(L"artistCatalogId", L""));
         track.SourceKind(L"remote");
         track.Provider(provider);
         // Keep the visible label provider-neutral. Routing identity remains in

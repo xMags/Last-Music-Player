@@ -117,6 +117,7 @@
     <ClCompile Include="..\..\src\Backend\ProviderHelpers.cpp" />
     <ClCompile Include="..\..\src\Backend\CatalogParser.cpp" />
     <ClCompile Include="..\..\src\Backend\CatalogPresentation.cpp" />
+    <ClCompile Include="..\..\src\Backend\RemoteDetailContract.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\ThirdParty\sqlite\sqlite3.c">

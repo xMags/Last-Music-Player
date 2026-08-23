@@ -132,13 +132,16 @@ namespace LastMusicPlayer::Backend
         }
 
         static constexpr char kSql[] =
-            "INSERT INTO Tracks (SourceKey, SourceKind, Provider, SourceUrl, FilePath, Title, Artist, Album, Genre, DurationSeconds, ArtworkUrl, DateAddedSortKey, DateAddedText, DurationText, IsActive, RemoteId, UpdatedAt) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, strftime('%s','now')) "
+            "INSERT INTO Tracks (SourceKey, SourceKind, Provider, SourceUrl, FilePath, Title, Artist, Album, Genre, DurationSeconds, ArtworkUrl, DateAddedSortKey, DateAddedText, DurationText, IsActive, RemoteId, RemoteCatalogId, AlbumCatalogId, ArtistCatalogId, UpdatedAt) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, strftime('%s','now')) "
             "ON CONFLICT(SourceKey) DO UPDATE SET "
             "SourceKind=excluded.SourceKind, Provider=excluded.Provider, SourceUrl=excluded.SourceUrl, FilePath=excluded.FilePath, "
             "Title=excluded.Title, Artist=excluded.Artist, Album=excluded.Album, Genre=excluded.Genre, DurationSeconds=excluded.DurationSeconds, "
             "ArtworkUrl=excluded.ArtworkUrl, DateAddedSortKey=excluded.DateAddedSortKey, DateAddedText=excluded.DateAddedText, DurationText=excluded.DurationText, "
             "IsActive=excluded.IsActive, RemoteId=excluded.RemoteId, "
+            "RemoteCatalogId=CASE WHEN excluded.RemoteCatalogId<>'' THEN excluded.RemoteCatalogId ELSE Tracks.RemoteCatalogId END, "
+            "AlbumCatalogId=CASE WHEN excluded.AlbumCatalogId<>'' THEN excluded.AlbumCatalogId ELSE Tracks.AlbumCatalogId END, "
+            "ArtistCatalogId=CASE WHEN excluded.ArtistCatalogId<>'' THEN excluded.ArtistCatalogId ELSE Tracks.ArtistCatalogId END, "
             "UpdatedAt=excluded.UpdatedAt;";
 
         Statement stmt{ m_db, kSql };
@@ -180,6 +183,9 @@ namespace LastMusicPlayer::Backend
         BindText(stmt.value, 14, std::wstring(track.Duration().c_str()));
         sqlite3_bind_int(stmt.value, 15, active ? 1 : 0);
         BindText(stmt.value, 16, std::wstring(track.RemoteId().c_str()));
+        BindText(stmt.value, 17, std::wstring(track.RemoteCatalogId().c_str()));
+        BindText(stmt.value, 18, std::wstring(track.AlbumCatalogId().c_str()));
+        BindText(stmt.value, 19, std::wstring(track.ArtistCatalogId().c_str()));
 
         if (sqlite3_step(stmt.value) != SQLITE_DONE)
         {

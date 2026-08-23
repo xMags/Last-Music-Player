@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Backend/RemoteDetailContract.h"
+
 #include <winrt/Windows.Foundation.h>
 #include <winrt/Windows.Web.Http.h>
 
@@ -19,6 +21,10 @@ namespace LastMusicPlayer::Backend
         winrt::Windows::Foundation::IAsyncOperation<winrt::hstring> GetProvidersAsync();
         winrt::Windows::Foundation::IAsyncOperation<uint32_t> GetProvidersStatusAsync();
         winrt::Windows::Foundation::IAsyncOperation<winrt::hstring> SearchAsync(winrt::hstring query);
+        winrt::Windows::Foundation::IAsyncOperation<winrt::hstring> GetArtistDetailAsync(
+            RemoteDetailIdentity const& identity);
+        winrt::Windows::Foundation::IAsyncOperation<winrt::hstring> GetAlbumDetailAsync(
+            RemoteDetailIdentity const& identity);
         // Autoplay "radio": related/up-next tracks that follow a seed song.
         // Returns the same { results: [...] } shape as SearchAsync, parsed by
         // ParseProviderTracks. Server falls back to [] for unsupported seeds.

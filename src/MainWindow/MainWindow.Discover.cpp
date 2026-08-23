@@ -1001,6 +1001,7 @@ namespace winrt::Last_Music_Player::implementation
         // SourceUrl is the whole point: playing a catalog song posts this URL to
         // the existing resolve path, which mirrors it onto something playable.
         track.SourceUrl(item.SourceUrl);
+        track.FilePath(item.StreamUrl);
         track.Provider(item.Provider);
         track.SourceKind(L"remote");
         track.SourceLabel(L"Catalog");
@@ -2572,6 +2573,16 @@ namespace winrt::Last_Music_Player::implementation
         if (type == L"playlist")
         {
             co_await OpenDiscoverResourceAsync(L"playlists", track.RemoteCatalogId(), track.Title());
+            co_return;
+        }
+        if (type == L"artist")
+        {
+            OpenArtistDetail(
+                track.Title(),
+                track.RemoteCatalogId(),
+                track.SourceUrl(),
+                track.ArtworkUrl(),
+                track);
             co_return;
         }
         // A song tile plays through the ordinary remote path: PlayTrack sees an

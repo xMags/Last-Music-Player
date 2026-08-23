@@ -56,11 +56,14 @@ are ignored):
 | `title` | string | Track title. |
 | `artist` | string | Artist / creator. |
 | `album` | string | Album; defaults to the provider name if absent. |
-| `sourceUrl` | string | **Important.** A stable provider-owned identifier for the track. The app keys the library, stream URL, radio, and lyrics off this. |
-| `streamUrl` | string | Playable stream URL. If this points at your `/v1/stream/...` endpoint, the app preserves the path and refreshes the provider host/token from current settings. |
+| `sourceUrl` | string | **Required.** A stable provider-owned identifier for the track. The app keys the library, stream URL, radio, and lyrics off this. |
+| `streamUrl` | string | Optional playable stream URL. When omitted, the app resolves `sourceUrl` when playback starts. If this points at your `/v1/stream/...` endpoint, the app preserves the path and refreshes the provider host/token from current settings. |
 | `durationMs` | number | Track length in milliseconds. |
 | `artworkUrl` | string | Cover-art URL. May point back at your `/v1/artwork` endpoint, or anywhere. |
 | `provider` | string | Provider namespace (e.g. `library`, `service`). |
+| `catalogId` | string | Optional stable provider track identifier. |
+| `albumCatalogId` | string | Optional stable provider album identifier. |
+| `artistCatalogId` | string | Optional stable provider artist identifier. |
 
 ```jsonc
 {
@@ -84,8 +87,95 @@ are ignored):
 
 ### `GET /v1/providers`
 Health/identity check. The app calls this to test connectivity and considers any
-`2xx` a healthy provider. Body is not required (return your provider list if you
-like).
+`2xx` a healthy provider. Advertise additive capabilities in a top-level array
+or on individual provider entries. Providers that omit capabilities remain
+compatible, but the app uses its local-library artist page instead of probing
+unsupported detail routes.
+
+```jsonc
+{
+  "capabilities": ["artist-detail-v1", "album-detail-v1"],
+  "providers": []
+}
+```
+
+### Detail identity rules
+
+Artist and album detail requests contain exactly one identity. Providers must
+resolve it in this order: `catalogId`, durable `sourceUrl`, then normalized exact
+`name`. If an explicit catalog ID or source URL does not match, return `404`.
+Never retry the request internally as a same-name match.
+
+### `GET /v1/artists/detail`
+
+Query: one of `catalogId`, `sourceUrl`, or `name`.
+
+```jsonc
+{
+  "artist": {
+    "catalogId": "artist-1",
+    "name": "Example Artist",
+    "provider": "youtube-music",
+    "sourceUrl": "https://catalog.example/artists/artist-1",
+    "artworkUrl": "https://provider.example/v1/artwork/artist-1",
+    "heroArtworkUrl": "https://provider.example/v1/artwork/artist-1-hero",
+    "biography": "Plain text biography.",
+    "genreNames": ["Pop"]
+  },
+  "topSongs": [],
+  "releases": [
+    {
+      "catalogId": "album-1",
+      "name": "Example Album",
+      "artistName": "Example Artist",
+      "provider": "youtube-music",
+      "sourceUrl": "https://catalog.example/albums/album-1",
+      "artworkUrl": "https://provider.example/v1/artwork/album-1",
+      "releaseType": "album",
+      "releaseDate": "2026-01-02",
+      "trackCount": 10
+    }
+  ],
+  "relatedArtists": [],
+  "stale": false,
+  "fetchedAt": "2026-08-23T10:30:00Z"
+}
+```
+
+Limits are 10 top songs, 24 releases, 12 related artists, and 32 genres. Release
+types are `album`, `single`, or `ep`. Artwork fields must be provider-owned relay
+URLs. Do not return signed upstream URLs, credentials, or raw upstream errors.
+
+### `GET /v1/albums/detail`
+
+Query: one of `catalogId`, `sourceUrl`, or `name`.
+
+```jsonc
+{
+  "release": {
+    "catalogId": "album-1",
+    "name": "Example Album",
+    "artistName": "Example Artist",
+    "provider": "youtube-music",
+    "sourceUrl": "https://catalog.example/albums/album-1",
+    "artworkUrl": "https://provider.example/v1/artwork/album-1",
+    "releaseType": "album",
+    "releaseDate": "2026-01-02",
+    "trackCount": 10
+  },
+  "tracks": [],
+  "stale": false,
+  "fetchedAt": "2026-08-23T10:30:00Z"
+}
+```
+
+Opening this route is read-only. The client does not add the release or its
+tracks to the library.
+
+Account mode uses equivalent authenticated routes:
+
+- `GET /v1/music/catalog/artists/detail`
+- `GET /v1/music/catalog/albums/detail`
 
 ### `GET /v1/search?q=<query>`
 Full-text search. `q` is URL-encoded.
@@ -164,9 +254,9 @@ The app falls back to the raw body or the status code if this shape is absent.
 
 ## Timeouts
 
-The app aborts JSON requests after **15 seconds**. Keep responses prompt; do
-heavy work (transcoding, etc.) on the `/v1/stream` path, which is not bounded by
-that timeout.
+The app aborts artist and album detail requests after **5 seconds** and other
+JSON requests after **15 seconds**. Keep responses prompt; do heavy work such as
+transcoding on the `/v1/stream` path, which is not bounded by that timeout.
 
 ## Official service adapters
 

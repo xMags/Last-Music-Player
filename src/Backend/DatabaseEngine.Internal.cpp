@@ -177,9 +177,13 @@ namespace LastMusicPlayer::Backend::DatabaseDetail
             "UpdatedAt INTEGER DEFAULT 0,"
             "LastPlayed DATETIME,"
             "LastPlayedExact INTEGER DEFAULT 0,"
-            "RemoteId TEXT);"
-            "INSERT INTO Tracks_rebuild (Id, SourceKey, SourceKind, Provider, SourceUrl, FilePath, Title, Artist, Album, Genre, DurationSeconds, ArtworkUrl, DateAddedSortKey, DateAddedText, DurationText, PlayCount, LastPlayedOrder, IsLiked, IsActive, UpdatedAt, LastPlayed, LastPlayedExact, RemoteId) "
-            "SELECT Id, SourceKey, SourceKind, Provider, SourceUrl, FilePath, Title, Artist, Album, Genre, DurationSeconds, ArtworkUrl, DateAddedSortKey, DateAddedText, DurationText, PlayCount, LastPlayedOrder, IsLiked, IsActive, UpdatedAt, LastPlayed, COALESCE(LastPlayedExact,0), RemoteId FROM Tracks;"
+            "RemoteId TEXT,"
+            "LastPositionSeconds REAL DEFAULT 0,"
+            "RemoteCatalogId TEXT,"
+            "AlbumCatalogId TEXT,"
+            "ArtistCatalogId TEXT);"
+            "INSERT INTO Tracks_rebuild (Id, SourceKey, SourceKind, Provider, SourceUrl, FilePath, Title, Artist, Album, Genre, DurationSeconds, ArtworkUrl, DateAddedSortKey, DateAddedText, DurationText, PlayCount, LastPlayedOrder, IsLiked, IsActive, UpdatedAt, LastPlayed, LastPlayedExact, RemoteId, LastPositionSeconds, RemoteCatalogId, AlbumCatalogId, ArtistCatalogId) "
+            "SELECT Id, SourceKey, SourceKind, Provider, SourceUrl, FilePath, Title, Artist, Album, Genre, DurationSeconds, ArtworkUrl, DateAddedSortKey, DateAddedText, DurationText, PlayCount, LastPlayedOrder, IsLiked, IsActive, UpdatedAt, LastPlayed, COALESCE(LastPlayedExact,0), RemoteId, COALESCE(LastPositionSeconds,0), RemoteCatalogId, AlbumCatalogId, ArtistCatalogId FROM Tracks;"
             "DROP TABLE Tracks;"
             "ALTER TABLE Tracks_rebuild RENAME TO Tracks;";
 
@@ -333,7 +337,7 @@ namespace LastMusicPlayer::Backend::DatabaseDetail
         "Id, SourceKind, Provider, SourceUrl, FilePath, Title, Artist, Album, Genre, DurationSeconds, ArtworkUrl, DateAddedSortKey, DateAddedText, DurationText, IsLiked, RemoteId, LastPositionSeconds, RemoteProvider, RemoteCatalogId, AlbumCatalogId, ArtistCatalogId";
 
     extern char const kJoinedTrackColumns[] =
-        "t.Id, t.SourceKind, t.Provider, t.SourceUrl, t.FilePath, t.Title, t.Artist, t.Album, t.Genre, t.DurationSeconds, t.ArtworkUrl, t.DateAddedSortKey, t.DateAddedText, t.DurationText, t.IsLiked, t.RemoteId, t.LastPositionSeconds, '', '', '', ''";
+        "t.Id, t.SourceKind, t.Provider, t.SourceUrl, t.FilePath, t.Title, t.Artist, t.Album, t.Genre, t.DurationSeconds, t.ArtworkUrl, t.DateAddedSortKey, t.DateAddedText, t.DurationText, t.IsLiked, t.RemoteId, t.LastPositionSeconds, '', t.RemoteCatalogId, t.AlbumCatalogId, t.ArtistCatalogId";
 
     std::string TrackOrderClause(std::wstring const& filter, std::wstring const& sort)
     {

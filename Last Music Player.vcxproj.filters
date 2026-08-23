@@ -207,6 +207,7 @@
     <ClInclude Include="src\Backend\CatalogModels.h"><Filter>Backend</Filter></ClInclude>
     <ClInclude Include="src\Backend\CatalogParser.h"><Filter>Backend</Filter></ClInclude>
     <ClInclude Include="src\Backend\CatalogPresentation.h"><Filter>Backend</Filter></ClInclude>
+    <ClInclude Include="src\Backend\RemoteDetailContract.h"><Filter>Backend</Filter></ClInclude>
     <ClInclude Include="src\Backend\EmbeddedArtwork.h"><Filter>Backend</Filter></ClInclude>
     <ClInclude Include="src\Backend\PlaybackHistoryQualifier.h"><Filter>Backend</Filter></ClInclude>
     <ClInclude Include="src\Backend\ResumePositionPolicy.h"><Filter>Backend</Filter></ClInclude>
@@ -218,6 +219,9 @@
       <Filter>Backend</Filter>
     </ClInclude>
     <ClInclude Include="src\Backend\DatabaseAccountSchema.h">
+      <Filter>Backend</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\DatabaseTrackSchema.h">
       <Filter>Backend</Filter>
     </ClInclude>
     <ClInclude Include="src\Backend\LibraryGroupingSql.h">
@@ -381,6 +385,8 @@
     <ClCompile Include="src\Backend\UserDataOperationGate.cpp"><Filter>Backend</Filter></ClCompile>
     <ClCompile Include="src\Backend\CatalogParser.cpp"><Filter>Backend</Filter></ClCompile>
     <ClCompile Include="src\Backend\CatalogPresentation.cpp"><Filter>Backend</Filter></ClCompile>
+    <ClCompile Include="src\Backend\RemoteDetailContract.cpp"><Filter>Backend</Filter></ClCompile>
+    <ClCompile Include="src\MainWindow\MainWindow.ArtistDetail.cpp"><Filter>MainWindow</Filter></ClCompile>
     <ClCompile Include="src\Backend\EmbeddedArtwork.cpp"><Filter>Backend</Filter></ClCompile>
     <ClCompile Include="src\Backend\DatabaseEngine.cpp">
       <Filter>Backend</Filter>

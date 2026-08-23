@@ -3,11 +3,15 @@
 #include "Backend/AccountClient.h"
 #include "Backend/AccountSessionService.h"
 #include "Backend/CredentialStore.h"
+#include "Backend/RemoteDetailContract.h"
 #include "Backend/SettingsManager.h"
 
 #include <atomic>
 #include <cstdint>
+#include <mutex>
 #include <string>
+#include <string_view>
+#include <unordered_map>
 #include <utility>
 
 #include <winrt/Windows.Foundation.h>
@@ -131,6 +135,12 @@ namespace LastMusicPlayer::Backend
             winrt::hstring const& album,
             std::int64_t durationMs,
             winrt::hstring const& sourceUrl);
+        winrt::Windows::Foundation::IAsyncOperation<winrt::hstring> GetArtistDetailAsync(
+            RemoteScopeSnapshot const& scope,
+            RemoteDetailIdentity const& identity);
+        winrt::Windows::Foundation::IAsyncOperation<winrt::hstring> GetAlbumDetailAsync(
+            RemoteScopeSnapshot const& scope,
+            RemoteDetailIdentity const& identity);
 
         // Catalog discovery. Account mode only: the catalog endpoints live behind
         // the account session, and an API-key provider has no catalog contract.
@@ -197,6 +207,15 @@ namespace LastMusicPlayer::Backend
         void HandleAccountError(
             AccountSyncContext const& context,
             winrt::hresult_error const& error) noexcept;
+        winrt::Windows::Foundation::IAsyncOperation<bool> SupportsRemoteDetailAsync(
+            RemoteScopeSnapshot const& scope,
+            std::wstring_view capability);
+
+        struct CapabilitySnapshot
+        {
+            bool ArtistDetail{ false };
+            bool AlbumDetail{ false };
+        };
 
         SettingsManager& m_settings;
         ICredentialStore& m_credentials;
@@ -204,5 +223,7 @@ namespace LastMusicPlayer::Backend
         AccountClient& m_accountClient;
         IAccountSyncTransport& m_accountSyncTransport;
         std::atomic<std::uint64_t> m_scopeGeneration{ 1 };
+        std::mutex m_capabilityMutex;
+        std::unordered_map<std::wstring, CapabilitySnapshot> m_capabilityCache;
     };
 }

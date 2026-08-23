@@ -19,14 +19,17 @@
 #include "Backend/AccountUrlPolicy.h"
 #include "Backend/AutoSyncPolicy.h"
 #include "Backend/ProfileIdentity.h"
+#include "Backend/ProviderClient.h"
 #include "Backend/RemoteMusicService.h"
 #include "Backend/LoopbackCallback.h"
 #include "Backend/Pkce.h"
 #include "Backend/DatabaseAccountSchema.h"
+#include "Backend/DatabaseTrackSchema.h"
 #include "Backend/PlaybackHistoryQualifier.h"
 #include "Backend/ProviderHelpers.h"
 #include "Backend/CatalogParser.h"
 #include "Backend/CatalogPresentation.h"
+#include "Backend/RemoteDetailContract.h"
 #include "Backend/HistoryImport.h"
 #include "Backend/StreamCache.h"
 #include "Backend/UserDataOperationGate.h"
@@ -1913,6 +1916,75 @@ namespace
                 "metered resolve did not request the low-quality account stream");
         }
         {
+            TestHttpServer server{ response };
+            account::AccountClient client{ winrt::hstring(server.Url()) };
+            (void)client.GetArtistDetailAsync(
+                L"test-bearer",
+                { L"artist one", L"https://music.example.test/artists/fallback", L"Fallback" }).get();
+            server.Join();
+            auto const request = server.Request();
+            Expect(request.starts_with(
+                "GET /v1/music/catalog/artists/detail?catalogId=artist%20one HTTP/1.1\r\n"),
+                "account artist detail used the wrong route or identity precedence");
+            Expect(request.find("Authorization: Bearer test-bearer\r\n") != std::string::npos,
+                "account artist detail omitted its bearer");
+        }
+        {
+            TestHttpServer server{ response };
+            account::AccountClient client{ winrt::hstring(server.Url()) };
+            (void)client.GetAlbumDetailAsync(
+                L"test-bearer",
+                { {}, L"https://music.example.test/albums/album-one", L"Fallback" }).get();
+            server.Join();
+            Expect(server.Request().starts_with(
+                "GET /v1/music/catalog/albums/detail?sourceUrl=https%3A%2F%2Fmusic.example.test%2Falbums%2Falbum-one HTTP/1.1\r\n"),
+                "account album detail used the wrong route or source identity");
+        }
+        {
+            TestHttpServer server{ response };
+            account::ProviderClient client{ winrt::hstring(server.Url()) };
+            client.SetBearerToken(L"provider-key");
+            (void)client.GetArtistDetailAsync({ {}, {}, L"Exact Artist" }).get();
+            server.Join();
+            auto const request = server.Request();
+            Expect(request.starts_with(
+                "GET /v1/artists/detail?name=Exact%20Artist HTTP/1.1\r\n"),
+                "API-key artist detail used the wrong route or name identity");
+            Expect(request.find("Authorization: Bearer provider-key\r\n") != std::string::npos,
+                "API-key artist detail omitted its bearer token");
+        }
+        {
+            TestHttpServer server{ response };
+            account::ProviderClient client{ winrt::hstring(server.Url()) };
+            client.SetBearerToken(L"provider-key");
+            (void)client.GetAlbumDetailAsync({ L"album-one", {}, L"Fallback" }).get();
+            server.Join();
+            Expect(server.Request().starts_with(
+                "GET /v1/albums/detail?catalogId=album-one HTTP/1.1\r\n"),
+                "API-key album detail used the wrong route or catalog identity");
+        }
+        {
+            TestHttpServer server{
+                "HTTP/1.1 503 Service Unavailable\r\nContent-Type: application/json\r\nContent-Length: 53\r\nConnection: close\r\n\r\n"
+                "{\"message\":\"upstream failed with token secret-value\"}"
+            };
+            account::ProviderClient client{ winrt::hstring(server.Url()) };
+            client.SetBearerToken(L"provider-key");
+            try
+            {
+                (void)client.GetArtistDetailAsync({ L"artist-one", {}, {} }).get();
+                Expect(false, "provider 503 response was accepted");
+            }
+            catch (winrt::hresult_error const& error)
+            {
+                auto message = std::wstring{ error.message().c_str() };
+                Expect(message.find(L"secret-value") == std::wstring::npos
+                    && message.find(L"upstream failed") == std::wstring::npos,
+                    "provider detail exposed a raw upstream error");
+            }
+            server.Join();
+        }
+        {
             TestHttpServer server{
                 "HTTP/1.1 429 Too Many Requests\r\nRetry-After: 70001\r\nContent-Length: 2\r\nConnection: close\r\n\r\n{}"
             };
@@ -2778,7 +2850,8 @@ namespace
             "DateAddedText TEXT, DurationText TEXT, PlayCount INTEGER, LastPlayedOrder INTEGER, IsLiked INTEGER, IsActive INTEGER, "
             // Mirrors the production Tracks table, which the EffectiveTracks
             // view selects from by name.
-            "UpdatedAt INTEGER, LastPlayed TEXT, LastPositionSeconds REAL DEFAULT 0, RemoteId TEXT);"
+            "UpdatedAt INTEGER, LastPlayed TEXT, LastPositionSeconds REAL DEFAULT 0, RemoteId TEXT, "
+            "RemoteCatalogId TEXT, AlbumCatalogId TEXT, ArtistCatalogId TEXT);"
             "INSERT INTO Tracks (SourceKey,SourceKind,Provider,SourceUrl,FilePath,Title,IsActive,RemoteId) VALUES "
             "('local|one','local','','','C:/Music/local.flac','Local song',1,''),"
             "('remote|api|a','remote','api','https://music.example/a','https://stream.example/a?media_token=secret','API duplicate',1,'remote-a'),"
@@ -3974,6 +4047,197 @@ namespace
             "stream-cache cap test left its directory behind");
     }
 
+    void TestRemoteDetailContract()
+    {
+        Expect(account::ProviderSupportsCapability(
+            LR"({"capabilities":["search-v1","artist-detail-v1","album-detail-v1"]})",
+            account::ArtistDetailCapability),
+            "top-level artist detail capability was not discovered");
+        Expect(account::ProviderSupportsCapability(
+            LR"({"providers":[{"name":"music","capabilities":["album-detail-v1"]}]})",
+            account::AlbumDetailCapability),
+            "nested album detail capability was not discovered");
+        Expect(!account::ProviderSupportsCapability(
+            LR"({"providers":[{"capabilities":["search-v1"]}]})",
+            account::ArtistDetailCapability),
+            "missing artist detail capability was accepted");
+
+        account::RemoteDetailIdentity identity{
+            L"artist-id", L"https://music.example/artists/source", L"Artist Name"
+        };
+        auto query = account::BuildRemoteDetailQuery(identity);
+        auto queryText = query ? std::wstring{ query->c_str() } : std::wstring{};
+        Expect(query && queryText.starts_with(L"catalogId=")
+            && queryText.find(L"sourceUrl") == std::wstring::npos
+            && queryText.find(L"name") == std::wstring::npos,
+            "explicit catalog identity did not exclude lower-precedence identities");
+        identity.CatalogId.clear();
+        query = account::BuildRemoteDetailQuery(identity);
+        queryText = query ? std::wstring{ query->c_str() } : std::wstring{};
+        Expect(query && queryText.starts_with(L"sourceUrl=")
+            && queryText.find(L"name") == std::wstring::npos,
+            "durable source identity did not exclude name fallback");
+        identity.SourceUrl.clear();
+        query = account::BuildRemoteDetailQuery(identity);
+        queryText = query ? std::wstring{ query->c_str() } : std::wstring{};
+        Expect(query && queryText.starts_with(L"name="),
+            "artist name identity was not constructed");
+        identity.SourceUrl = L"https://user:secret@music.example/artist";
+        Expect(!account::BuildRemoteDetailQuery(identity),
+            "unsafe explicit source identity degraded to a same-name lookup");
+
+        auto artist = account::ParseRemoteArtistDetail(LR"({
+            "artist":{
+                "catalogId":"artist-1","name":"Example Artist","provider":"youtube-music",
+                "sourceUrl":"https://music.example/artists/artist-1",
+                "artworkUrl":"https://provider.example/v1/artwork/artist-1",
+                "heroArtworkUrl":"https://provider.example/v1/artwork/artist-1-hero",
+                "biography":"<b>Example</b> biography","genreNames":["Pop","R&B"]
+            },
+            "topSongs":[{
+                "id":"track-1","catalogId":"song-1","albumCatalogId":"album-1",
+                "artistCatalogId":"artist-1","title":"First Song","artist":"Example Artist",
+                "album":"First Album","provider":"youtube-music",
+                "sourceUrl":"https://music.example/watch?v=track-1","durationMs":183000,
+                "artworkUrl":"https://provider.example/v1/artwork/track-1"
+            }],
+            "releases":[{
+                "catalogId":"album-1","name":"First Album","artistName":"Example Artist",
+                "provider":"youtube-music","sourceUrl":"https://music.example/albums/album-1",
+                "artworkUrl":"https://provider.example/v1/artwork/album-1",
+                "releaseType":"album","releaseDate":"2026-01-02","trackCount":9
+            }],
+            "relatedArtists":[{
+                "catalogId":"artist-2","name":"Related Artist","provider":"youtube-music",
+                "sourceUrl":"https://music.example/artists/artist-2",
+                "artworkUrl":"https://provider.example/v1/artwork/artist-2"
+            }],
+            "stale":false,"fetchedAt":"2026-08-23T10:30:00Z"
+        })");
+        Expect(artist.has_value(), "valid artist detail was rejected");
+        Expect(artist->Biography == L"Example biography",
+            "artist biography markup was not reduced to plain text");
+        Expect(artist->TopSongs.size() == 1 && artist->TopSongs[0].StreamUrl.empty(),
+            "source-only artist track was not accepted for lazy playback resolution");
+        Expect(artist->TopSongs[0].CatalogId == L"song-1"
+            && artist->TopSongs[0].AlbumCatalogId == L"album-1"
+            && artist->TopSongs[0].ArtistCatalogId == L"artist-1",
+            "provider track catalog identifiers were not mapped");
+        Expect(artist->Releases.size() == 1
+            && artist->Releases[0].Kind == account::RemoteReleaseKind::Album,
+            "artist release summary was not parsed");
+
+        auto album = account::ParseRemoteAlbumDetail(LR"({
+            "release":{
+                "catalogId":"album-1","name":"First Album","artistName":"Example Artist",
+                "provider":"youtube-music","sourceUrl":"https://music.example/albums/album-1",
+                "artworkUrl":"https://provider.example/v1/artwork/album-1",
+                "releaseType":"album","releaseDate":"2026-01-02","trackCount":1
+            },
+            "tracks":[{
+                "id":"track-1","catalogId":"song-1","albumCatalogId":"album-1",
+                "artistCatalogId":"artist-1","title":"First Song","artist":"Example Artist",
+                "album":"First Album","provider":"youtube-music",
+                "sourceUrl":"https://music.example/watch?v=track-1","durationMs":183000
+            }],
+            "stale":true,"fetchedAt":"2026-08-23T10:30:00+05:30"
+        })");
+        Expect(album && album->Tracks.size() == 1 && album->Stale,
+            "valid stale album detail was rejected");
+
+        auto unsafe = account::ParseRemoteArtistDetail(LR"({
+            "artist":{"catalogId":"a","name":"Unsafe","provider":"p",
+                "sourceUrl":"https://music.example/a","artworkUrl":"file:///secret"},
+            "topSongs":[],"releases":[],"relatedArtists":[],
+            "stale":false,"fetchedAt":"2026-08-23T10:30:00Z"
+        })");
+        Expect(!unsafe, "unsafe artist artwork URL was accepted");
+        auto credentialUrl = account::ParseRemoteArtistDetail(LR"({
+            "artist":{"catalogId":"a","name":"Unsafe","provider":"p",
+                "sourceUrl":"https://music.example/a",
+                "artworkUrl":"https://provider.example/v1/artwork/a?access_token=secret"},
+            "topSongs":[],"releases":[],"relatedArtists":[],
+            "stale":false,"fetchedAt":"2026-08-23T10:30:00Z"
+        })");
+        Expect(!credentialUrl, "credential-bearing artist artwork URL was accepted");
+
+        std::wstring oversized = LR"({"artist":{"catalogId":"a","name":"A","provider":"p","sourceUrl":"https://music.example/a"},"topSongs":[)";
+        for (int index = 0; index < 11; ++index)
+        {
+            if (index > 0) oversized += L",";
+            oversized += LR"({"title":"S","sourceUrl":"https://music.example/s","provider":"p"})";
+        }
+        oversized += LR"(],"releases":[],"relatedArtists":[],"stale":false,"fetchedAt":"2026-08-23T10:30:00Z"})";
+        Expect(!account::ParseRemoteArtistDetail(winrt::hstring{ oversized }),
+            "artist detail exceeding the top-song limit was accepted");
+        Expect(!account::ParseRemoteArtistDetail(L"not-json"),
+            "malformed artist detail was accepted");
+    }
+
+    void TestTrackCatalogIdMigration(std::filesystem::path const& root)
+    {
+        auto path = root / L"track-catalog-v13.sqlite";
+        sqlite3* db{};
+        Expect(sqlite3_open16(path.c_str(), &db) == SQLITE_OK,
+            "could not create v12 catalog-id migration database");
+        auto exec = [&](char const* sql)
+        {
+            char* error{};
+            auto code = sqlite3_exec(db, sql, nullptr, nullptr, &error);
+            std::string message = error ? error : "sqlite failure";
+            sqlite3_free(error);
+            if (code != SQLITE_OK)
+            {
+                throw std::runtime_error(message);
+            }
+        };
+        exec(
+            "CREATE TABLE Tracks ("
+            "Id INTEGER PRIMARY KEY AUTOINCREMENT,SourceKey TEXT,SourceKind TEXT,Provider TEXT,SourceUrl TEXT,FilePath TEXT,"
+            "Title TEXT,Artist TEXT,Album TEXT,Genre TEXT,DurationSeconds REAL,ArtworkUrl TEXT,DateAddedSortKey REAL,"
+            "DateAddedText TEXT,DurationText TEXT,PlayCount INTEGER,LastPlayedOrder INTEGER,IsLiked INTEGER,IsActive INTEGER,"
+            "UpdatedAt INTEGER,LastPlayed TEXT,LastPlayedExact INTEGER,LastPositionSeconds REAL,RemoteId TEXT);"
+            "PRAGMA user_version=12;");
+        exec(account::DatabaseTrackSchema::AddRemoteCatalogIdSql);
+        exec(account::DatabaseTrackSchema::AddAlbumCatalogIdSql);
+        exec(account::DatabaseTrackSchema::AddArtistCatalogIdSql);
+        exec(account::DatabaseAccountSchema::CreateTablesSql);
+        exec("INSERT INTO ActiveAccountContext (SingletonId,RemoteMode,AccountId) VALUES (1,'LocalOnly','');");
+        exec("UPDATE ActiveAccountContext SET RemoteMode='ApiKey' WHERE SingletonId=1;");
+        exec(
+            "INSERT INTO Tracks (SourceKey,SourceKind,Provider,SourceUrl,Title,Artist,Album,IsActive,RemoteCatalogId,AlbumCatalogId,ArtistCatalogId) "
+            "VALUES ('remote|test','remote','youtube-music','https://music.example/s','Song','Artist','Album',1,'song-1','album-1','artist-1');");
+        exec(account::DatabaseAccountSchema::CreateEffectiveTracksViewSql);
+        exec("PRAGMA user_version=13;");
+        sqlite3_close(db);
+        db = nullptr;
+
+        Expect(sqlite3_open16(path.c_str(), &db) == SQLITE_OK,
+            "could not reopen migrated catalog-id database");
+        sqlite3_stmt* statement{};
+        Expect(sqlite3_prepare_v2(db,
+            "SELECT RemoteCatalogId,AlbumCatalogId,ArtistCatalogId FROM EffectiveTracks WHERE SourceKey='remote|test';",
+            -1, &statement, nullptr) == SQLITE_OK,
+            "could not read catalog ids from EffectiveTracks after restart");
+        Expect(sqlite3_step(statement) == SQLITE_ROW,
+            "migrated generic track disappeared from EffectiveTracks");
+        auto text = [&](int column)
+        {
+            auto value = sqlite3_column_text(statement, column);
+            return value ? std::string{ reinterpret_cast<char const*>(value) } : std::string{};
+        };
+        Expect(text(0) == "song-1" && text(1) == "album-1" && text(2) == "artist-1",
+            "generic track catalog ids did not persist across restart");
+        sqlite3_finalize(statement);
+        statement = nullptr;
+        Expect(sqlite3_prepare_v2(db, "PRAGMA user_version;", -1, &statement, nullptr) == SQLITE_OK
+            && sqlite3_step(statement) == SQLITE_ROW
+            && sqlite3_column_int(statement, 0) == 13,
+            "track catalog-id migration did not advance schema version to 13");
+        sqlite3_finalize(statement);
+        sqlite3_close(db);
+    }
+
     void TestUserDataOperationGate()
     {
         account::UserDataOperationGate gate;
@@ -4076,6 +4340,8 @@ int wmain()
         RunTest("TestCatalogChartRequestConstruction", TestCatalogChartRequestConstruction);
         RunTest("TestCatalogPresentationRules", TestCatalogPresentationRules);
         RunTest("TestCatalogParsingSurvivesBadInput", TestCatalogParsingSurvivesBadInput);
+        RunTest("TestRemoteDetailContract", TestRemoteDetailContract);
+        RunTest("TestTrackCatalogIdMigration", [&] { TestTrackCatalogIdMigration(localAppData); });
         RunTest("TestFailedSecureWritePreservesLegacySource", [&] { TestFailedSecureWritePreservesLegacySource(localAppData); });
         RunTest("TestFailedVerificationPreservesLegacySource", TestFailedVerificationPreservesLegacySource);
         RunTest("TestOwnerScopedAccountSchema", TestOwnerScopedAccountSchema);

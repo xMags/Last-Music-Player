@@ -2,6 +2,7 @@
 #include "Backend/DatabaseEngine.h"
 #include "Backend/DatabaseEngine.Internal.h"
 #include "Backend/DatabaseAccountSchema.h"
+#include "Backend/DatabaseTrackSchema.h"
 
 #include <utility>
 #include <vector>
@@ -40,7 +41,10 @@ namespace LastMusicPlayer::Backend
             // restarted. Zero means "from the beginning": a track played to the
             // end clears it, and so does one stopped near either edge.
             "LastPositionSeconds REAL DEFAULT 0,"
-            "RemoteId TEXT);";
+            "RemoteId TEXT,"
+            "RemoteCatalogId TEXT,"
+            "AlbumCatalogId TEXT,"
+            "ArtistCatalogId TEXT);";
 
         if (!Exec(m_db, kCreateTracksTableSql))
         {
@@ -114,7 +118,7 @@ namespace LastMusicPlayer::Backend
         // never read (~46s startup on a real library). Run it only when the
         // DB predates kSchemaVersion. Index creation stays unconditional —
         // it is idempotent (IF NOT EXISTS) and must also cover fresh DBs.
-        static constexpr int kSchemaVersion = 12;
+        static constexpr int kSchemaVersion = 13;
         int userVersion = 0;
         {
             Statement versionStmt{ m_db, "PRAGMA user_version;" };
@@ -124,6 +128,13 @@ namespace LastMusicPlayer::Backend
             }
         }
         const bool migrationNeeded = userVersion < kSchemaVersion;
+
+        if (migrationNeeded && userVersion < 13)
+        {
+            TryExec(m_db, DatabaseTrackSchema::AddRemoteCatalogIdSql);
+            TryExec(m_db, DatabaseTrackSchema::AddAlbumCatalogIdSql);
+            TryExec(m_db, DatabaseTrackSchema::AddArtistCatalogIdSql);
+        }
 
         if (migrationNeeded && userVersion < 12)
         {
@@ -290,7 +301,7 @@ namespace LastMusicPlayer::Backend
             {
                 return false;
             }
-            if (!Exec(m_db, "PRAGMA user_version=12;"))
+            if (!Exec(m_db, "PRAGMA user_version=13;"))
             {
                 return false;
             }

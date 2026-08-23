@@ -101,7 +101,7 @@ namespace LastMusicPlayer::Backend
 
         static constexpr char kSql[] =
             "SELECT Id, SourceKind, Provider, SourceUrl, FilePath, Title, Artist, Album, Genre, DurationSeconds, ArtworkUrl, "
-            "DateAddedSortKey, DateAddedText, DurationText, IsLiked, RemoteId, LastPositionSeconds, '', '', '', '', SourceKey, LastPlayed "
+            "DateAddedSortKey, DateAddedText, DurationText, IsLiked, RemoteId, LastPositionSeconds, '', RemoteCatalogId, AlbumCatalogId, ArtistCatalogId, SourceKey, LastPlayed "
             "FROM Tracks WHERE SourceKind='remote' AND COALESCE(PlayCount,0)>0 AND COALESCE(LastPlayedExact,0)=1 "
             "AND COALESCE(SourceUrl,'')<>'' AND COALESCE(LastPlayed,'')<>'' "
             "ORDER BY LastPlayed DESC, Id DESC;";
@@ -667,7 +667,11 @@ namespace LastMusicPlayer::Backend
             "OR LOWER(TRIM(Album))='unknown album' THEN NULL "
             "ELSE LOWER(TRIM(Album)) END),"
             "MAX(COALESCE(ArtworkUrl,'')),"
-            "SUM(CASE WHEN SourceKind='remote' THEN 1 ELSE 0 END) "
+            "SUM(CASE WHEN SourceKind='remote' THEN 1 ELSE 0 END),"
+            "CASE WHEN COUNT(DISTINCT NULLIF(ArtistCatalogId,''))=1 "
+            "THEN MAX(COALESCE(ArtistCatalogId,'')) ELSE '' END, "
+            "MAX(COALESCE(RemoteProvider,'')),"
+            "MAX(CASE WHEN Provider='account' THEN 'account' ELSE '' END) "
             "FROM EligibleLibraryTracks WHERE GroupTitle<>'' "
             "GROUP BY GroupTitle COLLATE NOCASE "
             "ORDER BY COUNT(*) DESC, GroupTitle COLLATE NOCASE ASC;";
@@ -687,6 +691,9 @@ namespace LastMusicPlayer::Backend
             group.SourceKind(L"artist");
             group.SourceUrl(group.Title());
             group.SourceLabel(remoteCount == 0 ? L"Local" : (remoteCount == count ? L"Remote" : L"Mixed"));
+            group.ArtistCatalogId(winrt::hstring(ColumnText(stmt.value, 5)));
+            group.RemoteProvider(winrt::hstring(ColumnText(stmt.value, 6)));
+            group.Provider(winrt::hstring(ColumnText(stmt.value, 7)));
             groups.push_back(group);
         }
         return groups;
