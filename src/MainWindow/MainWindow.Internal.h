@@ -33,8 +33,11 @@ namespace winrt::Last_Music_Player::implementation::detail
     // Effective pixels: the size the window opens at with no saved geometry.
     // Same unit as the minimum below so the two can be compared at a glance;
     // a default under the minimum would just be clamped on first launch.
-    inline constexpr int kDefaultWindowWidthEpx = 1440;
+    // 1440 widened by 3%, rounded to the nearest effective pixel.
+    inline constexpr int kDefaultWindowWidthEpx = 1483;
     inline constexpr int kDefaultWindowHeightEpx = 900;
+    inline constexpr int kPreviousDefaultWindowWidthEpx = 1440;
+    inline constexpr int kPreviousDefaultWindowHeightEpx = 900;
     inline constexpr int kLegacyDefaultWindowWidthEpx = 1370;
     inline constexpr int kLegacyDefaultWindowHeightEpx = 880;
 

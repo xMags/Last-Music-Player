@@ -265,6 +265,14 @@ namespace winrt::Last_Music_Player::implementation
             {
                 defaultDpi = USER_DEFAULT_SCREEN_DPI;
             }
+            auto previousDefaultW = MulDiv(
+                kPreviousDefaultWindowWidthEpx,
+                static_cast<int>(defaultDpi),
+                USER_DEFAULT_SCREEN_DPI);
+            auto previousDefaultH = MulDiv(
+                kPreviousDefaultWindowHeightEpx,
+                static_cast<int>(defaultDpi),
+                USER_DEFAULT_SCREEN_DPI);
             auto legacyDefaultW = MulDiv(
                 kLegacyDefaultWindowWidthEpx,
                 static_cast<int>(defaultDpi),
@@ -273,13 +281,15 @@ namespace winrt::Last_Music_Player::implementation
                 kLegacyDefaultWindowHeightEpx,
                 static_cast<int>(defaultDpi),
                 USER_DEFAULT_SCREEN_DPI);
-            auto hasLegacyDefaultSize = haveSize
-                && std::abs(savedW - legacyDefaultW) <= 2
-                && std::abs(savedH - legacyDefaultH) <= 2;
-            int finalW = haveSize && !hasLegacyDefaultSize
+            auto hasKnownDefaultSize = haveSize
+                && ((std::abs(savedW - previousDefaultW) <= 2
+                        && std::abs(savedH - previousDefaultH) <= 2)
+                    || (std::abs(savedW - legacyDefaultW) <= 2
+                        && std::abs(savedH - legacyDefaultH) <= 2));
+            int finalW = haveSize && !hasKnownDefaultSize
                 ? savedW
                 : MulDiv(kDefaultWindowWidthEpx, static_cast<int>(defaultDpi), USER_DEFAULT_SCREEN_DPI);
-            int finalH = haveSize && !hasLegacyDefaultSize
+            int finalH = haveSize && !hasKnownDefaultSize
                 ? savedH
                 : MulDiv(kDefaultWindowHeightEpx, static_cast<int>(defaultDpi), USER_DEFAULT_SCREEN_DPI);
             UINT flags = SWP_NOZORDER;
