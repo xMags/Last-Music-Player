@@ -54,6 +54,29 @@ namespace winrt::Last_Music_Player::implementation
         {
             return winrt::hstring(std::to_wstring(count) + (count == 1 ? L" result" : L" results"));
         }
+
+        template <typename T>
+        T FindBrowseDescendant(MUX::DependencyObject const& root)
+        {
+            if (!root)
+            {
+                return nullptr;
+            }
+            if (auto match = root.try_as<T>())
+            {
+                return match;
+            }
+            auto const count = MUX::Media::VisualTreeHelper::GetChildrenCount(root);
+            for (int32_t index = 0; index < count; ++index)
+            {
+                auto child = MUX::Media::VisualTreeHelper::GetChild(root, index);
+                if (auto found = FindBrowseDescendant<T>(child))
+                {
+                    return found;
+                }
+            }
+            return nullptr;
+        }
     }
 
     void MainWindow::BrowseButton_Click(
@@ -497,6 +520,40 @@ namespace winrt::Last_Music_Player::implementation
             return;
         }
         QueueAccountArtworkImage(image, item.ArtworkUrl(), ArtworkDetail::Tile, representative);
+    }
+
+    void MainWindow::BrowseResult_ContainerContentChanging(
+        MUXC::ListViewBase const& sender,
+        MUXC::ContainerContentChangingEventArgs const& args)
+    {
+        (void)sender;
+        if (args.InRecycleQueue() || !args.ItemContainer())
+        {
+            return;
+        }
+
+        auto item = args.Item().try_as<winrt::Last_Music_Player::BrowseResultItem>();
+        auto root = args.ItemContainer().ContentTemplateRoot();
+        auto image = FindBrowseDescendant<MUXC::Image>(root);
+        if (!item || !image)
+        {
+            return;
+        }
+
+        auto representative = winrt::get_self<BrowseResultItem>(item)->RepresentativeTrack();
+        if (!representative)
+        {
+            return;
+        }
+
+        // Loaded runs only for a newly created template. This handler also runs
+        // when WinUI recycles that template onto another result, so the image's
+        // generation token and request are always replaced for the new item.
+        QueueAccountArtworkImage(
+            image,
+            item.ArtworkUrl(),
+            ArtworkDetail::Tile,
+            representative);
     }
 
     void MainWindow::SearchListView_Click(

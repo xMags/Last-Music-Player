@@ -116,6 +116,9 @@ namespace winrt::Last_Music_Player::implementation
         void BrowseResult_ItemClick(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::ItemClickEventArgs const& args);
         void BrowseResult_RightTapped(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Input::RightTappedRoutedEventArgs const& args);
         void BrowseResultArtwork_Loaded(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void BrowseResult_ContainerContentChanging(
+            winrt::Microsoft::UI::Xaml::Controls::ListViewBase const& sender,
+            winrt::Microsoft::UI::Xaml::Controls::ContainerContentChangingEventArgs const& args);
         winrt::Windows::Foundation::IAsyncAction PlayBrowseResultAsync(winrt::Last_Music_Player::BrowseResultItem item, bool shuffle);
         winrt::Windows::Foundation::IAsyncAction RunBrowseResultActionAsync(winrt::Last_Music_Player::BrowseResultItem item, winrt::hstring action);
         void SearchListView_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
