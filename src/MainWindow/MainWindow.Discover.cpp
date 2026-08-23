@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "MainWindow.xaml.h"
 #include "MainWindow.Internal.h"
+#include "Frontend/GenreArtworkTile.h"
 
 #include "Backend/AccountClient.h"
 #include "Backend/CatalogParser.h"
@@ -1420,33 +1421,38 @@ namespace winrt::Last_Music_Player::implementation
         artwork.Background(gradient);
 
         Grid artContent;
-        FontIcon glyph;
-        glyph.Glyph(chart.Ref.Kind == LastMusicPlayer::Backend::CatalogChartKind::City
-            ? L"\xE909"
-            : chart.Ref.Kind == LastMusicPlayer::Backend::CatalogChartKind::Genre
-                ? L"\xE8D6"
+        if (chart.Ref.Kind == LastMusicPlayer::Backend::CatalogChartKind::Genre)
+        {
+            winrt::Last_Music_Player::GenreArtworkTile genreArtwork;
+            genreArtwork.GenreName(chart.Name);
+            artContent.Children().Append(genreArtwork);
+        }
+        else
+        {
+            FontIcon glyph;
+            glyph.Glyph(chart.Ref.Kind == LastMusicPlayer::Backend::CatalogChartKind::City
+                ? L"\xE909"
                 : L"\xE774");
-        glyph.FontSize(58);
-        glyph.Foreground(winrt::Microsoft::UI::Xaml::Media::SolidColorBrush(
-            winrt::Windows::UI::Color{ 220, 255, 255, 255 }));
-        glyph.HorizontalAlignment(HorizontalAlignment::Center);
-        glyph.VerticalAlignment(VerticalAlignment::Center);
-        artContent.Children().Append(glyph);
+            glyph.FontSize(58);
+            glyph.Foreground(winrt::Microsoft::UI::Xaml::Media::SolidColorBrush(
+                winrt::Windows::UI::Color{ 220, 255, 255, 255 }));
+            glyph.HorizontalAlignment(HorizontalAlignment::Center);
+            glyph.VerticalAlignment(VerticalAlignment::Center);
+            artContent.Children().Append(glyph);
 
-        TextBlock kind;
-        kind.Text(chart.Ref.Kind == LastMusicPlayer::Backend::CatalogChartKind::City
-            ? L"CITY CHART"
-            : chart.Ref.Kind == LastMusicPlayer::Backend::CatalogChartKind::Genre
-                ? L"GENRE CHART"
+            TextBlock kind;
+            kind.Text(chart.Ref.Kind == LastMusicPlayer::Backend::CatalogChartKind::City
+                ? L"CITY CHART"
                 : L"CURRENT REGION");
-        kind.FontSize(10);
-        kind.FontWeight(winrt::Microsoft::UI::Text::FontWeights::Bold());
-        kind.CharacterSpacing(120);
-        kind.Foreground(winrt::Microsoft::UI::Xaml::Media::SolidColorBrush(
-            winrt::Windows::UI::Color{ 255, 255, 255, 255 }));
-        kind.Margin(ThicknessHelper::FromUniformLength(13));
-        kind.VerticalAlignment(VerticalAlignment::Bottom);
-        artContent.Children().Append(kind);
+            kind.FontSize(10);
+            kind.FontWeight(winrt::Microsoft::UI::Text::FontWeights::Bold());
+            kind.CharacterSpacing(120);
+            kind.Foreground(winrt::Microsoft::UI::Xaml::Media::SolidColorBrush(
+                winrt::Windows::UI::Color{ 255, 255, 255, 255 }));
+            kind.Margin(ThicknessHelper::FromUniformLength(13));
+            kind.VerticalAlignment(VerticalAlignment::Bottom);
+            artContent.Children().Append(kind);
+        }
 
         if (!chart.ArtworkUrl.empty())
         {

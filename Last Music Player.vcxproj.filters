@@ -15,6 +15,9 @@
     <Midl Include="src\Backend\TrackInfo.idl">
       <Filter>Backend</Filter>
     </Midl>
+    <Midl Include="src\Frontend\GenreArtworkTile.idl">
+      <Filter>Frontend</Filter>
+    </Midl>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\App\pch.cpp" />
@@ -147,6 +150,12 @@
     </ClInclude>
     <ClInclude Include="src\Frontend\ViewModels\TrackViewModel.h">
       <Filter>Frontend\ViewModels</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Frontend\GenreArtworkTile.h">
+      <Filter>Frontend</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\GenreArtworkRecipe.h">
+      <Filter>Backend</Filter>
     </ClInclude>
     <!-- Backend Headers -->
     <ClInclude Include="src\Backend\TrackInfo.h">
@@ -312,6 +321,12 @@
     </ClCompile>
     <ClCompile Include="src\Frontend\ViewModels\TrackViewModel.cpp">
       <Filter>Frontend\ViewModels</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Frontend\GenreArtworkTile.cpp">
+      <Filter>Frontend</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\GenreArtworkRecipe.cpp">
+      <Filter>Backend</Filter>
     </ClCompile>
     <ClCompile Include="src\XamlMetadata\XamlMetaDataProvider.Build.cpp">
       <Filter>XamlMetadata</Filter>

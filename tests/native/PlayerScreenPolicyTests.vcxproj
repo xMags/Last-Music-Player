@@ -82,6 +82,7 @@
     <ClCompile Include="PlayerScreenPolicyTests.cpp" />
     <ClCompile Include="..\..\src\Backend\DetailSortPolicy.cpp" />
     <ClCompile Include="..\..\src\Backend\DownloadPolicy.cpp" />
+    <ClCompile Include="..\..\src\Backend\GenreArtworkRecipe.cpp" />
     <ClCompile Include="..\..\src\Backend\PlaylistSuggestionPolicy.cpp" />
     <ClCompile Include="..\..\src\Backend\RecentSearchStore.cpp" />
     <ClCompile Include="..\..\src\Backend\SearchFacetPolicy.cpp" />

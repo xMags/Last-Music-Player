@@ -1,0 +1,9 @@
+namespace Last_Music_Player
+{
+    [default_interface]
+    runtimeclass GenreArtworkTile : Microsoft.UI.Xaml.Controls.UserControl
+    {
+        GenreArtworkTile();
+        String GenreName;
+    }
+}

@@ -2,6 +2,7 @@
 
 #include "Backend/DetailSortPolicy.h"
 #include "Backend/DownloadPolicy.h"
+#include "Backend/GenreArtworkRecipe.h"
 #include "Backend/PlaylistSuggestionPolicy.h"
 #include "Backend/RecentSearchStore.h"
 #include "Backend/ResumePositionPolicy.h"
@@ -110,6 +111,63 @@ namespace
             "decode should enforce the persisted history limit");
         Expect(policy::RecordRecentSearch(history, L"new", 0).empty(),
             "a zero-sized history should remain empty");
+    }
+
+    void TestGenreArtworkRecipe()
+    {
+        std::vector<std::wstring> const expectedNames{
+            L"Pop", L"Hip-Hop", L"Electronic", L"Chill", L"Rock", L"Metal",
+            L"Jazz", L"Blues", L"Classical", L"Country", L"R&B", L"Soul",
+            L"Folk", L"Reggae", L"Punk", L"Indie", L"Dance", L"House",
+            L"Techno", L"Ambient", L"Lo-fi", L"Soundtrack", L"World", L"Latin",
+            L"Bollywood", L"Ghazal", L"Unknown Genre"
+        };
+        auto const& recipes = policy::AllGenreArtworkRecipes();
+        Expect(recipes.size() == expectedNames.size(),
+            "the recipe catalog should contain every handoff genre exactly once");
+        for (std::size_t index = 0; index < expectedNames.size(); ++index)
+        {
+            Expect(recipes[index].Name == expectedNames[index],
+                "genre recipe order and names should match the handoff");
+            Expect(!recipes[index].Primitives.empty(),
+                "every genre recipe should contain a visible mark");
+            Expect(policy::ResolveGenreArtworkRecipe(L" \t" + expectedNames[index] + L"\r\n").Name
+                    == expectedNames[index],
+                "genre recipe lookup should trim surrounding whitespace");
+        }
+
+        Expect(policy::ResolveGenreArtworkRecipe(L"hIp-HoP").Name == L"Hip-Hop",
+            "genre recipe lookup should fold case");
+        Expect(policy::ResolveGenreArtworkRecipe(L"").Name == L"Unknown Genre",
+            "an empty genre should use the unknown artwork");
+        Expect(policy::ResolveGenreArtworkRecipe(L"Shoegaze").Name == L"Unknown Genre",
+            "an unmatched genre should use the unknown artwork");
+
+        auto const& pop = policy::ResolveGenreArtworkRecipe(L"Pop");
+        Expect(pop.GradientStart == 0xFFFF5FBF && pop.GradientEnd == 0xFFA855F7,
+            "Pop should preserve the exact handoff gradient");
+        Expect(pop.Primitives.size() == 2
+                && pop.Primitives[0].Kind == policy::GenreArtworkPrimitiveKind::Ring
+                && pop.Primitives[0].X == 11.0
+                && pop.Primitives[0].Y == 11.0
+                && pop.Primitives[0].Width == 74.0
+                && pop.Primitives[0].StrokeWidth == 3.0,
+            "outlined marks should preserve border-box geometry");
+
+        auto const& folk = policy::ResolveGenreArtworkRecipe(L"Folk");
+        Expect(folk.Primitives.size() == 1
+                && folk.Primitives[0].Kind == policy::GenreArtworkPrimitiveKind::Triangle
+                && folk.Primitives[0].X == 6.0
+                && folk.Primitives[0].Y == 14.0
+                && folk.Primitives[0].Width == 84.0
+                && folk.Primitives[0].Height == 70.0,
+            "the Folk mark should retain its native triangle bounds");
+
+        auto const& unknown = policy::ResolveGenreArtworkRecipe(L"Unknown Genre");
+        Expect(unknown.GradientStart == 0xFFCBD5E1
+                && unknown.GradientEnd == 0xFF64748B
+                && unknown.Primitives[0].Dashed,
+            "the unknown fallback should preserve its neutral palette and dashed ring");
     }
 
     void TestSearchFacetPolicy()
@@ -291,6 +349,7 @@ int main()
         TestDetailSortPolicy();
         TestPlaylistSuggestionPolicy();
         TestRecentSearchStore();
+        TestGenreArtworkRecipe();
         TestSearchFacetPolicy();
         TestTopSearchResult();
         TestResumePositionPolicy();

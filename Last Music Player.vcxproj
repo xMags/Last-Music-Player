@@ -216,6 +216,8 @@
     <ClInclude Include="src\Frontend\Skeleton.h" />
     <ClInclude Include="src\Frontend\CarouselArrows.h" />
     <ClInclude Include="src\Frontend\ChipWrapPanel.h" />
+    <ClInclude Include="src\Frontend\GenreArtworkTile.h" />
+    <ClInclude Include="src\Backend\GenreArtworkRecipe.h" />
   </ItemGroup>
   <ItemGroup>
     <ApplicationDefinition Include="src\App\App.xaml" />
@@ -328,6 +330,8 @@
     <ClCompile Include="src\Frontend\Skeleton.cpp" />
     <ClCompile Include="src\Frontend\CarouselArrows.cpp" />
     <ClCompile Include="src\Frontend\ChipWrapPanel.cpp" />
+    <ClCompile Include="src\Frontend\GenreArtworkTile.cpp" />
+    <ClCompile Include="src\Backend\GenreArtworkRecipe.cpp" />
     <ClCompile Include="packages\Microsoft.WindowsAppSDK.Foundation.1.8.260203002\include\UndockedRegFreeWinRT-AutoInitializer.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PreprocessorDefinitions>MICROSOFT_WINDOWSAPPSDK_UNDOCKEDREGFREEWINRT_AUTO_INITIALIZE_LOADLIBRARY;MICROSOFT_WINDOWSAPPSDK_UNDOCKEDREGFREEWINRT_AUTO_INITIALIZE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -345,6 +349,9 @@
       <SubType>Code</SubType>
     </Midl>
     <Midl Include="src\Frontend\ChipWrapPanel.idl">
+      <SubType>Code</SubType>
+    </Midl>
+    <Midl Include="src\Frontend\GenreArtworkTile.idl">
       <SubType>Code</SubType>
     </Midl>
   </ItemGroup>

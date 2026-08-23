@@ -8,8 +8,9 @@
 #include "Frontend/Skeleton.h"
 // The generated XamlTypeInfo activator for a code-only local control only
 // sees implementation types through the XAML pages' own headers, so the
-// panel used in MainWindow.xaml has to be declared from here.
+// controls used in MainWindow.xaml have to be declared from here.
 #include "Frontend/ChipWrapPanel.h"
+#include "Frontend/GenreArtworkTile.h"
 #include "Backend/CastEngine.h"
 #include "Backend/CatalogModels.h"
 #include "Backend/LyricsService.h"

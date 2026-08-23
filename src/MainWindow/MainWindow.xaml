@@ -1361,18 +1361,15 @@
                                     </GridView.ItemsPanel>
                                     <GridView.ItemTemplate>
                                         <DataTemplate x:DataType="local:TrackInfo">
-                                            <!-- Fixed 1.5:1, unlike the square card grids: the tile
-                                                 artwork shares LibraryArtworkBorder_Loaded, which
-                                                 squares a border to its own width. -->
                                             <Grid Width="170" Height="114" Margin="0,0,16,16"
                                                   PointerEntered="PlaylistCard_PointerEntered" PointerExited="PlaylistCard_PointerExited">
-                                                <Border CornerRadius="{StaticResource Radius14}" Tag="{x:Bind}" Loaded="LibraryArtworkBorder_Loaded" Translation="0,0,16">
+                                                <Border CornerRadius="{StaticResource Radius14}" Translation="0,0,16">
                                                     <Border.Shadow><ThemeShadow /></Border.Shadow>
                                                     <Grid>
-                                                        <Image Source="/Assets/LibraryStripeOverlay.svg" Stretch="Fill" IsHitTestVisible="False" />
+                                                        <local:GenreArtworkTile GenreName="{x:Bind Title}" />
                                                         <TextBlock Text="{x:Bind Title}" Margin="14,13" VerticalAlignment="Top"
                                                                    Foreground="White" FontSize="16" FontWeight="Bold" TextTrimming="CharacterEllipsis" />
-                                                        <TextBlock Text="{x:Bind ArtworkCaption}" Margin="14,0,14,13" VerticalAlignment="Bottom"
+                                                        <TextBlock Text="{x:Bind ArtworkCaption}" Margin="14,0,14,13" VerticalAlignment="Bottom" HorizontalAlignment="Right"
                                                                    Foreground="White" Opacity="0.86" FontSize="11.5" TextTrimming="CharacterEllipsis" />
                                                     </Grid>
                                                 </Border>
@@ -3317,18 +3314,9 @@
                                                 <MenuFlyoutItem Text="Shuffle" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="LibraryGroupMenuShuffle_Click" />
                                             </MenuFlyout>
                                         </StackPanel.ContextFlyout>
-                                        <Border CornerRadius="14" Margin="0,0,0,10" Translation="0,0,12" Tag="{x:Bind}" Loaded="LibraryArtworkBorder_Loaded" SizeChanged="LibraryArtworkBorder_SizeChanged">
+                                        <Border CornerRadius="16" Margin="0,0,0,10" Translation="0,0,12" SizeChanged="LibraryArtworkBorder_SizeChanged">
                                             <Border.Shadow><ThemeShadow /></Border.Shadow>
-                                            <Border.Background>
-                                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                                    <GradientStop Color="#FF6B5BFE" Offset="0" />
-                                                    <GradientStop Color="#FF00B8D4" Offset="1" />
-                                                </LinearGradientBrush>
-                                            </Border.Background>
-                                            <Grid>
-                                                <Image Source="/Assets/LibraryStripeOverlay.svg" Stretch="Fill" Opacity="{x:Bind GeneratedArtworkOpacity}" IsHitTestVisible="False" />
-                                                <TextBlock Text="genre" FontFamily="Consolas" FontSize="9.5" CharacterSpacing="80" Foreground="White" Opacity="0.82" VerticalAlignment="Bottom" Margin="12" />
-                                            </Grid>
+                                            <local:GenreArtworkTile GenreName="{x:Bind Title}" />
                                         </Border>
                                         <TextBlock Text="{x:Bind Title}" Style="{StaticResource BodyStrong}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
                                         <TextBlock Text="{x:Bind Artist}" Style="{StaticResource CaptionText}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
