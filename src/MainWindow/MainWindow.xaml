@@ -1203,7 +1203,7 @@
                                     <Border.Shadow><ThemeShadow /></Border.Shadow>
                                     <Grid>
                                         <FontIcon Glyph="&#xE8D6;" FontSize="34" Foreground="{ThemeResource PlaceholderGlyphBrush}" />
-                                        <Image Tag="{x:Bind}" Source="{x:Bind ArtworkSource}" Stretch="UniformToFill" Loaded="BrowseResultArtwork_Loaded" />
+                                        <Image Source="{x:Bind ArtworkSource}" Stretch="UniformToFill" Loaded="BrowseResultArtwork_Loaded" />
                                     </Grid>
                                 </Border>
                                 <TextBlock Text="{x:Bind Title}" FontSize="14" FontWeight="SemiBold" TextAlignment="{x:Bind GridTextAlignment}"
@@ -1223,7 +1223,7 @@
                                     <Border.Shadow><ThemeShadow /></Border.Shadow>
                                     <Grid>
                                         <FontIcon Glyph="&#xE8D6;" FontSize="17" Foreground="{ThemeResource PlaceholderGlyphBrush}" />
-                                        <Image Tag="{x:Bind}" Source="{x:Bind ArtworkSource}" Stretch="UniformToFill" Loaded="BrowseResultArtwork_Loaded" />
+                                        <Image Source="{x:Bind ArtworkSource}" Stretch="UniformToFill" Loaded="BrowseResultArtwork_Loaded" />
                                     </Grid>
                                 </Border>
                                 <StackPanel Grid.Column="1" VerticalAlignment="Center">

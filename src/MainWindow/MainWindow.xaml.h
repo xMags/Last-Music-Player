@@ -839,7 +839,8 @@ namespace winrt::Last_Music_Player::implementation
             winrt::Microsoft::UI::Xaml::Controls::Image const& image,
             winrt::hstring const& artworkUrl,
             detail::ArtworkDetail artworkDetail,
-            winrt::Last_Music_Player::TrackInfo const& track = nullptr);
+            winrt::Last_Music_Player::TrackInfo const& track = nullptr,
+            AccountArtworkPriority priority = AccountArtworkPriority::Backfill);
         // Decodes `bytes` into a bitmap of this target's own, then revalidates
         // the target before assigning it, because the decode yields the thread.
         winrt::fire_and_forget ApplyAccountArtworkTargetAsync(

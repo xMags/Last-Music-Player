@@ -319,7 +319,8 @@ namespace winrt::Last_Music_Player::implementation
         winrt::Microsoft::UI::Xaml::Controls::Image const& image,
         winrt::hstring const& artworkUrl,
         ArtworkDetail artworkDetail,
-        winrt::Last_Music_Player::TrackInfo const& track)
+        winrt::Last_Music_Player::TrackInfo const& track,
+        AccountArtworkPriority priority)
     {
         auto normalized = NormalizeMusicArtworkUrl(artworkUrl);
         auto sourceUrl = track ? track.SourceUrl() : winrt::hstring{};
@@ -379,9 +380,16 @@ namespace winrt::Last_Music_Player::implementation
             {
                 pending->second.Targets.push_back(std::move(target));
             }
-            // Another tile for the same image may already be on screen even
-            // though the one that first asked was not.
-            ObserveAccountArtworkViewport(image, key);
+            if (priority == AccountArtworkPriority::Visible)
+            {
+                PromoteAccountArtworkRequest(key);
+            }
+            else
+            {
+                // Another tile for the same image may already be on screen even
+                // though the one that first asked was not.
+                ObserveAccountArtworkViewport(image, key);
+            }
             return;
         }
 
@@ -391,13 +399,20 @@ namespace winrt::Last_Music_Player::implementation
         request.ArtworkUrl = hasArtworkUrl ? normalized : winrt::hstring{};
         request.SourceUrl = canResolveSource ? sourceUrl : winrt::hstring{};
         request.Targets.push_back(std::move(target));
-        // Everything starts as backfill. A tile that is actually on screen gets
-        // promoted by the viewport callback below, which fires as soon as XAML
-        // has laid it out, so the visible rows still go first.
-        request.Priority = AccountArtworkPriority::Backfill;
+        // A caller that knows its element is realized can put it straight into
+        // the visible queue. All other artwork starts as bounded backfill and
+        // may be promoted later by the viewport observer.
+        request.Priority = priority;
         m_accountArtworkRequests.emplace(key, std::move(request));
-        m_accountArtworkBackfillQueue.push_back(key);
-        ObserveAccountArtworkViewport(image, key);
+        if (priority == AccountArtworkPriority::Visible)
+        {
+            m_accountArtworkVisibleQueue.push_back(key);
+        }
+        else
+        {
+            m_accountArtworkBackfillQueue.push_back(key);
+            ObserveAccountArtworkViewport(image, key);
+        }
         StartAccountArtworkRequests();
     }
 

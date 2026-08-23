@@ -509,7 +509,7 @@ namespace winrt::Last_Music_Player::implementation
     {
         (void)args;
         auto image = sender.try_as<MUXC::Image>();
-        auto item = image ? image.Tag().try_as<winrt::Last_Music_Player::BrowseResultItem>() : nullptr;
+        auto item = image ? image.DataContext().try_as<winrt::Last_Music_Player::BrowseResultItem>() : nullptr;
         if (!image || !item)
         {
             return;
@@ -519,7 +519,16 @@ namespace winrt::Last_Music_Player::implementation
         {
             return;
         }
-        QueueAccountArtworkImage(image, item.ArtworkUrl(), ArtworkDetail::Tile, representative);
+        // Loaded means this template is realized now. Promote it directly
+        // instead of waiting for a future viewport-change notification that an
+        // already-visible element may never raise. Image.Tag is reserved for
+        // the request-generation token written by QueueAccountArtworkImage.
+        QueueAccountArtworkImage(
+            image,
+            item.ArtworkUrl(),
+            ArtworkDetail::Tile,
+            representative,
+            AccountArtworkPriority::Visible);
     }
 
     void MainWindow::BrowseResult_ContainerContentChanging(
