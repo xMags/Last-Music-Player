@@ -467,8 +467,44 @@ namespace winrt::Last_Music_Player::implementation
         winrt::Microsoft::UI::Xaml::Controls::ListViewBase const& sender,
         winrt::Microsoft::UI::Xaml::Controls::ContainerContentChangingEventArgs const& args)
     {
-        (void)sender;
         QueueContainerArtwork(args);
+        if (sender != DiscoverChartGridView()
+            || args.InRecycleQueue()
+            || !args.ItemContainer())
+        {
+            return;
+        }
+
+        ApplyDiscoverChartCardSize(args.ItemContainer());
+    }
+
+    void MainWindow::ApplyDiscoverChartCardSize(
+        winrt::Microsoft::UI::Xaml::Controls::Primitives::SelectorItem const& container)
+    {
+        auto panel = DiscoverChartGridView().ItemsPanelRoot()
+            .try_as<winrt::Microsoft::UI::Xaml::Controls::ItemsWrapGrid>();
+        auto root = container
+            ? container.ContentTemplateRoot()
+                .try_as<winrt::Microsoft::UI::Xaml::Controls::Grid>()
+            : nullptr;
+        constexpr double gap = 20.0;
+        auto const cardWidth = panel ? panel.ItemWidth() - gap : 0.0;
+        if (!root || root.RowDefinitions().Size() == 0 || cardWidth <= 0.0)
+        {
+            return;
+        }
+
+        root.Width(cardWidth);
+        root.RowDefinitions().GetAt(0).Height(
+            winrt::Microsoft::UI::Xaml::GridLengthHelper::FromPixels(cardWidth));
+        auto artwork = root.Children().Size() > 0
+            ? root.Children().GetAt(0).try_as<winrt::Microsoft::UI::Xaml::Controls::Grid>()
+            : nullptr;
+        if (artwork)
+        {
+            artwork.Width(cardWidth);
+            artwork.Height(cardWidth);
+        }
     }
 
     void MainWindow::ObserveAccountArtworkViewport(

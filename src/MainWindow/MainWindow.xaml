@@ -1296,9 +1296,11 @@
                                     <TextBlock Text="Genres, moods and decades across your library" FontSize="12.5" Foreground="{ThemeResource TextTertiaryBrush}" VerticalAlignment="Bottom" />
                                 </StackPanel>
                                 <GridView x:Name="BrowseCategoryGrid" SelectionMode="None" IsItemClickEnabled="True" ItemClick="BrowseCategory_ItemClick"
+                                          ContainerContentChanging="BrowseCategory_ContainerContentChanging"
                                           ItemContainerStyle="{StaticResource CardTileContainerStyle}" ScrollViewer.VerticalScrollMode="Disabled"
                                           ScrollViewer.VerticalScrollBarVisibility="Hidden" ScrollViewer.HorizontalScrollMode="Disabled"
-                                          ScrollViewer.HorizontalScrollBarVisibility="Hidden">
+                                          ScrollViewer.HorizontalScrollBarVisibility="Hidden" Margin="0,0,-16,0"
+                                          Loaded="LibraryCardGrid_Loaded" SizeChanged="LibraryCardGrid_SizeChanged">
                                     <GridView.ItemsPanel><ItemsPanelTemplate><ItemsWrapGrid Orientation="Horizontal" ItemWidth="186" ItemHeight="130" /></ItemsPanelTemplate></GridView.ItemsPanel>
                                     <GridView.ItemTemplate>
                                         <DataTemplate x:DataType="local:TrackInfo">
@@ -2133,8 +2135,20 @@
                                           ItemContainerStyle="{StaticResource CardTileContainerStyle}"
                                           ItemTemplate="{StaticResource CatalogTileTemplate}"
                                           SelectionMode="None"
+                                          Padding="0,0,0,24"
+                                          Margin="0,0,-20,0"
+                                          Loaded="LibraryCardGrid_Loaded"
+                                          SizeChanged="LibraryCardGrid_SizeChanged"
                                           ScrollViewer.VerticalScrollMode="Disabled"
-                                          ScrollViewer.VerticalScrollBarVisibility="Disabled" />
+                                          ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                                          ScrollViewer.HorizontalScrollMode="Disabled"
+                                          ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                    <GridView.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <ItemsWrapGrid Orientation="Horizontal" ItemWidth="190" ItemHeight="240" />
+                                        </ItemsPanelTemplate>
+                                    </GridView.ItemsPanel>
+                                </GridView>
                                 <Button x:Name="DiscoverChartMoreButton" Content="Load more" Click="DiscoverChartMore_Click" Visibility="Collapsed" HorizontalAlignment="Center" CornerRadius="{StaticResource RadiusLg}" Padding="18,9" Margin="0,16,0,32" />
                             </StackPanel>
                         </ScrollViewer>

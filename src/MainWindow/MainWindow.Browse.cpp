@@ -125,6 +125,34 @@ namespace winrt::Last_Music_Player::implementation
             category);
     }
 
+    void MainWindow::BrowseCategory_ContainerContentChanging(
+        MUXC::ListViewBase const& sender,
+        MUXC::ContainerContentChangingEventArgs const& args)
+    {
+        (void)sender;
+        if (args.InRecycleQueue() || !args.ItemContainer())
+        {
+            return;
+        }
+
+        ApplyBrowseCategoryCardSize(args.ItemContainer());
+    }
+
+    void MainWindow::ApplyBrowseCategoryCardSize(
+        MUXC::Primitives::SelectorItem const& container)
+    {
+        auto panel = BrowseCategoryGrid().ItemsPanelRoot().try_as<MUXC::ItemsWrapGrid>();
+        auto root = container ? container.ContentTemplateRoot().try_as<MUXC::Grid>() : nullptr;
+        constexpr double gap = 16.0;
+        auto const cardWidth = panel ? panel.ItemWidth() - gap : 0.0;
+        if (!root || cardWidth <= 0.0)
+        {
+            return;
+        }
+        root.Width(cardWidth);
+        root.Height(cardWidth / 1.5);
+    }
+
     void MainWindow::BrowseClearQuery_Click(
         winrt::Windows::Foundation::IInspectable const& sender,
         MUX::RoutedEventArgs const& args)

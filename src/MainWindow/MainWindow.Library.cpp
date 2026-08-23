@@ -426,6 +426,11 @@ namespace winrt::Last_Music_Player::implementation
             gap = 18.0;
             minimumCardWidth = 158.0;
         }
+        else if (grid == BrowseCategoryGrid())
+        {
+            gap = 16.0;
+            minimumCardWidth = 170.0;
+        }
 
         // Measured from the grid itself rather than from a containing panel:
         // the detail grid's old width source was the library tab host, which is
@@ -449,7 +454,11 @@ namespace winrt::Last_Music_Player::implementation
         // therefore reproduces the prototype's repeat(auto-fill, minmax(N, 1fr)).
         panel.ItemWidth(layout.ItemWidth);
 
-        if (grid == BrowseSongsGrid()
+        if (grid == BrowseCategoryGrid())
+        {
+            panel.ItemHeight(cardWidth / 1.5 + gap);
+        }
+        else if (grid == BrowseSongsGrid()
             || grid == BrowseAlbumsGrid()
             || grid == BrowsePlaylistsGrid()
             || grid == BrowseArtistsGrid())
@@ -463,6 +472,31 @@ namespace winrt::Last_Music_Player::implementation
         else
         {
             panel.ItemHeight(cardWidth + 70.0);
+        }
+
+        // Resizing the ItemsWrapGrid changes its cells, but templates that
+        // originated as fixed carousel tiles retain their old explicit width.
+        // Update already-realized full-page cards now; recycled containers are
+        // handled by their ContainerContentChanging callbacks.
+        if (grid == BrowseCategoryGrid() || grid == DiscoverChartGridView())
+        {
+            for (uint32_t index = 0; index < grid.Items().Size(); ++index)
+            {
+                auto container = grid.ContainerFromIndex(static_cast<int32_t>(index))
+                    .try_as<winrt::Microsoft::UI::Xaml::Controls::Primitives::SelectorItem>();
+                if (!container)
+                {
+                    continue;
+                }
+                if (grid == BrowseCategoryGrid())
+                {
+                    ApplyBrowseCategoryCardSize(container);
+                }
+                else
+                {
+                    ApplyDiscoverChartCardSize(container);
+                }
+            }
         }
     }
 
