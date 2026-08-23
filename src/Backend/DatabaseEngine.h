@@ -203,6 +203,7 @@ namespace LastMusicPlayer::Backend
         void ReplacePlaylistTracks(int64_t playlistId, std::vector<int64_t> const& trackIds);
         bool ReorderPlaylistTracks(std::wstring const& playlistKey, std::vector<int64_t> const& trackIds);
         bool AddTrackToPlaylist(std::wstring const& playlistKey, int64_t trackId);
+        bool AddTracksToPlaylist(std::wstring const& playlistKey, std::vector<int64_t> const& trackIds);
         bool RemoveTrackFromPlaylist(std::wstring const& playlistKey, int64_t trackId);
         bool RemoveTracksFromPlaylist(
             std::wstring const& playlistKey,

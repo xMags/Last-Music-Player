@@ -114,7 +114,33 @@ namespace winrt::Last_Music_Player::implementation
 
     winrt::Windows::Foundation::IAsyncAction MainWindow::AddTrackToPlaylistAsync(winrt::Last_Music_Player::TrackInfo track)
     {
-        if (!track || !IsPlayableHomeTrack(track) || !DatabaseService().IsInitialized())
+        co_await AddTracksToPlaylistAsync({ track });
+    }
+
+    winrt::Windows::Foundation::IAsyncAction MainWindow::AddTracksToPlaylistAsync(
+        std::vector<winrt::Last_Music_Player::TrackInfo> tracks)
+    {
+        if (!DatabaseService().IsInitialized())
+        {
+            co_return;
+        }
+
+        std::vector<winrt::Last_Music_Player::TrackInfo> candidates;
+        candidates.reserve(tracks.size());
+        std::unordered_set<std::wstring> seen;
+        for (auto const& track : tracks)
+        {
+            if (!track || !IsPlayableHomeTrack(track))
+            {
+                continue;
+            }
+            auto identity = HomeQueueDedupeKey(track);
+            if (seen.insert(identity).second)
+            {
+                candidates.push_back(track);
+            }
+        }
+        if (candidates.empty())
         {
             co_return;
         }
@@ -131,9 +157,15 @@ namespace winrt::Last_Music_Player::implementation
 
         winrt::Microsoft::UI::Xaml::Controls::StackPanel content;
         content.Spacing(12);
-        auto accountTrack = RemoteMusicServiceService().Mode() == LastMusicPlayer::Backend::RemoteAccessMode::Account
-            && IsCompatibleAccountRemoteTrack(track);
-        auto accountOnlyScope = accountTrack;
+        auto const accountMode = RemoteMusicServiceService().Mode()
+            == LastMusicPlayer::Backend::RemoteAccessMode::Account;
+        auto const accountCompatibleCount = static_cast<std::size_t>(std::count_if(
+            candidates.begin(), candidates.end(), [&](auto const& candidate)
+            {
+                return accountMode && IsCompatibleAccountRemoteTrack(candidate);
+            }));
+        auto const accountOnlyScope = accountCompatibleCount == candidates.size();
+        auto const localOnlyScope = accountCompatibleCount == 0;
 
         winrt::Microsoft::UI::Xaml::Controls::ComboBox playlistPicker;
         playlistPicker.Header(winrt::box_value(winrt::hstring(L"Playlist")));
@@ -142,7 +174,7 @@ namespace winrt::Last_Music_Player::implementation
         {
             auto playlist = m_manualPlaylists.GetAt(i);
             auto accountPlaylist = playlist.Provider() == L"account";
-            if ((accountOnlyScope && !accountPlaylist) || (!accountOnlyScope && accountPlaylist))
+            if ((accountOnlyScope && !accountPlaylist) || (localOnlyScope && accountPlaylist))
             {
                 continue;
             }
@@ -166,7 +198,8 @@ namespace winrt::Last_Music_Player::implementation
         }
 
         winrt::Microsoft::UI::Xaml::Controls::ContentDialog dlg;
-        dlg.Title(winrt::box_value(winrt::hstring(L"Add to playlist")));
+        dlg.Title(winrt::box_value(winrt::hstring(
+            candidates.size() == 1 ? L"Add to playlist" : L"Add tracks to playlist")));
         dlg.Content(content);
         dlg.PrimaryButtonText(L"Add");
         dlg.CloseButtonText(L"Cancel");
@@ -269,12 +302,24 @@ namespace winrt::Last_Music_Player::implementation
                 LibraryImportStatusText().Text(L"The account playlist changed. Refresh and try again.");
                 co_return;
             }
-            auto trackJson = BuildAccountTrackJson(track);
-            if (trackJson.empty())
+            std::vector<winrt::hstring> trackPayloads;
+            for (auto const& candidate : candidates)
+            {
+                auto payload = BuildAccountTrackJson(candidate);
+                if (!payload.empty())
+                {
+                    trackPayloads.push_back(std::move(payload));
+                }
+            }
+            if (trackPayloads.empty())
             {
                 LibraryImportStatusText().Text(L"Only compatible account tracks can be added to an account playlist");
                 co_return;
             }
+
+            std::size_t added{};
+            bool remoteFailed{};
+            bool syncFailed{};
             try
             {
                 auto operationLease = UserDataOperationGateService().TryEnter();
@@ -284,17 +329,67 @@ namespace winrt::Last_Music_Player::implementation
                     LibraryImportStatusText().Text(L"Cleanup is in progress");
                     co_return;
                 }
-                co_await RemoteMusicServiceService().AddAccountPlaylistTrackAsync(
-                    accountBinding->Scope,
-                    selectedPlaylist.RemoteId(),
-                    trackJson);
-                co_await SynchronizeAccountLibraryAsync(AccountSyncMode::Implicit);
+                for (auto const& trackPayload : trackPayloads)
+                {
+                    if (!IsCurrentAccountPlaylistBinding(*accountBinding))
+                    {
+                        remoteFailed = true;
+                        break;
+                    }
+                    try
+                    {
+                        co_await RemoteMusicServiceService().AddAccountPlaylistTrackAsync(
+                            accountBinding->Scope,
+                            selectedPlaylist.RemoteId(),
+                            trackPayload);
+                        ++added;
+                    }
+                    catch (...)
+                    {
+                        remoteFailed = true;
+                        break;
+                    }
+                }
+                try
+                {
+                    co_await SynchronizeAccountLibraryAsync(AccountSyncMode::Implicit);
+                }
+                catch (...)
+                {
+                    syncFailed = true;
+                }
                 operationLease.reset();
-                LibraryImportStatusText().Text(L"Added to account playlist");
+                if (syncFailed && !remoteFailed && added == candidates.size())
+                {
+                    LibraryImportStatusText().Text(winrt::hstring(
+                        L"Added " + std::to_wstring(added)
+                        + L" tracks, but the library refresh failed"));
+                }
+                else if (remoteFailed || added != candidates.size())
+                {
+                    LibraryImportStatusText().Text(winrt::hstring(
+                        L"Added " + std::to_wstring(added) + L" of "
+                        + std::to_wstring(candidates.size()) + L" tracks to the account playlist"));
+                }
+                else
+                {
+                    LibraryImportStatusText().Text(candidates.size() == 1
+                        ? L"Added to account playlist"
+                        : L"Added tracks to account playlist");
+                }
             }
             catch (...)
             {
-                LibraryImportStatusText().Text(L"Could not update the account playlist");
+                if (added == 0)
+                {
+                    LibraryImportStatusText().Text(L"Could not update the account playlist");
+                }
+                else
+                {
+                    LibraryImportStatusText().Text(winrt::hstring(
+                        L"Added " + std::to_wstring(added)
+                        + L" tracks before the account update failed"));
+                }
             }
             co_return;
         }
@@ -307,8 +402,19 @@ namespace winrt::Last_Music_Player::implementation
             LibraryImportStatusText().Text(L"Cleanup is in progress");
             co_return;
         }
-        auto trackId = PersistTrackForPlaylist(track);
-        if (playlistKey.empty() || trackId <= 0 || !DatabaseService().AddTrackToPlaylist(playlistKey, trackId))
+        std::vector<int64_t> trackIds;
+        trackIds.reserve(candidates.size());
+        for (auto const& candidate : candidates)
+        {
+            auto const trackId = PersistTrackForPlaylist(candidate);
+            if (trackId <= 0)
+            {
+                LibraryImportStatusText().Text(L"The selected playlist cannot accept every track in this result");
+                co_return;
+            }
+            trackIds.push_back(trackId);
+        }
+        if (playlistKey.empty() || !DatabaseService().AddTracksToPlaylist(playlistKey, trackIds))
         {
             LibraryImportStatusText().Text(L"Could not add to playlist");
             co_return;
@@ -324,7 +430,7 @@ namespace winrt::Last_Music_Player::implementation
         {
             ShowLibraryDetail(L"playlist", winrt::hstring(playlistKey), detailTitle.empty() ? winrt::hstring(L"Playlist") : detailTitle, winrt::hstring(detailSubtitle));
         }
-        LibraryImportStatusText().Text(L"Added to playlist");
+        LibraryImportStatusText().Text(candidates.size() == 1 ? L"Added to playlist" : L"Added tracks to playlist");
     }
 
     void MainWindow::ToggleTrackLiked(winrt::Last_Music_Player::TrackInfo const& track)

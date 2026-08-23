@@ -7,6 +7,10 @@
 #include "Backend/TrackSearchPolicy.h"
 #include "Frontend/BrowseResultItem.h"
 
+#include <winrt/Microsoft.UI.Text.h>
+#include <winrt/Windows.Storage.h>
+#include <winrt/Windows.System.h>
+
 #include <algorithm>
 #include <random>
 #include <string>
@@ -127,6 +131,10 @@ namespace winrt::Last_Music_Player::implementation
     {
         (void)sender;
         (void)args;
+        if (m_browseResultMenu)
+        {
+            m_browseResultMenu.Hide();
+        }
         GlobalSearchBox().Text(L"");
         GlobalSearchBox().Focus(MUX::FocusState::Programmatic);
     }
@@ -171,9 +179,118 @@ namespace winrt::Last_Music_Player::implementation
         RunDetached(PlayBrowseResultAsync(item, false));
     }
 
+    void MainWindow::BrowseResult_RightTapped(
+        winrt::Windows::Foundation::IInspectable const& sender,
+        MUX::Input::RightTappedRoutedEventArgs const& args)
+    {
+        auto element = sender.try_as<MUX::FrameworkElement>();
+        auto item = element ? element.Tag().try_as<winrt::Last_Music_Player::BrowseResultItem>() : nullptr;
+        if (!element || !item)
+        {
+            return;
+        }
+
+        if (m_browseResultMenu)
+        {
+            m_browseResultMenu.Hide();
+        }
+        MUXC::MenuFlyout menu;
+        MUXC::MenuFlyoutItem header;
+        header.Text(item.Title());
+        header.IsEnabled(false);
+        header.MinWidth(238.0);
+        header.MinHeight(34.0);
+        header.FontWeight(winrt::Microsoft::UI::Text::FontWeights::SemiBold());
+        menu.Items().Append(header);
+        menu.Items().Append(MUXC::MenuFlyoutSeparator{});
+
+        auto addAction = [this, &menu, item](
+            winrt::hstring const& text,
+            winrt::hstring const& glyph,
+            winrt::hstring const& action)
+        {
+            MUXC::MenuFlyoutItem menuItem;
+            menuItem.Text(text);
+            menuItem.MinHeight(34.0);
+            MUXC::FontIcon icon;
+            icon.Glyph(glyph);
+            icon.FontSize(14);
+            menuItem.Icon(icon);
+            menuItem.Click([weakThis = get_weak(), item, action](auto&&, auto&&)
+            {
+                if (auto self = weakThis.get())
+                {
+                    RunDetached(self->RunBrowseResultActionAsync(item, action));
+                }
+            });
+            menu.Items().Append(menuItem);
+        };
+
+        auto const kind = item.Kind();
+        if (kind == L"song")
+        {
+            addAction(L"Play", L"\xE768", L"play");
+            addAction(L"Play next", L"\xE893", L"next");
+            addAction(L"Add to queue", L"\xE710", L"queue");
+            addAction(L"Add to playlist", L"\xE728", L"playlist");
+            auto representative = winrt::get_self<BrowseResultItem>(item)->RepresentativeTrack();
+            addAction(representative && representative.IsLiked()
+                ? L"Remove from Liked Songs"
+                : L"Add to Liked Songs", L"\xEB51", L"like");
+        }
+        else if (kind == L"album")
+        {
+            addAction(L"Play album", L"\xE768", L"play");
+            addAction(L"Shuffle album", L"\xE8B1", L"shuffle");
+            addAction(L"Add to queue", L"\xE710", L"queue");
+            addAction(L"Add to playlist", L"\xE728", L"playlist");
+        }
+        else if (kind == L"artist")
+        {
+            addAction(L"Play artist", L"\xE768", L"play");
+            addAction(L"Shuffle artist", L"\xE8B1", L"shuffle");
+            addAction(L"Add to queue", L"\xE710", L"queue");
+        }
+        else if (kind == L"playlist")
+        {
+            addAction(L"Play playlist", L"\xE768", L"play");
+            addAction(L"Shuffle playlist", L"\xE8B1", L"shuffle");
+            addAction(L"Add to queue", L"\xE710", L"queue");
+            auto representative = winrt::get_self<BrowseResultItem>(item)->RepresentativeTrack();
+            if (representative && representative.SourceKind() == L"playlist")
+            {
+                addAction(L"Rename", L"\xE8AC", L"rename");
+            }
+        }
+
+        auto const& members = winrt::get_self<BrowseResultItem>(item)->MemberTracks();
+        auto const hasLocalMember = std::any_of(members.begin(), members.end(), [](auto const& track)
+        {
+            return track && (track.File()
+                || (!track.FilePath().empty() && !IsHttpUrl(track.FilePath())));
+        });
+        if ((kind == L"song" || kind == L"album") && hasLocalMember)
+        {
+            addAction(L"Show in folder", L"\xE8B7", L"folder");
+        }
+
+        m_browseResultMenu = menu;
+        winrt::Microsoft::UI::Xaml::Controls::Primitives::FlyoutShowOptions options;
+        options.Position(args.GetPosition(element));
+        menu.ShowAt(element, options);
+        args.Handled(true);
+    }
+
     winrt::Windows::Foundation::IAsyncAction MainWindow::PlayBrowseResultAsync(
         winrt::Last_Music_Player::BrowseResultItem item,
         bool shuffle)
+    {
+        co_await RunBrowseResultActionAsync(item, shuffle ? L"shuffle" : L"play");
+    }
+
+    winrt::Windows::Foundation::IAsyncAction MainWindow::RunBrowseResultActionAsync(
+        winrt::Last_Music_Player::BrowseResultItem item,
+        winrt::hstring action)
     {
         if (!item)
         {
@@ -185,6 +302,24 @@ namespace winrt::Last_Music_Player::implementation
         {
             co_return;
         }
+        auto representative = itemImplementation->RepresentativeTrack();
+        if (action == L"like")
+        {
+            ToggleTrackLiked(representative);
+            co_return;
+        }
+        if (action == L"rename")
+        {
+            MUXC::Button proxy;
+            proxy.Tag(representative);
+            co_await LibraryPlaylistRename_Click(proxy, nullptr);
+            if (!TrimQuery(GlobalSearchBox().Text()).empty())
+            {
+                co_await RunHomeSearchAsync();
+            }
+            co_return;
+        }
+
         auto const kind = std::wstring(item.Kind().c_str());
         auto const key = std::wstring(item.Key().c_str());
         auto tracks = itemImplementation->MemberTracks();
@@ -216,7 +351,18 @@ namespace winrt::Last_Music_Player::implementation
             co_await wil::resume_foreground(dispatcher);
             if (!complete.empty())
             {
-                tracks = std::move(complete);
+                if (kind == L"album" && !representative.Artist().empty())
+                {
+                    auto const expectedArtist = ToLowerCopy(representative.Artist());
+                    std::erase_if(complete, [&](auto const& track)
+                    {
+                        return ToLowerCopy(track.Artist()) != expectedArtist;
+                    });
+                }
+                if (!complete.empty())
+                {
+                    tracks = std::move(complete);
+                }
             }
         }
 
@@ -240,7 +386,62 @@ namespace winrt::Last_Music_Player::implementation
             ShowPlaybackNotice(L"No playable tracks are available for this result.");
             co_return;
         }
-        if (shuffle && playable.size() > 1)
+        if (action == L"playlist")
+        {
+            co_await AddTracksToPlaylistAsync(playable);
+            co_return;
+        }
+        if (action == L"folder")
+        {
+            for (auto const& track : playable)
+            {
+                auto file = track.File();
+                try
+                {
+                    if (!file && !track.FilePath().empty() && !IsHttpUrl(track.FilePath()))
+                    {
+                        file = co_await winrt::Windows::Storage::StorageFile::GetFileFromPathAsync(track.FilePath());
+                    }
+                    if (!file)
+                    {
+                        continue;
+                    }
+                    auto folder = co_await file.GetParentAsync();
+                    if (!folder)
+                    {
+                        continue;
+                    }
+                    winrt::Windows::System::FolderLauncherOptions launchOptions;
+                    launchOptions.ItemsToSelect().Append(file);
+                    (void)co_await winrt::Windows::System::Launcher::LaunchFolderAsync(folder, launchOptions);
+                    co_return;
+                }
+                catch (...)
+                {
+                }
+            }
+            ShowPlaybackNotice(L"The local file could not be opened in File Explorer.");
+            co_return;
+        }
+        if (action == L"queue")
+        {
+            AddSongsTracksToQueueBulk(playable);
+            co_return;
+        }
+        if (action == L"next")
+        {
+            if (!AudioPlayerService().GetCurrentTrack())
+            {
+                SetPlaybackQueue(playable, 0);
+                PlayTrack(playable.front());
+            }
+            else
+            {
+                PlayNextFromSongsBulk(playable);
+            }
+            co_return;
+        }
+        if (action == L"shuffle" && playable.size() > 1)
         {
             std::random_device randomDevice;
             std::mt19937 generator(randomDevice());

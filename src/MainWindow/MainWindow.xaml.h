@@ -111,8 +111,10 @@ namespace winrt::Last_Music_Player::implementation
         void BrowseClearRecent_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void BrowseRecentSearch_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void BrowseResult_ItemClick(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::ItemClickEventArgs const& args);
+        void BrowseResult_RightTapped(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Input::RightTappedRoutedEventArgs const& args);
         void BrowseResultArtwork_Loaded(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         winrt::Windows::Foundation::IAsyncAction PlayBrowseResultAsync(winrt::Last_Music_Player::BrowseResultItem item, bool shuffle);
+        winrt::Windows::Foundation::IAsyncAction RunBrowseResultActionAsync(winrt::Last_Music_Player::BrowseResultItem item, winrt::hstring action);
         void SearchListView_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void SearchGridView_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void SearchRetry_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
@@ -721,6 +723,7 @@ namespace winrt::Last_Music_Player::implementation
         // the prior shuffle state. Persists the setting + refreshes icons.
         void EnsureShuffleOn();
         winrt::Windows::Foundation::IAsyncAction AddTrackToPlaylistAsync(winrt::Last_Music_Player::TrackInfo track);
+        winrt::Windows::Foundation::IAsyncAction AddTracksToPlaylistAsync(std::vector<winrt::Last_Music_Player::TrackInfo> tracks);
         void ToggleTrackLiked(winrt::Last_Music_Player::TrackInfo const& track);
         void OpenSongsTrackArtist(winrt::Last_Music_Player::TrackInfo const& track);
         void OpenSongsTrackAlbum(winrt::Last_Music_Player::TrackInfo const& track);
@@ -1312,6 +1315,7 @@ namespace winrt::Last_Music_Player::implementation
         uint64_t m_browseLandingEpoch{ 0 };
         uint64_t m_nowPlayingArtworkEpoch{ 0 };
         winrt::Microsoft::UI::Xaml::DispatcherTimer m_playbackProgressTimer{ nullptr };
+        winrt::Microsoft::UI::Xaml::Controls::MenuFlyout m_browseResultMenu{ nullptr };
         std::vector<std::wstring> m_recentSearches;
         bool m_searchGridMode{ true };
         bool m_searchUrlLookup{};

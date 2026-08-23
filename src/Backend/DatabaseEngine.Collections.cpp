@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Backend/DatabaseEngine.h"
 #include "Backend/DatabaseEngine.Internal.h"
+#include "Backend/PlaylistBulkInsert.h"
 #include "Backend/ProviderHelpers.h"
 
 #include <unordered_set>
@@ -409,55 +410,15 @@ namespace LastMusicPlayer::Backend
 
     bool DatabaseEngine::AddTrackToPlaylist(std::wstring const& playlistKey, int64_t trackId)
     {
+        return AddTracksToPlaylist(playlistKey, { trackId });
+    }
+
+    bool DatabaseEngine::AddTracksToPlaylist(
+        std::wstring const& playlistKey,
+        std::vector<int64_t> const& trackIds)
+    {
         std::scoped_lock lock{ m_mutex };
-        if (!m_db || playlistKey.empty() || trackId <= 0)
-        {
-            return false;
-        }
-
-        Statement lookup{ m_db, "SELECT Id FROM Playlists WHERE PlaylistKey=?;" };
-        if (!lookup)
-        {
-            return false;
-        }
-        BindText(lookup.value, 1, playlistKey);
-        if (sqlite3_step(lookup.value) != SQLITE_ROW)
-        {
-            return false;
-        }
-
-        auto playlistId = sqlite3_column_int64(lookup.value, 0);
-        Statement order{ m_db, "SELECT COALESCE(MAX(TrackOrder),0)+1 FROM PlaylistTracks WHERE PlaylistId=?;" };
-        int nextOrder = 1;
-        if (order)
-        {
-            sqlite3_bind_int64(order.value, 1, playlistId);
-            if (sqlite3_step(order.value) == SQLITE_ROW)
-            {
-                nextOrder = sqlite3_column_int(order.value, 0);
-            }
-        }
-
-        Statement insert{ m_db, "INSERT OR IGNORE INTO PlaylistTracks (PlaylistId, TrackId, TrackOrder) VALUES (?, ?, ?);" };
-        if (!insert)
-        {
-            return false;
-        }
-        sqlite3_bind_int64(insert.value, 1, playlistId);
-        sqlite3_bind_int64(insert.value, 2, trackId);
-        sqlite3_bind_int(insert.value, 3, nextOrder);
-        if (sqlite3_step(insert.value) != SQLITE_DONE)
-        {
-            return false;
-        }
-
-        Statement touch{ m_db, "UPDATE Playlists SET UpdatedAt=strftime('%s','now') WHERE Id=?;" };
-        if (touch)
-        {
-            sqlite3_bind_int64(touch.value, 1, playlistId);
-            sqlite3_step(touch.value);
-        }
-        return true;
+        return AddTracksToPlaylistTransactional(m_db, playlistKey, trackIds);
     }
 
     bool DatabaseEngine::RemoveTrackFromPlaylist(std::wstring const& playlistKey, int64_t trackId)

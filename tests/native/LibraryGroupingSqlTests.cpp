@@ -1,6 +1,7 @@
 #include "pch.h"
 
 #include "Backend/LibraryGroupingSql.h"
+#include "Backend/PlaylistBulkInsert.h"
 #include "ThirdParty/sqlite/sqlite3.h"
 
 #include <algorithm>
@@ -330,6 +331,95 @@ namespace
         Expect(grouping::CollectionSearchClause(L"", 3).empty(),
             "empty find text should append no clause at all");
     }
+
+    class BulkPlaylistDatabase final
+    {
+    public:
+        BulkPlaylistDatabase()
+        {
+            if (sqlite3_open(":memory:", &m_database) != SQLITE_OK)
+            {
+                throw std::runtime_error("failed to open the bulk playlist test database");
+            }
+            Execute(m_database,
+                "PRAGMA foreign_keys=ON;"
+                "CREATE TABLE Tracks(Id INTEGER PRIMARY KEY);"
+                "CREATE TABLE Playlists(Id INTEGER PRIMARY KEY,PlaylistKey TEXT UNIQUE,UpdatedAt INTEGER);"
+                "CREATE TABLE PlaylistTracks("
+                "PlaylistId INTEGER NOT NULL REFERENCES Playlists(Id),"
+                "TrackId INTEGER NOT NULL REFERENCES Tracks(Id),"
+                "TrackOrder INTEGER NOT NULL,"
+                "UNIQUE(PlaylistId,TrackId));"
+                "INSERT INTO Tracks VALUES(1),(2),(3);"
+                "INSERT INTO Playlists VALUES(10,'target',0);");
+        }
+
+        ~BulkPlaylistDatabase() { sqlite3_close(m_database); }
+        BulkPlaylistDatabase(BulkPlaylistDatabase const&) = delete;
+        BulkPlaylistDatabase& operator=(BulkPlaylistDatabase const&) = delete;
+
+        sqlite3* Get() const noexcept { return m_database; }
+
+        int Scalar(char const* sql) const
+        {
+            sqlite3_stmt* statement{};
+            if (sqlite3_prepare_v2(m_database, sql, -1, &statement, nullptr) != SQLITE_OK)
+            {
+                throw std::runtime_error(sqlite3_errmsg(m_database));
+            }
+            auto const value = sqlite3_step(statement) == SQLITE_ROW
+                ? sqlite3_column_int(statement, 0)
+                : -1;
+            sqlite3_finalize(statement);
+            return value;
+        }
+
+    private:
+        sqlite3* m_database{};
+    };
+
+    void TestAtomicBulkPlaylistInsertion()
+    {
+        {
+            BulkPlaylistDatabase database;
+            Expect(LastMusicPlayer::Backend::AddTracksToPlaylistTransactional(
+                    database.Get(), L"target", { 1, 2 }),
+                "a valid bulk insertion should commit");
+            Expect(database.Scalar("SELECT COUNT(*) FROM PlaylistTracks;") == 2,
+                "a valid bulk insertion should add every track");
+            Expect(database.Scalar("SELECT SUM(TrackOrder) FROM PlaylistTracks;") == 3,
+                "new members should receive contiguous append order");
+        }
+        {
+            BulkPlaylistDatabase database;
+            Expect(LastMusicPlayer::Backend::AddTracksToPlaylistTransactional(
+                    database.Get(), L"target", { 1, 1, 2, 2 }),
+                "duplicates should be accepted idempotently");
+            Expect(database.Scalar("SELECT COUNT(*) FROM PlaylistTracks;") == 2,
+                "duplicates should not create duplicate playlist members");
+            Expect(database.Scalar("SELECT MAX(TrackOrder) FROM PlaylistTracks;") == 2,
+                "ignored duplicates should not leave gaps in append order");
+        }
+        {
+            BulkPlaylistDatabase database;
+            Expect(!LastMusicPlayer::Backend::AddTracksToPlaylistTransactional(
+                    database.Get(), L"missing", { 1 }),
+                "a missing playlist should reject the whole operation");
+            Expect(!LastMusicPlayer::Backend::AddTracksToPlaylistTransactional(
+                    database.Get(), L"target", { 0, 1 }),
+                "an invalid track id should fail before mutation");
+            Expect(database.Scalar("SELECT COUNT(*) FROM PlaylistTracks;") == 0,
+                "invalid targets should leave the playlist untouched");
+        }
+        {
+            BulkPlaylistDatabase database;
+            Expect(!LastMusicPlayer::Backend::AddTracksToPlaylistTransactional(
+                    database.Get(), L"target", { 1, 99 }),
+                "a missing track should fail the bulk insertion");
+            Expect(database.Scalar("SELECT COUNT(*) FROM PlaylistTracks;") == 0,
+                "a later insert failure should roll back earlier members");
+        }
+    }
 }
 
 int main()
@@ -343,6 +433,7 @@ int main()
 
         CollectionDatabase collections;
         TestCollectionOrderAndSearch(collections.Get());
+        TestAtomicBulkPlaylistInsertion();
         std::cout << "LibraryGroupingSqlTests passed" << std::endl;
         return 0;
     }

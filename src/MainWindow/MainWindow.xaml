@@ -1196,7 +1196,8 @@
                 <Grid x:Name="BrowseViewContainer" Visibility="Collapsed" Margin="4,0,-16,0">
                     <Grid.Resources>
                         <DataTemplate x:Key="BrowseResultGridTemplate" x:DataType="local:BrowseResultItem">
-                            <StackPanel Margin="0,6,18,22" PointerEntered="PlaylistCard_PointerEntered" PointerExited="PlaylistCard_PointerExited">
+                            <StackPanel Tag="{x:Bind}" Margin="0,6,18,22" RightTapped="BrowseResult_RightTapped"
+                                        PointerEntered="PlaylistCard_PointerEntered" PointerExited="PlaylistCard_PointerExited">
                                 <Border Margin="0,0,0,10" CornerRadius="{x:Bind ArtworkCornerRadius}" Background="{ThemeResource NeutralFillBrush}"
                                         SizeChanged="LibraryArtworkBorder_SizeChanged" Translation="0,0,16">
                                     <Border.Shadow><ThemeShadow /></Border.Shadow>
@@ -1212,7 +1213,7 @@
                             </StackPanel>
                         </DataTemplate>
                         <DataTemplate x:Key="BrowseResultListTemplate" x:DataType="local:BrowseResultItem">
-                            <Grid Height="64" Padding="14,0" ColumnSpacing="14">
+                            <Grid Tag="{x:Bind}" Height="64" Padding="14,0" ColumnSpacing="14" RightTapped="BrowseResult_RightTapped">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="46" />
                                     <ColumnDefinition Width="*" />

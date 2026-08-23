@@ -166,6 +166,9 @@
     <ClInclude Include="src\Backend\BrowseGroupingPolicy.h">
       <Filter>Backend</Filter>
     </ClInclude>
+    <ClInclude Include="src\Backend\PlaylistBulkInsert.h">
+      <Filter>Backend</Filter>
+    </ClInclude>
     <!-- Backend Headers -->
     <ClInclude Include="src\Backend\TrackInfo.h">
       <Filter>Backend</Filter>
@@ -338,6 +341,9 @@
       <Filter>Backend</Filter>
     </ClCompile>
     <ClCompile Include="src\Backend\BrowseGroupingPolicy.cpp">
+      <Filter>Backend</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\PlaylistBulkInsert.cpp">
       <Filter>Backend</Filter>
     </ClCompile>
     <ClCompile Include="src\XamlMetadata\XamlMetaDataProvider.Build.cpp">

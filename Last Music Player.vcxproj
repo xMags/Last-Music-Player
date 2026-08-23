@@ -219,6 +219,7 @@
     <ClInclude Include="src\Frontend\BrowseResultItem.h" />
     <ClInclude Include="src\Backend\GenreArtworkRecipe.h" />
     <ClInclude Include="src\Backend\BrowseGroupingPolicy.h" />
+    <ClInclude Include="src\Backend\PlaylistBulkInsert.h" />
   </ItemGroup>
   <ItemGroup>
     <ApplicationDefinition Include="src\App\App.xaml" />
@@ -334,6 +335,7 @@
     <ClCompile Include="src\Frontend\BrowseResultItem.cpp" />
     <ClCompile Include="src\Backend\GenreArtworkRecipe.cpp" />
     <ClCompile Include="src\Backend\BrowseGroupingPolicy.cpp" />
+    <ClCompile Include="src\Backend\PlaylistBulkInsert.cpp" />
     <ClCompile Include="packages\Microsoft.WindowsAppSDK.Foundation.1.8.260203002\include\UndockedRegFreeWinRT-AutoInitializer.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PreprocessorDefinitions>MICROSOFT_WINDOWSAPPSDK_UNDOCKEDREGFREEWINRT_AUTO_INITIALIZE_LOADLIBRARY;MICROSOFT_WINDOWSAPPSDK_UNDOCKEDREGFREEWINRT_AUTO_INITIALIZE;%(PreprocessorDefinitions)</PreprocessorDefinitions>

@@ -80,6 +80,7 @@
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="LibraryGroupingSqlTests.cpp" />
+    <ClCompile Include="..\..\src\Backend\PlaylistBulkInsert.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\ThirdParty\sqlite\sqlite3.c">

@@ -105,6 +105,16 @@ namespace winrt::Last_Music_Player::implementation
     void MainWindow::GlobalSearchBox_KeyDown(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Input::KeyRoutedEventArgs const& args)
     {
         (void)sender;
+        if (args.Key() == winrt::Windows::System::VirtualKey::Escape)
+        {
+            if (m_browseResultMenu)
+            {
+                m_browseResultMenu.Hide();
+            }
+            GlobalSearchBox().Text(L"");
+            args.Handled(true);
+            return;
+        }
         if (args.Key() != winrt::Windows::System::VirtualKey::Enter)
         {
             return;
