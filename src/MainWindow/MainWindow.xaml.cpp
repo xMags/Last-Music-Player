@@ -1171,15 +1171,6 @@ namespace winrt::Last_Music_Player::implementation
             row.container.Visibility(key == row.id ? Visibility::Visible : Visibility::Collapsed);
         }
 
-        auto usesRedesignedChrome = key == L"Library" || key == L"Settings";
-        auto optionalTransportVisibility = usesRedesignedChrome
-            ? Visibility::Collapsed
-            : Visibility::Visible;
-        CastButton().Visibility(optionalTransportVisibility);
-        ExpandButton().Visibility(optionalTransportVisibility);
-        MuteButton().Visibility(optionalTransportVisibility);
-        VolumeControlHost().Visibility(optionalTransportVisibility);
-
         // Not a destination of its own: the catalog surface opens over Home and
         // keeps Home selected in the rail, so every page switch closes it and
         // the catalog reopens it for itself.
