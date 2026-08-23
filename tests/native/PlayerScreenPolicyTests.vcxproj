@@ -80,12 +80,12 @@
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="PlayerScreenPolicyTests.cpp" />
+    <ClCompile Include="..\..\src\Backend\BrowseGroupingPolicy.cpp" />
     <ClCompile Include="..\..\src\Backend\DetailSortPolicy.cpp" />
     <ClCompile Include="..\..\src\Backend\DownloadPolicy.cpp" />
     <ClCompile Include="..\..\src\Backend\GenreArtworkRecipe.cpp" />
     <ClCompile Include="..\..\src\Backend\PlaylistSuggestionPolicy.cpp" />
     <ClCompile Include="..\..\src\Backend\RecentSearchStore.cpp" />
-    <ClCompile Include="..\..\src\Backend\SearchFacetPolicy.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <Import Project="..\..\packages\Microsoft.Windows.CppWinRT.2.0.250303.1\build\native\Microsoft.Windows.CppWinRT.targets" Condition="Exists('..\..\packages\Microsoft.Windows.CppWinRT.2.0.250303.1\build\native\Microsoft.Windows.CppWinRT.targets')" />

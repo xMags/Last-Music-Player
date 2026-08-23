@@ -119,9 +119,14 @@ namespace winrt::Last_Music_Player::implementation
         HomeRecentlyAddedGridView().ItemsSource(m_recentlyAddedTracks);
         MusicListView().ItemsSource(m_songsTracks);
         SongsGridView().ItemsSource(m_songsTracks);
-        BrowseFacetGrid().ItemsSource(m_searchFacets);
-        SearchResultsListView().ItemsSource(m_searchTracks);
-        BrowseResumeGrid().ItemsSource(m_browseResumeTracks);
+        BrowseSongsGrid().ItemsSource(m_browseSongResults);
+        BrowseSongsList().ItemsSource(m_browseSongResults);
+        BrowseAlbumsGrid().ItemsSource(m_browseAlbumResults);
+        BrowseAlbumsList().ItemsSource(m_browseAlbumResults);
+        BrowsePlaylistsGrid().ItemsSource(m_browsePlaylistResults);
+        BrowsePlaylistsList().ItemsSource(m_browsePlaylistResults);
+        BrowseArtistsGrid().ItemsSource(m_browseArtistResults);
+        BrowseArtistsList().ItemsSource(m_browseArtistResults);
         BrowseCategoryGrid().ItemsSource(m_browseCategories);
         UpNextListView().ItemsSource(m_upNextQueue);
         FsUpNext().ItemsSource(m_upNextQueue);
@@ -688,6 +693,7 @@ namespace winrt::Last_Music_Player::implementation
         }
         InitializeDownloads();
         LoadPersistedRecentSearches();
+        LoadPersistedBrowseView();
         LoadLibraryDetailDensity();
         auto weakWindow = get_weak();
         AccountSessionService().SetOwnerChangedCallback([weakWindow](winrt::hstring const& ownerId)

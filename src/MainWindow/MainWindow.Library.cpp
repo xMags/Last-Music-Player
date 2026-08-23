@@ -403,7 +403,6 @@ namespace winrt::Last_Music_Player::implementation
         // repeat(auto-fill, minmax(N, 1fr)) for each grid.
         auto gap = 20.0;
         auto minimumCardWidth = 170.0;
-        auto fixedColumns = 0;
         auto layoutTolerance = 0.0;
         if (grid == LibraryDetailGridView())
         {
@@ -418,17 +417,13 @@ namespace winrt::Last_Music_Player::implementation
             // viewport and wrap the last card. Keep a small layout allowance.
             layoutTolerance = 2.0;
         }
-        else if (grid == BrowseFacetGrid())
+        else if (grid == BrowseSongsGrid()
+            || grid == BrowseAlbumsGrid()
+            || grid == BrowsePlaylistsGrid()
+            || grid == BrowseArtistsGrid())
         {
             gap = 18.0;
-            minimumCardWidth = 160.0;
-        }
-        else if (grid == BrowseResumeGrid())
-        {
-            // The resume shelf is three across in the reference rather than
-            // auto-filled, so it keeps a column count instead of a minimum.
-            gap = 12.0;
-            fixedColumns = 3;
+            minimumCardWidth = 158.0;
         }
 
         // Measured from the grid itself rather than from a containing panel:
@@ -444,11 +439,9 @@ namespace winrt::Last_Music_Player::implementation
             return;
         }
 
-        auto columnCount = fixedColumns > 0
-            ? fixedColumns
-            : (std::max)(
-                1,
-                static_cast<int>(std::floor((availableWidth + gap) / (minimumCardWidth + gap))));
+        auto columnCount = (std::max)(
+            1,
+            static_cast<int>(std::floor((availableWidth + gap) / (minimumCardWidth + gap))));
         auto cardWidth = (availableWidth - (columnCount - 1) * gap) / columnCount;
 
         // ItemsWrapGrid includes the final item's margin in its extent, while
@@ -456,11 +449,12 @@ namespace winrt::Last_Music_Player::implementation
         // therefore reproduces the prototype's repeat(auto-fill, minmax(N, 1fr)).
         panel.ItemWidth(cardWidth + gap);
 
-        // Card height follows the artwork, which is square everywhere except
-        // the browse tiles (1.5:1) and the resume row (one fixed-height row).
-        if (grid == BrowseResumeGrid())
+        if (grid == BrowseSongsGrid()
+            || grid == BrowseAlbumsGrid()
+            || grid == BrowsePlaylistsGrid()
+            || grid == BrowseArtistsGrid())
         {
-            panel.ItemHeight(78.0);
+            panel.ItemHeight(cardWidth + 58.0);
         }
         else if (grid == LibArtistsGrid())
         {

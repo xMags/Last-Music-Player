@@ -2,14 +2,16 @@
 #include "MainWindow.xaml.h"
 #include "MainWindow.Internal.h"
 
+#include "Backend/BrowseGroupingPolicy.h"
 #include "Backend/RecentSearchStore.h"
-#include "Backend/ResumePositionPolicy.h"
-#include "Backend/SearchFacetPolicy.h"
 #include "Backend/TrackSearchPolicy.h"
+#include "Frontend/BrowseResultItem.h"
 
 #include <algorithm>
+#include <random>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 namespace winrt::Last_Music_Player::implementation
@@ -20,45 +22,32 @@ namespace winrt::Last_Music_Player::implementation
     {
         namespace MUX = winrt::Microsoft::UI::Xaml;
         namespace MUXC = winrt::Microsoft::UI::Xaml::Controls;
-
         using MUX::Visibility;
 
-        constexpr std::size_t kBrowseSongPreviewLimit = 5;
-        constexpr std::size_t kBrowseFacetLimit = 18;
-        constexpr std::size_t kBrowseResumeLimit = 3;
+        constexpr wchar_t kBrowseViewSetting[] = L"BrowseResultView";
 
         winrt::hstring TagText(winrt::Windows::Foundation::IInspectable const& value)
         {
-            try
-            {
-                return winrt::unbox_value_or<winrt::hstring>(value, L"");
-            }
-            catch (...)
-            {
-                return {};
-            }
+            try { return winrt::unbox_value_or<winrt::hstring>(value, L""); }
+            catch (...) { return {}; }
         }
 
-        winrt::Last_Music_Player::TrackInfo FirstMatchingFacetSource(
-            std::vector<winrt::Last_Music_Player::TrackInfo> const& tracks,
-            LastMusicPlayer::Backend::SearchFacet const& facet)
+        winrt::hstring KindTag(LastMusicPlayer::Backend::BrowseResultKind kind)
         {
-            auto const foldedTitle = ToLowerCopy(winrt::hstring(facet.Title));
-            auto const foldedSubtitle = ToLowerCopy(winrt::hstring(facet.Subtitle));
-            auto const found = std::find_if(tracks.begin(), tracks.end(), [&](auto const& track)
+            using LastMusicPlayer::Backend::BrowseResultKind;
+            switch (kind)
             {
-                if (!track)
-                {
-                    return false;
-                }
-                if (facet.Kind == LastMusicPlayer::Backend::SearchFacetKind::Album)
-                {
-                    return ToLowerCopy(track.Album()) == foldedTitle
-                        && (foldedSubtitle.empty() || ToLowerCopy(track.Artist()) == foldedSubtitle);
-                }
-                return ToLowerCopy(track.Artist()) == foldedTitle;
-            });
-            return found == tracks.end() ? nullptr : *found;
+            case BrowseResultKind::Song: return L"song";
+            case BrowseResultKind::Album: return L"album";
+            case BrowseResultKind::Playlist: return L"playlist";
+            case BrowseResultKind::Artist: return L"artist";
+            }
+            return {};
+        }
+
+        winrt::hstring ResultCountText(std::size_t count)
+        {
+            return winrt::hstring(std::to_wstring(count) + (count == 1 ? L" result" : L" results"));
         }
     }
 
@@ -69,13 +58,12 @@ namespace winrt::Last_Music_Player::implementation
         (void)sender;
         (void)args;
         ShowPrimaryView(L"Browse");
-
         auto const query = TrimQuery(GlobalSearchBox().Text());
         if (query.empty())
         {
             ShowBrowseLanding();
         }
-        else if (!m_searchAllResults.empty())
+        else if (!m_searchAllResults.empty() || !m_searchMatchingPlaylists.empty())
         {
             ShowBrowseSearchResults(query);
         }
@@ -115,19 +103,9 @@ namespace winrt::Last_Music_Player::implementation
             return;
         }
 
-        // These tiles are library groups, so a click opens that group's detail
-        // page. Typing the name into the search box instead would run the
-        // title/artist/album LIKE query, which has no Genre clause: every genre
-        // tile whose name was not also a song or album title landed on the
-        // empty state while still advertising a track count.
-        //
-        // The tiles are built from the library, so this navigates the library
-        // regardless of the active scope; a catalog text search for a genre
-        // word would return something unrelated to what the tile counted.
         auto const artistTile = category.SourceKind() == L"artist";
         auto const kind = artistTile ? winrt::hstring{ L"artist" } : winrt::hstring{ L"genre" };
         auto const tab = artistTile ? LibTabArtists() : LibTabGenres();
-
         ShowPrimaryView(L"Library");
         if (tab)
         {
@@ -143,32 +121,6 @@ namespace winrt::Last_Music_Player::implementation
             category);
     }
 
-    void MainWindow::BrowseResume_ItemClick(
-        winrt::Windows::Foundation::IInspectable const& sender,
-        MUXC::ItemClickEventArgs const& args)
-    {
-        (void)sender;
-        auto track = args.ClickedItem().try_as<winrt::Last_Music_Player::TrackInfo>();
-        if (!track)
-        {
-            return;
-        }
-
-        std::vector<winrt::Last_Music_Player::TrackInfo> queue{ track };
-        SetPlaybackQueue(queue, 0);
-        PlayTrack(track);
-
-        // Set after PlayTrack, not before: PlayTrack clears any pending seek as
-        // its last step, so an earlier assignment would be thrown away. The seek
-        // itself is applied by OnMediaOpened, which runs after this returns.
-        if (LastMusicPlayer::Backend::CanResumeFrom(
-            track.ResumePositionSeconds(),
-            track.DurationSeconds()))
-        {
-            m_pendingResumeSeekSeconds = track.ResumePositionSeconds();
-        }
-    }
-
     void MainWindow::BrowseClearQuery_Click(
         winrt::Windows::Foundation::IInspectable const& sender,
         MUX::RoutedEventArgs const& args)
@@ -177,56 +129,6 @@ namespace winrt::Last_Music_Player::implementation
         (void)args;
         GlobalSearchBox().Text(L"");
         GlobalSearchBox().Focus(MUX::FocusState::Programmatic);
-    }
-
-    void MainWindow::BrowseScope_Click(
-        winrt::Windows::Foundation::IInspectable const& sender,
-        MUX::RoutedEventArgs const& args)
-    {
-        (void)args;
-        auto element = sender.try_as<MUX::FrameworkElement>();
-        auto const scope = element ? std::wstring(TagText(element.Tag()).c_str()) : std::wstring{};
-        if ((scope != L"Library" && scope != L"Catalog") || scope == m_searchScope)
-        {
-            return;
-        }
-
-        m_searchScope = scope;
-        ApplyBrowseScopeVisuals();
-        auto const query = TrimQuery(GlobalSearchBox().Text());
-        if (query.empty())
-        {
-            ShowBrowseLanding();
-            return;
-        }
-
-        if (scope == L"Library")
-        {
-            // Cancel a catalog request before it can repopulate a page the
-            // listener just narrowed to their library.
-            ++m_searchDebounceId;
-            ++m_searchRequestId;
-            RebuildBrowseResults();
-            return;
-        }
-        RunDetached(RunHomeSearchAsync());
-    }
-
-    void MainWindow::BrowseFilter_Click(
-        winrt::Windows::Foundation::IInspectable const& sender,
-        MUX::RoutedEventArgs const& args)
-    {
-        (void)args;
-        auto element = sender.try_as<MUX::FrameworkElement>();
-        auto const filter = element ? std::wstring(TagText(element.Tag()).c_str()) : std::wstring{};
-        if (filter != L"All" && filter != L"Songs" && filter != L"Albums"
-            && filter != L"Artists" && filter != L"Playlists")
-        {
-            return;
-        }
-        m_searchFilter = filter;
-        ApplyBrowseFilterVisuals();
-        RebuildBrowseResults();
     }
 
     void MainWindow::BrowseClearRecent_Click(
@@ -251,146 +153,122 @@ namespace winrt::Last_Music_Player::implementation
         {
             return;
         }
-        m_searchFilter = L"All";
-        ApplyBrowseFilterVisuals();
         GlobalSearchBox().Text(query);
         RunDetached(RunHomeSearchAsync());
     }
 
-    void MainWindow::BrowseTopResult_Tapped(
-        winrt::Windows::Foundation::IInspectable const& sender,
-        MUX::Input::TappedRoutedEventArgs const& args)
-    {
-        (void)sender;
-        if (!m_searchTopResult)
-        {
-            return;
-        }
-        PlayTopSearchResult();
-        args.Handled(true);
-    }
-
-    void MainWindow::BrowseTopResultPlay_Click(
-        winrt::Windows::Foundation::IInspectable const& sender,
-        MUX::RoutedEventArgs const& args)
-    {
-        (void)sender;
-        (void)args;
-        if (!m_searchTopResult)
-        {
-            return;
-        }
-        PlayTopSearchResult();
-    }
-
-    void MainWindow::PlayTopSearchResult()
-    {
-        // For a song this is the one track; for an album it is every track of
-        // that album the page is holding, starting at the first.
-        auto queue = m_searchTopResultQueue.empty()
-            ? std::vector<winrt::Last_Music_Player::TrackInfo>{ m_searchTopResult }
-            : m_searchTopResultQueue;
-        SetPlaybackQueue(queue, 0);
-        PlayTrack(queue.front());
-    }
-
-    void MainWindow::BrowseTopResultDownload_Click(
-        winrt::Windows::Foundation::IInspectable const& sender,
-        MUX::RoutedEventArgs const& args)
-    {
-        (void)sender;
-        (void)args;
-        auto const queued = EnqueueAutomaticDownload(m_searchTopResult, L"Browse result");
-        ShowPlaybackNotice(queued
-            ? winrt::hstring{ L"Queued for offline download" }
-            : winrt::hstring{ L"This track is already on this PC or already queued" });
-        RefreshDownloadsView(true);
-    }
-
-    winrt::Windows::Foundation::IAsyncAction MainWindow::BrowseTopResultAdd_Click(
-        winrt::Windows::Foundation::IInspectable const& sender,
-        MUX::RoutedEventArgs const& args)
-    {
-        (void)sender;
-        (void)args;
-        if (m_searchTopResult)
-        {
-            co_await AddTrackToPlaylistAsync(m_searchTopResult);
-        }
-    }
-
-    void MainWindow::BrowseFacet_ItemClick(
+    void MainWindow::BrowseResult_ItemClick(
         winrt::Windows::Foundation::IInspectable const& sender,
         MUXC::ItemClickEventArgs const& args)
     {
         (void)sender;
-        auto facet = args.ClickedItem().try_as<winrt::Last_Music_Player::TrackInfo>();
-        if (!facet)
+        auto item = args.ClickedItem().try_as<winrt::Last_Music_Player::BrowseResultItem>();
+        if (!item)
         {
             return;
         }
-
-        // The facet grid only ever holds playlists while the Playlists filter
-        // is the one that built it, so the filter is the discriminator. The
-        // cards themselves are the untouched playlist objects.
-        if (m_searchFilter == L"Playlists")
-        {
-            ShowPrimaryView(L"Library");
-            if (LibTabPlaylists())
-            {
-                LibTabPlaylists().IsChecked(true);
-                LibraryTab_Checked(LibTabPlaylists(), nullptr);
-            }
-            ShowLibraryDetail(
-                L"playlist",
-                facet.SourceUrl(),
-                facet.Title(),
-                facet.Artist(),
-                ApprovedDetailArtwork(facet, L"playlist"),
-                facet);
-            return;
-        }
-
-        // The remote provider exposes track search, not album/artist detail.
-        // Drilling into a derived card therefore tightens the same search to
-        // its title and shows songs, which works for both local and catalog hits
-        // instead of opening an empty local-only detail page.
-        m_searchFilter = L"Songs";
-        ApplyBrowseFilterVisuals();
-        GlobalSearchBox().Text(facet.Title());
-        RunDetached(RunHomeSearchAsync());
+        RecordBrowseRecentSearch(TrimQuery(GlobalSearchBox().Text()));
+        RunDetached(PlayBrowseResultAsync(item, false));
     }
 
-    void MainWindow::BrowseFacet_ContainerContentChanging(
-        winrt::Windows::Foundation::IInspectable const& sender,
-        MUXC::ContainerContentChangingEventArgs const& args)
+    winrt::Windows::Foundation::IAsyncAction MainWindow::PlayBrowseResultAsync(
+        winrt::Last_Music_Player::BrowseResultItem item,
+        bool shuffle)
     {
-        (void)sender;
-        QueueContainerArtwork(args);
-        if (args.InRecycleQueue())
+        if (!item)
         {
-            return;
+            co_return;
         }
 
-        auto facet = args.Item().try_as<winrt::Last_Music_Player::TrackInfo>();
-        auto root = args.ItemContainer()
-            ? args.ItemContainer().ContentTemplateRoot().try_as<MUXC::StackPanel>()
-            : nullptr;
-        if (!facet || !root || root.Children().Size() == 0)
+        auto itemImplementation = winrt::get_self<BrowseResultItem>(item);
+        if (!itemImplementation->RepresentativeTrack())
         {
-            return;
+            co_return;
         }
-        if (auto art = root.Children().GetAt(0).try_as<MUXC::Border>())
+        auto const kind = std::wstring(item.Kind().c_str());
+        auto const key = std::wstring(item.Key().c_str());
+        auto tracks = itemImplementation->MemberTracks();
+        std::wstring accountOwner;
+        if (key.starts_with(L"account-playlist|"))
         {
-            art.CornerRadius(facet.SourceKind() == L"search-artist"
-                ? MUX::CornerRadius{ 80 }
-                : MUX::CornerRadius{ 12 });
+            try
+            {
+                auto context = RemoteMusicServiceService().CaptureAccountSyncContext();
+                accountOwner.assign(context.OwnerId().c_str());
+            }
+            catch (...)
+            {
+            }
         }
+        if (kind != L"song" && DatabaseService().IsInitialized() && !key.empty())
+        {
+            LastMusicPlayer::Backend::TrackQuery query;
+            query.GroupKind = kind;
+            query.GroupKey = key;
+            query.Sort = kind == L"playlist" ? L"" : L"DateAdded";
+            query.IncludeRemote = true;
+            query.ActiveOnly = true;
+            query.AccountOwnerId = std::move(accountOwner);
+
+            auto dispatcher = DispatcherQueue();
+            co_await winrt::resume_background();
+            auto complete = DatabaseService().LoadTrackPage(query).Tracks;
+            co_await wil::resume_foreground(dispatcher);
+            if (!complete.empty())
+            {
+                tracks = std::move(complete);
+            }
+        }
+
+        std::vector<winrt::Last_Music_Player::TrackInfo> playable;
+        playable.reserve(tracks.size());
+        std::unordered_set<std::wstring> seen;
+        for (auto const& track : tracks)
+        {
+            if (!track || !IsPlayableHomeTrack(track))
+            {
+                continue;
+            }
+            auto identity = HomeQueueDedupeKey(track);
+            if (seen.insert(identity).second)
+            {
+                playable.push_back(track);
+            }
+        }
+        if (playable.empty())
+        {
+            ShowPlaybackNotice(L"No playable tracks are available for this result.");
+            co_return;
+        }
+        if (shuffle && playable.size() > 1)
+        {
+            std::random_device randomDevice;
+            std::mt19937 generator(randomDevice());
+            std::shuffle(playable.begin(), playable.end(), generator);
+        }
+        SetPlaybackQueue(playable, 0);
+        PlayTrack(playable.front());
     }
 
-    // The old Browse surface offered list/grid and sort controls. Keeping these
-    // handlers makes any stale automation command harmless, while the redesign
-    // renders the intended top-result/list/facet composition instead.
+    void MainWindow::BrowseResultArtwork_Loaded(
+        winrt::Windows::Foundation::IInspectable const& sender,
+        MUX::RoutedEventArgs const& args)
+    {
+        (void)args;
+        auto image = sender.try_as<MUXC::Image>();
+        auto item = image ? image.Tag().try_as<winrt::Last_Music_Player::BrowseResultItem>() : nullptr;
+        if (!image || !item)
+        {
+            return;
+        }
+        auto representative = winrt::get_self<BrowseResultItem>(item)->RepresentativeTrack();
+        if (!representative)
+        {
+            return;
+        }
+        QueueAccountArtworkImage(image, item.ArtworkUrl(), ArtworkDetail::Tile, representative);
+    }
+
     void MainWindow::SearchListView_Click(
         winrt::Windows::Foundation::IInspectable const& sender,
         MUX::RoutedEventArgs const& args)
@@ -407,28 +285,6 @@ namespace winrt::Last_Music_Player::implementation
         (void)sender;
         (void)args;
         SetSearchGridMode(true);
-    }
-
-    void MainWindow::SearchSort_Click(
-        winrt::Windows::Foundation::IInspectable const& sender,
-        MUX::RoutedEventArgs const& args)
-    {
-        (void)args;
-        auto item = sender.try_as<MUXC::MenuFlyoutItem>();
-        if (!item)
-        {
-            return;
-        }
-        auto const sort = LastMusicPlayer::Backend::ParseSearchResultSort(
-            ReadTagString(item.Tag()).c_str());
-        auto const tag = LastMusicPlayer::Backend::SearchResultSortTag(sort);
-        m_searchSort.assign(tag.begin(), tag.end());
-        if (SearchSortLabel())
-        {
-            SearchSortLabel().Text(winrt::hstring(
-                LastMusicPlayer::Backend::SearchResultSortLabel(sort)));
-        }
-        ApplySearchResultSort();
     }
 
     void MainWindow::SearchRetry_Click(
@@ -448,35 +304,32 @@ namespace winrt::Last_Music_Player::implementation
             ? Visibility::Collapsed
             : Visibility::Visible);
         m_searchSkeleton.EndLoading();
-        ApplyBrowseScopeVisuals();
         RebuildBrowseRecentChips();
-        BrowseResumeSection().Visibility(m_browseResumeTracks.Size() == 0
-            ? Visibility::Collapsed
-            : Visibility::Visible);
     }
 
     void MainWindow::ShowBrowseSearchLoading()
     {
+        auto const query = std::wstring(TrimQuery(GlobalSearchBox().Text()).c_str());
         BrowseLandingPanel().Visibility(Visibility::Collapsed);
         BrowseSearchPanel().Visibility(Visibility::Visible);
         BrowseClearQueryButton().Visibility(Visibility::Visible);
+        SearchStatusText().Text(winrt::hstring(L"Results for “" + query + L"”"));
+        SearchResultCountText().Text(L"");
         SearchLoadingText().Visibility(Visibility::Visible);
         SearchErrorPanel().Visibility(Visibility::Collapsed);
         SearchEmptyPanel().Visibility(Visibility::Collapsed);
-        BrowseTopAndSongs().Visibility(Visibility::Collapsed);
-        BrowseFacetSection().Visibility(Visibility::Collapsed);
-        ApplyBrowseScopeVisuals();
-        ApplyBrowseFilterVisuals();
+        BrowseGroupedResultsPanel().Visibility(Visibility::Collapsed);
+        ApplyBrowseViewVisuals();
     }
 
     void MainWindow::ShowBrowseSearchResults(winrt::hstring const& query)
     {
-        (void)query;
         BrowseLandingPanel().Visibility(Visibility::Collapsed);
         BrowseSearchPanel().Visibility(Visibility::Visible);
         BrowseClearQueryButton().Visibility(Visibility::Visible);
         SearchLoadingText().Visibility(Visibility::Collapsed);
         SearchErrorPanel().Visibility(Visibility::Collapsed);
+        SearchStatusText().Text(winrt::hstring(L"Results for “" + std::wstring(query.c_str()) + L"”"));
         RebuildBrowseResults();
     }
 
@@ -487,270 +340,156 @@ namespace winrt::Last_Music_Player::implementation
         BrowseClearQueryButton().Visibility(Visibility::Visible);
         SearchLoadingText().Visibility(Visibility::Collapsed);
         SearchEmptyPanel().Visibility(Visibility::Collapsed);
-        BrowseTopAndSongs().Visibility(Visibility::Collapsed);
-        BrowseFacetSection().Visibility(Visibility::Collapsed);
+        BrowseGroupedResultsPanel().Visibility(Visibility::Collapsed);
         SearchErrorPanel().Visibility(Visibility::Visible);
         SearchErrorMessageText().Text(message);
     }
 
     void MainWindow::SetSearchGridMode(bool gridMode)
     {
-        m_searchGridMode = gridMode;
+        if (m_searchGridMode != gridMode)
+        {
+            m_searchGridMode = gridMode;
+            auto const preference = gridMode
+                ? LastMusicPlayer::Backend::BrowseViewPreference::Grid
+                : LastMusicPlayer::Backend::BrowseViewPreference::List;
+            SettingsManagerService().SetString(
+                kBrowseViewSetting,
+                winrt::hstring(LastMusicPlayer::Backend::BrowseViewPreferenceTag(preference)));
+        }
+        ApplyBrowseViewVisuals();
     }
 
-    std::vector<winrt::Last_Music_Player::TrackInfo> MainWindow::BrowseScopedResults() const
+    void MainWindow::LoadPersistedBrowseView()
     {
-        std::vector<winrt::Last_Music_Player::TrackInfo> tracks;
-        tracks.reserve(m_searchAllResults.size());
-        for (auto const& track : m_searchAllResults)
-        {
-            if (!track || (m_searchScope == L"Library" && !track.IsInLibrary()))
-            {
-                continue;
-            }
-            tracks.push_back(track);
-        }
-        return tracks;
+        auto const saved = std::wstring(SettingsManagerService().GetString(kBrowseViewSetting, L"grid").c_str());
+        m_searchGridMode = LastMusicPlayer::Backend::ParseBrowseViewPreference(saved)
+            == LastMusicPlayer::Backend::BrowseViewPreference::Grid;
+        ApplyBrowseViewVisuals();
     }
 
-    void MainWindow::ApplySearchResultSort()
+    void MainWindow::ApplyBrowseViewVisuals()
     {
-        auto const sort = LastMusicPlayer::Backend::ParseSearchResultSort(m_searchSort);
-        std::vector<LastMusicPlayer::Backend::SearchSortKey> keys;
-        keys.reserve(m_searchAllResults.size());
-        for (auto const& track : m_searchAllResults)
+        auto const gridVisibility = m_searchGridMode ? Visibility::Visible : Visibility::Collapsed;
+        auto const listVisibility = m_searchGridMode ? Visibility::Collapsed : Visibility::Visible;
+        for (auto const& grid : { BrowseSongsGrid(), BrowseAlbumsGrid(), BrowsePlaylistsGrid(), BrowseArtistsGrid() })
         {
-            keys.push_back({
-                std::wstring(track.Title().c_str()),
-                std::wstring(track.Artist().c_str()),
-                track.DurationSeconds()
-            });
+            grid.Visibility(gridVisibility);
         }
-        auto const order = LastMusicPlayer::Backend::SearchResultOrder(keys, sort);
-        std::vector<winrt::Last_Music_Player::TrackInfo> reordered;
-        reordered.reserve(order.size());
-        for (auto const index : order)
+        for (auto const& list : { BrowseSongsList(), BrowseAlbumsList(), BrowsePlaylistsList(), BrowseArtistsList() })
         {
-            reordered.push_back(m_searchAllResults[index]);
+            list.Visibility(listVisibility);
         }
-        m_searchAllResults = std::move(reordered);
-        RebuildBrowseResults();
+
+        EnsureAccentBrushes();
+        SearchGridViewButton().Background(m_searchGridMode ? m_brushSurface : m_brushTransparent);
+        SearchListViewButton().Background(m_searchGridMode ? m_brushTransparent : m_brushSurface);
+        SearchGridViewButton().Foreground(m_searchGridMode ? m_brushLabelIdle : m_brushTextTertiary);
+        SearchListViewButton().Foreground(m_searchGridMode ? m_brushTextTertiary : m_brushLabelIdle);
     }
 
     void MainWindow::RebuildBrowseResults()
     {
-        ApplyBrowseScopeVisuals();
-        ApplyBrowseFilterVisuals();
+        m_browseSongResults.Clear();
+        m_browseAlbumResults.Clear();
+        m_browsePlaylistResults.Clear();
+        m_browseArtistResults.Clear();
 
-        auto scoped = BrowseScopedResults();
-        auto const wantsSongs = m_searchFilter == L"All" || m_searchFilter == L"Songs";
-        auto const wantsAlbums = m_searchFilter == L"All" || m_searchFilter == L"Albums";
-        auto const wantsArtists = m_searchFilter == L"Artists";
-        auto const wantsPlaylists = m_searchFilter == L"Playlists";
-
-        m_searchTracks.Clear();
-        m_searchFacets.Clear();
-        m_searchTopResult = nullptr;
-        m_searchTopResultQueue.clear();
-        auto topIsAlbum = false;
-        winrt::hstring topTitle;
-        if (!scoped.empty())
+        std::vector<LastMusicPlayer::Backend::BrowseResultInput> inputs;
+        std::vector<winrt::Last_Music_Player::TrackInfo> sources;
+        inputs.reserve(m_searchAllResults.size() + m_searchMatchingPlaylists.size());
+        sources.reserve(inputs.capacity());
+        for (auto const& track : m_searchAllResults)
         {
-            std::vector<LastMusicPlayer::Backend::SearchFacetInput> candidates;
-            candidates.reserve(scoped.size());
-            for (auto const& track : scoped)
-            {
-                candidates.push_back({
-                    std::wstring(track.Title().c_str()),
-                    {},
-                    std::wstring(track.Artist().c_str()),
-                    std::wstring(track.Album().c_str()),
-                    {},
-                    {},
-                    track.IsInLibrary(),
-                    0
-                });
-            }
-
-            LastMusicPlayer::Backend::TopSearchResult top;
-            if (LastMusicPlayer::Backend::ChooseTopSearchResult(
-                candidates,
-                std::wstring(TrimQuery(GlobalSearchBox().Text()).c_str()),
-                top))
-            {
-                m_searchTopResult = scoped[top.Index];
-                topIsAlbum = top.Kind == LastMusicPlayer::Backend::TopResultKind::Album;
-                topTitle = winrt::hstring(top.Title);
-                if (topIsAlbum)
-                {
-                    // The card names an album, so its play action has to mean
-                    // the album. Anything less would play one track under a
-                    // heading that promised the record.
-                    auto const foldedAlbum = ToLowerCopy(m_searchTopResult.Album());
-                    for (auto const& track : scoped)
-                    {
-                        if (ToLowerCopy(track.Album()) == foldedAlbum)
-                        {
-                            m_searchTopResultQueue.push_back(track);
-                        }
-                    }
-                }
-                if (m_searchTopResultQueue.empty())
-                {
-                    m_searchTopResultQueue.push_back(m_searchTopResult);
-                }
-            }
+            if (!track) { continue; }
+            inputs.push_back({
+                LastMusicPlayer::Backend::BrowseResultKind::Song,
+                std::wstring(track.Title().c_str()),
+                std::wstring(track.Artist().c_str()),
+                std::wstring(track.Album().c_str()),
+                {}, std::wstring(track.Duration().c_str()), HomeQueueDedupeKey(track), 0
+            });
+            sources.push_back(track);
         }
-        if (wantsSongs)
+        for (auto const& playlist : m_searchMatchingPlaylists)
         {
-            auto const take = (std::min)(kBrowseSongPreviewLimit, scoped.size());
-            for (std::size_t index = 0; index < take; ++index)
-            {
-                auto track = scoped[index];
-                track.Index(static_cast<int32_t>(index + 1));
-                ResolveArtworkPresentation(track, L"track");
-                m_searchTracks.Append(track);
-            }
+            if (!playlist) { continue; }
+            inputs.push_back({
+                LastMusicPlayer::Backend::BrowseResultKind::Playlist,
+                std::wstring(playlist.Title().c_str()),
+                {}, {}, {}, {}, std::wstring(playlist.SourceUrl().c_str()),
+                static_cast<std::size_t>((std::max)(0, playlist.TrackCount()))
+            });
+            sources.push_back(playlist);
         }
 
-        if (m_searchTopResult && wantsSongs)
-        {
-            BrowseTopResultTitle().Text(topTitle);
-            BrowseTopResultKindText().Text(topIsAlbum ? L"ALBUM" : L"SONG");
-            BrowseTopResultSubtitle().Text(m_searchTopResult.Artist());
-            BrowseTopResultArt().DataContext(m_searchTopResult);
-            BrowseTopResultArt().Source(m_searchTopResult.AlbumArt());
-            QueueAccountArtworkImage(
-                BrowseTopResultArt(),
-                m_searchTopResult.ArtworkUrl(),
-                ArtworkDetail::Tile,
-                m_searchTopResult);
-        }
-        BrowseTopAndSongs().Visibility(m_searchTopResult && wantsSongs
-            ? Visibility::Visible
-            : Visibility::Collapsed);
+        auto const grouped = LastMusicPlayer::Backend::BuildGroupedBrowseResults(
+            inputs,
+            std::wstring(TrimQuery(GlobalSearchBox().Text()).c_str()),
+            m_searchUrlLookup);
 
-        if (wantsAlbums || wantsArtists)
+        auto append = [&](LastMusicPlayer::Backend::BrowseResultEntity const& entity)
         {
-            auto const kind = wantsArtists
-                ? LastMusicPlayer::Backend::SearchFacetKind::Artist
-                : LastMusicPlayer::Backend::SearchFacetKind::Album;
-            std::vector<LastMusicPlayer::Backend::SearchFacetInput> inputs;
-            inputs.reserve(scoped.size());
-            for (auto const& track : scoped)
-            {
-                inputs.push_back({
-                    std::wstring(track.Title().c_str()),
-                    {},
-                    std::wstring(track.Artist().c_str()),
-                    std::wstring(track.Album().c_str()),
-                    std::wstring(track.Genre().c_str()),
-                    kind == LastMusicPlayer::Backend::SearchFacetKind::Album
-                        ? ToLowerCopy(track.Album()) + L"|" + ToLowerCopy(track.Artist())
-                        : ToLowerCopy(track.Artist()),
-                    track.IsInLibrary(),
-                    0
-                });
-            }
+            if (entity.RepresentativeIndex >= sources.size()) { return; }
+            auto representative = sources[entity.RepresentativeIndex];
+            auto const kind = KindTag(entity.Kind);
+            ResolveArtworkPresentation(representative, kind);
 
-            auto const facets = LastMusicPlayer::Backend::BuildSearchFacets(
-                inputs, kind, kBrowseFacetLimit);
-            for (auto const& facet : facets)
+            winrt::Last_Music_Player::BrowseResultItem item;
+            item.Kind(kind);
+            item.Title(winrt::hstring(entity.Title));
+            item.Subtitle(winrt::hstring(entity.Subtitle));
+            item.Meta(winrt::hstring(entity.Meta));
+            item.Key(winrt::hstring(entity.Key));
+            item.ArtworkUrl(representative.ArtworkUrl());
+            item.ArtworkSource(representative.AlbumArt());
+            auto itemImplementation = winrt::get_self<BrowseResultItem>(item);
+            itemImplementation->RepresentativeTrack(representative);
+
+            std::vector<winrt::Last_Music_Player::TrackInfo> members;
+            members.reserve(entity.MemberIndices.size());
+            for (auto const index : entity.MemberIndices)
             {
-                auto const source = FirstMatchingFacetSource(scoped, facet);
-                if (!source)
-                {
-                    continue;
-                }
-                // TrackInfo is a runtime class, so assigning one shares the
-                // object rather than copying it. Retitling a result in place
-                // would rewrite the very row the songs list above is showing
-                // and replace its playable SourceUrl. Each card is therefore
-                // its own object carrying only what the tile template, the
-                // artwork fetch and the drill-down read.
-                winrt::Last_Music_Player::TrackInfo card;
-                card.Title(winrt::hstring(facet.Title));
-                card.Artist(kind == LastMusicPlayer::Backend::SearchFacetKind::Artist
-                    ? winrt::hstring(std::to_wstring(facet.Count) + (facet.Count == 1 ? L" song" : L" songs"))
-                    : winrt::hstring(facet.Subtitle));
-                card.Album(source.Album());
-                card.SourceKind(kind == LastMusicPlayer::Backend::SearchFacetKind::Artist
-                    ? L"search-artist"
-                    : L"search-album");
-                // Carried from the matched track so the artwork pipeline can
-                // still resolve a cover: QueueAccountArtworkImage falls back to
-                // SourceUrl when a card has no direct artwork URL.
-                card.SourceUrl(source.SourceUrl());
-                card.ArtworkUrl(source.ArtworkUrl());
-                card.AlbumArt(source.AlbumArt());
-                card.Provider(source.Provider());
-                card.TrackCount(static_cast<int32_t>(facet.Count));
-                card.IsInLibrary(facet.InLibrary);
-                ResolveArtworkPresentation(card, kind == LastMusicPlayer::Backend::SearchFacetKind::Artist
-                    ? L"artist"
-                    : L"album");
-                m_searchFacets.Append(card);
+                if (index < sources.size()) { members.push_back(sources[index]); }
             }
-            BrowseFacetHeading().Text(wantsArtists ? L"ARTISTS" : L"ALBUMS");
-        }
-        else if (wantsPlaylists)
+            itemImplementation->MemberTracks(std::move(members));
+
+            switch (entity.Kind)
+            {
+            case LastMusicPlayer::Backend::BrowseResultKind::Song: m_browseSongResults.Append(item); break;
+            case LastMusicPlayer::Backend::BrowseResultKind::Album: m_browseAlbumResults.Append(item); break;
+            case LastMusicPlayer::Backend::BrowseResultKind::Playlist: m_browsePlaylistResults.Append(item); break;
+            case LastMusicPlayer::Backend::BrowseResultKind::Artist: m_browseArtistResults.Append(item); break;
+            }
+        };
+        for (auto const& group : grouped.Groups)
         {
-            // The playlists go in as themselves. Stamping a marker SourceKind
-            // on them would mutate the shared playlist objects the library
-            // surfaces bind to; the click handler reads m_searchFilter instead.
-            for (auto const& playlist : m_searchMatchingPlaylists)
-            {
-                ResolveArtworkPresentation(playlist, L"playlist");
-                m_searchFacets.Append(playlist);
-            }
-            BrowseFacetHeading().Text(L"PLAYLISTS");
+            for (auto const& entity : group.Items) { append(entity); }
         }
 
-        BrowseFacetSection().Visibility(m_searchFacets.Size() == 0
-            ? Visibility::Collapsed
-            : Visibility::Visible);
+        auto applySection = [](MUX::FrameworkElement const& section, MUXC::TextBlock const& count, std::size_t size)
+        {
+            section.Visibility(size == 0 ? Visibility::Collapsed : Visibility::Visible);
+            count.Text(ResultCountText(size));
+        };
+        applySection(BrowseSongsSection(), BrowseSongsCount(), m_browseSongResults.Size());
+        applySection(BrowseAlbumsSection(), BrowseAlbumsCount(), m_browseAlbumResults.Size());
+        applySection(BrowsePlaylistsSection(), BrowsePlaylistsCount(), m_browsePlaylistResults.Size());
+        applySection(BrowseArtistsSection(), BrowseArtistsCount(), m_browseArtistResults.Size());
 
-        auto const hasContent = (wantsSongs && m_searchTopResult)
-            || m_searchFacets.Size() > 0;
+        SearchResultCountText().Text(winrt::hstring(
+            std::to_wstring(grouped.DisplayedEntityCount)
+            + (grouped.DisplayedEntityCount == 1 ? L" item" : L" items")));
+        auto const hasContent = grouped.DisplayedEntityCount > 0;
+        BrowseGroupedResultsPanel().Visibility(hasContent ? Visibility::Visible : Visibility::Collapsed);
         SearchEmptyPanel().Visibility(hasContent ? Visibility::Collapsed : Visibility::Visible);
         if (!hasContent)
         {
             auto const query = std::wstring(TrimQuery(GlobalSearchBox().Text()).c_str());
             SearchEmptyTitleText().Text(winrt::hstring(L"Nothing for “" + query + L"”"));
-            SearchEmptyHintText().Text(m_searchScope == L"Library"
-                ? L"Check the spelling, or search the full catalog instead of your library."
-                : L"Check the spelling, or try a broader search.");
+            SearchEmptyHintText().Text(L"Check the spelling, or try a broader search.");
         }
-    }
-
-    void MainWindow::ApplyBrowseScopeVisuals()
-    {
-        EnsureAccentBrushes();
-        auto const library = m_searchScope == L"Library";
-        BrowseScopeLibraryButton().Background(library ? m_brushNeutralFill : m_brushTransparent);
-        BrowseScopeCatalogButton().Background(library ? m_brushTransparent : m_brushNeutralFill);
-        BrowseScopeLibraryButton().Foreground(library ? m_brushLabelIdle : m_brushTextTertiary);
-        BrowseScopeCatalogButton().Foreground(library ? m_brushTextTertiary : m_brushLabelIdle);
-    }
-
-    void MainWindow::ApplyBrowseFilterVisuals()
-    {
-        struct FilterButton
-        {
-            winrt::Microsoft::UI::Xaml::Controls::Primitives::ToggleButton Button;
-            wchar_t const* Name;
-        };
-        FilterButton const buttons[] = {
-            { BrowseFilterAll(), L"All" },
-            { BrowseFilterSongs(), L"Songs" },
-            { BrowseFilterAlbums(), L"Albums" },
-            { BrowseFilterArtists(), L"Artists" },
-            { BrowseFilterPlaylists(), L"Playlists" }
-        };
-        for (auto const& row : buttons)
-        {
-            row.Button.IsChecked(m_searchFilter == row.Name);
-        }
+        ApplyBrowseViewVisuals();
     }
 
     void MainWindow::LoadPersistedRecentSearches()
@@ -761,9 +500,7 @@ namespace winrt::Last_Music_Player::implementation
 
     void MainWindow::RecordBrowseRecentSearch(winrt::hstring const& query)
     {
-        m_recentSearches = LastMusicPlayer::Backend::RecordRecentSearch(
-            m_recentSearches,
-            std::wstring(query.c_str()));
+        m_recentSearches = LastMusicPlayer::Backend::RecordRecentSearch(m_recentSearches, std::wstring(query.c_str()));
         SettingsManagerService().SetString(
             L"RecentSearches",
             winrt::hstring(LastMusicPlayer::Backend::EncodeRecentSearches(m_recentSearches)));
@@ -773,17 +510,12 @@ namespace winrt::Last_Music_Player::implementation
     void MainWindow::RebuildBrowseRecentChips()
     {
         auto panel = BrowseRecentSearchChips();
-        if (!panel)
-        {
-            return;
-        }
+        if (!panel) { return; }
         panel.Children().Clear();
         for (auto const& query : m_recentSearches)
         {
             MUXC::Button button;
             button.Tag(winrt::box_value(winrt::hstring(query)));
-            // White, not transparent: these chips sit on the page fill, and the
-            // reference reads them as cards on it rather than outlines cut into it.
             button.Background(m_brushSurface);
             button.BorderBrush(m_brushStroke);
             button.BorderThickness({ 1 });
@@ -806,25 +538,19 @@ namespace winrt::Last_Music_Player::implementation
             panel.Children().Append(button);
         }
         BrowseRecentSearchesSection().Visibility(m_recentSearches.empty()
-            ? Visibility::Collapsed
-            : Visibility::Visible);
+            ? Visibility::Collapsed : Visibility::Visible);
     }
 
     winrt::Windows::Foundation::IAsyncAction MainWindow::HydrateBrowseLandingAsync(bool force)
     {
         auto lifetime = get_strong();
-        if (m_browseLandingLoaded && !force)
-        {
-            co_return;
-        }
+        if (m_browseLandingLoaded && !force) { co_return; }
 
         auto const epoch = ++m_browseLandingEpoch;
         auto dispatcher = DispatcherQueue();
         std::vector<winrt::Last_Music_Player::TrackInfo> genres;
         std::vector<winrt::Last_Music_Player::TrackInfo> artists;
         std::vector<std::wstring> rankedGenres;
-        std::vector<winrt::Last_Music_Player::TrackInfo> history;
-
         co_await winrt::resume_background();
         if (DatabaseService().IsInitialized())
         {
@@ -832,23 +558,12 @@ namespace winrt::Last_Music_Player::implementation
             artists = DatabaseService().LoadArtists();
             rankedGenres = DatabaseService().LoadTopGenres(
                 static_cast<int>(LastMusicPlayer::Backend::kBrowseLandingLabelLimit));
-            history = DatabaseService().LoadHistoryTracks(true, true);
         }
-
         co_await wil::resume_foreground(dispatcher);
-        if (epoch != m_browseLandingEpoch)
-        {
-            co_return;
-        }
+        if (epoch != m_browseLandingEpoch) { co_return; }
 
         std::unordered_map<std::wstring, winrt::Last_Music_Player::TrackInfo> byGenre;
-        for (auto const& genre : genres)
-        {
-            byGenre.emplace(ToLowerCopy(genre.Title()), genre);
-        }
-
-        // LoadArtists already orders by track count, so its head is the ranking
-        // BrowseLandingLabels wants for a library whose files carry no genre tag.
+        for (auto const& genre : genres) { byGenre.emplace(ToLowerCopy(genre.Title()), genre); }
         std::unordered_map<std::wstring, winrt::Last_Music_Player::TrackInfo> byArtist;
         std::vector<std::wstring> rankedArtists;
         for (auto const& artist : artists)
@@ -860,15 +575,7 @@ namespace winrt::Last_Music_Player::implementation
             }
         }
 
-        // A tile has to lead somewhere, so each label is kept only when the
-        // library actually holds the group behind it. That also filters out the
-        // policy's static last-resort labels ("Pop", "Chill", ...), which name
-        // genres an empty library does not have: on a library with nothing to
-        // browse the section stays hidden rather than offering tiles that open
-        // an empty page.
-        auto const appendCategory = [this](
-            winrt::Last_Music_Player::TrackInfo const& group,
-            winrt::hstring const& context)
+        auto const appendCategory = [this](winrt::Last_Music_Player::TrackInfo const& group, winrt::hstring const& context)
         {
             auto category = group;
             category.ArtworkCaption(winrt::hstring(
@@ -894,33 +601,12 @@ namespace winrt::Last_Music_Player::implementation
         }
         if (m_browseCategories.Size() == 0)
         {
-            // LoadTopGenres drops broad media categories that are not musical
-            // genres, so a library tagged only with those ranks empty while
-            // still having genres worth showing.
             for (auto const& genre : genres)
             {
-                if (m_browseCategories.Size() >= LastMusicPlayer::Backend::kBrowseLandingLabelLimit)
-                {
-                    break;
-                }
+                if (m_browseCategories.Size() >= LastMusicPlayer::Backend::kBrowseLandingLabelLimit) { break; }
                 appendCategory(genre, L"genre");
             }
         }
-
-        m_browseResumeTracks.Clear();
-        for (auto const& source : history)
-        {
-            if (m_browseResumeTracks.Size() >= kBrowseResumeLimit || !IsPlayableHomeTrack(source))
-            {
-                continue;
-            }
-            auto track = source;
-            ResolveArtworkPresentation(track, L"track");
-            m_browseResumeTracks.Append(track);
-        }
-        BrowseResumeSection().Visibility(m_browseResumeTracks.Size() == 0
-            ? Visibility::Collapsed
-            : Visibility::Visible);
         m_browseLandingLoaded = true;
     }
 }

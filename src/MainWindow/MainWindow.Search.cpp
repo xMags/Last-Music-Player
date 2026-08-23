@@ -135,9 +135,11 @@ namespace winrt::Last_Music_Player::implementation
         m_isSearchMode = false;
         m_searchAllResults.clear();
         m_searchMatchingPlaylists.clear();
-        m_searchTracks.Clear();
-        m_searchFacets.Clear();
-        m_searchTopResult = nullptr;
+        m_browseSongResults.Clear();
+        m_browseAlbumResults.Clear();
+        m_browsePlaylistResults.Clear();
+        m_browseArtistResults.Clear();
+        m_searchUrlLookup = false;
         ShowBrowseLanding();
         RunDetached(HydrateBrowseLandingAsync(false));
     }
@@ -248,9 +250,11 @@ namespace winrt::Last_Music_Player::implementation
 
         m_searchAllResults.clear();
         m_searchMatchingPlaylists.clear();
-        m_searchTracks.Clear();
-        m_searchFacets.Clear();
-        m_searchTopResult = nullptr;
+        m_browseSongResults.Clear();
+        m_browseAlbumResults.Clear();
+        m_browsePlaylistResults.Clear();
+        m_browseArtistResults.Clear();
+        m_searchUrlLookup = LooksLikeUrlQuery(query);
         ShowBrowseSearchLoading();
         ScheduleRecentSearchRecord(query, requestId);
 
@@ -267,9 +271,8 @@ namespace winrt::Last_Music_Player::implementation
             // provider hits.
             localQuery.IncludeRemote = true;
             localQuery.ActiveOnly = true;
-            // Catalog mode still shows these local hits first and only then
-            // asks the provider for what lies beyond the local index, so both
-            // scopes read the same local page.
+            // Unified search shows these local hits first, then merges what the
+            // configured provider finds beyond the local index.
             localQuery.Limit = 60;
 
             auto dispatcher = DispatcherQueue();
@@ -278,8 +281,7 @@ namespace winrt::Last_Music_Player::implementation
             auto const playlists = DatabaseService().LoadPlaylists();
             for (auto const& playlist : playlists)
             {
-                if (ContainsFolded(playlist.Title(), query)
-                    || ContainsFolded(playlist.Artist(), query))
+                if (ContainsFolded(playlist.Title(), query))
                 {
                     localPlaylists.push_back(playlist);
                 }
@@ -346,16 +348,8 @@ namespace winrt::Last_Music_Player::implementation
         // half finishes instead of replacing playable rows with a placeholder.
         if (localMatches > 0)
         {
-            ApplySearchResultSort();
             ShowBrowseSearchResults(query);
             m_searchSkeleton.EndLoading();
-        }
-
-        if (m_searchScope == L"Library")
-        {
-            ApplySearchResultSort();
-            ShowBrowseSearchResults(query);
-            co_return;
         }
 
         size_t remoteMatches = 0;
@@ -363,7 +357,6 @@ namespace winrt::Last_Music_Player::implementation
         auto remoteScope = remoteMusic.CaptureScope();
         if (remoteScope.Mode == LastMusicPlayer::Backend::RemoteAccessMode::LocalOnly)
         {
-            ApplySearchResultSort();
             ShowBrowseSearchResults(query);
             co_return;
         }
@@ -484,27 +477,7 @@ namespace winrt::Last_Music_Player::implementation
             co_return;
         }
 
-        ApplySearchResultSort();
         ShowBrowseSearchResults(query);
-    }
-
-    winrt::Windows::Foundation::IAsyncAction MainWindow::SearchResult_ItemClick(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::ItemClickEventArgs const& args)
-    {
-        (void)sender;
-        auto clickedTrack = args.ClickedItem().try_as<winrt::Last_Music_Player::TrackInfo>();
-        if (!clickedTrack)
-        {
-            co_return;
-        }
-
-        MusicListView().SelectedItem(clickedTrack);
-        RecordBrowseRecentSearch(TrimQuery(GlobalSearchBox().Text()));
-
-        // Search is not a durable collection. Clicking a result plays only that
-        // track; multi-track queueing stays an explicit action.
-        std::vector<winrt::Last_Music_Player::TrackInfo> searchQueue{ clickedTrack };
-        SetPlaybackQueue(searchQueue, 0);
-        PlayTrack(clickedTrack);
     }
 
     void MainWindow::AccelSearch_Invoked(winrt::Microsoft::UI::Xaml::Input::KeyboardAccelerator const& sender, winrt::Microsoft::UI::Xaml::Input::KeyboardAcceleratorInvokedEventArgs const& args)

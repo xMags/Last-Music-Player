@@ -444,7 +444,6 @@ namespace winrt::Last_Music_Player::implementation
         // container hook only the rows realized on the first layout ever ask
         // for artwork and everything scrolled to afterwards stays blank. Listed
         // one by one because these are not all the same control type.
-        ObserveCatalogGridContainers(BrowseFacetGrid());
         ObserveCatalogGridContainers(MusicListView());
         ObserveCatalogGridContainers(DiscoverDetailTracksListView());
         ObserveCatalogGridContainers(LibrarySongsListView());

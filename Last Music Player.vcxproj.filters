@@ -18,6 +18,9 @@
     <Midl Include="src\Frontend\GenreArtworkTile.idl">
       <Filter>Frontend</Filter>
     </Midl>
+    <Midl Include="src\Frontend\BrowseResultItem.idl">
+      <Filter>Frontend</Filter>
+    </Midl>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\App\pch.cpp" />
@@ -154,7 +157,13 @@
     <ClInclude Include="src\Frontend\GenreArtworkTile.h">
       <Filter>Frontend</Filter>
     </ClInclude>
+    <ClInclude Include="src\Frontend\BrowseResultItem.h">
+      <Filter>Frontend</Filter>
+    </ClInclude>
     <ClInclude Include="src\Backend\GenreArtworkRecipe.h">
+      <Filter>Backend</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\BrowseGroupingPolicy.h">
       <Filter>Backend</Filter>
     </ClInclude>
     <!-- Backend Headers -->
@@ -227,9 +236,6 @@
       <Filter>Backend</Filter>
     </ClInclude>
     <ClInclude Include="src\Backend\RecentSearchStore.h">
-      <Filter>Backend</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Backend\SearchFacetPolicy.h">
       <Filter>Backend</Filter>
     </ClInclude>
     <ClInclude Include="src\Backend\LyricsService.h">
@@ -325,7 +331,13 @@
     <ClCompile Include="src\Frontend\GenreArtworkTile.cpp">
       <Filter>Frontend</Filter>
     </ClCompile>
+    <ClCompile Include="src\Frontend\BrowseResultItem.cpp">
+      <Filter>Frontend</Filter>
+    </ClCompile>
     <ClCompile Include="src\Backend\GenreArtworkRecipe.cpp">
+      <Filter>Backend</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\BrowseGroupingPolicy.cpp">
       <Filter>Backend</Filter>
     </ClCompile>
     <ClCompile Include="src\XamlMetadata\XamlMetaDataProvider.Build.cpp">
@@ -401,9 +413,6 @@
       <Filter>Backend</Filter>
     </ClCompile>
     <ClCompile Include="src\Backend\RecentSearchStore.cpp">
-      <Filter>Backend</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Backend\SearchFacetPolicy.cpp">
       <Filter>Backend</Filter>
     </ClCompile>
     <ClCompile Include="src\Backend\LyricsService.cpp">

@@ -2467,7 +2467,10 @@ namespace winrt::Last_Music_Player::implementation
             m_homeMostPlayedTracks.Clear();
             m_homeLikedTracks.Clear();
             m_songsTracks.Clear();
-            m_searchTracks.Clear();
+            m_browseSongResults.Clear();
+            m_browseAlbumResults.Clear();
+            m_browsePlaylistResults.Clear();
+            m_browseArtistResults.Clear();
             m_browseCategories.Clear();
             m_browseLandingLoaded = false;
             ++m_browseLandingEpoch;

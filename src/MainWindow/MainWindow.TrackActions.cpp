@@ -460,7 +460,6 @@ namespace winrt::Last_Music_Player::implementation
         patchObservable(m_songsTracks);
         patchObservable(m_homeTracks);
         patchObservable(m_recentlyAddedTracks);
-        patchObservable(m_searchTracks);
         patchObservable(m_librarySongs);
         patchObservable(m_libraryDetailTracks);
         patchObservable(m_upNextQueue);

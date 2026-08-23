@@ -202,7 +202,6 @@
     <ClInclude Include="src\Backend\DownloadPolicy.h" />
     <ClInclude Include="src\Backend\PlaylistSuggestionPolicy.h" />
     <ClInclude Include="src\Backend\RecentSearchStore.h" />
-    <ClInclude Include="src\Backend\SearchFacetPolicy.h" />
     <ClInclude Include="src\Backend\CastEngine.h" />
     <ClInclude Include="src\Backend\TrayIcon.h" />
     <ClInclude Include="src\Backend\DiscordPresence.h" />
@@ -217,7 +216,9 @@
     <ClInclude Include="src\Frontend\CarouselArrows.h" />
     <ClInclude Include="src\Frontend\ChipWrapPanel.h" />
     <ClInclude Include="src\Frontend\GenreArtworkTile.h" />
+    <ClInclude Include="src\Frontend\BrowseResultItem.h" />
     <ClInclude Include="src\Backend\GenreArtworkRecipe.h" />
+    <ClInclude Include="src\Backend\BrowseGroupingPolicy.h" />
   </ItemGroup>
   <ItemGroup>
     <ApplicationDefinition Include="src\App\App.xaml" />
@@ -303,7 +304,6 @@
     <ClCompile Include="src\Backend\DownloadPolicy.cpp" />
     <ClCompile Include="src\Backend\PlaylistSuggestionPolicy.cpp" />
     <ClCompile Include="src\Backend\RecentSearchStore.cpp" />
-    <ClCompile Include="src\Backend\SearchFacetPolicy.cpp" />
     <ClCompile Include="src\Backend\LyricsService.cpp" />
     <ClCompile Include="src\Backend\CastEngine.cpp" />
     <ClCompile Include="src\Backend\TrayIcon.cpp" />
@@ -331,7 +331,9 @@
     <ClCompile Include="src\Frontend\CarouselArrows.cpp" />
     <ClCompile Include="src\Frontend\ChipWrapPanel.cpp" />
     <ClCompile Include="src\Frontend\GenreArtworkTile.cpp" />
+    <ClCompile Include="src\Frontend\BrowseResultItem.cpp" />
     <ClCompile Include="src\Backend\GenreArtworkRecipe.cpp" />
+    <ClCompile Include="src\Backend\BrowseGroupingPolicy.cpp" />
     <ClCompile Include="packages\Microsoft.WindowsAppSDK.Foundation.1.8.260203002\include\UndockedRegFreeWinRT-AutoInitializer.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PreprocessorDefinitions>MICROSOFT_WINDOWSAPPSDK_UNDOCKEDREGFREEWINRT_AUTO_INITIALIZE_LOADLIBRARY;MICROSOFT_WINDOWSAPPSDK_UNDOCKEDREGFREEWINRT_AUTO_INITIALIZE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -352,6 +354,9 @@
       <SubType>Code</SubType>
     </Midl>
     <Midl Include="src\Frontend\GenreArtworkTile.idl">
+      <SubType>Code</SubType>
+    </Midl>
+    <Midl Include="src\Frontend\BrowseResultItem.idl">
       <SubType>Code</SubType>
     </Midl>
   </ItemGroup>

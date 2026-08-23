@@ -1194,181 +1194,119 @@
 
                 <!-- ========== BROWSE / SEARCH VIEW ========== -->
                 <Grid x:Name="BrowseViewContainer" Visibility="Collapsed" Margin="4,0,-16,0">
+                    <Grid.Resources>
+                        <DataTemplate x:Key="BrowseResultGridTemplate" x:DataType="local:BrowseResultItem">
+                            <StackPanel Margin="0,6,18,22" PointerEntered="PlaylistCard_PointerEntered" PointerExited="PlaylistCard_PointerExited">
+                                <Border Margin="0,0,0,10" CornerRadius="{x:Bind ArtworkCornerRadius}" Background="{ThemeResource NeutralFillBrush}"
+                                        SizeChanged="LibraryArtworkBorder_SizeChanged" Translation="0,0,16">
+                                    <Border.Shadow><ThemeShadow /></Border.Shadow>
+                                    <Grid>
+                                        <FontIcon Glyph="&#xE8D6;" FontSize="34" Foreground="{ThemeResource PlaceholderGlyphBrush}" />
+                                        <Image Tag="{x:Bind}" Source="{x:Bind ArtworkSource}" Stretch="UniformToFill" Loaded="BrowseResultArtwork_Loaded" />
+                                    </Grid>
+                                </Border>
+                                <TextBlock Text="{x:Bind Title}" FontSize="14" FontWeight="SemiBold" TextAlignment="{x:Bind GridTextAlignment}"
+                                           TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                                <TextBlock Text="{x:Bind Subtitle}" Margin="0,2,0,0" FontSize="12" Foreground="{ThemeResource TextTertiaryBrush}"
+                                           TextAlignment="{x:Bind GridTextAlignment}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                            </StackPanel>
+                        </DataTemplate>
+                        <DataTemplate x:Key="BrowseResultListTemplate" x:DataType="local:BrowseResultItem">
+                            <Grid Height="64" Padding="14,0" ColumnSpacing="14">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="46" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Border Width="46" Height="46" CornerRadius="{x:Bind ArtworkCornerRadius}" Background="{ThemeResource NeutralFillBrush}" VerticalAlignment="Center" Translation="0,0,8">
+                                    <Border.Shadow><ThemeShadow /></Border.Shadow>
+                                    <Grid>
+                                        <FontIcon Glyph="&#xE8D6;" FontSize="17" Foreground="{ThemeResource PlaceholderGlyphBrush}" />
+                                        <Image Tag="{x:Bind}" Source="{x:Bind ArtworkSource}" Stretch="UniformToFill" Loaded="BrowseResultArtwork_Loaded" />
+                                    </Grid>
+                                </Border>
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBlock Text="{x:Bind Title}" FontSize="14.5" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                                    <TextBlock Text="{x:Bind Subtitle}" Margin="0,2,0,0" FontSize="12.5" Foreground="{ThemeResource TextTertiaryBrush}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                                </StackPanel>
+                                <TextBlock Grid.Column="2" Text="{x:Bind Meta}" FontSize="12.5" Foreground="{ThemeResource TextTertiaryBrush}"
+                                           VerticalAlignment="Center" Typography.NumeralAlignment="Tabular" />
+                            </Grid>
+                        </DataTemplate>
+                        <Style x:Key="BrowseResultListItemStyle" TargetType="ListViewItem">
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                            <Setter Property="Padding" Value="0" />
+                            <Setter Property="Margin" Value="0,1" />
+                            <Setter Property="MinHeight" Value="64" />
+                            <Setter Property="CornerRadius" Value="10" />
+                        </Style>
+                    </Grid.Resources>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
-                    <!-- Compatibility anchors for the existing search status and
-                         list/grid helpers. The redesigned surface does not show
-                         these legacy chrome elements, but keeping the names lets
-                         old navigation paths fail closed instead of growing a
-                         second state machine. -->
-                    <TextBlock x:Name="SearchStatusText" Visibility="Collapsed" />
-                    <TextBlock x:Name="SearchResultCountText" Visibility="Collapsed" />
-                    <TextBlock x:Name="SearchSortLabel" Visibility="Collapsed" />
-                    <Button x:Name="SearchListViewButton" Visibility="Collapsed" />
-                    <Button x:Name="SearchGridViewButton" Visibility="Collapsed" />
 
-                    <!-- One field searches both local library and provider catalog.
-                         The scope switch controls whether remote results are requested,
-                         not which provider account is active. -->
-                    <Grid Grid.Row="0" Margin="0,36,20,0" ColumnSpacing="12">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-
-                        <Border x:Name="SearchGlow" MaxWidth="620" HorizontalAlignment="Left" CornerRadius="14" BorderBrush="Transparent" BorderThickness="2" Padding="2">
-                            <Border x:Name="SearchBorder" Height="46" Background="{ThemeResource SurfaceBrush}"
-                                    BorderBrush="{ThemeResource StrokeStrongBrush}" BorderThickness="1"
-                                    CornerRadius="{StaticResource RadiusXl}" Padding="14,0">
-                                <Border.Shadow><ThemeShadow /></Border.Shadow>
-                                <Grid ColumnSpacing="11">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-                                    <FontIcon Glyph="&#xE721;" FontSize="15" Foreground="{ThemeResource TextTertiaryBrush}" VerticalAlignment="Center" />
-                                    <TextBox x:Name="GlobalSearchBox" Grid.Column="1"
-                                             PlaceholderText="Search your library and the catalog"
-                                             AutomationProperties.Name="Search your library and the catalog"
-                                             BorderThickness="0" Background="Transparent" Padding="0"
-                                             VerticalAlignment="Center" FontSize="15"
-                                             Foreground="{ThemeResource TextPrimaryBrush}"
-                                             GotFocus="GlobalSearchBox_GotFocus"
-                                             LostFocus="GlobalSearchBox_LostFocus"
-                                             KeyDown="GlobalSearchBox_KeyDown"
-                                             TextChanged="GlobalSearchBox_TextChanged" />
-                                    <Button x:Name="BrowseClearQueryButton" Grid.Column="2" Visibility="Collapsed"
-                                            Click="BrowseClearQuery_Click" Style="{StaticResource IconOnlyButton}"
-                                            Width="28" Height="28" CornerRadius="14"
-                                            AutomationProperties.Name="Clear search">
-                                        <FontIcon Glyph="&#xE711;" FontSize="12" />
-                                    </Button>
-                                    <Border Grid.Column="3" Height="22" CornerRadius="5"
-                                            BorderThickness="1" BorderBrush="{ThemeResource StrokeStrongBrush}"
-                                            Background="Transparent" Padding="6,2"
-                                            VerticalAlignment="Center" IsHitTestVisible="False">
-                                        <TextBlock Text="Ctrl K" FontSize="11" Foreground="{ThemeResource TextTertiaryBrush}" VerticalAlignment="Center" />
-                                    </Border>
-                                </Grid>
-                            </Border>
+                    <Border x:Name="SearchGlow" Grid.Row="0" Margin="0,60,20,0" HorizontalAlignment="Stretch" CornerRadius="14" BorderBrush="Transparent" BorderThickness="2" Padding="2">
+                        <Border x:Name="SearchBorder" Height="46" Background="{ThemeResource SurfaceBrush}"
+                                BorderBrush="{ThemeResource StrokeStrongBrush}" BorderThickness="1"
+                                CornerRadius="{StaticResource RadiusXl}" Padding="14,0">
+                            <Border.Shadow><ThemeShadow /></Border.Shadow>
+                            <Grid ColumnSpacing="11">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <FontIcon Glyph="&#xE721;" FontSize="15" Foreground="{ThemeResource TextTertiaryBrush}" VerticalAlignment="Center" />
+                                <TextBox x:Name="GlobalSearchBox" Grid.Column="1" PlaceholderText="Search your library and the catalog"
+                                         AutomationProperties.Name="Search your library and the catalog" BorderThickness="0" Background="Transparent" Padding="0"
+                                         VerticalAlignment="Center" FontSize="15" Foreground="{ThemeResource TextPrimaryBrush}"
+                                         GotFocus="GlobalSearchBox_GotFocus" LostFocus="GlobalSearchBox_LostFocus"
+                                         KeyDown="GlobalSearchBox_KeyDown" TextChanged="GlobalSearchBox_TextChanged" />
+                                <Button x:Name="BrowseClearQueryButton" Grid.Column="2" Visibility="Collapsed" Click="BrowseClearQuery_Click"
+                                        Style="{StaticResource IconOnlyButton}" Width="28" Height="28" CornerRadius="14" AutomationProperties.Name="Clear search">
+                                    <FontIcon Glyph="&#xE711;" FontSize="12" />
+                                </Button>
+                                <Border Grid.Column="3" Height="22" CornerRadius="5" BorderThickness="1" BorderBrush="{ThemeResource StrokeStrongBrush}"
+                                        Padding="6,2" VerticalAlignment="Center" IsHitTestVisible="False">
+                                    <TextBlock Text="Ctrl K" FontSize="11" Foreground="{ThemeResource TextTertiaryBrush}" VerticalAlignment="Center" />
+                                </Border>
+                            </Grid>
                         </Border>
-
-                        <Border Grid.Column="1" Height="46" Background="{ThemeResource SurfaceBrush}"
-                                BorderBrush="{ThemeResource ControlBorderBrush}" BorderThickness="1"
-                                CornerRadius="{StaticResource RadiusXl}" Padding="3">
-                            <StackPanel Orientation="Horizontal" Spacing="2">
-                                <Button x:Name="BrowseScopeLibraryButton" Click="BrowseScope_Click" Tag="Library"
-                                        Height="38" Padding="14,0" CornerRadius="{StaticResource Radius9}"
-                                        BorderThickness="0" Background="{ThemeResource NeutralFillBrush}"
-                                        FontSize="13" FontWeight="SemiBold" Content="Library" />
-                                <Button x:Name="BrowseScopeCatalogButton" Click="BrowseScope_Click" Tag="Catalog"
-                                        Height="38" Padding="14,0" CornerRadius="{StaticResource Radius9}"
-                                        BorderThickness="0" Background="Transparent"
-                                        Foreground="{ThemeResource TextTertiaryBrush}"
-                                        FontSize="13" FontWeight="SemiBold" Content="Catalog" />
-                            </StackPanel>
-                        </Border>
-                    </Grid>
+                    </Border>
 
                     <ScrollViewer x:Name="BrowseResultsContent" Grid.Row="1" VerticalScrollBarVisibility="Hidden">
                         <Grid Padding="0,22,20,32">
-                            <!-- Empty-query landing -->
                             <StackPanel x:Name="BrowseLandingPanel">
                                 <StackPanel x:Name="BrowseRecentSearchesSection" Visibility="Collapsed">
                                     <Grid Margin="0,0,0,12" ColumnSpacing="12">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto" />
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="Auto" />
-                                        </Grid.ColumnDefinitions>
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                                         <TextBlock Text="RECENT SEARCHES" Style="{StaticResource EyebrowText}" VerticalAlignment="Center" />
                                         <Border Grid.Column="1" Height="1" Background="{ThemeResource DividerBrush}" VerticalAlignment="Center" />
-                                        <HyperlinkButton Grid.Column="2" Click="BrowseClearRecent_Click" Content="Clear"
-                                                         Padding="0" MinWidth="0" MinHeight="0"
-                                                         FontSize="12" FontWeight="SemiBold"
-                                                         Foreground="{ThemeResource AccentBrush}" />
+                                        <HyperlinkButton Grid.Column="2" Click="BrowseClearRecent_Click" Content="Clear" Padding="0" MinWidth="0" MinHeight="0"
+                                                         FontSize="12" FontWeight="SemiBold" Foreground="{ThemeResource AccentBrush}" />
                                     </Grid>
                                     <local:ChipWrapPanel x:Name="BrowseRecentSearchChips" HorizontalSpacing="8" VerticalSpacing="8" Margin="0,0,0,32" />
                                 </StackPanel>
 
-                                <StackPanel x:Name="BrowseResumeSection" Visibility="Collapsed" Margin="0,0,0,34">
-                                    <TextBlock Text="Pick up where you left off" Style="{StaticResource TitleH2}" Margin="0,0,0,12" />
-                                    <GridView x:Name="BrowseResumeGrid" SelectionMode="None" IsItemClickEnabled="True"
-                                              ItemClick="BrowseResume_ItemClick"
-                                              ItemContainerStyle="{StaticResource CardTileContainerStyle}"
-                                              ScrollViewer.VerticalScrollMode="Disabled"
-                                              ScrollViewer.VerticalScrollBarVisibility="Hidden"
-                                              ScrollViewer.HorizontalScrollMode="Disabled"
-                                              ScrollViewer.HorizontalScrollBarVisibility="Hidden"
-                                              Loaded="LibraryCardGrid_Loaded"
-                                              SizeChanged="LibraryCardGrid_SizeChanged">
-                                        <GridView.ItemsPanel>
-                                            <ItemsPanelTemplate>
-                                                <ItemsWrapGrid Orientation="Horizontal" ItemWidth="330" ItemHeight="78" />
-                                            </ItemsPanelTemplate>
-                                        </GridView.ItemsPanel>
-                                        <GridView.ItemTemplate>
-                                            <DataTemplate x:DataType="local:TrackInfo">
-                                                <Grid Height="66" Margin="0,0,12,12" Padding="12" ColumnSpacing="13"
-                                                      Background="{ThemeResource SurfaceBrush}"
-                                                      BorderBrush="{ThemeResource StrokeBrush}" BorderThickness="1"
-                                                      CornerRadius="{StaticResource RadiusXl}"
-                                                      PointerEntered="Card_PointerEntered" PointerExited="Card_PointerExited">
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="52" />
-                                                        <ColumnDefinition Width="*" />
-                                                        <ColumnDefinition Width="Auto" />
-                                                    </Grid.ColumnDefinitions>
-                                                    <Border Width="52" Height="52" CornerRadius="{StaticResource RadiusLg}" Background="{ThemeResource NeutralFillBrush}">
-                                                        <Grid>
-                                                            <FontIcon Glyph="&#xE8D6;" FontSize="18" Foreground="{ThemeResource PlaceholderGlyphBrush}" />
-                                                            <Image Source="{x:Bind AlbumArt}" Stretch="UniformToFill" Loaded="AccountArtwork_Loaded" />
-                                                        </Grid>
-                                                    </Border>
-                                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                                        <TextBlock Text="{x:Bind Title}" Style="{StaticResource BodyStrong}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
-                                                        <StackPanel Orientation="Horizontal" Spacing="6">
-                                                            <TextBlock Text="{x:Bind Artist}" Style="{StaticResource CaptionText}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
-                                                            <TextBlock Text="&#xB7;" Style="{StaticResource CaptionText}" Visibility="{x:Bind ResumeCaptionVisibility}" />
-                                                            <TextBlock Text="{x:Bind ResumeCaption}" Style="{StaticResource CaptionText}" Visibility="{x:Bind ResumeCaptionVisibility}" TextWrapping="NoWrap" />
-                                                        </StackPanel>
-                                                    </StackPanel>
-                                                    <FontIcon Grid.Column="2" Glyph="&#xE768;" FontSize="13" Foreground="{ThemeResource AccentBrush}" VerticalAlignment="Center" />
-                                                </Grid>
-                                            </DataTemplate>
-                                        </GridView.ItemTemplate>
-                                    </GridView>
+                                <StackPanel Orientation="Horizontal" Spacing="12" Margin="0,0,0,14">
+                                    <TextBlock Text="Browse all" Style="{StaticResource TitleH2}" />
+                                    <TextBlock Text="Genres, moods and decades across your library" FontSize="12.5" Foreground="{ThemeResource TextTertiaryBrush}" VerticalAlignment="Bottom" />
                                 </StackPanel>
-
-                                <TextBlock Text="Browse all" Style="{StaticResource TitleH2}" />
-                                <TextBlock Text="Genres across your library" FontSize="12.5" Foreground="{ThemeResource TextTertiaryBrush}" Margin="0,2,0,12" />
-                                <GridView x:Name="BrowseCategoryGrid"
-                                          SelectionMode="None" IsItemClickEnabled="True"
-                                          ItemClick="BrowseCategory_ItemClick"
-                                          ItemContainerStyle="{StaticResource CardTileContainerStyle}"
-                                          ScrollViewer.VerticalScrollMode="Disabled"
-                                          ScrollViewer.VerticalScrollBarVisibility="Hidden"
-                                          ScrollViewer.HorizontalScrollMode="Disabled"
+                                <GridView x:Name="BrowseCategoryGrid" SelectionMode="None" IsItemClickEnabled="True" ItemClick="BrowseCategory_ItemClick"
+                                          ItemContainerStyle="{StaticResource CardTileContainerStyle}" ScrollViewer.VerticalScrollMode="Disabled"
+                                          ScrollViewer.VerticalScrollBarVisibility="Hidden" ScrollViewer.HorizontalScrollMode="Disabled"
                                           ScrollViewer.HorizontalScrollBarVisibility="Hidden">
-                                    <GridView.ItemsPanel>
-                                        <ItemsPanelTemplate>
-                                            <ItemsWrapGrid Orientation="Horizontal" ItemWidth="186" ItemHeight="130" />
-                                        </ItemsPanelTemplate>
-                                    </GridView.ItemsPanel>
+                                    <GridView.ItemsPanel><ItemsPanelTemplate><ItemsWrapGrid Orientation="Horizontal" ItemWidth="186" ItemHeight="130" /></ItemsPanelTemplate></GridView.ItemsPanel>
                                     <GridView.ItemTemplate>
                                         <DataTemplate x:DataType="local:TrackInfo">
-                                            <Grid Width="170" Height="114" Margin="0,0,16,16"
-                                                  PointerEntered="PlaylistCard_PointerEntered" PointerExited="PlaylistCard_PointerExited">
+                                            <Grid Width="170" Height="114" Margin="0,0,16,16" PointerEntered="PlaylistCard_PointerEntered" PointerExited="PlaylistCard_PointerExited">
                                                 <Border CornerRadius="{StaticResource Radius14}" Translation="0,0,16">
                                                     <Border.Shadow><ThemeShadow /></Border.Shadow>
                                                     <Grid>
                                                         <local:GenreArtworkTile GenreName="{x:Bind Title}" />
-                                                        <TextBlock Text="{x:Bind Title}" Margin="14,13" VerticalAlignment="Top"
-                                                                   Foreground="White" FontSize="16" FontWeight="Bold" TextTrimming="CharacterEllipsis" />
+                                                        <TextBlock Text="{x:Bind Title}" Margin="14,13" VerticalAlignment="Top" Foreground="White" FontSize="16" FontWeight="Bold" TextTrimming="CharacterEllipsis" />
                                                         <TextBlock Text="{x:Bind ArtworkCaption}" Margin="14,0,14,13" VerticalAlignment="Bottom" HorizontalAlignment="Right"
                                                                    Foreground="White" Opacity="0.86" FontSize="11.5" TextTrimming="CharacterEllipsis" />
                                                     </Grid>
@@ -1379,174 +1317,57 @@
                                 </GridView>
                             </StackPanel>
 
-                            <!-- Any non-empty query. -->
                             <StackPanel x:Name="BrowseSearchPanel" Visibility="Collapsed">
-                                <Grid BorderBrush="{ThemeResource HairlineStrongBrush}" BorderThickness="0,0,0,1" Padding="0,0,0,12" Margin="0,0,0,20">
-                                    <StackPanel Orientation="Horizontal" Spacing="6">
-                                        <ToggleButton x:Name="BrowseFilterAll" Tag="All" Content="All" Click="BrowseFilter_Click" Style="{StaticResource DesignChipToggle}" IsChecked="True" />
-                                        <ToggleButton x:Name="BrowseFilterSongs" Tag="Songs" Content="Songs" Click="BrowseFilter_Click" Style="{StaticResource DesignChipToggle}" />
-                                        <ToggleButton x:Name="BrowseFilterAlbums" Tag="Albums" Content="Albums" Click="BrowseFilter_Click" Style="{StaticResource DesignChipToggle}" />
-                                        <ToggleButton x:Name="BrowseFilterArtists" Tag="Artists" Content="Artists" Click="BrowseFilter_Click" Style="{StaticResource DesignChipToggle}" />
-                                        <ToggleButton x:Name="BrowseFilterPlaylists" Tag="Playlists" Content="Playlists" Click="BrowseFilter_Click" Style="{StaticResource DesignChipToggle}" />
+                                <Grid Margin="0,0,0,24" ColumnSpacing="10">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                    <TextBlock x:Name="SearchStatusText" FontFamily="Segoe UI Variable Display" FontSize="20" FontWeight="Bold" VerticalAlignment="Center" />
+                                    <TextBlock x:Name="SearchResultCountText" Grid.Column="1" FontSize="12.5" Foreground="{ThemeResource TextTertiaryBrush}" VerticalAlignment="Center" />
+                                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                        <FontIcon Glyph="&#xE712;" FontSize="11" Foreground="{ThemeResource TextTertiaryBrush}" />
+                                        <TextBlock Text="Right-click for actions" FontSize="12" Foreground="{ThemeResource TextTertiaryBrush}" />
                                     </StackPanel>
+                                    <Border Grid.Column="3" Grid.ColumnSpan="2" Background="{ThemeResource NeutralFillBrush}" CornerRadius="9" Padding="3">
+                                        <StackPanel Orientation="Horizontal" Spacing="2">
+                                            <Button x:Name="SearchGridViewButton" Click="SearchGridView_Click" Width="32" Height="28" Style="{StaticResource IconOnlyButton}" CornerRadius="6" AutomationProperties.Name="Grid view"><FontIcon Glyph="&#xE80A;" FontSize="14" /></Button>
+                                            <Button x:Name="SearchListViewButton" Click="SearchListView_Click" Width="32" Height="28" Style="{StaticResource IconOnlyButton}" CornerRadius="6" AutomationProperties.Name="List view"><FontIcon Glyph="&#xE8FD;" FontSize="14" /></Button>
+                                        </StackPanel>
+                                    </Border>
                                 </Grid>
 
                                 <TextBlock x:Name="SearchLoadingText" Text="Searching music..." Visibility="Collapsed" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" />
                                 <Grid x:Name="SearchSkeletonHost" Visibility="Collapsed" Margin="0,4,0,24" />
-
                                 <StackPanel x:Name="SearchErrorPanel" Visibility="Collapsed" Spacing="8" Margin="0,50">
                                     <TextBlock Text="Search unavailable" Style="{StaticResource TitleH2}" HorizontalAlignment="Center" />
                                     <TextBlock x:Name="SearchErrorMessageText" Text="Check your connection and try again." FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" HorizontalAlignment="Center" />
                                     <Button Content="Retry" Click="SearchRetry_Click" HorizontalAlignment="Center" Style="{StaticResource DesignSecondaryButton}" />
                                 </StackPanel>
-
                                 <StackPanel x:Name="SearchEmptyPanel" Visibility="Collapsed" Spacing="8" Margin="0,70">
                                     <TextBlock x:Name="SearchEmptyTitleText" Text="Nothing here" FontFamily="Segoe UI Variable Display" FontSize="19" FontWeight="Bold" HorizontalAlignment="Center" />
-                                    <TextBlock x:Name="SearchEmptyHintText" Text="Check the spelling, or search the full catalog instead of your library."
-                                               FontSize="13.5" Foreground="{ThemeResource TextTertiaryBrush}"
-                                               TextWrapping="Wrap" TextAlignment="Center" HorizontalAlignment="Center" />
+                                    <TextBlock x:Name="SearchEmptyHintText" Text="Check the spelling, or try a broader search." FontSize="13.5"
+                                               Foreground="{ThemeResource TextTertiaryBrush}" TextWrapping="Wrap" TextAlignment="Center" HorizontalAlignment="Center" />
                                 </StackPanel>
 
-                                <Grid x:Name="BrowseTopAndSongs" Visibility="Collapsed" ColumnSpacing="20" Margin="0,0,0,30">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="340" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto" />
-                                        <RowDefinition Height="*" />
-                                    </Grid.RowDefinitions>
-                                    <TextBlock Text="TOP RESULT" Style="{StaticResource EyebrowText}" Margin="0,0,0,10" />
-                                    <TextBlock Grid.Column="1" x:Name="BrowseSongsHeading" Text="SONGS" Style="{StaticResource EyebrowText}" Margin="0,0,0,10" />
-                                    <Border x:Name="BrowseTopResultButton" Grid.Row="1" Tapped="BrowseTopResult_Tapped" HorizontalAlignment="Stretch"
-                                            Background="{ThemeResource SurfaceBrush}" BorderBrush="{ThemeResource StrokeBrush}" BorderThickness="1"
-                                            CornerRadius="{StaticResource Radius14}" Padding="18">
-                                        <StackPanel Spacing="12">
-                                                <Border Width="96" Height="96" HorizontalAlignment="Left" Background="{ThemeResource NeutralFillBrush}" CornerRadius="{StaticResource Radius10}">
-                                                    <Grid>
-                                                        <FontIcon Glyph="&#xE8D6;" FontSize="34" Foreground="{ThemeResource PlaceholderGlyphBrush}" />
-                                                        <Image x:Name="BrowseTopResultArt" Stretch="UniformToFill" Loaded="AccountArtwork_Loaded" />
-                                                    </Grid>
-                                                </Border>
-                                                <TextBlock x:Name="BrowseTopResultTitle" FontFamily="Segoe UI Variable Display" FontSize="22" FontWeight="Bold" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
-                                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                                    <Border Background="{ThemeResource AccentSoftBrush}" CornerRadius="{StaticResource RadiusPill}" Padding="7,2">
-                                                        <TextBlock x:Name="BrowseTopResultKindText" Text="SONG" FontSize="10" FontWeight="Bold" CharacterSpacing="80" Foreground="{ThemeResource AccentBrush}" />
-                                                    </Border>
-                                                    <TextBlock x:Name="BrowseTopResultSubtitle" FontSize="12.5" Foreground="{ThemeResource TextSecondaryBrush}" VerticalAlignment="Center" />
-                                                </StackPanel>
-                                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                                    <Button Click="BrowseTopResultPlay_Click" Style="{StaticResource DesignPrimaryButton}">
-                                                        <StackPanel Orientation="Horizontal" Spacing="7"><FontIcon Glyph="&#xE768;" FontSize="12" /><TextBlock Text="Play" /></StackPanel>
-                                                    </Button>
-                                                    <Button Click="BrowseTopResultAdd_Click" Style="{StaticResource DesignSecondaryButton}" Content="Add to playlist" />
-                                                    <Button Click="BrowseTopResultDownload_Click" Style="{StaticResource DesignSecondaryButton}">
-                                                        <StackPanel Orientation="Horizontal" Spacing="7"><FontIcon Glyph="&#xE896;" FontSize="12"/><TextBlock Text="Download"/></StackPanel>
-                                                    </Button>
-                                                </StackPanel>
-                                            </StackPanel>
-                                        </Border>
-
-                                    <Border Grid.Row="1" Grid.Column="1" VerticalAlignment="Top" Background="{ThemeResource SurfaceBrush}" BorderBrush="{ThemeResource StrokeBrush}" BorderThickness="1" CornerRadius="{StaticResource RadiusXl}">
-                                        <ListView x:Name="SearchResultsListView" SelectionMode="None" IsItemClickEnabled="True"
-                                                  ItemClick="SearchResult_ItemClick"
-                                                  ScrollViewer.VerticalScrollMode="Disabled"
-                                                  ScrollViewer.VerticalScrollBarVisibility="Hidden">
-                                            <ListView.ItemContainerStyle>
-                                                <Style TargetType="ListViewItem">
-                                                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-                                                    <Setter Property="Padding" Value="0" />
-                                                    <Setter Property="MinHeight" Value="56" />
-                                                </Style>
-                                            </ListView.ItemContainerStyle>
-                                            <ListView.ItemTemplate>
-                                                <DataTemplate x:DataType="local:TrackInfo">
-                                                    <Grid Height="56" Padding="16,0" ColumnSpacing="13" BorderBrush="{ThemeResource RowDividerBrush}" BorderThickness="0,0,0,1">
-                                                        <Grid.ContextFlyout>
-                                                            <MenuFlyout>
-                                                                <MenuFlyoutItem Text="Play now" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuPlayNow_Click" />
-                                                                <MenuFlyoutItem Text="Play next" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuPlayNext_Click" />
-                                                                <MenuFlyoutItem Text="Add to queue" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuAddToQueue_Click" />
-                                                                <MenuFlyoutItem Text="Add to playlist" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="LibraryRowMenuAddToPlaylist_Click" />
-                                                                <MenuFlyoutItem Text="Download for offline use" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="DownloadTrack_Click" Visibility="{x:Bind DownloadVisibility}" />
-                                                                <MenuFlyoutSeparator />
-                                                                <MenuFlyoutItem Text="{x:Bind LikeActionText}" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuLike_Click" />
-                                                            </MenuFlyout>
-                                                        </Grid.ContextFlyout>
-                                                        <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="38" />
-                                                            <ColumnDefinition Width="*" />
-                                                            <!-- Sized to the album name rather than a
-                                                                 fixed 150, which left a gap before the
-                                                                 duration on short titles. -->
-                                                            <ColumnDefinition Width="Auto" />
-                                                            <ColumnDefinition Width="42" />
-                                                            <ColumnDefinition Width="32" />
-                                                        </Grid.ColumnDefinitions>
-                                                        <Border Width="38" Height="38" CornerRadius="{StaticResource RadiusMd}" Background="{ThemeResource NeutralFillBrush}" VerticalAlignment="Center">
-                                                            <Grid><FontIcon Glyph="&#xE8D6;" FontSize="15" Foreground="{ThemeResource PlaceholderGlyphBrush}" /><Image Source="{x:Bind AlbumArt}" Stretch="UniformToFill" Loaded="AccountArtwork_Loaded" /></Grid>
-                                                        </Border>
-                                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                                            <TextBlock Text="{x:Bind Title}" Style="{StaticResource BodyStrong}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
-                                                            <StackPanel Orientation="Horizontal" Spacing="6">
-                                                                <TextBlock Text="{x:Bind Artist}" Style="{StaticResource CaptionText}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
-                                                                <FontIcon Glyph="&#xE73E;" FontSize="10" Foreground="{ThemeResource AccentBrush}" Visibility="{x:Bind InLibraryVisibility}" />
-                                                            </StackPanel>
-                                                        </StackPanel>
-                                                        <TextBlock Grid.Column="2" Text="{x:Bind Album}" FontSize="12.5" MaxWidth="190" Foreground="{ThemeResource TextTertiaryBrush}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
-                                                        <TextBlock Grid.Column="3" Text="{x:Bind Duration}" FontSize="12.5" Foreground="{ThemeResource TextSecondaryBrush}" VerticalAlignment="Center" HorizontalAlignment="Right" Typography.NumeralAlignment="Tabular" />
-                                                        <Button Grid.Column="4" Tag="{x:Bind}" Style="{StaticResource IconOnlyButton}" AutomationProperties.Name="More options">
-                                                            <Button.Flyout>
-                                                                <MenuFlyout>
-                                                                    <MenuFlyoutItem Text="Play now" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuPlayNow_Click" />
-                                                                    <MenuFlyoutItem Text="Play next" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuPlayNext_Click" />
-                                                                    <MenuFlyoutItem Text="Add to queue" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuAddToQueue_Click" />
-                                                                    <MenuFlyoutItem Text="Add to playlist" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="LibraryRowMenuAddToPlaylist_Click" />
-                                                                    <MenuFlyoutItem Text="Download for offline use" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="DownloadTrack_Click" Visibility="{x:Bind DownloadVisibility}" />
-                                                                </MenuFlyout>
-                                                            </Button.Flyout>
-                                                            <FontIcon Glyph="&#xE712;" FontSize="12" />
-                                                        </Button>
-                                                    </Grid>
-                                                </DataTemplate>
-                                            </ListView.ItemTemplate>
-                                        </ListView>
-                                    </Border>
-                                </Grid>
-
-                                <StackPanel x:Name="BrowseFacetSection" Visibility="Collapsed">
-                                    <TextBlock x:Name="BrowseFacetHeading" Text="ALBUMS" Style="{StaticResource EyebrowText}" Margin="0,0,0,12" />
-                                    <GridView x:Name="BrowseFacetGrid" SelectionMode="None" IsItemClickEnabled="True"
-                                              ItemClick="BrowseFacet_ItemClick"
-                                              ContainerContentChanging="BrowseFacet_ContainerContentChanging"
-                                              ItemContainerStyle="{StaticResource CardTileContainerStyle}"
-                                              ScrollViewer.VerticalScrollMode="Disabled"
-                                              ScrollViewer.VerticalScrollBarVisibility="Hidden"
-                                              ScrollViewer.HorizontalScrollMode="Disabled"
-                                              ScrollViewer.HorizontalScrollBarVisibility="Hidden"
-                                              Padding="0,0,0,24" Margin="0,0,-18,0"
-                                              Loaded="LibraryCardGrid_Loaded"
-                                              SizeChanged="LibraryCardGrid_SizeChanged">
-                                        <GridView.ItemsPanel>
-                                            <ItemsPanelTemplate><ItemsWrapGrid Orientation="Horizontal" ItemWidth="178" ItemHeight="230" /></ItemsPanelTemplate>
-                                        </GridView.ItemsPanel>
-                                        <GridView.ItemTemplate>
-                                            <DataTemplate x:DataType="local:TrackInfo">
-                                                <StackPanel Margin="0,0,18,20" PointerEntered="PlaylistCard_PointerEntered" PointerExited="PlaylistCard_PointerExited">
-                                                    <Border x:Name="SearchFacetArt" Margin="0,0,0,10" CornerRadius="{StaticResource RadiusXl}" Tag="{x:Bind}" Loaded="LibraryArtworkBorder_Loaded" SizeChanged="LibraryArtworkBorder_SizeChanged" Translation="0,0,16">
-                                                        <Border.Shadow><ThemeShadow /></Border.Shadow>
-                                                        <Grid>
-                                                            <Image Source="/Assets/LibraryStripeOverlay.svg" Stretch="Fill" Opacity="{x:Bind GeneratedArtworkOpacity}" IsHitTestVisible="False" />
-                                                            <TextBlock Text="{x:Bind ArtworkCaption}" FontFamily="Consolas" FontSize="9.5" CharacterSpacing="80" Foreground="White" Opacity="{x:Bind GeneratedArtworkOpacity}" VerticalAlignment="Bottom" Margin="12" TextTrimming="CharacterEllipsis" IsHitTestVisible="False" />
-                                                            <Image x:Name="ArtworkImage" Source="{x:Bind AlbumArt}" Stretch="UniformToFill" Loaded="AccountArtwork_Loaded" Opacity="{x:Bind ImageArtworkOpacity}" />
-                                                        </Grid>
-                                                    </Border>
-                                                    <TextBlock Text="{x:Bind Title}" Style="{StaticResource BodyStrong}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
-                                                    <TextBlock Text="{x:Bind Artist}" Style="{StaticResource CaptionText}" Margin="0,2,0,0" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
-                                                </StackPanel>
-                                            </DataTemplate>
-                                        </GridView.ItemTemplate>
-                                    </GridView>
+                                <StackPanel x:Name="BrowseGroupedResultsPanel" Spacing="26">
+                                    <StackPanel x:Name="BrowseSongsSection" Visibility="Collapsed">
+                                        <Grid Margin="0,0,0,6" ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Text="SONGS" Style="{StaticResource EyebrowText}"/><Border Grid.Column="1" Height="1" Background="{ThemeResource DividerBrush}" VerticalAlignment="Center"/><TextBlock x:Name="BrowseSongsCount" Grid.Column="2" Style="{StaticResource CaptionText}"/></Grid>
+                                        <GridView x:Name="BrowseSongsGrid" ItemTemplate="{StaticResource BrowseResultGridTemplate}" SelectionMode="None" IsItemClickEnabled="True" ItemClick="BrowseResult_ItemClick" ItemContainerStyle="{StaticResource CardTileContainerStyle}" ScrollViewer.VerticalScrollMode="Disabled" ScrollViewer.HorizontalScrollMode="Disabled" Loaded="LibraryCardGrid_Loaded" SizeChanged="LibraryCardGrid_SizeChanged"><GridView.ItemsPanel><ItemsPanelTemplate><ItemsWrapGrid Orientation="Horizontal" ItemWidth="176" ItemHeight="224"/></ItemsPanelTemplate></GridView.ItemsPanel></GridView>
+                                        <ListView x:Name="BrowseSongsList" ItemTemplate="{StaticResource BrowseResultListTemplate}" ItemContainerStyle="{StaticResource BrowseResultListItemStyle}" SelectionMode="None" IsItemClickEnabled="True" ItemClick="BrowseResult_ItemClick" Visibility="Collapsed" ScrollViewer.VerticalScrollMode="Disabled"/>
+                                    </StackPanel>
+                                    <StackPanel x:Name="BrowseAlbumsSection" Visibility="Collapsed">
+                                        <Grid Margin="0,0,0,6" ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Text="ALBUMS" Style="{StaticResource EyebrowText}"/><Border Grid.Column="1" Height="1" Background="{ThemeResource DividerBrush}" VerticalAlignment="Center"/><TextBlock x:Name="BrowseAlbumsCount" Grid.Column="2" Style="{StaticResource CaptionText}"/></Grid>
+                                        <GridView x:Name="BrowseAlbumsGrid" ItemTemplate="{StaticResource BrowseResultGridTemplate}" SelectionMode="None" IsItemClickEnabled="True" ItemClick="BrowseResult_ItemClick" ItemContainerStyle="{StaticResource CardTileContainerStyle}" ScrollViewer.VerticalScrollMode="Disabled" ScrollViewer.HorizontalScrollMode="Disabled" Loaded="LibraryCardGrid_Loaded" SizeChanged="LibraryCardGrid_SizeChanged"><GridView.ItemsPanel><ItemsPanelTemplate><ItemsWrapGrid Orientation="Horizontal" ItemWidth="176" ItemHeight="224"/></ItemsPanelTemplate></GridView.ItemsPanel></GridView>
+                                        <ListView x:Name="BrowseAlbumsList" ItemTemplate="{StaticResource BrowseResultListTemplate}" ItemContainerStyle="{StaticResource BrowseResultListItemStyle}" SelectionMode="None" IsItemClickEnabled="True" ItemClick="BrowseResult_ItemClick" Visibility="Collapsed" ScrollViewer.VerticalScrollMode="Disabled"/>
+                                    </StackPanel>
+                                    <StackPanel x:Name="BrowsePlaylistsSection" Visibility="Collapsed">
+                                        <Grid Margin="0,0,0,6" ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Text="PLAYLISTS" Style="{StaticResource EyebrowText}"/><Border Grid.Column="1" Height="1" Background="{ThemeResource DividerBrush}" VerticalAlignment="Center"/><TextBlock x:Name="BrowsePlaylistsCount" Grid.Column="2" Style="{StaticResource CaptionText}"/></Grid>
+                                        <GridView x:Name="BrowsePlaylistsGrid" ItemTemplate="{StaticResource BrowseResultGridTemplate}" SelectionMode="None" IsItemClickEnabled="True" ItemClick="BrowseResult_ItemClick" ItemContainerStyle="{StaticResource CardTileContainerStyle}" ScrollViewer.VerticalScrollMode="Disabled" ScrollViewer.HorizontalScrollMode="Disabled" Loaded="LibraryCardGrid_Loaded" SizeChanged="LibraryCardGrid_SizeChanged"><GridView.ItemsPanel><ItemsPanelTemplate><ItemsWrapGrid Orientation="Horizontal" ItemWidth="176" ItemHeight="224"/></ItemsPanelTemplate></GridView.ItemsPanel></GridView>
+                                        <ListView x:Name="BrowsePlaylistsList" ItemTemplate="{StaticResource BrowseResultListTemplate}" ItemContainerStyle="{StaticResource BrowseResultListItemStyle}" SelectionMode="None" IsItemClickEnabled="True" ItemClick="BrowseResult_ItemClick" Visibility="Collapsed" ScrollViewer.VerticalScrollMode="Disabled"/>
+                                    </StackPanel>
+                                    <StackPanel x:Name="BrowseArtistsSection" Visibility="Collapsed">
+                                        <Grid Margin="0,0,0,6" ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Text="ARTISTS" Style="{StaticResource EyebrowText}"/><Border Grid.Column="1" Height="1" Background="{ThemeResource DividerBrush}" VerticalAlignment="Center"/><TextBlock x:Name="BrowseArtistsCount" Grid.Column="2" Style="{StaticResource CaptionText}"/></Grid>
+                                        <GridView x:Name="BrowseArtistsGrid" ItemTemplate="{StaticResource BrowseResultGridTemplate}" SelectionMode="None" IsItemClickEnabled="True" ItemClick="BrowseResult_ItemClick" ItemContainerStyle="{StaticResource CardTileContainerStyle}" ScrollViewer.VerticalScrollMode="Disabled" ScrollViewer.HorizontalScrollMode="Disabled" Loaded="LibraryCardGrid_Loaded" SizeChanged="LibraryCardGrid_SizeChanged"><GridView.ItemsPanel><ItemsPanelTemplate><ItemsWrapGrid Orientation="Horizontal" ItemWidth="176" ItemHeight="224"/></ItemsPanelTemplate></GridView.ItemsPanel></GridView>
+                                        <ListView x:Name="BrowseArtistsList" ItemTemplate="{StaticResource BrowseResultListTemplate}" ItemContainerStyle="{StaticResource BrowseResultListItemStyle}" SelectionMode="None" IsItemClickEnabled="True" ItemClick="BrowseResult_ItemClick" Visibility="Collapsed" ScrollViewer.VerticalScrollMode="Disabled"/>
+                                    </StackPanel>
                                 </StackPanel>
                             </StackPanel>
                         </Grid>

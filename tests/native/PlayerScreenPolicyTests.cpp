@@ -1,12 +1,12 @@
 #include "pch.h"
 
 #include "Backend/DetailSortPolicy.h"
+#include "Backend/BrowseGroupingPolicy.h"
 #include "Backend/DownloadPolicy.h"
 #include "Backend/GenreArtworkRecipe.h"
 #include "Backend/PlaylistSuggestionPolicy.h"
 #include "Backend/RecentSearchStore.h"
 #include "Backend/ResumePositionPolicy.h"
-#include "Backend/SearchFacetPolicy.h"
 
 #include <exception>
 #include <iostream>
@@ -170,42 +170,69 @@ namespace
             "the unknown fallback should preserve its neutral palette and dashed ring");
     }
 
-    void TestSearchFacetPolicy()
+    void TestBrowseGroupingPolicy()
     {
-        std::vector<policy::SearchFacetInput> const albums{
-            { L"Song 1", {}, L"Artist", L"Album", {}, L"album|artist", false, 0 },
-            { L"Song 2", {}, L"Artist", L"ALBUM", {}, L"ALBUM|ARTIST", true, 0 },
-            { L"Song 3", {}, L"Other", L"Elsewhere", {}, L"elsewhere|other", false, 0 },
-            { L"No album", {}, L"Other", {}, {}, {}, false, 0 },
+        using Kind = policy::BrowseResultKind;
+        std::vector<policy::BrowseResultInput> const inputs{
+            { Kind::Song, L"Neon Sky", L"Aurora", L"First Light", L"2024", L"3:20", L"song-1", 0 },
+            { Kind::Song, L"Afterglow", L"Aurora", L"First Light", L"2024", L"4:01", L"song-2", 0 },
+            { Kind::Song, L"Rock Song", L"The Band", L"Stone", {}, L"2:59", L"song-3", 0 },
+            { Kind::Playlist, L"Aurora Picks", L"Playlist · 9 tracks", {}, {}, {}, L"playlist-1", 9 },
+            { Kind::Playlist, L"Road Trip", L"Aurora curator", {}, {}, {}, L"playlist-2", 12 },
         };
-        auto const facets = policy::BuildSearchFacets(
-            albums,
-            policy::SearchFacetKind::Album,
-            10);
-        Expect(facets.size() == 2, "album facets should group case-insensitively and skip blanks");
-        Expect(facets[0].Title == L"Album" && facets[0].Count == 2,
-            "the first spelling and provider order should remain stable");
-        Expect(facets[0].InLibrary,
-            "a facet should be in-library when any grouped result is in-library");
 
-        auto const limited = policy::BuildSearchFacets(
-            albums,
-            policy::SearchFacetKind::Album,
-            1);
-        Expect(limited.size() == 1 && limited[0].Count == 2,
-            "facet limits should reject new groups without truncating an accepted group's count");
+        auto const grouped = policy::BuildGroupedBrowseResults(inputs, L"aurora", false);
+        Expect(grouped.Groups.size() == 4,
+            "a shared identity query should produce every non-empty entity group");
+        Expect(grouped.Groups[0].Kind == Kind::Song
+                && grouped.Groups[1].Kind == Kind::Album
+                && grouped.Groups[2].Kind == Kind::Playlist
+                && grouped.Groups[3].Kind == Kind::Artist,
+            "Browse groups should stay ordered songs, albums, playlists, artists");
+        Expect(grouped.Groups[0].Items.size() == 2,
+            "songs should match title, artist, and album identity fields");
+        Expect(grouped.Groups[1].Items.size() == 1
+                && grouped.Groups[1].Items[0].Subtitle == L"Aurora · 2024"
+                && grouped.Groups[1].Items[0].MemberIndices.size() == 2,
+            "albums should group their members and use a trustworthy supplied year");
+        Expect(grouped.Groups[2].Items.size() == 1
+                && grouped.Groups[2].Items[0].Title == L"Aurora Picks",
+            "playlists should match their name only, not a rendered or curator subtitle");
+        Expect(grouped.Groups[3].Items.size() == 1
+                && grouped.Groups[3].Items[0].Subtitle == L"1 album",
+            "artist subtitles should count distinct albums rather than songs");
+        Expect(grouped.DisplayedEntityCount == 5,
+            "the displayed total should count entities across all groups");
 
-        std::vector<policy::SearchFacetInput> const artists{
-            { L"A", {}, L"First", {}, {}, L"first", false, 0 },
-            { L"B", {}, L"First", {}, {}, L"FIRST", false, 0 },
-            { L"C", {}, {}, {}, {}, {}, false, 0 },
+        auto const subtitleFalsePositive = policy::BuildGroupedBrowseResults(inputs, L"tracks", false);
+        Expect(subtitleFalsePositive.Groups.empty(),
+            "rendered count subtitles must not participate in identity matching");
+        auto const artistFalsePositive = policy::BuildGroupedBrowseResults(inputs, L"curator", false);
+        Expect(artistFalsePositive.Groups.empty(),
+            "playlist subtitles must not participate in identity matching");
+
+        std::vector<policy::BrowseResultInput> const resolvedUrl{
+            { Kind::Song, L"Resolved title", L"Resolved artist", L"Resolved album", {}, L"3:00", L"url", 0 }
         };
-        auto const artistFacets = policy::BuildSearchFacets(
-            artists,
-            policy::SearchFacetKind::Artist,
-            5);
-        Expect(artistFacets.size() == 1 && artistFacets[0].Count == 2,
-            "artist facets should group matches and skip unnamed artists");
+        auto const withoutUrlPreservation = policy::BuildGroupedBrowseResults(
+            resolvedUrl, L"https://example.test/watch/123", false);
+        Expect(withoutUrlPreservation.Groups.empty(),
+            "resolved metadata should not accidentally match the original URL");
+        auto const withUrlPreservation = policy::BuildGroupedBrowseResults(
+            resolvedUrl, L"https://example.test/watch/123", true);
+        Expect(withUrlPreservation.Groups.size() == 1
+                && withUrlPreservation.Groups[0].Kind == Kind::Song
+                && withUrlPreservation.DisplayedEntityCount == 1,
+            "an HTTP lookup should preserve its resolved song result");
+
+        Expect(policy::ParseBrowseViewPreference(L"list") == policy::BrowseViewPreference::List,
+            "the persisted list preference should parse");
+        Expect(policy::ParseBrowseViewPreference(L" LIST ") == policy::BrowseViewPreference::List,
+            "the persisted view preference should be normalized");
+        Expect(policy::ParseBrowseViewPreference(L"tiles") == policy::BrowseViewPreference::Grid,
+            "an invalid view preference should safely fall back to grid");
+        Expect(policy::ParseBrowseViewPreference(L"") == policy::BrowseViewPreference::Grid,
+            "a missing view preference should safely fall back to grid");
     }
 
     void TestDownloadPolicy()
@@ -245,83 +272,6 @@ namespace
             "global pause should override available network and power");
     }
 
-    policy::SearchFacetInput Candidate(
-        std::wstring title,
-        std::wstring artist,
-        std::wstring album,
-        bool inLibrary = false)
-    {
-        policy::SearchFacetInput input;
-        input.Title = std::move(title);
-        input.Artist = std::move(artist);
-        input.Album = std::move(album);
-        input.InLibrary = inLibrary;
-        return input;
-    }
-
-    void TestTopSearchResult()
-    {
-        policy::TopSearchResult result;
-        Expect(!policy::ChooseTopSearchResult({}, L"anything", result),
-            "no candidates should mean no top result");
-
-        // The exact title match is last, where a date-added ordering would
-        // leave it, so taking the first row would have picked the wrong song.
-        std::vector<policy::SearchFacetInput> tracks{
-            Candidate(L"Monsoon Interlude", L"Other Artist", L"Other Album"),
-            Candidate(L"Monsoon Nights Revisited", L"Someone", L"Someone Album"),
-            Candidate(L"Monsoon", L"Tanu Sen", L"Rain Sessions")
-        };
-        Expect(policy::ChooseTopSearchResult(tracks, L"Monsoon", result),
-            "a populated result set should yield a top result");
-        Expect(result.Index == 2, "an exact title match should outrank a prefix match");
-        Expect(result.Kind == policy::TopResultKind::Song, "a track match should stay a song");
-        Expect(result.Title == L"Monsoon", "the song result should be titled by its track");
-
-        Expect(policy::ChooseTopSearchResult(tracks, L"monsoon", result),
-            "matching should be case-insensitive");
-        Expect(result.Index == 2, "case should not change which candidate wins");
-
-        // A title only ever containing the query loses to an artist whose whole
-        // name is the query.
-        std::vector<policy::SearchFacetInput> byArtist{
-            Candidate(L"A Song About Tanu Sen", L"Nobody", L"Nothing"),
-            Candidate(L"Unrelated", L"Tanu Sen", L"Rain Sessions")
-        };
-        Expect(policy::ChooseTopSearchResult(byArtist, L"Tanu Sen", result),
-            "an artist query should still produce a result");
-        Expect(result.Index == 1, "a whole-artist match should beat a title substring");
-
-        // Two tracks of the named album promote it to an album result.
-        std::vector<policy::SearchFacetInput> albumTracks{
-            Candidate(L"Track One", L"Tanu Sen", L"Rain Sessions"),
-            Candidate(L"Track Two", L"Tanu Sen", L"Rain Sessions")
-        };
-        Expect(policy::ChooseTopSearchResult(albumTracks, L"Rain Sessions", result),
-            "an album query should produce a result");
-        Expect(result.Kind == policy::TopResultKind::Album,
-            "a named album holding several tracks should take the card");
-        Expect(result.Title == L"Rain Sessions", "an album result should be titled by its album");
-        Expect(result.Index == 0, "an album result should point at its first held track");
-
-        std::vector<policy::SearchFacetInput> loneTrack{
-            Candidate(L"Track One", L"Tanu Sen", L"Rain Sessions")
-        };
-        Expect(policy::ChooseTopSearchResult(loneTrack, L"Rain Sessions", result),
-            "a single album track should still produce a result");
-        Expect(result.Kind == policy::TopResultKind::Song,
-            "one track is not enough of an album to promote it");
-
-        // Provenance only settles an otherwise equal pair.
-        std::vector<policy::SearchFacetInput> tie{
-            Candidate(L"Echoes", L"A", L"X", false),
-            Candidate(L"Echoes", L"B", L"Y", true)
-        };
-        Expect(policy::ChooseTopSearchResult(tie, L"Echoes", result),
-            "tied candidates should still produce a result");
-        Expect(result.Index == 1, "an in-library track should settle a tie");
-    }
-
     void TestResumePositionPolicy()
     {
         Expect(policy::ResumePositionToStore(5.0, 300.0) == 0.0,
@@ -350,8 +300,7 @@ int main()
         TestPlaylistSuggestionPolicy();
         TestRecentSearchStore();
         TestGenreArtworkRecipe();
-        TestSearchFacetPolicy();
-        TestTopSearchResult();
+        TestBrowseGroupingPolicy();
         TestResumePositionPolicy();
         TestDownloadPolicy();
         std::wcout << L"PlayerScreenPolicyTests passed" << std::endl;
