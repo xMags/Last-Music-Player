@@ -1278,6 +1278,7 @@
                     </Border>
 
                     <ScrollViewer x:Name="BrowseResultsContent" Grid.Row="1" VerticalScrollBarVisibility="Hidden"
+                                  HorizontalContentAlignment="Stretch"
                                   HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Hidden">
                         <Grid Padding="0,22,20,32">
                             <StackPanel x:Name="BrowseLandingPanel">
