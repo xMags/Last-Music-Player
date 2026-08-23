@@ -2095,7 +2095,11 @@
                             </StackPanel>
                         </StackPanel>
                         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Hidden" VerticalScrollMode="Enabled">
-                            <VariableSizedWrapGrid x:Name="DiscoverChartGalleryPanel" Orientation="Horizontal" ItemWidth="184" ItemHeight="216" MaximumRowsOrColumns="20" />
+                            <!-- The chart button remains 184 by 212. The larger
+                                 cell pitch supplies the gallery-only 18px column
+                                 and 22px row gutters without changing Home's
+                                 separately spaced carousel cards. -->
+                            <VariableSizedWrapGrid x:Name="DiscoverChartGalleryPanel" Orientation="Horizontal" ItemWidth="202" ItemHeight="234" MaximumRowsOrColumns="20" />
                         </ScrollViewer>
                     </Grid>
 
