@@ -5,6 +5,10 @@
 
 namespace LastMusicPlayer::Frontend
 {
+    inline constexpr double kStandardCardGap = 20.0;
+    inline constexpr double kStandardMinimumCardWidth = 170.0;
+    inline constexpr double kBannerCardGap = 16.0;
+
     struct ResponsiveCardLayout
     {
         int ColumnCount{};

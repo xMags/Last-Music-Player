@@ -239,7 +239,9 @@ namespace
     void TestResponsiveCardLayout()
     {
         auto const layout = LastMusicPlayer::Frontend::CalculateResponsiveCardLayout(
-            740.0, 20.0, 170.0);
+            740.0,
+            LastMusicPlayer::Frontend::kStandardCardGap,
+            LastMusicPlayer::Frontend::kStandardMinimumCardWidth);
         Expect(layout.ColumnCount == 4,
             "a 740px Library surface should fit four responsive cards");
         Expect(layout.CardWidth == 170.0,
@@ -248,7 +250,9 @@ namespace
             "the item pitch should include the shared 20px gutter");
 
         auto const expanded = LastMusicPlayer::Frontend::CalculateResponsiveCardLayout(
-            800.0, 20.0, 170.0);
+            800.0,
+            LastMusicPlayer::Frontend::kStandardCardGap,
+            LastMusicPlayer::Frontend::kStandardMinimumCardWidth);
         Expect(expanded.ColumnCount == 4 && expanded.CardWidth == 185.0,
             "extra width should be divided equally across the same columns");
         Expect(LastMusicPlayer::Frontend::CalculateResponsiveCardLayout(

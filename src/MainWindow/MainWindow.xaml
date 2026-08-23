@@ -1196,7 +1196,7 @@
                 <Grid x:Name="BrowseViewContainer" Visibility="Collapsed" Margin="4,0,-16,0">
                     <Grid.Resources>
                         <DataTemplate x:Key="BrowseResultGridTemplate" x:DataType="local:BrowseResultItem">
-                            <StackPanel Tag="{x:Bind}" Margin="0,6,18,22" RightTapped="BrowseResult_RightTapped"
+                            <StackPanel Tag="{x:Bind}" Margin="0,6,20,22" RightTapped="BrowseResult_RightTapped"
                                         PointerEntered="PlaylistCard_PointerEntered" PointerExited="PlaylistCard_PointerExited">
                                 <Border Margin="0,0,0,10" CornerRadius="{x:Bind ArtworkCornerRadius}" Background="{ThemeResource NeutralFillBrush}"
                                         SizeChanged="LibraryArtworkBorder_SizeChanged" Translation="0,0,16">
@@ -1353,22 +1353,22 @@
                                 <StackPanel x:Name="BrowseGroupedResultsPanel" Spacing="26">
                                     <StackPanel x:Name="BrowseSongsSection" Visibility="Collapsed">
                                         <Grid Margin="0,0,0,6" ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Text="SONGS" Style="{StaticResource EyebrowText}"/><Border Grid.Column="1" Height="1" Background="{ThemeResource DividerBrush}" VerticalAlignment="Center"/><TextBlock x:Name="BrowseSongsCount" Grid.Column="2" Style="{StaticResource CaptionText}"/></Grid>
-                                        <GridView x:Name="BrowseSongsGrid" ItemTemplate="{StaticResource BrowseResultGridTemplate}" SelectionMode="None" IsItemClickEnabled="True" ItemClick="BrowseResult_ItemClick" ItemContainerStyle="{StaticResource CardTileContainerStyle}" ScrollViewer.VerticalScrollMode="Disabled" ScrollViewer.HorizontalScrollMode="Disabled" Loaded="LibraryCardGrid_Loaded" SizeChanged="LibraryCardGrid_SizeChanged"><GridView.ItemsPanel><ItemsPanelTemplate><ItemsWrapGrid Orientation="Horizontal" ItemWidth="176" ItemHeight="224"/></ItemsPanelTemplate></GridView.ItemsPanel></GridView>
+                                        <GridView x:Name="BrowseSongsGrid" ItemTemplate="{StaticResource BrowseResultGridTemplate}" SelectionMode="None" IsItemClickEnabled="True" ItemClick="BrowseResult_ItemClick" ItemContainerStyle="{StaticResource CardTileContainerStyle}" Margin="0,0,-20,0" ScrollViewer.VerticalScrollMode="Disabled" ScrollViewer.HorizontalScrollMode="Disabled" Loaded="LibraryCardGrid_Loaded" SizeChanged="LibraryCardGrid_SizeChanged"><GridView.ItemsPanel><ItemsPanelTemplate><ItemsWrapGrid Orientation="Horizontal" ItemWidth="190" ItemHeight="240"/></ItemsPanelTemplate></GridView.ItemsPanel></GridView>
                                         <ListView x:Name="BrowseSongsList" ItemTemplate="{StaticResource BrowseResultListTemplate}" ItemContainerStyle="{StaticResource BrowseResultListItemStyle}" SelectionMode="None" IsItemClickEnabled="True" ItemClick="BrowseResult_ItemClick" Visibility="Collapsed" ScrollViewer.VerticalScrollMode="Disabled"/>
                                     </StackPanel>
                                     <StackPanel x:Name="BrowseAlbumsSection" Visibility="Collapsed">
                                         <Grid Margin="0,0,0,6" ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Text="ALBUMS" Style="{StaticResource EyebrowText}"/><Border Grid.Column="1" Height="1" Background="{ThemeResource DividerBrush}" VerticalAlignment="Center"/><TextBlock x:Name="BrowseAlbumsCount" Grid.Column="2" Style="{StaticResource CaptionText}"/></Grid>
-                                        <GridView x:Name="BrowseAlbumsGrid" ItemTemplate="{StaticResource BrowseResultGridTemplate}" SelectionMode="None" IsItemClickEnabled="True" ItemClick="BrowseResult_ItemClick" ItemContainerStyle="{StaticResource CardTileContainerStyle}" ScrollViewer.VerticalScrollMode="Disabled" ScrollViewer.HorizontalScrollMode="Disabled" Loaded="LibraryCardGrid_Loaded" SizeChanged="LibraryCardGrid_SizeChanged"><GridView.ItemsPanel><ItemsPanelTemplate><ItemsWrapGrid Orientation="Horizontal" ItemWidth="176" ItemHeight="224"/></ItemsPanelTemplate></GridView.ItemsPanel></GridView>
+                                        <GridView x:Name="BrowseAlbumsGrid" ItemTemplate="{StaticResource BrowseResultGridTemplate}" SelectionMode="None" IsItemClickEnabled="True" ItemClick="BrowseResult_ItemClick" ItemContainerStyle="{StaticResource CardTileContainerStyle}" Margin="0,0,-20,0" ScrollViewer.VerticalScrollMode="Disabled" ScrollViewer.HorizontalScrollMode="Disabled" Loaded="LibraryCardGrid_Loaded" SizeChanged="LibraryCardGrid_SizeChanged"><GridView.ItemsPanel><ItemsPanelTemplate><ItemsWrapGrid Orientation="Horizontal" ItemWidth="190" ItemHeight="240"/></ItemsPanelTemplate></GridView.ItemsPanel></GridView>
                                         <ListView x:Name="BrowseAlbumsList" ItemTemplate="{StaticResource BrowseResultListTemplate}" ItemContainerStyle="{StaticResource BrowseResultListItemStyle}" SelectionMode="None" IsItemClickEnabled="True" ItemClick="BrowseResult_ItemClick" Visibility="Collapsed" ScrollViewer.VerticalScrollMode="Disabled"/>
                                     </StackPanel>
                                     <StackPanel x:Name="BrowsePlaylistsSection" Visibility="Collapsed">
                                         <Grid Margin="0,0,0,6" ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Text="PLAYLISTS" Style="{StaticResource EyebrowText}"/><Border Grid.Column="1" Height="1" Background="{ThemeResource DividerBrush}" VerticalAlignment="Center"/><TextBlock x:Name="BrowsePlaylistsCount" Grid.Column="2" Style="{StaticResource CaptionText}"/></Grid>
-                                        <GridView x:Name="BrowsePlaylistsGrid" ItemTemplate="{StaticResource BrowseResultGridTemplate}" SelectionMode="None" IsItemClickEnabled="True" ItemClick="BrowseResult_ItemClick" ItemContainerStyle="{StaticResource CardTileContainerStyle}" ScrollViewer.VerticalScrollMode="Disabled" ScrollViewer.HorizontalScrollMode="Disabled" Loaded="LibraryCardGrid_Loaded" SizeChanged="LibraryCardGrid_SizeChanged"><GridView.ItemsPanel><ItemsPanelTemplate><ItemsWrapGrid Orientation="Horizontal" ItemWidth="176" ItemHeight="224"/></ItemsPanelTemplate></GridView.ItemsPanel></GridView>
+                                        <GridView x:Name="BrowsePlaylistsGrid" ItemTemplate="{StaticResource BrowseResultGridTemplate}" SelectionMode="None" IsItemClickEnabled="True" ItemClick="BrowseResult_ItemClick" ItemContainerStyle="{StaticResource CardTileContainerStyle}" Margin="0,0,-20,0" ScrollViewer.VerticalScrollMode="Disabled" ScrollViewer.HorizontalScrollMode="Disabled" Loaded="LibraryCardGrid_Loaded" SizeChanged="LibraryCardGrid_SizeChanged"><GridView.ItemsPanel><ItemsPanelTemplate><ItemsWrapGrid Orientation="Horizontal" ItemWidth="190" ItemHeight="240"/></ItemsPanelTemplate></GridView.ItemsPanel></GridView>
                                         <ListView x:Name="BrowsePlaylistsList" ItemTemplate="{StaticResource BrowseResultListTemplate}" ItemContainerStyle="{StaticResource BrowseResultListItemStyle}" SelectionMode="None" IsItemClickEnabled="True" ItemClick="BrowseResult_ItemClick" Visibility="Collapsed" ScrollViewer.VerticalScrollMode="Disabled"/>
                                     </StackPanel>
                                     <StackPanel x:Name="BrowseArtistsSection" Visibility="Collapsed">
                                         <Grid Margin="0,0,0,6" ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Text="ARTISTS" Style="{StaticResource EyebrowText}"/><Border Grid.Column="1" Height="1" Background="{ThemeResource DividerBrush}" VerticalAlignment="Center"/><TextBlock x:Name="BrowseArtistsCount" Grid.Column="2" Style="{StaticResource CaptionText}"/></Grid>
-                                        <GridView x:Name="BrowseArtistsGrid" ItemTemplate="{StaticResource BrowseResultGridTemplate}" SelectionMode="None" IsItemClickEnabled="True" ItemClick="BrowseResult_ItemClick" ItemContainerStyle="{StaticResource CardTileContainerStyle}" ScrollViewer.VerticalScrollMode="Disabled" ScrollViewer.HorizontalScrollMode="Disabled" Loaded="LibraryCardGrid_Loaded" SizeChanged="LibraryCardGrid_SizeChanged"><GridView.ItemsPanel><ItemsPanelTemplate><ItemsWrapGrid Orientation="Horizontal" ItemWidth="176" ItemHeight="224"/></ItemsPanelTemplate></GridView.ItemsPanel></GridView>
+                                        <GridView x:Name="BrowseArtistsGrid" ItemTemplate="{StaticResource BrowseResultGridTemplate}" SelectionMode="None" IsItemClickEnabled="True" ItemClick="BrowseResult_ItemClick" ItemContainerStyle="{StaticResource CardTileContainerStyle}" Margin="0,0,-20,0" ScrollViewer.VerticalScrollMode="Disabled" ScrollViewer.HorizontalScrollMode="Disabled" Loaded="LibraryCardGrid_Loaded" SizeChanged="LibraryCardGrid_SizeChanged"><GridView.ItemsPanel><ItemsPanelTemplate><ItemsWrapGrid Orientation="Horizontal" ItemWidth="190" ItemHeight="240"/></ItemsPanelTemplate></GridView.ItemsPanel></GridView>
                                         <ListView x:Name="BrowseArtistsList" ItemTemplate="{StaticResource BrowseResultListTemplate}" ItemContainerStyle="{StaticResource BrowseResultListItemStyle}" SelectionMode="None" IsItemClickEnabled="True" ItemClick="BrowseResult_ItemClick" Visibility="Collapsed" ScrollViewer.VerticalScrollMode="Disabled"/>
                                     </StackPanel>
                                 </StackPanel>
@@ -2468,12 +2468,12 @@
                                   ScrollViewer.HorizontalScrollMode="Disabled"
                                   ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                                   Padding="0,0,0,24"
-                                  Margin="0,0,-18,0"
+                                  Margin="0,0,-20,0"
                                   Loaded="LibraryCardGrid_Loaded"
                                   SizeChanged="LibraryCardGrid_SizeChanged">
                             <GridView.ItemTemplate>
                                 <DataTemplate x:DataType="local:TrackInfo">
-                                    <StackPanel Margin="0,0,18,20" VerticalAlignment="Top" PointerEntered="PlaylistCard_PointerEntered" PointerExited="PlaylistCard_PointerExited">
+                                    <StackPanel Margin="0,0,20,22" VerticalAlignment="Top" PointerEntered="PlaylistCard_PointerEntered" PointerExited="PlaylistCard_PointerExited">
                                         <Border CornerRadius="{StaticResource Radius14}" Margin="0,0,0,10" Translation="0,0,16" Tag="{x:Bind}" Loaded="DiscoverDetailArtworkBorder_Loaded" SizeChanged="LibraryArtworkBorder_SizeChanged">
                                             <Border.Shadow><ThemeShadow /></Border.Shadow>
                                             <Grid>
@@ -3746,17 +3746,17 @@
                                       ScrollViewer.HorizontalScrollMode="Disabled"
                                       ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                                       Padding="0,0,0,24"
-                                      Margin="0,0,-18,0"
+                                      Margin="0,0,-20,0"
                                       Loaded="LibraryCardGrid_Loaded"
                                       SizeChanged="LibraryCardGrid_SizeChanged">
                                 <GridView.Header>
                                     <ContentControl x:Name="LibraryDetailGridHeaderHost"
                                                     HorizontalContentAlignment="Stretch"
-                                                    Margin="0,0,18,0" />
+                                                    Margin="0,0,20,0" />
                                 </GridView.Header>
                                 <GridView.ItemTemplate>
                                     <DataTemplate x:DataType="local:TrackInfo">
-                                        <StackPanel x:Name="CardRoot" Margin="0,0,18,20" VerticalAlignment="Top" PointerEntered="PlaylistCard_PointerEntered" PointerExited="PlaylistCard_PointerExited">
+                                        <StackPanel x:Name="CardRoot" Margin="0,0,20,22" VerticalAlignment="Top" PointerEntered="PlaylistCard_PointerEntered" PointerExited="PlaylistCard_PointerExited">
                                             <StackPanel.ContextFlyout>
                                                 <MenuFlyout Opening="LibraryDetailRowMenu_Opening">
                                                     <MenuFlyoutItem Text="Play now" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="LibraryRowMenuPlayNow_Click" />
@@ -3807,7 +3807,7 @@
                                     </DataTemplate>
                                 </GridView.ItemTemplate>
                                 <GridView.Footer>
-                                    <StackPanel x:Name="LibraryDetailGridSuggestions" Visibility="Collapsed" Margin="0,26,18,18">
+                                    <StackPanel x:Name="LibraryDetailGridSuggestions" Visibility="Collapsed" Margin="0,26,20,18">
                                         <TextBlock Text="Fits this playlist" FontFamily="Segoe UI Variable Display" FontSize="18" FontWeight="Bold" />
                                         <TextBlock Text="From your library, matched on artist and genre" FontSize="12.5" Foreground="{ThemeResource TextTertiaryBrush}" Margin="0,2,0,12" />
                                         <ItemsControl x:Name="LibraryDetailSuggestionsGridList" ItemTemplate="{StaticResource LibraryDetailSuggestionRowTemplate}" />

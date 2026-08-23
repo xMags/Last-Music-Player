@@ -487,7 +487,7 @@ namespace winrt::Last_Music_Player::implementation
             ? container.ContentTemplateRoot()
                 .try_as<winrt::Microsoft::UI::Xaml::Controls::Grid>()
             : nullptr;
-        constexpr double gap = 20.0;
+        constexpr double gap = LastMusicPlayer::Frontend::kStandardCardGap;
         auto const cardWidth = panel ? panel.ItemWidth() - gap : 0.0;
         if (!root || root.RowDefinitions().Size() == 0 || cardWidth <= 0.0)
         {
@@ -2014,8 +2014,9 @@ namespace winrt::Last_Music_Player::implementation
         using winrt::Microsoft::UI::Xaml::Controls::VariableSizedWrapGrid;
 
         auto panel = sender.try_as<VariableSizedWrapGrid>();
-        constexpr double gap = 20.0;
-        constexpr double minimumCardWidth = 170.0;
+        constexpr double gap = LastMusicPlayer::Frontend::kStandardCardGap;
+        constexpr double minimumCardWidth =
+            LastMusicPlayer::Frontend::kStandardMinimumCardWidth;
         auto const availableWidth = args.NewSize().Width - gap;
         if (!panel || availableWidth <= 0.0)
         {

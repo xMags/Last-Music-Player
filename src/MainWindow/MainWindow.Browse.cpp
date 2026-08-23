@@ -6,6 +6,7 @@
 #include "Backend/RecentSearchStore.h"
 #include "Backend/TrackSearchPolicy.h"
 #include "Frontend/BrowseResultItem.h"
+#include "Frontend/ResponsiveCardLayout.h"
 
 #include <winrt/Microsoft.UI.Text.h>
 #include <winrt/Windows.Storage.h>
@@ -143,7 +144,7 @@ namespace winrt::Last_Music_Player::implementation
     {
         auto panel = BrowseCategoryGrid().ItemsPanelRoot().try_as<MUXC::ItemsWrapGrid>();
         auto root = container ? container.ContentTemplateRoot().try_as<MUXC::Grid>() : nullptr;
-        constexpr double gap = 16.0;
+        constexpr double gap = LastMusicPlayer::Frontend::kBannerCardGap;
         auto const cardWidth = panel ? panel.ItemWidth() - gap : 0.0;
         if (!root || cardWidth <= 0.0)
         {

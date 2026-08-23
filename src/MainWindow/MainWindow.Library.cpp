@@ -402,34 +402,11 @@ namespace winrt::Last_Music_Player::implementation
 
         // Gutter and minimum card width per surface, from the reference's
         // repeat(auto-fill, minmax(N, 1fr)) for each grid.
-        auto gap = 20.0;
-        auto minimumCardWidth = 170.0;
-        auto layoutTolerance = 0.0;
-        if (grid == LibraryDetailGridView())
+        auto gap = LastMusicPlayer::Frontend::kStandardCardGap;
+        auto minimumCardWidth = LastMusicPlayer::Frontend::kStandardMinimumCardWidth;
+        if (grid == BrowseCategoryGrid())
         {
-            gap = 18.0;
-            minimumCardWidth = 150.0;
-        }
-        else if (grid == DiscoverDetailGridView())
-        {
-            gap = 18.0;
-            minimumCardWidth = 150.0;
-            // Exact item pitches can round just beyond the ScrollViewer's
-            // viewport and wrap the last card. Keep a small layout allowance.
-            layoutTolerance = 2.0;
-        }
-        else if (grid == BrowseSongsGrid()
-            || grid == BrowseAlbumsGrid()
-            || grid == BrowsePlaylistsGrid()
-            || grid == BrowseArtistsGrid())
-        {
-            gap = 18.0;
-            minimumCardWidth = 158.0;
-        }
-        else if (grid == BrowseCategoryGrid())
-        {
-            gap = 16.0;
-            minimumCardWidth = 170.0;
+            gap = LastMusicPlayer::Frontend::kBannerCardGap;
         }
 
         // Measured from the grid itself rather than from a containing panel:
@@ -439,7 +416,7 @@ namespace winrt::Last_Music_Player::implementation
         // grid reaches one gap into the right gutter by a negative margin, so
         // its own extent is the content width plus one gap.
         auto panel = grid.ItemsPanelRoot().try_as<winrt::Microsoft::UI::Xaml::Controls::ItemsWrapGrid>();
-        auto availableWidth = grid.ActualWidth() - gap - layoutTolerance;
+        auto availableWidth = grid.ActualWidth() - gap;
         if (!panel || availableWidth <= 0.0)
         {
             return;
@@ -457,17 +434,6 @@ namespace winrt::Last_Music_Player::implementation
         if (grid == BrowseCategoryGrid())
         {
             panel.ItemHeight(cardWidth / 1.5 + gap);
-        }
-        else if (grid == BrowseSongsGrid()
-            || grid == BrowseAlbumsGrid()
-            || grid == BrowsePlaylistsGrid()
-            || grid == BrowseArtistsGrid())
-        {
-            panel.ItemHeight(cardWidth + 58.0);
-        }
-        else if (grid == LibArtistsGrid())
-        {
-            panel.ItemHeight(224.0);
         }
         else
         {
