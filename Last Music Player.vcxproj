@@ -147,7 +147,7 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="Resources\AppIcon.rc" />
+    <ResourceCompile Include="src\App\AppIcon.rc" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\App\pch.h" />
@@ -216,7 +216,7 @@
     <ClInclude Include="src\Frontend\ChipWrapPanel.h" />
   </ItemGroup>
   <ItemGroup>
-    <ApplicationDefinition Include="App.xaml" />
+    <ApplicationDefinition Include="src\App\App.xaml" />
     <Page Include="src\MainWindow\MainWindow.xaml" />
     <Page Include="src\Styles\Tokens.xaml">
       <SubType>Designer</SubType>
@@ -462,11 +462,11 @@
       <Link>LICENSE</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="TERMS.txt">
+    <None Include="licenses\TERMS.txt">
       <Link>TERMS.txt</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="THIRD-PARTY-NOTICES.txt">
+    <None Include="licenses\THIRD-PARTY-NOTICES.txt">
       <Link>THIRD-PARTY-NOTICES.txt</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

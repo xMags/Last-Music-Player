@@ -94,15 +94,13 @@ flowchart LR
 Project layout:
 
 ```text
-App.xaml                   WinUI application definition
-src/App/                   App startup implementation and shared precompiled header
+src/App/                   WinUI application definition, startup, and native resources
 src/MainWindow/            WinUI views, player UI, search, library, settings
 src/Backend/               Playback, database, account/provider clients, playlists
 src/Frontend/              Navigation and UI helpers
 Assets/ src/Styles/        Icons and shared application styles
-Resources/                 Native application resources
 ThirdParty/sqlite/         Vendored SQLite amalgamation
-docs/                      Provider contract and standalone project wiki
+docs/                      Project documentation and design references
 installer/                 Inno Setup packaging script
 tests/native/              Native helper tests
 ```
@@ -239,9 +237,9 @@ This project is **source available**, not open source. It is licensed under the
 custom [Last Projects License 1.0](LICENSE).
 
 - Installing or using a release also requires acceptance of the
-  [Last Projects End-User Terms](TERMS.txt).
+  [Last Projects End-User Terms](licenses/TERMS.txt).
 - Contributions require acceptance of the
-  [Last Projects Individual Contributor License Agreement](CLA.md).
+  [Last Projects Individual Contributor License Agreement](docs/CLA.md).
 - Natural persons may use, study, build, and modify it for strictly personal,
   noncommercial purposes.
 - Modified source must be published in a qualifying public repository within
@@ -252,6 +250,6 @@ custom [Last Projects License 1.0](LICENSE).
   or dataset use are not permitted without written permission.
 
 Third-party components remain under their own terms, listed in
-[`THIRD-PARTY-NOTICES.txt`](THIRD-PARTY-NOTICES.txt).
+[`THIRD-PARTY-NOTICES.txt`](licenses/THIRD-PARTY-NOTICES.txt).
 
 Commercial and organization licensing: **info@lastprojects.com**

@@ -286,7 +286,7 @@ not require the Licensor to review, use, preserve, or merge it.
 Third-Party Components remain governed exclusively by their own licenses and
 not by this License. Their authors and licensors retain all rights provided by
 their terms. Required notices accompany the Software in
-THIRD-PARTY-NOTICES.txt and the licenses/third-party directory.
+licenses/THIRD-PARTY-NOTICES.txt and the licenses/third-party directory.
 
 If this License conflicts with a Third-Party Component's license, the
 third-party license controls only for that component.

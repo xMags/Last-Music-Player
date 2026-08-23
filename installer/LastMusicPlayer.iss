@@ -31,7 +31,7 @@ VersionInfoVersion={#MyAppVersion}
 ; The source license is shown for reference, then the end-user terms require
 ; explicit acceptance before installation can continue.
 InfoBeforeFile=..\LICENSE
-LicenseFile=..\TERMS.txt
+LicenseFile=..\licenses\TERMS.txt
 DefaultDirName={autopf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
@@ -66,8 +66,8 @@ Source: "{#BuildDir}\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdir
 ; Legal documents are sourced from the repository so a stale Release folder
 ; cannot omit them. LicenseFile above makes TERMS.txt acceptance mandatory.
 Source: "..\LICENSE"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\TERMS.txt"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\THIRD-PARTY-NOTICES.txt"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\licenses\TERMS.txt"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\licenses\THIRD-PARTY-NOTICES.txt"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\licenses\third-party\*"; DestDir: "{app}\Licenses\ThirdParty"; Flags: recursesubdirs createallsubdirs ignoreversion
 
 [Icons]
