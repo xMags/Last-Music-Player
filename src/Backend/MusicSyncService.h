@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Backend/AccountDataLifecycleContracts.h"
 #include "Backend/AccountMusicContract.h"
 #include "Backend/DatabaseEngine.h"
 #include "Backend/RemoteMusicService.h"
@@ -38,7 +39,7 @@ namespace LastMusicPlayer::Backend
             static_cast<std::uint32_t>(left) | static_cast<std::uint32_t>(right));
     }
 
-    class MusicSyncService final
+    class MusicSyncService final : public IAccountOutboundSync
     {
     public:
         MusicSyncService(
@@ -49,6 +50,8 @@ namespace LastMusicPlayer::Backend
 
         winrt::Windows::Foundation::IAsyncOperation<bool> SyncAsync();
         winrt::Windows::Foundation::IAsyncOperation<bool> RequestSyncAsync(AccountSyncLane lanes);
+        winrt::Windows::Foundation::IAsyncOperation<bool>
+            RequestOutboundSyncAsync() override;
         void ScheduleMutation(AccountSyncLane lane);
         bool SavePortablePreference(PortablePreferenceKey key, std::wstring const& valueJson);
 

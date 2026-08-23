@@ -170,6 +170,8 @@
     <ClInclude Include="src\Backend\Pkce.h" />
     <ClInclude Include="src\Backend\LoopbackCallback.h" />
     <ClInclude Include="src\Backend\AccountClient.h" />
+    <ClInclude Include="src\Backend\AccountDataLifecycleContracts.h" />
+    <ClInclude Include="src\Backend\AccountDataLifecycleService.h" />
     <ClInclude Include="src\Backend\AccountMusicContract.h" />
     <ClInclude Include="src\Backend\AccountUrlPolicy.h" />
     <ClInclude Include="src\Backend\AccountSessionGateway.h" />
@@ -269,6 +271,7 @@
     <ClCompile Include="src\Backend\Pkce.cpp" />
     <ClCompile Include="src\Backend\LoopbackCallback.cpp" />
     <ClCompile Include="src\Backend\AccountClient.cpp" />
+    <ClCompile Include="src\Backend\AccountDataLifecycleService.cpp" />
     <ClCompile Include="src\Backend\AccountMusicContract.cpp" />
     <ClCompile Include="src\Backend\AccountUrlPolicy.cpp" />
     <ClCompile Include="src\Backend\AccountSessionGateway.cpp" />

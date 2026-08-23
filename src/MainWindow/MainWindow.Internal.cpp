@@ -162,6 +162,18 @@ namespace winrt::Last_Music_Player::implementation::detail
         return service;
     }
 
+    LastMusicPlayer::Backend::AccountDataLifecycleService& AccountDataLifecycleService()
+    {
+        static LastMusicPlayer::Backend::AccountDataLifecycleService service{
+            AccountSessionService(),
+            MusicSyncServiceService(),
+            DatabaseService(),
+            SettingsManagerService(),
+            UserDataOperationGateService()
+        };
+        return service;
+    }
+
 
 
     LastMusicPlayer::Backend::DatabaseEngine& DatabaseService()

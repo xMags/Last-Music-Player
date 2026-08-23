@@ -11,6 +11,7 @@
 #include "Backend/CredentialStore.h"
 #include "Backend/SettingsManager.h"
 #include "Backend/AccountClient.h"
+#include "Backend/AccountDataLifecycleService.h"
 #include "Backend/AccountMusicContract.h"
 #include "Backend/AccountSessionGateway.h"
 #include "Backend/AccountSessionService.h"
@@ -635,6 +636,7 @@ namespace
             LogoutScript script;
             {
                 std::lock_guard guard{ Mutex };
+                LogoutCalls.emplace_back(bearerSession.c_str());
                 auto found = LogoutScripts.find(std::wstring(bearerSession.c_str()));
                 if (found != LogoutScripts.end())
                 {
@@ -689,6 +691,12 @@ namespace
             return LastAcquireIntent;
         }
 
+        std::size_t LogoutCallCount() const
+        {
+            std::lock_guard guard{ Mutex };
+            return LogoutCalls.size();
+        }
+
         bool WaitForCancellationAfter(std::uint64_t intent)
         {
             std::unique_lock lock{ Mutex };
@@ -707,6 +715,7 @@ namespace
         std::deque<AcquireScript> AcquireScripts;
         std::map<std::wstring, ProfileScript> ProfileScripts;
         std::map<std::wstring, LogoutScript> LogoutScripts;
+        std::vector<std::wstring> LogoutCalls;
         std::uint64_t LastAcquireIntent{};
         std::uint64_t LastCanceledIntent{};
     };
@@ -864,6 +873,134 @@ namespace
         account::UserDataOperationGate OperationGate;
         account::AccountSessionService Service;
     };
+
+    struct ScriptedOutboundSync final : account::IAccountOutboundSync
+    {
+        winrt::Windows::Foundation::IAsyncOperation<bool>
+            RequestOutboundSyncAsync() override
+        {
+            ++RequestCount;
+            if (OnRequest)
+            {
+                OnRequest();
+            }
+            co_return Succeeds;
+        }
+
+        bool Succeeds{ true };
+        int RequestCount{};
+        std::function<void()> OnRequest;
+    };
+
+    struct FakeLifecycleStorage final : account::IAccountDataLifecycleStorage
+    {
+        struct OwnerData final
+        {
+            std::size_t RecoverablePending{};
+            std::size_t Blocked{};
+            bool HasTracks{ true };
+            bool HasPlaylists{ true };
+            bool HasSyncState{ true };
+            bool HasCatalogCache{ true };
+        };
+
+        bool IsAccountDataStoreReady() const noexcept override
+        {
+            std::lock_guard guard{ Mutex };
+            return Ready;
+        }
+
+        std::optional<std::size_t> RecoverablePendingChangeCount(
+            std::wstring const& accountId) const override
+        {
+            std::lock_guard guard{ Mutex };
+            if (FailPendingRead)
+            {
+                return std::nullopt;
+            }
+            auto const found = Owners.find(accountId);
+            return found == Owners.end() ? 0 : found->second.RecoverablePending;
+        }
+
+        bool RemoveSignedOutAccountData(std::wstring const& accountId) override
+        {
+            std::lock_guard guard{ Mutex };
+            RemovedOwners.push_back(accountId);
+            if (FailRemoval)
+            {
+                return false;
+            }
+            Owners.erase(accountId);
+            return true;
+        }
+
+        void SetPending(std::wstring const& accountId, std::size_t pending)
+        {
+            std::lock_guard guard{ Mutex };
+            Owners[accountId].RecoverablePending = pending;
+        }
+
+        void SetBlocked(std::wstring const& accountId, std::size_t blocked)
+        {
+            std::lock_guard guard{ Mutex };
+            Owners[accountId].Blocked = blocked;
+        }
+
+        bool HasOwner(std::wstring const& accountId) const
+        {
+            std::lock_guard guard{ Mutex };
+            return Owners.find(accountId) != Owners.end();
+        }
+
+        bool WasRemoved(std::wstring const& accountId) const
+        {
+            std::lock_guard guard{ Mutex };
+            return std::find(RemovedOwners.begin(), RemovedOwners.end(), accountId)
+                != RemovedOwners.end();
+        }
+
+        mutable std::mutex Mutex;
+        bool Ready{ true };
+        bool FailRemoval{};
+        bool FailPendingRead{};
+        std::map<std::wstring, OwnerData> Owners;
+        std::vector<std::wstring> RemovedOwners;
+        std::vector<std::wstring> LocalTracks{ L"local-track" };
+        std::vector<std::wstring> LocalPlaylists{ L"local-playlist" };
+        std::vector<std::wstring> DownloadedFiles{ L"downloaded-audio" };
+        std::wstring ApiKeyData{ L"api-key-data" };
+        std::wstring AppSettings{ L"settings" };
+    };
+
+    struct AccountLifecycleFixture final
+    {
+        AccountLifecycleFixture()
+            : Lifecycle(
+                Session.Service,
+                Sync,
+                Storage,
+                Session.Settings,
+                Session.OperationGate)
+        {
+        }
+
+        AccountSessionFixture Session;
+        ScriptedOutboundSync Sync;
+        FakeLifecycleStorage Storage;
+        account::AccountDataLifecycleService Lifecycle;
+    };
+
+    account::AccountLogoutResult Complete(account::AccountLogoutOperation const& operation)
+    {
+        operation.Completion().get();
+        return operation.Result();
+    }
+
+    account::AccountCleanupResult Complete(account::AccountCleanupOperation const& operation)
+    {
+        operation.Completion().get();
+        return operation.Result();
+    }
 
     account::AccountProfile Profile(winrt::hstring const& owner)
     {
@@ -2646,7 +2783,8 @@ namespace
             "('local|one','local','','','C:/Music/local.flac','Local song',1,''),"
             "('remote|api|a','remote','api','https://music.example/a','https://stream.example/a?media_token=secret','API duplicate',1,'remote-a'),"
             "('account|owner-a|old','remote','account','https://music.example/old','','Leaked account row',1,'old');");
-        exec("CREATE TABLE Albums (ArtworkUrl TEXT); CREATE TABLE Playlists (ArtworkUrl TEXT);");
+        exec("CREATE TABLE Albums (ArtworkUrl TEXT); CREATE TABLE Playlists (ArtworkUrl TEXT);"
+            "INSERT INTO Playlists (ArtworkUrl) VALUES ('local-playlist');");
         exec(account::DatabaseAccountSchema::CreateTablesSql);
         exec("UPDATE Tracks SET ArtworkUrl='https://images.example/a?signature=secret' WHERE SourceKey='remote|api|a';");
         exec(account::DatabaseAccountSchema::RemoveLegacyGenericAccountTracksSql);
@@ -2669,7 +2807,15 @@ namespace
             "('owner-a','shared-track',1,'{}','2026-08-01T00:00:00Z'),"
             "('owner-b','shared-track',0,'{}','2026-08-01T00:00:01Z');"
             "INSERT INTO AccountSyncState (AccountId,LegacyHistoryImportState) VALUES "
-            "('owner-a','accepted'),('owner-b','declined');");
+            "('owner-a','accepted'),('owner-b','declined');"
+            "INSERT INTO AccountPlaylists (AccountId,PlaylistId,Name) VALUES "
+            "('owner-a','playlist-a','A list'),('owner-b','playlist-b','B list');"
+            "INSERT INTO AccountPlaylistTracks (AccountId,PlaylistId,RemoteId,TrackOrder) VALUES "
+            "('owner-a','playlist-a','remote-a',0),('owner-b','playlist-b','remote-b',0);"
+            "INSERT INTO AccountPreferences (AccountId,PreferenceKey,ValueJson,Pending) VALUES "
+            "('owner-a','theme','\"dark\"',1),('owner-b','theme','\"light\"',0);"
+            "INSERT INTO CatalogDiscoveryCache (AccountId,Storefront,Payload) VALUES "
+            "('owner-a','in','{}'),('owner-b','us','{}');");
 
         exec("INSERT INTO ActiveAccountContext (SingletonId,RemoteMode,AccountId) VALUES (1,'Account','owner-a');");
         Expect(scalar("SELECT COUNT(*) FROM EffectiveTracks WHERE Provider='account' AND Title='Account A song';") == 1,
@@ -2733,6 +2879,24 @@ namespace
             "clearing owner A profile did not cascade its import state");
         Expect(scalar("SELECT COUNT(*) FROM AccountSyncState WHERE AccountId='owner-b';") == 1,
             "clearing owner A profile removed owner B import state");
+        Expect(scalar("SELECT COUNT(*) FROM AccountPlaylists WHERE AccountId='owner-a';") == 0,
+            "clearing owner A profile did not cascade its playlists");
+        Expect(scalar("SELECT COUNT(*) FROM AccountPlaylists WHERE AccountId='owner-b';") == 1,
+            "clearing owner A profile removed owner B playlists");
+        Expect(scalar("SELECT COUNT(*) FROM AccountPlaylistTracks WHERE AccountId='owner-a';") == 0,
+            "clearing owner A profile did not cascade its playlist tracks");
+        Expect(scalar("SELECT COUNT(*) FROM AccountPreferences WHERE AccountId='owner-a';") == 0,
+            "clearing owner A profile did not cascade its preferences");
+        Expect(scalar("SELECT COUNT(*) FROM AccountPreferences WHERE AccountId='owner-b';") == 1,
+            "clearing owner A profile removed owner B preferences");
+        Expect(scalar("SELECT COUNT(*) FROM CatalogDiscoveryCache WHERE AccountId='owner-a';") == 0,
+            "clearing owner A profile did not cascade its catalog cache");
+        Expect(scalar("SELECT COUNT(*) FROM CatalogDiscoveryCache WHERE AccountId='owner-b';") == 1,
+            "clearing owner A profile removed owner B catalog cache");
+        Expect(scalar("SELECT COUNT(*) FROM Tracks WHERE SourceKey='local|one';") == 1,
+            "clearing account data removed a local track");
+        Expect(scalar("SELECT COUNT(*) FROM Playlists WHERE ArtworkUrl='local-playlist';") == 1,
+            "clearing account data removed a local playlist");
     }
 
     void TestOutboxSchemaMigrationPreservesBacklog()
@@ -3073,6 +3237,286 @@ namespace
         EstablishSession(fixture, L"bearer-a", L"owner-a");
         Expect(fixture.Service.Snapshot().Profile.Id == L"owner-a",
             "owner callback exception rolled back the committed session");
+    }
+
+    void TestAccountLifecycleSuccessfulLogoutCleanup()
+    {
+        AccountLifecycleFixture fixture;
+        EstablishSession(fixture.Session, L"bearer-a", L"owner-a");
+        fixture.Session.Gateway.SetLogout(L"bearer-a");
+        fixture.Storage.Owners.emplace(L"owner-a", FakeLifecycleStorage::OwnerData{});
+        fixture.Storage.Owners.emplace(L"owner-b", FakeLifecycleStorage::OwnerData{});
+        fixture.Storage.SetPending(L"owner-a", 3);
+        fixture.Sync.OnRequest = [&fixture]
+        {
+            fixture.Storage.SetPending(L"owner-a", 0);
+        };
+
+        auto const result = Complete(fixture.Lifecycle.Logout());
+
+        Expect(result.Outcome == account::AccountLogoutOutcome::Succeeded && result.SignedOut,
+            "successful account lifecycle logout did not complete cleanup");
+        Expect(fixture.Sync.RequestCount == 1,
+            "account lifecycle logout did not request its final outbound sync");
+        Expect(fixture.Session.Gateway.LogoutCallCount() == 1,
+            "account lifecycle logout did not contact the remote account service once");
+        Expect(fixture.Session.Service.Snapshot().Status == account::AccountSessionStatus::SignedOut,
+            "successful lifecycle logout left the account session active");
+        Expect(fixture.Session.Credentials.ReadAccountSession().empty(),
+            "successful lifecycle logout left the credential stored");
+        Expect(!fixture.Storage.HasOwner(L"owner-a"),
+            "successful lifecycle logout left signed-out owner data behind");
+        Expect(fixture.Storage.HasOwner(L"owner-b"),
+            "successful lifecycle logout removed another owner's data");
+        Expect(fixture.Storage.LocalTracks.size() == 1
+                && fixture.Storage.LocalPlaylists.size() == 1
+                && fixture.Storage.DownloadedFiles.size() == 1
+                && !fixture.Storage.ApiKeyData.empty()
+                && !fixture.Storage.AppSettings.empty(),
+            "successful lifecycle logout removed preserved local or API-key data");
+        Expect(fixture.Session.Settings.GetString(
+                account::PendingAccountCleanupOwnerSetting, L"").empty(),
+            "successful lifecycle logout left its recovery marker behind");
+        Expect(fixture.Session.OperationGate.IsAccepting(),
+            "successful lifecycle logout did not reopen data admissions");
+    }
+
+    void TestAccountLifecycleBlockedRecordsDoNotPreventLogout()
+    {
+        AccountLifecycleFixture fixture;
+        EstablishSession(fixture.Session, L"bearer-a", L"owner-a");
+        fixture.Session.Gateway.SetLogout(L"bearer-a");
+        fixture.Storage.Owners.emplace(L"owner-a", FakeLifecycleStorage::OwnerData{});
+        fixture.Storage.SetPending(L"owner-a", 1);
+        fixture.Sync.Succeeds = false;
+        fixture.Sync.OnRequest = [&fixture]
+        {
+            fixture.Storage.SetPending(L"owner-a", 0);
+            fixture.Storage.SetBlocked(L"owner-a", 1);
+        };
+
+        auto const result = Complete(fixture.Lifecycle.Logout());
+
+        Expect(result.Outcome == account::AccountLogoutOutcome::Succeeded && result.SignedOut,
+            "a permanently rejected record prevented otherwise safe logout");
+        Expect(!fixture.Storage.HasOwner(L"owner-a"),
+            "cleanup preserved a rejected record after successful logout");
+    }
+
+    void TestAccountLifecycleFinalSyncFailurePreservesSessionAndData()
+    {
+        AccountLifecycleFixture fixture;
+        EstablishSession(fixture.Session, L"bearer-a", L"owner-a");
+        fixture.Storage.Owners.emplace(L"owner-a", FakeLifecycleStorage::OwnerData{});
+        fixture.Storage.SetPending(L"owner-a", 2);
+        fixture.Sync.Succeeds = false;
+
+        auto const result = Complete(fixture.Lifecycle.Logout());
+
+        Expect(result.Outcome == account::AccountLogoutOutcome::FinalSyncFailed
+                && !result.SignedOut,
+            "failed final sync did not stop logout");
+        Expect(fixture.Session.Gateway.LogoutCallCount() == 0,
+            "failed final sync still contacted the remote logout endpoint");
+        Expect(fixture.Session.Service.Snapshot().Profile.Id == L"owner-a"
+                && fixture.Session.Credentials.ReadAccountSession() == L"bearer-a",
+            "failed final sync cleared the usable account session");
+        Expect(fixture.Storage.HasOwner(L"owner-a"),
+            "failed final sync removed local account data");
+        Expect(fixture.Session.Settings.GetString(
+                account::PendingAccountCleanupOwnerSetting, L"").empty(),
+            "failed final sync wrote a cleanup marker before remote logout");
+        Expect(fixture.Session.OperationGate.IsAccepting(),
+            "failed final sync closed data admissions");
+    }
+
+    void TestAccountLifecycleTransientLogoutFailurePreservesSessionAndData()
+    {
+        AccountLifecycleFixture fixture;
+        EstablishSession(fixture.Session, L"bearer-a", L"owner-a");
+        fixture.Session.Gateway.SetLogout(
+            L"bearer-a",
+            nullptr,
+            HRESULT_FROM_WIN32(ERROR_TIMEOUT));
+        fixture.Storage.Owners.emplace(L"owner-a", FakeLifecycleStorage::OwnerData{});
+
+        auto const result = Complete(fixture.Lifecycle.Logout());
+
+        Expect(result.Outcome == account::AccountLogoutOutcome::RemoteLogoutFailed
+                && !result.SignedOut,
+            "transient remote logout failure reported success");
+        Expect(fixture.Session.Service.Snapshot().Profile.Id == L"owner-a"
+                && fixture.Session.Credentials.ReadAccountSession() == L"bearer-a",
+            "transient remote logout failure cleared the usable session");
+        Expect(fixture.Storage.HasOwner(L"owner-a"),
+            "transient remote logout failure removed local account data");
+        Expect(fixture.Session.Settings.GetString(
+                account::PendingAccountCleanupOwnerSetting, L"").empty(),
+            "handled remote logout failure left a stale cleanup marker");
+        Expect(fixture.Session.OperationGate.IsAccepting(),
+            "remote logout failure did not reopen data admissions");
+    }
+
+    void TestAccountLifecyclePreservesDataAfterFinalSyncExpiresSession()
+    {
+        AccountLifecycleFixture fixture;
+        EstablishSession(fixture.Session, L"bearer-a", L"owner-a");
+        fixture.Storage.Owners.emplace(L"owner-a", FakeLifecycleStorage::OwnerData{});
+        fixture.Storage.SetPending(L"owner-a", 1);
+        auto const context = fixture.Session.Service.CaptureOperation();
+        fixture.Sync.Succeeds = false;
+        fixture.Sync.OnRequest = [&fixture, context]
+        {
+            fixture.Session.Service.HandleUnauthorized(context);
+        };
+
+        auto const result = Complete(fixture.Lifecycle.Logout());
+
+        Expect(result.Outcome == account::AccountLogoutOutcome::FinalSyncFailed
+                && result.SignedOut,
+            "expired final sync did not report that sign-out occurred without cleanup");
+        Expect(fixture.Session.Gateway.LogoutCallCount() == 0,
+            "logout contacted the remote endpoint after synchronization already invalidated the session");
+        Expect(fixture.Session.Credentials.ReadAccountSession().empty(),
+            "expired final-sync session left its invalid credential behind");
+        Expect(fixture.Storage.HasOwner(L"owner-a"),
+            "failed final sync removed local account data after session expiry");
+        Expect(fixture.Session.Settings.GetString(
+                account::PendingAccountCleanupOwnerSetting, L"").empty(),
+            "expired-session cleanup left its recovery marker behind");
+    }
+
+    void TestAccountLifecycleWaitsForActiveOperationsAndBlocksReplacement()
+    {
+        AccountLifecycleFixture fixture;
+        EstablishSession(fixture.Session, L"bearer-a", L"owner-a");
+        fixture.Session.Gateway.SetLogout(L"bearer-a");
+        fixture.Storage.Owners.emplace(L"owner-a", FakeLifecycleStorage::OwnerData{});
+        fixture.Storage.Owners.emplace(L"owner-b", FakeLifecycleStorage::OwnerData{});
+
+        auto activeWrite = fixture.Session.OperationGate.TryEnter();
+        Expect(activeWrite.has_value(), "lifecycle concurrency test could not start a data write");
+        auto operation = fixture.Lifecycle.Logout();
+
+        auto const closeDeadline = std::chrono::steady_clock::now() + std::chrono::seconds(2);
+        while (fixture.Session.OperationGate.IsAccepting()
+            && std::chrono::steady_clock::now() < closeDeadline)
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        }
+        Expect(!fixture.Session.OperationGate.IsAccepting(),
+            "lifecycle logout did not close new data-operation admissions");
+        Expect(!fixture.Session.OperationGate.TryEnter().has_value(),
+            "lifecycle logout admitted a concurrent write after closure");
+
+        fixture.Session.Gateway.QueueAcquire(L"bearer-b");
+        fixture.Session.Gateway.SetProfile(L"bearer-b", Profile(L"owner-b"));
+        Expect(!fixture.Session.Service.SignInAsync().get(),
+            "replacement sign-in bypassed lifecycle cleanup admission closure");
+
+        activeWrite.reset();
+        auto const result = Complete(operation);
+        Expect(result.Outcome == account::AccountLogoutOutcome::Succeeded,
+            "lifecycle logout did not resume after the active operation drained");
+        Expect(!fixture.Storage.HasOwner(L"owner-a")
+                && fixture.Storage.HasOwner(L"owner-b"),
+            "owner-scoped cleanup removed replacement-owner data");
+    }
+
+    void TestAccountLifecycleDoesNotDiscardLateConcurrentWrite()
+    {
+        AccountLifecycleFixture fixture;
+        EstablishSession(fixture.Session, L"bearer-a", L"owner-a");
+        fixture.Storage.Owners.emplace(L"owner-a", FakeLifecycleStorage::OwnerData{});
+
+        auto activeWrite = fixture.Session.OperationGate.TryEnter();
+        Expect(activeWrite.has_value(),
+            "late-write lifecycle test could not start a data operation");
+        auto operation = fixture.Lifecycle.Logout();
+
+        auto const closeDeadline = std::chrono::steady_clock::now() + std::chrono::seconds(2);
+        while (fixture.Session.OperationGate.IsAccepting()
+            && std::chrono::steady_clock::now() < closeDeadline)
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        }
+        Expect(!fixture.Session.OperationGate.IsAccepting(),
+            "late-write lifecycle test did not reach closed admissions");
+
+        fixture.Storage.SetPending(L"owner-a", 1);
+        activeWrite.reset();
+        auto const result = Complete(operation);
+
+        Expect(result.Outcome == account::AccountLogoutOutcome::FinalSyncFailed
+                && !result.SignedOut,
+            "a concurrent write arriving after final sync was discarded by logout");
+        Expect(fixture.Session.Gateway.LogoutCallCount() == 0,
+            "late concurrent write still allowed the remote logout request");
+        Expect(fixture.Session.Service.Snapshot().Profile.Id == L"owner-a"
+                && fixture.Storage.HasOwner(L"owner-a"),
+            "late concurrent write caused session or data removal");
+        Expect(fixture.Session.OperationGate.IsAccepting(),
+            "late concurrent write failure did not reopen admissions");
+    }
+
+    void TestAccountLifecycleStartupRecovery()
+    {
+        {
+            AccountLifecycleFixture fixture;
+            fixture.Storage.Owners.emplace(L"owner-a", FakeLifecycleStorage::OwnerData{});
+            Expect(fixture.Session.Settings.TrySetString(
+                    account::PendingAccountCleanupOwnerSetting, L"owner-a"),
+                "startup recovery test could not persist its cleanup marker");
+
+            auto const result = Complete(fixture.Lifecycle.ResolvePendingCleanup());
+            Expect(result.Outcome == account::AccountCleanupOutcome::Cleaned,
+                "startup did not resume interrupted signed-out cleanup");
+            Expect(!fixture.Storage.HasOwner(L"owner-a"),
+                "startup recovery left interrupted owner data behind");
+            Expect(fixture.Session.Settings.GetString(
+                    account::PendingAccountCleanupOwnerSetting, L"").empty(),
+                "startup recovery left its completed marker behind");
+        }
+
+        {
+            AccountLifecycleFixture fixture;
+            EstablishSession(fixture.Session, L"bearer-a", L"owner-a");
+            fixture.Storage.Owners.emplace(L"owner-a", FakeLifecycleStorage::OwnerData{});
+            Expect(fixture.Session.Settings.TrySetString(
+                    account::PendingAccountCleanupOwnerSetting, L"owner-a"),
+                "failed-logout recovery test could not persist its marker");
+
+            auto const result = Complete(fixture.Lifecycle.ResolvePendingCleanup());
+            Expect(result.Outcome
+                    == account::AccountCleanupOutcome::PreservedAuthenticatedAccount,
+                "startup recovery did not preserve the still-authenticated owner");
+            Expect(fixture.Storage.HasOwner(L"owner-a")
+                    && fixture.Session.Credentials.ReadAccountSession() == L"bearer-a",
+                "startup recovery removed data or credentials after an interrupted failed logout");
+            Expect(fixture.Session.Settings.GetString(
+                    account::PendingAccountCleanupOwnerSetting, L"").empty(),
+                "preserved authenticated account kept a stale cleanup marker");
+        }
+
+        {
+            AccountLifecycleFixture fixture;
+            EstablishSession(fixture.Session, L"bearer-b", L"owner-b");
+            fixture.Storage.Owners.emplace(L"owner-a", FakeLifecycleStorage::OwnerData{});
+            fixture.Storage.Owners.emplace(L"owner-b", FakeLifecycleStorage::OwnerData{});
+            Expect(fixture.Session.Settings.TrySetString(
+                    account::PendingAccountCleanupOwnerSetting, L"owner-a"),
+                "replacement-owner recovery test could not persist its marker");
+
+            auto const result = Complete(fixture.Lifecycle.ResolvePendingCleanup());
+            Expect(result.Outcome == account::AccountCleanupOutcome::Cleaned,
+                "startup did not clean the signed-out owner beside a replacement account");
+            Expect(!fixture.Storage.HasOwner(L"owner-a")
+                    && fixture.Storage.HasOwner(L"owner-b"),
+                "startup cleanup removed the replacement account");
+            Expect(fixture.Session.Service.Snapshot().Profile.Id == L"owner-b"
+                    && fixture.Session.Credentials.ReadAccountSession() == L"bearer-b",
+                "startup cleanup disturbed the replacement session");
+        }
     }
 
     void TestRemoteScopeCacheKeys()
@@ -3645,6 +4089,14 @@ int wmain()
         RunTest("TestUnauthorizedContextCannotClearAnotherSession", TestUnauthorizedContextCannotClearAnotherSession);
         RunTest("TestCredentialDeleteFailurePreservesSession", TestCredentialDeleteFailurePreservesSession);
         RunTest("TestOwnerCallbackExceptionsAreIsolated", TestOwnerCallbackExceptionsAreIsolated);
+        RunTest("TestAccountLifecycleSuccessfulLogoutCleanup", TestAccountLifecycleSuccessfulLogoutCleanup);
+        RunTest("TestAccountLifecycleBlockedRecordsDoNotPreventLogout", TestAccountLifecycleBlockedRecordsDoNotPreventLogout);
+        RunTest("TestAccountLifecycleFinalSyncFailurePreservesSessionAndData", TestAccountLifecycleFinalSyncFailurePreservesSessionAndData);
+        RunTest("TestAccountLifecycleTransientLogoutFailurePreservesSessionAndData", TestAccountLifecycleTransientLogoutFailurePreservesSessionAndData);
+        RunTest("TestAccountLifecyclePreservesDataAfterFinalSyncExpiresSession", TestAccountLifecyclePreservesDataAfterFinalSyncExpiresSession);
+        RunTest("TestAccountLifecycleWaitsForActiveOperationsAndBlocksReplacement", TestAccountLifecycleWaitsForActiveOperationsAndBlocksReplacement);
+        RunTest("TestAccountLifecycleDoesNotDiscardLateConcurrentWrite", TestAccountLifecycleDoesNotDiscardLateConcurrentWrite);
+        RunTest("TestAccountLifecycleStartupRecovery", TestAccountLifecycleStartupRecovery);
         RunTest("TestRemoteScopeCacheKeys", TestRemoteScopeCacheKeys);
         RunTest("TestApiKeyScopePartitionsProviderConfiguration", TestApiKeyScopePartitionsProviderConfiguration);
         RunTest("TestAccountPlaylistScopeRejectsReplacementBeforeDispatch", TestAccountPlaylistScopeRejectsReplacementBeforeDispatch);

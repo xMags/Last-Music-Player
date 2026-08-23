@@ -434,6 +434,11 @@ namespace LastMusicPlayer::Backend
         PortablePreferenceKey key,
         std::wstring const& valueJson)
     {
+        auto operationLease = m_operationGate.TryEnter();
+        if (!operationLease)
+        {
+            return false;
+        }
         auto const validated = ValidatePortablePreferenceValue(key, valueJson);
         if (!validated)
         {
@@ -489,6 +494,42 @@ namespace LastMusicPlayer::Backend
         {
         }
         co_return co_await RequestSyncAsync(AccountSyncLane::All);
+    }
+
+    winrt::Windows::Foundation::IAsyncOperation<bool>
+        MusicSyncService::RequestOutboundSyncAsync()
+    {
+        constexpr auto outboundLanes = AccountSyncLane::History
+            | AccountSyncLane::Likes
+            | AccountSyncLane::PreferencePush;
+        {
+            std::lock_guard guard{ m_mutex };
+            if (m_mutationTimer)
+            {
+                m_mutationTimer.Cancel();
+                m_mutationTimer = nullptr;
+            }
+            m_debouncedLanes &= ~Bits(outboundLanes);
+        }
+        for (auto lane : { AccountSyncLane::History,
+                           AccountSyncLane::Likes,
+                           AccountSyncLane::PreferencePush })
+        {
+            ResetLaneFailure(lane);
+        }
+        try
+        {
+            auto const context = m_remoteMusic.CaptureAccountSyncContext();
+            if (!m_database.ResetRecoverableAccountRetrySchedule(context.OwnerId().c_str()))
+            {
+                co_return false;
+            }
+        }
+        catch (...)
+        {
+            co_return false;
+        }
+        co_return co_await RequestSyncAsync(outboundLanes);
     }
 
     winrt::Windows::Foundation::IAsyncOperation<bool> MusicSyncService::RequestSyncAsync(

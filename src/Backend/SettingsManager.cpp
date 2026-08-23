@@ -359,10 +359,32 @@ namespace LastMusicPlayer::Backend
 
     void SettingsManager::SetString(winrt::hstring const& key, winrt::hstring const& value)
     {
+        (void)TrySetString(key, value);
+    }
+
+    bool SettingsManager::TrySetString(
+        winrt::hstring const& key,
+        winrt::hstring const& value)
+    {
         std::lock_guard<std::recursive_mutex> guard{ m_mutex };
         EnsureLoaded();
+        auto const hadPrevious = m_json.HasKey(key);
+        auto const previous = hadPrevious ? m_json.Lookup(key) : nullptr;
         m_json.Insert(key, json::JsonValue::CreateStringValue(value));
-        Persist();
+        if (Persist())
+        {
+            return true;
+        }
+
+        if (hadPrevious)
+        {
+            m_json.Insert(key, previous);
+        }
+        else
+        {
+            m_json.Remove(key);
+        }
+        return false;
     }
 
     bool SettingsManager::Remove(winrt::hstring const& key)

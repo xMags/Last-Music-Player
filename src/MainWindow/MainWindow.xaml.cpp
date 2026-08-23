@@ -11,6 +11,7 @@
 
 // Backend
 #include "Backend/AudioPlayer.h"
+#include "Backend/AccountDataLifecycleService.h"
 #include "Backend/DatabaseEngine.h"
 #include "Backend/ProviderClient.h"
 #include "Backend/ProviderHelpers.h"
@@ -675,7 +676,11 @@ namespace winrt::Last_Music_Player::implementation
         DatabaseService().SetRemoteLibraryContext(
             initialRemoteMode == LastMusicPlayer::Backend::RemoteAccessMode::ApiKey ? L"ApiKey" : L"LocalOnly");
         RefreshAccountSettingsUi();
-        if (initialRemoteMode == LastMusicPlayer::Backend::RemoteAccessMode::Account)
+        auto const hasPendingAccountCleanup = !SettingsManagerService().GetString(
+            LastMusicPlayer::Backend::PendingAccountCleanupOwnerSetting,
+            L"").empty();
+        if (initialRemoteMode == LastMusicPlayer::Backend::RemoteAccessMode::Account
+            || hasPendingAccountCleanup)
         {
             RunDetached(RestoreAccountIntegrationAsync());
         }

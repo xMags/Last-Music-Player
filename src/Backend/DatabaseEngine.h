@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Backend/AccountDataLifecycleContracts.h"
+
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -170,11 +172,11 @@ namespace LastMusicPlayer::Backend
         double TotalSeconds{ 0.0 };
     };
 
-    class DatabaseEngine
+    class DatabaseEngine : public IAccountDataLifecycleStorage
     {
     public:
         DatabaseEngine() = default;
-        ~DatabaseEngine();
+        ~DatabaseEngine() override;
 
         bool Initialize();
         void Close();
@@ -302,6 +304,7 @@ namespace LastMusicPlayer::Backend
             std::wstring const& accountId,
             AccountRetryQueue queue) const;
         bool ResetAccountRetrySchedule(std::wstring const& accountId);
+        bool ResetRecoverableAccountRetrySchedule(std::wstring const& accountId);
 
         AccountSyncState LoadAccountSyncState(std::wstring const& accountId) const;
         bool SaveAccountSyncState(AccountSyncState const& state);
@@ -321,6 +324,11 @@ namespace LastMusicPlayer::Backend
             std::wstring const& accountId,
             AccountDataClearMode mode = AccountDataClearMode::LeaveInactive);
         bool ClearAllAccountData();
+
+        [[nodiscard]] bool IsAccountDataStoreReady() const noexcept override;
+        [[nodiscard]] std::optional<std::size_t> RecoverablePendingChangeCount(
+            std::wstring const& accountId) const override;
+        bool RemoveSignedOutAccountData(std::wstring const& accountId) override;
 
     private:
         bool EnsureSchema();

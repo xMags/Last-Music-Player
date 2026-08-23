@@ -1855,7 +1855,6 @@
                                                 <HyperlinkButton x:Name="AccountManageButton" Click="AccountManage_Click" Content="Manage account" Padding="0" MinHeight="0" HorizontalAlignment="Left" Visibility="Collapsed" />
                                             </StackPanel>
                                             <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                                                <Button x:Name="AccountSyncButton" Click="AccountSync_Click" Style="{StaticResource DesignSecondaryButton}" Content="Sync now" Visibility="Collapsed" />
                                                 <Button x:Name="AccountSignOutButton" Click="AccountSignOut_Click" Style="{StaticResource DesignSecondaryButton}" Content="Sign out" Visibility="Collapsed" />
                                             </StackPanel>
                                         </Grid>
@@ -1874,10 +1873,9 @@
                                                 <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
                                             <StackPanel Spacing="4">
-                                                <TextBlock Text="Account library on this PC" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" />
-                                                <TextBlock x:Name="AccountLastSyncText" Text="Not synchronized yet" Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
+                                                <TextBlock Text="Automatic account sync" Style="{StaticResource BodyStrong}" TextWrapping="Wrap" />
+                                                <TextBlock x:Name="AccountLastSyncText" Text="Automatic sync starts after sign-in" Style="{StaticResource CaptionText}" TextWrapping="Wrap" />
                                             </StackPanel>
-                                            <Button x:Name="AccountClearDataButton" Grid.Column="1" Click="AccountClearData_Click" Style="{StaticResource DesignSecondaryButton}" Content="Clear synced data" IsEnabled="False" />
                                         </Grid>
                                         <!-- The reference puts the region picker in the active remote
                                              connection panel, and leaves Integrations with only the

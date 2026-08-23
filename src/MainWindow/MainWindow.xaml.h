@@ -62,9 +62,9 @@ namespace winrt::Last_Music_Player::implementation
     // it is allowed to disturb once it finishes.
     enum class AccountSyncMode
     {
-        // The user pressed Sync now or signed in. Reports progress in Settings
-        // and takes the full post-sync reset.
-        Interactive,
+        // The initial sign-in waits for a complete sync and takes the full
+        // post-sync reset before the account setup flow can complete.
+        InitialLogin,
 
         // Something the user did implies it: finishing a track, liking a song,
         // editing a playlist, changing mode. Full reset, but silent.
@@ -263,9 +263,7 @@ namespace winrt::Last_Music_Player::implementation
         void ThemeSegment_Checked(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         winrt::Windows::Foundation::IAsyncAction PlayProviderTest_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void DisconnectProvider_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
-        winrt::Windows::Foundation::IAsyncAction AccountSync_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         winrt::Windows::Foundation::IAsyncAction AccountSignOut_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
-        winrt::Windows::Foundation::IAsyncAction AccountClearData_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         winrt::Windows::Foundation::IAsyncAction AccountManage_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void RemoteMode_SelectionChanged(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::SelectionChangedEventArgs const& args);
         void ScanCancel_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
@@ -661,6 +659,7 @@ namespace winrt::Last_Music_Player::implementation
         void EnsureAccentBrushes();
         void InvalidateRemoteViewWork();
         void InvalidateRemoteScopeWork();
+        void InvalidateSignedOutAccountPlaybackState();
         void BindAccountPlaylist(
             winrt::Last_Music_Player::TrackInfo const& playlist,
             LastMusicPlayer::Backend::RemoteScopeSnapshot const& scope,

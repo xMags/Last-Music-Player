@@ -2,6 +2,7 @@
 
 #include "Backend/AudioPlayer.h"
 #include "Backend/AccountClient.h"
+#include "Backend/AccountDataLifecycleService.h"
 #include "Backend/AccountSessionService.h"
 #include "Backend/CredentialStore.h"
 #include "Backend/DatabaseEngine.h"
@@ -100,6 +101,7 @@ namespace winrt::Last_Music_Player::implementation::detail
     LastMusicPlayer::Backend::RemoteMusicService& RemoteMusicServiceService();
     LastMusicPlayer::Backend::DatabaseEngine& DatabaseService();
     LastMusicPlayer::Backend::MusicSyncService& MusicSyncServiceService();
+    LastMusicPlayer::Backend::AccountDataLifecycleService& AccountDataLifecycleService();
     LastMusicPlayer::Backend::StreamCache& StreamCacheService();
     LastMusicPlayer::Backend::DownloadManager& DownloadManagerService();
     LastMusicPlayer::Backend::UserDataOperationGate& UserDataOperationGateService();

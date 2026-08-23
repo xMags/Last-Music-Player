@@ -15,6 +15,8 @@
 
 namespace LastMusicPlayer::Backend
 {
+    class AccountDataLifecycleService;
+
     enum class AccountSessionStatus
     {
         SignedOut,
@@ -70,6 +72,8 @@ namespace LastMusicPlayer::Backend
 #endif
 
     private:
+        friend class AccountDataLifecycleService;
+
         class TransitionLease final
         {
         public:
@@ -118,6 +122,8 @@ namespace LastMusicPlayer::Backend
             CredentialRemoval credentialRemoval,
             winrt::hstring const& expectedSession,
             winrt::hstring const& safeError = {});
+        winrt::Windows::Foundation::IAsyncOperation<bool> LogoutForLifecycleAsync(
+            AccountOperationContext const& expectedContext);
         StateEffect PublishStateLocked(
             AccountSessionStatus status,
             AccountProfile const& profile,

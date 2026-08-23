@@ -628,8 +628,6 @@ namespace LastMusicPlayer::Backend
         {
             co_return false;
         }
-        auto intent = BeginAuthorizationIntent();
-
         AccountOperationContext context;
         try
         {
@@ -637,24 +635,38 @@ namespace LastMusicPlayer::Backend
         }
         catch (...)
         {
+            auto intent = BeginAuthorizationIntent();
             co_return CommitSignedOut(intent, CredentialRemoval::DeleteAll, {});
+        }
+
+        co_return co_await LogoutForLifecycleAsync(context);
+    }
+
+    winrt::Windows::Foundation::IAsyncOperation<bool>
+        AccountSessionService::LogoutForLifecycleAsync(
+            AccountOperationContext const& expectedContext)
+    {
+        auto intent = BeginAuthorizationIntent();
+        if (!IsCurrent(expectedContext))
+        {
+            co_return false;
         }
 
         try
         {
-            co_await m_gateway.LogoutAsync(context.BearerSession);
-            if (!IsAuthorizationIntentCurrent(intent) || !IsCurrent(context))
+            co_await m_gateway.LogoutAsync(expectedContext.BearerSession);
+            if (!IsAuthorizationIntentCurrent(intent) || !IsCurrent(expectedContext))
             {
                 co_return false;
             }
             co_return CommitSignedOut(
                 intent,
                 CredentialRemoval::DeleteIfMatches,
-                context.BearerSession);
+                expectedContext.BearerSession);
         }
         catch (winrt::hresult_error const& error)
         {
-            if (!IsAuthorizationIntentCurrent(intent) || !IsCurrent(context))
+            if (!IsAuthorizationIntentCurrent(intent) || !IsCurrent(expectedContext))
             {
                 co_return false;
             }
@@ -663,7 +675,7 @@ namespace LastMusicPlayer::Backend
                 co_return CommitSignedOut(
                     intent,
                     CredentialRemoval::DeleteIfMatches,
-                    context.BearerSession);
+                    expectedContext.BearerSession);
             }
             SetSafeErrorIfCurrent(intent, L"Could not contact the account service.");
             co_return false;

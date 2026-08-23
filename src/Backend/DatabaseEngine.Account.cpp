@@ -1208,6 +1208,40 @@ namespace LastMusicPlayer::Backend
         return CommitOrRollback(m_db);
     }
 
+    bool DatabaseEngine::ResetRecoverableAccountRetrySchedule(
+        std::wstring const& accountId)
+    {
+        std::scoped_lock lock{ m_mutex };
+        if (!m_db || accountId.empty() || !Exec(m_db, "BEGIN IMMEDIATE;"))
+        {
+            return false;
+        }
+        Statement history{ m_db,
+            "UPDATE PlaybackEvents SET NextAttemptAtUnix=0, LastFailureCategory='' "
+            "WHERE AccountId=? AND IsBlocked=0;" };
+        Statement likes{ m_db,
+            "UPDATE PendingLikes SET NextAttemptAtUnix=0, LastFailureCategory='' "
+            "WHERE AccountId=? AND IsBlocked=0;" };
+        Statement preferences{ m_db,
+            "UPDATE AccountPreferences SET NextAttemptAtUnix=0, LastFailureCategory='' "
+            "WHERE AccountId=? AND Pending=1 AND IsBlocked=0;" };
+        if (!history || !likes || !preferences)
+        {
+            TryExec(m_db, "ROLLBACK;");
+            return false;
+        }
+        for (auto* statement : { history.value, likes.value, preferences.value })
+        {
+            BindText(statement, 1, accountId);
+            if (sqlite3_step(statement) != SQLITE_DONE)
+            {
+                TryExec(m_db, "ROLLBACK;");
+                return false;
+            }
+        }
+        return CommitOrRollback(m_db);
+    }
+
     AccountSyncState DatabaseEngine::LoadAccountSyncState(std::wstring const& accountId) const
     {
         std::scoped_lock lock{ m_mutex };
@@ -1389,5 +1423,46 @@ namespace LastMusicPlayer::Backend
             return false;
         }
         return CommitOrRollback(m_db);
+    }
+
+    bool DatabaseEngine::IsAccountDataStoreReady() const noexcept
+    {
+        std::scoped_lock lock{ m_mutex };
+        return m_db != nullptr;
+    }
+
+    std::optional<std::size_t> DatabaseEngine::RecoverablePendingChangeCount(
+        std::wstring const& accountId) const
+    {
+        std::scoped_lock lock{ m_mutex };
+        if (!m_db || accountId.empty())
+        {
+            return std::nullopt;
+        }
+        Statement statement{ m_db,
+            "SELECT "
+            "(SELECT count(*) FROM PlaybackEvents WHERE AccountId=? AND IsBlocked=0) + "
+            "(SELECT count(*) FROM PendingLikes WHERE AccountId=? AND IsBlocked=0) + "
+            "(SELECT count(*) FROM AccountPreferences "
+            "WHERE AccountId=? AND Pending=1 AND IsBlocked=0);" };
+        if (!statement)
+        {
+            return std::nullopt;
+        }
+        BindText(statement.value, 1, accountId);
+        BindText(statement.value, 2, accountId);
+        BindText(statement.value, 3, accountId);
+        if (sqlite3_step(statement.value) != SQLITE_ROW)
+        {
+            return std::nullopt;
+        }
+        return static_cast<std::size_t>((std::max)(
+            sqlite3_int64{ 0 },
+            sqlite3_column_int64(statement.value, 0)));
+    }
+
+    bool DatabaseEngine::RemoveSignedOutAccountData(std::wstring const& accountId)
+    {
+        return ClearAccountData(accountId, AccountDataClearMode::LeaveInactive);
     }
 }

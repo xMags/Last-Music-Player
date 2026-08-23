@@ -31,6 +31,11 @@ namespace LastMusicPlayer::Backend
         // Typed accessors (all backed by Settings.json).
         winrt::hstring GetString(winrt::hstring const& key, winrt::hstring const& def = L"") const;
         void SetString(winrt::hstring const& key, winrt::hstring const& value);
+        // Writes a string durably and restores the prior in-memory value if the
+        // atomic file replacement fails.
+        [[nodiscard]] bool TrySetString(
+            winrt::hstring const& key,
+            winrt::hstring const& value);
 
         bool GetBool(winrt::hstring const& key, bool def = false) const;
         void SetBool(winrt::hstring const& key, bool value);

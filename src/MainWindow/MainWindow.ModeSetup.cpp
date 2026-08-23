@@ -259,7 +259,7 @@ namespace winrt::Last_Music_Player::implementation
             }
 
             operationLease.reset();
-            co_await SynchronizeAccountLibraryAsync(AccountSyncMode::Interactive);
+            co_await SynchronizeAccountLibraryAsync(AccountSyncMode::InitialLogin);
             co_return true;
         }
         catch (winrt::hresult_canceled const&)
