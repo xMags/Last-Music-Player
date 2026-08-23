@@ -404,6 +404,10 @@ namespace winrt::Last_Music_Player::implementation
         // repeat(auto-fill, minmax(N, 1fr)) for each grid.
         auto gap = LastMusicPlayer::Frontend::kStandardCardGap;
         auto minimumCardWidth = LastMusicPlayer::Frontend::kStandardMinimumCardWidth;
+        auto const browseResultGrid = grid == BrowseSongsGrid()
+            || grid == BrowseAlbumsGrid()
+            || grid == BrowsePlaylistsGrid()
+            || grid == BrowseArtistsGrid();
         if (grid == BrowseCategoryGrid())
         {
             gap = LastMusicPlayer::Frontend::kBannerCardGap;
@@ -434,6 +438,11 @@ namespace winrt::Last_Music_Player::implementation
         if (grid == BrowseCategoryGrid())
         {
             panel.ItemHeight(cardWidth / 1.5 + gap);
+        }
+        else if (browseResultGrid)
+        {
+            panel.ItemHeight(
+                cardWidth + LastMusicPlayer::Frontend::kBrowseResultCardContentHeight);
         }
         else
         {

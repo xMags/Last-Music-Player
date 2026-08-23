@@ -255,6 +255,8 @@ namespace
             LastMusicPlayer::Frontend::kStandardMinimumCardWidth);
         Expect(expanded.ColumnCount == 4 && expanded.CardWidth == 185.0,
             "extra width should be divided equally across the same columns");
+        Expect(170.0 + LastMusicPlayer::Frontend::kBrowseResultCardContentHeight == 250.0,
+            "Browse result cells should reserve both text lines and their vertical gutters");
         Expect(LastMusicPlayer::Frontend::CalculateResponsiveCardLayout(
                 0.0, 20.0, 170.0).ColumnCount == 0,
             "an unmeasured surface should not invent a card layout");
