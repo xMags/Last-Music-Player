@@ -34,27 +34,32 @@ namespace winrt::Last_Music_Player::implementation::detail
     // Effective pixels: the size the window opens at with no saved geometry.
     // Same unit as the minimum below so the two can be compared at a glance;
     // a default under the minimum would just be clamped on first launch.
-    // 1440 widened by 3%, rounded to the nearest effective pixel.
-    inline constexpr int kDefaultWindowWidthEpx = 1483;
-    inline constexpr int kDefaultWindowHeightEpx = 900;
-    inline constexpr int kPreviousDefaultWindowWidthEpx = 1440;
+    // Matches the minimum because the full layout needs this width to keep four
+    // current playlist-detail cards on one row with both side rails visible.
+    inline constexpr int kDefaultWindowWidthEpx = 1361;
+    inline constexpr int kDefaultWindowHeightEpx = 880;
+    inline constexpr int kPreviousDefaultWindowWidthEpx = 1300;
     inline constexpr int kPreviousDefaultWindowHeightEpx = 900;
-    inline constexpr int kLegacyDefaultWindowWidthEpx = 1370;
-    inline constexpr int kLegacyDefaultWindowHeightEpx = 880;
+    inline constexpr int kLargerDefaultWindowWidthEpx = 1500;
+    inline constexpr int kLargerDefaultWindowHeightEpx = 900;
+    inline constexpr int kOversizedDefaultWindowWidthEpx = 1720;
+    inline constexpr int kOversizedDefaultWindowHeightEpx = 900;
+    inline constexpr int kLegacyDefaultWindowWidthEpx = 1483;
+    inline constexpr int kLegacyDefaultWindowHeightEpx = 900;
+    inline constexpr int kEarlierDefaultWindowWidthEpx = 1440;
+    inline constexpr int kEarlierDefaultWindowHeightEpx = 900;
+    inline constexpr int kOldestDefaultWindowWidthEpx = 1370;
+    inline constexpr int kOldestDefaultWindowHeightEpx = 880;
 
     // Effective pixels, converted for the window's DPI where they are applied.
     //
-    // The width holds four cards across in the widest card grid the app has:
-    // the Library Songs and History grids, whose ItemsWrapGrid is on a 192
-    // pitch. Four of those need 768 of grid viewport, and at this window width
-    // the viewport measures 776 once the 240 nav, the 300 rail and the centre
-    // panel's padding are taken out. Every other grid is narrower per card
-    // (Library collections 184, Home shelves 176, Browse results 160) so they
-    // fit four or more at the same window size. Below 1100 the adaptive
-    // triggers drop the right rail entirely, which is a different layout.
+    // At this width the wide layout consumes 240 for navigation, 300 for the
+    // Now Playing rail, and 32 for the library's horizontal padding. The 789
+    // pixels left for content hold four 150-pixel minimum cards and their
+    // 18-pixel gutters, but not a fifth card.
     //
     // Changing any of those pitches changes what this number has to be.
-    inline constexpr int kMinWindowWidthEpx = 1370;
+    inline constexpr int kMinWindowWidthEpx = 1361;
     inline constexpr int kMinWindowHeightEpx = 880;
     inline constexpr uint32_t kSongsListPageSize = 150;
     inline constexpr uint32_t kSongsGridPageSize = 80;

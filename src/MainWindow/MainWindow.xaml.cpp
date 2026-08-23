@@ -274,6 +274,22 @@ namespace winrt::Last_Music_Player::implementation
                 kPreviousDefaultWindowHeightEpx,
                 static_cast<int>(defaultDpi),
                 USER_DEFAULT_SCREEN_DPI);
+            auto largerDefaultW = MulDiv(
+                kLargerDefaultWindowWidthEpx,
+                static_cast<int>(defaultDpi),
+                USER_DEFAULT_SCREEN_DPI);
+            auto largerDefaultH = MulDiv(
+                kLargerDefaultWindowHeightEpx,
+                static_cast<int>(defaultDpi),
+                USER_DEFAULT_SCREEN_DPI);
+            auto oversizedDefaultW = MulDiv(
+                kOversizedDefaultWindowWidthEpx,
+                static_cast<int>(defaultDpi),
+                USER_DEFAULT_SCREEN_DPI);
+            auto oversizedDefaultH = MulDiv(
+                kOversizedDefaultWindowHeightEpx,
+                static_cast<int>(defaultDpi),
+                USER_DEFAULT_SCREEN_DPI);
             auto legacyDefaultW = MulDiv(
                 kLegacyDefaultWindowWidthEpx,
                 static_cast<int>(defaultDpi),
@@ -282,17 +298,51 @@ namespace winrt::Last_Music_Player::implementation
                 kLegacyDefaultWindowHeightEpx,
                 static_cast<int>(defaultDpi),
                 USER_DEFAULT_SCREEN_DPI);
+            auto earlierDefaultW = MulDiv(
+                kEarlierDefaultWindowWidthEpx,
+                static_cast<int>(defaultDpi),
+                USER_DEFAULT_SCREEN_DPI);
+            auto earlierDefaultH = MulDiv(
+                kEarlierDefaultWindowHeightEpx,
+                static_cast<int>(defaultDpi),
+                USER_DEFAULT_SCREEN_DPI);
+            auto oldestDefaultW = MulDiv(
+                kOldestDefaultWindowWidthEpx,
+                static_cast<int>(defaultDpi),
+                USER_DEFAULT_SCREEN_DPI);
+            auto oldestDefaultH = MulDiv(
+                kOldestDefaultWindowHeightEpx,
+                static_cast<int>(defaultDpi),
+                USER_DEFAULT_SCREEN_DPI);
             auto hasKnownDefaultSize = haveSize
                 && ((std::abs(savedW - previousDefaultW) <= 2
                         && std::abs(savedH - previousDefaultH) <= 2)
+                    || (std::abs(savedW - largerDefaultW) <= 2
+                        && std::abs(savedH - largerDefaultH) <= 2)
+                    || (std::abs(savedW - oversizedDefaultW) <= 2
+                        && std::abs(savedH - oversizedDefaultH) <= 2)
                     || (std::abs(savedW - legacyDefaultW) <= 2
-                        && std::abs(savedH - legacyDefaultH) <= 2));
-            int finalW = haveSize && !hasKnownDefaultSize
+                        && std::abs(savedH - legacyDefaultH) <= 2)
+                    || (std::abs(savedW - earlierDefaultW) <= 2
+                        && std::abs(savedH - earlierDefaultH) <= 2)
+                    || (std::abs(savedW - oldestDefaultW) <= 2
+                        && std::abs(savedH - oldestDefaultH) <= 2));
+            auto requestedW = haveSize && !hasKnownDefaultSize
                 ? savedW
                 : MulDiv(kDefaultWindowWidthEpx, static_cast<int>(defaultDpi), USER_DEFAULT_SCREEN_DPI);
-            int finalH = haveSize && !hasKnownDefaultSize
+            auto requestedH = haveSize && !hasKnownDefaultSize
                 ? savedH
                 : MulDiv(kDefaultWindowHeightEpx, static_cast<int>(defaultDpi), USER_DEFAULT_SCREEN_DPI);
+            auto const minimumW = MulDiv(
+                kMinWindowWidthEpx,
+                static_cast<int>(defaultDpi),
+                USER_DEFAULT_SCREEN_DPI);
+            auto const minimumH = MulDiv(
+                kMinWindowHeightEpx,
+                static_cast<int>(defaultDpi),
+                USER_DEFAULT_SCREEN_DPI);
+            auto const finalW = (std::max)(requestedW, minimumW);
+            auto const finalH = (std::max)(requestedH, minimumH);
             UINT flags = SWP_NOZORDER;
             int finalX = 0;
             int finalY = 0;
