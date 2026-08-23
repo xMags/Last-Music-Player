@@ -2483,24 +2483,22 @@
 
                                 <!-- "Recently added" is absent on purpose: a catalog
                                      track has no date added to sort by. -->
-                                <DropDownButton Grid.Column="6" Height="38" CornerRadius="{StaticResource Radius10}" Padding="12,0"
-                                                Background="{ThemeResource SurfaceBrush}"
-                                                BorderBrush="{ThemeResource ControlBorderBrush}" BorderThickness="1"
-                                                AutomationProperties.Name="Sort order">
-                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Button Grid.Column="6" Height="38" Padding="10,0"
+                                        Style="{StaticResource DetailActionSecondaryButton}"
+                                        AutomationProperties.Name="Sort order">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
                                         <FontIcon Glyph="&#xE8CB;" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" />
                                         <TextBlock x:Name="DiscoverDetailSortLabel" Text="Custom order" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
-                                        <FontIcon Glyph="&#xE70D;" FontSize="11" Foreground="{ThemeResource TextTertiaryBrush}" />
                                     </StackPanel>
-                                    <DropDownButton.Flyout>
+                                    <Button.Flyout>
                                         <MenuFlyout>
                                             <MenuFlyoutItem Text="Custom order" Tag="Custom" Click="DiscoverDetailSort_Click" />
                                             <MenuFlyoutItem Text="Title" Tag="Title" Click="DiscoverDetailSort_Click" />
                                             <MenuFlyoutItem Text="Artist" Tag="Artist" Click="DiscoverDetailSort_Click" />
                                             <MenuFlyoutItem Text="Duration" Tag="Duration" Click="DiscoverDetailSort_Click" />
                                         </MenuFlyout>
-                                    </DropDownButton.Flyout>
-                                </DropDownButton>
+                                    </Button.Flyout>
+                                </Button>
 
                                 <Border Grid.Column="7" Height="38" Background="{ThemeResource SurfaceBrush}" BorderBrush="{ThemeResource ControlBorderBrush}" BorderThickness="1" CornerRadius="{StaticResource Radius10}" Padding="3">
                                     <StackPanel Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
@@ -3682,16 +3680,14 @@
                                     </Grid>
                                 </Border>
 
-                                <DropDownButton Grid.Column="7" Height="38" CornerRadius="{StaticResource Radius10}" Padding="12,0"
-                                                Background="{ThemeResource SurfaceBrush}"
-                                                BorderBrush="{ThemeResource ControlBorderBrush}" BorderThickness="1"
-                                                AutomationProperties.Name="Sort order">
-                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Button Grid.Column="7" Height="38" Padding="10,0"
+                                        Style="{StaticResource DetailActionSecondaryButton}"
+                                        AutomationProperties.Name="Sort order">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
                                         <FontIcon Glyph="&#xE8CB;" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" />
                                         <TextBlock x:Name="LibraryDetailSortLabel" Text="Custom order" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
-                                        <FontIcon Glyph="&#xE70D;" FontSize="11" Foreground="{ThemeResource TextTertiaryBrush}" />
                                     </StackPanel>
-                                    <DropDownButton.Flyout>
+                                    <Button.Flyout>
                                         <MenuFlyout>
                                             <MenuFlyoutItem x:Name="LibraryDetailSortCustom" Text="Custom order" Tag="Custom" Click="LibraryDetailSort_Click" />
                                             <MenuFlyoutItem Text="Recently added" Tag="DateAdded" Click="LibraryDetailSort_Click" />
@@ -3699,8 +3695,8 @@
                                             <MenuFlyoutItem Text="Artist" Tag="Artist" Click="LibraryDetailSort_Click" />
                                             <MenuFlyoutItem Text="Duration" Tag="Duration" Click="LibraryDetailSort_Click" />
                                         </MenuFlyout>
-                                    </DropDownButton.Flyout>
-                                </DropDownButton>
+                                    </Button.Flyout>
+                                </Button>
 
                                 <Border Grid.Column="8" Height="38" Background="{ThemeResource SurfaceBrush}" BorderBrush="{ThemeResource ControlBorderBrush}" BorderThickness="1" CornerRadius="{StaticResource Radius10}" Padding="3">
                                     <StackPanel Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
