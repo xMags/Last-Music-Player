@@ -29,7 +29,7 @@ System.Drawing.Drawing2D.GraphicsPath
 
 # Design handoff/reference docs
 design_handoff_winui_refresh/
-/docs/design/player-screens/
+/docs/design/
 
 # Dependencies restored by tooling
 packages/
