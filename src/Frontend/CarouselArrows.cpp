@@ -241,6 +241,19 @@ namespace LastMusicPlayer::Frontend
                 return;
             }
 
+            // Every consumer is a single-row horizontal shelf. A few surfaces
+            // configure scrollbar policy on the outer GridView, but the actual
+            // ScrollViewer lives inside its template; code-built chart rows also
+            // used the default vertical visibility. At the right edge, tiny
+            // layout overflow could therefore make an Auto vertical scrollbar
+            // appear inside the row. Enforce the invariant on the resolved
+            // scroller itself so all Home carousels behave consistently.
+            state->Scroller.HorizontalScrollBarVisibility(
+                controls::ScrollBarVisibility::Hidden);
+            state->Scroller.VerticalScrollBarVisibility(
+                controls::ScrollBarVisibility::Hidden);
+            state->Scroller.VerticalScrollMode(controls::ScrollMode::Disabled);
+
             if (!state->ViewChangedBound)
             {
                 state->ViewChangedBound = true;
