@@ -260,6 +260,26 @@ namespace
         Expect(LastMusicPlayer::Frontend::CalculateResponsiveCardLayout(
                 0.0, 20.0, 170.0).ColumnCount == 0,
             "an unmeasured surface should not invent a card layout");
+
+        constexpr double bannerGap = LastMusicPlayer::Frontend::kBannerCardGap;
+        constexpr double minimumWidth = LastMusicPlayer::Frontend::kStandardMinimumCardWidth;
+        constexpr int maximumColumns = LastMusicPlayer::Frontend::kBrowseBannerMaximumColumns;
+        auto const bannerWide = LastMusicPlayer::Frontend::CalculateResponsiveCardLayout(
+            1200.0, bannerGap, minimumWidth, maximumColumns);
+        Expect(bannerWide.ColumnCount == 4 && bannerWide.CardWidth == 288.0,
+            "a wide Browse banner should stay capped at four equal columns");
+        Expect(LastMusicPlayer::Frontend::CalculateResponsiveCardLayout(
+                728.0, bannerGap, minimumWidth, maximumColumns).ColumnCount == 4,
+            "the Browse banner should use four columns at the four-card breakpoint");
+        Expect(LastMusicPlayer::Frontend::CalculateResponsiveCardLayout(
+                727.0, bannerGap, minimumWidth, maximumColumns).ColumnCount == 3,
+            "the Browse banner should reduce to three columns below that breakpoint");
+        Expect(LastMusicPlayer::Frontend::CalculateResponsiveCardLayout(
+                541.0, bannerGap, minimumWidth, maximumColumns).ColumnCount == 2,
+            "the Browse banner should reduce to two columns at narrower widths");
+        Expect(LastMusicPlayer::Frontend::CalculateResponsiveCardLayout(
+                355.0, bannerGap, minimumWidth, maximumColumns).ColumnCount == 1,
+            "the Browse banner should reduce to one column at minimum width");
     }
 
     void TestDownloadPolicy()

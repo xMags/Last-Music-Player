@@ -1277,7 +1277,8 @@
                         </Border>
                     </Border>
 
-                    <ScrollViewer x:Name="BrowseResultsContent" Grid.Row="1" VerticalScrollBarVisibility="Hidden">
+                    <ScrollViewer x:Name="BrowseResultsContent" Grid.Row="1" VerticalScrollBarVisibility="Hidden"
+                                  HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Hidden">
                         <Grid Padding="0,22,20,32">
                             <StackPanel x:Name="BrowseLandingPanel">
                                 <StackPanel x:Name="BrowseRecentSearchesSection" Visibility="Collapsed">
@@ -1308,9 +1309,9 @@
                                                 <Border CornerRadius="{StaticResource Radius14}" Translation="0,0,16">
                                                     <Border.Shadow><ThemeShadow /></Border.Shadow>
                                                     <Grid>
-                                                        <local:GenreArtworkTile GenreName="{x:Bind Title}" />
+                                                        <local:GenreArtworkTile GenreName="{x:Bind Title}" IsBrowseBanner="True" />
                                                         <TextBlock Text="{x:Bind Title}" Margin="14,13" VerticalAlignment="Top" Foreground="White" FontSize="16" FontWeight="Bold" TextTrimming="CharacterEllipsis" />
-                                                        <TextBlock Text="{x:Bind ArtworkCaption}" Margin="14,0,14,13" VerticalAlignment="Bottom" HorizontalAlignment="Right"
+                                                        <TextBlock Text="{x:Bind ArtworkCaption}" Margin="14,0,14,13" VerticalAlignment="Bottom" HorizontalAlignment="Left"
                                                                    Foreground="White" Opacity="0.86" FontSize="11.5" TextTrimming="CharacterEllipsis" />
                                                     </Grid>
                                                 </Border>

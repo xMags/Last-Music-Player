@@ -20,46 +20,72 @@ namespace
         }
     }
 
-    void TestLandingPrefersGenresThenArtistsThenDefaults()
+    void TestLandingRejectsNonGenresAndNormalizesNames()
     {
-        std::vector<std::wstring> const genres{ L"Rock", L"Jazz" };
-        std::vector<std::wstring> const artists{ L"Someone", L"Another" };
+        auto const categories = policy::BrowseLandingCategories({
+            L" ", L"song", L"MUSIC", L" audio ", L"Track", L"People & Blogs",
+            L"Unknown Genre", L"  Jazz\t", L"jAzZ", L"Rock" });
 
-        auto const fromGenres = policy::BrowseLandingLabels(genres, artists);
-        Expect(fromGenres.size() == 2 && fromGenres[0] == L"Rock" && fromGenres[1] == L"Jazz",
-            "genres should win outright when there are any");
-
-        auto const fromArtists = policy::BrowseLandingLabels({}, artists);
-        Expect(fromArtists.size() == 2 && fromArtists[0] == L"Someone",
-            "artists should be used when no genre is tagged");
-
-        auto const fallback = policy::BrowseLandingLabels({}, {});
-        Expect(fallback.size() == 4, "a new account should still get the static list");
-        Expect(fallback[0] == L"Pop" && fallback[1] == L"Hip-Hop"
-            && fallback[2] == L"Electronic" && fallback[3] == L"Chill",
-            "the static list should match the other clients");
+        Expect(categories.size() == policy::kBrowseLandingCategoryLimit,
+            "invalid metadata should be replaced by useful curated genres");
+        Expect(categories[0].Name == L"Jazz" && !categories[0].IsCurated,
+            "a real genre should be trimmed while retaining its source");
+        Expect(categories[1].Name == L"Rock" && !categories[1].IsCurated,
+            "case-folded duplicates should keep only their first ranked spelling");
     }
 
-    void TestLandingCapsAndSkipsBlanks()
+    void TestLandingPreservesRealRankingThenFillsInCuratedOrder()
+    {
+        auto const categories = policy::BrowseLandingCategories({ L"Rock", L"Jazz" });
+        Expect(categories.size() == policy::kBrowseLandingCategoryLimit,
+            "the landing should be filled to twelve categories");
+        Expect(categories[0].Name == L"Rock" && categories[1].Name == L"Jazz",
+            "real genres should retain their count-ranked order");
+        Expect(!categories[0].IsCurated && !categories[1].IsCurated,
+            "real genres should remain local navigation targets");
+        Expect(categories[2].Name == L"Indie" && categories[2].IsCurated,
+            "curated filling should begin in the approved stable order");
+        Expect(categories[3].Name == L"Classical" && categories[4].Name == L"Electronic",
+            "curated filling order should remain stable");
+    }
+
+    void TestLandingMarksActualCuratedNameAsReal()
+    {
+        auto const categories = policy::BrowseLandingCategories({ L"Indie" });
+        Expect(categories[0].Name == L"Indie" && !categories[0].IsCurated,
+            "an actual genre should take precedence over the curated shortcut with the same name");
+        Expect(categories[1].Name == L"Classical" && categories[1].IsCurated,
+            "the duplicated curated name should be skipped without disturbing later fill order");
+    }
+
+    void TestLandingUsesTwelveCuratedGenresForAnEmptyLibrary()
+    {
+        auto const categories = policy::BrowseLandingCategories({});
+        std::vector<std::wstring> const expected{
+            L"Indie", L"Classical", L"Electronic", L"Ghazal", L"Jazz", L"Lo-fi",
+            L"Pop", L"Hip-Hop", L"Rock", L"Chill", L"Bollywood", L"Dance"
+        };
+        Expect(categories.size() == expected.size(),
+            "an empty library should still show all twelve curated genres");
+        for (std::size_t index = 0; index < expected.size(); ++index)
+        {
+            Expect(categories[index].Name == expected[index] && categories[index].IsCurated,
+                "the empty-library curated order should be deterministic");
+        }
+    }
+
+    void TestLandingCapsRealGenresAtTwelve()
     {
         std::vector<std::wstring> genres;
         for (int index = 0; index < 20; ++index)
         {
             genres.push_back(L"Genre" + std::to_wstring(index));
         }
-        Expect(policy::BrowseLandingLabels(genres, {}).size() == policy::kBrowseLandingLabelLimit,
-            "the landing grid should hold at most eight labels");
-
-        std::vector<std::wstring> const withBlank{ L"", L"Rock", L"" };
-        auto const cleaned = policy::BrowseLandingLabels(withBlank, {});
-        Expect(cleaned.size() == 1 && cleaned[0] == L"Rock",
-            "a blank label should never become a card");
-
-        // All-blank is indistinguishable from having nothing to offer, so the
-        // static list has to take over rather than leaving an empty grid.
-        std::vector<std::wstring> const allBlank{ L"", L"" };
-        Expect(policy::BrowseLandingLabels(allBlank, {}).size() == 4,
-            "labels that are all blank should fall through to the static list");
+        auto const categories = policy::BrowseLandingCategories(genres);
+        Expect(categories.size() == policy::kBrowseLandingCategoryLimit,
+            "the landing grid should hold at most twelve categories");
+        Expect(categories.back().Name == L"Genre11" && !categories.back().IsCurated,
+            "the cap should preserve the first twelve real genres");
     }
 
     void TestMinimumQueryLength()
@@ -73,8 +99,11 @@ int main()
 {
     try
     {
-        TestLandingPrefersGenresThenArtistsThenDefaults();
-        TestLandingCapsAndSkipsBlanks();
+        TestLandingRejectsNonGenresAndNormalizesNames();
+        TestLandingPreservesRealRankingThenFillsInCuratedOrder();
+        TestLandingMarksActualCuratedNameAsReal();
+        TestLandingUsesTwelveCuratedGenresForAnEmptyLibrary();
+        TestLandingCapsRealGenresAtTwelve();
         TestMinimumQueryLength();
         std::wcout << L"TrackSearchPolicyTests passed" << std::endl;
         return 0;

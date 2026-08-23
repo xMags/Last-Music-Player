@@ -24,12 +24,18 @@ namespace LastMusicPlayer::Backend
     // configured remote mode merges its own results after the local page.
     inline constexpr std::size_t kMinimumSearchQueryLength = 1;
 
-    // Up to eight labels for the empty-query landing: the listener's own ranked
-    // genres, then their ranked artists when no genre is tagged, then a static
-    // list so a brand new account still has somewhere to start.
-    [[nodiscard]] std::vector<std::wstring> BrowseLandingLabels(
-        std::vector<std::wstring> const& rankedGenres,
-        std::vector<std::wstring> const& rankedArtists);
+    struct BrowseLandingCategory
+    {
+        std::wstring Name;
+        bool IsCurated{};
+    };
 
-    inline constexpr std::size_t kBrowseLandingLabelLimit = 8;
+    // The empty-query landing keeps useful library genres in their ranked
+    // order, then fills the remaining positions with honest catalog-search
+    // shortcuts. The UI uses IsCurated to distinguish navigation into a local
+    // genre from a unified search with the same visible card treatment.
+    [[nodiscard]] std::vector<BrowseLandingCategory> BrowseLandingCategories(
+        std::vector<std::wstring> const& rankedGenres);
+
+    inline constexpr std::size_t kBrowseLandingCategoryLimit = 12;
 }

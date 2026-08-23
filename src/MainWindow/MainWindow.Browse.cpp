@@ -131,9 +131,17 @@ namespace winrt::Last_Music_Player::implementation
             return;
         }
 
-        auto const artistTile = category.SourceKind() == L"artist";
-        auto const kind = artistTile ? winrt::hstring{ L"artist" } : winrt::hstring{ L"genre" };
-        auto const tab = artistTile ? LibTabArtists() : LibTabGenres();
+        if (category.SourceKind() == L"catalog-search")
+        {
+            GlobalSearchBox().Text(category.SourceUrl().empty()
+                ? category.Title()
+                : category.SourceUrl());
+            RunDetached(RunHomeSearchAsync());
+            return;
+        }
+
+        auto const kind = winrt::hstring{ L"genre" };
+        auto const tab = LibTabGenres();
         ShowPrimaryView(L"Library");
         if (tab)
         {
@@ -845,30 +853,22 @@ namespace winrt::Last_Music_Player::implementation
         auto const epoch = ++m_browseLandingEpoch;
         auto dispatcher = DispatcherQueue();
         std::vector<winrt::Last_Music_Player::TrackInfo> genres;
-        std::vector<winrt::Last_Music_Player::TrackInfo> artists;
-        std::vector<std::wstring> rankedGenres;
         co_await winrt::resume_background();
         if (DatabaseService().IsInitialized())
         {
             genres = DatabaseService().LoadGenres();
-            artists = DatabaseService().LoadArtists();
-            rankedGenres = DatabaseService().LoadTopGenres(
-                static_cast<int>(LastMusicPlayer::Backend::kBrowseLandingLabelLimit));
         }
         co_await wil::resume_foreground(dispatcher);
         if (epoch != m_browseLandingEpoch) { co_return; }
 
         std::unordered_map<std::wstring, winrt::Last_Music_Player::TrackInfo> byGenre;
-        for (auto const& genre : genres) { byGenre.emplace(ToLowerCopy(genre.Title()), genre); }
-        std::unordered_map<std::wstring, winrt::Last_Music_Player::TrackInfo> byArtist;
-        std::vector<std::wstring> rankedArtists;
-        for (auto const& artist : artists)
+        std::vector<std::wstring> rankedGenres;
+        rankedGenres.reserve(genres.size());
+        for (auto const& genre : genres)
         {
-            byArtist.emplace(ToLowerCopy(artist.Title()), artist);
-            if (rankedArtists.size() < LastMusicPlayer::Backend::kBrowseLandingLabelLimit)
-            {
-                rankedArtists.emplace_back(artist.Title().c_str());
-            }
+            auto const trimmed = TrimQuery(genre.Title());
+            byGenre.emplace(ToLowerCopy(trimmed), genre);
+            rankedGenres.emplace_back(genre.Title().c_str());
         }
 
         auto const appendCategory = [this](winrt::Last_Music_Player::TrackInfo const& group, winrt::hstring const& context)
@@ -882,26 +882,26 @@ namespace winrt::Last_Music_Player::implementation
         };
 
         m_browseCategories.Clear();
-        for (auto const& name : LastMusicPlayer::Backend::BrowseLandingLabels(rankedGenres, rankedArtists))
+        for (auto const& categorySpec : LastMusicPlayer::Backend::BrowseLandingCategories(rankedGenres))
         {
-            auto const folded = ToLowerCopy(winrt::hstring(name));
-            if (auto const found = byGenre.find(folded); found != byGenre.end())
+            if (!categorySpec.IsCurated)
             {
-                appendCategory(found->second, L"genre");
+                auto const folded = ToLowerCopy(winrt::hstring(categorySpec.Name));
+                if (auto const found = byGenre.find(folded); found != byGenre.end())
+                {
+                    auto category = found->second;
+                    category.Title(winrt::hstring(categorySpec.Name));
+                    appendCategory(category, L"genre");
+                }
                 continue;
             }
-            if (auto const found = byArtist.find(folded); found != byArtist.end())
-            {
-                appendCategory(found->second, L"artist");
-            }
-        }
-        if (m_browseCategories.Size() == 0)
-        {
-            for (auto const& genre : genres)
-            {
-                if (m_browseCategories.Size() >= LastMusicPlayer::Backend::kBrowseLandingLabelLimit) { break; }
-                appendCategory(genre, L"genre");
-            }
+
+            winrt::Last_Music_Player::TrackInfo category;
+            category.Title(winrt::hstring(categorySpec.Name));
+            category.ArtworkCaption(L"Explore");
+            category.SourceKind(L"catalog-search");
+            category.SourceUrl(winrt::hstring(categorySpec.Name));
+            m_browseCategories.Append(category);
         }
         m_browseLandingLoaded = true;
     }

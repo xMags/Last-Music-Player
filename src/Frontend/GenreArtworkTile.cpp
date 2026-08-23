@@ -156,6 +156,16 @@ namespace winrt::Last_Music_Player::implementation
         Render();
     }
 
+    void GenreArtworkTile::IsBrowseBanner(bool value)
+    {
+        if (m_isBrowseBanner == value)
+        {
+            return;
+        }
+        m_isBrowseBanner = value;
+        Render();
+    }
+
     void GenreArtworkTile::Render()
     {
         auto const& recipe = LastMusicPlayer::Backend::ResolveGenreArtworkRecipe(
@@ -198,25 +208,28 @@ namespace winrt::Last_Music_Player::implementation
             Color(0x33000000), Color(0x00000000), { 0.0f, 1.0f }, { 0.0f, 0.0f }, 0.46));
         layers.Children().Append(shade);
 
-        auto ghost = BuildMark(recipe);
-        ghost.Opacity(0.16);
-        ghost.HorizontalAlignment(MUX::HorizontalAlignment::Right);
-        ghost.VerticalAlignment(MUX::VerticalAlignment::Bottom);
-        ghost.RenderTransformOrigin({ 1.0f, 1.0f });
-        MUXM::ScaleTransform ghostScale;
-        ghostScale.ScaleX(2.1);
-        ghostScale.ScaleY(2.1);
-        ghost.RenderTransform(ghostScale);
-        ghost.Translation({ 52.0f, 46.0f, 0.0f });
-        layers.Children().Append(ghost);
+        if (!m_isBrowseBanner)
+        {
+            auto ghost = BuildMark(recipe);
+            ghost.Opacity(0.16);
+            ghost.HorizontalAlignment(MUX::HorizontalAlignment::Right);
+            ghost.VerticalAlignment(MUX::VerticalAlignment::Bottom);
+            ghost.RenderTransformOrigin({ 1.0f, 1.0f });
+            MUXM::ScaleTransform ghostScale;
+            ghostScale.ScaleX(2.1);
+            ghostScale.ScaleY(2.1);
+            ghost.RenderTransform(ghostScale);
+            ghost.Translation({ 52.0f, 46.0f, 0.0f });
+            layers.Children().Append(ghost);
 
-        auto mark = BuildMark(recipe);
-        mark.HorizontalAlignment(MUX::HorizontalAlignment::Center);
-        mark.VerticalAlignment(MUX::VerticalAlignment::Center);
-        mark.Translation({ 0.0f, -8.0f, 16.0f });
-        MUXM::ThemeShadow markShadow;
-        mark.Shadow(markShadow);
-        layers.Children().Append(mark);
+            auto mark = BuildMark(recipe);
+            mark.HorizontalAlignment(MUX::HorizontalAlignment::Center);
+            mark.VerticalAlignment(MUX::VerticalAlignment::Center);
+            mark.Translation({ 0.0f, -8.0f, 16.0f });
+            MUXM::ThemeShadow markShadow;
+            mark.Shadow(markShadow);
+            layers.Children().Append(mark);
+        }
 
         MUXC::Border innerEdge;
         innerEdge.BorderBrush(MUXM::SolidColorBrush{ Color(0x38FFFFFF) });
@@ -224,26 +237,29 @@ namespace winrt::Last_Music_Player::implementation
         innerEdge.CornerRadius(MUX::CornerRadiusHelper::FromUniformRadius(16.0));
         layers.Children().Append(innerEdge);
 
-        MUXC::StackPanel label;
-        label.Orientation(MUXC::Orientation::Horizontal);
-        label.Spacing(8.0);
-        label.HorizontalAlignment(MUX::HorizontalAlignment::Left);
-        label.VerticalAlignment(MUX::VerticalAlignment::Bottom);
-        label.Margin({ 18.0, 0.0, 0.0, 16.0 });
-        MUXS::Ellipse labelDot;
-        labelDot.Width(5.0);
-        labelDot.Height(5.0);
-        labelDot.Fill(MUXM::SolidColorBrush{ Color(0xD9FFFFFF) });
-        labelDot.VerticalAlignment(MUX::VerticalAlignment::Center);
-        MUXC::TextBlock labelText;
-        labelText.Text(L"genre");
-        labelText.FontFamily(MUXM::FontFamily{ L"Cascadia Mono, Consolas" });
-        labelText.FontSize(11.5);
-        labelText.CharacterSpacing(140);
-        labelText.Foreground(MUXM::SolidColorBrush{ Color(0xEBFFFFFF) });
-        label.Children().Append(labelDot);
-        label.Children().Append(labelText);
-        layers.Children().Append(label);
+        if (!m_isBrowseBanner)
+        {
+            MUXC::StackPanel label;
+            label.Orientation(MUXC::Orientation::Horizontal);
+            label.Spacing(8.0);
+            label.HorizontalAlignment(MUX::HorizontalAlignment::Left);
+            label.VerticalAlignment(MUX::VerticalAlignment::Bottom);
+            label.Margin({ 18.0, 0.0, 0.0, 16.0 });
+            MUXS::Ellipse labelDot;
+            labelDot.Width(5.0);
+            labelDot.Height(5.0);
+            labelDot.Fill(MUXM::SolidColorBrush{ Color(0xD9FFFFFF) });
+            labelDot.VerticalAlignment(MUX::VerticalAlignment::Center);
+            MUXC::TextBlock labelText;
+            labelText.Text(L"genre");
+            labelText.FontFamily(MUXM::FontFamily{ L"Cascadia Mono, Consolas" });
+            labelText.FontSize(11.5);
+            labelText.CharacterSpacing(140);
+            labelText.Foreground(MUXM::SolidColorBrush{ Color(0xEBFFFFFF) });
+            label.Children().Append(labelDot);
+            label.Children().Append(labelText);
+            layers.Children().Append(label);
+        }
 
         shell.Child(layers);
         Content(shell);

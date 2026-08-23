@@ -5,5 +5,6 @@ namespace Last_Music_Player
     {
         GenreArtworkTile();
         String GenreName;
+        Boolean IsBrowseBanner;
     }
 }

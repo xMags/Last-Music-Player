@@ -426,8 +426,11 @@ namespace winrt::Last_Music_Player::implementation
             return;
         }
 
+        auto const maximumColumns = grid == BrowseCategoryGrid()
+            ? LastMusicPlayer::Frontend::kBrowseBannerMaximumColumns
+            : (std::numeric_limits<int>::max)();
         auto const layout = LastMusicPlayer::Frontend::CalculateResponsiveCardLayout(
-            availableWidth, gap, minimumCardWidth);
+            availableWidth, gap, minimumCardWidth, maximumColumns);
         auto const cardWidth = layout.CardWidth;
 
         // ItemsWrapGrid includes the final item's margin in its extent, while
