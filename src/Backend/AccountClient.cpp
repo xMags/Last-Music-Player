@@ -448,6 +448,62 @@ namespace LastMusicPlayer::Backend
             bearerSession);
     }
 
+    winrt::Windows::Foundation::IAsyncOperation<winrt::hstring> AccountClient::GetLibraryArtistsAsync(
+        winrt::hstring const& bearerSession,
+        LibraryArtistListRequest const& request)
+    {
+        auto const path = BuildLibraryArtistListPath(request);
+        if (!path)
+        {
+            throw winrt::hresult_invalid_argument(L"Library artist query is invalid.");
+        }
+        co_return co_await SendJsonAsync(
+            winrt::Windows::Web::Http::HttpMethod::Get(),
+            *path,
+            bearerSession,
+            L"",
+            std::chrono::seconds(5));
+    }
+
+    winrt::Windows::Foundation::IAsyncOperation<winrt::hstring> AccountClient::GetLibraryArtistTracksAsync(
+        winrt::hstring const& bearerSession,
+        winrt::hstring const& publicArtistId)
+    {
+        if (!IsValidLibraryArtistPublicId(std::wstring(publicArtistId.c_str())))
+        {
+            throw winrt::hresult_invalid_argument(L"Library artist identity is invalid.");
+        }
+        co_return co_await SendJsonAsync(
+            winrt::Windows::Web::Http::HttpMethod::Get(),
+            L"/v1/music/library/artists/"
+                + winrt::Windows::Foundation::Uri::EscapeComponent(publicArtistId)
+                + L"/tracks",
+            bearerSession,
+            L"",
+            std::chrono::seconds(5));
+    }
+
+    winrt::Windows::Foundation::IAsyncOperation<winrt::hstring> AccountClient::SetLibraryArtistFollowedAsync(
+        winrt::hstring const& bearerSession,
+        winrt::hstring const& publicArtistId,
+        bool followed)
+    {
+        if (!IsValidLibraryArtistPublicId(std::wstring(publicArtistId.c_str())))
+        {
+            throw winrt::hresult_invalid_argument(L"Library artist identity is invalid.");
+        }
+        co_return co_await SendJsonAsync(
+            followed
+                ? winrt::Windows::Web::Http::HttpMethod::Put()
+                : winrt::Windows::Web::Http::HttpMethod::Delete(),
+            L"/v1/music/library/artists/"
+                + winrt::Windows::Foundation::Uri::EscapeComponent(publicArtistId)
+                + L"/follow",
+            bearerSession,
+            L"",
+            std::chrono::seconds(5));
+    }
+
     winrt::Windows::Foundation::IAsyncOperation<winrt::hstring> AccountClient::SetLikedAsync(
         winrt::hstring const& bearerSession,
         winrt::hstring const& trackJson,

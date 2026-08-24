@@ -161,6 +161,16 @@ namespace LastMusicPlayer::Backend
 
         winrt::Windows::Foundation::IAsyncOperation<winrt::hstring> GetAccountLibraryAsync(
             AccountSyncContext const& context);
+        winrt::Windows::Foundation::IAsyncOperation<winrt::hstring> GetLibraryArtistsAsync(
+            RemoteScopeSnapshot const& scope,
+            LibraryArtistListRequest const& request);
+        winrt::Windows::Foundation::IAsyncOperation<winrt::hstring> GetLibraryArtistTracksAsync(
+            RemoteScopeSnapshot const& scope,
+            winrt::hstring const& publicArtistId);
+        winrt::Windows::Foundation::IAsyncOperation<winrt::hstring> SetLibraryArtistFollowedAsync(
+            RemoteScopeSnapshot const& scope,
+            winrt::hstring const& publicArtistId,
+            bool followed);
         winrt::Windows::Foundation::IAsyncOperation<winrt::hstring> SetAccountLikedAsync(
             AccountSyncContext const& context,
             winrt::hstring const& trackJson,

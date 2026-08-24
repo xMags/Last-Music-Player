@@ -925,6 +925,89 @@ namespace LastMusicPlayer::Backend
         }
     }
 
+    winrt::Windows::Foundation::IAsyncOperation<winrt::hstring> RemoteMusicService::GetLibraryArtistsAsync(
+        RemoteScopeSnapshot const& scope,
+        LibraryArtistListRequest const& request)
+    {
+        CheckScope(scope);
+        RequireMode(scope.Mode, RemoteAccessMode::Account);
+        auto context = CaptureAccountSyncContext();
+        CheckScope(scope, context);
+        try
+        {
+            auto payload = co_await m_accountClient.GetLibraryArtistsAsync(
+                context.m_session.BearerSession,
+                request);
+            CheckScope(scope, context);
+            co_return payload;
+        }
+        catch (winrt::hresult_error const& error)
+        {
+            if (!IsCurrent(scope) || !IsCurrent(context))
+            {
+                throw winrt::hresult_canceled();
+            }
+            HandleAccountError(context, error);
+            throw;
+        }
+    }
+
+    winrt::Windows::Foundation::IAsyncOperation<winrt::hstring> RemoteMusicService::GetLibraryArtistTracksAsync(
+        RemoteScopeSnapshot const& scope,
+        winrt::hstring const& publicArtistId)
+    {
+        CheckScope(scope);
+        RequireMode(scope.Mode, RemoteAccessMode::Account);
+        auto context = CaptureAccountSyncContext();
+        CheckScope(scope, context);
+        try
+        {
+            auto payload = co_await m_accountClient.GetLibraryArtistTracksAsync(
+                context.m_session.BearerSession,
+                publicArtistId);
+            CheckScope(scope, context);
+            co_return payload;
+        }
+        catch (winrt::hresult_error const& error)
+        {
+            if (!IsCurrent(scope) || !IsCurrent(context))
+            {
+                throw winrt::hresult_canceled();
+            }
+            HandleAccountError(context, error);
+            throw;
+        }
+    }
+
+    winrt::Windows::Foundation::IAsyncOperation<winrt::hstring> RemoteMusicService::SetLibraryArtistFollowedAsync(
+        RemoteScopeSnapshot const& scope,
+        winrt::hstring const& publicArtistId,
+        bool followed)
+    {
+        CheckScope(scope);
+        RequireMode(scope.Mode, RemoteAccessMode::Account);
+        auto context = CaptureAccountSyncContext();
+        CheckScope(scope, context);
+        try
+        {
+            auto payload = co_await m_accountClient.SetLibraryArtistFollowedAsync(
+                context.m_session.BearerSession,
+                publicArtistId,
+                followed);
+            CheckScope(scope, context);
+            co_return payload;
+        }
+        catch (winrt::hresult_error const& error)
+        {
+            if (!IsCurrent(scope) || !IsCurrent(context))
+            {
+                throw winrt::hresult_canceled();
+            }
+            HandleAccountError(context, error);
+            throw;
+        }
+    }
+
     winrt::Windows::Foundation::IAsyncOperation<winrt::hstring> RemoteMusicService::SetAccountLikedAsync(
         AccountSyncContext const& context,
         winrt::hstring const& trackJson,

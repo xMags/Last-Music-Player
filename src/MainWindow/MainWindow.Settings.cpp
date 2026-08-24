@@ -57,6 +57,8 @@ namespace winrt::Last_Music_Player::implementation
         }
         ++m_searchDebounceId;
         ++m_searchRequestId;
+        ++m_artistQueryEpoch;
+        ++m_artistSearchDebounceId;
         ++m_lyricsHydrationEpoch;
         ++m_autoplay.Epoch;
         ++m_discoverEpoch;
@@ -64,6 +66,15 @@ namespace winrt::Last_Music_Player::implementation
         m_autoplay.InFlight = false;
         m_autoplay.ResumeWhenReady = false;
         m_remoteSearchCache.clear();
+        m_artistPageLoading = false;
+        m_artistNextCursor.clear();
+        m_artistTotalCount.reset();
+        m_artistCanonicalTotalCount.reset();
+        m_artistFollowMutations.clear();
+        m_currentLibraryArtistId.clear();
+        m_currentLibraryArtistFollowed = false;
+        m_artistAllResults.clear();
+        m_artists.Clear();
         m_accountPlaylistBindings.clear();
         if (closeAccountDetail)
         {

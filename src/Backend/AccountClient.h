@@ -3,6 +3,7 @@
 #include "Backend/AccountSyncTransport.h"
 #include "Backend/AccountUrlPolicy.h"
 #include "Backend/CatalogModels.h"
+#include "Backend/LibraryArtistContract.h"
 #include "Backend/RemoteDetailContract.h"
 
 #include <chrono>
@@ -90,6 +91,16 @@ namespace LastMusicPlayer::Backend
 
         winrt::Windows::Foundation::IAsyncOperation<winrt::hstring> GetLibraryAsync(
             winrt::hstring const& bearerSession) override;
+        winrt::Windows::Foundation::IAsyncOperation<winrt::hstring> GetLibraryArtistsAsync(
+            winrt::hstring const& bearerSession,
+            LibraryArtistListRequest const& request);
+        winrt::Windows::Foundation::IAsyncOperation<winrt::hstring> GetLibraryArtistTracksAsync(
+            winrt::hstring const& bearerSession,
+            winrt::hstring const& publicArtistId);
+        winrt::Windows::Foundation::IAsyncOperation<winrt::hstring> SetLibraryArtistFollowedAsync(
+            winrt::hstring const& bearerSession,
+            winrt::hstring const& publicArtistId,
+            bool followed);
         winrt::Windows::Foundation::IAsyncOperation<winrt::hstring> SetLikedAsync(
             winrt::hstring const& bearerSession,
             winrt::hstring const& trackJson,

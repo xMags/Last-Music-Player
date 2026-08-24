@@ -4,8 +4,6 @@
 #include "Frontend/ResponsiveCardLayout.h"
 
 #include "Backend/ProviderClient.h"
-#include "Backend/ArtistLibraryPolicy.h"
-#include "Backend/ProviderHelpers.h"
 #include "Backend/SettingsManager.h"
 #include "Backend/TrayIcon.h"
 #include "Backend/DiscordPresence.h"
@@ -43,7 +41,9 @@ namespace winrt::Last_Music_Player::implementation
 {
     using namespace detail;
 
-    void MainWindow::LibraryButton_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
+    void MainWindow::LibraryButton_Click(
+        winrt::Windows::Foundation::IInspectable const& sender,
+        winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
     {
         (void)sender;
         (void)args;
@@ -284,8 +284,15 @@ namespace winrt::Last_Music_Player::implementation
             groupedNumber(static_cast<std::uint64_t>((std::max)(0, m_libraryStats.SongCount))) + L" tracks");
         LibraryAlbumMetric().Text(
             groupedNumber(static_cast<std::uint64_t>((std::max)(0, m_libraryStats.AlbumCount))) + L" albums");
-        LibraryArtistMetric().Text(
-            groupedNumber(static_cast<std::uint64_t>((std::max)(0, m_libraryStats.ArtistCount))) + L" artists");
+        auto const accountArtistMetric = detail::RemoteMusicServiceService().Mode()
+                == LastMusicPlayer::Backend::RemoteAccessMode::Account;
+        auto const metricArtistCount = accountArtistMetric
+            ? static_cast<std::uint64_t>((std::max)(
+                std::int64_t{ 0 },
+                m_artistCanonicalTotalCount.value_or(
+                    static_cast<std::int64_t>(m_artistAllResults.size()))))
+            : static_cast<std::uint64_t>((std::max)(0, m_libraryStats.ArtistCount));
+        LibraryArtistMetric().Text(groupedNumber(metricArtistCount) + L" artists");
         LibraryDurationMetric().Text(groupedNumber(hours) + L" h");
 
         LibTabPlaylistsCount().Text(groupedNumber(m_yourPlaylists.Size() + m_autoPlaylists.Size()));
@@ -301,7 +308,11 @@ namespace winrt::Last_Music_Player::implementation
             LibTabHistoryCount().Text(groupedNumber(trackCount));
         }
         LibTabAlbumsCount().Text(groupedNumber(m_albums.Size()));
-        LibTabArtistsCount().Text(groupedNumber(m_artistAllResults.size()));
+        auto const artistCount = m_artistCanonicalTotalCount
+            ? static_cast<std::uint64_t>((std::max)(
+                std::int64_t{ 0 }, *m_artistCanonicalTotalCount))
+            : static_cast<std::uint64_t>(m_artistAllResults.size());
+        LibTabArtistsCount().Text(groupedNumber(artistCount));
         LibTabGenresCount().Text(groupedNumber(m_libraryGenres.Size()));
         // Offline lists local files only, so its badge counts those, not the
         // whole library: m_libraryStats includes streamed tracks this tab never
@@ -478,242 +489,6 @@ namespace winrt::Last_Music_Player::implementation
                     ApplyDiscoverChartCardSize(container);
                 }
             }
-        }
-    }
-
-    std::wstring MainWindow::ArtistFollowScopeKey()
-    {
-        auto& remote = detail::RemoteMusicServiceService();
-        auto const scope = remote.CaptureScope();
-        if (scope.Mode == LastMusicPlayer::Backend::RemoteAccessMode::Account)
-        {
-            return {};
-        }
-        if (scope.Mode == LastMusicPlayer::Backend::RemoteAccessMode::ApiKey)
-        {
-            return scope.CachePartition.empty() ? std::wstring{} : L"api-key|" + scope.CachePartition;
-        }
-        return L"local";
-    }
-
-    LastMusicPlayer::Backend::ArtistIdentity MainWindow::ArtistIdentityForTrack(
-        winrt::Last_Music_Player::TrackInfo const& artist) const
-    {
-        if (!artist)
-        {
-            return {};
-        }
-        auto sourceUrl = std::wstring(artist.SourceUrl().c_str());
-        if (!LastMusicPlayer::Backend::IsSafeRemoteUrl(
-                artist.SourceUrl(),
-                LastMusicPlayer::Backend::RemoteUrlUse::Durable))
-        {
-            sourceUrl.clear();
-        }
-        auto provider = artist.RemoteProvider().empty() ? artist.Provider() : artist.RemoteProvider();
-        return {
-            std::wstring(artist.ArtistCatalogId().c_str()),
-            std::move(sourceUrl),
-            std::wstring(artist.Title().c_str()),
-            std::wstring(provider.c_str()) };
-    }
-
-    bool MainWindow::SetArtistFollowed(
-        winrt::Last_Music_Player::TrackInfo const& artist,
-        bool followed)
-    {
-        auto scopeKey = ArtistFollowScopeKey();
-        if (scopeKey.empty())
-        {
-            if (ArtistLibraryStatusText())
-            {
-                ArtistLibraryStatusText().Text(
-                    L"Account artist following needs the matching MagnetoFX sync update.");
-                ArtistLibraryStatusText().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Visible);
-            }
-            return false;
-        }
-
-        auto identity = ArtistIdentityForTrack(artist);
-        auto identityKey = LastMusicPlayer::Backend::ArtistIdentityKey(identity);
-        if (identityKey.empty() || !detail::DatabaseService().IsInitialized())
-        {
-            return false;
-        }
-
-        bool saved = false;
-        if (followed)
-        {
-            LastMusicPlayer::Backend::FollowedArtistSnapshot snapshot;
-            snapshot.ScopeKey = scopeKey;
-            snapshot.IdentityKey = identityKey;
-            snapshot.CatalogId = identity.CatalogId;
-            snapshot.SourceUrl = identity.SourceUrl;
-            snapshot.Name = identity.Name;
-            snapshot.Provider = identity.Provider;
-            saved = detail::DatabaseService().FollowArtist(snapshot);
-        }
-        else
-        {
-            saved = detail::DatabaseService().UnfollowArtist(scopeKey, identityKey);
-        }
-        if (!saved)
-        {
-            return false;
-        }
-
-        m_artistAllResults = detail::DatabaseService().LoadArtists(scopeKey);
-        for (auto& item : m_artistAllResults)
-        {
-            auto itemIdentity = ArtistIdentityForTrack(item);
-            if (followed
-                && LastMusicPlayer::Backend::SameArtistIdentity(itemIdentity, identity)
-                && item.ArtworkUrl().empty())
-            {
-                item.ArtworkUrl(artist.ArtworkUrl());
-                item.AlbumArt(artist.AlbumArt());
-            }
-            detail::ResolveArtworkPresentation(item, L"artist");
-        }
-        ApplyArtistLibraryView();
-        if (ArtistLibraryStatusText())
-        {
-            ArtistLibraryStatusText().Text(followed ? L"Artist followed" : L"Artist unfollowed");
-            ArtistLibraryStatusText().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Visible);
-        }
-        return true;
-    }
-
-    void MainWindow::ApplyArtistLibraryView()
-    {
-        auto visible = m_artistAllResults;
-        auto const query = LastMusicPlayer::Backend::NormalizeArtistName(m_artistLibrarySearch);
-        std::erase_if(visible, [&](auto const& artist)
-        {
-            if (m_artistLibraryFilter == L"Followed" && !artist.IsFollowed())
-            {
-                return true;
-            }
-            if (m_artistLibraryFilter == L"Library" && !artist.IsInLibrary())
-            {
-                return true;
-            }
-            return !query.empty()
-                && LastMusicPlayer::Backend::NormalizeArtistName(artist.Title().c_str()).find(query)
-                    == std::wstring::npos;
-        });
-
-        auto byName = [](auto const& left, auto const& right)
-        {
-            return LastMusicPlayer::Backend::NormalizeArtistName(left.Title().c_str())
-                < LastMusicPlayer::Backend::NormalizeArtistName(right.Title().c_str());
-        };
-        if (m_artistLibrarySort == L"Name")
-        {
-            std::stable_sort(visible.begin(), visible.end(), byName);
-        }
-        else if (m_artistLibrarySort == L"Followed")
-        {
-            std::stable_sort(visible.begin(), visible.end(), [&](auto const& left, auto const& right)
-            {
-                if (left.IsFollowed() != right.IsFollowed())
-                {
-                    return left.IsFollowed();
-                }
-                if (left.DateAddedSortKey() != right.DateAddedSortKey())
-                {
-                    return left.DateAddedSortKey() > right.DateAddedSortKey();
-                }
-                return byName(left, right);
-            });
-        }
-        else
-        {
-            std::stable_sort(visible.begin(), visible.end(), [&](auto const& left, auto const& right)
-            {
-                return left.TrackCount() == right.TrackCount()
-                    ? byName(left, right)
-                    : left.TrackCount() > right.TrackCount();
-            });
-        }
-
-        m_artists.Clear();
-        for (auto const& artist : visible)
-        {
-            m_artists.Append(artist);
-        }
-        if (ArtistLibraryResultCount())
-        {
-            auto text = std::to_wstring(visible.size());
-            text += visible.size() == 1 ? L" artist" : L" artists";
-            ArtistLibraryResultCount().Text(winrt::hstring(text));
-        }
-        if (ArtistLibraryEmptyText())
-        {
-            ArtistLibraryEmptyText().Visibility(visible.empty()
-                ? winrt::Microsoft::UI::Xaml::Visibility::Visible
-                : winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
-        }
-    }
-
-    void MainWindow::LibraryArtistSearch_TextChanged(
-        winrt::Windows::Foundation::IInspectable const& sender,
-        winrt::Microsoft::UI::Xaml::Controls::TextChangedEventArgs const& args)
-    {
-        (void)args;
-        auto box = sender.try_as<winrt::Microsoft::UI::Xaml::Controls::TextBox>();
-        m_artistLibrarySearch = box ? std::wstring(box.Text().c_str()) : std::wstring{};
-        ApplyArtistLibraryView();
-    }
-
-    void MainWindow::LibraryArtistFilter_Checked(
-        winrt::Windows::Foundation::IInspectable const& sender,
-        winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
-    {
-        (void)args;
-        auto button = sender.try_as<winrt::Microsoft::UI::Xaml::Controls::Primitives::ToggleButton>();
-        if (!button || !m_xamlReadyForEvents)
-        {
-            return;
-        }
-        winrt::Microsoft::UI::Xaml::Controls::Primitives::ToggleButton filters[] = {
-            ArtistFilterAll(), ArtistFilterFollowed(), ArtistFilterLibrary()
-        };
-        for (auto const& filter : filters)
-        {
-            if (filter && filter != button)
-            {
-                filter.IsChecked(false);
-            }
-        }
-        m_artistLibraryFilter = ReadTagString(button.Tag());
-        ApplyArtistLibraryView();
-    }
-
-    void MainWindow::LibraryArtistSort_Click(
-        winrt::Windows::Foundation::IInspectable const& sender,
-        winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
-    {
-        (void)args;
-        auto item = sender.try_as<winrt::Microsoft::UI::Xaml::Controls::MenuFlyoutItem>();
-        if (!item)
-        {
-            return;
-        }
-        m_artistLibrarySort = ReadTagString(item.Tag());
-        ArtistSortLabel().Text(item.Text());
-        ApplyArtistLibraryView();
-    }
-
-    void MainWindow::LibraryArtistFollow_Click(
-        winrt::Windows::Foundation::IInspectable const& sender,
-        winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
-    {
-        (void)args;
-        auto artist = TrackFromActionSender(sender);
-        if (artist)
-        {
-            (void)SetArtistFollowed(artist, !artist.IsFollowed());
         }
     }
 

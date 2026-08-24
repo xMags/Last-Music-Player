@@ -5,6 +5,7 @@
 #include "Backend/PlaybackHistoryQualifier.h"
 #include "Backend/AutoSyncPolicy.h"
 #include "Backend/ArtistLibraryPolicy.h"
+#include "Backend/LibraryArtistContract.h"
 #include "Backend/DetailSortPolicy.h"
 #include "Frontend/Skeleton.h"
 // The generated XamlTypeInfo activator for a code-only local control only
@@ -197,8 +198,8 @@ namespace winrt::Last_Music_Player::implementation
         void LibraryFollowArtist_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void LibraryArtistSearch_TextChanged(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::TextChangedEventArgs const& args);
         void LibraryArtistFilter_Checked(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
-        void LibraryArtistSort_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void LibraryArtistFollow_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void LibraryArtistLoadMore_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void ArtistLibraryArtworkBorder_Loaded(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void LibraryButton_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         winrt::Windows::Foundation::IAsyncAction LibraryAddFolder_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
@@ -382,6 +383,8 @@ namespace winrt::Last_Music_Player::implementation
         {
             LastMusicPlayer::Backend::RemoteArtistDetail Detail;
             LastMusicPlayer::Backend::RemoteDetailIdentity Identity;
+            std::wstring LibraryArtistId;
+            bool Followed{ false };
             bool LocalFallback{ false };
         };
         struct LocalArtistDetailResult
@@ -722,11 +725,17 @@ namespace winrt::Last_Music_Player::implementation
         void LoadCatalogFromDatabase();
         void RefreshLibraryCatalogViews();
         void ApplyArtistLibraryView();
+        winrt::Windows::Foundation::IAsyncAction LoadAccountLibraryArtistsAsync(bool append);
+        winrt::Last_Music_Player::TrackInfo ArtistCardFromContract(
+            LastMusicPlayer::Backend::LibraryArtist const& artist);
         [[nodiscard]] std::wstring ArtistFollowScopeKey();
         [[nodiscard]] LastMusicPlayer::Backend::ArtistIdentity ArtistIdentityForTrack(
             winrt::Last_Music_Player::TrackInfo const& artist) const;
         bool SetArtistFollowed(
             winrt::Last_Music_Player::TrackInfo const& artist,
+            bool followed);
+        winrt::Windows::Foundation::IAsyncAction SetAccountArtistFollowedAsync(
+            winrt::Last_Music_Player::TrackInfo artist,
             bool followed);
         void UpdateArtistDetailFollowButton();
         winrt::Windows::Foundation::IAsyncAction HydrateArtistLibraryArtworkAsync(
@@ -775,6 +784,16 @@ namespace winrt::Last_Music_Player::implementation
         // DatabaseService().LoadTracksForGroup for DB-backed kinds and
         // m_homeMixes for auto-playlists (synthesized client-side).
         std::vector<winrt::Last_Music_Player::TrackInfo> TracksForGroupCard(winrt::Last_Music_Player::TrackInfo const& group);
+        enum class ArtistCardAction
+        {
+            PlayNow,
+            PlayNext,
+            AddToQueue,
+            Shuffle,
+        };
+        winrt::Windows::Foundation::IAsyncAction RunArtistCardActionAsync(
+            winrt::Last_Music_Player::TrackInfo group,
+            ArtistCardAction action);
         // Force-enables shuffle (no toggle) — used by group-menu Shuffle
         // items so the user can shuffle a group without it depending on
         // the prior shuffle state. Persists the setting + refreshes icons.
@@ -1288,9 +1307,15 @@ namespace winrt::Last_Music_Player::implementation
             winrt::single_threaded_observable_vector<winrt::Last_Music_Player::TrackInfo>()
         };
         std::vector<winrt::Last_Music_Player::TrackInfo> m_artistAllResults;
-        std::wstring m_artistLibraryFilter{ L"All" };
-        std::wstring m_artistLibrarySort{ L"Songs" };
+        std::wstring m_artistLibraryFilter{ L"Top" };
         std::wstring m_artistLibrarySearch;
+        std::wstring m_artistNextCursor;
+        std::optional<std::int64_t> m_artistTotalCount;
+        std::optional<std::int64_t> m_artistCanonicalTotalCount;
+        uint64_t m_artistQueryEpoch{ 0 };
+        uint64_t m_artistSearchDebounceId{ 0 };
+        bool m_artistPageLoading{ false };
+        std::unordered_set<std::wstring> m_artistFollowMutations;
         std::unordered_set<std::wstring> m_artistArtworkRequests;
         bool m_isMuted{ false };
         double m_volumeBeforeMute{ 50.0 }; // slider units (0-100)
@@ -1354,6 +1379,8 @@ namespace winrt::Last_Music_Player::implementation
         std::unordered_map<std::wstring, LastMusicPlayer::Backend::RemoteArtistDetail> m_artistDetailCache;
         std::unordered_map<std::wstring, LastMusicPlayer::Backend::RemoteAlbumDetail> m_albumDetailCache;
         std::vector<ArtistHistoryEntry> m_artistBackStack;
+        std::wstring m_currentLibraryArtistId;
+        bool m_currentLibraryArtistFollowed{ false };
         std::wstring m_artistOriginNav;
         uint64_t m_artistRequestEpoch{ 0 };
         bool m_artistAlbumOpen{ false };

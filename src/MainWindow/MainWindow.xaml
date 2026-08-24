@@ -2595,21 +2595,11 @@
                         </local:ChipWrapPanel>
                         <local:ChipWrapPanel x:Name="LibraryArtistsContextRow" Grid.Row="1" Visibility="Collapsed" Margin="0,12,0,0" HorizontalSpacing="10" VerticalSpacing="8">
                             <local:ChipWrapPanel HorizontalSpacing="6" VerticalSpacing="6">
-                                <ToggleButton x:Name="ArtistFilterAll" Tag="All" Content="All" IsChecked="True" Style="{StaticResource DesignChipToggle}" Padding="12,6" Checked="LibraryArtistFilter_Checked" />
+                                <ToggleButton x:Name="ArtistFilterTop" Tag="Top" Content="Top" IsChecked="True" Style="{StaticResource DesignChipToggle}" Padding="12,6" Checked="LibraryArtistFilter_Checked" />
                                 <ToggleButton x:Name="ArtistFilterFollowed" Tag="Followed" Content="Followed" Style="{StaticResource DesignChipToggle}" Padding="12,6" Checked="LibraryArtistFilter_Checked" />
-                                <ToggleButton x:Name="ArtistFilterLibrary" Tag="Library" Content="In library" Style="{StaticResource DesignChipToggle}" Padding="12,6" Checked="LibraryArtistFilter_Checked" />
+                                <ToggleButton x:Name="ArtistFilterAll" Tag="All" Content="All Artists" Style="{StaticResource DesignChipToggle}" Padding="12,6" Checked="LibraryArtistFilter_Checked" />
                             </local:ChipWrapPanel>
-                            <DropDownButton Background="{ThemeResource SurfaceBrush}" BorderBrush="{ThemeResource HairlineStrongBrush}" BorderThickness="1" CornerRadius="8" Padding="12,6" VerticalAlignment="Top">
-                                <TextBlock x:Name="ArtistSortLabel" Text="Most songs" FontSize="13" FontWeight="SemiBold" />
-                                <DropDownButton.Flyout>
-                                    <MenuFlyout>
-                                        <MenuFlyoutItem Text="Most songs" Tag="Songs" Click="LibraryArtistSort_Click" />
-                                        <MenuFlyoutItem Text="Name" Tag="Name" Click="LibraryArtistSort_Click" />
-                                        <MenuFlyoutItem Text="Recently followed" Tag="Followed" Click="LibraryArtistSort_Click" />
-                                    </MenuFlyout>
-                                </DropDownButton.Flyout>
-                            </DropDownButton>
-                            <TextBox x:Name="ArtistLibrarySearchBox" Width="260" PlaceholderText="Find in artists" TextChanged="LibraryArtistSearch_TextChanged" />
+                            <TextBox x:Name="ArtistLibrarySearchBox" Width="260" MaxLength="120" PlaceholderText="Search all artists" TextChanged="LibraryArtistSearch_TextChanged" />
                             <TextBlock x:Name="ArtistLibraryResultCount" Text="0 artists" Style="{StaticResource CaptionText}" VerticalAlignment="Center" />
                             <TextBlock x:Name="ArtistLibraryStatusText" Visibility="Collapsed" Style="{StaticResource CaptionText}" Foreground="{ThemeResource AccentBrush}" VerticalAlignment="Center" TextWrapping="Wrap" />
                         </local:ChipWrapPanel>
@@ -2734,7 +2724,8 @@
 
                         <!-- Artists -->
                         <Grid x:Name="LibArtistsPanel" Visibility="Collapsed">
-                        <GridView ScrollViewer.VerticalScrollBarVisibility="Hidden" x:Name="LibArtistsGrid" SelectionMode="None" IsItemClickEnabled="True" ItemClick="LibraryGroup_ItemClick" ItemContainerStyle="{StaticResource CardTileContainerStyle}" Padding="0,0,0,24" Margin="0,0,-20,0" Loaded="LibraryCardGrid_Loaded" SizeChanged="LibraryCardGrid_SizeChanged"
+                        <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                        <GridView Grid.Row="0" ScrollViewer.VerticalScrollBarVisibility="Hidden" x:Name="LibArtistsGrid" SelectionMode="None" IsItemClickEnabled="True" ItemClick="LibraryGroup_ItemClick" ItemContainerStyle="{StaticResource CardTileContainerStyle}" Padding="0,0,0,24" Margin="0,0,-20,0" Loaded="LibraryCardGrid_Loaded" SizeChanged="LibraryCardGrid_SizeChanged"
                                   ScrollViewer.HorizontalScrollMode="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                             <GridView.ItemTemplate>
                                 <DataTemplate x:DataType="local:TrackInfo">
@@ -2773,7 +2764,8 @@
                                 </DataTemplate>
                             </GridView.ItemTemplate>
                         </GridView>
-                        <TextBlock x:Name="ArtistLibraryEmptyText" Text="No artists match this view" Visibility="Collapsed" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,52,0,0" Style="{StaticResource CaptionText}" />
+                        <TextBlock Grid.Row="0" x:Name="ArtistLibraryEmptyText" Text="No artists match this view" Visibility="Collapsed" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,52,0,0" Style="{StaticResource CaptionText}" />
+                        <Button Grid.Row="1" x:Name="ArtistLibraryLoadMoreButton" Content="Load more" Click="LibraryArtistLoadMore_Click" Visibility="Collapsed" HorizontalAlignment="Center" Margin="0,4,0,18" Style="{StaticResource DesignSecondaryButton}" />
                         </Grid>
 
                         <!-- Songs -->

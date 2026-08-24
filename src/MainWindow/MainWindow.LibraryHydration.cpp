@@ -72,6 +72,8 @@ namespace winrt::Last_Music_Player::implementation
         m_albums.Clear();
         m_artists.Clear();
         m_artistAllResults.clear();
+        m_artistNextCursor.clear();
+        m_artistTotalCount.reset();
         m_libraryGenres.Clear();
         m_manualPlaylists.Clear();
         m_sidebarPlaylists.Clear();
@@ -83,12 +85,16 @@ namespace winrt::Last_Music_Player::implementation
                 ResolveArtworkPresentation(album, L"album");
                 m_albums.Append(album);
             }
-            m_artistAllResults.clear();
-            for (auto const& artist : DatabaseService().LoadArtists(ArtistFollowScopeKey()))
+            auto const accountArtists = RemoteMusicServiceService().Mode()
+                == LastMusicPlayer::Backend::RemoteAccessMode::Account;
+            if (!accountArtists)
             {
-                auto copy = artist;
-                ResolveArtworkPresentation(copy, L"artist");
-                m_artistAllResults.push_back(copy);
+                for (auto const& artist : DatabaseService().LoadArtists(ArtistFollowScopeKey()))
+                {
+                    auto copy = artist;
+                    ResolveArtworkPresentation(copy, L"artist");
+                    m_artistAllResults.push_back(copy);
+                }
             }
             ApplyArtistLibraryView();
             for (auto const& genre : DatabaseService().LoadGenres())
@@ -450,6 +456,21 @@ namespace winrt::Last_Music_Player::implementation
             auto epoch = ++m_libraryHydrationEpoch;
             m_libraryArtistsState = LoadState::Loading;
             BeginLibraryTabSkeleton(LastMusicPlayer::Frontend::SkeletonShape::TileGrid);
+            auto const remoteScope = RemoteMusicServiceService().CaptureScope();
+            if (remoteScope.Mode == LastMusicPlayer::Backend::RemoteAccessMode::Account)
+            {
+                co_await LoadAccountLibraryArtistsAsync(false);
+                if (epoch != m_libraryHydrationEpoch
+                    || !RemoteMusicServiceService().IsCurrent(remoteScope))
+                {
+                    markStaleLoad(m_libraryArtistsState);
+                    co_return;
+                }
+                m_libraryArtistsState = LoadState::Loaded;
+                LibraryImportStatusText().Text(L"");
+                m_libraryTabsSkeleton.EndLoading();
+                co_return;
+            }
             auto scopeKey = ArtistFollowScopeKey();
             co_await winrt::resume_background();
             auto artists = DatabaseService().IsInitialized()
@@ -462,6 +483,8 @@ namespace winrt::Last_Music_Player::implementation
                 co_return;
             }
             m_artistAllResults.clear();
+            m_artistNextCursor.clear();
+            m_artistTotalCount.reset();
             for (auto& artist : artists)
             {
                 ResolveArtworkPresentation(artist, L"artist");

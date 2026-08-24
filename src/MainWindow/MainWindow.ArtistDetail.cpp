@@ -198,17 +198,7 @@ namespace winrt::Last_Music_Player::implementation
         {
             co_return;
         }
-        auto bitmap = detail::CreateMusicArtworkBitmap(
-            artistDetail->Artist.ArtworkUrl,
-            detail::ArtworkDetail::Tile);
-        if (!bitmap)
-        {
-            co_return;
-        }
         artist.ArtworkUrl(artistDetail->Artist.ArtworkUrl);
-        artist.AlbumArt(bitmap);
-        artist.ImageArtworkOpacity(1.0);
-        artist.GeneratedArtworkOpacity(0.0);
         auto grid = border.Child().try_as<winrt::Microsoft::UI::Xaml::Controls::Grid>();
         if (!grid)
         {
@@ -219,7 +209,26 @@ namespace winrt::Last_Music_Player::implementation
             auto image = child.try_as<winrt::Microsoft::UI::Xaml::Controls::Image>();
             if (image && image.Name() == L"ArtistCardArtwork")
             {
-                image.Source(bitmap);
+                if (scope.Mode == LastMusicPlayer::Backend::RemoteAccessMode::Account)
+                {
+                    QueueAccountArtworkImage(
+                        image,
+                        artist.ArtworkUrl(),
+                        detail::ArtworkDetail::Tile,
+                        artist,
+                        AccountArtworkPriority::Visible);
+                    break;
+                }
+                auto bitmap = detail::CreateMusicArtworkBitmap(
+                    artist.ArtworkUrl(),
+                    detail::ArtworkDetail::Tile);
+                if (bitmap)
+                {
+                    artist.AlbumArt(bitmap);
+                    artist.ImageArtworkOpacity(1.0);
+                    artist.GeneratedArtworkOpacity(0.0);
+                    image.Source(bitmap);
+                }
                 break;
             }
         }
@@ -261,6 +270,43 @@ namespace winrt::Last_Music_Player::implementation
         if (sourceGroup && m_currentArtistIdentity.CatalogId.empty())
         {
             m_currentArtistIdentity.CatalogId = sourceGroup.ArtistCatalogId();
+        }
+        m_currentLibraryArtistId.clear();
+        m_currentLibraryArtistFollowed = false;
+        if (detail::RemoteMusicServiceService().Mode()
+            == LastMusicPlayer::Backend::RemoteAccessMode::Account)
+        {
+            if (sourceGroup
+                && sourceGroup.Provider() == L"account"
+                && LastMusicPlayer::Backend::IsValidLibraryArtistPublicId(
+                    std::wstring(sourceGroup.RemoteId().c_str())))
+            {
+                m_currentLibraryArtistId = sourceGroup.RemoteId().c_str();
+                m_currentLibraryArtistFollowed = sourceGroup.IsFollowed();
+            }
+            else
+            {
+                LastMusicPlayer::Backend::ArtistIdentity requested{
+                    std::wstring(m_currentArtistIdentity.CatalogId.c_str()),
+                    std::wstring(m_currentArtistIdentity.SourceUrl.c_str()),
+                    std::wstring(m_currentArtistIdentity.Name.c_str()),
+                    sourceGroup ? std::wstring(sourceGroup.RemoteProvider().c_str()) : std::wstring{} };
+                auto const found = std::find_if(
+                    m_artistAllResults.begin(),
+                    m_artistAllResults.end(),
+                    [&](auto const& candidate)
+                    {
+                        return candidate.Provider() == L"account"
+                            && LastMusicPlayer::Backend::SameArtistIdentity(
+                                ArtistIdentityForTrack(candidate),
+                                requested);
+                    });
+                if (found != m_artistAllResults.end())
+                {
+                    m_currentLibraryArtistId = found->RemoteId().c_str();
+                    m_currentLibraryArtistFollowed = found->IsFollowed();
+                }
+            }
         }
 
         auto requestEpoch = ++m_artistRequestEpoch;
@@ -650,6 +696,8 @@ namespace winrt::Last_Music_Player::implementation
             auto previous = std::move(m_artistBackStack.back());
             m_artistBackStack.pop_back();
             m_currentArtistIdentity = std::move(previous.Identity);
+            m_currentLibraryArtistId = std::move(previous.LibraryArtistId);
+            m_currentLibraryArtistFollowed = previous.Followed;
             RenderArtistDetail(previous.Detail, previous.LocalFallback);
             return;
         }
@@ -669,6 +717,8 @@ namespace winrt::Last_Music_Player::implementation
         }
         m_artistAlbumOpen = false;
         m_artistBackStack.clear();
+        m_currentLibraryArtistId.clear();
+        m_currentLibraryArtistFollowed = false;
         m_artistTopSongs.clear();
         m_artistLocalAllTracks.clear();
         m_artistTopSongsLeft.Clear();
@@ -748,6 +798,24 @@ namespace winrt::Last_Music_Player::implementation
         {
             return;
         }
+        auto const accountMode = detail::RemoteMusicServiceService().Mode()
+            == LastMusicPlayer::Backend::RemoteAccessMode::Account;
+        if (accountMode)
+        {
+            auto const canFollow = LastMusicPlayer::Backend::IsValidLibraryArtistPublicId(
+                m_currentLibraryArtistId);
+            ArtistFollowButton().Content(winrt::box_value(
+                m_currentLibraryArtistFollowed ? L"Following" : L"Follow"));
+            ArtistFollowButton().IsEnabled(canFollow
+                && !m_artistFollowMutations.contains(m_currentLibraryArtistId));
+            winrt::Microsoft::UI::Xaml::Controls::ToolTipService::SetToolTip(
+                ArtistFollowButton(),
+                canFollow
+                    ? nullptr
+                    : winrt::box_value(L"Follow is available for artists in your Account library."));
+            return;
+        }
+
         auto scopeKey = ArtistFollowScopeKey();
         auto provider = m_currentArtistDetail.Artist.Provider;
         LastMusicPlayer::Backend::ArtistIdentity identity{
@@ -789,6 +857,17 @@ namespace winrt::Last_Music_Player::implementation
             : m_currentArtistDetail.Artist.SourceUrl);
         artist.RemoteProvider(m_currentArtistDetail.Artist.Provider);
         artist.ArtworkUrl(m_currentArtistDetail.Artist.ArtworkUrl);
+
+        if (detail::RemoteMusicServiceService().Mode()
+            == LastMusicPlayer::Backend::RemoteAccessMode::Account)
+        {
+            artist.Provider(L"account");
+            artist.RemoteId(winrt::hstring(m_currentLibraryArtistId));
+            detail::RunDetached(SetAccountArtistFollowedAsync(
+                artist,
+                !m_currentLibraryArtistFollowed));
+            return;
+        }
 
         auto scopeKey = ArtistFollowScopeKey();
         auto identityKey = LastMusicPlayer::Backend::ArtistIdentityKey(ArtistIdentityForTrack(artist));
@@ -1025,7 +1104,12 @@ namespace winrt::Last_Music_Player::implementation
         {
             return;
         }
-        m_artistBackStack.push_back({ m_currentArtistDetail, m_currentArtistIdentity, m_artistUsingLocalFallback });
+        m_artistBackStack.push_back({
+            m_currentArtistDetail,
+            m_currentArtistIdentity,
+            m_currentLibraryArtistId,
+            m_currentLibraryArtistFollowed,
+            m_artistUsingLocalFallback });
         OpenArtistDetail(
             artist.Title(),
             artist.RemoteCatalogId(),

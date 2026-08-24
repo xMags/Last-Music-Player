@@ -40,6 +40,45 @@ namespace winrt::Last_Music_Player::implementation
 {
     using namespace detail;
 
+    namespace
+    {
+        winrt::hstring LibraryArtistDuration(double seconds)
+        {
+            auto const whole = static_cast<std::int64_t>((std::max)(0.0, seconds));
+            wchar_t value[32]{};
+            swprintf_s(value, L"%lld:%02lld", whole / 60, whole % 60);
+            return value;
+        }
+
+        winrt::Last_Music_Player::TrackInfo TrackFromLibraryArtistDto(
+            LastMusicPlayer::Backend::AccountLibraryTrackDto const& item)
+        {
+            auto const& value = item.Track;
+            winrt::Last_Music_Player::TrackInfo track;
+            track.RemoteId(winrt::hstring(value.Id));
+            track.Title(winrt::hstring(value.Title));
+            track.Artist(winrt::hstring(value.Artist));
+            track.Album(winrt::hstring(value.Album));
+            track.Genre(winrt::hstring(value.Genre));
+            track.ArtworkUrl(winrt::hstring(value.ArtworkUrl));
+            track.SourceKind(winrt::hstring(value.SourceKind));
+            track.Provider(L"account");
+            track.RemoteProvider(winrt::hstring(value.Provider));
+            track.SourceUrl(winrt::hstring(value.SourceUrl));
+            track.RemoteCatalogId(winrt::hstring(value.CatalogId));
+            track.AlbumCatalogId(winrt::hstring(value.AlbumCatalogId));
+            track.ArtistCatalogId(winrt::hstring(value.ArtistCatalogId));
+            track.DurationSeconds(value.DurationSec);
+            track.Duration(LibraryArtistDuration(value.DurationSec));
+            track.DateAdded(winrt::hstring(item.AddedAt));
+            track.ResumePositionSeconds(item.LastPositionSec);
+            track.IsLiked(item.Liked);
+            track.SourceLabel(L"Account");
+            detail::ApplyMusicArtwork(track, track.ArtworkUrl(), L"track");
+            return track;
+        }
+    }
+
     void MainWindow::UpdateLibraryActionButtons()
     {
         using V = winrt::Microsoft::UI::Xaml::Visibility;
@@ -538,10 +577,139 @@ namespace winrt::Last_Music_Player::implementation
         return DatabaseService().LoadTracksForGroup(kind, key);
     }
 
+    winrt::Windows::Foundation::IAsyncAction MainWindow::RunArtistCardActionAsync(
+        winrt::Last_Music_Player::TrackInfo group,
+        ArtistCardAction action)
+    {
+        auto lifetime = get_strong();
+        auto const publicId = group ? std::wstring(group.RemoteId().c_str()) : std::wstring{};
+        if (!LastMusicPlayer::Backend::IsValidLibraryArtistPublicId(publicId))
+        {
+            co_return;
+        }
+        auto& remote = detail::RemoteMusicServiceService();
+        auto const scope = remote.CaptureScope();
+        if (scope.Mode != LastMusicPlayer::Backend::RemoteAccessMode::Account
+            || !remote.IsModeAvailable(scope.Mode))
+        {
+            co_return;
+        }
+        if (ArtistLibraryStatusText())
+        {
+            ArtistLibraryStatusText().Text(L"Loading saved artist tracks...");
+            ArtistLibraryStatusText().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Visible);
+        }
+
+        std::optional<std::vector<LastMusicPlayer::Backend::AccountLibraryTrackDto>> parsed;
+        try
+        {
+            auto payload = co_await remote.GetLibraryArtistTracksAsync(
+                scope,
+                winrt::hstring(publicId));
+            if (!remote.IsCurrent(scope))
+            {
+                co_return;
+            }
+            auto dispatcher = DispatcherQueue();
+            co_await winrt::resume_background();
+            parsed = LastMusicPlayer::Backend::ParseLibraryArtistTracks(payload);
+            co_await wil::resume_foreground(dispatcher);
+        }
+        catch (winrt::hresult_canceled const&)
+        {
+            co_return;
+        }
+        catch (winrt::hresult_error const& error)
+        {
+            if (remote.IsCurrent(scope) && ArtistLibraryStatusText())
+            {
+                auto const status = LastMusicPlayer::Backend::AccountHttpStatus(error);
+                ArtistLibraryStatusText().Text(status == 0
+                    ? winrt::hstring{ L"Saved artist tracks are temporarily unavailable." }
+                    : LastMusicPlayer::Backend::SafeAccountErrorMessage(status));
+                ArtistLibraryStatusText().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Visible);
+            }
+            co_return;
+        }
+        catch (...)
+        {
+            if (remote.IsCurrent(scope) && ArtistLibraryStatusText())
+            {
+                ArtistLibraryStatusText().Text(L"Saved artist tracks are temporarily unavailable.");
+                ArtistLibraryStatusText().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Visible);
+            }
+            co_return;
+        }
+
+        if (!parsed || !remote.IsCurrent(scope))
+        {
+            if (ArtistLibraryStatusText())
+            {
+                ArtistLibraryStatusText().Text(L"The saved-track response was not accepted.");
+                ArtistLibraryStatusText().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Visible);
+            }
+            co_return;
+        }
+        std::vector<winrt::Last_Music_Player::TrackInfo> tracks;
+        tracks.reserve(parsed->size());
+        for (auto const& item : *parsed)
+        {
+            tracks.push_back(TrackFromLibraryArtistDto(item));
+        }
+        if (tracks.empty())
+        {
+            if (ArtistLibraryStatusText())
+            {
+                ArtistLibraryStatusText().Text(L"This artist has no saved tracks.");
+                ArtistLibraryStatusText().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Visible);
+            }
+            co_return;
+        }
+        if (ArtistLibraryStatusText())
+        {
+            ArtistLibraryStatusText().Text(L"");
+            ArtistLibraryStatusText().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
+        }
+
+        switch (action)
+        {
+        case ArtistCardAction::PlayNow:
+            QueueAndPlayVisible(tracks, tracks.front());
+            break;
+        case ArtistCardAction::PlayNext:
+            if (!AudioPlayerService().GetCurrentTrack())
+            {
+                QueueAndPlayVisible(tracks, tracks.front());
+            }
+            else
+            {
+                PlayNextFromSongsBulk(tracks);
+            }
+            break;
+        case ArtistCardAction::AddToQueue:
+            AddSongsTracksToQueueBulk(tracks);
+            break;
+        case ArtistCardAction::Shuffle:
+        {
+            std::random_device seed;
+            std::mt19937 generator{ seed() };
+            std::shuffle(tracks.begin(), tracks.end(), generator);
+            EnsureShuffleOn();
+            QueueAndPlayVisible(tracks, tracks.front());
+            break;
+        }
+        }
+    }
+
     void MainWindow::LibraryGroupMenuPlayNow_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
     {
         (void)args;
         auto group = TrackFromActionSender(sender);
+        if (group && group.SourceKind() == L"artist" && group.Provider() == L"account")
+        {
+            detail::RunDetached(RunArtistCardActionAsync(group, ArtistCardAction::PlayNow));
+            return;
+        }
         auto tracks = TracksForGroupCard(group);
         if (tracks.empty())
         {
@@ -554,6 +722,11 @@ namespace winrt::Last_Music_Player::implementation
     {
         (void)args;
         auto group = TrackFromActionSender(sender);
+        if (group && group.SourceKind() == L"artist" && group.Provider() == L"account")
+        {
+            detail::RunDetached(RunArtistCardActionAsync(group, ArtistCardAction::PlayNext));
+            return;
+        }
         auto tracks = TracksForGroupCard(group);
         if (tracks.empty())
         {
@@ -575,6 +748,11 @@ namespace winrt::Last_Music_Player::implementation
     {
         (void)args;
         auto group = TrackFromActionSender(sender);
+        if (group && group.SourceKind() == L"artist" && group.Provider() == L"account")
+        {
+            detail::RunDetached(RunArtistCardActionAsync(group, ArtistCardAction::AddToQueue));
+            return;
+        }
         auto tracks = TracksForGroupCard(group);
         if (tracks.empty())
         {
@@ -587,6 +765,11 @@ namespace winrt::Last_Music_Player::implementation
     {
         (void)args;
         auto group = TrackFromActionSender(sender);
+        if (group && group.SourceKind() == L"artist" && group.Provider() == L"account")
+        {
+            detail::RunDetached(RunArtistCardActionAsync(group, ArtistCardAction::Shuffle));
+            return;
+        }
         auto tracks = TracksForGroupCard(group);
         if (tracks.empty())
         {

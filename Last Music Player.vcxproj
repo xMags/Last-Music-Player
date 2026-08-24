@@ -175,6 +175,7 @@
     <ClInclude Include="src\Backend\AccountMusicContract.h" />
     <ClInclude Include="src\Backend\AccountUrlPolicy.h" />
     <ClInclude Include="src\Backend\ArtistLibraryPolicy.h" />
+    <ClInclude Include="src\Backend\LibraryArtistContract.h" />
     <ClInclude Include="src\Backend\AccountSessionGateway.h" />
     <ClInclude Include="src\Backend\AccountSyncTransport.h" />
     <ClInclude Include="src\Backend\AccountSessionService.h" />
@@ -251,6 +252,7 @@
     <ClCompile Include="src\MainWindow\MainWindow.Discover.cpp" />
     <ClCompile Include="src\MainWindow\MainWindow.DiscoverDetailToolbar.cpp" />
     <ClCompile Include="src\MainWindow\MainWindow.Library.cpp" />
+    <ClCompile Include="src\MainWindow\MainWindow.LibraryArtists.cpp" />
     <ClCompile Include="src\MainWindow\MainWindow.LibraryHydration.cpp" />
     <ClCompile Include="src\MainWindow\MainWindow.LibraryCollections.cpp" />
     <ClCompile Include="src\MainWindow\MainWindow.LibraryDetail.cpp" />
@@ -283,6 +285,7 @@
     <ClCompile Include="src\Backend\AccountClient.cpp" />
     <ClCompile Include="src\Backend\AccountDataLifecycleService.cpp" />
     <ClCompile Include="src\Backend\AccountMusicContract.cpp" />
+    <ClCompile Include="src\Backend\LibraryArtistContract.cpp" />
     <ClCompile Include="src\Backend\AccountUrlPolicy.cpp" />
     <ClCompile Include="src\Backend\AccountSessionGateway.cpp" />
     <ClCompile Include="src\Backend\AccountSessionService.cpp" />

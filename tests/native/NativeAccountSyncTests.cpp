@@ -31,6 +31,7 @@
 #include "Backend/CatalogPresentation.h"
 #include "Backend/RemoteDetailContract.h"
 #include "Backend/HistoryImport.h"
+#include "Backend/LibraryArtistContract.h"
 #include "Backend/StreamCache.h"
 #include "Backend/UserDataOperationGate.h"
 #include "ThirdParty/sqlite/sqlite3.h"
@@ -4174,6 +4175,135 @@ namespace
             "malformed artist detail was accepted");
     }
 
+    void TestLibraryArtistContract()
+    {
+        account::LibraryArtistListRequest request;
+        request.View = account::LibraryArtistView::Followed;
+        request.Query = L"Massive Attack";
+        request.Limit = 75;
+        request.Cursor = L"next/page";
+        auto path = account::BuildLibraryArtistListPath(request);
+        Expect(path && *path
+            == L"/v1/music/library/artists?view=followed&limit=75&q=Massive%20Attack&cursor=next%2Fpage",
+            "library artist list query did not preserve the authenticated route contract");
+
+        request.Query.assign(account::MaxLibraryArtistSearchCharacters + 1, L'a');
+        Expect(!account::BuildLibraryArtistListPath(request),
+            "library artist search longer than 120 characters was accepted");
+        request.Query.clear();
+        request.Limit = account::MaxLibraryArtistPageSize + 1;
+        Expect(!account::BuildLibraryArtistListPath(request),
+            "library artist page larger than 100 was accepted");
+
+        auto page = account::ParseLibraryArtistPage(LR"({
+            "artists":[{
+                "id":"artist_public_1",
+                "name":"Massive Attack",
+                "providerIdentity":{
+                    "provider":"youtube-music",
+                    "catalogId":"UC-primary",
+                    "sourceUrl":"https://music.example.test/browse/UC-primary"
+                },
+                "appleCatalogId":"152750",
+                "artworkUrl":"https://media.account.example.test/v1/artwork/artist-1",
+                "heroArtworkUrl":null,
+                "trackCount":14,
+                "albumCount":4,
+                "playCount":91,
+                "followed":true,
+                "resolving":false,
+                "detailIdentity":{
+                    "provider":"apple-music",
+                    "catalogId":"152750",
+                    "sourceUrl":null,
+                    "name":"Massive Attack"
+                }
+            }],
+            "nextCursor":null,
+            "totalCount":1
+        })");
+        Expect(page.Valid && page.Artists.size() == 1 && page.NextCursor.empty()
+            && page.TotalCount == 1,
+            "canonical library artist page was not parsed");
+        Expect(page.Artists[0].Id == L"artist_public_1"
+            && page.Artists[0].Provider == L"youtube-music"
+            && page.Artists[0].ProviderCatalogId == L"UC-primary"
+            && page.Artists[0].DetailIdentity.Provider == L"apple-music"
+            && page.Artists[0].DetailIdentity.CatalogId == L"152750"
+            && page.Artists[0].Followed,
+            "library artist identity, counts, or follow state changed while parsing");
+
+        auto unsafe = account::ParseLibraryArtistPage(LR"({
+            "artists":[{
+                "id":"artist_public_1","name":"Unsafe","provider":"youtube-music",
+                "catalogId":"UC-primary","sourceUrl":"https://music.example.test/browse/UC-primary",
+                "appleCatalogId":null,"artworkUrl":"file:///private/portrait.jpg","heroArtworkUrl":null,
+                "trackCount":1,"albumCount":1,"playCount":0,"followed":false,"resolving":false
+            }],"nextCursor":null
+        })");
+        Expect(!unsafe.Valid, "unsafe library artist artwork was accepted");
+
+        auto tracks = account::ParseLibraryArtistTracks(LR"({
+            "tracks":[{
+                "track":{
+                    "id":"track-1","title":"Teardrop","artist":"Massive Attack",
+                    "album":"Mezzanine","sourceKind":"remote","provider":"youtube-music",
+                    "sourceUrl":"https://music.example.test/watch?v=track-1","durationSec":330
+                },
+                "liked":true,"playCount":8,"addedAt":"2026-08-24T10:00:00Z"
+            }]
+        })");
+        Expect(tracks && tracks->size() == 1
+            && tracks->front().Track.Id == L"track-1"
+            && tracks->front().Liked
+            && tracks->front().PlayCount == 8,
+            "saved library artist tracks were not parsed in service order");
+    }
+
+    void TestLibraryArtistHttpContract()
+    {
+        auto const response = std::string{
+            "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 2\r\nConnection: close\r\n\r\n{}"
+        };
+        {
+            TestHttpServer server{ response };
+            account::AccountClient client{ winrt::hstring(server.Url()) };
+            account::LibraryArtistListRequest request;
+            request.View = account::LibraryArtistView::All;
+            request.Query = L"A & B";
+            request.Limit = 100;
+            request.Cursor = L"cursor/2";
+            (void)client.GetLibraryArtistsAsync(L"session", request).get();
+            Expect(server.Request().starts_with(
+                "GET /v1/music/library/artists?view=all&limit=100&q=A%20%26%20B&cursor=cursor%2F2 HTTP/1.1\r\n"),
+                "library artist list used the wrong route or query escaping");
+        }
+        {
+            TestHttpServer server{ response };
+            account::AccountClient client{ winrt::hstring(server.Url()) };
+            (void)client.GetLibraryArtistTracksAsync(L"session", L"artist public/1").get();
+            Expect(server.Request().starts_with(
+                "GET /v1/music/library/artists/artist%20public%2F1/tracks HTTP/1.1\r\n"),
+                "library artist saved tracks used the wrong public-ID route");
+        }
+        {
+            TestHttpServer server{ response };
+            account::AccountClient client{ winrt::hstring(server.Url()) };
+            (void)client.SetLibraryArtistFollowedAsync(L"session", L"artist-1", true).get();
+            Expect(server.Request().starts_with(
+                "PUT /v1/music/library/artists/artist-1/follow HTTP/1.1\r\n"),
+                "follow did not use the idempotent PUT route");
+        }
+        {
+            TestHttpServer server{ response };
+            account::AccountClient client{ winrt::hstring(server.Url()) };
+            (void)client.SetLibraryArtistFollowedAsync(L"session", L"artist-1", false).get();
+            Expect(server.Request().starts_with(
+                "DELETE /v1/music/library/artists/artist-1/follow HTTP/1.1\r\n"),
+                "unfollow did not use the idempotent DELETE route");
+        }
+    }
+
     void TestTrackCatalogIdMigration(std::filesystem::path const& root)
     {
         auto path = root / L"track-catalog-v14.sqlite";
@@ -4350,6 +4480,8 @@ int wmain()
         RunTest("TestCatalogPresentationRules", TestCatalogPresentationRules);
         RunTest("TestCatalogParsingSurvivesBadInput", TestCatalogParsingSurvivesBadInput);
         RunTest("TestRemoteDetailContract", TestRemoteDetailContract);
+        RunTest("TestLibraryArtistContract", TestLibraryArtistContract);
+        RunTest("TestLibraryArtistHttpContract", TestLibraryArtistHttpContract);
         RunTest("TestTrackCatalogIdMigration", [&] { TestTrackCatalogIdMigration(localAppData); });
         RunTest("TestFailedSecureWritePreservesLegacySource", [&] { TestFailedSecureWritePreservesLegacySource(localAppData); });
         RunTest("TestFailedVerificationPreservesLegacySource", TestFailedVerificationPreservesLegacySource);
