@@ -112,13 +112,17 @@ namespace LastMusicPlayer::Backend
         {
             return false;
         }
+        if (!Exec(m_db, DatabaseAccountSchema::CreateFollowedArtistsSql))
+        {
+            return false;
+        }
 
         // Schema migration gate: the heavy one-time data migration below used
         // to run on EVERY launch because PRAGMA user_version was written but
         // never read (~46s startup on a real library). Run it only when the
         // DB predates kSchemaVersion. Index creation stays unconditional —
         // it is idempotent (IF NOT EXISTS) and must also cover fresh DBs.
-        static constexpr int kSchemaVersion = 13;
+        static constexpr int kSchemaVersion = 14;
         int userVersion = 0;
         {
             Statement versionStmt{ m_db, "PRAGMA user_version;" };
@@ -301,7 +305,7 @@ namespace LastMusicPlayer::Backend
             {
                 return false;
             }
-            if (!Exec(m_db, "PRAGMA user_version=13;"))
+            if (!Exec(m_db, "PRAGMA user_version=14;"))
             {
                 return false;
             }

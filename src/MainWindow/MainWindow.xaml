@@ -2562,7 +2562,7 @@
                                         <Button x:Name="LibraryImportAlbumButton" Click="LibraryImportAlbum_Click" Style="{StaticResource CardButton}" Visibility="Collapsed" Padding="10,9"><Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="18"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><FontIcon Glyph="&#xE723;" FontSize="15" Foreground="{ThemeResource TextSecondaryBrush}"/><StackPanel Grid.Column="1"><TextBlock x:Name="LblImportAlbum" Text="Import album" FontSize="13" FontWeight="SemiBold"/><TextBlock Text="From files on this PC" FontSize="11.5" Foreground="{ThemeResource TextTertiaryBrush}"/></StackPanel></Grid></Button>
                                         <Button x:Name="LibraryCreatePlaylistButton" Click="LibraryCreatePlaylist_Click" Style="{StaticResource CardButton}" Padding="10,9"><Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="18"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><FontIcon Glyph="&#xE8FD;" FontSize="15" Foreground="{ThemeResource TextSecondaryBrush}"/><StackPanel Grid.Column="1"><TextBlock x:Name="LblCreatePlaylist" Text="Create playlist" FontSize="13" FontWeight="SemiBold"/><TextBlock Text="Empty playlist you fill yourself" FontSize="11.5" Foreground="{ThemeResource TextTertiaryBrush}"/></StackPanel></Grid></Button>
                                         <Button x:Name="LibraryImportPlaylistButton" Click="LibraryImportPlaylist_Click" Style="{StaticResource CardButton}" Padding="10,9"><Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="18"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><FontIcon Glyph="&#xE723;" FontSize="15" Foreground="{ThemeResource TextSecondaryBrush}"/><StackPanel Grid.Column="1"><TextBlock x:Name="LblImportPlaylist" Text="Import playlist" FontSize="13" FontWeight="SemiBold"/><TextBlock Text="From M3U, PLS or another app" FontSize="11.5" Foreground="{ThemeResource TextTertiaryBrush}"/></StackPanel></Grid></Button>
-                                        <Button x:Name="LibraryFollowArtistButton" Click="LibraryFollowArtist_Click" Style="{StaticResource CardButton}" Visibility="Collapsed" Padding="10,9"><Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="18"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><FontIcon Glyph="&#xE8FA;" FontSize="15" Foreground="{ThemeResource TextSecondaryBrush}"/><StackPanel Grid.Column="1"><TextBlock x:Name="LblFollowArtist" Text="Follow artist" FontSize="13" FontWeight="SemiBold"/><TextBlock Text="Add an artist to your library" FontSize="11.5" Foreground="{ThemeResource TextTertiaryBrush}"/></StackPanel></Grid></Button>
+                                        <Button x:Name="LibraryFollowArtistButton" Click="LibraryFollowArtist_Click" Style="{StaticResource CardButton}" Visibility="Collapsed" Padding="10,9"><Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="18"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><FontIcon Glyph="&#xE8FA;" FontSize="15" Foreground="{ThemeResource TextSecondaryBrush}"/><StackPanel Grid.Column="1"><TextBlock x:Name="LblFollowArtist" Text="Find an artist" FontSize="13" FontWeight="SemiBold"/><TextBlock Text="Search the music catalog" FontSize="11.5" Foreground="{ThemeResource TextTertiaryBrush}"/></StackPanel></Grid></Button>
                                         <Button x:Name="LibraryAddFolderButton" Click="LibraryAddFolder_Click" Style="{StaticResource CardButton}" Padding="10,9"><Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="18"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><FontIcon Glyph="&#xE8F4;" FontSize="15" Foreground="{ThemeResource TextSecondaryBrush}"/><StackPanel Grid.Column="1"><TextBlock x:Name="LblAddFolder" Text="Add folder" FontSize="13" FontWeight="SemiBold"/><TextBlock Text="Watch a folder on this PC" FontSize="11.5" Foreground="{ThemeResource TextTertiaryBrush}"/></StackPanel></Grid></Button>
                                     </StackPanel>
                                 </Flyout>
@@ -2592,6 +2592,26 @@
                         <local:ChipWrapPanel x:Name="LibraryPlaylistContextRow" Grid.Row="1" HorizontalSpacing="6" VerticalSpacing="6" Margin="0,12,0,0">
                             <ToggleButton x:Name="LibPlaylistManualFilter" Tag="Manual" Content="Your playlists" IsChecked="True" Style="{StaticResource DesignChipToggle}" Padding="12,6" Checked="LibraryPlaylistFilter_Checked" />
                             <ToggleButton x:Name="LibPlaylistAutoFilter" Tag="Auto" Content="Auto mixes" Style="{StaticResource DesignChipToggle}" Padding="12,6" Checked="LibraryPlaylistFilter_Checked" />
+                        </local:ChipWrapPanel>
+                        <local:ChipWrapPanel x:Name="LibraryArtistsContextRow" Grid.Row="1" Visibility="Collapsed" Margin="0,12,0,0" HorizontalSpacing="10" VerticalSpacing="8">
+                            <local:ChipWrapPanel HorizontalSpacing="6" VerticalSpacing="6">
+                                <ToggleButton x:Name="ArtistFilterAll" Tag="All" Content="All" IsChecked="True" Style="{StaticResource DesignChipToggle}" Padding="12,6" Checked="LibraryArtistFilter_Checked" />
+                                <ToggleButton x:Name="ArtistFilterFollowed" Tag="Followed" Content="Followed" Style="{StaticResource DesignChipToggle}" Padding="12,6" Checked="LibraryArtistFilter_Checked" />
+                                <ToggleButton x:Name="ArtistFilterLibrary" Tag="Library" Content="In library" Style="{StaticResource DesignChipToggle}" Padding="12,6" Checked="LibraryArtistFilter_Checked" />
+                            </local:ChipWrapPanel>
+                            <DropDownButton Background="{ThemeResource SurfaceBrush}" BorderBrush="{ThemeResource HairlineStrongBrush}" BorderThickness="1" CornerRadius="8" Padding="12,6" VerticalAlignment="Top">
+                                <TextBlock x:Name="ArtistSortLabel" Text="Most songs" FontSize="13" FontWeight="SemiBold" />
+                                <DropDownButton.Flyout>
+                                    <MenuFlyout>
+                                        <MenuFlyoutItem Text="Most songs" Tag="Songs" Click="LibraryArtistSort_Click" />
+                                        <MenuFlyoutItem Text="Name" Tag="Name" Click="LibraryArtistSort_Click" />
+                                        <MenuFlyoutItem Text="Recently followed" Tag="Followed" Click="LibraryArtistSort_Click" />
+                                    </MenuFlyout>
+                                </DropDownButton.Flyout>
+                            </DropDownButton>
+                            <TextBox x:Name="ArtistLibrarySearchBox" Width="260" PlaceholderText="Find in artists" TextChanged="LibraryArtistSearch_TextChanged" />
+                            <TextBlock x:Name="ArtistLibraryResultCount" Text="0 artists" Style="{StaticResource CaptionText}" VerticalAlignment="Center" />
+                            <TextBlock x:Name="ArtistLibraryStatusText" Visibility="Collapsed" Style="{StaticResource CaptionText}" Foreground="{ThemeResource AccentBrush}" VerticalAlignment="Center" TextWrapping="Wrap" />
                         </local:ChipWrapPanel>
                         <Grid x:Name="LibrarySongsContextRow" Grid.Row="1" Visibility="Collapsed" Margin="0,12,0,0">
                             <local:ChipWrapPanel HorizontalSpacing="8" VerticalSpacing="8">
@@ -2713,7 +2733,8 @@
                         </GridView>
 
                         <!-- Artists -->
-                        <GridView ScrollViewer.VerticalScrollBarVisibility="Hidden" x:Name="LibArtistsGrid" Visibility="Collapsed" SelectionMode="None" IsItemClickEnabled="True" ItemClick="LibraryGroup_ItemClick" ItemContainerStyle="{StaticResource CardTileContainerStyle}" Padding="0,0,0,24" Margin="0,0,-20,0" Loaded="LibraryCardGrid_Loaded" SizeChanged="LibraryCardGrid_SizeChanged"
+                        <Grid x:Name="LibArtistsPanel" Visibility="Collapsed">
+                        <GridView ScrollViewer.VerticalScrollBarVisibility="Hidden" x:Name="LibArtistsGrid" SelectionMode="None" IsItemClickEnabled="True" ItemClick="LibraryGroup_ItemClick" ItemContainerStyle="{StaticResource CardTileContainerStyle}" Padding="0,0,0,24" Margin="0,0,-20,0" Loaded="LibraryCardGrid_Loaded" SizeChanged="LibraryCardGrid_SizeChanged"
                                   ScrollViewer.HorizontalScrollMode="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                             <GridView.ItemTemplate>
                                 <DataTemplate x:DataType="local:TrackInfo">
@@ -2724,11 +2745,11 @@
                                                 <MenuFlyoutItem Text="Play next" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="LibraryGroupMenuPlayNext_Click" />
                                                 <MenuFlyoutItem Text="Add to queue" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="LibraryGroupMenuAddToQueue_Click" />
                                                 <MenuFlyoutItem Text="Shuffle" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="LibraryGroupMenuShuffle_Click" />
+                                                <MenuFlyoutSeparator />
+                                                <MenuFlyoutItem Text="{x:Bind FollowActionText}" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="LibraryArtistFollow_Click" />
                                             </MenuFlyout>
                                         </StackPanel.ContextFlyout>
-                                        <!-- Artist tiles carry no source badge in the reference: the
-                                             circle, name and album count are the whole card. -->
-                                        <Border Width="132" Height="132" CornerRadius="66" BorderBrush="{ThemeResource StrokeBrush}" BorderThickness="1" Margin="33,0,33,12" HorizontalAlignment="Center" Translation="0,0,12">
+                                        <Border CornerRadius="999" BorderBrush="{ThemeResource StrokeBrush}" BorderThickness="1" Margin="14,0,14,12" HorizontalAlignment="Stretch" Translation="0,0,12" Tag="{x:Bind}" Loaded="ArtistLibraryArtworkBorder_Loaded" SizeChanged="LibraryArtworkBorder_SizeChanged">
                                             <Border.Background>
                                                 <LinearGradientBrush StartPoint="0.32,0.03" EndPoint="0.68,0.97">
                                                     <GradientStop Color="{ThemeResource ArtistTileGradient1}" Offset="0.0" />
@@ -2738,9 +2759,12 @@
                                             <Border.Shadow><ThemeShadow /></Border.Shadow>
                                             <Grid>
                                                 <FontIcon Glyph="&#xE77B;" FontSize="40" Foreground="{ThemeResource PlaceholderGlyphBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                                <Image Source="{x:Bind AlbumArt}" Stretch="UniformToFill"
+                                                <Image x:Name="ArtistCardArtwork" Source="{x:Bind AlbumArt}" Stretch="UniformToFill"
                                                            HorizontalAlignment="Center" VerticalAlignment="Center"
                                                            Loaded="AccountArtwork_Loaded" />
+                                                <Border Visibility="{x:Bind FollowedVisibility}" Background="{ThemeResource AccentBrush}" CornerRadius="999" Width="30" Height="30" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,2,2" BorderBrush="{ThemeResource ContentCanvasBrush}" BorderThickness="3" ToolTipService.ToolTip="Following">
+                                                    <FontIcon Glyph="&#xE8FB;" FontSize="12" Foreground="White" />
+                                                </Border>
                                             </Grid>
                                         </Border>
                                         <TextBlock Text="{x:Bind Title}" Style="{StaticResource BodyStrong}" HorizontalAlignment="Center" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
@@ -2749,6 +2773,8 @@
                                 </DataTemplate>
                             </GridView.ItemTemplate>
                         </GridView>
+                        <TextBlock x:Name="ArtistLibraryEmptyText" Text="No artists match this view" Visibility="Collapsed" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,52,0,0" Style="{StaticResource CaptionText}" />
+                        </Grid>
 
                         <!-- Songs -->
                         <Grid x:Name="LibrarySongsBrowser" Visibility="Collapsed" Padding="0,0,4,24">
@@ -3368,6 +3394,7 @@
                                                 <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,4,0,0">
                                                     <Button x:Name="ArtistPlayButton" Content="Play" Click="ArtistDetailPlay_Click" Style="{StaticResource DesignPrimaryButton}" Padding="20,9" />
                                                     <Button x:Name="ArtistShuffleButton" Content="Shuffle" Click="ArtistDetailShuffle_Click" Style="{StaticResource DesignSecondaryButton}" Padding="20,9" />
+                                                    <Button x:Name="ArtistFollowButton" Content="Follow" Click="ArtistDetailFollow_Click" Style="{StaticResource DesignSecondaryButton}" Padding="20,9" />
                                                 </StackPanel>
                                             </StackPanel>
                                         </Grid>

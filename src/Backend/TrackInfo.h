@@ -181,6 +181,18 @@ namespace winrt::Last_Music_Player::implementation
                 : winrt::Microsoft::UI::Xaml::Visibility::Collapsed;
         }
 
+        bool IsFollowed() { return m_isFollowed; }
+        void IsFollowed(bool value) { m_isFollowed = value; }
+
+        hstring FollowActionText() { return m_isFollowed ? L"Unfollow artist" : L"Follow artist"; }
+
+        winrt::Microsoft::UI::Xaml::Visibility FollowedVisibility()
+        {
+            return m_isFollowed
+                ? winrt::Microsoft::UI::Xaml::Visibility::Visible
+                : winrt::Microsoft::UI::Xaml::Visibility::Collapsed;
+        }
+
         // Mirrors the precondition in EnqueueAutomaticDownload so the menu item
         // and the action agree on what is downloadable.
         winrt::Microsoft::UI::Xaml::Visibility DownloadVisibility()
@@ -242,6 +254,7 @@ namespace winrt::Last_Music_Player::implementation
         bool m_isLiked{ false };
         bool m_isOffline{ false };
         bool m_isInLibrary{ false };
+        bool m_isFollowed{ false };
         int32_t m_trackCount{ 0 };
     };
 }

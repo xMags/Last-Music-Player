@@ -4176,7 +4176,7 @@ namespace
 
     void TestTrackCatalogIdMigration(std::filesystem::path const& root)
     {
-        auto path = root / L"track-catalog-v13.sqlite";
+        auto path = root / L"track-catalog-v14.sqlite";
         sqlite3* db{};
         Expect(sqlite3_open16(path.c_str(), &db) == SQLITE_OK,
             "could not create v12 catalog-id migration database");
@@ -4202,13 +4202,14 @@ namespace
         exec(account::DatabaseTrackSchema::AddAlbumCatalogIdSql);
         exec(account::DatabaseTrackSchema::AddArtistCatalogIdSql);
         exec(account::DatabaseAccountSchema::CreateTablesSql);
+        exec(account::DatabaseAccountSchema::CreateFollowedArtistsSql);
         exec("INSERT INTO ActiveAccountContext (SingletonId,RemoteMode,AccountId) VALUES (1,'LocalOnly','');");
         exec("UPDATE ActiveAccountContext SET RemoteMode='ApiKey' WHERE SingletonId=1;");
         exec(
             "INSERT INTO Tracks (SourceKey,SourceKind,Provider,SourceUrl,Title,Artist,Album,IsActive,RemoteCatalogId,AlbumCatalogId,ArtistCatalogId) "
             "VALUES ('remote|test','remote','youtube-music','https://music.example/s','Song','Artist','Album',1,'song-1','album-1','artist-1');");
         exec(account::DatabaseAccountSchema::CreateEffectiveTracksViewSql);
-        exec("PRAGMA user_version=13;");
+        exec("PRAGMA user_version=14;");
         sqlite3_close(db);
         db = nullptr;
 
@@ -4232,8 +4233,16 @@ namespace
         statement = nullptr;
         Expect(sqlite3_prepare_v2(db, "PRAGMA user_version;", -1, &statement, nullptr) == SQLITE_OK
             && sqlite3_step(statement) == SQLITE_ROW
-            && sqlite3_column_int(statement, 0) == 13,
-            "track catalog-id migration did not advance schema version to 13");
+            && sqlite3_column_int(statement, 0) == 14,
+            "artist-library migration did not advance schema version to 14");
+        sqlite3_finalize(statement);
+        statement = nullptr;
+        Expect(sqlite3_prepare_v2(db,
+            "INSERT INTO FollowedArtists (ScopeKey,IdentityKey,CatalogId,SourceUrl,Name,Provider,AddedAtUtc) "
+            "VALUES ('api-key|scope','catalog|youtube-music|artist-1','artist-1','https://music.example/artist/1','Artist','youtube-music','2026-08-24T00:00:00Z');",
+            -1, &statement, nullptr) == SQLITE_OK
+            && sqlite3_step(statement) == SQLITE_DONE,
+            "schema 14 did not persist a followed artist");
         sqlite3_finalize(statement);
         sqlite3_close(db);
     }

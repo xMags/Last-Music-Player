@@ -116,6 +116,115 @@ namespace winrt::Last_Music_Player::implementation
         return track;
     }
 
+    void MainWindow::ArtistLibraryArtworkBorder_Loaded(
+        winrt::Windows::Foundation::IInspectable const& sender,
+        winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
+    {
+        LibraryArtworkBorder_Loaded(sender, args);
+        auto border = sender.try_as<winrt::Microsoft::UI::Xaml::Controls::Border>();
+        auto artist = border ? border.Tag().try_as<winrt::Last_Music_Player::TrackInfo>() : nullptr;
+        if (!artist || !artist.IsFollowed() || !artist.ArtworkUrl().empty())
+        {
+            return;
+        }
+        auto& remote = detail::RemoteMusicServiceService();
+        auto scope = remote.CaptureScope();
+        if (scope.Mode == LastMusicPlayer::Backend::RemoteAccessMode::LocalOnly
+            || !remote.IsModeAvailable(scope.Mode))
+        {
+            return;
+        }
+        auto identity = ArtistIdentityForTrack(artist);
+        LastMusicPlayer::Backend::RemoteDetailIdentity requestIdentity{
+            winrt::hstring(identity.CatalogId),
+            winrt::hstring(identity.SourceUrl),
+            winrt::hstring(identity.Name) };
+        auto requestKey = DetailCacheKey(scope, requestIdentity);
+        if (requestKey.empty() || !m_artistArtworkRequests.emplace(requestKey).second)
+        {
+            return;
+        }
+        detail::RunDetached(HydrateArtistLibraryArtworkAsync(
+            border,
+            artist,
+            std::move(scope),
+            std::move(requestKey)));
+    }
+
+    winrt::Windows::Foundation::IAsyncAction MainWindow::HydrateArtistLibraryArtworkAsync(
+        winrt::Microsoft::UI::Xaml::Controls::Border border,
+        winrt::Last_Music_Player::TrackInfo artist,
+        LastMusicPlayer::Backend::RemoteScopeSnapshot scope,
+        std::wstring requestKey)
+    {
+        auto lifetime = get_strong();
+        auto dispatcher = DispatcherQueue();
+        std::optional<LastMusicPlayer::Backend::RemoteArtistDetail> artistDetail;
+        bool failed = false;
+        try
+        {
+            auto cached = m_artistDetailCache.find(requestKey);
+            if (cached != m_artistDetailCache.end())
+            {
+                artistDetail = cached->second;
+            }
+            else
+            {
+                auto identity = ArtistIdentityForTrack(artist);
+                auto payload = co_await WithDetailTimeout(
+                    detail::RemoteMusicServiceService().GetArtistDetailAsync(
+                        scope,
+                        { winrt::hstring(identity.CatalogId),
+                          winrt::hstring(identity.SourceUrl),
+                          winrt::hstring(identity.Name) }));
+                co_await winrt::resume_background();
+                artistDetail = LastMusicPlayer::Backend::ParseRemoteArtistDetail(payload);
+                co_await wil::resume_foreground(dispatcher);
+            }
+        }
+        catch (...)
+        {
+            failed = true;
+        }
+        if (!dispatcher.HasThreadAccess())
+        {
+            co_await wil::resume_foreground(dispatcher);
+        }
+
+        m_artistArtworkRequests.erase(requestKey);
+        auto& remote = detail::RemoteMusicServiceService();
+        if (failed || !artistDetail || !remote.IsCurrent(scope) || artistDetail->Artist.ArtworkUrl.empty()
+            || !border || border.Tag() != artist)
+        {
+            co_return;
+        }
+        auto bitmap = detail::CreateMusicArtworkBitmap(
+            artistDetail->Artist.ArtworkUrl,
+            detail::ArtworkDetail::Tile);
+        if (!bitmap)
+        {
+            co_return;
+        }
+        artist.ArtworkUrl(artistDetail->Artist.ArtworkUrl);
+        artist.AlbumArt(bitmap);
+        artist.ImageArtworkOpacity(1.0);
+        artist.GeneratedArtworkOpacity(0.0);
+        auto grid = border.Child().try_as<winrt::Microsoft::UI::Xaml::Controls::Grid>();
+        if (!grid)
+        {
+            co_return;
+        }
+        for (auto const& child : grid.Children())
+        {
+            auto image = child.try_as<winrt::Microsoft::UI::Xaml::Controls::Image>();
+            if (image && image.Name() == L"ArtistCardArtwork")
+            {
+                image.Source(bitmap);
+                break;
+            }
+        }
+    }
+
     void MainWindow::OpenArtistDetail(
         winrt::hstring const& name,
         winrt::hstring const& catalogId,
@@ -384,6 +493,7 @@ namespace winrt::Last_Music_Player::implementation
             : winrt::Microsoft::UI::Xaml::Visibility::Visible);
         ArtistPlayButton().IsEnabled(!m_artistTopSongs.empty());
         ArtistShuffleButton().IsEnabled(!m_artistTopSongs.empty());
+        UpdateArtistDetailFollowButton();
 
         for (auto const& summary : artistDetail.Releases)
         {
@@ -630,6 +740,64 @@ namespace winrt::Last_Music_Player::implementation
         std::mt19937 generator{ seed() };
         std::shuffle(shuffled.begin(), shuffled.end(), generator);
         QueueAndPlayVisible(shuffled, shuffled.front());
+    }
+
+    void MainWindow::UpdateArtistDetailFollowButton()
+    {
+        if (!ArtistFollowButton())
+        {
+            return;
+        }
+        auto scopeKey = ArtistFollowScopeKey();
+        auto provider = m_currentArtistDetail.Artist.Provider;
+        LastMusicPlayer::Backend::ArtistIdentity identity{
+            std::wstring((m_currentArtistDetail.Artist.CatalogId.empty()
+                ? m_currentArtistIdentity.CatalogId
+                : m_currentArtistDetail.Artist.CatalogId).c_str()),
+            std::wstring((m_currentArtistDetail.Artist.SourceUrl.empty()
+                ? m_currentArtistIdentity.SourceUrl
+                : m_currentArtistDetail.Artist.SourceUrl).c_str()),
+            std::wstring(ArtistDetailName().Text().c_str()),
+            std::wstring(provider.c_str()) };
+        auto const identityKey = LastMusicPlayer::Backend::ArtistIdentityKey(identity);
+        auto followed = !scopeKey.empty()
+            && !identityKey.empty()
+            && detail::DatabaseService().IsInitialized()
+            && detail::DatabaseService().IsArtistFollowed(scopeKey, identityKey);
+        ArtistFollowButton().Content(winrt::box_value(followed ? L"Following" : L"Follow"));
+        ArtistFollowButton().IsEnabled(!scopeKey.empty() && !identityKey.empty());
+        winrt::Microsoft::UI::Xaml::Controls::ToolTipService::SetToolTip(
+            ArtistFollowButton(),
+            scopeKey.empty()
+                ? winrt::box_value(L"Account artist following needs the matching MagnetoFX sync update.")
+                : nullptr);
+    }
+
+    void MainWindow::ArtistDetailFollow_Click(
+        winrt::Windows::Foundation::IInspectable const& sender,
+        winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
+    {
+        (void)sender;
+        (void)args;
+        winrt::Last_Music_Player::TrackInfo artist;
+        artist.Title(ArtistDetailName().Text());
+        artist.ArtistCatalogId(m_currentArtistDetail.Artist.CatalogId.empty()
+            ? m_currentArtistIdentity.CatalogId
+            : m_currentArtistDetail.Artist.CatalogId);
+        artist.SourceUrl(m_currentArtistDetail.Artist.SourceUrl.empty()
+            ? m_currentArtistIdentity.SourceUrl
+            : m_currentArtistDetail.Artist.SourceUrl);
+        artist.RemoteProvider(m_currentArtistDetail.Artist.Provider);
+        artist.ArtworkUrl(m_currentArtistDetail.Artist.ArtworkUrl);
+
+        auto scopeKey = ArtistFollowScopeKey();
+        auto identityKey = LastMusicPlayer::Backend::ArtistIdentityKey(ArtistIdentityForTrack(artist));
+        auto followed = !scopeKey.empty()
+            && detail::DatabaseService().IsArtistFollowed(scopeKey, identityKey);
+        if (SetArtistFollowed(artist, !followed))
+        {
+            UpdateArtistDetailFollowButton();
+        }
     }
 
     void MainWindow::ArtistTopSong_ItemClick(

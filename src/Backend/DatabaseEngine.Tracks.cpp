@@ -24,6 +24,7 @@ namespace LastMusicPlayer::Backend
             Exec(m_db, "DELETE FROM AccountPlaylists;") &&
             Exec(m_db, "DELETE FROM AccountTracks;") &&
             Exec(m_db, "DELETE FROM AccountProfiles;") &&
+            Exec(m_db, "DELETE FROM FollowedArtists;") &&
             Exec(m_db, "DELETE FROM AlbumTracks;") &&
             Exec(m_db, "DELETE FROM PlaylistTracks;") &&
             Exec(m_db, "DELETE FROM Albums;") &&

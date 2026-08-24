@@ -667,7 +667,7 @@ namespace winrt::Last_Music_Player::implementation
                     {
                         co_await HydrateLibraryTabAsync(L"Albums", true);
                     }
-                    else if (LibArtistsGrid().Visibility() == winrt::Microsoft::UI::Xaml::Visibility::Visible)
+                    else if (LibArtistsPanel().Visibility() == winrt::Microsoft::UI::Xaml::Visibility::Visible)
                     {
                         co_await HydrateLibraryTabAsync(L"Artists", true);
                     }

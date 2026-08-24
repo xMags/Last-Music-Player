@@ -1,7 +1,9 @@
 #include "pch.h"
 #include "Backend/DatabaseEngine.h"
 #include "Backend/DatabaseEngine.Internal.h"
+#include "Backend/ArtistLibraryPolicy.h"
 #include "Backend/LibraryGroupingSql.h"
+#include "Backend/ProviderHelpers.h"
 
 #include <algorithm>
 #include <string>
@@ -654,7 +656,128 @@ namespace LastMusicPlayer::Backend
         return groups;
     }
 
-    std::vector<TrackInfo> DatabaseEngine::LoadArtists() const
+    std::vector<FollowedArtistSnapshot> DatabaseEngine::LoadFollowedArtists(
+        std::wstring const& scopeKey) const
+    {
+        std::scoped_lock lock{ m_mutex };
+        std::vector<FollowedArtistSnapshot> artists;
+        if (!m_db || scopeKey.empty())
+        {
+            return artists;
+        }
+
+        Statement stmt{ m_db,
+            "SELECT ScopeKey, IdentityKey, CatalogId, SourceUrl, Name, Provider, AddedAtUtc "
+            "FROM FollowedArtists WHERE ScopeKey=? ORDER BY AddedAtUtc DESC, Name COLLATE NOCASE ASC;" };
+        if (!stmt)
+        {
+            return artists;
+        }
+        BindText(stmt.value, 1, scopeKey);
+        while (sqlite3_step(stmt.value) == SQLITE_ROW)
+        {
+            FollowedArtistSnapshot artist;
+            artist.ScopeKey = ColumnText(stmt.value, 0);
+            artist.IdentityKey = ColumnText(stmt.value, 1);
+            artist.CatalogId = ColumnText(stmt.value, 2);
+            artist.SourceUrl = ColumnText(stmt.value, 3);
+            artist.Name = ColumnText(stmt.value, 4);
+            artist.Provider = ColumnText(stmt.value, 5);
+            artist.AddedAtUtc = ColumnText(stmt.value, 6);
+            artists.push_back(std::move(artist));
+        }
+        return artists;
+    }
+
+    bool DatabaseEngine::FollowArtist(FollowedArtistSnapshot const& artist)
+    {
+        std::scoped_lock lock{ m_mutex };
+        if (!m_db || artist.ScopeKey.empty() || artist.Name.empty()
+            || artist.ScopeKey.size() > 160 || artist.Name.size() > 256
+            || artist.CatalogId.size() > 256 || artist.Provider.size() > 80
+            || artist.SourceUrl.size() > 2048)
+        {
+            return false;
+        }
+        if (!artist.SourceUrl.empty()
+            && !IsSafeRemoteUrl(winrt::hstring(artist.SourceUrl), RemoteUrlUse::Durable))
+        {
+            return false;
+        }
+        auto identityKey = ArtistIdentityKey({
+            artist.CatalogId, artist.SourceUrl, artist.Name, artist.Provider });
+        if (!artist.IdentityKey.empty() && artist.IdentityKey != identityKey)
+        {
+            return false;
+        }
+        if (identityKey.empty() || identityKey.size() > 2400)
+        {
+            return false;
+        }
+
+        Statement stmt{ m_db,
+            "INSERT INTO FollowedArtists "
+            "(ScopeKey, IdentityKey, CatalogId, SourceUrl, Name, Provider, AddedAtUtc) "
+            "VALUES (?1,?2,?3,?4,?5,?6,COALESCE(NULLIF(?7,''),strftime('%Y-%m-%dT%H:%M:%SZ','now'))) "
+            "ON CONFLICT(ScopeKey,IdentityKey) DO UPDATE SET "
+            "CatalogId=excluded.CatalogId, SourceUrl=excluded.SourceUrl, Name=excluded.Name, "
+            "Provider=excluded.Provider;" };
+        if (!stmt)
+        {
+            return false;
+        }
+        BindText(stmt.value, 1, artist.ScopeKey);
+        BindText(stmt.value, 2, identityKey);
+        BindText(stmt.value, 3, artist.CatalogId);
+        BindText(stmt.value, 4, artist.SourceUrl);
+        BindText(stmt.value, 5, artist.Name);
+        BindText(stmt.value, 6, artist.Provider);
+        BindText(stmt.value, 7, artist.AddedAtUtc);
+        return sqlite3_step(stmt.value) == SQLITE_DONE;
+    }
+
+    bool DatabaseEngine::UnfollowArtist(
+        std::wstring const& scopeKey,
+        std::wstring const& identityKey)
+    {
+        std::scoped_lock lock{ m_mutex };
+        if (!m_db || scopeKey.empty() || identityKey.empty()
+            || scopeKey.size() > 160 || identityKey.size() > 2400)
+        {
+            return false;
+        }
+        Statement stmt{ m_db, "DELETE FROM FollowedArtists WHERE ScopeKey=?1 AND IdentityKey=?2;" };
+        if (!stmt)
+        {
+            return false;
+        }
+        BindText(stmt.value, 1, scopeKey);
+        BindText(stmt.value, 2, identityKey);
+        return sqlite3_step(stmt.value) == SQLITE_DONE;
+    }
+
+    bool DatabaseEngine::IsArtistFollowed(
+        std::wstring const& scopeKey,
+        std::wstring const& identityKey) const
+    {
+        std::scoped_lock lock{ m_mutex };
+        if (!m_db || scopeKey.empty() || identityKey.empty()
+            || scopeKey.size() > 160 || identityKey.size() > 2400)
+        {
+            return false;
+        }
+        Statement stmt{ m_db,
+            "SELECT 1 FROM FollowedArtists WHERE ScopeKey=?1 AND IdentityKey=?2 LIMIT 1;" };
+        if (!stmt)
+        {
+            return false;
+        }
+        BindText(stmt.value, 1, scopeKey);
+        BindText(stmt.value, 2, identityKey);
+        return sqlite3_step(stmt.value) == SQLITE_ROW;
+    }
+
+    std::vector<TrackInfo> DatabaseEngine::LoadArtists(std::wstring const& followedScopeKey) const
     {
         std::scoped_lock lock{ m_mutex };
         std::vector<TrackInfo> groups;
@@ -670,7 +793,7 @@ namespace LastMusicPlayer::Backend
             "SUM(CASE WHEN SourceKind='remote' THEN 1 ELSE 0 END),"
             "CASE WHEN COUNT(DISTINCT NULLIF(ArtistCatalogId,''))=1 "
             "THEN MAX(COALESCE(ArtistCatalogId,'')) ELSE '' END, "
-            "MAX(COALESCE(RemoteProvider,'')),"
+            "MAX(COALESCE(NULLIF(RemoteProvider,''),NULLIF(Provider,''),'')),"
             "MAX(CASE WHEN Provider='account' THEN 'account' ELSE '' END) "
             "FROM EligibleLibraryTracks WHERE GroupTitle<>'' "
             "GROUP BY GroupTitle COLLATE NOCASE "
@@ -688,12 +811,71 @@ namespace LastMusicPlayer::Backend
             group.Artist(winrt::hstring(std::to_wstring(count) + L" songs - " + std::to_wstring(albums) + L" albums"));
             ApplyArtworkUrl(group, winrt::hstring(ColumnText(stmt.value, 3)));
             group.TrackCount(count);
+            group.IsInLibrary(true);
             group.SourceKind(L"artist");
             group.SourceUrl(group.Title());
             group.SourceLabel(remoteCount == 0 ? L"Local" : (remoteCount == count ? L"Remote" : L"Mixed"));
             group.ArtistCatalogId(winrt::hstring(ColumnText(stmt.value, 5)));
             group.RemoteProvider(winrt::hstring(ColumnText(stmt.value, 6)));
             group.Provider(winrt::hstring(ColumnText(stmt.value, 7)));
+            groups.push_back(group);
+        }
+
+        if (followedScopeKey.empty())
+        {
+            return groups;
+        }
+
+        Statement followed{ m_db,
+            "SELECT IdentityKey, CatalogId, SourceUrl, Name, Provider, AddedAtUtc, "
+            "CAST(strftime('%s',AddedAtUtc) AS REAL) "
+            "FROM FollowedArtists WHERE ScopeKey=? ORDER BY AddedAtUtc DESC, Name COLLATE NOCASE ASC;" };
+        if (!followed)
+        {
+            return groups;
+        }
+        BindText(followed.value, 1, followedScopeKey);
+        while (sqlite3_step(followed.value) == SQLITE_ROW)
+        {
+            ArtistIdentity followedIdentity{
+                ColumnText(followed.value, 1),
+                ColumnText(followed.value, 2),
+                ColumnText(followed.value, 3),
+                ColumnText(followed.value, 4) };
+            auto existing = std::find_if(groups.begin(), groups.end(), [&](TrackInfo const& group)
+            {
+                ArtistIdentity groupIdentity{
+                    std::wstring(group.ArtistCatalogId().c_str()),
+                    group.SourceUrl().starts_with(L"http")
+                        ? std::wstring(group.SourceUrl().c_str())
+                        : std::wstring{},
+                    std::wstring(group.Title().c_str()),
+                    std::wstring(group.RemoteProvider().c_str()) };
+                return SameArtistIdentity(groupIdentity, followedIdentity);
+            });
+            if (existing != groups.end())
+            {
+                existing->IsFollowed(true);
+                existing->DateAdded(winrt::hstring(ColumnText(followed.value, 5)));
+                existing->DateAddedSortKey(sqlite3_column_double(followed.value, 6));
+                auto caption = std::wstring(existing->Artist().c_str());
+                existing->Artist(winrt::hstring(caption + L"  ·  Following"));
+                continue;
+            }
+
+            TrackInfo group;
+            group.Title(winrt::hstring(followedIdentity.Name));
+            group.Artist(L"Following");
+            group.SourceKind(L"artist");
+            group.SourceUrl(winrt::hstring(followedIdentity.SourceUrl.empty()
+                ? followedIdentity.Name
+                : followedIdentity.SourceUrl));
+            group.ArtistCatalogId(winrt::hstring(followedIdentity.CatalogId));
+            group.RemoteProvider(winrt::hstring(followedIdentity.Provider));
+            group.SourceLabel(L"Remote");
+            group.IsFollowed(true);
+            group.DateAdded(winrt::hstring(ColumnText(followed.value, 5)));
+            group.DateAddedSortKey(sqlite3_column_double(followed.value, 6));
             groups.push_back(group);
         }
         return groups;

@@ -138,6 +138,17 @@ namespace LastMusicPlayer::Backend::DatabaseAccountSchema
 
     inline constexpr char RemoveLegacyGenericAccountTracksSql[] =
         "DELETE FROM Tracks WHERE SourceKind='remote' AND Provider='account';";
+
+    inline constexpr char CreateFollowedArtistsSql[] =
+        "CREATE TABLE IF NOT EXISTS FollowedArtists ("
+        "ScopeKey TEXT NOT NULL,"
+        "IdentityKey TEXT NOT NULL,"
+        "CatalogId TEXT,"
+        "SourceUrl TEXT,"
+        "Name TEXT NOT NULL,"
+        "Provider TEXT,"
+        "AddedAtUtc TEXT NOT NULL,"
+        "PRIMARY KEY (ScopeKey, IdentityKey));";
     inline constexpr char RemoveTransientRemoteUrlsSql[] =
         "UPDATE Tracks SET FilePath='' WHERE SourceKind='remote' AND COALESCE(FilePath,'')<>'';"
         "UPDATE Tracks SET SourceUrl='' WHERE SourceKind='remote' AND ("

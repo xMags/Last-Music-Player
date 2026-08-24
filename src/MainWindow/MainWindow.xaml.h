@@ -4,6 +4,7 @@
 #include "Backend/DatabaseEngine.h"
 #include "Backend/PlaybackHistoryQualifier.h"
 #include "Backend/AutoSyncPolicy.h"
+#include "Backend/ArtistLibraryPolicy.h"
 #include "Backend/DetailSortPolicy.h"
 #include "Frontend/Skeleton.h"
 // The generated XamlTypeInfo activator for a code-only local control only
@@ -194,6 +195,11 @@ namespace winrt::Last_Music_Player::implementation
         void HistorySort_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void LibraryTracksPlayAll_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void LibraryFollowArtist_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void LibraryArtistSearch_TextChanged(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::TextChangedEventArgs const& args);
+        void LibraryArtistFilter_Checked(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void LibraryArtistSort_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void LibraryArtistFollow_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void ArtistLibraryArtworkBorder_Loaded(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void LibraryButton_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         winrt::Windows::Foundation::IAsyncAction LibraryAddFolder_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         winrt::Windows::Foundation::IAsyncAction LibraryCreateAlbum_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
@@ -351,6 +357,7 @@ namespace winrt::Last_Music_Player::implementation
         void ArtistDetailRetry_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void ArtistDetailPlay_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void ArtistDetailShuffle_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void ArtistDetailFollow_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void ArtistTopSong_ItemClick(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::ItemClickEventArgs const& args);
         void ArtistRelease_ItemClick(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::ItemClickEventArgs const& args);
         void RelatedArtist_ItemClick(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::ItemClickEventArgs const& args);
@@ -714,6 +721,19 @@ namespace winrt::Last_Music_Player::implementation
         void UpdateLibraryHeaderMetrics();
         void LoadCatalogFromDatabase();
         void RefreshLibraryCatalogViews();
+        void ApplyArtistLibraryView();
+        [[nodiscard]] std::wstring ArtistFollowScopeKey();
+        [[nodiscard]] LastMusicPlayer::Backend::ArtistIdentity ArtistIdentityForTrack(
+            winrt::Last_Music_Player::TrackInfo const& artist) const;
+        bool SetArtistFollowed(
+            winrt::Last_Music_Player::TrackInfo const& artist,
+            bool followed);
+        void UpdateArtistDetailFollowButton();
+        winrt::Windows::Foundation::IAsyncAction HydrateArtistLibraryArtworkAsync(
+            winrt::Microsoft::UI::Xaml::Controls::Border border,
+            winrt::Last_Music_Player::TrackInfo artist,
+            LastMusicPlayer::Backend::RemoteScopeSnapshot scope,
+            std::wstring requestKey);
         void RefreshAutoPlaylists();
         void UpdateLibraryActionButtons();
         int64_t PersistTrackForPlaylist(winrt::Last_Music_Player::TrackInfo const& track);
@@ -1267,6 +1287,11 @@ namespace winrt::Last_Music_Player::implementation
         winrt::Windows::Foundation::Collections::IObservableVector<winrt::Last_Music_Player::TrackInfo> m_artists{
             winrt::single_threaded_observable_vector<winrt::Last_Music_Player::TrackInfo>()
         };
+        std::vector<winrt::Last_Music_Player::TrackInfo> m_artistAllResults;
+        std::wstring m_artistLibraryFilter{ L"All" };
+        std::wstring m_artistLibrarySort{ L"Songs" };
+        std::wstring m_artistLibrarySearch;
+        std::unordered_set<std::wstring> m_artistArtworkRequests;
         bool m_isMuted{ false };
         double m_volumeBeforeMute{ 50.0 }; // slider units (0-100)
         // Suppresses VolumeSlider_ValueChanged persistence. Defaults TRUE so

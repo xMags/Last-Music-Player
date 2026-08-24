@@ -71,6 +71,7 @@ namespace winrt::Last_Music_Player::implementation
 
         m_albums.Clear();
         m_artists.Clear();
+        m_artistAllResults.clear();
         m_libraryGenres.Clear();
         m_manualPlaylists.Clear();
         m_sidebarPlaylists.Clear();
@@ -82,11 +83,14 @@ namespace winrt::Last_Music_Player::implementation
                 ResolveArtworkPresentation(album, L"album");
                 m_albums.Append(album);
             }
-            for (auto const& artist : DatabaseService().LoadArtists())
+            m_artistAllResults.clear();
+            for (auto const& artist : DatabaseService().LoadArtists(ArtistFollowScopeKey()))
             {
-                ResolveArtworkPresentation(artist, L"artist");
-                m_artists.Append(artist);
+                auto copy = artist;
+                ResolveArtworkPresentation(copy, L"artist");
+                m_artistAllResults.push_back(copy);
             }
+            ApplyArtistLibraryView();
             for (auto const& genre : DatabaseService().LoadGenres())
             {
                 ResolveArtworkPresentation(genre, L"genre");
@@ -446,21 +450,24 @@ namespace winrt::Last_Music_Player::implementation
             auto epoch = ++m_libraryHydrationEpoch;
             m_libraryArtistsState = LoadState::Loading;
             BeginLibraryTabSkeleton(LastMusicPlayer::Frontend::SkeletonShape::TileGrid);
+            auto scopeKey = ArtistFollowScopeKey();
             co_await winrt::resume_background();
-            auto artists = DatabaseService().IsInitialized() ? DatabaseService().LoadArtists() : std::vector<winrt::Last_Music_Player::TrackInfo>{};
+            auto artists = DatabaseService().IsInitialized()
+                ? DatabaseService().LoadArtists(scopeKey)
+                : std::vector<winrt::Last_Music_Player::TrackInfo>{};
             co_await wil::resume_foreground(dispatcher);
             if (epoch != m_libraryHydrationEpoch)
             {
                 markStaleLoad(m_libraryArtistsState);
                 co_return;
             }
-            m_artists.Clear();
-            for (auto const& artist : artists)
+            m_artistAllResults.clear();
+            for (auto& artist : artists)
             {
-                auto copy = artist;
-                ResolveArtworkPresentation(copy, L"artist");
-                m_artists.Append(copy);
+                ResolveArtworkPresentation(artist, L"artist");
+                m_artistAllResults.push_back(artist);
             }
+            ApplyArtistLibraryView();
             m_libraryArtistsState = LoadState::Loaded;
             UpdateLibraryHeaderMetrics();
             LibraryImportStatusText().Text(L"");

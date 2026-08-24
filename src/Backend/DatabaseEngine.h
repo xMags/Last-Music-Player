@@ -139,6 +139,16 @@ namespace LastMusicPlayer::Backend
         uint32_t PlayCount{};
         uint64_t LastPlayedOrder{};
     };
+    struct FollowedArtistSnapshot
+    {
+        std::wstring ScopeKey;
+        std::wstring IdentityKey;
+        std::wstring CatalogId;
+        std::wstring SourceUrl;
+        std::wstring Name;
+        std::wstring Provider;
+        std::wstring AddedAtUtc;
+    };
     struct LegacyHistoryImportCandidate
     {
         TrackInfo Track{ nullptr };
@@ -225,7 +235,11 @@ namespace LastMusicPlayer::Backend
         std::vector<TrackInfo> LoadAlbums() const;
         std::vector<TrackInfo> LoadPlaylists() const;
         std::vector<TrackInfo> LoadRecentPlaylists(int limit) const;
-        std::vector<TrackInfo> LoadArtists() const;
+        std::vector<TrackInfo> LoadArtists(std::wstring const& followedScopeKey = {}) const;
+        bool FollowArtist(FollowedArtistSnapshot const& artist);
+        bool UnfollowArtist(std::wstring const& scopeKey, std::wstring const& identityKey);
+        bool IsArtistFollowed(std::wstring const& scopeKey, std::wstring const& identityKey) const;
+        std::vector<FollowedArtistSnapshot> LoadFollowedArtists(std::wstring const& scopeKey) const;
         std::vector<TrackInfo> LoadGenres() const;
         // Genre names ranked by total listening (SUM(PlayCount)), falling back
         // to genre size when the user has no play history yet. Drives the

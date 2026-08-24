@@ -7,6 +7,7 @@
 #include "Backend/PlaylistSuggestionPolicy.h"
 #include "Backend/RecentSearchStore.h"
 #include "Backend/ResumePositionPolicy.h"
+#include "Backend/ArtistLibraryPolicy.h"
 #include "Frontend/ResponsiveCardLayout.h"
 #include "Frontend/RoundedCornerPolicy.h"
 
@@ -333,6 +334,36 @@ namespace
             "an unarranged element should not create an oversized clip");
     }
 
+    void TestArtistLibraryIdentityPolicy()
+    {
+        policy::ArtistIdentity const catalogArtist{
+            L"UC-one", L"https://music.example/artist/one", L"  Artist  One ", L"YouTube-Music" };
+        Expect(policy::ArtistIdentityKey(catalogArtist) == L"catalog|youtube-music|UC-one",
+            "catalog identity did not take precedence");
+        Expect(policy::NormalizeArtistName(L"  ARTIST\t One  ") == L"artist one",
+            "artist name normalization did not collapse whitespace");
+        Expect(policy::SameArtistIdentity(
+                catalogArtist,
+                { L"UC-one", L"https://other.example", L"Renamed", L"youtube-music" }),
+            "matching catalog identities were not merged");
+        Expect(policy::SameArtistIdentity(
+                catalogArtist,
+                { L"UC-one", {}, L"Renamed", {} }),
+            "a catalog identity without redundant provider metadata was not merged");
+        Expect(!policy::SameArtistIdentity(
+                catalogArtist,
+                { L"UC-two", {}, L"Artist One", L"youtube-music" }),
+            "a failed explicit catalog identity degraded to a same-name match");
+        Expect(policy::SameArtistIdentity(
+                { {}, L"https://music.example/artist/one", L"Old name", {} },
+                { {}, L"https://music.example/artist/one", L"New name", {} }),
+            "durable source URL identity did not survive a rename");
+        Expect(policy::SameArtistIdentity(
+                { {}, {}, L" Artist One ", {} },
+                { {}, {}, L"artist   one", {} }),
+            "normalized exact artist names were not merged as the final fallback");
+    }
+
     void TestResumePositionPolicy()
     {
         Expect(policy::ResumePositionToStore(5.0, 300.0) == 0.0,
@@ -366,6 +397,7 @@ int main()
         TestResumePositionPolicy();
         TestDownloadPolicy();
         TestRoundedCornerClipPolicy();
+        TestArtistLibraryIdentityPolicy();
         std::wcout << L"PlayerScreenPolicyTests passed" << std::endl;
         return 0;
     }
