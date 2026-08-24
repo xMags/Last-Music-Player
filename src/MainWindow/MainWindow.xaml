@@ -3310,8 +3310,8 @@
                             </DataTemplate>
 
                             <DataTemplate x:Key="ArtistReleaseCardTemplate" x:DataType="local:TrackInfo">
-                                <StackPanel Width="172" Margin="0,0,18,20">
-                                    <Border Width="172" Height="172" CornerRadius="12" Background="{ThemeResource NeutralFillBrush}" Margin="0,0,0,10">
+                                <StackPanel Margin="0,0,20,20">
+                                    <Border CornerRadius="12" Background="{ThemeResource NeutralFillBrush}" Margin="0,0,0,10" SizeChanged="LibraryArtworkBorder_SizeChanged">
                                         <Grid>
                                             <FontIcon Glyph="&#xE8D6;" FontSize="34" Foreground="{ThemeResource PlaceholderGlyphBrush}" />
                                             <Image Source="{x:Bind AlbumArt}" DataContext="{x:Bind}" Stretch="UniformToFill" Loaded="AccountArtwork_Loaded" />
@@ -3323,8 +3323,8 @@
                             </DataTemplate>
 
                             <DataTemplate x:Key="RelatedArtistCardTemplate" x:DataType="local:TrackInfo">
-                                <StackPanel Width="150" Margin="0,0,20,18" HorizontalAlignment="Center">
-                                    <Border Width="150" Height="150" CornerRadius="999" Background="{ThemeResource NeutralFillBrush}" Margin="0,0,0,10">
+                                <StackPanel Margin="0,0,20,18" HorizontalAlignment="Stretch">
+                                    <Border CornerRadius="999" Background="{ThemeResource NeutralFillBrush}" Margin="0,0,0,10" SizeChanged="LibraryArtworkBorder_SizeChanged">
                                         <Grid>
                                             <FontIcon Glyph="&#xE77B;" FontSize="34" Foreground="{ThemeResource PlaceholderGlyphBrush}" />
                                             <Image Source="{x:Bind AlbumArt}" DataContext="{x:Bind}" Stretch="UniformToFill" Loaded="AccountArtwork_Loaded" />
@@ -3336,7 +3336,7 @@
                             </DataTemplate>
                         </Grid.Resources>
 
-                        <ScrollViewer x:Name="ArtistDetailScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollMode="Disabled">
+                        <ScrollViewer x:Name="ArtistDetailScroll" VerticalScrollMode="Enabled" VerticalScrollBarVisibility="Hidden" HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled">
                             <Grid x:Name="ArtistPagePanel" MaxWidth="1220" HorizontalAlignment="Center" Padding="0,0,0,40">
                                 <StackPanel Spacing="30">
                                     <Button Click="ArtistDetailBack_Click" Style="{StaticResource CardButton}" HorizontalAlignment="Left" Padding="9,6" AutomationProperties.Name="Back">
@@ -3391,17 +3391,23 @@
 
                                     <StackPanel x:Name="ArtistAlbumsSection" Spacing="12">
                                         <TextBlock Text="Albums" Style="{StaticResource TitleH2}" />
-                                        <GridView x:Name="ArtistAlbumsGrid" ItemTemplate="{StaticResource ArtistReleaseCardTemplate}" SelectionMode="None" IsItemClickEnabled="True" ItemClick="ArtistRelease_ItemClick" ScrollViewer.VerticalScrollMode="Disabled" ScrollViewer.HorizontalScrollMode="Disabled" />
+                                        <GridView x:Name="ArtistAlbumsGrid" ItemTemplate="{StaticResource ArtistReleaseCardTemplate}" SelectionMode="None" IsItemClickEnabled="True" ItemClick="ArtistRelease_ItemClick" ItemContainerStyle="{StaticResource CardTileContainerStyle}" Margin="0,0,-20,0" Loaded="LibraryCardGrid_Loaded" SizeChanged="LibraryCardGrid_SizeChanged" ScrollViewer.VerticalScrollMode="Disabled" ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollMode="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                            <GridView.ItemsPanel><ItemsPanelTemplate><ItemsWrapGrid Orientation="Horizontal" ItemWidth="190" ItemHeight="240" /></ItemsPanelTemplate></GridView.ItemsPanel>
+                                        </GridView>
                                     </StackPanel>
 
                                     <StackPanel x:Name="ArtistSinglesSection" Spacing="12">
                                         <TextBlock Text="Singles &amp; EPs" Style="{StaticResource TitleH2}" />
-                                        <GridView x:Name="ArtistSinglesGrid" ItemTemplate="{StaticResource ArtistReleaseCardTemplate}" SelectionMode="None" IsItemClickEnabled="True" ItemClick="ArtistRelease_ItemClick" ScrollViewer.VerticalScrollMode="Disabled" ScrollViewer.HorizontalScrollMode="Disabled" />
+                                        <GridView x:Name="ArtistSinglesGrid" ItemTemplate="{StaticResource ArtistReleaseCardTemplate}" SelectionMode="None" IsItemClickEnabled="True" ItemClick="ArtistRelease_ItemClick" ItemContainerStyle="{StaticResource CardTileContainerStyle}" Margin="0,0,-20,0" Loaded="LibraryCardGrid_Loaded" SizeChanged="LibraryCardGrid_SizeChanged" ScrollViewer.VerticalScrollMode="Disabled" ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollMode="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                            <GridView.ItemsPanel><ItemsPanelTemplate><ItemsWrapGrid Orientation="Horizontal" ItemWidth="190" ItemHeight="240" /></ItemsPanelTemplate></GridView.ItemsPanel>
+                                        </GridView>
                                     </StackPanel>
 
                                     <StackPanel x:Name="ArtistRelatedSection" Spacing="12">
                                         <TextBlock Text="Related Artists" Style="{StaticResource TitleH2}" />
-                                        <GridView x:Name="ArtistRelatedGrid" ItemTemplate="{StaticResource RelatedArtistCardTemplate}" SelectionMode="None" IsItemClickEnabled="True" ItemClick="RelatedArtist_ItemClick" ScrollViewer.VerticalScrollMode="Disabled" ScrollViewer.HorizontalScrollMode="Disabled" />
+                                        <GridView x:Name="ArtistRelatedGrid" ItemTemplate="{StaticResource RelatedArtistCardTemplate}" SelectionMode="None" IsItemClickEnabled="True" ItemClick="RelatedArtist_ItemClick" ItemContainerStyle="{StaticResource CardTileContainerStyle}" Margin="0,0,-20,0" Loaded="LibraryCardGrid_Loaded" SizeChanged="LibraryCardGrid_SizeChanged" ScrollViewer.VerticalScrollMode="Disabled" ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollMode="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                            <GridView.ItemsPanel><ItemsPanelTemplate><ItemsWrapGrid Orientation="Horizontal" ItemWidth="190" ItemHeight="240" /></ItemsPanelTemplate></GridView.ItemsPanel>
+                                        </GridView>
                                     </StackPanel>
 
                                     <StackPanel x:Name="ArtistAboutSection" Spacing="10" MaxWidth="760" HorizontalAlignment="Left">
@@ -3426,7 +3432,7 @@
                             </StackPanel>
                         </Grid>
 
-                        <ScrollViewer x:Name="ProviderAlbumPanel" Visibility="Collapsed" VerticalScrollBarVisibility="Auto" HorizontalScrollMode="Disabled">
+                        <ScrollViewer x:Name="ProviderAlbumPanel" Visibility="Collapsed" VerticalScrollMode="Enabled" VerticalScrollBarVisibility="Hidden" HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled">
                             <StackPanel MaxWidth="1080" HorizontalAlignment="Center" Spacing="24" Padding="0,0,0,40">
                                 <Button Click="ArtistDetailBack_Click" Style="{StaticResource CardButton}" HorizontalAlignment="Left" Padding="9,6" AutomationProperties.Name="Back to artist">
                                     <StackPanel Orientation="Horizontal" Spacing="7"><FontIcon Glyph="&#xE72B;" FontSize="12"/><TextBlock Text="Artist" FontSize="13"/></StackPanel>
