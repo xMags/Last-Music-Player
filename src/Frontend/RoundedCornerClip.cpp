@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Frontend/RoundedCornerClip.h"
+#include "Frontend/RoundedCornerPolicy.h"
 
 #include <winrt/Microsoft.UI.Composition.h>
 #include <winrt/Microsoft.UI.Xaml.Controls.h>
@@ -82,6 +83,19 @@ namespace LastMusicPlayer::Frontend
             }
             return 0.0f;
         }
+
+        void UpdateRoundedGeometry(
+            winrt::Microsoft::UI::Composition::CompositionRoundedRectangleGeometry const& geometry,
+            float declaredRadius,
+            winrt::Windows::Foundation::Numerics::float2 const& size)
+        {
+            auto const radius = ClampRoundedCornerRadius(
+                declaredRadius,
+                size.x,
+                size.y);
+            geometry.Size(size);
+            geometry.CornerRadius({ radius, radius });
+        }
     }
 
     void ApplyRoundedCornerClip(winrt::Microsoft::UI::Xaml::FrameworkElement const& element)
@@ -124,31 +138,32 @@ namespace LastMusicPlayer::Frontend
                 if (auto geometry = existing.Geometry()
                     .try_as<winrt::Microsoft::UI::Composition::CompositionRoundedRectangleGeometry>())
                 {
-                    geometry.CornerRadius({ radius, radius });
-                    geometry.Size(element.ActualSize());
+                    UpdateRoundedGeometry(geometry, radius, element.ActualSize());
                     return;
                 }
             }
 
             auto compositor = visual.Compositor();
             auto geometry = compositor.CreateRoundedRectangleGeometry();
-            geometry.CornerRadius({ radius, radius });
             // Loaded can run before the first arrange, most often for artwork in
             // a panel that starts collapsed. A zero-sized clip hides nothing,
             // because a zero-sized element has nothing to draw, and the handler
             // below corrects it as soon as the element is measured.
-            geometry.Size(element.ActualSize());
+            UpdateRoundedGeometry(geometry, radius, element.ActualSize());
             visual.Clip(compositor.CreateGeometricClip(geometry));
 
             // Keeps the clip matched to the element through layout passes and
             // window resizes. The element owns this handler and the handler owns
             // the geometry, which holds nothing back, so there is no cycle.
-            element.SizeChanged([geometry](
+            element.SizeChanged([geometry, radius](
                 winrt::Windows::Foundation::IInspectable const&,
                 winrt::Microsoft::UI::Xaml::SizeChangedEventArgs const& args)
             {
                 auto const size = args.NewSize();
-                geometry.Size({ size.Width, size.Height });
+                UpdateRoundedGeometry(
+                    geometry,
+                    radius,
+                    { size.Width, size.Height });
             });
         }
         catch (...)

@@ -214,6 +214,7 @@
     <ClInclude Include="src\Frontend\UIHelpers.h" />
     <ClInclude Include="src\Frontend\NavigationService.h" />
     <ClInclude Include="src\Frontend\RoundedCornerClip.h" />
+    <ClInclude Include="src\Frontend\RoundedCornerPolicy.h" />
     <ClInclude Include="src\Frontend\Skeleton.h" />
     <ClInclude Include="src\Frontend\CarouselArrows.h" />
     <ClInclude Include="src\Frontend\ChipWrapPanel.h" />

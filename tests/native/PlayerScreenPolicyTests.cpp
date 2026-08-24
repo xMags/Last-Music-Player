@@ -8,6 +8,7 @@
 #include "Backend/RecentSearchStore.h"
 #include "Backend/ResumePositionPolicy.h"
 #include "Frontend/ResponsiveCardLayout.h"
+#include "Frontend/RoundedCornerPolicy.h"
 
 #include <exception>
 #include <iostream>
@@ -319,6 +320,19 @@ namespace
             "global pause should override available network and power");
     }
 
+    void TestRoundedCornerClipPolicy()
+    {
+        using LastMusicPlayer::Frontend::ClampRoundedCornerRadius;
+        Expect(ClampRoundedCornerRadius(12.0f, 172.0f, 172.0f) == 12.0f,
+            "ordinary artwork radii should remain unchanged");
+        Expect(ClampRoundedCornerRadius(999.0f, 150.0f, 150.0f) == 75.0f,
+            "pill-style radii should clamp to a circular artwork boundary");
+        Expect(ClampRoundedCornerRadius(999.0f, 150.0f, 42.0f) == 21.0f,
+            "corner clamping should use half the shortest edge");
+        Expect(ClampRoundedCornerRadius(999.0f, 0.0f, 150.0f) == 0.0f,
+            "an unarranged element should not create an oversized clip");
+    }
+
     void TestResumePositionPolicy()
     {
         Expect(policy::ResumePositionToStore(5.0, 300.0) == 0.0,
@@ -351,6 +365,7 @@ int main()
         TestResponsiveCardLayout();
         TestResumePositionPolicy();
         TestDownloadPolicy();
+        TestRoundedCornerClipPolicy();
         std::wcout << L"PlayerScreenPolicyTests passed" << std::endl;
         return 0;
     }

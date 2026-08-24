@@ -264,6 +264,9 @@
     <ClInclude Include="src\Frontend\RoundedCornerClip.h">
       <Filter>Frontend</Filter>
     </ClInclude>
+    <ClInclude Include="src\Frontend\RoundedCornerPolicy.h">
+      <Filter>Frontend</Filter>
+    </ClInclude>
     <ClInclude Include="src\Frontend\Skeleton.h">
       <Filter>Frontend</Filter>
     </ClInclude>
