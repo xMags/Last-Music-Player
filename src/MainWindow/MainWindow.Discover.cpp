@@ -450,7 +450,10 @@ namespace winrt::Last_Music_Player::implementation
             LibArtistsGrid(),
             LibGenresGrid(),
             LibManualPlaylistsGrid(),
-            LibAutoPlaylistsGrid() })
+            LibAutoPlaylistsGrid(),
+            ArtistAlbumsGrid(),
+            ArtistSinglesGrid(),
+            ArtistRelatedGrid() })
         {
             ObserveCatalogGridContainers(grid);
         }
@@ -466,6 +469,9 @@ namespace winrt::Last_Music_Player::implementation
         ObserveCatalogGridContainers(LibraryDetailTracksListView());
         ObserveCatalogGridContainers(UpNextListView());
         ObserveCatalogGridContainers(FsUpNext());
+        ObserveCatalogGridContainers(ArtistTopSongsLeft());
+        ObserveCatalogGridContainers(ArtistTopSongsRight());
+        ObserveCatalogGridContainers(ProviderAlbumTracksList());
     }
 
     void MainWindow::ObserveCatalogGridContainers(
