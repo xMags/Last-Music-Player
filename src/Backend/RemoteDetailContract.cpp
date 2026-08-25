@@ -214,6 +214,60 @@ namespace LastMusicPlayer::Backend
             return RemoteReleaseKind::Unknown;
         }
 
+        bool EndsWithCaseInsensitive(
+            winrt::hstring const& value,
+            std::wstring_view suffix) noexcept
+        {
+            if (value.size() < suffix.size())
+            {
+                return false;
+            }
+            auto const offset = value.size() - suffix.size();
+            return std::equal(suffix.begin(), suffix.end(), value.begin() + offset,
+                [](wchar_t expected, wchar_t actual)
+                {
+                    return std::towlower(expected) == std::towlower(actual);
+                });
+        }
+
+        bool IsAppleMusicProvider(winrt::hstring const& provider) noexcept
+        {
+            std::wstring normalized{ provider.c_str() };
+            std::transform(normalized.begin(), normalized.end(), normalized.begin(), [](wchar_t character)
+            {
+                return static_cast<wchar_t>(std::towlower(character));
+            });
+            return normalized == L"apple-music" || normalized == L"apple music";
+        }
+
+        RemoteReleaseKind NormalizeReleaseKind(
+            RemoteReleaseKind declaredKind,
+            winrt::hstring const& title,
+            winrt::hstring const& provider,
+            std::int32_t trackCount) noexcept
+        {
+            if (declaredKind == RemoteReleaseKind::Single
+                || declaredKind == RemoteReleaseKind::Ep)
+            {
+                return declaredKind;
+            }
+            if (EndsWithCaseInsensitive(title, L"- single"))
+            {
+                return RemoteReleaseKind::Single;
+            }
+            if (EndsWithCaseInsensitive(title, L"- ep"))
+            {
+                return RemoteReleaseKind::Ep;
+            }
+            if (declaredKind == RemoteReleaseKind::Album
+                && trackCount == 1
+                && IsAppleMusicProvider(provider))
+            {
+                return RemoteReleaseKind::Single;
+            }
+            return declaredKind;
+        }
+
         std::optional<CatalogItem> ParseTrack(
             JsonObject const& object,
             winrt::hstring const& fallbackArtist,
@@ -285,8 +339,8 @@ namespace LastMusicPlayer::Backend
             {
                 return std::nullopt;
             }
-            auto kind = ParseReleaseKind(*kindText);
-            if (kind == RemoteReleaseKind::Unknown || (catalogId->empty() && sourceUrl->empty()))
+            auto declaredKind = ParseReleaseKind(*kindText);
+            if (declaredKind == RemoteReleaseKind::Unknown || (catalogId->empty() && sourceUrl->empty()))
             {
                 return std::nullopt;
             }
@@ -312,7 +366,12 @@ namespace LastMusicPlayer::Backend
                 }
                 release.TrackCount = static_cast<std::int32_t>(value.GetNumber());
             }
-            return RemoteReleaseSummary{ std::move(release), kind };
+            auto const normalizedKind = NormalizeReleaseKind(
+                declaredKind,
+                release.Title,
+                release.Provider,
+                release.TrackCount);
+            return RemoteReleaseSummary{ std::move(release), normalizedKind };
         }
 
         std::optional<std::vector<winrt::hstring>> ParseGenres(JsonObject const& object)

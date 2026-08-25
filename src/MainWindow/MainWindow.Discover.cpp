@@ -116,6 +116,46 @@ namespace winrt::Last_Music_Player::implementation
                         || !discovery.CityChartGroups->International.Charts.empty()));
         }
 
+        LastMusicPlayer::Backend::AlbumTrackModel LocalAlbumTrackModel(
+            winrt::Last_Music_Player::TrackInfo const& track)
+        {
+            LastMusicPlayer::Backend::AlbumTrackModel model;
+            if (!track)
+            {
+                return model;
+            }
+
+            model.Catalog.Type = LastMusicPlayer::Backend::CatalogResourceType::Song;
+            model.Catalog.RemoteId = track.RemoteId();
+            model.Catalog.CatalogId = track.RemoteCatalogId();
+            model.Catalog.Title = track.Title();
+            model.Catalog.Subtitle = track.Artist();
+            model.Catalog.AlbumName = track.Album();
+            model.Catalog.ArtworkUrl = track.ArtworkUrl();
+            model.Catalog.SourceUrl = track.SourceUrl();
+            model.Catalog.StreamUrl = track.FilePath();
+            model.Catalog.Provider = track.Provider();
+            model.Catalog.AlbumCatalogId = track.AlbumCatalogId();
+            model.Catalog.ArtistCatalogId = track.ArtistCatalogId();
+            if (track.DurationSeconds() > 0.0)
+            {
+                model.Catalog.DurationMs = static_cast<std::int64_t>(
+                    track.DurationSeconds() * 1000.0);
+            }
+            model.SourceKind = track.SourceKind();
+            model.RemoteProvider = track.RemoteProvider();
+            model.SourceLabel = track.SourceLabel();
+            model.LocalCatalogId = track.CatalogId();
+            model.DateAdded = track.DateAdded();
+            model.DateAddedSortKey = track.DateAddedSortKey();
+            model.ResumePositionSeconds = track.ResumePositionSeconds();
+            model.DurationText = track.Duration();
+            model.IsLiked = track.IsLiked();
+            model.IsOffline = track.IsOffline();
+            model.IsInLibrary = track.IsInLibrary();
+            return model;
+        }
+
         // Takes its inputs as parameters rather than captures, and deliberately
         // so: a coroutine copies its parameters into the frame, while a lambda's
         // captures stay in the closure object. A closure created inline at the
@@ -466,7 +506,6 @@ namespace winrt::Last_Music_Player::implementation
         ObserveCatalogGridContainers(LibraryDetailTracksListView());
         ObserveCatalogGridContainers(UpNextListView());
         ObserveCatalogGridContainers(FsUpNext());
-        ObserveCatalogGridContainers(ProviderAlbumTracksList());
     }
 
     void MainWindow::ObserveCatalogGridContainers(
@@ -1004,6 +1043,7 @@ namespace winrt::Last_Music_Player::implementation
         track.SourceUrl(item.SourceUrl);
         track.FilePath(item.StreamUrl);
         track.Provider(item.Provider);
+        track.RemoteProvider(item.Provider);
         track.SourceKind(L"remote");
         track.SourceLabel(L"Catalog");
         track.DateAdded(L"Catalog");
@@ -1054,7 +1094,51 @@ namespace winrt::Last_Music_Player::implementation
         return track;
     }
 
-    void MainWindow::ShowCatalogSurface(CatalogSurface surface, bool pushCurrent)
+    winrt::Last_Music_Player::TrackInfo MainWindow::AlbumTrackToTrack(
+        LastMusicPlayer::Backend::AlbumTrackModel const& item,
+        int32_t index)
+    {
+        auto track = CatalogItemToTrack(item.Catalog, index);
+        if (!track)
+        {
+            return track;
+        }
+
+        track.SourceKind(item.SourceKind.empty() ? winrt::hstring{ L"remote" } : item.SourceKind);
+        track.RemoteProvider(item.RemoteProvider.empty()
+            ? item.Catalog.Provider
+            : item.RemoteProvider);
+        track.SourceLabel(item.SourceLabel.empty()
+            ? winrt::hstring{ L"Catalog" }
+            : item.SourceLabel);
+        track.CatalogId(item.LocalCatalogId);
+        track.DateAdded(item.DateAdded);
+        track.DateAddedSortKey(item.DateAddedSortKey);
+        track.ResumePositionSeconds(item.ResumePositionSeconds);
+        if (!item.DurationText.empty())
+        {
+            track.Duration(item.DurationText);
+        }
+        if (item.IsLiked)
+        {
+            track.IsLiked(*item.IsLiked);
+        }
+        if (item.IsOffline)
+        {
+            track.IsOffline(*item.IsOffline);
+        }
+        if (item.IsInLibrary)
+        {
+            track.IsInLibrary(*item.IsInLibrary);
+        }
+        detail::ApplyMusicArtwork(track, track.ArtworkUrl(), L"track");
+        return track;
+    }
+
+    void MainWindow::ShowCatalogSurface(
+        CatalogSurface surface,
+        bool pushCurrent,
+        bool preserveArtistAlbumReturn)
     {
         using winrt::Microsoft::UI::Xaml::Visibility;
         ++m_discoverNavigationEpoch;
@@ -1074,7 +1158,7 @@ namespace winrt::Last_Music_Player::implementation
         // The catalog is not a destination of its own: it opens in Home's place
         // and leaves Home selected in the rail. So the ordinary page switch runs
         // first, and the catalog then takes the slot Home would have filled.
-        ShowPrimaryView(L"Home");
+        ShowPrimaryView(L"Home", preserveArtistAlbumReturn);
         HomeViewContainer().Visibility(Visibility::Collapsed);
         HomeCatalogViewContainer().Visibility(Visibility::Visible);
 
@@ -2106,42 +2190,26 @@ namespace winrt::Last_Music_Player::implementation
             co_return;
         }
 
-        auto epoch = m_discoverEpoch;
         auto storefront = LastMusicPlayer::Backend::IsValidCatalogStorefront(m_catalogContentStorefront)
             ? m_catalogContentStorefront
             : CurrentDiscoverStorefront();
-        auto const isPlaylist = kind == L"playlists";
-        ResetDiscoverDetailToolbar();
-        m_discoverDetailLoading = true;
-        m_discoverDetailLoadFailed = false;
-        m_discoverDetailAllResults.clear();
-        m_discoverDetailTracks.Clear();
-        DiscoverDetailTracksListView().ItemsSource(m_discoverDetailTracks);
-        SetDiscoverDetailGridMode(m_discoverDetailGridMode);
-        UpdateDiscoverDetailEmptyState();
-        DiscoverDetailTitleText().Text(title);
-        DiscoverDetailBreadcrumbCurrent().Text(title);
-        // Read before ShowCatalogSurface pushes this page: the surface still on
-        // screen is exactly the one the middle crumb and Back both return to.
-        SetDiscoverDetailSectionCrumb(m_catalogSurface);
-        DiscoverDetailKindText().Text(isPlaylist ? L"PLAYLIST" : L"ALBUM");
-        DiscoverDetailGeneratedTitle().Text(UpperArtworkText(
-            title,
-            isPlaylist ? winrt::hstring{ L"PLAYLIST" } : winrt::hstring{ L"ALBUM" }));
-        DiscoverDetailGeneratedCaption().Text(isPlaylist ? L"playlist" : L"album");
-        // Cleared, not relabelled: the track placeholder below is the loading
-        // signal, and the meta row goes on to carry the real counts.
-        UpdateDiscoverDetailHeroMeta({}, {});
-        DiscoverDetailDescriptionText().Text(L"");
-        DiscoverDetailDescriptionText().Visibility(Visibility::Collapsed);
-        RefreshDiscoverDetailRowStates();
-        DiscoverDetailArt().Tag(nullptr);
-        DiscoverDetailArt().Source(nullptr);
-        // Back to the generated cover until this resource's own artwork lands;
-        // QueueAccountArtworkImage is what brings the image back to full opacity.
-        DiscoverDetailArt().Opacity(0.0);
+        if (kind == L"albums")
+        {
+            LastMusicPlayer::Backend::AlbumLoadRequest request;
+            request.Route = LastMusicPlayer::Backend::AlbumLoadRoute::AccountCatalog;
+            request.Identity = { catalogId, {}, title };
+            request.Storefront = storefront;
+            request.Release.Type = LastMusicPlayer::Backend::CatalogResourceType::Album;
+            request.Release.CatalogId = catalogId;
+            request.Release.Title = title;
+            request.Release.Provider = L"apple-music";
+            co_await OpenAlbumDetailAsync(std::move(request), title, false);
+            co_return;
+        }
 
-        ShowCatalogSurface(CatalogSurface::Detail, true);
+        auto epoch = m_discoverEpoch;
+        auto const origin = m_catalogSurface;
+        BeginDiscoverDetail(title, true, origin, false);
         // Scoped, because this coroutine leaves by several routes: a stale
         // epoch, a superseded navigation, or a caught transport failure.
         LastMusicPlayer::Frontend::SkeletonLoadScope detailSkeleton{ m_discoverDetailSkeleton, true };
@@ -2162,10 +2230,7 @@ namespace winrt::Last_Music_Player::implementation
             {
                 co_return;
             }
-            m_discoverDetailLoading = false;
-            m_discoverDetailLoadFailed = true;
-            UpdateDiscoverDetailHeroMeta(L"Could not load this item.", {});
-            UpdateDiscoverDetailEmptyState();
+            ShowDiscoverDetailFailure();
             co_return;
         }
         if (epoch != m_discoverEpoch
@@ -2175,56 +2240,367 @@ namespace winrt::Last_Music_Player::implementation
         }
 
         auto detail = LastMusicPlayer::Backend::ParseCatalogResourceDetail(payload, kind);
-        LastMusicPlayer::Backend::ApplyCatalogDetailTrackArtwork(detail);
-        if (!detail.Resource.Title.empty())
+        if (detail.Resource.Title.empty())
         {
-            DiscoverDetailTitleText().Text(detail.Resource.Title);
-            DiscoverDetailBreadcrumbCurrent().Text(detail.Resource.Title);
-            DiscoverDetailGeneratedTitle().Text(UpperArtworkText(
-                detail.Resource.Title,
-                isPlaylist ? winrt::hstring{ L"PLAYLIST" } : winrt::hstring{ L"ALBUM" }));
+            ShowDiscoverDetailFailure();
+            co_return;
         }
-        DiscoverDetailDescriptionText().Text(detail.Resource.Description);
-        DiscoverDetailDescriptionText().Visibility(detail.Resource.Description.empty()
-            ? Visibility::Collapsed
-            : Visibility::Visible);
-
+        LastMusicPlayer::Backend::ApplyCatalogDetailTrackArtwork(detail);
+        std::vector<winrt::Last_Music_Player::TrackInfo> tracks;
+        tracks.reserve(detail.Tracks.size());
         int32_t index = 1;
         for (auto const& item : detail.Tracks)
         {
-            m_discoverDetailAllResults.push_back(CatalogItemToTrack(item, index++));
+            tracks.push_back(CatalogItemToTrack(item, index++));
         }
-        m_discoverDetailLoading = false;
-        RebuildDiscoverDetailProjection();
-
-        UpdateDiscoverDetailHeroMeta(
-            detail.Resource.Subtitle,
-            CatalogReleaseYear(detail.Resource.ReleaseDate));
-        RefreshDiscoverDetailRowStates();
-
-        if (!detail.Resource.ArtworkUrl.empty())
-        {
-            QueueAccountArtworkImage(DiscoverDetailArt(), detail.Resource.ArtworkUrl, ArtworkDetail::Tile);
-        }
+        RenderDiscoverDetail(detail.Resource, std::move(tracks), true);
     }
 
-    void MainWindow::SetDiscoverDetailSectionCrumb(CatalogSurface origin)
+    winrt::Windows::Foundation::IAsyncAction MainWindow::OpenAlbumDetailAsync(
+        LastMusicPlayer::Backend::AlbumLoadRequest request,
+        winrt::hstring title,
+        bool artistOrigin)
+    {
+        auto lifetime = get_strong();
+        auto cancellation = co_await winrt::get_cancellation_token();
+        cancellation.enable_propagation();
+        auto dispatcher = DispatcherQueue();
+        auto& remoteMusic = detail::RemoteMusicServiceService();
+        auto scope = remoteMusic.CaptureScope();
+        auto epoch = m_discoverEpoch;
+
+        auto origin = m_catalogSurface;
+        if (artistOrigin)
+        {
+            m_catalogBackStack.clear();
+            m_catalogSurface = CatalogSurface::Home;
+            origin = CatalogSurface::Home;
+        }
+        BeginDiscoverDetail(title, false, origin, artistOrigin);
+        LastMusicPlayer::Frontend::SkeletonLoadScope detailSkeleton{ m_discoverDetailSkeleton, true };
+        auto navigationEpoch = m_discoverNavigationEpoch;
+
+        auto isCurrent = [&]()
+        {
+            return epoch == m_discoverEpoch
+                && navigationEpoch == m_discoverNavigationEpoch
+                && remoteMusic.IsCurrent(scope)
+                && (!artistOrigin || m_artistAlbumReturnState.has_value());
+        };
+
+        auto cacheKey = LastMusicPlayer::Backend::AlbumDetailCacheKey(
+            LastMusicPlayer::Backend::RemoteScopeCacheKey(scope),
+            request);
+        auto cached = m_albumDetailCache.find(cacheKey);
+        if (!cacheKey.empty() && cached != m_albumDetailCache.end() && isCurrent())
+        {
+            RenderAlbumDetail(cached->second);
+            co_return;
+        }
+
+        std::optional<LastMusicPlayer::Backend::AlbumDetailModel> album;
+        try
+        {
+            if (request.Route == LastMusicPlayer::Backend::AlbumLoadRoute::LocalLibrary)
+            {
+                LastMusicPlayer::Backend::TrackQuery query;
+                query.GroupKind = L"album";
+                query.GroupKey = std::wstring{ request.Release.Title.c_str() };
+                query.Sort = L"DateAdded";
+                query.IncludeRemote = true;
+                query.ActiveOnly = true;
+
+                co_await winrt::resume_background();
+                try
+                {
+                    auto tracks = detail::DatabaseService().LoadTracksForQuery(query);
+                    std::erase_if(tracks, [&](auto const& track)
+                    {
+                        return detail::ToLowerCopy(track.Artist())
+                            != detail::ToLowerCopy(request.Release.Subtitle);
+                    });
+
+                    LastMusicPlayer::Backend::AlbumDetailModel local;
+                    local.Resource = request.Release;
+                    local.Tracks.reserve(tracks.size());
+                    for (auto const& track : tracks)
+                    {
+                        local.Tracks.push_back(LocalAlbumTrackModel(track));
+                    }
+                    album = std::move(local);
+                }
+                catch (...)
+                {
+                    album.reset();
+                }
+                co_await wil::resume_foreground(dispatcher);
+            }
+            else
+            {
+                winrt::hstring payload;
+                if (request.Route == LastMusicPlayer::Backend::AlbumLoadRoute::AccountCatalog)
+                {
+                    payload = co_await remoteMusic.GetCatalogResourceAsync(
+                        L"albums",
+                        request.Identity.CatalogId,
+                        request.Storefront);
+                    if (!isCurrent())
+                    {
+                        co_return;
+                    }
+                    co_await winrt::resume_background();
+                    try
+                    {
+                        auto parsed = LastMusicPlayer::Backend::ParseCatalogResourceDetail(
+                            payload,
+                            L"albums");
+                        if (!parsed.Resource.Title.empty())
+                        {
+                            LastMusicPlayer::Backend::ApplyCatalogDetailTrackArtwork(parsed);
+                            album = LastMusicPlayer::Backend::AlbumDetailFromCatalog(parsed);
+                        }
+                    }
+                    catch (...)
+                    {
+                        album.reset();
+                    }
+                    co_await wil::resume_foreground(dispatcher);
+                }
+                else
+                {
+                    payload = co_await remoteMusic.GetAlbumDetailAsync(scope, request.Identity);
+                    if (!isCurrent())
+                    {
+                        co_return;
+                    }
+                    co_await winrt::resume_background();
+                    try
+                    {
+                        auto parsed = LastMusicPlayer::Backend::ParseRemoteAlbumDetail(payload);
+                        if (parsed)
+                        {
+                            album = LastMusicPlayer::Backend::AlbumDetailFromProvider(
+                                *parsed,
+                                request.Storefront);
+                        }
+                    }
+                    catch (...)
+                    {
+                        album.reset();
+                    }
+                    co_await wil::resume_foreground(dispatcher);
+                }
+            }
+        }
+        catch (winrt::hresult_canceled const&)
+        {
+            co_return;
+        }
+        catch (...)
+        {
+            album.reset();
+        }
+
+        if (!isCurrent())
+        {
+            co_return;
+        }
+        if (!album || album->Resource.Title.empty())
+        {
+            ShowDiscoverDetailFailure();
+            co_return;
+        }
+
+        auto fillMissing = [](winrt::hstring& value, winrt::hstring const& fallback)
+        {
+            if (value.empty())
+            {
+                value = fallback;
+            }
+        };
+        fillMissing(album->Resource.Subtitle, request.Release.Subtitle);
+        fillMissing(album->Resource.ArtworkUrl, request.Release.ArtworkUrl);
+        fillMissing(album->Resource.SourceUrl, request.Release.SourceUrl);
+        fillMissing(album->Resource.Provider, request.Release.Provider);
+
+        if (!cacheKey.empty())
+        {
+            if (m_albumDetailCache.size() >= 32)
+            {
+                m_albumDetailCache.erase(m_albumDetailCache.begin());
+            }
+            m_albumDetailCache[cacheKey] = *album;
+        }
+        RenderAlbumDetail(std::move(*album));
+    }
+
+    void MainWindow::BeginDiscoverDetail(
+        winrt::hstring const& title,
+        bool playlist,
+        CatalogSurface origin,
+        bool artistOrigin)
     {
         using winrt::Microsoft::UI::Xaml::Visibility;
 
-        winrt::hstring label;
-        switch (origin)
+        ResetDiscoverDetailToolbar();
+        m_discoverDetailLoading = true;
+        m_discoverDetailLoadFailed = false;
+        m_discoverDetailAllResults.clear();
+        m_discoverDetailTracks.Clear();
+        DiscoverDetailTracksListView().ItemsSource(m_discoverDetailTracks);
+        SetDiscoverDetailGridMode(m_discoverDetailGridMode);
+        UpdateDiscoverDetailEmptyState();
+        DiscoverDetailTitleText().Text(title);
+        DiscoverDetailBreadcrumbCurrent().Text(title);
+        SetDiscoverDetailSectionCrumb(
+            origin,
+            artistOrigin ? winrt::hstring{ L"Artist" } : winrt::hstring{});
+        DiscoverDetailKindText().Text(playlist ? L"PLAYLIST" : L"ALBUM");
+        DiscoverDetailGeneratedTitle().Text(UpperArtworkText(
+            title,
+            playlist ? winrt::hstring{ L"PLAYLIST" } : winrt::hstring{ L"ALBUM" }));
+        DiscoverDetailGeneratedCaption().Text(playlist ? L"playlist" : L"album");
+        UpdateDiscoverDetailHeroMeta({}, {});
+        DiscoverDetailDescriptionText().Text(L"");
+        DiscoverDetailDescriptionText().Visibility(Visibility::Collapsed);
+        RefreshDiscoverDetailRowStates();
+        DiscoverDetailArt().Tag(nullptr);
+        DiscoverDetailArt().Source(nullptr);
+        DiscoverDetailArt().Opacity(0.0);
+        ShowCatalogSurface(CatalogSurface::Detail, !artistOrigin, artistOrigin);
+    }
+
+    void MainWindow::RenderDiscoverDetail(
+        LastMusicPlayer::Backend::CatalogItem const& resource,
+        std::vector<winrt::Last_Music_Player::TrackInfo> tracks,
+        bool playlist)
+    {
+        using winrt::Microsoft::UI::Xaml::Visibility;
+
+        DiscoverDetailTitleText().Text(resource.Title);
+        DiscoverDetailBreadcrumbCurrent().Text(resource.Title);
+        DiscoverDetailGeneratedTitle().Text(UpperArtworkText(
+            resource.Title,
+            playlist ? winrt::hstring{ L"PLAYLIST" } : winrt::hstring{ L"ALBUM" }));
+        DiscoverDetailDescriptionText().Text(resource.Description);
+        DiscoverDetailDescriptionText().Visibility(resource.Description.empty()
+            ? Visibility::Collapsed
+            : Visibility::Visible);
+
+        m_discoverDetailAllResults = std::move(tracks);
+        m_discoverDetailLoading = false;
+        m_discoverDetailLoadFailed = false;
+        RebuildDiscoverDetailProjection();
+        UpdateDiscoverDetailHeroMeta(
+            resource.Subtitle,
+            CatalogReleaseYear(resource.ReleaseDate));
+        RefreshDiscoverDetailRowStates();
+        ApplyDiscoverDetailArtwork(resource);
+    }
+
+    void MainWindow::RenderAlbumDetail(LastMusicPlayer::Backend::AlbumDetailModel detailModel)
+    {
+        std::vector<winrt::Last_Music_Player::TrackInfo> tracks;
+        tracks.reserve(detailModel.Tracks.size());
+        int32_t index = 1;
+        for (auto& trackModel : detailModel.Tracks)
         {
-        case CatalogSurface::Chart:
-            label = DiscoverChartTitleText() ? DiscoverChartTitleText().Text() : winrt::hstring{};
-            break;
-        case CatalogSurface::ChartGallery:
-            label = DiscoverChartGalleryTitle() ? DiscoverChartGalleryTitle().Text() : winrt::hstring{};
-            break;
-        default:
-            // Opened straight from a Home shelf, so the root crumb already
-            // names where Back goes and a second one would only repeat it.
-            break;
+            auto& item = trackModel.Catalog;
+            if (item.AlbumName.empty())
+            {
+                item.AlbumName = detailModel.Resource.Title;
+            }
+            if (item.Subtitle.empty())
+            {
+                item.Subtitle = detailModel.Resource.Subtitle;
+            }
+            if (item.ArtworkUrl.empty())
+            {
+                item.ArtworkUrl = detailModel.Resource.ArtworkUrl;
+            }
+            if (item.Provider.empty())
+            {
+                item.Provider = detailModel.Resource.Provider;
+            }
+            if (item.AlbumCatalogId.empty())
+            {
+                item.AlbumCatalogId = detailModel.Resource.CatalogId;
+            }
+            tracks.push_back(AlbumTrackToTrack(trackModel, index++));
+        }
+        RenderDiscoverDetail(detailModel.Resource, std::move(tracks), false);
+    }
+
+    void MainWindow::ShowDiscoverDetailFailure()
+    {
+        m_discoverDetailLoading = false;
+        m_discoverDetailLoadFailed = true;
+        UpdateDiscoverDetailHeroMeta(L"Could not load this item.", {});
+        UpdateDiscoverDetailEmptyState();
+    }
+
+    void MainWindow::ApplyDiscoverDetailArtwork(
+        LastMusicPlayer::Backend::CatalogItem const& resource)
+    {
+        if (resource.ArtworkUrl.empty() && resource.SourceUrl.empty())
+        {
+            return;
+        }
+
+        LastMusicPlayer::Backend::TrackInfo artworkTrack;
+        artworkTrack.Title(resource.Title);
+        artworkTrack.Artist(resource.Subtitle);
+        artworkTrack.ArtworkUrl(resource.ArtworkUrl);
+        artworkTrack.SourceUrl(resource.SourceUrl);
+        artworkTrack.Provider(resource.Provider);
+        artworkTrack.RemoteProvider(resource.Provider);
+        artworkTrack.SourceKind(L"remote");
+        DiscoverDetailArt().DataContext(artworkTrack);
+
+        if (detail::RemoteMusicServiceService().Mode()
+            == LastMusicPlayer::Backend::RemoteAccessMode::Account)
+        {
+            QueueAccountArtworkImage(
+                DiscoverDetailArt(),
+                resource.ArtworkUrl,
+                detail::ArtworkDetail::Hero,
+                artworkTrack,
+                AccountArtworkPriority::Visible);
+            return;
+        }
+
+        auto bitmap = detail::CreateMusicArtworkBitmap(
+            resource.ArtworkUrl,
+            detail::ArtworkDetail::Hero);
+        if (bitmap)
+        {
+            DiscoverDetailArt().Source(bitmap);
+            DiscoverDetailArt().Opacity(1.0);
+        }
+    }
+
+    void MainWindow::SetDiscoverDetailSectionCrumb(
+        CatalogSurface origin,
+        winrt::hstring const& overrideLabel)
+    {
+        using winrt::Microsoft::UI::Xaml::Visibility;
+
+        auto label = overrideLabel;
+        if (label.empty())
+        {
+            switch (origin)
+            {
+            case CatalogSurface::Chart:
+                label = DiscoverChartTitleText() ? DiscoverChartTitleText().Text() : winrt::hstring{};
+                break;
+            case CatalogSurface::ChartGallery:
+                label = DiscoverChartGalleryTitle() ? DiscoverChartGalleryTitle().Text() : winrt::hstring{};
+                break;
+            default:
+                // Opened straight from Home, so the root crumb already names
+                // where Back goes and a second one would only repeat it.
+                break;
+            }
         }
 
         auto const visibility = label.empty() ? Visibility::Collapsed : Visibility::Visible;
@@ -2460,6 +2836,20 @@ namespace winrt::Last_Music_Player::implementation
     {
         (void)sender;
         (void)args;
+        if (m_artistAlbumReturnState)
+        {
+            ++m_discoverNavigationEpoch;
+            if (m_albumLoadOperation)
+            {
+                m_albumLoadOperation.Cancel();
+            }
+            auto snapshot = std::move(*m_artistAlbumReturnState);
+            m_artistAlbumReturnState.reset();
+            m_catalogBackStack.clear();
+            m_catalogSurface = CatalogSurface::Home;
+            RestoreArtistNavigationSnapshot(std::move(snapshot));
+            return;
+        }
         if (m_catalogBackStack.empty())
         {
             ShowCatalogSurface(CatalogSurface::Home, false);

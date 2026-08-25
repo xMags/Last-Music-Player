@@ -405,15 +405,55 @@ namespace
                 && !CanAdvanceArtistShelf(0.0, 0.0),
             "artist View more visibility should track overflow and the shelf end");
 
-        ArtistPageScrollState const requested{ 900.0, 100.0, 700.0, -20.0, 250.0 };
-        ArtistPageScrollState const extents{ 500.0, 600.0, 650.0, 400.0, 200.0 };
+        ArtistPageScrollState const requested{ 900.0, 300.0, 100.0, 700.0, -20.0, 250.0 };
+        ArtistPageScrollState const extents{ 500.0, 250.0, 600.0, 650.0, 400.0, 200.0 };
         auto const restored = ClampArtistPageScrollState(requested, extents);
         Expect(restored.Vertical == 500.0
+                && restored.LatestRelease == 250.0
                 && restored.TopSongs == 100.0
                 && restored.Albums == 650.0
                 && restored.Singles == 0.0
                 && restored.SimilarArtists == 200.0,
-            "artist navigation should restore every shelf independently within its new extent");
+            "artist navigation should restore vertical position and every shelf within its new extent");
+
+        using Entry = LastMusicPlayer::Frontend::ArtistNavigationEntryState<
+            int,
+            std::string,
+            int,
+            std::string>;
+        Entry current{
+            7,
+            "artist-current",
+            11,
+            { "local-one", "local-two" },
+            true,
+            requested,
+        };
+        Entry previous{
+            3,
+            "artist-previous",
+            std::nullopt,
+            { "local-previous" },
+            true,
+            extents,
+        };
+        LastMusicPlayer::Frontend::ArtistNavigationSnapshotState<Entry> snapshot{
+            current,
+            { previous },
+            L"Browse",
+        };
+        auto restoredSnapshot = std::move(snapshot);
+        Expect(restoredSnapshot.Current.Detail == 7
+                && restoredSnapshot.Current.Identity == "artist-current"
+                && restoredSnapshot.Current.AccountPlan == 11
+                && restoredSnapshot.Current.LocalTracks.size() == 2
+                && restoredSnapshot.Current.LocalFallback
+                && restoredSnapshot.Current.ScrollState.LatestRelease == 300.0
+                && restoredSnapshot.BackStack.size() == 1
+                && restoredSnapshot.BackStack[0].Identity == "artist-previous"
+                && restoredSnapshot.BackStack[0].LocalTracks.size() == 1
+                && restoredSnapshot.OriginalDestination == L"Browse",
+            "artist album return state did not retain identity, detail, history, local tracks, offsets, and origin");
     }
 
     void TestResumePositionPolicy()

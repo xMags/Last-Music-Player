@@ -4,6 +4,8 @@
 #include <cmath>
 #include <cstddef>
 #include <optional>
+#include <string>
+#include <vector>
 
 namespace LastMusicPlayer::Frontend
 {
@@ -23,10 +25,30 @@ namespace LastMusicPlayer::Frontend
     struct ArtistPageScrollState
     {
         double Vertical{ 0.0 };
+        double LatestRelease{ 0.0 };
         double TopSongs{ 0.0 };
         double Albums{ 0.0 };
         double Singles{ 0.0 };
         double SimilarArtists{ 0.0 };
+    };
+
+    template <typename DetailT, typename IdentityT, typename AccountPlanT, typename TrackT>
+    struct ArtistNavigationEntryState
+    {
+        DetailT Detail;
+        IdentityT Identity;
+        std::optional<AccountPlanT> AccountPlan;
+        std::vector<TrackT> LocalTracks;
+        bool LocalFallback{ false };
+        ArtistPageScrollState ScrollState;
+    };
+
+    template <typename EntryT>
+    struct ArtistNavigationSnapshotState
+    {
+        EntryT Current;
+        std::vector<EntryT> BackStack;
+        std::wstring OriginalDestination;
     };
 
     [[nodiscard]] inline ArtistHeaderLayout CalculateArtistHeaderLayout(
@@ -111,6 +133,7 @@ namespace LastMusicPlayer::Frontend
     {
         return {
             ClampArtistShelfOffset(requested.Vertical, scrollableExtents.Vertical),
+            ClampArtistShelfOffset(requested.LatestRelease, scrollableExtents.LatestRelease),
             ClampArtistShelfOffset(requested.TopSongs, scrollableExtents.TopSongs),
             ClampArtistShelfOffset(requested.Albums, scrollableExtents.Albums),
             ClampArtistShelfOffset(requested.Singles, scrollableExtents.Singles),

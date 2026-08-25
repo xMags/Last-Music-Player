@@ -149,7 +149,6 @@ namespace winrt::Last_Music_Player::implementation
         ArtistAlbumsItems().ItemsSource(m_artistAlbums);
         ArtistSinglesItems().ItemsSource(m_artistSingles);
         ArtistSimilarItems().ItemsSource(m_artistRelated);
-        ProviderAlbumTracksList().ItemsSource(m_providerAlbumTracks);
         // Every Library tab scrolls its own list, so each one reports its own
         // offset to the shared header.
         winrt::Microsoft::UI::Xaml::FrameworkElement const librarySurfaces[] = {
@@ -1159,10 +1158,22 @@ namespace winrt::Last_Music_Player::implementation
         m_accentBrushesCaptured = true;
     }
 
-    void MainWindow::ShowPrimaryView(winrt::hstring const& key)
+    void MainWindow::ShowPrimaryView(
+        winrt::hstring const& key,
+        bool preserveArtistAlbumReturn)
     {
         using winrt::Microsoft::UI::Xaml::UIElement;
         using winrt::Microsoft::UI::Xaml::Visibility;
+
+        if (!preserveArtistAlbumReturn)
+        {
+            ++m_discoverNavigationEpoch;
+            if (m_artistAlbumReturnState && m_albumLoadOperation)
+            {
+                m_albumLoadOperation.Cancel();
+            }
+            m_artistAlbumReturnState.reset();
+        }
 
         if (key != L"Library" && ArtistDetailContent()
             && ArtistDetailContent().Visibility() == Visibility::Visible)

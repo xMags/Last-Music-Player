@@ -33,6 +33,7 @@
 #include "Backend/HistoryImport.h"
 #include "Backend/LibraryArtistContract.h"
 #include "Backend/AccountArtistDetailPolicy.h"
+#include "Backend/AlbumLoadPolicy.h"
 #include "Backend/StreamCache.h"
 #include "Backend/UserDataOperationGate.h"
 #include "ThirdParty/sqlite/sqlite3.h"
@@ -1930,6 +1931,19 @@ namespace
                 "account artist detail used the wrong route or identity precedence");
             Expect(request.find("Authorization: Bearer test-bearer\r\n") != std::string::npos,
                 "account artist detail omitted its bearer");
+        }
+        {
+            TestHttpServer server{ response };
+            account::AccountClient client{ winrt::hstring(server.Url()) };
+            (void)client.GetCatalogResourceAsync(
+                L"test-bearer",
+                L"albums",
+                L"1811023660",
+                L"IN").get();
+            server.Join();
+            Expect(server.Request().starts_with(
+                "GET /v1/music/catalog/albums/1811023660?storefront=in HTTP/1.1\r\n"),
+                "account Apple artist release used the wrong storefront album route");
         }
         {
             TestHttpServer server{ response };
@@ -4051,6 +4065,90 @@ namespace
             "stream-cache cap test left its directory behind");
     }
 
+    void TestAlbumLoadPolicy()
+    {
+        using account::AlbumLoadRequest;
+        using account::AlbumLoadRoute;
+        using account::SelectArtistAlbumLoadRoute;
+
+        Expect(SelectArtistAlbumLoadRoute(true, false, L"", L"")
+                == AlbumLoadRoute::LocalLibrary,
+            "a local artist release did not keep the library loading route");
+        Expect(SelectArtistAlbumLoadRoute(false, true, L"apple-music", L"1811023660")
+                == AlbumLoadRoute::AccountCatalog,
+            "an Account Apple release did not select the storefront catalog route");
+        Expect(SelectArtistAlbumLoadRoute(false, true, L"youtube-music", L"album-one")
+                == AlbumLoadRoute::ProviderDetail,
+            "an Account fallback release did not keep the generic provider route");
+        Expect(SelectArtistAlbumLoadRoute(false, false, L"apple-music", L"1811023660")
+                == AlbumLoadRoute::ProviderDetail,
+            "an API-key release incorrectly selected the Account catalog route");
+
+        AlbumLoadRequest india;
+        india.Route = AlbumLoadRoute::AccountCatalog;
+        india.Identity.CatalogId = L"1811023660";
+        india.Storefront = L"IN";
+        auto normalizedIndiaKey = account::AlbumDetailCacheKey(L"account|listener", india);
+        india.Storefront = L"in";
+        auto indiaKey = account::AlbumDetailCacheKey(L"account|listener", india);
+        india.Storefront = L"us";
+        auto usKey = account::AlbumDetailCacheKey(L"account|listener", india);
+        Expect(!indiaKey.empty() && normalizedIndiaKey == indiaKey,
+            "Apple album cache keys did not normalize storefront case");
+        Expect(indiaKey != usKey,
+            "Apple album cache keys collided across storefronts");
+
+        AlbumLoadRequest provider;
+        provider.Route = AlbumLoadRoute::ProviderDetail;
+        provider.Identity = {
+            L"album-one",
+            L"https://music.example.test/albums/album-one",
+            L"Fallback",
+        };
+        provider.Storefront = L"in";
+        auto providerKey = account::AlbumDetailCacheKey(L"api-key|provider-a", provider);
+        provider.Storefront = L"us";
+        Expect(providerKey == account::AlbumDetailCacheKey(L"api-key|provider-a", provider),
+            "generic provider album cache keys incorrectly depended on storefront");
+        Expect(providerKey != account::AlbumDetailCacheKey(L"api-key|provider-b", provider),
+            "generic provider album cache keys collided across provider scopes");
+
+        account::RemoteAlbumDetail remote;
+        remote.Release.Release.Type = account::CatalogResourceType::Album;
+        remote.Release.Release.CatalogId = L"album-one";
+        remote.Release.Release.Title = L"Album One";
+        remote.Release.Release.Subtitle = L"Artist One";
+        remote.Release.Release.SourceUrl = L"https://music.example.test/albums/album-one";
+        remote.Release.Release.Provider = L"youtube-music";
+        account::CatalogItem track;
+        track.Type = account::CatalogResourceType::Song;
+        track.RemoteId = L"provider-track-one";
+        track.CatalogId = L"song-one";
+        track.AlbumCatalogId = L"album-one";
+        track.ArtistCatalogId = L"artist-one";
+        track.Title = L"Track One";
+        track.SourceUrl = L"https://music.example.test/watch?v=track-one";
+        track.StreamUrl = L"https://stream.example.test/track-one";
+        track.Provider = L"youtube-music";
+        remote.Tracks.push_back(track);
+
+        auto converted = account::AlbumDetailFromProvider(remote);
+        Expect(converted.Resource.CatalogId == remote.Release.Release.CatalogId
+                && converted.Resource.SourceUrl == remote.Release.Release.SourceUrl
+                && converted.Resource.Provider == remote.Release.Release.Provider,
+            "provider album conversion lost release identity fields");
+        Expect(converted.Tracks.size() == 1
+                && converted.Tracks[0].Catalog.SourceUrl == track.SourceUrl
+                && converted.Tracks[0].Catalog.StreamUrl == track.StreamUrl
+                && converted.Tracks[0].Catalog.Provider == track.Provider
+                && converted.Tracks[0].RemoteProvider == track.Provider
+                && converted.Tracks[0].Catalog.RemoteId == track.RemoteId
+                && converted.Tracks[0].Catalog.CatalogId == track.CatalogId
+                && converted.Tracks[0].Catalog.AlbumCatalogId == track.AlbumCatalogId
+                && converted.Tracks[0].Catalog.ArtistCatalogId == track.ArtistCatalogId,
+            "provider album conversion lost playback-critical track identity");
+    }
+
     void TestRemoteDetailContract()
     {
         Expect(account::ProviderSupportsCapability(
@@ -4130,6 +4228,73 @@ namespace
         Expect(artist->Releases.size() == 1
             && artist->Releases[0].Kind == account::RemoteReleaseKind::Album,
             "artist release summary was not parsed");
+
+        auto normalizedReleases = account::ParseRemoteArtistDetail(LR"({
+            "artist":{
+                "catalogId":"artist-1","name":"Example Artist","provider":"apple-music",
+                "sourceUrl":"https://music.apple.com/artist/artist-1"
+            },
+            "topSongs":[],
+            "releases":[
+                {
+                    "catalogId":"apple-single","name":"One Song","artistName":"Example Artist",
+                    "provider":"apple-music","sourceUrl":"https://music.apple.com/album/apple-single",
+                    "releaseType":"album","trackCount":1
+                },
+                {
+                    "catalogId":"suffix-single","name":"Named Release - sInGlE","artistName":"Example Artist",
+                    "provider":"youtube-music","sourceUrl":"https://music.example/albums/suffix-single",
+                    "releaseType":"album","trackCount":8
+                },
+                {
+                    "catalogId":"suffix-ep","name":"Named Release - eP","artistName":"Example Artist",
+                    "provider":"youtube-music","sourceUrl":"https://music.example/albums/suffix-ep",
+                    "releaseType":"album","trackCount":5
+                },
+                {
+                    "catalogId":"apple-album","name":"Full Album","artistName":"Example Artist",
+                    "provider":"Apple Music","sourceUrl":"https://music.apple.com/album/apple-album",
+                    "releaseType":"album","trackCount":10
+                },
+                {
+                    "catalogId":"explicit-single","name":"Conflicting Name - EP","artistName":"Example Artist",
+                    "provider":"youtube-music","sourceUrl":"https://music.example/albums/explicit-single",
+                    "releaseType":"single","trackCount":6
+                },
+                {
+                    "catalogId":"explicit-ep","name":"Conflicting Name - Single","artistName":"Example Artist",
+                    "provider":"youtube-music","sourceUrl":"https://music.example/albums/explicit-ep",
+                    "releaseType":"ep","trackCount":1
+                },
+                {
+                    "catalogId":"provider-album","name":"One Track Album","artistName":"Example Artist",
+                    "provider":"youtube-music","sourceUrl":"https://music.example/albums/provider-album",
+                    "releaseType":"album","trackCount":1
+                }
+            ],
+            "relatedArtists":[],
+            "stale":false,"fetchedAt":"2026-08-23T10:30:00Z"
+        })");
+        Expect(normalizedReleases && normalizedReleases->Releases.size() == 7,
+            "valid release-classification cases were rejected");
+        if (normalizedReleases && normalizedReleases->Releases.size() == 7)
+        {
+            auto const& releases = normalizedReleases->Releases;
+            Expect(releases[0].Kind == account::RemoteReleaseKind::Single,
+                "a one-track Apple album was not classified as a single");
+            Expect(releases[1].Kind == account::RemoteReleaseKind::Single,
+                "a case-insensitive - Single title was not classified as a single");
+            Expect(releases[2].Kind == account::RemoteReleaseKind::Ep,
+                "a case-insensitive - EP title was not classified as an EP");
+            Expect(releases[3].Kind == account::RemoteReleaseKind::Album,
+                "a multi-track Apple album was not preserved as an album");
+            Expect(releases[4].Kind == account::RemoteReleaseKind::Single,
+                "an explicit provider single was overridden by its title");
+            Expect(releases[5].Kind == account::RemoteReleaseKind::Ep,
+                "an explicit provider EP was overridden by its title or track count");
+            Expect(releases[6].Kind == account::RemoteReleaseKind::Album,
+                "a one-track non-Apple album was incorrectly classified as a single");
+        }
 
         auto album = account::ParseRemoteAlbumDetail(LR"({
             "release":{
@@ -4632,6 +4797,7 @@ int wmain()
         RunTest("TestCatalogChartRequestConstruction", TestCatalogChartRequestConstruction);
         RunTest("TestCatalogPresentationRules", TestCatalogPresentationRules);
         RunTest("TestCatalogParsingSurvivesBadInput", TestCatalogParsingSurvivesBadInput);
+        RunTest("TestAlbumLoadPolicy", TestAlbumLoadPolicy);
         RunTest("TestRemoteDetailContract", TestRemoteDetailContract);
         RunTest("TestLibraryArtistContract", TestLibraryArtistContract);
         RunTest("TestAccountArtistDetailPolicy", TestAccountArtistDetailPolicy);

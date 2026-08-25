@@ -74,6 +74,7 @@ namespace winrt::Last_Music_Player::implementation
         m_artistFollowMutations.clear();
         m_currentAccountArtistPlan.reset();
         m_artistBackStack.clear();
+        m_artistAlbumReturnState.reset();
         if (m_artistLoadOperation)
         {
             m_artistLoadOperation.Cancel();

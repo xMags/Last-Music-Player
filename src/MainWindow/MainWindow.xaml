@@ -3283,44 +3283,9 @@
                         </Grid>
                     </Grid>
 
-                    <!-- Dedicated provider-backed artist and transient album surface. -->
+                    <!-- Dedicated provider-backed artist surface. -->
                     <Grid x:Name="ArtistDetailContent" Grid.Row="0" Grid.RowSpan="3" Visibility="Collapsed" Background="{ThemeResource ContentCanvasBrush}" SizeChanged="ArtistDetail_SizeChanged">
                         <Grid.Resources>
-                            <DataTemplate x:Key="ArtistSongRowTemplate" x:DataType="local:TrackInfo">
-                                <Grid Padding="10,7" ColumnSpacing="10" MinHeight="54" Background="Transparent">
-                                    <Grid.ContextFlyout>
-                                        <MenuFlyout>
-                                            <MenuFlyoutItem Text="Play now" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuPlayNow_Click" />
-                                            <MenuFlyoutItem Text="Play next" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuPlayNext_Click" />
-                                            <MenuFlyoutItem Text="Add to queue" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuAddToQueue_Click" />
-                                            <MenuFlyoutSeparator />
-                                            <MenuFlyoutItem Text="{x:Bind LikeActionText}" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuLike_Click" />
-                                            <MenuFlyoutItem Text="Download for offline use" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="DownloadTrack_Click" Visibility="{x:Bind DownloadVisibility}" />
-                                            <MenuFlyoutItem Text="Go to artist" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuArtist_Click" />
-                                            <MenuFlyoutItem Text="Go to album" Tag="{x:Bind}" CommandParameter="{x:Bind}" Click="BrowseRowMenuAlbum_Click" />
-                                        </MenuFlyout>
-                                    </Grid.ContextFlyout>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="28" />
-                                        <ColumnDefinition Width="42" />
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Text="{x:Bind Index}" Style="{StaticResource CaptionText}" VerticalAlignment="Center" HorizontalAlignment="Center" />
-                                    <Border Grid.Column="1" Width="42" Height="42" CornerRadius="7" Background="{ThemeResource NeutralFillBrush}">
-                                        <Grid>
-                                            <FontIcon Glyph="&#xE8D6;" FontSize="15" Foreground="{ThemeResource PlaceholderGlyphBrush}" />
-                                            <Image Source="{x:Bind AlbumArt}" DataContext="{x:Bind}" Stretch="UniformToFill" Loaded="AccountArtwork_Loaded" />
-                                        </Grid>
-                                    </Border>
-                                    <StackPanel Grid.Column="2" VerticalAlignment="Center">
-                                        <TextBlock Text="{x:Bind Title}" Style="{StaticResource BodyStrong}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
-                                        <TextBlock Text="{x:Bind Album}" Style="{StaticResource CaptionText}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
-                                    </StackPanel>
-                                    <TextBlock Grid.Column="3" Text="{x:Bind Duration}" Style="{StaticResource CaptionText}" VerticalAlignment="Center" Margin="8,0,4,0" />
-                                </Grid>
-                            </DataTemplate>
-
                             <DataTemplate x:Key="ArtistSongCardTemplate" x:DataType="local:TrackInfo">
                                 <Button Width="156" Padding="0" Tag="{x:Bind}" Click="ArtistTopSongCard_Click" Style="{StaticResource CardButton}" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Top" AutomationProperties.Name="{x:Bind Title}">
                                     <StackPanel Width="156">
@@ -3517,30 +3482,6 @@
                                 </StackPanel>
                             </StackPanel>
                         </Grid>
-
-                        <ScrollViewer x:Name="ProviderAlbumPanel" Visibility="Collapsed" VerticalScrollMode="Enabled" VerticalScrollBarVisibility="Hidden" HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled">
-                            <StackPanel MaxWidth="1080" HorizontalAlignment="Center" Spacing="24" Padding="0,0,0,40">
-                                <Button Click="ArtistDetailBack_Click" Style="{StaticResource CardButton}" HorizontalAlignment="Left" Padding="9,6" AutomationProperties.Name="Back to artist">
-                                    <StackPanel Orientation="Horizontal" Spacing="7"><FontIcon Glyph="&#xE72B;" FontSize="12"/><TextBlock Text="Artist" FontSize="13"/></StackPanel>
-                                </Button>
-                                <Grid ColumnSpacing="28">
-                                    <Grid.ColumnDefinitions><ColumnDefinition Width="210"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                    <Border Width="210" Height="210" CornerRadius="16" Background="{ThemeResource NeutralFillBrush}">
-                                        <Grid><FontIcon Glyph="&#xE8D6;" FontSize="48" Foreground="{ThemeResource PlaceholderGlyphBrush}"/><Image x:Name="ProviderAlbumArtwork" Stretch="UniformToFill" /></Grid>
-                                    </Border>
-                                    <StackPanel Grid.Column="1" VerticalAlignment="Bottom" Spacing="9">
-                                        <TextBlock x:Name="ProviderAlbumKind" Text="ALBUM" Style="{StaticResource EyebrowText}" />
-                                        <TextBlock x:Name="ProviderAlbumTitle" Text="Album" Style="{StaticResource TitleH1}" TextWrapping="Wrap" />
-                                        <TextBlock x:Name="ProviderAlbumArtist" Style="{StaticResource CaptionText}" />
-                                        <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,6,0,0">
-                                            <Button Content="Play" Click="ArtistDetailPlay_Click" Style="{StaticResource DesignPrimaryButton}" Padding="20,9" />
-                                            <Button Content="Shuffle" Click="ArtistDetailShuffle_Click" Style="{StaticResource DesignSecondaryButton}" Padding="20,9" />
-                                        </StackPanel>
-                                    </StackPanel>
-                                </Grid>
-                                <ListView x:Name="ProviderAlbumTracksList" ItemTemplate="{StaticResource ArtistSongRowTemplate}" SelectionMode="None" IsItemClickEnabled="True" ItemClick="ProviderAlbumTrack_ItemClick" ScrollViewer.VerticalScrollMode="Disabled" />
-                            </StackPanel>
-                        </ScrollViewer>
                     </Grid>
 
                     <!-- Detail page for playlist / album / genre.
