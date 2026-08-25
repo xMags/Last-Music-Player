@@ -197,6 +197,7 @@
     <ClInclude Include="src\Backend\AccountMusicContract.h"><Filter>Backend</Filter></ClInclude>
     <ClInclude Include="src\Backend\AccountUrlPolicy.h"><Filter>Backend</Filter></ClInclude>
     <ClInclude Include="src\Backend\ArtistLibraryPolicy.h"><Filter>Backend</Filter></ClInclude>
+    <ClInclude Include="src\Backend\AccountArtistDetailPolicy.h"><Filter>Backend</Filter></ClInclude>
     <ClInclude Include="src\Backend\LibraryArtistContract.h"><Filter>Backend</Filter></ClInclude>
     <ClInclude Include="src\Backend\AccountSessionGateway.h"><Filter>Backend</Filter></ClInclude>
     <ClInclude Include="src\Backend\AccountSyncTransport.h"><Filter>Backend</Filter></ClInclude>
@@ -379,6 +380,7 @@
     <ClCompile Include="src\Backend\AccountClient.cpp"><Filter>Backend</Filter></ClCompile>
     <ClCompile Include="src\Backend\AccountDataLifecycleService.cpp"><Filter>Backend</Filter></ClCompile>
     <ClCompile Include="src\Backend\AccountMusicContract.cpp"><Filter>Backend</Filter></ClCompile>
+    <ClCompile Include="src\Backend\AccountArtistDetailPolicy.cpp"><Filter>Backend</Filter></ClCompile>
     <ClCompile Include="src\Backend\LibraryArtistContract.cpp"><Filter>Backend</Filter></ClCompile>
     <ClCompile Include="src\Backend\AccountUrlPolicy.cpp"><Filter>Backend</Filter></ClCompile>
     <ClCompile Include="src\Backend\AccountSessionGateway.cpp"><Filter>Backend</Filter></ClCompile>

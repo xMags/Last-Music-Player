@@ -78,11 +78,7 @@ namespace winrt::Last_Music_Player::implementation
         card.IsInLibrary(artist.TrackCount > 0);
         card.IsFollowed(artist.Followed);
         card.SourceKind(L"artist");
-        card.SourceUrl(winrt::hstring(artist.DetailIdentity.SourceUrl));
-        card.ArtistCatalogId(winrt::hstring(artist.DetailIdentity.CatalogId));
-        card.RemoteCatalogId(winrt::hstring(artist.AppleCatalogId));
         card.Provider(L"account");
-        card.RemoteProvider(winrt::hstring(artist.DetailIdentity.Provider));
         card.SourceLabel(L"Account");
         card.ArtworkUrl(winrt::hstring(artist.ArtworkUrl));
         detail::ResolveArtworkPresentation(card, L"artist");
@@ -205,6 +201,7 @@ namespace winrt::Last_Music_Player::implementation
         if (!append)
         {
             m_artistAllResults.clear();
+            m_accountArtistDetailPlans.clear();
         }
         std::unordered_set<std::wstring> publicIds;
         for (auto const& existing : m_artistAllResults)
@@ -216,6 +213,9 @@ namespace winrt::Last_Music_Player::implementation
         }
         for (auto const& artist : page.Artists)
         {
+            m_accountArtistDetailPlans.insert_or_assign(
+                artist.Id,
+                LastMusicPlayer::Backend::BuildAccountArtistDetailPlan(artist));
             if (publicIds.emplace(artist.Id).second)
             {
                 m_artistAllResults.push_back(ArtistCardFromContract(artist));
@@ -339,7 +339,8 @@ namespace winrt::Last_Music_Player::implementation
         {
             co_return;
         }
-        if (m_currentLibraryArtistId == publicId)
+        if (m_currentAccountArtistPlan
+            && m_currentAccountArtistPlan->LibraryArtistId == publicId)
         {
             UpdateArtistDetailFollowButton();
         }
@@ -350,7 +351,8 @@ namespace winrt::Last_Music_Player::implementation
             || !remote.IsModeAvailable(scope.Mode))
         {
             m_artistFollowMutations.erase(publicId);
-            if (m_currentLibraryArtistId == publicId)
+            if (m_currentAccountArtistPlan
+                && m_currentAccountArtistPlan->LibraryArtistId == publicId)
             {
                 UpdateArtistDetailFollowButton();
             }
@@ -372,7 +374,8 @@ namespace winrt::Last_Music_Player::implementation
         catch (winrt::hresult_canceled const&)
         {
             m_artistFollowMutations.erase(publicId);
-            if (m_currentLibraryArtistId == publicId)
+            if (m_currentAccountArtistPlan
+                && m_currentAccountArtistPlan->LibraryArtistId == publicId)
             {
                 UpdateArtistDetailFollowButton();
             }
@@ -381,7 +384,8 @@ namespace winrt::Last_Music_Player::implementation
         catch (winrt::hresult_error const& error)
         {
             m_artistFollowMutations.erase(publicId);
-            if (m_currentLibraryArtistId == publicId)
+            if (m_currentAccountArtistPlan
+                && m_currentAccountArtistPlan->LibraryArtistId == publicId)
             {
                 UpdateArtistDetailFollowButton();
             }
@@ -398,7 +402,8 @@ namespace winrt::Last_Music_Player::implementation
         catch (...)
         {
             m_artistFollowMutations.erase(publicId);
-            if (m_currentLibraryArtistId == publicId)
+            if (m_currentAccountArtistPlan
+                && m_currentAccountArtistPlan->LibraryArtistId == publicId)
             {
                 UpdateArtistDetailFollowButton();
             }
@@ -415,9 +420,10 @@ namespace winrt::Last_Music_Player::implementation
         {
             co_return;
         }
-        if (m_currentLibraryArtistId == publicId)
+        if (m_currentAccountArtistPlan
+            && m_currentAccountArtistPlan->LibraryArtistId == publicId)
         {
-            m_currentLibraryArtistFollowed = followed;
+            m_currentAccountArtistPlan->Followed = followed;
             UpdateArtistDetailFollowButton();
         }
         co_await LoadAccountLibraryArtistsAsync(false);

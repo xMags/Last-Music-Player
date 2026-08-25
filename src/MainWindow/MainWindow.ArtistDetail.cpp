@@ -2,6 +2,8 @@
 #include "MainWindow.xaml.h"
 #include "MainWindow.Internal.h"
 
+#include "Backend/AccountClient.h"
+#include "Backend/AccountArtistDetailPolicy.h"
 #include "Backend/ProviderHelpers.h"
 #include "Frontend/UIHelpers.h"
 
@@ -12,7 +14,9 @@
 #include <chrono>
 #include <memory>
 #include <random>
+#include <string_view>
 #include <unordered_map>
+#include <utility>
 
 namespace winrt::Last_Music_Player::implementation
 {
@@ -20,7 +24,8 @@ namespace winrt::Last_Music_Player::implementation
     {
         std::wstring DetailCacheKey(
             LastMusicPlayer::Backend::RemoteScopeSnapshot const& scope,
-            LastMusicPlayer::Backend::RemoteDetailIdentity const& identity)
+            LastMusicPlayer::Backend::RemoteDetailIdentity const& identity,
+            std::wstring_view discriminator = {})
         {
             auto query = LastMusicPlayer::Backend::BuildRemoteDetailQuery(identity);
             if (!query)
@@ -29,8 +34,23 @@ namespace winrt::Last_Music_Player::implementation
             }
             auto key = LastMusicPlayer::Backend::RemoteScopeCacheKey(scope);
             key += L"|";
+            if (!discriminator.empty())
+            {
+                key += discriminator;
+                key += L"|";
+            }
             key += query->c_str();
             return key;
+        }
+
+        std::wstring DetailCacheKey(
+            LastMusicPlayer::Backend::RemoteScopeSnapshot const& scope,
+            LastMusicPlayer::Backend::AccountArtistDetailTarget const& target)
+        {
+            return DetailCacheKey(
+                scope,
+                LastMusicPlayer::Backend::RemoteIdentityFor(target),
+                LastMusicPlayer::Backend::AccountArtistDetailCacheDiscriminator(target));
         }
 
         winrt::hstring JoinGenres(std::vector<winrt::hstring> const& genres)
@@ -104,6 +124,23 @@ namespace winrt::Last_Music_Player::implementation
                 throw;
             }
         }
+
+        LastMusicPlayer::Backend::AccountArtistDetailAttemptOutcome DetailFailureOutcome(
+            winrt::hresult_error const& error) noexcept
+        {
+            if (error.code() == HRESULT_FROM_WIN32(ERROR_TIMEOUT))
+            {
+                return LastMusicPlayer::Backend::AccountArtistDetailAttemptOutcome::Timeout;
+            }
+            auto const status = LastMusicPlayer::Backend::AccountHttpStatus(error);
+            if (status == 404)
+            {
+                return LastMusicPlayer::Backend::AccountArtistDetailAttemptOutcome::HttpNotFound;
+            }
+            return status == 0
+                ? LastMusicPlayer::Backend::AccountArtistDetailAttemptOutcome::TransportFailure
+                : LastMusicPlayer::Backend::AccountArtistDetailAttemptOutcome::HttpFailure;
+        }
     }
 
     winrt::Last_Music_Player::TrackInfo MainWindow::ArtistTrackFromCatalogItem(
@@ -134,12 +171,37 @@ namespace winrt::Last_Music_Player::implementation
         {
             return;
         }
-        auto identity = ArtistIdentityForTrack(artist);
-        LastMusicPlayer::Backend::RemoteDetailIdentity requestIdentity{
-            winrt::hstring(identity.CatalogId),
-            winrt::hstring(identity.SourceUrl),
-            winrt::hstring(identity.Name) };
-        auto requestKey = DetailCacheKey(scope, requestIdentity);
+        std::optional<LastMusicPlayer::Backend::AccountArtistDetailPlan> accountPlan;
+        LastMusicPlayer::Backend::RemoteDetailIdentity requestIdentity;
+        std::wstring requestKey;
+        if (scope.Mode == LastMusicPlayer::Backend::RemoteAccessMode::Account)
+        {
+            auto const found = m_accountArtistDetailPlans.find(
+                std::wstring(artist.RemoteId().c_str()));
+            if (found == m_accountArtistDetailPlans.end())
+            {
+                return;
+            }
+            accountPlan = found->second;
+            auto const targets = LastMusicPlayer::Backend::OrderedAccountArtistDetailTargets(
+                *accountPlan);
+            if (targets.empty())
+            {
+                return;
+            }
+            requestIdentity = LastMusicPlayer::Backend::RemoteIdentityFor(targets.front());
+            requestKey = DetailCacheKey(scope, targets.front());
+        }
+        else
+        {
+            auto identity = ArtistIdentityForTrack(artist);
+            requestIdentity = {
+                winrt::hstring(identity.CatalogId),
+                winrt::hstring(identity.SourceUrl),
+                winrt::hstring(identity.Name)
+            };
+            requestKey = DetailCacheKey(scope, requestIdentity);
+        }
         if (requestKey.empty() || !m_artistArtworkRequests.emplace(requestKey).second)
         {
             return;
@@ -148,6 +210,8 @@ namespace winrt::Last_Music_Player::implementation
             border,
             artist,
             std::move(scope),
+            std::move(requestIdentity),
+            std::move(accountPlan),
             std::move(requestKey)));
     }
 
@@ -155,36 +219,116 @@ namespace winrt::Last_Music_Player::implementation
         winrt::Microsoft::UI::Xaml::Controls::Border border,
         winrt::Last_Music_Player::TrackInfo artist,
         LastMusicPlayer::Backend::RemoteScopeSnapshot scope,
+        LastMusicPlayer::Backend::RemoteDetailIdentity requestIdentity,
+        std::optional<LastMusicPlayer::Backend::AccountArtistDetailPlan> accountPlan,
         std::wstring requestKey)
     {
         auto lifetime = get_strong();
         auto dispatcher = DispatcherQueue();
         std::optional<LastMusicPlayer::Backend::RemoteArtistDetail> artistDetail;
-        bool failed = false;
-        try
+        bool cancelled = false;
+        std::vector<std::pair<LastMusicPlayer::Backend::RemoteDetailIdentity, std::wstring>> requests;
+        if (accountPlan && scope.Mode == LastMusicPlayer::Backend::RemoteAccessMode::Account)
         {
-            auto cached = m_artistDetailCache.find(requestKey);
-            if (cached != m_artistDetailCache.end())
+            for (auto const& target : LastMusicPlayer::Backend::OrderedAccountArtistDetailTargets(
+                *accountPlan))
+            {
+                requests.emplace_back(
+                    LastMusicPlayer::Backend::RemoteIdentityFor(target),
+                    LastMusicPlayer::Backend::AccountArtistDetailCacheDiscriminator(target));
+            }
+        }
+        else
+        {
+            requests.emplace_back(std::move(requestIdentity), std::wstring{});
+        }
+
+        auto& remote = detail::RemoteMusicServiceService();
+        for (std::size_t index = 0; index < requests.size(); ++index)
+        {
+            if (!remote.IsCurrent(scope))
+            {
+                cancelled = true;
+                break;
+            }
+
+            auto const cacheKey = DetailCacheKey(
+                scope,
+                requests[index].first,
+                requests[index].second);
+            auto const cached = m_artistDetailCache.find(cacheKey);
+            if (!cacheKey.empty() && cached != m_artistDetailCache.end())
             {
                 artistDetail = cached->second;
+                break;
             }
-            else
+
+            try
             {
-                auto identity = ArtistIdentityForTrack(artist);
                 auto payload = co_await WithDetailTimeout(
-                    detail::RemoteMusicServiceService().GetArtistDetailAsync(
-                        scope,
-                        { winrt::hstring(identity.CatalogId),
-                          winrt::hstring(identity.SourceUrl),
-                          winrt::hstring(identity.Name) }));
+                    remote.GetArtistDetailAsync(scope, requests[index].first));
+                if (!remote.IsCurrent(scope))
+                {
+                    cancelled = true;
+                    break;
+                }
                 co_await winrt::resume_background();
                 artistDetail = LastMusicPlayer::Backend::ParseRemoteArtistDetail(payload);
                 co_await wil::resume_foreground(dispatcher);
             }
-        }
-        catch (...)
-        {
-            failed = true;
+            catch (winrt::hresult_canceled const&)
+            {
+                cancelled = true;
+                break;
+            }
+            catch (winrt::hresult_error const& error)
+            {
+                auto const canFallback = index + 1 < requests.size()
+                    && LastMusicPlayer::Backend::ShouldTryNextAccountArtistDetailTarget(
+                        DetailFailureOutcome(error));
+                if (canFallback)
+                {
+                    continue;
+                }
+                break;
+            }
+            catch (...)
+            {
+                auto const canFallback = index + 1 < requests.size()
+                    && LastMusicPlayer::Backend::ShouldTryNextAccountArtistDetailTarget(
+                        LastMusicPlayer::Backend::AccountArtistDetailAttemptOutcome::TransportFailure);
+                if (canFallback)
+                {
+                    continue;
+                }
+                break;
+            }
+
+            if (!artistDetail)
+            {
+                auto const canFallback = index + 1 < requests.size()
+                    && LastMusicPlayer::Backend::ShouldTryNextAccountArtistDetailTarget(
+                        LastMusicPlayer::Backend::AccountArtistDetailAttemptOutcome::InvalidPayload);
+                if (canFallback)
+                {
+                    continue;
+                }
+                break;
+            }
+            if (!remote.IsCurrent(scope))
+            {
+                cancelled = true;
+                break;
+            }
+            if (!cacheKey.empty())
+            {
+                if (m_artistDetailCache.size() >= 32)
+                {
+                    m_artistDetailCache.erase(m_artistDetailCache.begin());
+                }
+                m_artistDetailCache[cacheKey] = *artistDetail;
+            }
+            break;
         }
         if (!dispatcher.HasThreadAccess())
         {
@@ -192,8 +336,7 @@ namespace winrt::Last_Music_Player::implementation
         }
 
         m_artistArtworkRequests.erase(requestKey);
-        auto& remote = detail::RemoteMusicServiceService();
-        if (failed || !artistDetail || !remote.IsCurrent(scope) || artistDetail->Artist.ArtworkUrl.empty()
+        if (cancelled || !artistDetail || !remote.IsCurrent(scope) || artistDetail->Artist.ArtworkUrl.empty()
             || !border || border.Tag() != artist)
         {
             co_return;
@@ -271,40 +414,61 @@ namespace winrt::Last_Music_Player::implementation
         {
             m_currentArtistIdentity.CatalogId = sourceGroup.ArtistCatalogId();
         }
-        m_currentLibraryArtistId.clear();
-        m_currentLibraryArtistFollowed = false;
+        m_currentAccountArtistPlan.reset();
         if (detail::RemoteMusicServiceService().Mode()
             == LastMusicPlayer::Backend::RemoteAccessMode::Account)
         {
-            if (sourceGroup
-                && sourceGroup.Provider() == L"account"
-                && LastMusicPlayer::Backend::IsValidLibraryArtistPublicId(
-                    std::wstring(sourceGroup.RemoteId().c_str())))
+            if (sourceGroup && sourceGroup.Provider() == L"account")
             {
-                m_currentLibraryArtistId = sourceGroup.RemoteId().c_str();
-                m_currentLibraryArtistFollowed = sourceGroup.IsFollowed();
+                auto const found = m_accountArtistDetailPlans.find(
+                    std::wstring(sourceGroup.RemoteId().c_str()));
+                if (found != m_accountArtistDetailPlans.end())
+                {
+                    m_currentAccountArtistPlan = found->second;
+                }
             }
-            else
+            if (!m_currentAccountArtistPlan)
             {
+                auto provider = sourceGroup
+                    ? (sourceGroup.RemoteProvider().empty()
+                        ? sourceGroup.Provider()
+                        : sourceGroup.RemoteProvider())
+                    : winrt::hstring{};
                 LastMusicPlayer::Backend::ArtistIdentity requested{
                     std::wstring(m_currentArtistIdentity.CatalogId.c_str()),
                     std::wstring(m_currentArtistIdentity.SourceUrl.c_str()),
                     std::wstring(m_currentArtistIdentity.Name.c_str()),
-                    sourceGroup ? std::wstring(sourceGroup.RemoteProvider().c_str()) : std::wstring{} };
-                auto const found = std::find_if(
-                    m_artistAllResults.begin(),
-                    m_artistAllResults.end(),
-                    [&](auto const& candidate)
-                    {
-                        return candidate.Provider() == L"account"
-                            && LastMusicPlayer::Backend::SameArtistIdentity(
-                                ArtistIdentityForTrack(candidate),
-                                requested);
-                    });
-                if (found != m_artistAllResults.end())
+                    std::wstring(provider.c_str())
+                };
+                LastMusicPlayer::Backend::AccountArtistDetailPlan const* match = nullptr;
+                bool ambiguous = false;
+                for (auto const& [publicId, plan] : m_accountArtistDetailPlans)
                 {
-                    m_currentLibraryArtistId = found->RemoteId().c_str();
-                    m_currentLibraryArtistFollowed = found->IsFollowed();
+                    (void)publicId;
+                    if (!LastMusicPlayer::Backend::AccountArtistDetailPlanMatches(plan, requested))
+                    {
+                        continue;
+                    }
+                    if (match)
+                    {
+                        ambiguous = true;
+                        break;
+                    }
+                    match = &plan;
+                }
+                if (match && !ambiguous)
+                {
+                    m_currentAccountArtistPlan = *match;
+                }
+            }
+            if (m_currentAccountArtistPlan)
+            {
+                auto const targets = LastMusicPlayer::Backend::OrderedAccountArtistDetailTargets(
+                    *m_currentAccountArtistPlan);
+                if (!targets.empty())
+                {
+                    m_currentArtistIdentity = LastMusicPlayer::Backend::RemoteIdentityFor(
+                        targets.front());
                 }
             }
         }
@@ -318,17 +482,9 @@ namespace winrt::Last_Music_Player::implementation
         {
             m_albumLoadOperation.Cancel();
         }
-        auto& remoteMusic = detail::RemoteMusicServiceService();
-        auto scope = remoteMusic.CaptureScope();
-        auto cacheKey = DetailCacheKey(scope, m_currentArtistIdentity);
-        auto cached = m_artistDetailCache.find(cacheKey);
-        if (!cacheKey.empty() && cached != m_artistDetailCache.end() && remoteMusic.IsCurrent(scope))
-        {
-            RenderArtistDetail(cached->second, false);
-            return;
-        }
         m_artistLoadOperation = LoadArtistDetailAsync(
             m_currentArtistIdentity,
+            m_currentAccountArtistPlan,
             artworkUrl.empty() && sourceGroup ? sourceGroup.ArtworkUrl() : artworkUrl,
             requestEpoch,
             false);
@@ -337,6 +493,7 @@ namespace winrt::Last_Music_Player::implementation
 
     winrt::Windows::Foundation::IAsyncAction MainWindow::LoadArtistDetailAsync(
         LastMusicPlayer::Backend::RemoteDetailIdentity identity,
+        std::optional<LastMusicPlayer::Backend::AccountArtistDetailPlan> accountPlan,
         winrt::hstring artworkUrl,
         uint64_t requestEpoch,
         bool manualRetry)
@@ -349,29 +506,113 @@ namespace winrt::Last_Music_Player::implementation
         auto& remoteMusic = detail::RemoteMusicServiceService();
         auto scope = remoteMusic.CaptureScope();
         std::optional<LastMusicPlayer::Backend::RemoteArtistDetail> remoteDetail;
+        LastMusicPlayer::Backend::RemoteDetailIdentity selectedIdentity = identity;
+
+        std::vector<std::pair<LastMusicPlayer::Backend::RemoteDetailIdentity, std::wstring>> requests;
+        if (accountPlan && scope.Mode == LastMusicPlayer::Backend::RemoteAccessMode::Account)
+        {
+            for (auto const& target : LastMusicPlayer::Backend::OrderedAccountArtistDetailTargets(
+                *accountPlan))
+            {
+                requests.emplace_back(
+                    LastMusicPlayer::Backend::RemoteIdentityFor(target),
+                    LastMusicPlayer::Backend::AccountArtistDetailCacheDiscriminator(target));
+            }
+        }
+        else
+        {
+            requests.emplace_back(identity, std::wstring{});
+        }
 
         if (scope.Mode != LastMusicPlayer::Backend::RemoteAccessMode::LocalOnly
             && remoteMusic.IsModeAvailable(scope.Mode))
         {
-            try
+            for (std::size_t index = 0; index < requests.size(); ++index)
             {
-                auto payload = co_await WithDetailTimeout(
-                    remoteMusic.GetArtistDetailAsync(scope, identity));
-                if (!remoteMusic.IsCurrent(scope))
+                if (requestEpoch != m_artistRequestEpoch || !remoteMusic.IsCurrent(scope))
                 {
                     co_return;
                 }
-                co_await winrt::resume_background();
-                remoteDetail = LastMusicPlayer::Backend::ParseRemoteArtistDetail(payload);
-                co_await wil::resume_foreground(dispatcher);
-            }
-            catch (winrt::hresult_canceled const&)
-            {
-                co_return;
-            }
-            catch (...)
-            {
-                remoteDetail.reset();
+
+                auto const cacheKey = DetailCacheKey(
+                    scope,
+                    requests[index].first,
+                    requests[index].second);
+                auto const cached = m_artistDetailCache.find(cacheKey);
+                if (!cacheKey.empty() && cached != m_artistDetailCache.end())
+                {
+                    remoteDetail = cached->second;
+                    selectedIdentity = requests[index].first;
+                    break;
+                }
+
+                try
+                {
+                    auto payload = co_await WithDetailTimeout(
+                        remoteMusic.GetArtistDetailAsync(scope, requests[index].first));
+                    if (requestEpoch != m_artistRequestEpoch || !remoteMusic.IsCurrent(scope))
+                    {
+                        co_return;
+                    }
+                    co_await winrt::resume_background();
+                    remoteDetail = LastMusicPlayer::Backend::ParseRemoteArtistDetail(payload);
+                    co_await wil::resume_foreground(dispatcher);
+                }
+                catch (winrt::hresult_canceled const&)
+                {
+                    co_return;
+                }
+                catch (winrt::hresult_error const& error)
+                {
+                    remoteDetail.reset();
+                    auto const canFallback = index + 1 < requests.size()
+                        && LastMusicPlayer::Backend::ShouldTryNextAccountArtistDetailTarget(
+                            DetailFailureOutcome(error));
+                    if (canFallback)
+                    {
+                        continue;
+                    }
+                    break;
+                }
+                catch (...)
+                {
+                    remoteDetail.reset();
+                    auto const canFallback = index + 1 < requests.size()
+                        && LastMusicPlayer::Backend::ShouldTryNextAccountArtistDetailTarget(
+                            LastMusicPlayer::Backend::AccountArtistDetailAttemptOutcome::TransportFailure);
+                    if (canFallback)
+                    {
+                        continue;
+                    }
+                    break;
+                }
+
+                if (requestEpoch != m_artistRequestEpoch || !remoteMusic.IsCurrent(scope))
+                {
+                    co_return;
+                }
+                if (!remoteDetail)
+                {
+                    auto const canFallback = index + 1 < requests.size()
+                        && LastMusicPlayer::Backend::ShouldTryNextAccountArtistDetailTarget(
+                            LastMusicPlayer::Backend::AccountArtistDetailAttemptOutcome::InvalidPayload);
+                    if (canFallback)
+                    {
+                        continue;
+                    }
+                    break;
+                }
+
+                selectedIdentity = requests[index].first;
+                if (!cacheKey.empty())
+                {
+                    if (m_artistDetailCache.size() >= 32)
+                    {
+                        m_artistDetailCache.erase(m_artistDetailCache.begin());
+                    }
+                    m_artistDetailCache[cacheKey] = *remoteDetail;
+                }
+                break;
             }
         }
 
@@ -386,15 +627,7 @@ namespace winrt::Last_Music_Player::implementation
 
         if (remoteDetail)
         {
-            auto cacheKey = DetailCacheKey(scope, identity);
-            if (!cacheKey.empty())
-            {
-                if (m_artistDetailCache.size() >= 32)
-                {
-                    m_artistDetailCache.erase(m_artistDetailCache.begin());
-                }
-                m_artistDetailCache[cacheKey] = *remoteDetail;
-            }
+            m_currentArtistIdentity = std::move(selectedIdentity);
             RenderArtistDetail(*remoteDetail, false);
             co_return;
         }
@@ -696,9 +929,9 @@ namespace winrt::Last_Music_Player::implementation
             auto previous = std::move(m_artistBackStack.back());
             m_artistBackStack.pop_back();
             m_currentArtistIdentity = std::move(previous.Identity);
-            m_currentLibraryArtistId = std::move(previous.LibraryArtistId);
-            m_currentLibraryArtistFollowed = previous.Followed;
+            m_currentAccountArtistPlan = std::move(previous.AccountPlan);
             RenderArtistDetail(previous.Detail, previous.LocalFallback);
+            ArtistDetailScroll().ChangeView(nullptr, previous.ScrollOffset, nullptr, true);
             return;
         }
         HideArtistDetail(true);
@@ -717,8 +950,7 @@ namespace winrt::Last_Music_Player::implementation
         }
         m_artistAlbumOpen = false;
         m_artistBackStack.clear();
-        m_currentLibraryArtistId.clear();
-        m_currentLibraryArtistFollowed = false;
+        m_currentAccountArtistPlan.reset();
         m_artistTopSongs.clear();
         m_artistLocalAllTracks.clear();
         m_artistTopSongsLeft.Clear();
@@ -757,6 +989,7 @@ namespace winrt::Last_Music_Player::implementation
         ArtistDetailScroll().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
         m_artistLoadOperation = LoadArtistDetailAsync(
             m_currentArtistIdentity,
+            m_currentAccountArtistPlan,
             m_currentArtistDetail.Artist.ArtworkUrl,
             requestEpoch,
             true);
@@ -802,12 +1035,17 @@ namespace winrt::Last_Music_Player::implementation
             == LastMusicPlayer::Backend::RemoteAccessMode::Account;
         if (accountMode)
         {
+            auto const publicId = m_currentAccountArtistPlan
+                ? m_currentAccountArtistPlan->LibraryArtistId
+                : std::wstring{};
             auto const canFollow = LastMusicPlayer::Backend::IsValidLibraryArtistPublicId(
-                m_currentLibraryArtistId);
+                publicId);
             ArtistFollowButton().Content(winrt::box_value(
-                m_currentLibraryArtistFollowed ? L"Following" : L"Follow"));
+                m_currentAccountArtistPlan && m_currentAccountArtistPlan->Followed
+                    ? L"Following"
+                    : L"Follow"));
             ArtistFollowButton().IsEnabled(canFollow
-                && !m_artistFollowMutations.contains(m_currentLibraryArtistId));
+                && !m_artistFollowMutations.contains(publicId));
             winrt::Microsoft::UI::Xaml::Controls::ToolTipService::SetToolTip(
                 ArtistFollowButton(),
                 canFollow
@@ -861,11 +1099,15 @@ namespace winrt::Last_Music_Player::implementation
         if (detail::RemoteMusicServiceService().Mode()
             == LastMusicPlayer::Backend::RemoteAccessMode::Account)
         {
+            if (!m_currentAccountArtistPlan)
+            {
+                return;
+            }
             artist.Provider(L"account");
-            artist.RemoteId(winrt::hstring(m_currentLibraryArtistId));
+            artist.RemoteId(winrt::hstring(m_currentAccountArtistPlan->LibraryArtistId));
             detail::RunDetached(SetAccountArtistFollowedAsync(
                 artist,
-                !m_currentLibraryArtistFollowed));
+                !m_currentAccountArtistPlan->Followed));
             return;
         }
 
@@ -1107,9 +1349,9 @@ namespace winrt::Last_Music_Player::implementation
         m_artistBackStack.push_back({
             m_currentArtistDetail,
             m_currentArtistIdentity,
-            m_currentLibraryArtistId,
-            m_currentLibraryArtistFollowed,
-            m_artistUsingLocalFallback });
+            m_currentAccountArtistPlan,
+            m_artistUsingLocalFallback,
+            ArtistDetailScroll().VerticalOffset() });
         OpenArtistDetail(
             artist.Title(),
             artist.RemoteCatalogId(),

@@ -32,6 +32,7 @@
 #include "Backend/RemoteDetailContract.h"
 #include "Backend/HistoryImport.h"
 #include "Backend/LibraryArtistContract.h"
+#include "Backend/AccountArtistDetailPolicy.h"
 #include "Backend/StreamCache.h"
 #include "Backend/UserDataOperationGate.h"
 #include "ThirdParty/sqlite/sqlite3.h"
@@ -4262,6 +4263,142 @@ namespace
             "saved library artist tracks were not parsed in service order");
     }
 
+    void TestAccountArtistDetailPolicy()
+    {
+        account::LibraryArtist artist;
+        artist.Id = L"artist_public_1";
+        artist.Name = L"Massive Attack";
+        artist.Provider = L"youtube-music";
+        artist.AppleCatalogId = L"152750";
+        artist.Followed = true;
+        artist.DetailIdentity = {
+            L"UC-last-music",
+            L"https://music.example.test/browse/UC-last-music",
+            L"Massive Attack",
+            L"youtube-music"
+        };
+
+        auto const plan = account::BuildAccountArtistDetailPlan(artist);
+        auto const targets = account::OrderedAccountArtistDetailTargets(plan);
+        Expect(plan.LibraryArtistId == L"artist_public_1" && plan.Followed,
+            "account artist detail plan lost its public identity or follow state");
+        Expect(targets.size() == 2
+            && targets[0].Source == account::AccountArtistDetailSource::AppleMusic
+            && targets[0].Identity.CatalogId == L"152750"
+            && targets[0].Identity.Name == L"Massive Attack"
+            && targets[1].Source == account::AccountArtistDetailSource::LastMusic
+            && targets[1].Identity.CatalogId == L"UC-last-music",
+            "account artist detail targets were not ordered Apple first");
+
+        for (auto const& malformed : {
+            std::wstring{}, std::wstring{ L" 152750" }, std::wstring{ L"+152750" },
+            std::wstring{ L"152750x" } })
+        {
+            auto malformedArtist = artist;
+            malformedArtist.AppleCatalogId = malformed;
+            auto malformedTargets = account::OrderedAccountArtistDetailTargets(
+                account::BuildAccountArtistDetailPlan(malformedArtist));
+            Expect(malformedTargets.size() == 1
+                && malformedTargets.front().Source == account::AccountArtistDetailSource::LastMusic,
+                "malformed Apple catalog id produced an Apple detail target");
+        }
+        auto oversizedArtist = artist;
+        oversizedArtist.AppleCatalogId.assign(account::MaxAppleCatalogIdCharacters + 1, L'1');
+        Expect(account::OrderedAccountArtistDetailTargets(
+            account::BuildAccountArtistDetailPlan(oversizedArtist)).size() == 1,
+            "oversized Apple catalog id produced an Apple detail target");
+
+        Expect(account::AccountArtistDetailPlanMatches(plan, {
+                L"152750", {}, L"Massive Attack", L"apple-music" }),
+            "Apple identity did not match its canonical Account artist");
+        Expect(account::AccountArtistDetailPlanMatches(plan, {
+                L"UC-last-music", {}, L"Massive Attack", L"youtube-music" }),
+            "Last Music identity did not match its canonical Account artist");
+        Expect(account::AccountArtistDetailPlanMatches(plan, {
+                {}, L"https://music.example.test/browse/UC-last-music",
+                L"Massive Attack", L"youtube-music" }),
+            "Last Music source identity did not match its canonical Account artist");
+        Expect(account::AccountArtistDetailPlanMatches(plan, {
+                {}, {}, L"  massive   attack ", {} }),
+            "name-only identity did not match an unambiguous canonical Account artist");
+        Expect(!account::AccountArtistDetailPlanMatches(plan, {
+                L"conflicting-id", {}, L"Massive Attack", L"youtube-music" }),
+            "conflicting explicit identity degraded to a same-name match");
+        Expect(!account::AccountArtistDetailPlanMatches(plan, {
+                L"152750", {}, L"Massive Attack", L"youtube-music" }),
+            "conflicting explicit provider degraded to a same-catalog match");
+
+        Expect(account::AccountArtistDetailCacheDiscriminator(targets[0])
+                != account::AccountArtistDetailCacheDiscriminator(targets[1]),
+            "Apple and Last Music detail targets shared a cache discriminator");
+
+        for (auto const outcome : {
+            account::AccountArtistDetailAttemptOutcome::InvalidPayload,
+            account::AccountArtistDetailAttemptOutcome::HttpNotFound,
+            account::AccountArtistDetailAttemptOutcome::HttpFailure,
+            account::AccountArtistDetailAttemptOutcome::Timeout,
+            account::AccountArtistDetailAttemptOutcome::TransportFailure })
+        {
+            Expect(account::ShouldTryNextAccountArtistDetailTarget(outcome),
+                "eligible Apple detail failure did not permit Last Music fallback");
+        }
+        for (auto const outcome : {
+            account::AccountArtistDetailAttemptOutcome::Success,
+            account::AccountArtistDetailAttemptOutcome::Cancelled,
+            account::AccountArtistDetailAttemptOutcome::Stale })
+        {
+            Expect(!account::ShouldTryNextAccountArtistDetailTarget(outcome),
+                "successful, cancelled, or stale Apple detail permitted fallback");
+        }
+
+        auto requestCount = [&](std::vector<account::AccountArtistDetailAttemptOutcome> outcomes)
+        {
+            std::size_t count{};
+            for (std::size_t index = 0; index < targets.size() && index < outcomes.size(); ++index)
+            {
+                ++count;
+                if (outcomes[index] == account::AccountArtistDetailAttemptOutcome::Success
+                    || !account::ShouldTryNextAccountArtistDetailTarget(outcomes[index]))
+                {
+                    break;
+                }
+            }
+            return count;
+        };
+        Expect(requestCount({ account::AccountArtistDetailAttemptOutcome::Success }) == 1,
+            "successful Apple detail performed a fallback request");
+        for (auto const outcome : {
+            account::AccountArtistDetailAttemptOutcome::InvalidPayload,
+            account::AccountArtistDetailAttemptOutcome::HttpNotFound,
+            account::AccountArtistDetailAttemptOutcome::HttpFailure,
+            account::AccountArtistDetailAttemptOutcome::Timeout,
+            account::AccountArtistDetailAttemptOutcome::TransportFailure })
+        {
+            Expect(requestCount({ outcome, account::AccountArtistDetailAttemptOutcome::Success }) == 2,
+                "eligible Apple detail failure did not request Last Music detail");
+        }
+        Expect(requestCount({ account::AccountArtistDetailAttemptOutcome::Cancelled }) == 1,
+            "cancelled Apple detail performed a fallback request");
+        Expect(requestCount({ account::AccountArtistDetailAttemptOutcome::Stale }) == 1,
+            "stale Apple detail performed a fallback request");
+
+        auto emptyShelves = account::ParseRemoteArtistDetail(LR"({
+            "artist":{
+                "catalogId":"152750","name":"Massive Attack","provider":"apple-music",
+                "sourceUrl":"https://music.apple.com/artist/152750",
+                "artworkUrl":"https://media.account.example.test/v1/artwork/artist-1"
+            },
+            "topSongs":[],"releases":[],"relatedArtists":[],
+            "stale":false,"fetchedAt":"2026-08-26T10:30:00Z"
+        })");
+        Expect(emptyShelves && emptyShelves->TopSongs.empty()
+            && emptyShelves->Releases.empty() && emptyShelves->RelatedArtists.empty(),
+            "valid Apple detail with empty optional shelves was rejected");
+        Expect(!account::ShouldTryNextAccountArtistDetailTarget(
+                account::AccountArtistDetailAttemptOutcome::Success),
+            "valid Apple detail with empty optional shelves permitted fallback");
+    }
+
     void TestLibraryArtistHttpContract()
     {
         auto const response = std::string{
@@ -4483,6 +4620,7 @@ int wmain()
         RunTest("TestCatalogParsingSurvivesBadInput", TestCatalogParsingSurvivesBadInput);
         RunTest("TestRemoteDetailContract", TestRemoteDetailContract);
         RunTest("TestLibraryArtistContract", TestLibraryArtistContract);
+        RunTest("TestAccountArtistDetailPolicy", TestAccountArtistDetailPolicy);
         RunTest("TestLibraryArtistHttpContract", TestLibraryArtistHttpContract);
         RunTest("TestTrackCatalogIdMigration", [&] { TestTrackCatalogIdMigration(localAppData); });
         RunTest("TestFailedSecureWritePreservesLegacySource", [&] { TestFailedSecureWritePreservesLegacySource(localAppData); });

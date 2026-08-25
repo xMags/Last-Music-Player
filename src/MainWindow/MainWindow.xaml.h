@@ -5,6 +5,7 @@
 #include "Backend/PlaybackHistoryQualifier.h"
 #include "Backend/AutoSyncPolicy.h"
 #include "Backend/ArtistLibraryPolicy.h"
+#include "Backend/AccountArtistDetailPolicy.h"
 #include "Backend/LibraryArtistContract.h"
 #include "Backend/DetailSortPolicy.h"
 #include "Frontend/Skeleton.h"
@@ -383,9 +384,9 @@ namespace winrt::Last_Music_Player::implementation
         {
             LastMusicPlayer::Backend::RemoteArtistDetail Detail;
             LastMusicPlayer::Backend::RemoteDetailIdentity Identity;
-            std::wstring LibraryArtistId;
-            bool Followed{ false };
+            std::optional<LastMusicPlayer::Backend::AccountArtistDetailPlan> AccountPlan;
             bool LocalFallback{ false };
+            double ScrollOffset{ 0.0 };
         };
         struct LocalArtistDetailResult
         {
@@ -742,6 +743,8 @@ namespace winrt::Last_Music_Player::implementation
             winrt::Microsoft::UI::Xaml::Controls::Border border,
             winrt::Last_Music_Player::TrackInfo artist,
             LastMusicPlayer::Backend::RemoteScopeSnapshot scope,
+            LastMusicPlayer::Backend::RemoteDetailIdentity requestIdentity,
+            std::optional<LastMusicPlayer::Backend::AccountArtistDetailPlan> accountPlan,
             std::wstring requestKey);
         void RefreshAutoPlaylists();
         void UpdateLibraryActionButtons();
@@ -818,6 +821,7 @@ namespace winrt::Last_Music_Player::implementation
             winrt::Last_Music_Player::TrackInfo const& sourceGroup = nullptr);
         winrt::Windows::Foundation::IAsyncAction LoadArtistDetailAsync(
             LastMusicPlayer::Backend::RemoteDetailIdentity identity,
+            std::optional<LastMusicPlayer::Backend::AccountArtistDetailPlan> accountPlan,
             winrt::hstring artworkUrl,
             uint64_t requestEpoch,
             bool manualRetry);
@@ -1307,6 +1311,8 @@ namespace winrt::Last_Music_Player::implementation
             winrt::single_threaded_observable_vector<winrt::Last_Music_Player::TrackInfo>()
         };
         std::vector<winrt::Last_Music_Player::TrackInfo> m_artistAllResults;
+        std::unordered_map<std::wstring, LastMusicPlayer::Backend::AccountArtistDetailPlan>
+            m_accountArtistDetailPlans;
         std::wstring m_artistLibraryFilter{ L"Top" };
         std::wstring m_artistLibrarySearch;
         std::wstring m_artistNextCursor;
@@ -1379,8 +1385,7 @@ namespace winrt::Last_Music_Player::implementation
         std::unordered_map<std::wstring, LastMusicPlayer::Backend::RemoteArtistDetail> m_artistDetailCache;
         std::unordered_map<std::wstring, LastMusicPlayer::Backend::RemoteAlbumDetail> m_albumDetailCache;
         std::vector<ArtistHistoryEntry> m_artistBackStack;
-        std::wstring m_currentLibraryArtistId;
-        bool m_currentLibraryArtistFollowed{ false };
+        std::optional<LastMusicPlayer::Backend::AccountArtistDetailPlan> m_currentAccountArtistPlan;
         std::wstring m_artistOriginNav;
         uint64_t m_artistRequestEpoch{ 0 };
         bool m_artistAlbumOpen{ false };
