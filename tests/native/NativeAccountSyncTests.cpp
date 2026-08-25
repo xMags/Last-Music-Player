@@ -2478,6 +2478,8 @@ namespace
         Expect(discovery.MoodActivityShelf.has_value(), "mood and activity shelf was not parsed");
         Expect(discovery.MoodActivityShelf->Items.size() == 1,
             "mood and activity shelf items were not parsed");
+        Expect(discovery.MoodActivityShelf->Items[0].Subtitle.empty(),
+            "provider curator branding leaked into a catalog tile");
     }
 
     void TestCatalogChartAndDetailParsing()

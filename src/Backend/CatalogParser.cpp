@@ -4,6 +4,7 @@
 #include <winrt/Windows.Data.Json.h>
 
 #include <algorithm>
+#include <cwctype>
 
 namespace LastMusicPlayer::Backend
 {
@@ -36,6 +37,16 @@ namespace LastMusicPlayer::Backend
                 }
             }
             return {};
+        }
+
+        bool IsProviderCuratorLabel(winrt::hstring const& value)
+        {
+            std::wstring folded{ value.c_str() };
+            std::transform(folded.begin(), folded.end(), folded.begin(), [](wchar_t ch)
+            {
+                return static_cast<wchar_t>(std::towlower(ch));
+            });
+            return folded == L"apple music" || folded == L"apple-music";
         }
 
         double NumberValue(JsonObject const& object, wchar_t const* key, double fallback = 0.0)
@@ -221,7 +232,15 @@ namespace LastMusicPlayer::Backend
             item.RemoteId = StringValue(object, L"id");
             item.CatalogId = StringValue(object, L"catalogId");
             item.Title = FirstString(object, { L"title", L"name" });
-            item.Subtitle = FirstString(object, { L"artistName", L"curatorName" });
+            item.Subtitle = StringValue(object, L"artistName");
+            if (item.Subtitle.empty())
+            {
+                auto curator = StringValue(object, L"curatorName");
+                if (!IsProviderCuratorLabel(curator))
+                {
+                    item.Subtitle = curator;
+                }
+            }
             item.AlbumName = StringValue(object, L"albumName");
             auto artworkUrl = StringValue(object, L"artworkUrl");
             if (IsAbsoluteHttpUrl(artworkUrl))

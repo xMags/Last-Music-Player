@@ -2034,10 +2034,9 @@
                         </DataTemplate>
 
                         <!-- Same tile without the caption row, for shelves whose
-                             items are playlists. There the subtitle only restates
-                             the shelf ("Apple Music Fitness" under every mood
-                             tile); on song and album shelves it is the artist,
-                             which the template above keeps. -->
+                             items are playlists. Provider curator subtitles only
+                             restate the shelf; song and album subtitles remain
+                             useful artist context in the template above. -->
                         <DataTemplate x:Key="CatalogTileTitleOnlyTemplate" x:DataType="local:TrackInfo">
                             <Grid Width="156" Margin="0,0,20,0" VerticalAlignment="Top"
                                   PointerEntered="Card_PointerEntered" PointerExited="Card_PointerExited">
@@ -2094,7 +2093,7 @@
                                 </StackPanel>
                             </Button>
                             <StackPanel Spacing="4">
-                                <TextBlock Text="Apple Music" Style="{StaticResource EyebrowText}" />
+                                <TextBlock Text="CHARTS" Style="{StaticResource EyebrowText}" />
                                 <TextBlock x:Name="DiscoverChartGalleryTitle" Text="Explore charts" Style="{StaticResource TitleH1}" />
                                 <TextBlock x:Name="DiscoverChartGalleryStatus" Style="{StaticResource CaptionText}" Visibility="Collapsed" />
                             </StackPanel>
@@ -2238,12 +2237,7 @@
                                 </Border>
 
                                 <StackPanel Grid.Column="1" Spacing="6" VerticalAlignment="Bottom">
-                                    <StackPanel Orientation="Horizontal" Spacing="8">
-                                        <TextBlock x:Name="DiscoverDetailKindText" Text="ALBUM" Style="{StaticResource EyebrowText}" VerticalAlignment="Center" />
-                                        <Border Background="{ThemeResource AccentSoftBrush}" CornerRadius="{StaticResource RadiusPill}" Padding="7,2" VerticalAlignment="Center">
-                                            <TextBlock Text="APPLE MUSIC" FontSize="9" FontWeight="Bold" CharacterSpacing="60" Foreground="{ThemeResource AccentBrush}" />
-                                        </Border>
-                                    </StackPanel>
+                                    <TextBlock x:Name="DiscoverDetailKindText" Text="ALBUM" Style="{StaticResource EyebrowText}" VerticalAlignment="Center" />
                                     <TextBlock x:Name="DiscoverDetailTitleText" Text="Collection" Style="{StaticResource TitleHero}" TextTrimming="CharacterEllipsis" TextWrapping="Wrap" MaxLines="2" />
                                     <TextBlock x:Name="DiscoverDetailDescriptionText" Visibility="Collapsed" FontSize="13.5" Foreground="{ThemeResource TextSecondaryBrush}" MaxWidth="560" HorizontalAlignment="Left" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" />
                                     <!-- Meta row. Each dot is collapsed with the value it
