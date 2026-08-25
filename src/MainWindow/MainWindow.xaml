@@ -3321,127 +3321,200 @@
                                 </Grid>
                             </DataTemplate>
 
-                            <DataTemplate x:Key="ArtistReleaseCardTemplate" x:DataType="local:TrackInfo">
-                                <StackPanel Margin="0,0,20,20">
-                                    <Border CornerRadius="12" Background="{ThemeResource NeutralFillBrush}" Margin="0,0,0,10" SizeChanged="LibraryArtworkBorder_SizeChanged">
-                                        <Grid>
-                                            <FontIcon Glyph="&#xE8D6;" FontSize="34" Foreground="{ThemeResource PlaceholderGlyphBrush}" />
-                                            <Image Source="{x:Bind AlbumArt}" DataContext="{x:Bind}" Stretch="UniformToFill" Loaded="AccountArtwork_Loaded" />
-                                        </Grid>
-                                    </Border>
-                                    <TextBlock Text="{x:Bind Title}" Style="{StaticResource BodyStrong}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
-                                    <TextBlock Text="{x:Bind DateAdded}" Style="{StaticResource CaptionText}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" Margin="0,2,0,0" />
-                                </StackPanel>
+                            <DataTemplate x:Key="ArtistSongCardTemplate" x:DataType="local:TrackInfo">
+                                <Button Width="156" Padding="0" Tag="{x:Bind}" Click="ArtistTopSongCard_Click" Style="{StaticResource CardButton}" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Top" AutomationProperties.Name="{x:Bind Title}">
+                                    <StackPanel Width="156">
+                                        <Border Width="156" Height="156" CornerRadius="24" Background="{ThemeResource NeutralFillBrush}" Margin="0,0,0,10">
+                                            <Grid>
+                                                <FontIcon Glyph="&#xE8D6;" FontSize="34" Foreground="{ThemeResource PlaceholderGlyphBrush}" />
+                                                <Image Source="{x:Bind AlbumArt}" DataContext="{x:Bind}" Stretch="UniformToFill" Loaded="AccountArtwork_Loaded" />
+                                            </Grid>
+                                        </Border>
+                                        <TextBlock Text="{x:Bind Title}" FontSize="13.5" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                                        <TextBlock Text="{x:Bind Artist}" FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" Margin="0,2,0,0" />
+                                    </StackPanel>
+                                </Button>
                             </DataTemplate>
 
-                            <DataTemplate x:Key="RelatedArtistCardTemplate" x:DataType="local:TrackInfo">
-                                <StackPanel Margin="0,0,20,18" HorizontalAlignment="Stretch">
-                                    <Border CornerRadius="999" Background="{ThemeResource NeutralFillBrush}" Margin="0,0,0,10" SizeChanged="LibraryArtworkBorder_SizeChanged">
-                                        <Grid>
-                                            <FontIcon Glyph="&#xE77B;" FontSize="34" Foreground="{ThemeResource PlaceholderGlyphBrush}" />
-                                            <Image Source="{x:Bind AlbumArt}" DataContext="{x:Bind}" Stretch="UniformToFill" Loaded="AccountArtwork_Loaded" />
-                                        </Grid>
-                                    </Border>
-                                    <TextBlock Text="{x:Bind Title}" Style="{StaticResource BodyStrong}" TextAlignment="Center" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
-                                    <TextBlock Text="Artist" Style="{StaticResource CaptionText}" TextAlignment="Center" />
-                                </StackPanel>
+                            <DataTemplate x:Key="ArtistReleaseCardTemplate" x:DataType="local:TrackInfo">
+                                <Button Width="156" Padding="0" Tag="{x:Bind}" Click="ArtistReleaseCard_Click" Style="{StaticResource CardButton}" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Top" AutomationProperties.Name="{x:Bind Title}">
+                                    <StackPanel Width="156">
+                                        <Border Width="156" Height="156" CornerRadius="24" Background="{ThemeResource NeutralFillBrush}" Margin="0,0,0,10">
+                                            <Grid>
+                                                <FontIcon Glyph="&#xE8D6;" FontSize="34" Foreground="{ThemeResource PlaceholderGlyphBrush}" />
+                                                <Image Source="{x:Bind AlbumArt}" DataContext="{x:Bind}" Stretch="UniformToFill" Loaded="AccountArtwork_Loaded" />
+                                            </Grid>
+                                        </Border>
+                                        <TextBlock Text="{x:Bind Title}" FontSize="13.5" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                                        <TextBlock Text="{x:Bind Artist}" FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" Margin="0,2,0,0" />
+                                    </StackPanel>
+                                </Button>
+                            </DataTemplate>
+
+                            <DataTemplate x:Key="SimilarArtistCardTemplate" x:DataType="local:TrackInfo">
+                                <Button Width="156" Padding="0" Tag="{x:Bind}" Click="SimilarArtistCard_Click" Style="{StaticResource CardButton}" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Top" AutomationProperties.Name="{x:Bind Title}">
+                                    <StackPanel Width="156">
+                                        <Border Width="156" Height="156" CornerRadius="999" Background="{ThemeResource NeutralFillBrush}" Margin="0,0,0,10">
+                                            <Grid>
+                                                <FontIcon Glyph="&#xE77B;" FontSize="34" Foreground="{ThemeResource PlaceholderGlyphBrush}" />
+                                                <Image Source="{x:Bind AlbumArt}" DataContext="{x:Bind}" Stretch="UniformToFill" Loaded="AccountArtwork_Loaded" />
+                                            </Grid>
+                                        </Border>
+                                        <TextBlock Text="{x:Bind Title}" FontSize="13.5" FontWeight="SemiBold" TextAlignment="Center" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                                    </StackPanel>
+                                </Button>
                             </DataTemplate>
                         </Grid.Resources>
 
-                        <ScrollViewer x:Name="ArtistDetailScroll" VerticalScrollMode="Enabled" VerticalScrollBarVisibility="Hidden" HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled">
-                            <Grid x:Name="ArtistPagePanel" MaxWidth="1220" HorizontalAlignment="Center" Padding="0,0,0,40">
-                                <StackPanel Spacing="30">
-                                    <Button Click="ArtistDetailBack_Click" Style="{StaticResource CardButton}" HorizontalAlignment="Left" Padding="9,6" AutomationProperties.Name="Back">
-                                        <StackPanel Orientation="Horizontal" Spacing="7"><FontIcon Glyph="&#xE72B;" FontSize="12"/><TextBlock Text="Back" FontSize="13"/></StackPanel>
+                        <ScrollViewer x:Name="ArtistDetailScroll" VerticalScrollMode="Enabled" VerticalScrollBarVisibility="Hidden" HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled" SizeChanged="ArtistShelf_SizeChanged">
+                            <Grid x:Name="ArtistPagePanel" MaxWidth="1220" HorizontalAlignment="Center" Padding="0,2,0,40">
+                                <StackPanel>
+                                    <Button Click="ArtistDetailBack_Click" HorizontalAlignment="Left" Padding="0" Margin="0,0,0,22" Background="Transparent" BorderThickness="0" Foreground="{ThemeResource AccentBrush}" AutomationProperties.Name="Back">
+                                        <StackPanel Orientation="Horizontal" Spacing="6"><FontIcon Glyph="&#xE72B;" FontSize="12"/><TextBlock Text="Back" FontSize="12.5" FontWeight="SemiBold"/></StackPanel>
                                     </Button>
 
-                                    <Border x:Name="ArtistHero" Height="330" CornerRadius="22" Background="{ThemeResource AccentBrush}" HorizontalAlignment="Stretch">
-                                        <Grid>
-                                            <Grid.Background>
-                                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                                    <GradientStop Color="#FF132B35" Offset="0" />
-                                                    <GradientStop Color="#FF006F7F" Offset="0.55" />
-                                                    <GradientStop Color="#FF09171D" Offset="1" />
-                                                </LinearGradientBrush>
-                                            </Grid.Background>
-                                            <Image x:Name="ArtistHeroImage" Stretch="UniformToFill" Opacity="0" />
-                                            <Rectangle>
-                                                <Rectangle.Fill>
-                                                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                                                        <GradientStop Color="#10000000" Offset="0" />
-                                                        <GradientStop Color="#D9000000" Offset="1" />
-                                                    </LinearGradientBrush>
-                                                </Rectangle.Fill>
-                                            </Rectangle>
-                                            <StackPanel VerticalAlignment="Bottom" Margin="34" Spacing="10">
-                                                <TextBlock Text="ARTIST" Foreground="#DFFFFFFF" FontSize="11" FontWeight="Bold" CharacterSpacing="120" />
-                                                <TextBlock x:Name="ArtistDetailName" Text="Artist" Foreground="White" FontSize="44" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
-                                                <TextBlock x:Name="ArtistDetailGenres" Foreground="#D9FFFFFF" FontSize="14" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
-                                                <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,4,0,0">
-                                                    <Button x:Name="ArtistPlayButton" Content="Play" Click="ArtistDetailPlay_Click" Style="{StaticResource DesignPrimaryButton}" Padding="20,9" />
-                                                    <Button x:Name="ArtistShuffleButton" Content="Shuffle" Click="ArtistDetailShuffle_Click" Style="{StaticResource DesignSecondaryButton}" Padding="20,9" />
-                                                    <Button x:Name="ArtistFollowButton" Content="Follow" Click="ArtistDetailFollow_Click" Style="{StaticResource DesignSecondaryButton}" Padding="20,9" />
-                                                </StackPanel>
-                                            </StackPanel>
-                                        </Grid>
-                                    </Border>
+                                    <Grid x:Name="ArtistHeader" ColumnSpacing="34" Margin="0,0,0,34">
+                                        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                        <Border x:Name="ArtistPortraitBorder" Grid.Row="0" Grid.Column="0" Width="220" Height="220" CornerRadius="999" Background="{ThemeResource NeutralFillBrush}">
+                                            <Grid>
+                                                <FontIcon Glyph="&#xE77B;" FontSize="52" Foreground="{ThemeResource PlaceholderGlyphBrush}" />
+                                                <Image x:Name="ArtistPortraitImage" Stretch="UniformToFill" />
+                                            </Grid>
+                                        </Border>
+                                        <StackPanel x:Name="ArtistHeaderCopy" Grid.Row="0" Grid.Column="1" VerticalAlignment="Center" Spacing="0" Margin="0,8,0,8">
+                                            <TextBlock x:Name="ArtistEyebrow" Text="ARTIST" FontSize="16" />
+                                            <TextBlock x:Name="ArtistDetailName" Text="Artist" FontSize="32" LineHeight="37" FontWeight="Bold" TextWrapping="Wrap" Margin="0,8,0,0" />
+                                            <TextBlock x:Name="ArtistDetailGenres" FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,9,0,0" />
+                                        </StackPanel>
+                                    </Grid>
 
-                                    <Grid x:Name="ArtistLibraryStatus" Visibility="Collapsed" Padding="14,10" Background="{ThemeResource NeutralFillBrush}" CornerRadius="10" ColumnSpacing="12">
+                                    <Grid x:Name="ArtistLibraryStatus" Visibility="Collapsed" Padding="14,10" Margin="0,0,0,28" Background="{ThemeResource NeutralFillBrush}" CornerRadius="10" ColumnSpacing="12">
                                         <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                                         <FontIcon Glyph="&#xE8B7;" FontSize="14" Foreground="{ThemeResource TextSecondaryBrush}" VerticalAlignment="Center" />
                                         <TextBlock Grid.Column="1" Text="Showing your library" Style="{StaticResource CaptionText}" VerticalAlignment="Center" />
                                         <Button Grid.Column="2" Content="Retry" Click="ArtistDetailRetry_Click" Background="Transparent" BorderThickness="0" Foreground="{ThemeResource AccentBrush}" FontWeight="SemiBold" Padding="8,4" />
                                     </Grid>
 
-                                    <StackPanel x:Name="ArtistTopSongsSection" Spacing="12">
-                                        <TextBlock Text="Top Songs" Style="{StaticResource TitleH2}" />
-                                        <Grid x:Name="ArtistTopSongsGrid" ColumnSpacing="22">
-                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                            <ListView x:Name="ArtistTopSongsLeft" Grid.Column="0" ItemTemplate="{StaticResource ArtistSongRowTemplate}" SelectionMode="None" IsItemClickEnabled="True" ItemClick="ArtistTopSong_ItemClick" ScrollViewer.VerticalScrollMode="Disabled" />
-                                            <ListView x:Name="ArtistTopSongsRight" Grid.Column="1" ItemTemplate="{StaticResource ArtistSongRowTemplate}" SelectionMode="None" IsItemClickEnabled="True" ItemClick="ArtistTopSong_ItemClick" ScrollViewer.VerticalScrollMode="Disabled" />
+                                    <StackPanel x:Name="ArtistLatestReleaseSection" Margin="0,0,0,32">
+                                        <Grid ColumnSpacing="14" Margin="0,0,0,16">
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                            <TextBlock Text="Latest Release" FontSize="20" FontWeight="Bold" VerticalAlignment="Center" />
+                                            <Border Grid.Column="1" Background="{ThemeResource AccentSoftBrush}" CornerRadius="999" Padding="9,3" VerticalAlignment="Center">
+                                                <TextBlock Text="NEW" FontSize="10.5" FontWeight="SemiBold" CharacterSpacing="45" Foreground="{ThemeResource AccentBrush}" />
+                                            </Border>
                                         </Grid>
+                                        <ScrollViewer x:Name="ArtistLatestReleaseScroller" HorizontalScrollMode="Enabled" HorizontalScrollBarVisibility="Hidden" VerticalScrollMode="Disabled" VerticalScrollBarVisibility="Hidden" Padding="0,0,0,8">
+                                            <ItemsControl x:Name="ArtistLatestReleaseItems" ItemTemplate="{StaticResource ArtistReleaseCardTemplate}">
+                                                <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="20"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                            </ItemsControl>
+                                        </ScrollViewer>
                                     </StackPanel>
 
-                                    <StackPanel x:Name="ArtistAlbumsSection" Spacing="12">
-                                        <TextBlock Text="Albums" Style="{StaticResource TitleH2}" />
-                                        <GridView x:Name="ArtistAlbumsGrid" ItemTemplate="{StaticResource ArtistReleaseCardTemplate}" SelectionMode="None" IsItemClickEnabled="True" ItemClick="ArtistRelease_ItemClick" ItemContainerStyle="{StaticResource CardTileContainerStyle}" Margin="0,0,-20,0" Loaded="LibraryCardGrid_Loaded" SizeChanged="LibraryCardGrid_SizeChanged" ScrollViewer.VerticalScrollMode="Disabled" ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollMode="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-                                            <GridView.ItemsPanel><ItemsPanelTemplate><ItemsWrapGrid Orientation="Horizontal" ItemWidth="190" ItemHeight="240" /></ItemsPanelTemplate></GridView.ItemsPanel>
-                                        </GridView>
+                                    <StackPanel x:Name="ArtistTopSongsSection" Margin="0,0,0,32">
+                                        <Grid ColumnSpacing="14" Margin="0,0,0,16">
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                            <TextBlock Text="Top Songs" FontSize="20" FontWeight="Bold" VerticalAlignment="Center" />
+                                            <Border Grid.Column="1" Background="{ThemeResource AccentSoftBrush}" CornerRadius="999" Padding="9,3" VerticalAlignment="Center">
+                                                <TextBlock Text="TRENDING" FontSize="10.5" FontWeight="SemiBold" CharacterSpacing="45" Foreground="{ThemeResource AccentBrush}" />
+                                            </Border>
+                                            <Button x:Name="ArtistTopSongsViewMore" Grid.Column="3" Tag="top" Content="View more ›" Click="ArtistShelfViewMore_Click" Visibility="Collapsed" Background="Transparent" BorderThickness="0" Padding="0" Foreground="{ThemeResource AccentBrush}" FontSize="16" />
+                                        </Grid>
+                                        <ScrollViewer x:Name="ArtistTopSongsScroller" HorizontalScrollMode="Enabled" HorizontalScrollBarVisibility="Hidden" VerticalScrollMode="Disabled" VerticalScrollBarVisibility="Hidden" Padding="0,0,0,8" ViewChanged="ArtistShelf_ViewChanged" SizeChanged="ArtistShelf_SizeChanged">
+                                            <ItemsControl x:Name="ArtistTopSongsItems" ItemTemplate="{StaticResource ArtistSongCardTemplate}">
+                                                <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="20"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                            </ItemsControl>
+                                        </ScrollViewer>
                                     </StackPanel>
 
-                                    <StackPanel x:Name="ArtistSinglesSection" Spacing="12">
-                                        <TextBlock Text="Singles &amp; EPs" Style="{StaticResource TitleH2}" />
-                                        <GridView x:Name="ArtistSinglesGrid" ItemTemplate="{StaticResource ArtistReleaseCardTemplate}" SelectionMode="None" IsItemClickEnabled="True" ItemClick="ArtistRelease_ItemClick" ItemContainerStyle="{StaticResource CardTileContainerStyle}" Margin="0,0,-20,0" Loaded="LibraryCardGrid_Loaded" SizeChanged="LibraryCardGrid_SizeChanged" ScrollViewer.VerticalScrollMode="Disabled" ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollMode="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-                                            <GridView.ItemsPanel><ItemsPanelTemplate><ItemsWrapGrid Orientation="Horizontal" ItemWidth="190" ItemHeight="240" /></ItemsPanelTemplate></GridView.ItemsPanel>
-                                        </GridView>
+                                    <StackPanel x:Name="ArtistAlbumsSection" Margin="0,0,0,32">
+                                        <Grid ColumnSpacing="14" Margin="0,0,0,16">
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                            <TextBlock Text="Albums" FontSize="20" FontWeight="Bold" VerticalAlignment="Center" />
+                                            <Border Grid.Column="1" Background="{ThemeResource AccentSoftBrush}" CornerRadius="999" Padding="9,3" VerticalAlignment="Center">
+                                                <TextBlock Text="DISCOGRAPHY" FontSize="10.5" FontWeight="SemiBold" CharacterSpacing="45" Foreground="{ThemeResource AccentBrush}" />
+                                            </Border>
+                                            <Button x:Name="ArtistAlbumsViewMore" Grid.Column="3" Tag="albums" Content="View more ›" Click="ArtistShelfViewMore_Click" Visibility="Collapsed" Background="Transparent" BorderThickness="0" Padding="0" Foreground="{ThemeResource AccentBrush}" FontSize="16" />
+                                        </Grid>
+                                        <ScrollViewer x:Name="ArtistAlbumsScroller" HorizontalScrollMode="Enabled" HorizontalScrollBarVisibility="Hidden" VerticalScrollMode="Disabled" VerticalScrollBarVisibility="Hidden" Padding="0,0,0,8" ViewChanged="ArtistShelf_ViewChanged" SizeChanged="ArtistShelf_SizeChanged">
+                                            <ItemsControl x:Name="ArtistAlbumsItems" ItemTemplate="{StaticResource ArtistReleaseCardTemplate}">
+                                                <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="20"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                            </ItemsControl>
+                                        </ScrollViewer>
                                     </StackPanel>
 
-                                    <StackPanel x:Name="ArtistRelatedSection" Spacing="12">
-                                        <TextBlock Text="Related Artists" Style="{StaticResource TitleH2}" />
-                                        <GridView x:Name="ArtistRelatedGrid" ItemTemplate="{StaticResource RelatedArtistCardTemplate}" SelectionMode="None" IsItemClickEnabled="True" ItemClick="RelatedArtist_ItemClick" ItemContainerStyle="{StaticResource CardTileContainerStyle}" Margin="0,0,-20,0" Loaded="LibraryCardGrid_Loaded" SizeChanged="LibraryCardGrid_SizeChanged" ScrollViewer.VerticalScrollMode="Disabled" ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollMode="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-                                            <GridView.ItemsPanel><ItemsPanelTemplate><ItemsWrapGrid Orientation="Horizontal" ItemWidth="190" ItemHeight="240" /></ItemsPanelTemplate></GridView.ItemsPanel>
-                                        </GridView>
+                                    <StackPanel x:Name="ArtistSinglesSection" Margin="0,0,0,32">
+                                        <Grid ColumnSpacing="14" Margin="0,0,0,16">
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                            <TextBlock Text="Singles &amp; EPs" FontSize="20" FontWeight="Bold" VerticalAlignment="Center" />
+                                            <Border Grid.Column="1" Background="{ThemeResource AccentSoftBrush}" CornerRadius="999" Padding="9,3" VerticalAlignment="Center">
+                                                <TextBlock Text="RELEASES" FontSize="10.5" FontWeight="SemiBold" CharacterSpacing="45" Foreground="{ThemeResource AccentBrush}" />
+                                            </Border>
+                                            <Button x:Name="ArtistSinglesViewMore" Grid.Column="3" Tag="singles" Content="View more ›" Click="ArtistShelfViewMore_Click" Visibility="Collapsed" Background="Transparent" BorderThickness="0" Padding="0" Foreground="{ThemeResource AccentBrush}" FontSize="16" />
+                                        </Grid>
+                                        <ScrollViewer x:Name="ArtistSinglesScroller" HorizontalScrollMode="Enabled" HorizontalScrollBarVisibility="Hidden" VerticalScrollMode="Disabled" VerticalScrollBarVisibility="Hidden" Padding="0,0,0,8" ViewChanged="ArtistShelf_ViewChanged" SizeChanged="ArtistShelf_SizeChanged">
+                                            <ItemsControl x:Name="ArtistSinglesItems" ItemTemplate="{StaticResource ArtistReleaseCardTemplate}">
+                                                <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="20"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                            </ItemsControl>
+                                        </ScrollViewer>
                                     </StackPanel>
 
-                                    <StackPanel x:Name="ArtistAboutSection" Spacing="10" MaxWidth="760" HorizontalAlignment="Left">
-                                        <TextBlock Text="About" Style="{StaticResource TitleH2}" />
-                                        <TextBlock x:Name="ArtistBiographyText" FontSize="14" LineHeight="22" Foreground="{ThemeResource TextSecondaryBrush}" TextWrapping="Wrap" MaxLines="5" TextTrimming="CharacterEllipsis" />
-                                        <Button x:Name="ArtistAboutToggle" Content="More" Click="ArtistAboutToggle_Click" HorizontalAlignment="Left" Background="Transparent" BorderThickness="0" Padding="0,4" Foreground="{ThemeResource AccentBrush}" FontWeight="SemiBold" />
+                                    <StackPanel x:Name="ArtistSimilarSection" Margin="0,0,0,32">
+                                        <Grid ColumnSpacing="14" Margin="0,0,0,16">
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                            <TextBlock Text="Similar Artists" FontSize="20" FontWeight="Bold" VerticalAlignment="Center" />
+                                            <Border Grid.Column="1" Background="{ThemeResource AccentSoftBrush}" CornerRadius="999" Padding="9,3" VerticalAlignment="Center">
+                                                <TextBlock Text="DISCOVER" FontSize="10.5" FontWeight="SemiBold" CharacterSpacing="45" Foreground="{ThemeResource AccentBrush}" />
+                                            </Border>
+                                            <Button x:Name="ArtistSimilarViewMore" Grid.Column="3" Tag="similar" Content="View more ›" Click="ArtistShelfViewMore_Click" Visibility="Collapsed" Background="Transparent" BorderThickness="0" Padding="0" Foreground="{ThemeResource AccentBrush}" FontSize="16" />
+                                        </Grid>
+                                        <ScrollViewer x:Name="ArtistSimilarScroller" HorizontalScrollMode="Enabled" HorizontalScrollBarVisibility="Hidden" VerticalScrollMode="Disabled" VerticalScrollBarVisibility="Hidden" Padding="0,0,0,8" ViewChanged="ArtistShelf_ViewChanged" SizeChanged="ArtistShelf_SizeChanged">
+                                            <ItemsControl x:Name="ArtistSimilarItems" ItemTemplate="{StaticResource SimilarArtistCardTemplate}">
+                                                <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="20"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                            </ItemsControl>
+                                        </ScrollViewer>
                                     </StackPanel>
                                 </StackPanel>
                             </Grid>
                         </ScrollViewer>
 
-                        <Grid x:Name="ArtistDetailSkeleton" Background="{ThemeResource ContentCanvasBrush}" Padding="0,0,0,40">
-                            <StackPanel Spacing="24" MaxWidth="1220" HorizontalAlignment="Center">
-                                <Border Width="72" Height="30" CornerRadius="8" Background="{ThemeResource NeutralFillBrush}" HorizontalAlignment="Left" />
-                                <Border Height="330" CornerRadius="22" Background="{ThemeResource NeutralFillBrush}" />
-                                <Border Width="150" Height="28" CornerRadius="6" Background="{ThemeResource NeutralFillBrush}" />
-                                <Grid ColumnSpacing="22">
-                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                    <StackPanel Spacing="10"><Border Height="54" CornerRadius="8" Background="{ThemeResource NeutralFillBrush}"/><Border Height="54" CornerRadius="8" Background="{ThemeResource NeutralFillBrush}"/><Border Height="54" CornerRadius="8" Background="{ThemeResource NeutralFillBrush}"/></StackPanel>
-                                    <StackPanel Grid.Column="1" Spacing="10"><Border Height="54" CornerRadius="8" Background="{ThemeResource NeutralFillBrush}"/><Border Height="54" CornerRadius="8" Background="{ThemeResource NeutralFillBrush}"/><Border Height="54" CornerRadius="8" Background="{ThemeResource NeutralFillBrush}"/></StackPanel>
+                        <Grid x:Name="ArtistDetailSkeleton" Background="{ThemeResource ContentCanvasBrush}" Padding="0,2,0,40">
+                            <StackPanel MaxWidth="1220" HorizontalAlignment="Center">
+                                <Border Width="48" Height="17" CornerRadius="5" Background="{ThemeResource NeutralFillBrush}" HorizontalAlignment="Left" Margin="0,0,0,22" />
+                                <Grid x:Name="ArtistSkeletonHeader" ColumnSpacing="34" Margin="0,0,0,34">
+                                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                    <Border x:Name="ArtistSkeletonPortrait" Width="220" Height="220" CornerRadius="999" Background="{ThemeResource NeutralFillBrush}" />
+                                    <StackPanel x:Name="ArtistSkeletonCopy" Grid.Column="1" VerticalAlignment="Center" Spacing="10">
+                                        <Border Width="72" Height="18" CornerRadius="5" Background="{ThemeResource NeutralFillBrush}" HorizontalAlignment="Left" />
+                                        <Border Width="240" Height="37" CornerRadius="7" Background="{ThemeResource NeutralFillBrush}" HorizontalAlignment="Left" />
+                                        <Border Width="150" Height="16" CornerRadius="5" Background="{ThemeResource NeutralFillBrush}" HorizontalAlignment="Left" />
+                                    </StackPanel>
                                 </Grid>
+                                <StackPanel Margin="0,0,0,32">
+                                    <Border Width="190" Height="28" CornerRadius="6" Background="{ThemeResource NeutralFillBrush}" Margin="0,0,0,16" />
+                                    <StackPanel Orientation="Horizontal" Spacing="20">
+                                        <StackPanel Width="156" Spacing="10"><Border Width="156" Height="156" CornerRadius="24" Background="{ThemeResource NeutralFillBrush}"/><Border Width="138" Height="18" CornerRadius="5" Background="{ThemeResource NeutralFillBrush}"/><Border Width="104" Height="14" CornerRadius="5" Background="{ThemeResource NeutralFillBrush}"/></StackPanel>
+                                    </StackPanel>
+                                </StackPanel>
+                                <StackPanel Margin="0,0,0,32">
+                                    <Border Width="220" Height="28" CornerRadius="6" Background="{ThemeResource NeutralFillBrush}" Margin="0,0,0,16" />
+                                    <StackPanel Orientation="Horizontal" Spacing="20">
+                                        <Border Width="156" Height="202" CornerRadius="24" Background="{ThemeResource NeutralFillBrush}"/>
+                                        <Border Width="156" Height="202" CornerRadius="24" Background="{ThemeResource NeutralFillBrush}"/>
+                                        <Border Width="156" Height="202" CornerRadius="24" Background="{ThemeResource NeutralFillBrush}"/>
+                                        <Border Width="156" Height="202" CornerRadius="24" Background="{ThemeResource NeutralFillBrush}"/>
+                                    </StackPanel>
+                                </StackPanel>
+                                <StackPanel>
+                                    <Border Width="190" Height="28" CornerRadius="6" Background="{ThemeResource NeutralFillBrush}" Margin="0,0,0,16" />
+                                    <StackPanel Orientation="Horizontal" Spacing="20">
+                                        <Border Width="156" Height="202" CornerRadius="24" Background="{ThemeResource NeutralFillBrush}"/>
+                                        <Border Width="156" Height="202" CornerRadius="24" Background="{ThemeResource NeutralFillBrush}"/>
+                                        <Border Width="156" Height="202" CornerRadius="24" Background="{ThemeResource NeutralFillBrush}"/>
+                                        <Border Width="156" Height="202" CornerRadius="24" Background="{ThemeResource NeutralFillBrush}"/>
+                                    </StackPanel>
+                                </StackPanel>
                             </StackPanel>
                         </Grid>
 

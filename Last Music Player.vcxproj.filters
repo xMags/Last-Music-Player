@@ -160,6 +160,9 @@
     <ClInclude Include="src\Frontend\ResponsiveCardLayout.h">
       <Filter>Frontend</Filter>
     </ClInclude>
+    <ClInclude Include="src\Frontend\ArtistPagePolicy.h">
+      <Filter>Frontend</Filter>
+    </ClInclude>
     <ClInclude Include="src\Frontend\BrowseResultItem.h">
       <Filter>Frontend</Filter>
     </ClInclude>

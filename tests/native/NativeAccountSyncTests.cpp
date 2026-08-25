@@ -4289,6 +4289,20 @@ namespace
             && targets[1].Source == account::AccountArtistDetailSource::LastMusic
             && targets[1].Identity.CatalogId == L"UC-last-music",
             "account artist detail targets were not ordered Apple first");
+        auto const appleRequest = account::RemoteIdentityFor(targets[0]);
+        auto const lastMusicRequest = account::RemoteIdentityFor(targets[1]);
+        Expect(appleRequest.CatalogId == L"152750"
+                && lastMusicRequest.CatalogId == L"UC-last-music"
+                && plan.LibraryArtistId == L"artist_public_1",
+            "Apple-first detail loading changed the public ID used by follow mutations");
+        auto unfollowedArtist = artist;
+        unfollowedArtist.Followed = false;
+        auto const unfollowedPlan = account::BuildAccountArtistDetailPlan(unfollowedArtist);
+        Expect(unfollowedPlan.LibraryArtistId == plan.LibraryArtistId
+                && !unfollowedPlan.Followed
+                && account::OrderedAccountArtistDetailTargets(unfollowedPlan).front().Source
+                    == account::AccountArtistDetailSource::AppleMusic,
+            "follow state should change independently of Apple-first detail identity");
 
         for (auto const& malformed : {
             std::wstring{}, std::wstring{ L" 152750" }, std::wstring{ L"+152750" },

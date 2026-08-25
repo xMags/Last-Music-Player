@@ -8,6 +8,7 @@
 #include "Backend/AccountArtistDetailPolicy.h"
 #include "Backend/LibraryArtistContract.h"
 #include "Backend/DetailSortPolicy.h"
+#include "Frontend/ArtistPagePolicy.h"
 #include "Frontend/Skeleton.h"
 // The generated XamlTypeInfo activator for a code-only local control only
 // sees implementation types through the XAML pages' own headers, so the
@@ -359,11 +360,13 @@ namespace winrt::Last_Music_Player::implementation
         void ArtistDetailRetry_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void ArtistDetailPlay_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void ArtistDetailShuffle_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
-        void ArtistDetailFollow_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void ArtistTopSongCard_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void ArtistReleaseCard_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void SimilarArtistCard_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void ArtistShelfViewMore_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void ArtistShelf_ViewChanged(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::ScrollViewerViewChangedEventArgs const& args);
+        void ArtistShelf_SizeChanged(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::SizeChangedEventArgs const& args);
         void ArtistTopSong_ItemClick(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::ItemClickEventArgs const& args);
-        void ArtistRelease_ItemClick(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::ItemClickEventArgs const& args);
-        void RelatedArtist_ItemClick(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::ItemClickEventArgs const& args);
-        void ArtistAboutToggle_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void ArtistDetail_SizeChanged(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::SizeChangedEventArgs const& args);
         void ProviderAlbumTrack_ItemClick(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::ItemClickEventArgs const& args);
 
@@ -386,7 +389,7 @@ namespace winrt::Last_Music_Player::implementation
             LastMusicPlayer::Backend::RemoteDetailIdentity Identity;
             std::optional<LastMusicPlayer::Backend::AccountArtistDetailPlan> AccountPlan;
             bool LocalFallback{ false };
-            double ScrollOffset{ 0.0 };
+            LastMusicPlayer::Frontend::ArtistPageScrollState ScrollState;
         };
         struct LocalArtistDetailResult
         {
@@ -738,7 +741,6 @@ namespace winrt::Last_Music_Player::implementation
         winrt::Windows::Foundation::IAsyncAction SetAccountArtistFollowedAsync(
             winrt::Last_Music_Player::TrackInfo artist,
             bool followed);
-        void UpdateArtistDetailFollowButton();
         winrt::Windows::Foundation::IAsyncAction HydrateArtistLibraryArtworkAsync(
             winrt::Microsoft::UI::Xaml::Controls::Border border,
             winrt::Last_Music_Player::TrackInfo artist,
@@ -826,8 +828,13 @@ namespace winrt::Last_Music_Player::implementation
             uint64_t requestEpoch,
             bool manualRetry);
         void RenderArtistDetail(LastMusicPlayer::Backend::RemoteArtistDetail const& detail, bool localFallback);
-        void ReflowArtistTopSongs(double width);
-        void ApplyArtistHeroArtwork(winrt::hstring const& artworkUrl);
+        void ApplyArtistHeaderLayout(double availableWidth);
+        void ApplyArtistPortraitArtwork(winrt::hstring const& artworkUrl);
+        [[nodiscard]] LastMusicPlayer::Frontend::ArtistPageScrollState CaptureArtistPageScrollState();
+        void RestoreArtistPageScrollState(LastMusicPlayer::Frontend::ArtistPageScrollState const& state);
+        void ApplyPendingArtistPageScrollState();
+        void ResetArtistShelfOffsets();
+        void UpdateArtistShelfButtons();
         LocalArtistDetailResult BuildLocalArtistDetail(
             winrt::hstring const& artistName,
             winrt::hstring const& artworkUrl);
@@ -1360,10 +1367,10 @@ namespace winrt::Last_Music_Player::implementation
         std::vector<winrt::Last_Music_Player::TrackInfo> m_songsAllResults;
         std::vector<winrt::Last_Music_Player::TrackInfo> m_librarySongAllResults;
         std::vector<winrt::Last_Music_Player::TrackInfo> m_libraryDetailAllResults;
-        winrt::Windows::Foundation::Collections::IObservableVector<winrt::Last_Music_Player::TrackInfo> m_artistTopSongsLeft{
+        winrt::Windows::Foundation::Collections::IObservableVector<winrt::Last_Music_Player::TrackInfo> m_artistLatestRelease{
             winrt::single_threaded_observable_vector<winrt::Last_Music_Player::TrackInfo>()
         };
-        winrt::Windows::Foundation::Collections::IObservableVector<winrt::Last_Music_Player::TrackInfo> m_artistTopSongsRight{
+        winrt::Windows::Foundation::Collections::IObservableVector<winrt::Last_Music_Player::TrackInfo> m_artistTopSongsShelf{
             winrt::single_threaded_observable_vector<winrt::Last_Music_Player::TrackInfo>()
         };
         winrt::Windows::Foundation::Collections::IObservableVector<winrt::Last_Music_Player::TrackInfo> m_artistAlbums{
@@ -1389,9 +1396,9 @@ namespace winrt::Last_Music_Player::implementation
         std::wstring m_artistOriginNav;
         uint64_t m_artistRequestEpoch{ 0 };
         bool m_artistAlbumOpen{ false };
-        bool m_artistAboutExpanded{ false };
         bool m_artistUsingLocalFallback{ false };
-        double m_artistScrollOffset{ 0.0 };
+        LastMusicPlayer::Frontend::ArtistPageScrollState m_artistAlbumScrollState;
+        std::optional<LastMusicPlayer::Frontend::ArtistPageScrollState> m_pendingArtistScrollState;
         winrt::Windows::Foundation::IAsyncAction m_artistLoadOperation{ nullptr };
         winrt::Windows::Foundation::IAsyncAction m_albumLoadOperation{ nullptr };
         std::vector<uint32_t> m_libraryDetailSelection;

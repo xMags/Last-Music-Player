@@ -8,6 +8,7 @@
 #include "Backend/RecentSearchStore.h"
 #include "Backend/ResumePositionPolicy.h"
 #include "Backend/ArtistLibraryPolicy.h"
+#include "Frontend/ArtistPagePolicy.h"
 #include "Frontend/ResponsiveCardLayout.h"
 #include "Frontend/RoundedCornerPolicy.h"
 
@@ -364,6 +365,57 @@ namespace
             "normalized exact artist names were not merged as the final fallback");
     }
 
+    void TestArtistPagePolicy()
+    {
+        using LastMusicPlayer::Frontend::ArtistPageScrollState;
+        using LastMusicPlayer::Frontend::CalculateArtistHeaderLayout;
+        using LastMusicPlayer::Frontend::CanAdvanceArtistShelf;
+        using LastMusicPlayer::Frontend::ClampArtistPageScrollState;
+        using LastMusicPlayer::Frontend::LatestArtistReleaseIndex;
+        using LastMusicPlayer::Frontend::NextArtistShelfOffset;
+
+        auto const emptyLatest = LatestArtistReleaseIndex(0, false);
+        auto const localLatest = LatestArtistReleaseIndex(4, true);
+        auto const providerLatest = LatestArtistReleaseIndex(4, false);
+        Expect(!emptyLatest && !localLatest,
+            "an empty or synthesized local release list should not claim a latest release");
+        Expect(providerLatest && *providerLatest == 0,
+            "the first provider-ordered release should be selected as latest");
+
+        auto const narrow = CalculateArtistHeaderLayout(766.0);
+        auto const breakpoint = CalculateArtistHeaderLayout(767.0);
+        auto const medium = CalculateArtistHeaderLayout(863.2);
+        auto const wide = CalculateArtistHeaderLayout(1200.0);
+        auto const compact = CalculateArtistHeaderLayout(500.0);
+        Expect(narrow.Stacked && std::abs(narrow.PortraitSize - 214.48) < 0.001,
+            "artist header should stack below 767 px without changing its proportional portrait");
+        Expect(!breakpoint.Stacked,
+            "artist header should remain side by side at the 767 px breakpoint");
+        Expect(!medium.Stacked && std::abs(medium.PortraitSize - 241.696) < 0.001,
+            "artist portrait should use 28 percent of available desktop width");
+        Expect(compact.PortraitSize == 180.0 && wide.PortraitSize == 260.0,
+            "artist portrait should clamp between 180 and 260 px");
+
+        Expect(NextArtistShelfOffset(0.0, 1000.0, 3000.0) == 850.0,
+            "artist shelf paging should preserve part of the previous viewport");
+        Expect(NextArtistShelfOffset(2800.0, 1000.0, 3000.0) == 3000.0,
+            "artist shelf paging should clamp at the final card");
+        Expect(CanAdvanceArtistShelf(0.0, 3000.0)
+                && !CanAdvanceArtistShelf(3000.0, 3000.0)
+                && !CanAdvanceArtistShelf(0.0, 0.0),
+            "artist View more visibility should track overflow and the shelf end");
+
+        ArtistPageScrollState const requested{ 900.0, 100.0, 700.0, -20.0, 250.0 };
+        ArtistPageScrollState const extents{ 500.0, 600.0, 650.0, 400.0, 200.0 };
+        auto const restored = ClampArtistPageScrollState(requested, extents);
+        Expect(restored.Vertical == 500.0
+                && restored.TopSongs == 100.0
+                && restored.Albums == 650.0
+                && restored.Singles == 0.0
+                && restored.SimilarArtists == 200.0,
+            "artist navigation should restore every shelf independently within its new extent");
+    }
+
     void TestResumePositionPolicy()
     {
         Expect(policy::ResumePositionToStore(5.0, 300.0) == 0.0,
@@ -398,6 +450,7 @@ int main()
         TestDownloadPolicy();
         TestRoundedCornerClipPolicy();
         TestArtistLibraryIdentityPolicy();
+        TestArtistPagePolicy();
         std::wcout << L"PlayerScreenPolicyTests passed" << std::endl;
         return 0;
     }

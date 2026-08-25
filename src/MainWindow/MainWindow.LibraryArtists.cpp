@@ -339,23 +339,12 @@ namespace winrt::Last_Music_Player::implementation
         {
             co_return;
         }
-        if (m_currentAccountArtistPlan
-            && m_currentAccountArtistPlan->LibraryArtistId == publicId)
-        {
-            UpdateArtistDetailFollowButton();
-        }
-
         auto& remote = detail::RemoteMusicServiceService();
         auto const scope = remote.CaptureScope();
         if (scope.Mode != LastMusicPlayer::Backend::RemoteAccessMode::Account
             || !remote.IsModeAvailable(scope.Mode))
         {
             m_artistFollowMutations.erase(publicId);
-            if (m_currentAccountArtistPlan
-                && m_currentAccountArtistPlan->LibraryArtistId == publicId)
-            {
-                UpdateArtistDetailFollowButton();
-            }
             co_return;
         }
         if (ArtistLibraryStatusText())
@@ -374,21 +363,11 @@ namespace winrt::Last_Music_Player::implementation
         catch (winrt::hresult_canceled const&)
         {
             m_artistFollowMutations.erase(publicId);
-            if (m_currentAccountArtistPlan
-                && m_currentAccountArtistPlan->LibraryArtistId == publicId)
-            {
-                UpdateArtistDetailFollowButton();
-            }
             co_return;
         }
         catch (winrt::hresult_error const& error)
         {
             m_artistFollowMutations.erase(publicId);
-            if (m_currentAccountArtistPlan
-                && m_currentAccountArtistPlan->LibraryArtistId == publicId)
-            {
-                UpdateArtistDetailFollowButton();
-            }
             if (remote.IsCurrent(scope) && ArtistLibraryStatusText())
             {
                 auto const status = LastMusicPlayer::Backend::AccountHttpStatus(error);
@@ -402,11 +381,6 @@ namespace winrt::Last_Music_Player::implementation
         catch (...)
         {
             m_artistFollowMutations.erase(publicId);
-            if (m_currentAccountArtistPlan
-                && m_currentAccountArtistPlan->LibraryArtistId == publicId)
-            {
-                UpdateArtistDetailFollowButton();
-            }
             if (remote.IsCurrent(scope) && ArtistLibraryStatusText())
             {
                 ArtistLibraryStatusText().Text(L"Could not update artist follow state.");
@@ -424,7 +398,6 @@ namespace winrt::Last_Music_Player::implementation
             && m_currentAccountArtistPlan->LibraryArtistId == publicId)
         {
             m_currentAccountArtistPlan->Followed = followed;
-            UpdateArtistDetailFollowButton();
         }
         co_await LoadAccountLibraryArtistsAsync(false);
     }

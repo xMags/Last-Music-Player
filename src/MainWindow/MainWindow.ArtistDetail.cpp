@@ -5,6 +5,8 @@
 #include "Backend/AccountClient.h"
 #include "Backend/AccountArtistDetailPolicy.h"
 #include "Backend/ProviderHelpers.h"
+#include "Frontend/ArtistPagePolicy.h"
+#include "Frontend/RoundedCornerClip.h"
 #include "Frontend/UIHelpers.h"
 
 #include <winrt/Windows.System.Threading.h>
@@ -53,16 +55,16 @@ namespace winrt::Last_Music_Player::implementation
                 LastMusicPlayer::Backend::AccountArtistDetailCacheDiscriminator(target));
         }
 
-        winrt::hstring JoinGenres(std::vector<winrt::hstring> const& genres)
+        winrt::hstring ArtistMetadata(std::vector<winrt::hstring> const& genres)
         {
-            std::wstring text;
+            std::wstring text{ L"artist" };
             for (auto const& genre : genres)
             {
-                if (!text.empty())
+                if (!genre.empty())
                 {
-                    text += L"  ·  ";
+                    text += L" · ";
+                    text += genre.c_str();
                 }
-                text += genre.c_str();
             }
             return winrt::hstring{ text };
         }
@@ -408,7 +410,8 @@ namespace winrt::Last_Music_Player::implementation
         ProviderAlbumPanel().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
         ArtistDetailSkeleton().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Visible);
         m_artistAlbumOpen = false;
-        m_artistAboutExpanded = false;
+        m_pendingArtistScrollState.reset();
+        ResetArtistShelfOffsets();
         m_currentArtistIdentity = { catalogId, sourceUrl, artistName };
         if (sourceGroup && m_currentArtistIdentity.CatalogId.empty())
         {
@@ -722,10 +725,9 @@ namespace winrt::Last_Music_Player::implementation
         m_currentArtistDetail = artistDetail;
         m_artistUsingLocalFallback = localFallback;
         m_artistAlbumOpen = false;
-        m_artistAboutExpanded = false;
         m_artistTopSongs.clear();
-        m_artistTopSongsLeft.Clear();
-        m_artistTopSongsRight.Clear();
+        m_artistLatestRelease.Clear();
+        m_artistTopSongsShelf.Clear();
         m_artistAlbums.Clear();
         m_artistSingles.Clear();
         m_artistRelated.Clear();
@@ -734,16 +736,7 @@ namespace winrt::Last_Music_Player::implementation
         ArtistDetailName().Text(artistDetail.Artist.Name.empty()
             ? m_currentArtistIdentity.Name
             : artistDetail.Artist.Name);
-        ArtistDetailGenres().Text(JoinGenres(artistDetail.GenreNames));
-        ArtistBiographyText().Text(artistDetail.Biography);
-        ArtistBiographyText().MaxLines(5);
-        ArtistAboutToggle().Content(winrt::box_value(L"More"));
-        ArtistAboutSection().Visibility(artistDetail.Biography.empty()
-            ? winrt::Microsoft::UI::Xaml::Visibility::Collapsed
-            : winrt::Microsoft::UI::Xaml::Visibility::Visible);
-        ArtistAboutToggle().Visibility(artistDetail.Biography.size() > 420
-            ? winrt::Microsoft::UI::Xaml::Visibility::Visible
-            : winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
+        ArtistDetailGenres().Text(ArtistMetadata(artistDetail.GenreNames));
 
         if (localFallback)
         {
@@ -754,6 +747,7 @@ namespace winrt::Last_Music_Player::implementation
                 track.Index(static_cast<int32_t>(index + 1));
                 detail::ResolveArtworkPresentation(track, L"track");
                 m_artistTopSongs.push_back(track);
+                m_artistTopSongsShelf.Append(track);
             }
         }
         else
@@ -761,21 +755,23 @@ namespace winrt::Last_Music_Player::implementation
             m_artistLocalAllTracks.clear();
             for (std::size_t index = 0; index < artistDetail.TopSongs.size(); ++index)
             {
-                m_artistTopSongs.push_back(ArtistTrackFromCatalogItem(
+                auto track = ArtistTrackFromCatalogItem(
                     artistDetail.TopSongs[index],
-                    static_cast<int32_t>(index + 1)));
+                    static_cast<int32_t>(index + 1));
+                m_artistTopSongs.push_back(track);
+                m_artistTopSongsShelf.Append(track);
             }
         }
-        ReflowArtistTopSongs(ArtistDetailContent().ActualWidth());
         ArtistTopSongsSection().Visibility(m_artistTopSongs.empty()
             ? winrt::Microsoft::UI::Xaml::Visibility::Collapsed
             : winrt::Microsoft::UI::Xaml::Visibility::Visible);
-        ArtistPlayButton().IsEnabled(!m_artistTopSongs.empty());
-        ArtistShuffleButton().IsEnabled(!m_artistTopSongs.empty());
-        UpdateArtistDetailFollowButton();
 
-        for (auto const& summary : artistDetail.Releases)
+        auto const latestReleaseIndex = LastMusicPlayer::Frontend::LatestArtistReleaseIndex(
+            artistDetail.Releases.size(),
+            localFallback);
+        for (std::size_t index = 0; index < artistDetail.Releases.size(); ++index)
         {
+            auto const& summary = artistDetail.Releases[index];
             winrt::Last_Music_Player::TrackInfo release;
             release.Title(summary.Release.Title);
             release.Artist(summary.Release.Subtitle.empty() ? ArtistDetailName().Text() : summary.Release.Subtitle);
@@ -795,6 +791,10 @@ namespace winrt::Last_Music_Player::implementation
             meta += ReleaseKindText(summary.Kind).c_str();
             release.DateAdded(winrt::hstring{ meta });
             detail::ApplyMusicArtwork(release, release.ArtworkUrl(), L"album");
+            if (latestReleaseIndex && *latestReleaseIndex == index)
+            {
+                m_artistLatestRelease.Append(release);
+            }
             if (summary.Kind == LastMusicPlayer::Backend::RemoteReleaseKind::Album)
             {
                 m_artistAlbums.Append(release);
@@ -804,6 +804,9 @@ namespace winrt::Last_Music_Player::implementation
                 m_artistSingles.Append(release);
             }
         }
+        ArtistLatestReleaseSection().Visibility(m_artistLatestRelease.Size() == 0
+            ? winrt::Microsoft::UI::Xaml::Visibility::Collapsed
+            : winrt::Microsoft::UI::Xaml::Visibility::Visible);
         ArtistAlbumsSection().Visibility(m_artistAlbums.Size() == 0
             ? winrt::Microsoft::UI::Xaml::Visibility::Collapsed
             : winrt::Microsoft::UI::Xaml::Visibility::Visible);
@@ -824,53 +827,38 @@ namespace winrt::Last_Music_Player::implementation
             detail::ApplyMusicArtwork(related, related.ArtworkUrl(), L"artist");
             m_artistRelated.Append(related);
         }
-        ArtistRelatedSection().Visibility(m_artistRelated.Size() == 0
+        ArtistSimilarSection().Visibility(m_artistRelated.Size() == 0
             ? winrt::Microsoft::UI::Xaml::Visibility::Collapsed
             : winrt::Microsoft::UI::Xaml::Visibility::Visible);
 
         ArtistLibraryStatus().Visibility(localFallback
             ? winrt::Microsoft::UI::Xaml::Visibility::Visible
             : winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
-        auto heroArtwork = artistDetail.HeroArtworkUrl.empty()
-            ? artistDetail.Artist.ArtworkUrl
-            : artistDetail.HeroArtworkUrl;
-        ApplyArtistHeroArtwork(heroArtwork);
+        auto portraitArtwork = artistDetail.Artist.ArtworkUrl.empty()
+            ? artistDetail.HeroArtworkUrl
+            : artistDetail.Artist.ArtworkUrl;
+        ApplyArtistPortraitArtwork(portraitArtwork);
         ArtistDetailSkeleton().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
         ProviderAlbumPanel().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
         ArtistDetailScroll().Visibility(winrt::Microsoft::UI::Xaml::Visibility::Visible);
         ArtistDetailScroll().ChangeView(nullptr, 0.0, nullptr, true);
-    }
-
-    void MainWindow::ReflowArtistTopSongs(double width)
-    {
-        m_artistTopSongsLeft.Clear();
-        m_artistTopSongsRight.Clear();
-        auto const wide = width >= 860.0;
-        for (std::size_t index = 0; index < m_artistTopSongs.size(); ++index)
+        ResetArtistShelfOffsets();
+        auto weak = get_weak();
+        DispatcherQueue().TryEnqueue([weak]()
         {
-            if (wide && index >= 5)
+            if (auto self = weak.get())
             {
-                m_artistTopSongsRight.Append(m_artistTopSongs[index]);
+                self->UpdateArtistShelfButtons();
+                self->ApplyPendingArtistPageScrollState();
             }
-            else
-            {
-                m_artistTopSongsLeft.Append(m_artistTopSongs[index]);
-            }
-        }
-        ArtistTopSongsRight().Visibility(wide && m_artistTopSongsRight.Size() > 0
-            ? winrt::Microsoft::UI::Xaml::Visibility::Visible
-            : winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
-        ArtistTopSongsGrid().ColumnDefinitions().GetAt(1).Width(
-            wide
-                ? winrt::Microsoft::UI::Xaml::GridLengthHelper::FromValueAndType(1.0, winrt::Microsoft::UI::Xaml::GridUnitType::Star)
-                : winrt::Microsoft::UI::Xaml::GridLengthHelper::FromPixels(0.0));
+        });
     }
 
-    void MainWindow::ApplyArtistHeroArtwork(winrt::hstring const& artworkUrl)
+    void MainWindow::ApplyArtistPortraitArtwork(winrt::hstring const& artworkUrl)
     {
-        ArtistHeroImage().Tag(nullptr);
-        ArtistHeroImage().Source(nullptr);
-        ArtistHeroImage().Opacity(0.0);
+        ArtistPortraitImage().Tag(nullptr);
+        ArtistPortraitImage().Source(nullptr);
+        ArtistPortraitImage().Opacity(1.0);
         if (artworkUrl.empty())
         {
             return;
@@ -882,11 +870,11 @@ namespace winrt::Last_Music_Player::implementation
         artworkTrack.ArtworkUrl(artworkUrl);
         artworkTrack.SourceUrl(m_currentArtistIdentity.SourceUrl);
         artworkTrack.SourceKind(L"remote");
-        ArtistHeroImage().DataContext(artworkTrack);
+        ArtistPortraitImage().DataContext(artworkTrack);
         if (detail::RemoteMusicServiceService().Mode() == LastMusicPlayer::Backend::RemoteAccessMode::Account)
         {
             QueueAccountArtworkImage(
-                ArtistHeroImage(),
+                ArtistPortraitImage(),
                 artworkUrl,
                 detail::ArtworkDetail::Hero,
                 artworkTrack,
@@ -896,9 +884,166 @@ namespace winrt::Last_Music_Player::implementation
         auto bitmap = detail::CreateMusicArtworkBitmap(artworkUrl, detail::ArtworkDetail::Hero);
         if (bitmap)
         {
-            ArtistHeroImage().Source(bitmap);
-            ArtistHeroImage().Opacity(0.72);
+            ArtistPortraitImage().Source(bitmap);
         }
+    }
+
+    void MainWindow::ApplyArtistHeaderLayout(double availableWidth)
+    {
+        auto const layout = LastMusicPlayer::Frontend::CalculateArtistHeaderLayout(
+            availableWidth);
+        if (layout.PortraitSize <= 0.0)
+        {
+            return;
+        }
+
+        ArtistPortraitBorder().Width(layout.PortraitSize);
+        ArtistPortraitBorder().Height(layout.PortraitSize);
+        LastMusicPlayer::Frontend::ApplyRoundedCornerClip(
+            ArtistPortraitImage(),
+            static_cast<float>(layout.PortraitSize / 2.0));
+        ArtistSkeletonPortrait().Width(layout.PortraitSize);
+        ArtistSkeletonPortrait().Height(layout.PortraitSize);
+
+        auto apply = [&](winrt::Microsoft::UI::Xaml::Controls::Grid const& header,
+                         winrt::Microsoft::UI::Xaml::FrameworkElement const& portrait,
+                         winrt::Microsoft::UI::Xaml::FrameworkElement const& copy)
+        {
+            header.ColumnSpacing(layout.Stacked ? 0.0 : 34.0);
+            header.RowSpacing(layout.Stacked ? 20.0 : 0.0);
+            header.ColumnDefinitions().GetAt(0).Width(layout.Stacked
+                ? winrt::Microsoft::UI::Xaml::GridLengthHelper::FromValueAndType(
+                    1.0, winrt::Microsoft::UI::Xaml::GridUnitType::Star)
+                : winrt::Microsoft::UI::Xaml::GridLengthHelper::FromPixels(
+                    layout.PortraitSize));
+            header.ColumnDefinitions().GetAt(1).Width(layout.Stacked
+                ? winrt::Microsoft::UI::Xaml::GridLengthHelper::FromPixels(0.0)
+                : winrt::Microsoft::UI::Xaml::GridLengthHelper::FromValueAndType(
+                    1.0, winrt::Microsoft::UI::Xaml::GridUnitType::Star));
+
+            winrt::Microsoft::UI::Xaml::Controls::Grid::SetRow(portrait, 0);
+            winrt::Microsoft::UI::Xaml::Controls::Grid::SetColumn(portrait, 0);
+            winrt::Microsoft::UI::Xaml::Controls::Grid::SetColumnSpan(
+                portrait, layout.Stacked ? 2 : 1);
+            portrait.HorizontalAlignment(layout.Stacked
+                ? winrt::Microsoft::UI::Xaml::HorizontalAlignment::Center
+                : winrt::Microsoft::UI::Xaml::HorizontalAlignment::Left);
+
+            winrt::Microsoft::UI::Xaml::Controls::Grid::SetRow(copy, layout.Stacked ? 1 : 0);
+            winrt::Microsoft::UI::Xaml::Controls::Grid::SetColumn(copy, layout.Stacked ? 0 : 1);
+            winrt::Microsoft::UI::Xaml::Controls::Grid::SetColumnSpan(copy, layout.Stacked ? 2 : 1);
+            copy.HorizontalAlignment(layout.Stacked
+                ? winrt::Microsoft::UI::Xaml::HorizontalAlignment::Center
+                : winrt::Microsoft::UI::Xaml::HorizontalAlignment::Stretch);
+        };
+
+        apply(ArtistHeader(), ArtistPortraitBorder(), ArtistHeaderCopy());
+        apply(ArtistSkeletonHeader(), ArtistSkeletonPortrait(), ArtistSkeletonCopy());
+        auto const alignment = layout.Stacked
+            ? winrt::Microsoft::UI::Xaml::TextAlignment::Center
+            : winrt::Microsoft::UI::Xaml::TextAlignment::Left;
+        ArtistEyebrow().TextAlignment(alignment);
+        ArtistDetailName().TextAlignment(alignment);
+        ArtistDetailGenres().TextAlignment(alignment);
+    }
+
+    LastMusicPlayer::Frontend::ArtistPageScrollState MainWindow::CaptureArtistPageScrollState()
+    {
+        return {
+            ArtistDetailScroll().VerticalOffset(),
+            ArtistTopSongsScroller().HorizontalOffset(),
+            ArtistAlbumsScroller().HorizontalOffset(),
+            ArtistSinglesScroller().HorizontalOffset(),
+            ArtistSimilarScroller().HorizontalOffset(),
+        };
+    }
+
+    void MainWindow::RestoreArtistPageScrollState(
+        LastMusicPlayer::Frontend::ArtistPageScrollState const& state)
+    {
+        m_pendingArtistScrollState = state;
+        // Observable-vector changes are applied before this call, but the shelf
+        // extents can still describe the artist we just left. Force one layout
+        // pass so a restored offset is clamped against the page being shown.
+        ArtistPagePanel().UpdateLayout();
+        ApplyPendingArtistPageScrollState();
+        auto weak = get_weak();
+        DispatcherQueue().TryEnqueue([weak]()
+        {
+            if (auto self = weak.get())
+            {
+                self->ApplyPendingArtistPageScrollState();
+            }
+        });
+    }
+
+    void MainWindow::ApplyPendingArtistPageScrollState()
+    {
+        if (!m_pendingArtistScrollState)
+        {
+            return;
+        }
+
+        auto const& requested = *m_pendingArtistScrollState;
+        auto const ready = [](double offset, double scrollableExtent)
+        {
+            return offset <= LastMusicPlayer::Frontend::kArtistShelfEdgeEpsilon
+                || scrollableExtent > LastMusicPlayer::Frontend::kArtistShelfEdgeEpsilon;
+        };
+        if (!ready(requested.Vertical, ArtistDetailScroll().ScrollableHeight())
+            || !ready(requested.TopSongs, ArtistTopSongsScroller().ScrollableWidth())
+            || !ready(requested.Albums, ArtistAlbumsScroller().ScrollableWidth())
+            || !ready(requested.Singles, ArtistSinglesScroller().ScrollableWidth())
+            || !ready(requested.SimilarArtists, ArtistSimilarScroller().ScrollableWidth()))
+        {
+            return;
+        }
+
+        LastMusicPlayer::Frontend::ArtistPageScrollState const extents{
+            ArtistDetailScroll().ScrollableHeight(),
+            ArtistTopSongsScroller().ScrollableWidth(),
+            ArtistAlbumsScroller().ScrollableWidth(),
+            ArtistSinglesScroller().ScrollableWidth(),
+            ArtistSimilarScroller().ScrollableWidth(),
+        };
+        auto const restored = LastMusicPlayer::Frontend::ClampArtistPageScrollState(
+            requested,
+            extents);
+        ArtistDetailScroll().ChangeView(nullptr, restored.Vertical, nullptr, true);
+        ArtistTopSongsScroller().ChangeView(restored.TopSongs, nullptr, nullptr, true);
+        ArtistAlbumsScroller().ChangeView(restored.Albums, nullptr, nullptr, true);
+        ArtistSinglesScroller().ChangeView(restored.Singles, nullptr, nullptr, true);
+        ArtistSimilarScroller().ChangeView(restored.SimilarArtists, nullptr, nullptr, true);
+        m_pendingArtistScrollState.reset();
+        UpdateArtistShelfButtons();
+    }
+
+    void MainWindow::ResetArtistShelfOffsets()
+    {
+        ArtistLatestReleaseScroller().ChangeView(0.0, nullptr, nullptr, true);
+        ArtistTopSongsScroller().ChangeView(0.0, nullptr, nullptr, true);
+        ArtistAlbumsScroller().ChangeView(0.0, nullptr, nullptr, true);
+        ArtistSinglesScroller().ChangeView(0.0, nullptr, nullptr, true);
+        ArtistSimilarScroller().ChangeView(0.0, nullptr, nullptr, true);
+        UpdateArtistShelfButtons();
+    }
+
+    void MainWindow::UpdateArtistShelfButtons()
+    {
+        auto apply = [](winrt::Microsoft::UI::Xaml::Controls::Button const& button,
+                        winrt::Microsoft::UI::Xaml::Controls::ScrollViewer const& scroller)
+        {
+            auto const canAdvance = LastMusicPlayer::Frontend::CanAdvanceArtistShelf(
+                scroller.HorizontalOffset(),
+                scroller.ScrollableWidth());
+            button.Visibility(canAdvance
+                ? winrt::Microsoft::UI::Xaml::Visibility::Visible
+                : winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
+        };
+        apply(ArtistTopSongsViewMore(), ArtistTopSongsScroller());
+        apply(ArtistAlbumsViewMore(), ArtistAlbumsScroller());
+        apply(ArtistSinglesViewMore(), ArtistSinglesScroller());
+        apply(ArtistSimilarViewMore(), ArtistSimilarScroller());
     }
 
     void MainWindow::ArtistDetailBack_Click(
@@ -919,9 +1064,9 @@ namespace winrt::Last_Music_Player::implementation
         if (m_artistAlbumOpen)
         {
             m_artistAlbumOpen = false;
-            auto restoreOffset = m_artistScrollOffset;
+            auto const restoreState = m_artistAlbumScrollState;
             RenderArtistDetail(m_currentArtistDetail, m_artistUsingLocalFallback);
-            ArtistDetailScroll().ChangeView(nullptr, restoreOffset, nullptr, true);
+            RestoreArtistPageScrollState(restoreState);
             return;
         }
         if (!m_artistBackStack.empty())
@@ -931,7 +1076,7 @@ namespace winrt::Last_Music_Player::implementation
             m_currentArtistIdentity = std::move(previous.Identity);
             m_currentAccountArtistPlan = std::move(previous.AccountPlan);
             RenderArtistDetail(previous.Detail, previous.LocalFallback);
-            ArtistDetailScroll().ChangeView(nullptr, previous.ScrollOffset, nullptr, true);
+            RestoreArtistPageScrollState(previous.ScrollState);
             return;
         }
         HideArtistDetail(true);
@@ -951,10 +1096,11 @@ namespace winrt::Last_Music_Player::implementation
         m_artistAlbumOpen = false;
         m_artistBackStack.clear();
         m_currentAccountArtistPlan.reset();
+        m_pendingArtistScrollState.reset();
         m_artistTopSongs.clear();
         m_artistLocalAllTracks.clear();
-        m_artistTopSongsLeft.Clear();
-        m_artistTopSongsRight.Clear();
+        m_artistLatestRelease.Clear();
+        m_artistTopSongsShelf.Clear();
         m_artistAlbums.Clear();
         m_artistSingles.Clear();
         m_artistRelated.Clear();
@@ -1025,100 +1171,75 @@ namespace winrt::Last_Music_Player::implementation
         QueueAndPlayVisible(shuffled, shuffled.front());
     }
 
-    void MainWindow::UpdateArtistDetailFollowButton()
-    {
-        if (!ArtistFollowButton())
-        {
-            return;
-        }
-        auto const accountMode = detail::RemoteMusicServiceService().Mode()
-            == LastMusicPlayer::Backend::RemoteAccessMode::Account;
-        if (accountMode)
-        {
-            auto const publicId = m_currentAccountArtistPlan
-                ? m_currentAccountArtistPlan->LibraryArtistId
-                : std::wstring{};
-            auto const canFollow = LastMusicPlayer::Backend::IsValidLibraryArtistPublicId(
-                publicId);
-            ArtistFollowButton().Content(winrt::box_value(
-                m_currentAccountArtistPlan && m_currentAccountArtistPlan->Followed
-                    ? L"Following"
-                    : L"Follow"));
-            ArtistFollowButton().IsEnabled(canFollow
-                && !m_artistFollowMutations.contains(publicId));
-            winrt::Microsoft::UI::Xaml::Controls::ToolTipService::SetToolTip(
-                ArtistFollowButton(),
-                canFollow
-                    ? nullptr
-                    : winrt::box_value(L"Follow is available for artists in your Account library."));
-            return;
-        }
-
-        auto scopeKey = ArtistFollowScopeKey();
-        auto provider = m_currentArtistDetail.Artist.Provider;
-        LastMusicPlayer::Backend::ArtistIdentity identity{
-            std::wstring((m_currentArtistDetail.Artist.CatalogId.empty()
-                ? m_currentArtistIdentity.CatalogId
-                : m_currentArtistDetail.Artist.CatalogId).c_str()),
-            std::wstring((m_currentArtistDetail.Artist.SourceUrl.empty()
-                ? m_currentArtistIdentity.SourceUrl
-                : m_currentArtistDetail.Artist.SourceUrl).c_str()),
-            std::wstring(ArtistDetailName().Text().c_str()),
-            std::wstring(provider.c_str()) };
-        auto const identityKey = LastMusicPlayer::Backend::ArtistIdentityKey(identity);
-        auto followed = !scopeKey.empty()
-            && !identityKey.empty()
-            && detail::DatabaseService().IsInitialized()
-            && detail::DatabaseService().IsArtistFollowed(scopeKey, identityKey);
-        ArtistFollowButton().Content(winrt::box_value(followed ? L"Following" : L"Follow"));
-        ArtistFollowButton().IsEnabled(!scopeKey.empty() && !identityKey.empty());
-        winrt::Microsoft::UI::Xaml::Controls::ToolTipService::SetToolTip(
-            ArtistFollowButton(),
-            scopeKey.empty()
-                ? winrt::box_value(L"Account artist following needs the matching MagnetoFX sync update.")
-                : nullptr);
-    }
-
-    void MainWindow::ArtistDetailFollow_Click(
+    void MainWindow::ArtistTopSongCard_Click(
         winrt::Windows::Foundation::IInspectable const& sender,
         winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
     {
-        (void)sender;
         (void)args;
-        winrt::Last_Music_Player::TrackInfo artist;
-        artist.Title(ArtistDetailName().Text());
-        artist.ArtistCatalogId(m_currentArtistDetail.Artist.CatalogId.empty()
-            ? m_currentArtistIdentity.CatalogId
-            : m_currentArtistDetail.Artist.CatalogId);
-        artist.SourceUrl(m_currentArtistDetail.Artist.SourceUrl.empty()
-            ? m_currentArtistIdentity.SourceUrl
-            : m_currentArtistDetail.Artist.SourceUrl);
-        artist.RemoteProvider(m_currentArtistDetail.Artist.Provider);
-        artist.ArtworkUrl(m_currentArtistDetail.Artist.ArtworkUrl);
-
-        if (detail::RemoteMusicServiceService().Mode()
-            == LastMusicPlayer::Backend::RemoteAccessMode::Account)
+        auto button = sender.try_as<winrt::Microsoft::UI::Xaml::Controls::Button>();
+        auto track = button
+            ? button.Tag().try_as<winrt::Last_Music_Player::TrackInfo>()
+            : nullptr;
+        if (track)
         {
-            if (!m_currentAccountArtistPlan)
-            {
-                return;
-            }
-            artist.Provider(L"account");
-            artist.RemoteId(winrt::hstring(m_currentAccountArtistPlan->LibraryArtistId));
-            detail::RunDetached(SetAccountArtistFollowedAsync(
-                artist,
-                !m_currentAccountArtistPlan->Followed));
+            QueueAndPlayVisible(m_artistTopSongs, track);
+        }
+    }
+
+    void MainWindow::ArtistShelfViewMore_Click(
+        winrt::Windows::Foundation::IInspectable const& sender,
+        winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
+    {
+        (void)args;
+        auto button = sender.try_as<winrt::Microsoft::UI::Xaml::Controls::Button>();
+        auto const tag = button ? winrt::unbox_value_or<winrt::hstring>(button.Tag(), L"") : L"";
+        winrt::Microsoft::UI::Xaml::Controls::ScrollViewer scroller{ nullptr };
+        if (tag == L"top")
+        {
+            scroller = ArtistTopSongsScroller();
+        }
+        else if (tag == L"albums")
+        {
+            scroller = ArtistAlbumsScroller();
+        }
+        else if (tag == L"singles")
+        {
+            scroller = ArtistSinglesScroller();
+        }
+        else if (tag == L"similar")
+        {
+            scroller = ArtistSimilarScroller();
+        }
+        if (!scroller)
+        {
             return;
         }
 
-        auto scopeKey = ArtistFollowScopeKey();
-        auto identityKey = LastMusicPlayer::Backend::ArtistIdentityKey(ArtistIdentityForTrack(artist));
-        auto followed = !scopeKey.empty()
-            && detail::DatabaseService().IsArtistFollowed(scopeKey, identityKey);
-        if (SetArtistFollowed(artist, !followed))
-        {
-            UpdateArtistDetailFollowButton();
-        }
+        auto const target = LastMusicPlayer::Frontend::NextArtistShelfOffset(
+            scroller.HorizontalOffset(),
+            scroller.ViewportWidth(),
+            scroller.ScrollableWidth());
+        scroller.ChangeView(target, nullptr, nullptr);
+    }
+
+    void MainWindow::ArtistShelf_ViewChanged(
+        winrt::Windows::Foundation::IInspectable const& sender,
+        winrt::Microsoft::UI::Xaml::Controls::ScrollViewerViewChangedEventArgs const& args)
+    {
+        (void)sender;
+        (void)args;
+        UpdateArtistShelfButtons();
+        ApplyPendingArtistPageScrollState();
+    }
+
+    void MainWindow::ArtistShelf_SizeChanged(
+        winrt::Windows::Foundation::IInspectable const& sender,
+        winrt::Microsoft::UI::Xaml::SizeChangedEventArgs const& args)
+    {
+        (void)sender;
+        (void)args;
+        UpdateArtistShelfButtons();
+        ApplyPendingArtistPageScrollState();
     }
 
     void MainWindow::ArtistTopSong_ItemClick(
@@ -1140,12 +1261,15 @@ namespace winrt::Last_Music_Player::implementation
         ArtistTopSong_ItemClick(sender, args);
     }
 
-    void MainWindow::ArtistRelease_ItemClick(
+    void MainWindow::ArtistReleaseCard_Click(
         winrt::Windows::Foundation::IInspectable const& sender,
-        winrt::Microsoft::UI::Xaml::Controls::ItemClickEventArgs const& args)
+        winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
     {
-        (void)sender;
-        auto release = args.ClickedItem().try_as<winrt::Last_Music_Player::TrackInfo>();
+        (void)args;
+        auto button = sender.try_as<winrt::Microsoft::UI::Xaml::Controls::Button>();
+        auto release = button
+            ? button.Tag().try_as<winrt::Last_Music_Player::TrackInfo>()
+            : nullptr;
         if (release)
         {
             OpenProviderAlbum(release);
@@ -1159,7 +1283,7 @@ namespace winrt::Last_Music_Player::implementation
             return;
         }
         m_artistAlbumOpen = true;
-        m_artistScrollOffset = ArtistDetailScroll().VerticalOffset();
+        m_artistAlbumScrollState = CaptureArtistPageScrollState();
         auto requestEpoch = ++m_artistRequestEpoch;
         if (m_artistLoadOperation)
         {
@@ -1256,9 +1380,9 @@ namespace winrt::Last_Music_Player::implementation
         if (!album)
         {
             m_artistAlbumOpen = false;
-            auto restoreOffset = m_artistScrollOffset;
+            auto const restoreState = m_artistAlbumScrollState;
             RenderArtistDetail(m_currentArtistDetail, m_artistUsingLocalFallback);
-            ArtistDetailScroll().ChangeView(nullptr, restoreOffset, nullptr, true);
+            RestoreArtistPageScrollState(restoreState);
             ShowPlaybackNotice(L"This album is unavailable. Try again from the artist page.");
             co_return;
         }
@@ -1336,12 +1460,15 @@ namespace winrt::Last_Music_Player::implementation
         ProviderAlbumPanel().ChangeView(nullptr, 0.0, nullptr, true);
     }
 
-    void MainWindow::RelatedArtist_ItemClick(
+    void MainWindow::SimilarArtistCard_Click(
         winrt::Windows::Foundation::IInspectable const& sender,
-        winrt::Microsoft::UI::Xaml::Controls::ItemClickEventArgs const& args)
+        winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
     {
-        (void)sender;
-        auto artist = args.ClickedItem().try_as<winrt::Last_Music_Player::TrackInfo>();
+        (void)args;
+        auto button = sender.try_as<winrt::Microsoft::UI::Xaml::Controls::Button>();
+        auto artist = button
+            ? button.Tag().try_as<winrt::Last_Music_Player::TrackInfo>()
+            : nullptr;
         if (!artist)
         {
             return;
@@ -1351,7 +1478,7 @@ namespace winrt::Last_Music_Player::implementation
             m_currentArtistIdentity,
             m_currentAccountArtistPlan,
             m_artistUsingLocalFallback,
-            ArtistDetailScroll().VerticalOffset() });
+            CaptureArtistPageScrollState() });
         OpenArtistDetail(
             artist.Title(),
             artist.RemoteCatalogId(),
@@ -1360,28 +1487,13 @@ namespace winrt::Last_Music_Player::implementation
             artist);
     }
 
-    void MainWindow::ArtistAboutToggle_Click(
-        winrt::Windows::Foundation::IInspectable const& sender,
-        winrt::Microsoft::UI::Xaml::RoutedEventArgs const& args)
-    {
-        (void)sender;
-        (void)args;
-        m_artistAboutExpanded = !m_artistAboutExpanded;
-        ArtistBiographyText().MaxLines(m_artistAboutExpanded ? 0 : 5);
-        ArtistBiographyText().TextTrimming(m_artistAboutExpanded
-            ? winrt::Microsoft::UI::Xaml::TextTrimming::None
-            : winrt::Microsoft::UI::Xaml::TextTrimming::CharacterEllipsis);
-        ArtistAboutToggle().Content(winrt::box_value(m_artistAboutExpanded ? L"Less" : L"More"));
-    }
-
     void MainWindow::ArtistDetail_SizeChanged(
         winrt::Windows::Foundation::IInspectable const& sender,
         winrt::Microsoft::UI::Xaml::SizeChangedEventArgs const& args)
     {
         (void)sender;
-        ReflowArtistTopSongs(args.NewSize().Width);
-        auto const narrow = args.NewSize().Width < 700.0;
-        ArtistDetailName().FontSize(narrow ? 34.0 : 44.0);
-        ArtistHero().Height(narrow ? 270.0 : 330.0);
+        ApplyArtistHeaderLayout(args.NewSize().Width);
+        UpdateArtistShelfButtons();
+        ApplyPendingArtistPageScrollState();
     }
 }

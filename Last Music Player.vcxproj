@@ -223,6 +223,7 @@
     <ClInclude Include="src\Frontend\ChipWrapPanel.h" />
     <ClInclude Include="src\Frontend\GenreArtworkTile.h" />
     <ClInclude Include="src\Frontend\ResponsiveCardLayout.h" />
+    <ClInclude Include="src\Frontend\ArtistPagePolicy.h" />
     <ClInclude Include="src\Frontend\BrowseResultItem.h" />
     <ClInclude Include="src\Backend\GenreArtworkRecipe.h" />
     <ClInclude Include="src\Backend\BrowseGroupingPolicy.h" />
