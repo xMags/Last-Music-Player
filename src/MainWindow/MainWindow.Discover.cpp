@@ -1024,6 +1024,20 @@ namespace winrt::Last_Music_Player::implementation
         if (image)
         {
             LastMusicPlayer::Frontend::ApplyRoundedCornerClip(image);
+
+            // ContainerContentChanging runs before the recycled template's
+            // DataContext is repointed, so its x:Bind values can still describe
+            // the previous item here. Restore the new item's synchronous image
+            // state explicitly and invalidate any older account-artwork apply.
+            // Without this reset, a no-art item such as a system playlist makes
+            // QueueAccountArtworkImage return early while the previous request
+            // still owns the Image and can paint its cover over the generated
+            // system artwork.
+            image.Tag(nullptr);
+            image.Source(track.ImageArtworkOpacity() > 0.0
+                ? track.AlbumArt()
+                : nullptr);
+            image.Opacity(track.ImageArtworkOpacity());
             QueueAccountArtworkImage(image, track.ArtworkUrl(), ArtworkDetail::Tile, track);
         }
     }

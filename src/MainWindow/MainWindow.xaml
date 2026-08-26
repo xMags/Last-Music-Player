@@ -237,7 +237,7 @@
                         <Button x:Name="HomeButton" Click="HomeButton_Click" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Background="{ThemeResource AccentSoftBrush}" BorderThickness="0" CornerRadius="{StaticResource RadiusLg}" Height="42" Padding="12,0">
                             <Grid>
                                 <StackPanel Orientation="Horizontal" Spacing="20" VerticalAlignment="Center">
-                                    <FontIcon x:Name="HomeGlyph" Glyph="&#xE80F;" Foreground="{ThemeResource AccentBrush}" FontSize="16"/>
+                                    <SymbolIcon x:Name="HomeGlyph" Symbol="Home" Foreground="{ThemeResource AccentBrush}" />
                                     <TextBlock x:Name="HomeLabel" Text="Home" FontWeight="SemiBold" Foreground="{ThemeResource AccentBrush}" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Grid>
@@ -246,7 +246,7 @@
                         <Button x:Name="BrowseButton" Click="BrowseButton_Click" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Background="Transparent" BorderThickness="0" CornerRadius="{StaticResource RadiusLg}" Height="42" Padding="12,0">
                             <Grid>
                                 <StackPanel Orientation="Horizontal" Spacing="20" VerticalAlignment="Center">
-                                    <FontIcon x:Name="BrowseGlyph" Glyph="&#xE721;" Foreground="{ThemeResource TextSecondaryBrush}" FontSize="16"/>
+                                    <SymbolIcon x:Name="BrowseGlyph" Symbol="Find" Foreground="{ThemeResource TextSecondaryBrush}" />
                                     <TextBlock x:Name="BrowseLabel" Text="Browse" Foreground="{ThemeResource TextPrimaryBrush}" VerticalAlignment="Center" />
                                 </StackPanel>
                             </Grid>
@@ -255,7 +255,7 @@
                         <Button x:Name="LibraryButton" Click="LibraryButton_Click" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Background="Transparent" BorderThickness="0" CornerRadius="{StaticResource RadiusLg}" Height="42" Padding="12,0">
                             <Grid>
                                 <StackPanel Orientation="Horizontal" Spacing="20" VerticalAlignment="Center">
-                                    <FontIcon x:Name="LibraryGlyph" Glyph="&#xE8D6;" Foreground="{ThemeResource TextSecondaryBrush}" FontSize="16"/>
+                                    <SymbolIcon x:Name="LibraryGlyph" Symbol="Library" Foreground="{ThemeResource TextSecondaryBrush}" />
                                     <TextBlock x:Name="LibraryLabel" Text="Library" Foreground="{ThemeResource TextPrimaryBrush}" VerticalAlignment="Center" />
                                 </StackPanel>
                             </Grid>
@@ -265,7 +265,7 @@
                             <Grid>
                                 <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                                 <StackPanel Orientation="Horizontal" Spacing="20" VerticalAlignment="Center">
-                                    <FontIcon x:Name="DownloadsGlyph" Glyph="&#xE896;" Foreground="{ThemeResource TextSecondaryBrush}" FontSize="16"/>
+                                    <SymbolIcon x:Name="DownloadsGlyph" Symbol="Download" Foreground="{ThemeResource TextSecondaryBrush}" />
                                     <TextBlock x:Name="DownloadsLabel" Text="Downloads" Foreground="{ThemeResource TextPrimaryBrush}" VerticalAlignment="Center" />
                                 </StackPanel>
                                 <Border x:Name="DownloadsNavBadge" Grid.Column="1" Visibility="Collapsed" Background="{ThemeResource NeutralFillBrush}" CornerRadius="{StaticResource RadiusPill}" Padding="7,1" VerticalAlignment="Center">
@@ -277,7 +277,7 @@
                         <Button x:Name="SettingsButton" Click="SettingsNav_Click" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Background="Transparent" BorderThickness="0" CornerRadius="{StaticResource RadiusLg}" Height="42" Padding="12,0">
                             <Grid>
                                 <StackPanel Orientation="Horizontal" Spacing="20" VerticalAlignment="Center">
-                                    <FontIcon x:Name="SettingsGlyph" Glyph="&#xE713;" Foreground="{ThemeResource TextSecondaryBrush}" FontSize="16"/>
+                                    <SymbolIcon x:Name="SettingsGlyph" Symbol="Setting" Foreground="{ThemeResource TextSecondaryBrush}" />
                                     <TextBlock x:Name="SettingsLabel" Text="Settings" Foreground="{ThemeResource TextPrimaryBrush}" VerticalAlignment="Center" />
                                 </StackPanel>
                             </Grid>
@@ -288,7 +288,7 @@
                         <Button x:Name="LikedSongsButton" Click="LikedSongsButton_Click" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Background="Transparent" BorderThickness="0" CornerRadius="{StaticResource RadiusLg}" Padding="12,10">
                             <StackPanel Orientation="Horizontal" Spacing="16">
                                 <Border Background="{ThemeResource LikedSongsBrush}" CornerRadius="{StaticResource RadiusSm}" Width="24" Height="24">
-                                    <FontIcon Glyph="&#xEB51;" Foreground="White" FontSize="12"/>
+                                    <SymbolIcon Symbol="Favorite" Foreground="White" />
                                 </Border>
                                 <TextBlock Text="Liked Songs" VerticalAlignment="Center" Foreground="{ThemeResource TextPrimaryBrush}"/>
                             </StackPanel>
@@ -326,7 +326,7 @@
                                             <ColumnDefinition Width="*" />
                                         </Grid.ColumnDefinitions>
                                         <Border Background="{ThemeResource NeutralFillBrush}" CornerRadius="{StaticResource RadiusSm}" Width="24" Height="24">
-                                            <TextBlock Text="#" Foreground="{ThemeResource TextTertiaryBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            <SymbolIcon Symbol="Bullets" Foreground="{ThemeResource TextTertiaryBrush}" />
                                         </Border>
                                         <TextBlock Grid.Column="1" Text="{x:Bind Title}" VerticalAlignment="Center" Foreground="{ThemeResource TextPrimaryBrush}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
                                     </Grid>

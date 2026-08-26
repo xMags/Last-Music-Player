@@ -1222,7 +1222,7 @@ namespace winrt::Last_Music_Player::implementation
         struct NavRow
         {
             winrt::Microsoft::UI::Xaml::Controls::Button btn;
-            winrt::Microsoft::UI::Xaml::Controls::FontIcon glyph;
+            winrt::Microsoft::UI::Xaml::Controls::IconElement glyph;
             winrt::Microsoft::UI::Xaml::Controls::TextBlock label;
             winrt::hstring id;
         };
