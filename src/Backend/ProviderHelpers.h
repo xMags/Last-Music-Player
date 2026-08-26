@@ -28,6 +28,10 @@ namespace LastMusicPlayer::Backend
     // preserving the provider URL shape and authentication parameters.
     winrt::hstring NormalizeArtworkUrlForDisplay(winrt::hstring const& artworkUrl);
 
+    // Return an artwork URL that is safe to persist and sync. Signed provider
+    // relay URLs are reduced to their validated nested image URL.
+    winrt::hstring DurableArtworkUrl(winrt::hstring const& artworkUrl) noexcept;
+
     // Remove obsolete access_token query credentials from provider-shaped
     // stream or artwork URLs. Other URL shapes are left untouched.
     winrt::hstring RemoveLegacyProviderUrlCredential(winrt::hstring const& url);

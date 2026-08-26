@@ -93,9 +93,7 @@ namespace LastMusicPlayer::Backend
             result.Artist = track.Artist().c_str();
             result.Album = track.Album().c_str();
             result.Genre = track.Genre().c_str();
-            result.ArtworkUrl = IsSafeRemoteUrl(track.ArtworkUrl(), RemoteUrlUse::Durable)
-                ? std::wstring(track.ArtworkUrl().c_str())
-                : std::wstring{};
+            result.ArtworkUrl = DurableArtworkUrl(track.ArtworkUrl()).c_str();
             result.SourceKind = track.SourceKind().empty()
                 ? std::wstring{ L"remote" }
                 : std::wstring(track.SourceKind().c_str());

@@ -1718,8 +1718,23 @@ namespace
         Expect(eventObject.GetNamedNumber(L"positionSec") == 17.0
             && !eventObject.HasKey(L"position"),
             "history batch did not use canonical positionSec");
-        Expect(eventObject.GetNamedObject(L"track").GetNamedString(L"provider") == L"provider-a",
+        auto historyTrack = eventObject.GetNamedObject(L"track");
+        Expect(historyTrack.GetNamedString(L"provider") == L"provider-a"
+            && historyTrack.GetNamedString(L"artworkUrl") == L"https://images.example.test/track-a.jpg",
             "history batch omitted the complete track object");
+
+        auto relayedTrack = track;
+        relayedTrack.ArtworkUrl = L"https://provider.example.test/v1/artwork?url=https%3A%2F%2Fimages.example.test%2Frelayed.jpg&media_token=artwork.1.signature";
+        account::AccountHistoryEventDto relayedEvent{
+            L"event-b", relayedTrack, L"2026-08-23T10:21:30Z", 18.0
+        };
+        JsonObject relayedHistory;
+        Expect(JsonObject::TryParse(account::SerializeHistoryBatch({ relayedEvent }), relayedHistory),
+            "relayed history batch was not valid JSON");
+        Expect(relayedHistory.GetNamedArray(L"events").GetObjectAt(0)
+            .GetNamedObject(L"track").GetNamedString(L"artworkUrl")
+            == L"https://images.example.test/relayed.jpg",
+            "history batch did not retain the durable nested artwork URL");
 
         auto wrapped = account::WrapTrackRequest(serializedTrack);
         JsonObject wrappedObject;

@@ -130,9 +130,7 @@ namespace LastMusicPlayer::Backend
             InsertString(
                 object,
                 L"artworkUrl",
-                IsSafeRemoteUrl(winrt::hstring(track.ArtworkUrl), RemoteUrlUse::Durable)
-                    ? track.ArtworkUrl
-                    : std::wstring{});
+                std::wstring(DurableArtworkUrl(winrt::hstring(track.ArtworkUrl)).c_str()));
             InsertString(object, L"sourceKind", track.SourceKind);
             InsertString(object, L"provider", track.Provider);
             InsertString(object, L"sourceUrl", track.SourceUrl);
@@ -169,11 +167,7 @@ namespace LastMusicPlayer::Backend
             {
                 track.ArtworkUrl = FirstString(wrapper, { L"artworkUrl", L"imageUrl" }).c_str();
             }
-            if (!track.ArtworkUrl.empty()
-                && !IsSafeRemoteUrl(winrt::hstring(track.ArtworkUrl), RemoteUrlUse::Durable))
-            {
-                track.ArtworkUrl.clear();
-            }
+            track.ArtworkUrl = DurableArtworkUrl(winrt::hstring(track.ArtworkUrl)).c_str();
             track.SourceKind = StringValue(object, L"sourceKind").c_str();
             track.Provider = StringValue(object, L"provider").c_str();
             track.SourceUrl = FirstString(object, { L"sourceUrl", L"url" }).c_str();

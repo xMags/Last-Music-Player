@@ -1112,11 +1112,8 @@ namespace winrt::Last_Music_Player::implementation::detail
         value.Artist = track.Artist().c_str();
         value.Album = track.Album().c_str();
         value.Genre = track.Genre().c_str();
-        value.ArtworkUrl = LastMusicPlayer::Backend::IsSafeRemoteUrl(
-            track.ArtworkUrl(),
-            LastMusicPlayer::Backend::RemoteUrlUse::Durable)
-            ? std::wstring(track.ArtworkUrl().c_str())
-            : std::wstring{};
+        value.ArtworkUrl = LastMusicPlayer::Backend::DurableArtworkUrl(
+            track.ArtworkUrl()).c_str();
         value.SourceKind = track.SourceKind().c_str();
         value.Provider = track.RemoteProvider().empty()
             ? (track.Provider() == L"account" ? std::wstring{} : std::wstring(track.Provider().c_str()))

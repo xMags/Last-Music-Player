@@ -81,6 +81,34 @@ namespace
             "an unrelated image host was rewritten as Apple artwork");
     }
 
+    void TestDurableArtworkUrl()
+    {
+        Expect(provider::DurableArtworkUrl(
+            L"https://images.example.test/cover.jpg")
+            == L"https://images.example.test/cover.jpg",
+            "direct durable artwork was rejected");
+        Expect(provider::DurableArtworkUrl(
+            L"https://provider.example.test/v1/artwork?url=https%3A%2F%2Flh3.googleusercontent.com%2Fcover%3Dw120-h120-l90-rj&media_token=artwork.1.signature")
+            == L"https://lh3.googleusercontent.com/cover=w1200-h1200-l90-rj",
+            "signed artwork relay was not reduced to its durable image URL");
+        Expect(provider::DurableArtworkUrl(
+            L"https://provider.example.test/prefix/v1/artwork?url=https%3A%2F%2Fimages.example.test%2Fcover.jpg&media_token=artwork.1.signature")
+            == L"https://images.example.test/cover.jpg",
+            "prefixed artwork relay was not reduced to its durable image URL");
+        Expect(provider::DurableArtworkUrl(
+            L"https://provider.example.test/v1/artwork?url=https%3A%2F%2Fimages.example.test%2Fcover.jpg%3Faccess_token%3Dsecret&media_token=artwork.1.signature").empty(),
+            "credential-bearing nested artwork was accepted");
+        Expect(provider::DurableArtworkUrl(
+            L"https://provider.example.test/v1/artwork?media_token=artwork.1.signature").empty(),
+            "artwork relay without a nested image URL was accepted");
+        Expect(provider::DurableArtworkUrl(
+            L"https://provider.example.test/v1/stream/track?url=https%3A%2F%2Fimages.example.test%2Fcover.jpg&media_token=stream.1.signature").empty(),
+            "signed non-artwork relay was accepted as durable artwork");
+        Expect(provider::DurableArtworkUrl(
+            L"file:///v1/artwork?url=https%3A%2F%2Fimages.example.test%2Fcover.jpg").empty(),
+            "non-remote artwork wrapper was accepted");
+    }
+
     void TestExistingStreamUrlIsStable()
     {
         auto existing = winrt::hstring{ L"https://provider.example.test/v1/stream/direct%3A1?url=https%3A%2F%2Faudio.example.test%2Fa.mp3&media_token=short" };
@@ -620,6 +648,7 @@ int wmain()
         winrt::init_apartment();
         TestNormalizeBaseUrl();
         TestNormalizeArtworkUrlForDisplay();
+        TestDurableArtworkUrl();
         TestExistingStreamUrlIsStable();
         TestProviderStreamUrl();
         TestReturnedStreamUrlWins();

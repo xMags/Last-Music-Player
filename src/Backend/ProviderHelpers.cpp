@@ -528,6 +528,50 @@ namespace LastMusicPlayer::Backend
         return winrt::hstring{ text };
     }
 
+    winrt::hstring DurableArtworkUrl(winrt::hstring const& artworkUrl) noexcept
+    {
+        try
+        {
+            auto normalized = NormalizeArtworkUrlForDisplay(artworkUrl);
+            if (normalized.empty())
+            {
+                return {};
+            }
+            if (!IsSafeRemoteUrl(normalized, RemoteUrlUse::EphemeralMedia))
+            {
+                return {};
+            }
+
+            winrt::Windows::Foundation::Uri uri{ normalized };
+            auto path = ToLowerCopy(uri.Path());
+            constexpr std::wstring_view artworkRelayPath{ L"/v1/artwork" };
+            auto isArtworkRelay = path == artworkRelayPath
+                || (path.size() > artworkRelayPath.size()
+                    && path.ends_with(artworkRelayPath));
+            if (!isArtworkRelay)
+            {
+                return IsSafeRemoteUrl(normalized, RemoteUrlUse::Durable)
+                    ? normalized
+                    : winrt::hstring{};
+            }
+
+            auto encodedTarget = QueryParameter(normalized, L"url");
+            if (encodedTarget.empty())
+            {
+                return {};
+            }
+            auto target = NormalizeArtworkUrlForDisplay(
+                winrt::Windows::Foundation::Uri::UnescapeComponent(encodedTarget));
+            return IsSafeRemoteUrl(target, RemoteUrlUse::Durable)
+                ? target
+                : winrt::hstring{};
+        }
+        catch (...)
+        {
+            return {};
+        }
+    }
+
     winrt::hstring RemoveLegacyProviderUrlCredential(winrt::hstring const& url)
     {
         if (!IsHttpUrl(url))

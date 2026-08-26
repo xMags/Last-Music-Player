@@ -23,6 +23,12 @@ namespace LastMusicPlayer::Backend
                 : std::wstring{};
         }
 
+        std::wstring SanitizeAccountArtworkUrl(winrt::hstring const& value)
+        {
+            auto durable = DurableArtworkUrl(RemoveLegacyProviderUrlCredential(value));
+            return std::wstring(durable.c_str());
+        }
+
         // A profile picture is either a URL, which is held to the same
         // durability rules as every other stored URL, or the image itself
         // inlined, which has no origin to check and is kept verbatim so the
@@ -61,7 +67,7 @@ namespace LastMusicPlayer::Backend
             InsertString(object, L"artist", track.Artist());
             InsertString(object, L"album", track.Album());
             InsertString(object, L"genre", track.Genre());
-            InsertString(object, L"artworkUrl", winrt::hstring(SanitizeAccountUrl(track.ArtworkUrl())));
+            InsertString(object, L"artworkUrl", winrt::hstring(SanitizeAccountArtworkUrl(track.ArtworkUrl())));
             InsertString(object, L"catalogId", track.RemoteCatalogId());
             InsertString(object, L"albumCatalogId", track.AlbumCatalogId());
             InsertString(object, L"artistCatalogId", track.ArtistCatalogId());
@@ -193,7 +199,7 @@ namespace LastMusicPlayer::Backend
             BindText(stmt.value, 6, std::wstring(track.Album().c_str()));
             BindText(stmt.value, 7, std::wstring(track.Genre().c_str()));
             sqlite3_bind_double(stmt.value, 8, track.DurationSeconds());
-            BindText(stmt.value, 9, SanitizeAccountUrl(track.ArtworkUrl()));
+            BindText(stmt.value, 9, SanitizeAccountArtworkUrl(track.ArtworkUrl()));
             sqlite3_bind_double(stmt.value, 10, track.DateAddedSortKey());
             BindText(stmt.value, 11, std::wstring(track.DateAdded().c_str()));
             BindText(stmt.value, 12, std::wstring(track.Duration().c_str()));
@@ -356,7 +362,7 @@ namespace LastMusicPlayer::Backend
             BindText(insertTrack.value, 6, std::wstring(track.Album().c_str()));
             BindText(insertTrack.value, 7, std::wstring(track.Genre().c_str()));
             sqlite3_bind_double(insertTrack.value, 8, track.DurationSeconds());
-            BindText(insertTrack.value, 9, SanitizeAccountUrl(track.ArtworkUrl()));
+            BindText(insertTrack.value, 9, SanitizeAccountArtworkUrl(track.ArtworkUrl()));
             sqlite3_bind_double(insertTrack.value, 10, track.DateAddedSortKey());
             BindText(insertTrack.value, 11, std::wstring(track.DateAdded().c_str()));
             BindText(insertTrack.value, 12, std::wstring(track.Duration().c_str()));

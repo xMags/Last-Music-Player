@@ -810,6 +810,7 @@ namespace winrt::Last_Music_Player::implementation
                 L"stream")
                 ? streamUrl
                 : winrt::hstring{};
+            safeArtworkUrl = LastMusicPlayer::Backend::DurableArtworkUrl(artworkUrl);
         }
         else
         {
