@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Backend/CastDiscovery.h"
+
 #include <winrt/Windows.Foundation.h>
 #include <winrt/Windows.Networking.h>
 #include <winrt/Windows.Networking.Sockets.h>
@@ -15,19 +17,12 @@
 
 namespace LastMusicPlayer::Backend
 {
-    struct CastDevice
-    {
-        std::wstring id;
-        std::wstring name;
-        std::wstring host;
-        uint16_t port{ 8009 };
-    };
-
     // Self-contained Cast v2 discovery and control client. No local sidecar is required.
     class CastEngine
     {
     public:
-        CastEngine() = default;
+        CastEngine();
+        explicit CastEngine(std::shared_ptr<IDnsSdAdapter> discoveryAdapter);
         ~CastEngine();
 
         CastEngine(CastEngine const&) = delete;
@@ -90,5 +85,6 @@ namespace LastMusicPlayer::Backend
         bool m_mediaChannelOpen{ false };
         bool m_loadSent{ false };
         std::string m_pendingLoadJson;
+        std::shared_ptr<IDnsSdAdapter> m_discoveryAdapter;
     };
 }

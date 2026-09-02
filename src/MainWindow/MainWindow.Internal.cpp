@@ -4,6 +4,7 @@
 #include "Backend/AccountMusicContract.h"
 #include "Backend/BuildConfig.h"
 #include "Backend/ProviderHelpers.h"
+#include "Backend/UtfCodec.h"
 
 #include <wil/cppwinrt_helpers.h>
 
@@ -888,43 +889,6 @@ namespace winrt::Last_Music_Player::implementation::detail
         return AppDataDirectory() / L"LastMusicState.json";
     }
 
-    std::string ToUtf8(winrt::hstring const& value)
-    {
-        auto text = std::wstring{ value.c_str() };
-        if (text.empty())
-        {
-            return {};
-        }
-
-        auto required = WideCharToMultiByte(CP_UTF8, 0, text.c_str(), -1, nullptr, 0, nullptr, nullptr);
-        if (required <= 1)
-        {
-            return {};
-        }
-
-        std::string utf8(static_cast<size_t>(required - 1), '\0');
-        WideCharToMultiByte(CP_UTF8, 0, text.c_str(), -1, utf8.data(), required, nullptr, nullptr);
-        return utf8;
-    }
-
-    winrt::hstring FromUtf8(std::string const& value)
-    {
-        if (value.empty())
-        {
-            return {};
-        }
-
-        auto required = MultiByteToWideChar(CP_UTF8, 0, value.data(), static_cast<int>(value.size()), nullptr, 0);
-        if (required <= 0)
-        {
-            return {};
-        }
-
-        std::wstring wide(static_cast<size_t>(required), L'\0');
-        MultiByteToWideChar(CP_UTF8, 0, value.data(), static_cast<int>(value.size()), wide.data(), required);
-        return winrt::hstring{ wide };
-    }
-
     winrt::hstring ReadTextFile(std::filesystem::path const& path)
     {
         try
@@ -937,7 +901,8 @@ namespace winrt::Last_Music_Player::implementation::detail
 
             std::ostringstream buffer;
             buffer << file.rdbuf();
-            return FromUtf8(buffer.str());
+            auto const wide = LastMusicPlayer::Backend::Utf::FromUtf8(buffer.str());
+            return wide ? winrt::hstring{ *wide } : winrt::hstring{};
         }
         catch (...)
         {
@@ -960,8 +925,16 @@ namespace winrt::Last_Music_Player::implementation::detail
             tempPath += L".tmp";
             {
                 std::ofstream file{ tempPath, std::ios::binary | std::ios::trunc };
-                auto utf8 = ToUtf8(value);
-                file.write(utf8.data(), static_cast<std::streamsize>(utf8.size()));
+                auto const utf8 = LastMusicPlayer::Backend::Utf::ToUtf8(
+                    std::wstring_view{ value.c_str(), value.size() });
+                if (!utf8)
+                {
+                    file.close();
+                    std::error_code ec;
+                    std::filesystem::remove(tempPath, ec);
+                    return;
+                }
+                file.write(utf8->data(), static_cast<std::streamsize>(utf8->size()));
                 file.close();
                 if (!file)
                 {

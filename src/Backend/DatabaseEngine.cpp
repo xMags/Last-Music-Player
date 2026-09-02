@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Backend/DatabaseEngine.h"
 #include "Backend/DatabaseEngine.Internal.h"
+#include "Backend/UtfCodec.h"
 
 #include <filesystem>
 
@@ -18,9 +19,13 @@ namespace LastMusicPlayer::Backend
         std::scoped_lock lock{ m_mutex };
         auto appDataPath = AppDataDirectory();
         std::filesystem::create_directories(appDataPath);
-        auto dbPath = WideToUtf8((appDataPath / L"lastmusic.db").wstring());
+        auto const dbPath = Utf::ToUtf8((appDataPath / L"lastmusic.db").wstring());
+        if (!dbPath)
+        {
+            return false;
+        }
 
-        if (sqlite3_open(dbPath.c_str(), &m_db) != SQLITE_OK)
+        if (sqlite3_open(dbPath->c_str(), &m_db) != SQLITE_OK)
         {
             if (m_db != nullptr)
             {

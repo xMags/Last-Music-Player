@@ -8,8 +8,6 @@
 namespace LastMusicPlayer::Backend::DatabaseDetail
 {
     std::filesystem::path AppDataDirectory();
-    std::string WideToUtf8(std::wstring const& wide);
-    std::wstring Utf8ToWide(char const* utf8);
     void BindText(sqlite3_stmt* stmt, int index, std::wstring const& value);
     std::wstring ColumnText(sqlite3_stmt* stmt, int index);
     std::wstring ToLowerInvariant(std::wstring value);

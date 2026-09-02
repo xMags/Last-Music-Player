@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="15.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="..\..\packages\Microsoft.Windows.CppWinRT.2.0.250303.1\build\native\Microsoft.Windows.CppWinRT.props" Condition="Exists('..\..\packages\Microsoft.Windows.CppWinRT.2.0.250303.1\build\native\Microsoft.Windows.CppWinRT.props')" />
   <PropertyGroup Label="Globals">
@@ -99,6 +99,7 @@
     <ClCompile Include="NativeAccountSyncTests.cpp" />
     <ClCompile Include="..\..\src\Backend\CredentialStore.cpp" />
     <ClCompile Include="..\..\src\Backend\SettingsManager.cpp" />
+    <ClCompile Include="..\..\src\Backend\UtfCodec.cpp" />
     <ClCompile Include="..\..\src\Backend\Pkce.cpp" />
     <ClCompile Include="..\..\src\Backend\LoopbackCallback.cpp" />
     <ClCompile Include="..\..\src\Backend\AccountClient.cpp" />

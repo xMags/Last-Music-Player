@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/SettingsManager.h"
+#include "Backend/UtfCodec.h"
 
 #include <windows.h>
 
@@ -29,42 +30,6 @@ namespace
         return base / L"Settings.json";
     }
 
-    std::string ToUtf8(std::wstring const& text)
-    {
-        if (text.empty())
-        {
-            return {};
-        }
-
-        auto required = WideCharToMultiByte(CP_UTF8, 0, text.c_str(), -1, nullptr, 0, nullptr, nullptr);
-        if (required <= 1)
-        {
-            return {};
-        }
-
-        std::string utf8(static_cast<size_t>(required - 1), '\0');
-        WideCharToMultiByte(CP_UTF8, 0, text.c_str(), -1, utf8.data(), required, nullptr, nullptr);
-        return utf8;
-    }
-
-    std::wstring FromUtf8(std::string const& value)
-    {
-        if (value.empty())
-        {
-            return {};
-        }
-
-        auto required = MultiByteToWideChar(CP_UTF8, 0, value.data(), static_cast<int>(value.size()), nullptr, 0);
-        if (required <= 0)
-        {
-            return {};
-        }
-
-        std::wstring wide(static_cast<size_t>(required), L'\0');
-        MultiByteToWideChar(CP_UTF8, 0, value.data(), static_cast<int>(value.size()), wide.data(), required);
-        return wide;
-    }
-
     winrt::hstring ReadSettingsText()
     {
         try
@@ -77,7 +42,8 @@ namespace
 
             std::ostringstream buffer;
             buffer << file.rdbuf();
-            return winrt::hstring{ FromUtf8(buffer.str()) };
+            auto const wide = LastMusicPlayer::Backend::Utf::FromUtf8(buffer.str());
+            return wide ? winrt::hstring{ *wide } : winrt::hstring{};
         }
         catch (...)
         {
@@ -94,8 +60,15 @@ namespace
             auto tempPath = path;
             tempPath += L".tmp";
             std::ofstream file{ tempPath, std::ios::binary | std::ios::trunc };
-            auto utf8 = ToUtf8(std::wstring{ value.c_str() });
-            file.write(utf8.data(), static_cast<std::streamsize>(utf8.size()));
+            auto const utf8 = LastMusicPlayer::Backend::Utf::ToUtf8(
+                std::wstring_view{ value.c_str(), value.size() });
+            if (!utf8)
+            {
+                file.close();
+                std::filesystem::remove(tempPath);
+                return false;
+            }
+            file.write(utf8->data(), static_cast<std::streamsize>(utf8->size()));
             file.close();
             if (!file)
             {

@@ -2,6 +2,7 @@
 #include "Backend/DatabaseEngine.Internal.h"
 #include "Backend/LibraryGroupingSql.h"
 #include "Backend/ProviderHelpers.h"
+#include "Backend/UtfCodec.h"
 
 #include <algorithm>
 #include <chrono>
@@ -9,7 +10,9 @@
 #include <cwctype>
 #include <filesystem>
 #include <functional>
+#include <limits>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace LastMusicPlayer::Backend::DatabaseDetail
@@ -29,51 +32,32 @@ namespace LastMusicPlayer::Backend::DatabaseDetail
         return std::filesystem::current_path() / L"Last Music Player";
     }
 
-    std::string WideToUtf8(std::wstring const& wide)
-    {
-        if (wide.empty())
-        {
-            return {};
-        }
-
-        int requiredSize = ::WideCharToMultiByte(CP_UTF8, 0, wide.c_str(), static_cast<int>(wide.size()), nullptr, 0, nullptr, nullptr);
-        if (requiredSize <= 0)
-        {
-            return {};
-        }
-
-        std::string utf8(static_cast<size_t>(requiredSize), '\0');
-        ::WideCharToMultiByte(CP_UTF8, 0, wide.c_str(), static_cast<int>(wide.size()), utf8.data(), requiredSize, nullptr, nullptr);
-        return utf8;
-    }
-
-    std::wstring Utf8ToWide(char const* utf8)
-    {
-        if (utf8 == nullptr || *utf8 == '\0')
-        {
-            return {};
-        }
-
-        int requiredSize = ::MultiByteToWideChar(CP_UTF8, 0, utf8, -1, nullptr, 0);
-        if (requiredSize <= 1)
-        {
-            return {};
-        }
-
-        std::wstring wide(static_cast<size_t>(requiredSize - 1), L'\0');
-        ::MultiByteToWideChar(CP_UTF8, 0, utf8, -1, wide.data(), requiredSize);
-        return wide;
-    }
-
     void BindText(sqlite3_stmt* stmt, int index, std::wstring const& value)
     {
-        auto utf8 = WideToUtf8(value);
-        sqlite3_bind_text(stmt, index, utf8.c_str(), -1, SQLITE_TRANSIENT);
+        auto const utf8 = Utf::ToUtf8(value);
+        if (!utf8 || utf8->size() > static_cast<std::size_t>((std::numeric_limits<int>::max)()))
+        {
+            sqlite3_bind_null(stmt, index);
+            return;
+        }
+        sqlite3_bind_text(
+            stmt,
+            index,
+            utf8->data(),
+            static_cast<int>(utf8->size()),
+            SQLITE_TRANSIENT);
     }
 
     std::wstring ColumnText(sqlite3_stmt* stmt, int index)
     {
-        return Utf8ToWide(reinterpret_cast<char const*>(sqlite3_column_text(stmt, index)));
+        auto const* text = reinterpret_cast<char const*>(sqlite3_column_text(stmt, index));
+        if (text == nullptr)
+        {
+            return {};
+        }
+        auto const size = sqlite3_column_bytes(stmt, index);
+        auto const wide = Utf::FromUtf8(std::string_view{ text, static_cast<std::size_t>(size) });
+        return wide.value_or(std::wstring{});
     }
 
     std::wstring ToLowerInvariant(std::wstring value)

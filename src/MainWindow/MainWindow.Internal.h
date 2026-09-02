@@ -168,8 +168,6 @@ namespace winrt::Last_Music_Player::implementation::detail
 
     std::filesystem::path AppDataDirectory();
     std::filesystem::path StateFilePath();
-    std::string ToUtf8(winrt::hstring const& value);
-    winrt::hstring FromUtf8(std::string const& value);
     winrt::hstring ReadTextFile(std::filesystem::path const& path);
     void WriteTextFile(std::filesystem::path const& path, winrt::hstring const& value);
 

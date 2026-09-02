@@ -2,16 +2,13 @@
 #include "Backend/CastEngine.h"
 
 #include <windows.h>
-#include <windns.h>
 
 #include <winrt/Windows.Data.Json.h>
 #include <winrt/Windows.Foundation.Collections.h>
 #include <winrt/Windows.Security.Cryptography.Certificates.h>
 
 #include <chrono>
-#include <set>
-
-#pragma comment(lib, "dnsapi.lib")
+#include <utility>
 
 using namespace winrt;
 using namespace winrt::Windows::Foundation;
@@ -145,6 +142,16 @@ namespace LastMusicPlayer::Backend
         }
     }
 
+    CastEngine::CastEngine()
+        : m_discoveryAdapter(CreateWindowsDnsSdAdapter())
+    {
+    }
+
+    CastEngine::CastEngine(std::shared_ptr<IDnsSdAdapter> discoveryAdapter)
+        : m_discoveryAdapter(std::move(discoveryAdapter))
+    {
+    }
+
     CastEngine::~CastEngine()
     {
         TeardownInternal(false);
@@ -162,147 +169,13 @@ namespace LastMusicPlayer::Backend
         return m_host;
     }
 
-    // ---- Discovery (Windows DNS-SD; uses the OS resolver -> multi-NIC safe) --
-
-    namespace
-    {
-        struct BrowseCtx
-        {
-            std::mutex mtx;
-            std::set<std::wstring> instances;
-        };
-
-        VOID WINAPI BrowseCallback(DWORD Status, PVOID pQueryContext, PDNS_RECORD pDnsRecord)
-        {
-            auto* ctx = reinterpret_cast<BrowseCtx*>(pQueryContext);
-            if (Status == ERROR_SUCCESS && pDnsRecord && ctx)
-            {
-                for (PDNS_RECORD r = pDnsRecord; r; r = r->pNext)
-                {
-                    if (r->wType == DNS_TYPE_PTR && r->Data.PTR.pNameHost)
-                    {
-                        std::lock_guard<std::mutex> lock(ctx->mtx);
-                        ctx->instances.insert(r->Data.PTR.pNameHost);
-                    }
-                }
-            }
-            if (pDnsRecord)
-            {
-                DnsRecordListFree(pDnsRecord, DnsFreeRecordList);
-            }
-        }
-
-        struct ResolveCtx
-        {
-            HANDLE done{ nullptr };
-            CastDevice device;
-            bool ok{ false };
-        };
-
-        VOID WINAPI ResolveCallback(DWORD Status, PVOID pQueryContext, PDNS_SERVICE_INSTANCE pInstance)
-        {
-            auto* ctx = reinterpret_cast<ResolveCtx*>(pQueryContext);
-            if (Status == ERROR_SUCCESS && pInstance && ctx)
-            {
-                if (pInstance->ip4Address)
-                {
-                    DWORD ip = *pInstance->ip4Address;
-                    wchar_t buf[32];
-                    swprintf_s(buf, L"%u.%u.%u.%u",
-                        ip & 0xFF, (ip >> 8) & 0xFF, (ip >> 16) & 0xFF, (ip >> 24) & 0xFF);
-                    ctx->device.host = buf;
-                }
-                else if (pInstance->pszHostName)
-                {
-                    ctx->device.host = pInstance->pszHostName;
-                }
-                ctx->device.port = pInstance->wPort ? pInstance->wPort : 8009;
-
-                std::wstring fn, id;
-                for (DWORD i = 0; i < pInstance->dwPropertyCount; ++i)
-                {
-                    if (!pInstance->keys || !pInstance->keys[i] || !pInstance->values) continue;
-                    std::wstring key = pInstance->keys[i];
-                    std::wstring val = pInstance->values[i] ? pInstance->values[i] : L"";
-                    if (_wcsicmp(key.c_str(), L"fn") == 0) fn = val;
-                    else if (_wcsicmp(key.c_str(), L"id") == 0) id = val;
-                }
-                std::wstring label = pInstance->pszInstanceName ? pInstance->pszInstanceName : L"";
-                auto dot = label.find(L'.');
-                if (dot != std::wstring::npos) label = label.substr(0, dot);
-
-                ctx->device.name = !fn.empty() ? fn : label;
-                ctx->device.id = !id.empty() ? id : (pInstance->pszInstanceName ? pInstance->pszInstanceName : ctx->device.host);
-                ctx->ok = !ctx->device.host.empty();
-            }
-            if (pInstance)
-            {
-                DnsServiceFreeInstance(pInstance);
-            }
-            if (ctx && ctx->done)
-            {
-                SetEvent(ctx->done);
-            }
-        }
-    }
-
     std::vector<CastDevice> CastEngine::Discover(uint32_t timeoutMs)
     {
-        std::vector<CastDevice> result;
-
-        BrowseCtx browse;
-        DNS_SERVICE_BROWSE_REQUEST req{};
-        req.Version = DNS_QUERY_REQUEST_VERSION1;
-        req.InterfaceIndex = 0;
-        req.QueryName = L"_googlecast._tcp.local";
-        req.pBrowseCallback = &BrowseCallback;
-        req.pQueryContext = &browse;
-
-        DNS_SERVICE_CANCEL cancel{};
-        DNS_STATUS status = DnsServiceBrowse(&req, &cancel);
-        if (status != DNS_REQUEST_PENDING && status != ERROR_SUCCESS)
+        if (!m_discoveryAdapter)
         {
-            return result;
+            return {};
         }
-
-        Sleep(timeoutMs);
-        DnsServiceBrowseCancel(&cancel);
-
-        std::set<std::wstring> instances;
-        {
-            std::lock_guard<std::mutex> lock(browse.mtx);
-            instances = browse.instances;
-        }
-
-        std::set<std::wstring> seen;
-        for (auto const& inst : instances)
-        {
-            ResolveCtx rctx;
-            rctx.done = CreateEventW(nullptr, TRUE, FALSE, nullptr);
-
-            std::wstring queryName = inst;
-            DNS_SERVICE_RESOLVE_REQUEST rreq{};
-            rreq.Version = DNS_QUERY_REQUEST_VERSION1;
-            rreq.InterfaceIndex = 0;
-            rreq.QueryName = const_cast<PWSTR>(queryName.c_str());
-            rreq.pResolveCompletionCallback = &ResolveCallback;
-            rreq.pQueryContext = &rctx;
-
-            DNS_SERVICE_CANCEL rcancel{};
-            DNS_STATUS rs = DnsServiceResolve(&rreq, &rcancel);
-            if (rs == DNS_REQUEST_PENDING || rs == ERROR_SUCCESS)
-            {
-                WaitForSingleObject(rctx.done, 2000);
-                DnsServiceResolveCancel(&rcancel);
-            }
-            CloseHandle(rctx.done);
-
-            if (rctx.ok && seen.insert(rctx.device.id).second)
-            {
-                result.push_back(rctx.device);
-            }
-        }
-        return result;
+        return DiscoverCastDevices(*m_discoveryAdapter, timeoutMs);
     }
 
     // ---- Connection / protocol ---------------------------------------------

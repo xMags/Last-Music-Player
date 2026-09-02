@@ -209,6 +209,8 @@
     <ClInclude Include="src\Backend\PlaylistSuggestionPolicy.h" />
     <ClInclude Include="src\Backend\RecentSearchStore.h" />
     <ClInclude Include="src\Backend\CastEngine.h" />
+    <ClInclude Include="src\Backend\CastDiscovery.h" />
+    <ClInclude Include="src\Backend\UtfCodec.h" />
     <ClInclude Include="src\Backend\TrayIcon.h" />
     <ClInclude Include="src\Backend\DiscordPresence.h" />
     <ClInclude Include="src\Backend\LyricsService.h" />
@@ -322,6 +324,9 @@
     <ClCompile Include="src\Backend\RecentSearchStore.cpp" />
     <ClCompile Include="src\Backend\LyricsService.cpp" />
     <ClCompile Include="src\Backend\CastEngine.cpp" />
+    <ClCompile Include="src\Backend\CastDiscovery.cpp" />
+    <ClCompile Include="src\Backend\WindowsDnsSdAdapter.cpp" />
+    <ClCompile Include="src\Backend\UtfCodec.cpp" />
     <ClCompile Include="src\Backend\TrayIcon.cpp" />
     <ClCompile Include="src\Backend\DiscordPresence.cpp" />
     <ClCompile Include="src\Backend\EqualizerEffect.cpp" />

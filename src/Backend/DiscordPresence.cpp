@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/DiscordPresence.h"
+#include "Backend/UtfCodec.h"
 
 #include <algorithm>
 #include <array>
@@ -35,25 +36,14 @@ namespace
     constexpr std::chrono::milliseconds kReconnectMaximum{ 30'000 };
     constexpr std::int32_t kMaxFrameBytes = 1024 * 1024;
 
-    std::string ToUtf8(std::wstring const& text)
-    {
-        if (text.empty())
-        {
-            return {};
-        }
-        int required = WideCharToMultiByte(CP_UTF8, 0, text.c_str(), -1, nullptr, 0, nullptr, nullptr);
-        if (required <= 1)
-        {
-            return {};
-        }
-        std::string out(static_cast<size_t>(required - 1), '\0');
-        WideCharToMultiByte(CP_UTF8, 0, text.c_str(), -1, out.data(), required, nullptr, nullptr);
-        return out;
-    }
-
     std::string JsonEscape(std::wstring const& text)
     {
-        auto utf8 = ToUtf8(text);
+        auto const encoded = LastMusicPlayer::Backend::Utf::ToUtf8(text);
+        if (!encoded)
+        {
+            return {};
+        }
+        auto const& utf8 = *encoded;
         std::string out;
         out.reserve(utf8.size() + 8);
         for (unsigned char ch : utf8)
@@ -436,8 +426,15 @@ namespace LastMusicPlayer::Backend
     std::string DiscordPresence::BuildActivityFingerprint(PresencePayload const& p)
     {
         auto append = [](std::ostringstream& out, std::wstring const& value) {
-            auto utf8 = ToUtf8(value);
-            out << utf8.size() << ':' << utf8 << '|';
+            auto const utf8 = LastMusicPlayer::Backend::Utf::ToUtf8(value);
+            if (utf8)
+            {
+                out << utf8->size() << ':' << *utf8 << '|';
+            }
+            else
+            {
+                out << "0:|";
+            }
         };
         auto milliseconds = [](double seconds) {
             return static_cast<long long>(std::llround((std::max)(0.0, seconds) * 1000.0));
