@@ -29,3 +29,7 @@ lmp_add_test(tst_motion
 lmp_add_test(tst_fonts
     SOURCES ui/tst_fonts.cpp
     LIBS lmp_ui)
+
+lmp_add_test(tst_icon_set
+    SOURCES ui/tst_icon_set.cpp
+    LIBS lmp_ui Qt6::Svg)

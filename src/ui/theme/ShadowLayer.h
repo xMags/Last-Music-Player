@@ -16,11 +16,11 @@ struct ShadowLayer {
     Q_GADGET
     QML_VALUE_TYPE(shadowLayer)
 
-    Q_PROPERTY(qreal offsetX MEMBER offsetX CONSTANT)
-    Q_PROPERTY(qreal offsetY MEMBER offsetY CONSTANT)
-    Q_PROPERTY(qreal blur MEMBER blur CONSTANT)
-    Q_PROPERTY(qreal spread MEMBER spread CONSTANT)
-    Q_PROPERTY(QColor color MEMBER color CONSTANT)
+    Q_PROPERTY(qreal offsetX MEMBER offsetX CONSTANT FINAL)
+    Q_PROPERTY(qreal offsetY MEMBER offsetY CONSTANT FINAL)
+    Q_PROPERTY(qreal blur MEMBER blur CONSTANT FINAL)
+    Q_PROPERTY(qreal spread MEMBER spread CONSTANT FINAL)
+    Q_PROPERTY(QColor color MEMBER color CONSTANT FINAL)
 
 public:
     qreal offsetX = 0;

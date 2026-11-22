@@ -15,6 +15,14 @@ qt_add_qml_module(lmp_ui
     SOURCES
         app/AppInfo.cpp
         app/AppInfo.h
+        icons/IconData.h
+        icons/IconDataLine.cpp
+        icons/IconDataLogos.cpp
+        icons/IconDataSolid.cpp
+        icons/IconPart.cpp
+        icons/IconPart.h
+        icons/IconSet.cpp
+        icons/IconSet.h
         theme/ColorMix.cpp
         theme/ColorMix.h
         theme/FontLoader.cpp
@@ -33,6 +41,8 @@ qt_add_qml_module(lmp_ui
         theme/ThemePalette.h
     QML_FILES
         qml/Main.qml
+        qml/controls/Icon.qml
+        qml/controls/IconShapePath.qml
         qml/controls/VersionLabel.qml
     RESOURCES
         "${CMAKE_SOURCE_DIR}/Assets/fonts/MrDeHaviland-Regular.ttf")
@@ -42,6 +52,7 @@ qt_add_qml_module(lmp_ui
 # must be on the include path and header file names must be unique in src/ui.
 set(LMP_UI_TYPE_FOLDERS
     app
+    icons
     theme)
 
 target_include_directories(lmp_ui

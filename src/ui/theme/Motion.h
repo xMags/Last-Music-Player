@@ -14,22 +14,22 @@ class Motion : public QObject {
     QML_ELEMENT
     QML_SINGLETON
 
-    Q_PROPERTY(QEasingCurve standard READ standard CONSTANT)
-    Q_PROPERTY(QEasingCurve water READ water CONSTANT)
-    Q_PROPERTY(QEasingCurve toastSpring READ toastSpring CONSTANT)
-    Q_PROPERTY(QEasingCurve menu READ menu CONSTANT)
+    Q_PROPERTY(QEasingCurve standard READ standard CONSTANT FINAL)
+    Q_PROPERTY(QEasingCurve water READ water CONSTANT FINAL)
+    Q_PROPERTY(QEasingCurve toastSpring READ toastSpring CONSTANT FINAL)
+    Q_PROPERTY(QEasingCurve menu READ menu CONSTANT FINAL)
 
     // Durations in milliseconds.
-    Q_PROPERTY(int page READ page CONSTANT)
-    Q_PROPERTY(int menuDuration READ menuDuration CONSTANT)
-    Q_PROPERTY(int modal READ modal CONSTANT)
-    Q_PROPERTY(int ripple READ ripple CONSTANT)
-    Q_PROPERTY(int segmentGlide READ segmentGlide CONSTANT)
-    Q_PROPERTY(int heart READ heart CONSTANT)
-    Q_PROPERTY(int artCrossfade READ artCrossfade CONSTANT)
-    Q_PROPERTY(int ambient READ ambient CONSTANT)
+    Q_PROPERTY(int page READ page CONSTANT FINAL)
+    Q_PROPERTY(int menuDuration READ menuDuration CONSTANT FINAL)
+    Q_PROPERTY(int modal READ modal CONSTANT FINAL)
+    Q_PROPERTY(int ripple READ ripple CONSTANT FINAL)
+    Q_PROPERTY(int segmentGlide READ segmentGlide CONSTANT FINAL)
+    Q_PROPERTY(int heart READ heart CONSTANT FINAL)
+    Q_PROPERTY(int artCrossfade READ artCrossfade CONSTANT FINAL)
+    Q_PROPERTY(int ambient READ ambient CONSTANT FINAL)
 
-    Q_PROPERTY(bool reduced READ reduced WRITE setReduced NOTIFY reducedChanged)
+    Q_PROPERTY(bool reduced READ reduced WRITE setReduced NOTIFY reducedChanged FINAL)
 
 public:
     explicit Motion(QObject* parent = nullptr);
