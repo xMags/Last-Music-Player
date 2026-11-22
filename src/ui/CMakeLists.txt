@@ -49,6 +49,10 @@ set(LMP_UI_QML_FILES
     qml/dev/GalleryOverlays.qml
     qml/dev/GallerySection.qml
     qml/dev/GalleryTokens.qml
+    qml/player/IdleArt.qml
+    qml/player/PlayerBar.qml
+    qml/player/PlayerTrackBlock.qml
+    qml/player/PlayerTransport.qml
     qml/shell/BrandMark.qml
     qml/shell/CaptionButton.qml
     qml/shell/NavItem.qml
@@ -89,6 +93,8 @@ qt_add_qml_module(lmp_ui
         navigation/Route.h
         navigation/RouteRules.cpp
         navigation/RouteRules.h
+        player/PlayerBarViewModel.cpp
+        player/PlayerBarViewModel.h
         shell/AppRoot.cpp
         shell/AppRoot.h
         shell/ShellLayoutViewModel.cpp
@@ -135,6 +141,7 @@ set(LMP_UI_TYPE_FOLDERS
     icons
     menus
     navigation
+    player
     shell
     theme
     toasts)

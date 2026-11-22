@@ -66,6 +66,8 @@ struct TextStyles {
     TextStyle navLabelActive;
     TextStyle profileTier;
     TextStyle profileDots;
+    TextStyle playerTime;
+    TextStyle repeatBadge;
 
     [[nodiscard]] static TextStyles build(const FontFamilies& families);
 };

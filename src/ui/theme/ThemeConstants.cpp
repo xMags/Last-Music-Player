@@ -124,6 +124,31 @@ QColor ThemeConstants::brandLogoBar()
     return QColor(Qt::white);
 }
 
+QColor ThemeConstants::idleDisc()
+{
+    return QColor(0x1A, 0x1A, 0x1C);
+}
+
+QColor ThemeConstants::idleDiscGroove()
+{
+    return QColor(0x26, 0x26, 0x2A);
+}
+
+QColor ThemeConstants::idleDiscHighlight()
+{
+    return rgba(255, 255, 255, 0.16f);
+}
+
+QColor ThemeConstants::idleDiscRing()
+{
+    return rgba(255, 255, 255, 0.06f);
+}
+
+QVariantList ThemeConstants::shadowIdleDisc()
+{
+    return shadowLayers({{0, 2, 6, 0, rgba(0, 0, 0, 0.28f)}});
+}
+
 QColor ThemeConstants::railShadow()
 {
     return rgba(0, 0, 0, 0.18f);

@@ -14,6 +14,7 @@ constexpr int kMedium = 500;
 constexpr int kSemiBold = 600;
 constexpr int kBold = 700;
 constexpr int kGreeting = 750;
+constexpr int kExtraBold = 800;
 constexpr int kBubble = 650;
 
 struct StyleSpec {
@@ -153,6 +154,11 @@ TextStyles TextStyles::build(const FontFamilies& families)
         // .profile-menu-dots: 20px, line-height 1.
         .profileDots =
             makeStyle({.family = text, .pixelSize = 20, .weight = kRegular, .lineHeight = 20}),
+        // .pb-time: 11px, 500, tabular figures.
+        .playerTime = makeStyle(
+            {.family = text, .pixelSize = 11, .weight = kMedium, .tabularNumbers = true}),
+        // .repeat-one-badge: 8px, 800.
+        .repeatBadge = makeStyle({.family = text, .pixelSize = 8, .weight = kExtraBold}),
     };
 }
 

@@ -56,6 +56,8 @@ class ThemeTypography : public QObject {
     Q_PROPERTY(QFont navLabelActive READ navLabelActive CONSTANT FINAL)
     Q_PROPERTY(QFont profileTier READ profileTier CONSTANT FINAL)
     Q_PROPERTY(QFont profileDots READ profileDots CONSTANT FINAL)
+    Q_PROPERTY(QFont playerTime READ playerTime CONSTANT FINAL)
+    Q_PROPERTY(QFont repeatBadge READ repeatBadge CONSTANT FINAL)
     Q_PROPERTY(qreal lineHeightModalDescription READ lineHeightModalDescription CONSTANT FINAL)
     Q_PROPERTY(qreal lineHeightBubbleLabel READ lineHeightBubbleLabel CONSTANT FINAL)
     Q_PROPERTY(qreal lineHeightSectionTitle READ lineHeightSectionTitle CONSTANT FINAL)
@@ -115,6 +117,8 @@ public:
     [[nodiscard]] QFont navLabelActive() const { return m_text.navLabelActive.font; }
     [[nodiscard]] QFont profileTier() const { return m_text.profileTier.font; }
     [[nodiscard]] QFont profileDots() const { return m_text.profileDots.font; }
+    [[nodiscard]] QFont playerTime() const { return m_text.playerTime.font; }
+    [[nodiscard]] QFont repeatBadge() const { return m_text.repeatBadge.font; }
     [[nodiscard]] qreal lineHeightModalDescription() const { return m_text.modalDescription.lineHeight; }
     [[nodiscard]] qreal lineHeightBubbleLabel() const { return m_text.bubbleLabel.lineHeight; }
     [[nodiscard]] qreal lineHeightSectionTitle() const { return m_text.sectionTitle.lineHeight; }

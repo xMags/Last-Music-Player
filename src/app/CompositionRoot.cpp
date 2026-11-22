@@ -33,6 +33,7 @@ CompositionRoot::CompositionRoot()
           .navigator = &m_navigator,
           .layout = &m_layout,
           .sidebar = &m_sidebar,
+          .playerBar = &m_playerBar,
           .showGallery = QCoreApplication::arguments().contains(QStringLiteral("--gallery")),
       })
 {

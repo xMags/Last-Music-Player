@@ -57,3 +57,7 @@ lmp_add_test(tst_navigator
 lmp_add_test(tst_shell_layout
     SOURCES ui/tst_shell_layout.cpp
     LIBS lmp_ui)
+
+lmp_add_test(tst_player_bar_view_model
+    SOURCES ui/tst_player_bar_view_model.cpp
+    LIBS lmp_ui)

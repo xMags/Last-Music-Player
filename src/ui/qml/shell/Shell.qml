@@ -97,11 +97,9 @@ Item {
         }
     }
 
-    // Player bar slot.
-    Rectangle {
+    PlayerBar {
         y: shell.bodyHeight
         width: shell.width
         height: Theme.playerBarHeight
-        color: Theme.surface
     }
 }

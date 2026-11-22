@@ -65,6 +65,12 @@ class ThemeConstants : public ThemeTypography {
     Q_PROPERTY(QColor brandLogoStart READ brandLogoStart CONSTANT FINAL)
     Q_PROPERTY(QColor brandLogoEnd READ brandLogoEnd CONSTANT FINAL)
     Q_PROPERTY(QColor brandLogoBar READ brandLogoBar CONSTANT FINAL)
+    // The idle record shown on the cover while nothing plays.
+    Q_PROPERTY(QColor idleDisc READ idleDisc CONSTANT FINAL)
+    Q_PROPERTY(QColor idleDiscGroove READ idleDiscGroove CONSTANT FINAL)
+    Q_PROPERTY(QColor idleDiscHighlight READ idleDiscHighlight CONSTANT FINAL)
+    Q_PROPERTY(QColor idleDiscRing READ idleDiscRing CONSTANT FINAL)
+    Q_PROPERTY(QVariantList shadowIdleDisc READ shadowIdleDisc CONSTANT FINAL)
     // The shadow of the queue rail when it opens over the content.
     Q_PROPERTY(QColor railShadow READ railShadow CONSTANT FINAL)
     // The thin ring inside an accent colour swatch.
@@ -111,6 +117,11 @@ public:
     [[nodiscard]] static QColor artSheenBottom();
     [[nodiscard]] static QColor swatchRing();
     [[nodiscard]] static QColor railShadow();
+    [[nodiscard]] static QColor idleDisc();
+    [[nodiscard]] static QColor idleDiscGroove();
+    [[nodiscard]] static QColor idleDiscHighlight();
+    [[nodiscard]] static QColor idleDiscRing();
+    [[nodiscard]] static QVariantList shadowIdleDisc();
     [[nodiscard]] static QColor brandLogoStart();
     [[nodiscard]] static QColor brandLogoEnd();
     [[nodiscard]] static QColor brandLogoBar();
