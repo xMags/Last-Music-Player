@@ -197,3 +197,7 @@ lmp_add_test(tst_recent_search_store
 lmp_add_test(tst_user_data_operation_gate
     SOURCES core/tst_user_data_operation_gate.cpp
     LIBS lmp_core)
+
+lmp_add_test(tst_embedded_artwork
+    SOURCES core/tst_embedded_artwork.cpp core/ArtworkFixtures.h
+    LIBS lmp_core)

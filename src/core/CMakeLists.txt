@@ -52,12 +52,25 @@ qt_add_library(lmp_core STATIC
     db/TrackRows.cpp
     db/TrackRows.h
     db/TrackSchema.h
+    library/ArtworkByteSource.cpp
+    library/ArtworkByteSource.h
+    library/ArtworkPictureCandidate.cpp
+    library/ArtworkPictureCandidate.h
+    library/BigEndianBytes.h
     library/BrowseGroupingPolicy.cpp
     library/BrowseGroupingPolicy.h
     library/DetailSortPolicy.cpp
     library/DetailSortPolicy.h
+    library/EmbeddedArtwork.cpp
+    library/EmbeddedArtwork.h
+    library/FlacArtworkReader.cpp
+    library/FlacArtworkReader.h
     library/GenreArtworkRecipe.cpp
     library/GenreArtworkRecipe.h
+    library/Id3ArtworkReader.cpp
+    library/Id3ArtworkReader.h
+    library/Mp4ArtworkReader.cpp
+    library/Mp4ArtworkReader.h
     library/PlaylistSuggestionPolicy.cpp
     library/PlaylistSuggestionPolicy.h
     library/RecentSearchStore.cpp
