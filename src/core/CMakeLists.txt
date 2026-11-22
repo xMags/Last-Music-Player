@@ -8,6 +8,10 @@ qt_add_library(lmp_core STATIC
     async/Result.h
     config/PrivateConfig.cpp
     config/PrivateConfig.h
+    db/Database.cpp
+    db/Database.h
+    db/SqliteConnection.cpp
+    db/SqliteConnection.h
     model/ArtworkPlaceholder.cpp
     model/ArtworkPlaceholder.h
     model/Track.cpp
@@ -28,6 +32,7 @@ target_include_directories(lmp_core
     PRIVATE "${CMAKE_BINARY_DIR}/generated")
 
 target_link_libraries(lmp_core PUBLIC Qt6::Core Qt6::Network)
+target_link_libraries(lmp_core PRIVATE lmp_sqlite)
 
 target_compile_definitions(lmp_core PRIVATE
     LMP_VERSION_STRING="${PROJECT_VERSION}")

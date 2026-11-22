@@ -89,3 +89,7 @@ lmp_add_test(tst_remote_url_policy
 lmp_add_test(tst_track
     SOURCES core/tst_track.cpp
     LIBS lmp_core)
+
+lmp_add_test(tst_database_open
+    SOURCES core/tst_database_open.cpp
+    LIBS lmp_core)

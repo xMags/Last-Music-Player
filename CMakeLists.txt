@@ -17,6 +17,7 @@ qt_standard_project_setup(REQUIRES 6.8)
 include(CompilerWarnings)
 include(PrivateConfig)
 
+add_subdirectory(ThirdParty/sqlite)
 add_subdirectory(src/core)
 add_subdirectory(src/platform/windows)
 add_subdirectory(src/ui)
