@@ -222,6 +222,18 @@ lmp_add_test(tst_queue_engine
     SOURCES core/tst_queue_engine.cpp
     LIBS lmp_core)
 
+lmp_add_test(tst_player_controller
+    SOURCES core/tst_player_controller.cpp core/PlayerFixture.h core/FakeAudioPlayer.h core/FakePlaybackClock.h core/TempLibrary.h
+    LIBS lmp_core)
+
+lmp_add_test(tst_player_preferences
+    SOURCES core/tst_player_preferences.cpp core/PlayerFixture.h core/FakeAudioPlayer.h core/FakePlaybackClock.h core/TempLibrary.h
+    LIBS lmp_core)
+
+lmp_add_test(tst_player_controller_recovery
+    SOURCES core/tst_player_controller_recovery.cpp core/PlayerFixture.h core/FakeAudioPlayer.h core/FakePlaybackClock.h core/TempLibrary.h
+    LIBS lmp_core)
+
 lmp_add_test(tst_windows_audio_player
     SOURCES platform/tst_windows_audio_player.cpp
     LIBS lmp_platform_windows)

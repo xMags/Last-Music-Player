@@ -87,6 +87,8 @@ qt_add_library(lmp_core STATIC
     model/ArtistIdentity.h
     model/ArtworkPlaceholder.cpp
     model/ArtworkPlaceholder.h
+    model/CatalogSourceKey.cpp
+    model/CatalogSourceKey.h
     model/Track.cpp
     model/Track.h
     net/ArtworkUrl.cpp
@@ -101,8 +103,22 @@ qt_add_library(lmp_core STATIC
     net/ProviderUrlCredential.h
     net/RemoteUrlPolicy.cpp
     net/RemoteUrlPolicy.h
+    playback/BrokenTrackGuard.h
+    playback/LocalFileSourceResolver.cpp
+    playback/PlaybackBackHistory.cpp
+    playback/PlaybackBackHistory.h
+    playback/PlaybackClock.cpp
+    playback/PlaybackClock.h
     playback/PlaybackHistoryQualifier.cpp
     playback/PlaybackHistoryQualifier.h
+    playback/PlaybackHistoryRecorder.cpp
+    playback/PlaybackHistoryRecorder.h
+    playback/PlaybackPreferences.cpp
+    playback/PlaybackPreferences.h
+    playback/PlayerController.cpp
+    playback/PlayerController.h
+    playback/PlayerControllerPlayback.cpp
+    playback/PlayerControllerServices.h
     playback/QueueEngine.cpp
     playback/QueueEngine.h
     playback/QueueEngineEdits.cpp
@@ -116,6 +132,7 @@ qt_add_library(lmp_core STATIC
     playback/QueueTrackLists.h
     playback/QueueTypes.h
     playback/ResumePositionPolicy.h
+    playback/TrackSourceResolver.h
     settings/SettingKeys.h
     settings/SettingsStore.cpp
     settings/SettingsStore.h
