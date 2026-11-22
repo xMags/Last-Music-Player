@@ -1,0 +1,32 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": { "major": 3, "minor": 25, "patch": 0 },
+  "configurePresets": [
+    {
+      "name": "windows",
+      "displayName": "Windows x64 (MSVC, Ninja Multi-Config)",
+      "generator": "Ninja Multi-Config",
+      "binaryDir": "${sourceDir}/.build/qt",
+      "cacheVariables": {
+        "CMAKE_PREFIX_PATH": "$env{LMP_QT_ROOT}",
+        "CMAKE_CONFIGURATION_TYPES": "Debug;Release"
+      }
+    }
+  ],
+  "buildPresets": [
+    { "name": "debug", "configurePreset": "windows", "configuration": "Debug" },
+    { "name": "release", "configurePreset": "windows", "configuration": "Release" }
+  ],
+  "testPresets": [
+    {
+      "name": "debug",
+      "configurePreset": "windows",
+      "configuration": "Debug",
+      "output": { "outputOnFailure": true },
+      "environment": {
+        "PATH": "$env{LMP_QT_ROOT}/bin;$penv{PATH}",
+        "QT_QPA_PLATFORM": "offscreen"
+      }
+    }
+  ]
+}

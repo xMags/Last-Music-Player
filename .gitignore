@@ -38,10 +38,9 @@ node_modules/
 # Local secrets / build-private config (Discord client id, provider auth tokens, etc.)
 .env
 .env.local
+build/*.local.*
 src/Backend/AppSecrets.local.h
-build/AccountIntegration.local.props
-build/*.local.targets
-build/*.local.rsp
+CMakeUserPresets.json
 
 # OS/editor noise
 Thumbs.db

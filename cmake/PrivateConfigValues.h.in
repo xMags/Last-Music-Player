@@ -1,0 +1,11 @@
+// Generated at configure time from the private config. Do not edit.
+#pragma once
+
+namespace lmp::core::generated {
+
+inline constexpr char16_t kAccountApiOrigin[] = u"@LMP_ACCOUNT_API_ORIGIN@";
+inline constexpr char16_t kAccountFrontendOrigin[] = u"@LMP_ACCOUNT_FRONTEND_ORIGIN@";
+inline constexpr char16_t kAccountMediaOrigin[] = u"@LMP_ACCOUNT_MEDIA_ORIGIN@";
+inline constexpr char16_t kDiscordClientId[] = u"@LMP_DISCORD_CLIENT_ID@";
+
+} // namespace lmp::core::generated
