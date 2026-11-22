@@ -153,3 +153,19 @@ lmp_add_test(tst_inline_profile_image
 lmp_add_test(tst_artist_identity
     SOURCES core/tst_artist_identity.cpp
     LIBS lmp_core)
+
+lmp_add_test(tst_secret_store
+    SOURCES core/tst_secret_store.cpp
+    LIBS lmp_core)
+
+lmp_add_test(tst_windows_credential_store
+    SOURCES platform/tst_windows_credential_store.cpp
+    LIBS lmp_platform_windows advapi32)
+
+lmp_add_test(tst_json
+    SOURCES core/tst_json.cpp
+    LIBS lmp_core)
+
+lmp_add_test(tst_http_client
+    SOURCES core/tst_http_client.cpp
+    LIBS lmp_core)

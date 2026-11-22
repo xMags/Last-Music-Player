@@ -1,5 +1,7 @@
 qt_add_library(lmp_core STATIC
     account/AccountDataLifecycleStorage.h
+    account/SecretStore.cpp
+    account/SecretStore.h
     app/AppIdentity.cpp
     app/AppIdentity.h
     app/AppPaths.cpp
@@ -58,8 +60,12 @@ qt_add_library(lmp_core STATIC
     model/Track.h
     net/ArtworkUrl.cpp
     net/ArtworkUrl.h
+    net/HttpClient.cpp
+    net/HttpClient.h
     net/InlineProfileImage.cpp
     net/InlineProfileImage.h
+    net/Json.cpp
+    net/Json.h
     net/ProviderUrlCredential.cpp
     net/ProviderUrlCredential.h
     net/RemoteUrlPolicy.cpp
@@ -69,6 +75,7 @@ qt_add_library(lmp_core STATIC
     settings/SettingsStore.h
     text/StrictUtf8.cpp
     text/StrictUtf8.h
+    ../platform/ICredentialStore.h
     ../platform/IReducedMotion.h
     ../platform/ISingleInstance.h
     ../platform/IWindowChrome.h)

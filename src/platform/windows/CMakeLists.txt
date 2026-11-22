@@ -3,6 +3,8 @@
 qt_add_library(lmp_platform_windows STATIC
     WindowsAppIdentity.cpp
     WindowsAppIdentity.h
+    WindowsCredentialStore.cpp
+    WindowsCredentialStore.h
     WindowsReducedMotion.cpp
     WindowsReducedMotion.h
     WindowsSingleInstance.cpp
@@ -12,7 +14,7 @@ qt_add_library(lmp_platform_windows STATIC
 
 target_link_libraries(lmp_platform_windows
     PUBLIC lmp_core Qt6::Core
-    PRIVATE user32 shell32 dwmapi)
+    PRIVATE user32 shell32 dwmapi advapi32)
 
 target_compile_definitions(lmp_platform_windows PRIVATE
     WIN32_LEAN_AND_MEAN
