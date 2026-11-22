@@ -41,6 +41,14 @@ struct TextStyles {
     TextStyle buttonLabel;
     TextStyle settingsButtonLabel;
     TextStyle chipLabel;
+    TextStyle bubbleLabel;
+    TextStyle selectLabel;
+    TextStyle optionLabel;
+    TextStyle searchInput;
+    TextStyle segmentLabel;
+    TextStyle segmentSelectedLabel;
+    TextStyle segmentCompactLabel;
+    TextStyle shortcutLabel;
 
     [[nodiscard]] static TextStyles build(const FontFamilies& families);
 };

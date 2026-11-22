@@ -45,8 +45,11 @@ class ThemeConstants : public ThemeTypography {
     Q_PROPERTY(QColor overlayButtonHover READ overlayButtonHover CONSTANT FINAL)
     Q_PROPERTY(QColor onOverlay READ onOverlay CONSTANT FINAL)
     Q_PROPERTY(QVariantList shadowPlayButton READ shadowPlayButton CONSTANT FINAL)
+    // The value bubble over the player's sliders.
+    Q_PROPERTY(QVariantList shadowBubble READ shadowBubble CONSTANT FINAL)
 
     Q_PROPERTY(qreal disabledOpacity READ disabledOpacity CONSTANT FINAL)
+    Q_PROPERTY(qreal disabledSwitchOpacity READ disabledSwitchOpacity CONSTANT FINAL)
     Q_PROPERTY(int focusRingWidth READ focusRingWidth CONSTANT FINAL)
 
 public:
@@ -76,9 +79,12 @@ public:
     [[nodiscard]] static QColor overlayButtonHover();
     [[nodiscard]] static QColor onOverlay();
     [[nodiscard]] static QVariantList shadowPlayButton();
+    [[nodiscard]] static QVariantList shadowBubble();
 
     // Disabled buttons fade to this opacity.
     [[nodiscard]] qreal disabledOpacity() const { return 0.55; }
+    // Switch rows fade a little further.
+    [[nodiscard]] qreal disabledSwitchOpacity() const { return 0.5; }
     [[nodiscard]] int focusRingWidth() const { return 2; }
 
 };

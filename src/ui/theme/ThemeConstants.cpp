@@ -58,6 +58,11 @@ QVariantList ThemeConstants::shadowPlayButton()
     return shadowLayers({{0, 2, 8, 0, rgba(0, 0, 0, 0.16f)}});
 }
 
+QVariantList ThemeConstants::shadowBubble()
+{
+    return shadowLayers({{0, 4, 14, 0, rgba(0, 0, 0, 0.22f)}});
+}
+
 QVariantList ThemeConstants::artworkGradientList()
 {
     QVariantList list;

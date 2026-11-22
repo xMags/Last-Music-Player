@@ -33,6 +33,15 @@ class ThemeTypography : public QObject {
     Q_PROPERTY(QFont buttonLabel READ buttonLabel CONSTANT FINAL)
     Q_PROPERTY(QFont settingsButtonLabel READ settingsButtonLabel CONSTANT FINAL)
     Q_PROPERTY(QFont chipLabel READ chipLabel CONSTANT FINAL)
+    Q_PROPERTY(QFont bubbleLabel READ bubbleLabel CONSTANT FINAL)
+    Q_PROPERTY(QFont selectLabel READ selectLabel CONSTANT FINAL)
+    Q_PROPERTY(QFont optionLabel READ optionLabel CONSTANT FINAL)
+    Q_PROPERTY(QFont searchInput READ searchInput CONSTANT FINAL)
+    Q_PROPERTY(QFont segmentLabel READ segmentLabel CONSTANT FINAL)
+    Q_PROPERTY(QFont segmentSelectedLabel READ segmentSelectedLabel CONSTANT FINAL)
+    Q_PROPERTY(QFont segmentCompactLabel READ segmentCompactLabel CONSTANT FINAL)
+    Q_PROPERTY(QFont shortcutLabel READ shortcutLabel CONSTANT FINAL)
+    Q_PROPERTY(qreal lineHeightBubbleLabel READ lineHeightBubbleLabel CONSTANT FINAL)
     Q_PROPERTY(qreal lineHeightSectionTitle READ lineHeightSectionTitle CONSTANT FINAL)
     Q_PROPERTY(qreal lineHeightSidebarSectionLabel READ lineHeightSidebarSectionLabel CONSTANT FINAL)
     Q_PROPERTY(qreal lineHeightPlayerBarTitle READ lineHeightPlayerBarTitle CONSTANT FINAL)
@@ -67,6 +76,15 @@ public:
     [[nodiscard]] QFont buttonLabel() const { return m_text.buttonLabel.font; }
     [[nodiscard]] QFont settingsButtonLabel() const { return m_text.settingsButtonLabel.font; }
     [[nodiscard]] QFont chipLabel() const { return m_text.chipLabel.font; }
+    [[nodiscard]] QFont bubbleLabel() const { return m_text.bubbleLabel.font; }
+    [[nodiscard]] QFont selectLabel() const { return m_text.selectLabel.font; }
+    [[nodiscard]] QFont optionLabel() const { return m_text.optionLabel.font; }
+    [[nodiscard]] QFont searchInput() const { return m_text.searchInput.font; }
+    [[nodiscard]] QFont segmentLabel() const { return m_text.segmentLabel.font; }
+    [[nodiscard]] QFont segmentSelectedLabel() const { return m_text.segmentSelectedLabel.font; }
+    [[nodiscard]] QFont segmentCompactLabel() const { return m_text.segmentCompactLabel.font; }
+    [[nodiscard]] QFont shortcutLabel() const { return m_text.shortcutLabel.font; }
+    [[nodiscard]] qreal lineHeightBubbleLabel() const { return m_text.bubbleLabel.lineHeight; }
     [[nodiscard]] qreal lineHeightSectionTitle() const { return m_text.sectionTitle.lineHeight; }
     [[nodiscard]] qreal lineHeightSidebarSectionLabel() const { return m_text.sidebarSectionLabel.lineHeight; }
     [[nodiscard]] qreal lineHeightPlayerBarTitle() const { return m_text.playerBarTitle.lineHeight; }

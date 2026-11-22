@@ -20,6 +20,10 @@ class Motion : public QObject {
     Q_PROPERTY(QEasingCurve menu READ menu CONSTANT FINAL)
     // The CSS `ease` keyword.
     Q_PROPERTY(QEasingCurve ease READ ease CONSTANT FINAL)
+    // The highlight of a segmented control sliding to a new choice.
+    Q_PROPERTY(QEasingCurve segment READ segment CONSTANT FINAL)
+    // The value bubble popping in over a slider.
+    Q_PROPERTY(QEasingCurve bubblePop READ bubblePop CONSTANT FINAL)
 
     // Durations in milliseconds.
     Q_PROPERTY(int page READ page CONSTANT FINAL)
@@ -36,6 +40,15 @@ class Motion : public QObject {
     Q_PROPERTY(int controlFade READ controlFade CONSTANT FINAL)
     Q_PROPERTY(int chipFade READ chipFade CONSTANT FINAL)
     Q_PROPERTY(int playPress READ playPress CONSTANT FINAL)
+    Q_PROPERTY(int sliderGlide READ sliderGlide CONSTANT FINAL)
+    Q_PROPERTY(int sliderThumb READ sliderThumb CONSTANT FINAL)
+    Q_PROPERTY(int bubbleFade READ bubbleFade CONSTANT FINAL)
+    Q_PROPERTY(int bubbleScale READ bubbleScale CONSTANT FINAL)
+    Q_PROPERTY(int switchToggle READ switchToggle CONSTANT FINAL)
+    Q_PROPERTY(int popupOpen READ popupOpen CONSTANT FINAL)
+    Q_PROPERTY(int chevronTurn READ chevronTurn CONSTANT FINAL)
+    // The pause after typing before a search query is committed.
+    Q_PROPERTY(int searchCommitDelay READ searchCommitDelay CONSTANT FINAL)
 
     Q_PROPERTY(bool reduced READ reduced WRITE setReduced NOTIFY reducedChanged FINAL)
 
@@ -47,6 +60,8 @@ public:
     [[nodiscard]] QEasingCurve toastSpring() const { return m_toastSpring; }
     [[nodiscard]] QEasingCurve menu() const { return m_menu; }
     [[nodiscard]] QEasingCurve ease() const { return m_ease; }
+    [[nodiscard]] QEasingCurve segment() const { return m_segment; }
+    [[nodiscard]] QEasingCurve bubblePop() const { return m_bubblePop; }
 
     [[nodiscard]] int page() const { return 280; }
     [[nodiscard]] int menuDuration() const { return 170; }
@@ -61,6 +76,14 @@ public:
     [[nodiscard]] int controlFade() const { return 120; }
     [[nodiscard]] int chipFade() const { return 150; }
     [[nodiscard]] int playPress() const { return 100; }
+    [[nodiscard]] int sliderGlide() const { return 140; }
+    [[nodiscard]] int sliderThumb() const { return 100; }
+    [[nodiscard]] int bubbleFade() const { return 120; }
+    [[nodiscard]] int bubbleScale() const { return 160; }
+    [[nodiscard]] int switchToggle() const { return 160; }
+    [[nodiscard]] int popupOpen() const { return 120; }
+    [[nodiscard]] int chevronTurn() const { return 150; }
+    [[nodiscard]] int searchCommitDelay() const { return 350; }
 
     [[nodiscard]] bool reduced() const { return m_reduced; }
     void setReduced(bool reduced);
@@ -81,6 +104,8 @@ private:
     QEasingCurve m_toastSpring = cubicBezier(0.34, 1.45, 0.5, 1);
     QEasingCurve m_menu = cubicBezier(0.1, 0.9, 0.2, 1);
     QEasingCurve m_ease = cubicBezier(0.25, 0.1, 0.25, 1);
+    QEasingCurve m_segment = cubicBezier(0.3, 0.7, 0.2, 1);
+    QEasingCurve m_bubblePop = cubicBezier(0.3, 1.4, 0.5, 1);
     bool m_reduced = false;
 };
 

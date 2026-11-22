@@ -55,6 +55,10 @@ void MotionTest::curvesMatchReference()
     QVERIFY(hasControlPoints(motion.menu(), {0.1, 0.9}, {0.2, 1}));
     // The CSS keyword `ease`: cubic-bezier(0.25, 0.1, 0.25, 1)
     QVERIFY(hasControlPoints(motion.ease(), {0.25, 0.1}, {0.25, 1}));
+    // segment-glide.ts: cubic-bezier(0.3, 0.7, 0.2, 1)
+    QVERIFY(hasControlPoints(motion.segment(), {0.3, 0.7}, {0.2, 1}));
+    // .seek-bubble scale: cubic-bezier(0.3, 1.4, 0.5, 1)
+    QVERIFY(hasControlPoints(motion.bubblePop(), {0.3, 1.4}, {0.5, 1}));
 }
 
 void MotionTest::durationsMatchReference()
@@ -73,6 +77,14 @@ void MotionTest::durationsMatchReference()
     QCOMPARE(motion.controlFade(), 120);
     QCOMPARE(motion.chipFade(), 150);
     QCOMPARE(motion.playPress(), 100);
+    QCOMPARE(motion.sliderGlide(), 140);
+    QCOMPARE(motion.sliderThumb(), 100);
+    QCOMPARE(motion.bubbleFade(), 120);
+    QCOMPARE(motion.bubbleScale(), 160);
+    QCOMPARE(motion.switchToggle(), 160);
+    QCOMPARE(motion.popupOpen(), 120);
+    QCOMPARE(motion.chevronTurn(), 150);
+    QCOMPARE(motion.searchCommitDelay(), 350);
 }
 
 void MotionTest::reducedNotifiesOnChangeOnly()

@@ -1,8 +1,5 @@
 #include "ui/theme/Theme.h"
 
-#include <QGuiApplication>
-#include <QStyleHints>
-
 #include "ui/theme/ColorMix.h"
 #include "ui/theme/ShadowLayer.h"
 
@@ -17,86 +14,18 @@ QColor black(float alpha)
     return color;
 }
 
-bool systemPrefersDark()
+QColor white(float alpha)
 {
-    return QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark;
+    QColor color(Qt::white);
+    color.setAlphaF(alpha);
+    return color;
 }
 
 } // namespace
 
 Theme::Theme(QObject* parent)
-    : ThemeConstants(parent)
-    , m_systemDark(systemPrefersDark())
+    : ThemeColors(parent)
 {
-    connect(QGuiApplication::styleHints(), &QStyleHints::colorSchemeChanged, this,
-            [this](Qt::ColorScheme scheme) {
-                const bool systemDark = scheme == Qt::ColorScheme::Dark;
-                if (systemDark == m_systemDark) {
-                    return;
-                }
-                m_systemDark = systemDark;
-                if (m_mode == ThemeMode::System) {
-                    emit changed();
-                }
-            });
-}
-
-void Theme::setMode(ThemeMode mode)
-{
-    if (mode == m_mode) {
-        return;
-    }
-    m_mode = mode;
-    emit changed();
-}
-
-void Theme::setAccent(Accent accent)
-{
-    if (accent == m_accent) {
-        return;
-    }
-    m_accent = accent;
-    emit changed();
-}
-
-bool Theme::dark() const
-{
-    switch (m_mode) {
-    case ThemeMode::Light:
-        return false;
-    case ThemeMode::Dark:
-        return true;
-    case ThemeMode::System:
-        return m_systemDark;
-    }
-    return false;
-}
-
-QColor Theme::primary() const
-{
-    return dark() ? currentAccent().dark : currentAccent().light;
-}
-
-// The accent-soft family mixes the primary colour with transparent in sRGB.
-QColor Theme::accentSoft() const
-{
-    return lmp::ui::mixSrgb(primary(), Qt::transparent, 0.12);
-}
-
-QColor Theme::accentSoft2() const
-{
-    return lmp::ui::mixSrgb(primary(), Qt::transparent, 0.20);
-}
-
-QColor Theme::accentSel() const
-{
-    return lmp::ui::mixSrgb(primary(), Qt::transparent, 0.08);
-}
-
-// The only alias mixed in OKLab: the seed lightened towards white.
-QColor Theme::accentFill2() const
-{
-    return lmp::ui::mixOklab(accentSeed(), Qt::white, 0.72);
 }
 
 QVariantList Theme::shadow() const
@@ -140,6 +69,28 @@ QVariantList Theme::shadowButtonHover() const
                          {0, 14, 32, 0, lmp::ui::mixSrgb(accentSeed(), Qt::transparent, 0.42)}});
 }
 
+// A 1px ring in the strong stroke colour plus a small drop shadow.
+QVariantList Theme::shadowSliderThumb() const
+{
+    return shadowLayers({{0, 0, 0, 1, strokeStrong()}, {0, 1, 2, 0, black(0.14f)}});
+}
+
+QColor Theme::sliderTrack() const
+{
+    return dark() ? white(0.18f) : black(0.10f);
+}
+
+QColor Theme::scrollThumb() const
+{
+    return dark() ? white(0.15f) : black(0.10f);
+}
+
+// The dark theme rule comes later in the design and keeps its colour on hover.
+QColor Theme::scrollThumbHover() const
+{
+    return dark() ? scrollThumb() : black(0.20f);
+}
+
 QColor Theme::rippleFillOn(const QColor& surface) const
 {
     return darkSurface(surface) ? rippleFillOnDark() : rippleFill();
@@ -160,27 +111,6 @@ bool Theme::darkSurface(const QColor& surface) const
     const QColor rgb = surface.toRgb();
     const double luminance = 0.2126 * rgb.red() + 0.7152 * rgb.green() + 0.0722 * rgb.blue();
     return luminance < 140;
-}
-
-QColor Theme::mixSrgb(const QColor& a, const QColor& b, qreal amountOfA) const
-{
-    return lmp::ui::mixSrgb(a, b, amountOfA);
-}
-
-QColor Theme::mixOklab(const QColor& a, const QColor& b, qreal amountOfA) const
-{
-    return lmp::ui::mixOklab(a, b, amountOfA);
-}
-
-const ThemePalette& Theme::palette() const
-{
-    return dark() ? m_dark : m_light;
-}
-
-const BrandAccent& Theme::currentAccent() const
-{
-    const auto index = static_cast<std::size_t>(m_accent);
-    return brandAccents().at(index);
 }
 
 } // namespace lmp::ui

@@ -35,6 +35,8 @@ qt_add_qml_module(lmp_ui
         theme/TextStyles.h
         theme/Theme.cpp
         theme/Theme.h
+        theme/ThemeColors.cpp
+        theme/ThemeColors.h
         theme/ThemeConstants.cpp
         theme/ThemeConstants.h
         theme/ThemePalette.cpp
@@ -44,6 +46,10 @@ qt_add_qml_module(lmp_ui
     QML_FILES
         qml/Main.qml
         qml/controls/AppButton.qml
+        qml/controls/AppScrollBar.qml
+        qml/controls/AppSelect.qml
+        qml/controls/AppSlider.qml
+        qml/controls/AppSwitch.qml
         qml/controls/BoxShadow.qml
         qml/controls/ButtonSurface.qml
         qml/controls/Chip.qml
@@ -53,6 +59,9 @@ qt_add_qml_module(lmp_ui
         qml/controls/IconShapePath.qml
         qml/controls/PlayButton.qml
         qml/controls/Ripple.qml
+        qml/controls/SearchField.qml
+        qml/controls/SegmentedControl.qml
+        qml/controls/SliderBubble.qml
         qml/controls/VersionLabel.qml
     RESOURCES
         "${CMAKE_SOURCE_DIR}/Assets/fonts/MrDeHaviland-Regular.ttf")

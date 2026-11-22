@@ -10,9 +10,11 @@ namespace {
 
 // Weights use the CSS 100 to 1000 scale, which QFont shares.
 constexpr int kRegular = 400;
+constexpr int kMedium = 500;
 constexpr int kSemiBold = 600;
 constexpr int kBold = 700;
 constexpr int kGreeting = 750;
+constexpr int kBubble = 650;
 
 struct StyleSpec {
     const QString& family;
@@ -22,6 +24,8 @@ struct StyleSpec {
     // CSS letter-spacing in em; converted to pixels for QFont.
     qreal letterSpacingEm = 0;
     bool uppercase = false;
+    // font-variant-numeric: tabular-nums, so changing digits do not shift.
+    bool tabularNumbers = false;
 };
 
 TextStyle makeStyle(const StyleSpec& spec)
@@ -41,6 +45,9 @@ TextStyle makeStyle(const StyleSpec& spec)
     }
     if (spec.uppercase) {
         font.setCapitalization(QFont::AllUppercase);
+    }
+    if (spec.tabularNumbers) {
+        font.setFeature(QFont::Tag("tnum"), 1);
     }
     return TextStyle{font, spec.lineHeight};
 }
@@ -103,6 +110,21 @@ TextStyles TextStyles::build(const FontFamilies& families)
         .buttonLabel = makeStyle({.family = text, .pixelSize = 14, .weight = kSemiBold}),
         .settingsButtonLabel = makeStyle({.family = text, .pixelSize = 13, .weight = kSemiBold}),
         .chipLabel = makeStyle({.family = text, .pixelSize = 13, .weight = kSemiBold}),
+        // .seek-bubble: line-height 1.2 of 11.5px.
+        .bubbleLabel = makeStyle({.family = text,
+                                  .pixelSize = 11.5,
+                                  .weight = kBubble,
+                                  .lineHeight = 11.5 * 1.2,
+                                  .tabularNumbers = true}),
+        .selectLabel = makeStyle({.family = text, .pixelSize = 13, .weight = kMedium}),
+        .optionLabel = makeStyle({.family = text, .pixelSize = 13, .weight = kRegular}),
+        .searchInput = makeStyle({.family = text, .pixelSize = 14, .weight = kRegular}),
+        .segmentLabel = makeStyle({.family = text, .pixelSize = 14, .weight = kRegular}),
+        .segmentSelectedLabel = makeStyle({.family = text, .pixelSize = 14, .weight = kSemiBold}),
+        .segmentCompactLabel = makeStyle({.family = text, .pixelSize = 12, .weight = kSemiBold}),
+        // .kbd-chip: 11.5px, weight 500, letter-spacing 0.02em.
+        .shortcutLabel = makeStyle(
+            {.family = text, .pixelSize = 11.5, .weight = kMedium, .letterSpacingEm = 0.02}),
     };
 }
 
