@@ -8,19 +8,39 @@ qt_add_library(lmp_core STATIC
     async/Result.h
     config/PrivateConfig.cpp
     config/PrivateConfig.h
-    db/Database.cpp
+    db/AccountPlaylistPage.cpp
+    db/AccountPlaylistPage.h
     db/AccountSchema.h
+    db/CollectionRepository.cpp
+    db/CollectionRepository.h
+    db/CollectionRepositoryPlaylists.cpp
     db/CollectionSql.h
+    db/Database.cpp
     db/Database.h
+    db/GroupQueries.cpp
+    db/GroupQueries.h
+    db/LibraryGroupingSql.h
+    db/LibraryQueries.cpp
+    db/LibraryQueries.h
+    db/LibraryQueryTypes.h
+    db/PlaylistBulkInsert.cpp
+    db/PlaylistBulkInsert.h
     db/Schema.cpp
     db/Schema.h
     db/SqliteConnection.cpp
     db/SqliteConnection.h
+    db/SqlTransaction.h
+    db/TrackRepository.cpp
+    db/TrackRepository.h
+    db/TrackRows.cpp
+    db/TrackRows.h
     db/TrackSchema.h
     model/ArtworkPlaceholder.cpp
     model/ArtworkPlaceholder.h
     model/Track.cpp
     model/Track.h
+    net/ProviderUrlCredential.cpp
+    net/ProviderUrlCredential.h
     net/RemoteUrlPolicy.cpp
     net/RemoteUrlPolicy.h
     settings/SettingKeys.h

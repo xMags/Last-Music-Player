@@ -97,3 +97,23 @@ lmp_add_test(tst_database_open
 lmp_add_test(tst_schema
     SOURCES core/tst_schema.cpp
     LIBS lmp_core)
+
+lmp_add_test(tst_provider_url_credential
+    SOURCES core/tst_provider_url_credential.cpp
+    LIBS lmp_core)
+
+lmp_add_test(tst_library_grouping_sql
+    SOURCES core/tst_library_grouping_sql.cpp
+    LIBS lmp_core)
+
+lmp_add_test(tst_track_repository
+    SOURCES core/tst_track_repository.cpp core/TempLibrary.h
+    LIBS lmp_core)
+
+lmp_add_test(tst_collection_repository
+    SOURCES core/tst_collection_repository.cpp core/TempLibrary.h
+    LIBS lmp_core)
+
+lmp_add_test(tst_library_queries
+    SOURCES core/tst_library_queries.cpp core/TempLibrary.h
+    LIBS lmp_core)
