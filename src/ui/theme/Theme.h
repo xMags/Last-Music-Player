@@ -5,6 +5,7 @@
 #include <QVariantList>
 #include <QtQml/qqmlregistration.h>
 
+#include "ui/theme/ThemeConstants.h"
 #include "ui/theme/ThemePalette.h"
 
 namespace lmp::ui {
@@ -12,7 +13,8 @@ namespace lmp::ui {
 // Every colour of the design system for the current theme and accent. All
 // colour properties share the one `changed` signal, so switching theme or
 // accent updates every binding at once. Names follow the design token names.
-class Theme : public QObject {
+// Sizes and other values that never change come from ThemeConstants.
+class Theme : public ThemeConstants {
     Q_OBJECT
     QML_ELEMENT
     QML_SINGLETON
@@ -68,10 +70,13 @@ class Theme : public QObject {
     Q_PROPERTY(QColor artGrad1 READ artGrad1 NOTIFY changed)
     Q_PROPERTY(QColor artGrad2 READ artGrad2 NOTIFY changed)
 
-    // Each entry is a list of two colours: gradient start and end.
-    Q_PROPERTY(QVariantList artworkGradients READ artworkGradientList CONSTANT)
-    // The five accent seed colours, in Accent order, for the accent picker.
-    Q_PROPERTY(QVariantList accentSeeds READ accentSeedList CONSTANT)
+    // Box shadows: lists of ShadowLayer, drawn in order.
+    Q_PROPERTY(QVariantList shadow READ shadow NOTIFY changed)
+    Q_PROPERTY(QVariantList shadowCard READ shadowCard NOTIFY changed)
+    Q_PROPERTY(QVariantList shadowFlyout READ shadowFlyout NOTIFY changed)
+    Q_PROPERTY(QVariantList shadowArt READ shadowArt NOTIFY changed)
+    Q_PROPERTY(QVariantList shadowButton READ shadowButton NOTIFY changed)
+    Q_PROPERTY(QVariantList shadowButtonHover READ shadowButtonHover NOTIFY changed)
 
 public:
     enum class ThemeMode { Light, Dark, System };
@@ -120,8 +125,12 @@ public:
     [[nodiscard]] QColor accentSel() const;
     [[nodiscard]] QColor accentFill2() const;
 
-    [[nodiscard]] static QVariantList artworkGradientList();
-    [[nodiscard]] static QVariantList accentSeedList();
+    [[nodiscard]] QVariantList shadow() const;
+    [[nodiscard]] QVariantList shadowCard() const;
+    [[nodiscard]] QVariantList shadowFlyout() const;
+    [[nodiscard]] QVariantList shadowArt() const;
+    [[nodiscard]] QVariantList shadowButton() const;
+    [[nodiscard]] QVariantList shadowButtonHover() const;
 
     Q_INVOKABLE QColor mixSrgb(const QColor& a, const QColor& b, qreal amountOfA) const;
     Q_INVOKABLE QColor mixOklab(const QColor& a, const QColor& b, qreal amountOfA) const;

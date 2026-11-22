@@ -12,8 +12,14 @@ qt_add_qml_module(lmp_ui
         app/AppInfo.h
         theme/ColorMix.cpp
         theme/ColorMix.h
+        theme/Motion.cpp
+        theme/Motion.h
+        theme/ShadowLayer.cpp
+        theme/ShadowLayer.h
         theme/Theme.cpp
         theme/Theme.h
+        theme/ThemeConstants.cpp
+        theme/ThemeConstants.h
         theme/ThemePalette.cpp
         theme/ThemePalette.h
     QML_FILES

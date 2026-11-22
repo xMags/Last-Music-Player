@@ -9,6 +9,6 @@ set_target_properties(lmp_app PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 
 target_link_libraries(lmp_app
-    PRIVATE lmp_core lmp_ui lmp_uiplugin Qt6::Gui Qt6::Qml Qt6::Quick)
+    PRIVATE lmp_core lmp_platform_windows lmp_ui lmp_uiplugin Qt6::Gui Qt6::Qml Qt6::Quick)
 
 lmp_enable_warnings(lmp_app)

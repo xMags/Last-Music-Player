@@ -2,7 +2,8 @@ qt_add_library(lmp_core STATIC
     app/AppIdentity.cpp
     app/AppIdentity.h
     config/PrivateConfig.cpp
-    config/PrivateConfig.h)
+    config/PrivateConfig.h
+    ../platform/IReducedMotion.h)
 
 target_include_directories(lmp_core
     PUBLIC "${CMAKE_SOURCE_DIR}/src"

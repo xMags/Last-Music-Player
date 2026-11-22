@@ -4,10 +4,18 @@
 #include <QStyleHints>
 
 #include "ui/theme/ColorMix.h"
+#include "ui/theme/ShadowLayer.h"
 
 namespace lmp::ui {
 
 namespace {
+
+QColor black(float alpha)
+{
+    QColor color(Qt::black);
+    color.setAlphaF(alpha);
+    return color;
+}
 
 bool systemPrefersDark()
 {
@@ -17,7 +25,7 @@ bool systemPrefersDark()
 } // namespace
 
 Theme::Theme(QObject* parent)
-    : QObject(parent)
+    : ThemeConstants(parent)
     , m_systemDark(systemPrefersDark())
 {
     connect(QGuiApplication::styleHints(), &QStyleHints::colorSchemeChanged, this,
@@ -91,22 +99,45 @@ QColor Theme::accentFill2() const
     return lmp::ui::mixOklab(accentSeed(), Qt::white, 0.72);
 }
 
-QVariantList Theme::artworkGradientList()
+QVariantList Theme::shadow() const
 {
-    QVariantList list;
-    for (const auto& [start, end] : artworkGradients()) {
-        list.append(QVariant::fromValue(QVariantList{start, end}));
-    }
-    return list;
+    return shadowLayers({{0, 1, 3, 0, black(dark() ? 0.32f : 0.06f)}});
 }
 
-QVariantList Theme::accentSeedList()
+QVariantList Theme::shadowCard() const
 {
-    QVariantList list;
-    for (const BrandAccent& accent : brandAccents()) {
-        list.append(accent.seed);
+    return shadowLayers({{0, 2, 6, 0, black(dark() ? 0.36f : 0.07f)}});
+}
+
+// The same in both themes.
+QVariantList Theme::shadowFlyout() const
+{
+    return shadowLayers({{0, 8, 16, 0, black(0.10f)}, {0, 0, 1, 0, black(0.20f)}});
+}
+
+QVariantList Theme::shadowArt() const
+{
+    if (dark()) {
+        return shadowLayers({{0, 2, 4, 0, black(0.40f)},
+                             {0, 16, 40, 0, black(0.50f)},
+                             {0, 28, 60, 0, black(0.35f)}});
     }
-    return list;
+    return shadowLayers({{0, 2, 4, 0, black(0.06f)},
+                         {0, 12, 28, 0, black(0.14f)},
+                         {0, 24, 48, 0, black(0.10f)}});
+}
+
+// The accent button glow follows the accent's seed colour.
+QVariantList Theme::shadowButton() const
+{
+    return shadowLayers({{0, 1, 2, 0, lmp::ui::mixSrgb(accentSeed(), Qt::transparent, 0.24)},
+                         {0, 8, 22, 0, lmp::ui::mixSrgb(accentSeed(), Qt::transparent, 0.34)}});
+}
+
+QVariantList Theme::shadowButtonHover() const
+{
+    return shadowLayers({{0, 2, 4, 0, lmp::ui::mixSrgb(accentSeed(), Qt::transparent, 0.28)},
+                         {0, 14, 32, 0, lmp::ui::mixSrgb(accentSeed(), Qt::transparent, 0.42)}});
 }
 
 QColor Theme::mixSrgb(const QColor& a, const QColor& b, qreal amountOfA) const

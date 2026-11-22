@@ -21,3 +21,7 @@ lmp_add_test(tst_private_config
 lmp_add_test(tst_theme
     SOURCES ui/tst_theme.cpp
     LIBS lmp_ui)
+
+lmp_add_test(tst_motion
+    SOURCES ui/tst_motion.cpp
+    LIBS lmp_ui)
