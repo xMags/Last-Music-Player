@@ -6,10 +6,14 @@ qt_add_library(lmp_ui STATIC)
 # them a short path inside the module's resources (FontLoader reads it).
 set_source_files_properties("${CMAKE_SOURCE_DIR}/Assets/fonts/MrDeHaviland-Regular.ttf"
     PROPERTIES QT_RESOURCE_ALIAS "fonts/MrDeHaviland-Regular.ttf")
+# The design gallery's sample cover: the application logo.
+set_source_files_properties("${CMAKE_SOURCE_DIR}/Assets/Square44x44Logo.targetsize-256.png"
+    PROPERTIES QT_RESOURCE_ALIAS "dev/sample-cover.png")
 
 # Every QML file of the module. File names are unique: each is a type name.
 set(LMP_UI_QML_FILES
     qml/Main.qml
+    qml/controls/AccentSwatch.qml
     qml/controls/ActionMenu.qml
     qml/controls/ActionMenuItem.qml
     qml/controls/AppButton.qml
@@ -38,7 +42,13 @@ set(LMP_UI_QML_FILES
     qml/controls/TextPromptDialog.qml
     qml/controls/Toast.qml
     qml/controls/ToastStack.qml
-    qml/controls/VersionLabel.qml)
+    qml/dev/Gallery.qml
+    qml/dev/GalleryArtwork.qml
+    qml/dev/GalleryControls.qml
+    qml/dev/GalleryIcons.qml
+    qml/dev/GalleryOverlays.qml
+    qml/dev/GallerySection.qml
+    qml/dev/GalleryTokens.qml)
 
 qt_add_qml_module(lmp_ui
     URI LastMusicPlayer
@@ -48,6 +58,10 @@ qt_add_qml_module(lmp_ui
     SOURCES
         app/AppInfo.cpp
         app/AppInfo.h
+        dev/GalleryViewModel.cpp
+        dev/GalleryViewModel.h
+        dev/ThemeTokenListModel.cpp
+        dev/ThemeTokenListModel.h
         icons/IconData.h
         icons/IconDataLine.cpp
         icons/IconDataLogos.cpp
@@ -82,13 +96,15 @@ qt_add_qml_module(lmp_ui
         toasts/ToastQueue.h
     QML_FILES ${LMP_UI_QML_FILES}
     RESOURCES
-        "${CMAKE_SOURCE_DIR}/Assets/fonts/MrDeHaviland-Regular.ttf")
+        "${CMAKE_SOURCE_DIR}/Assets/fonts/MrDeHaviland-Regular.ttf"
+        "${CMAKE_SOURCE_DIR}/Assets/Square44x44Logo.targetsize-256.png")
 
 # Every folder that holds a header with a QML-registered type. The generated
 # registration code includes those headers by file name only, so each folder
 # must be on the include path and header file names must be unique in src/ui.
 set(LMP_UI_TYPE_FOLDERS
     app
+    dev
     icons
     menus
     theme

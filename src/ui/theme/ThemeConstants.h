@@ -58,6 +58,8 @@ class ThemeConstants : public ThemeTypography {
     Q_PROPERTY(QColor artLabelShadow READ artLabelShadow CONSTANT FINAL)
     Q_PROPERTY(QColor artSheenTop READ artSheenTop CONSTANT FINAL)
     Q_PROPERTY(QColor artSheenBottom READ artSheenBottom CONSTANT FINAL)
+    // The thin ring inside an accent colour swatch.
+    Q_PROPERTY(QColor swatchRing READ swatchRing CONSTANT FINAL)
 
     Q_PROPERTY(qreal disabledOpacity READ disabledOpacity CONSTANT FINAL)
     Q_PROPERTY(qreal disabledSwitchOpacity READ disabledSwitchOpacity CONSTANT FINAL)
@@ -98,6 +100,7 @@ public:
     [[nodiscard]] static QColor artLabelShadow();
     [[nodiscard]] static QColor artSheenTop();
     [[nodiscard]] static QColor artSheenBottom();
+    [[nodiscard]] static QColor swatchRing();
     [[nodiscard]] static QVariantList shadowBubble();
     [[nodiscard]] static QVariantList shadowMenu();
     [[nodiscard]] static QVariantList shadowDialog();

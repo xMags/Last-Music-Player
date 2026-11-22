@@ -99,6 +99,11 @@ QColor ThemeConstants::artSheenBottom()
     return rgba(0, 0, 0, 0.10f);
 }
 
+QColor ThemeConstants::swatchRing()
+{
+    return rgba(0, 0, 0, 0.12f);
+}
+
 QColor ThemeConstants::artworkGradientStart(const QString& id) const
 {
     const int index = core::ArtworkPlaceholder::gradientIndexForId(

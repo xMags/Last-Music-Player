@@ -11,8 +11,9 @@ ApplicationWindow {
     minimumHeight: 560
     visible: true
     title: AppInfo.displayName
+    color: Theme.bg
 
-    VersionLabel {
-        anchors.centerIn: parent
+    Gallery {
+        anchors.fill: parent
     }
 }
