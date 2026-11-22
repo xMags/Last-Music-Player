@@ -81,3 +81,11 @@ lmp_add_test(tst_strict_utf8
 lmp_add_test(tst_settings_store
     SOURCES core/tst_settings_store.cpp
     LIBS lmp_core)
+
+lmp_add_test(tst_remote_url_policy
+    SOURCES core/tst_remote_url_policy.cpp
+    LIBS lmp_core)
+
+lmp_add_test(tst_track
+    SOURCES core/tst_track.cpp
+    LIBS lmp_core)

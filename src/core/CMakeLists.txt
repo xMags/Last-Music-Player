@@ -10,6 +10,10 @@ qt_add_library(lmp_core STATIC
     config/PrivateConfig.h
     model/ArtworkPlaceholder.cpp
     model/ArtworkPlaceholder.h
+    model/Track.cpp
+    model/Track.h
+    net/RemoteUrlPolicy.cpp
+    net/RemoteUrlPolicy.h
     settings/SettingKeys.h
     settings/SettingsStore.cpp
     settings/SettingsStore.h
