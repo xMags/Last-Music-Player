@@ -4,6 +4,12 @@ qt_add_library(lmp_core STATIC
     account/AccountUrlPolicy.h
     account/AutoSyncPolicy.cpp
     account/AutoSyncPolicy.h
+    account/LoopbackCallback.cpp
+    account/LoopbackCallback.h
+    account/LoopbackRequest.cpp
+    account/LoopbackRequest.h
+    account/Pkce.cpp
+    account/Pkce.h
     account/SecretStore.cpp
     account/SecretStore.h
     app/AppIdentity.cpp

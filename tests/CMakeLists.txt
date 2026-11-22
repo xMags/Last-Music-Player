@@ -289,3 +289,15 @@ lmp_add_test(tst_playback_key_guard
 lmp_add_test(tst_account_url_policy
     SOURCES core/tst_account_url_policy.cpp
     LIBS lmp_core)
+
+lmp_add_test(tst_pkce
+    SOURCES core/tst_pkce.cpp
+    LIBS lmp_core)
+
+lmp_add_test(tst_loopback_request
+    SOURCES core/tst_loopback_request.cpp
+    LIBS lmp_core)
+
+lmp_add_test(tst_loopback_callback
+    SOURCES core/tst_loopback_callback.cpp
+    LIBS lmp_core)
