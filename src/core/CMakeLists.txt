@@ -10,6 +10,9 @@ qt_add_library(lmp_core STATIC
     config/PrivateConfig.h
     model/ArtworkPlaceholder.cpp
     model/ArtworkPlaceholder.h
+    settings/SettingKeys.h
+    settings/SettingsStore.cpp
+    settings/SettingsStore.h
     text/StrictUtf8.cpp
     text/StrictUtf8.h
     ../platform/IReducedMotion.h
