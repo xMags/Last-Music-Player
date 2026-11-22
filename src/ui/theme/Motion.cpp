@@ -28,6 +28,35 @@ qreal Motion::rippleDiameter(qreal width, qreal height, qreal x, qreal y) const
     return std::hypot(dx, dy) * 2;
 }
 
+namespace {
+
+// Straight-line keyframes at 0, 0.7 and 1, extended past both ends.
+qreal threeKeyframes(qreal progress, qreal start, qreal middle, qreal end)
+{
+    constexpr qreal kMiddle = 0.7;
+    if (progress < kMiddle) {
+        return start + (middle - start) * (progress / kMiddle);
+    }
+    return middle + (end - middle) * ((progress - kMiddle) / (1 - kMiddle));
+}
+
+} // namespace
+
+qreal Motion::toastEnterOpacity(qreal progress) const
+{
+    return std::clamp(threeKeyframes(progress, 0, 1, 1), 0.0, 1.0);
+}
+
+qreal Motion::toastEnterOffset(qreal progress) const
+{
+    return threeKeyframes(progress, 26, -3, 0);
+}
+
+qreal Motion::toastEnterScale(qreal progress) const
+{
+    return threeKeyframes(progress, 0.92, 1.01, 1);
+}
+
 QEasingCurve Motion::cubicBezier(qreal x1, qreal y1, qreal x2, qreal y2)
 {
     QEasingCurve curve(QEasingCurve::BezierSpline);

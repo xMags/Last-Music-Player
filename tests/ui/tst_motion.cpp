@@ -38,6 +38,7 @@ private slots:
     void durationsMatchReference();
     void reducedNotifiesOnChangeOnly();
     void rippleReachesTheFarthestCorner();
+    void toastEnterFollowsItsKeyframes();
     void layoutTokensMatchReference();
     void shadowsMatchReference();
 };
@@ -85,6 +86,10 @@ void MotionTest::durationsMatchReference()
     QCOMPARE(motion.popupOpen(), 120);
     QCOMPARE(motion.chevronTurn(), 150);
     QCOMPARE(motion.searchCommitDelay(), 350);
+    QCOMPARE(motion.menuItemFade(), 80);
+    QCOMPARE(motion.toastEnter(), 420);
+    QCOMPARE(motion.toastExit(), 200);
+    QCOMPARE(motion.toastReflow(), 280);
 }
 
 void MotionTest::reducedNotifiesOnChangeOnly()
@@ -107,6 +112,25 @@ void MotionTest::rippleReachesTheFarthestCorner()
     QCOMPARE(motion.rippleDiameter(100, 40, 10, 10), 2 * std::hypot(90.0, 30.0));
     // Pressed in the centre of a 30 x 40 box: 2 * hypot(15, 20) = 50.
     QCOMPARE(motion.rippleDiameter(30, 40, 15, 20), 50.0);
+}
+
+void MotionTest::toastEnterFollowsItsKeyframes()
+{
+    const Motion motion;
+    // Keyframes: 0 -> (opacity 0, 26px, 0.92); 0.7 -> (1, -3px, 1.01); 1 -> (1, 0, 1).
+    QCOMPARE(motion.toastEnterOpacity(0), 0.0);
+    QCOMPARE(motion.toastEnterOffset(0), 26.0);
+    QCOMPARE(motion.toastEnterScale(0), 0.92);
+    QCOMPARE(motion.toastEnterOpacity(0.35), 0.5);
+    QCOMPARE(motion.toastEnterOffset(0.7), -3.0);
+    QCOMPARE(motion.toastEnterScale(0.7), 1.01);
+    QCOMPARE(motion.toastEnterOpacity(1), 1.0);
+    QCOMPARE(motion.toastEnterOffset(1), 0.0);
+    QCOMPARE(motion.toastEnterScale(1), 1.0);
+    // The spring overshoots 1: the last segment continues (+10px per unit),
+    // and opacity stays at 1.
+    QVERIFY(qFuzzyCompare(motion.toastEnterOffset(1.03) + 1, 0.3 + 1));
+    QCOMPARE(motion.toastEnterOpacity(1.03), 1.0);
 }
 
 void MotionTest::layoutTokensMatchReference()

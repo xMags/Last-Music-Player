@@ -91,6 +91,16 @@ QColor Theme::scrollThumbHover() const
     return dark() ? scrollThumb() : black(0.20f);
 }
 
+QColor Theme::scrim() const
+{
+    if (dark()) {
+        return black(0.55f);
+    }
+    QColor color(10, 14, 22);
+    color.setAlphaF(0.42f);
+    return color;
+}
+
 QColor Theme::rippleFillOn(const QColor& surface) const
 {
     return darkSurface(surface) ? rippleFillOnDark() : rippleFill();

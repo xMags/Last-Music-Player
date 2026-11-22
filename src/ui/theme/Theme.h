@@ -30,6 +30,8 @@ class Theme : public ThemeColors {
     Q_PROPERTY(QColor sliderTrack READ sliderTrack NOTIFY changed FINAL)
     Q_PROPERTY(QColor scrollThumb READ scrollThumb NOTIFY changed FINAL)
     Q_PROPERTY(QColor scrollThumbHover READ scrollThumbHover NOTIFY changed FINAL)
+    // The dimmed backdrop behind a dialog.
+    Q_PROPERTY(QColor scrim READ scrim NOTIFY changed FINAL)
 
 public:
     explicit Theme(QObject* parent = nullptr);
@@ -44,6 +46,7 @@ public:
     [[nodiscard]] QColor sliderTrack() const;
     [[nodiscard]] QColor scrollThumb() const;
     [[nodiscard]] QColor scrollThumbHover() const;
+    [[nodiscard]] QColor scrim() const;
 
     // Colours of a press ripple drawn on a surface of the given colour: light
     // water on dark or coloured surfaces, a faint shadow and an accent ring on

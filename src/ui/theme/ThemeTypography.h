@@ -41,6 +41,14 @@ class ThemeTypography : public QObject {
     Q_PROPERTY(QFont segmentSelectedLabel READ segmentSelectedLabel CONSTANT FINAL)
     Q_PROPERTY(QFont segmentCompactLabel READ segmentCompactLabel CONSTANT FINAL)
     Q_PROPERTY(QFont shortcutLabel READ shortcutLabel CONSTANT FINAL)
+    Q_PROPERTY(QFont menuLabel READ menuLabel CONSTANT FINAL)
+    Q_PROPERTY(QFont modalDescription READ modalDescription CONSTANT FINAL)
+    Q_PROPERTY(QFont fieldLabel READ fieldLabel CONSTANT FINAL)
+    Q_PROPERTY(QFont fieldInput READ fieldInput CONSTANT FINAL)
+    Q_PROPERTY(QFont errorText READ errorText CONSTANT FINAL)
+    Q_PROPERTY(QFont toastLabel READ toastLabel CONSTANT FINAL)
+    Q_PROPERTY(QFont toastAction READ toastAction CONSTANT FINAL)
+    Q_PROPERTY(qreal lineHeightModalDescription READ lineHeightModalDescription CONSTANT FINAL)
     Q_PROPERTY(qreal lineHeightBubbleLabel READ lineHeightBubbleLabel CONSTANT FINAL)
     Q_PROPERTY(qreal lineHeightSectionTitle READ lineHeightSectionTitle CONSTANT FINAL)
     Q_PROPERTY(qreal lineHeightSidebarSectionLabel READ lineHeightSidebarSectionLabel CONSTANT FINAL)
@@ -84,6 +92,14 @@ public:
     [[nodiscard]] QFont segmentSelectedLabel() const { return m_text.segmentSelectedLabel.font; }
     [[nodiscard]] QFont segmentCompactLabel() const { return m_text.segmentCompactLabel.font; }
     [[nodiscard]] QFont shortcutLabel() const { return m_text.shortcutLabel.font; }
+    [[nodiscard]] QFont menuLabel() const { return m_text.menuLabel.font; }
+    [[nodiscard]] QFont modalDescription() const { return m_text.modalDescription.font; }
+    [[nodiscard]] QFont fieldLabel() const { return m_text.fieldLabel.font; }
+    [[nodiscard]] QFont fieldInput() const { return m_text.fieldInput.font; }
+    [[nodiscard]] QFont errorText() const { return m_text.errorText.font; }
+    [[nodiscard]] QFont toastLabel() const { return m_text.toastLabel.font; }
+    [[nodiscard]] QFont toastAction() const { return m_text.toastAction.font; }
+    [[nodiscard]] qreal lineHeightModalDescription() const { return m_text.modalDescription.lineHeight; }
     [[nodiscard]] qreal lineHeightBubbleLabel() const { return m_text.bubbleLabel.lineHeight; }
     [[nodiscard]] qreal lineHeightSectionTitle() const { return m_text.sectionTitle.lineHeight; }
     [[nodiscard]] qreal lineHeightSidebarSectionLabel() const { return m_text.sidebarSectionLabel.lineHeight; }

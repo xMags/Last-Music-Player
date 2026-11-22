@@ -33,3 +33,11 @@ lmp_add_test(tst_fonts
 lmp_add_test(tst_icon_set
     SOURCES ui/tst_icon_set.cpp
     LIBS lmp_ui Qt6::Svg)
+
+lmp_add_test(tst_toast_queue
+    SOURCES ui/tst_toast_queue.cpp
+    LIBS lmp_ui)
+
+lmp_add_test(tst_menu_item_list_model
+    SOURCES ui/tst_menu_item_list_model.cpp
+    LIBS lmp_ui)

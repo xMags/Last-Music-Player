@@ -125,6 +125,19 @@ TextStyles TextStyles::build(const FontFamilies& families)
         // .kbd-chip: 11.5px, weight 500, letter-spacing 0.02em.
         .shortcutLabel = makeStyle(
             {.family = text, .pixelSize = 11.5, .weight = kMedium, .letterSpacingEm = 0.02}),
+        .menuLabel = makeStyle({.family = text, .pixelSize = 13, .weight = kRegular}),
+        .modalDescription = makeStyle(
+            {.family = text, .pixelSize = 14, .weight = kRegular, .lineHeight = 20}),
+        // .modal-field span: 10.5px, 700, letter-spacing 0.08em, uppercase.
+        .fieldLabel = makeStyle({.family = text,
+                                 .pixelSize = 10.5,
+                                 .weight = kBold,
+                                 .letterSpacingEm = 0.08,
+                                 .uppercase = true}),
+        .fieldInput = makeStyle({.family = text, .pixelSize = 14, .weight = kRegular}),
+        .errorText = makeStyle({.family = text, .pixelSize = 12.5, .weight = kRegular}),
+        .toastLabel = makeStyle({.family = text, .pixelSize = 12.5, .weight = kRegular}),
+        .toastAction = makeStyle({.family = text, .pixelSize = 12.5, .weight = kBold}),
     };
 }
 

@@ -7,6 +7,34 @@ qt_add_library(lmp_ui STATIC)
 set_source_files_properties("${CMAKE_SOURCE_DIR}/Assets/fonts/MrDeHaviland-Regular.ttf"
     PROPERTIES QT_RESOURCE_ALIAS "fonts/MrDeHaviland-Regular.ttf")
 
+# Every QML file of the module. File names are unique: each is a type name.
+set(LMP_UI_QML_FILES
+    qml/Main.qml
+    qml/controls/ActionMenu.qml
+    qml/controls/ActionMenuItem.qml
+    qml/controls/AppButton.qml
+    qml/controls/AppScrollBar.qml
+    qml/controls/AppSelect.qml
+    qml/controls/AppSlider.qml
+    qml/controls/AppSwitch.qml
+    qml/controls/BoxShadow.qml
+    qml/controls/ButtonSurface.qml
+    qml/controls/Chip.qml
+    qml/controls/FocusRing.qml
+    qml/controls/Icon.qml
+    qml/controls/IconButton.qml
+    qml/controls/IconShapePath.qml
+    qml/controls/PlayButton.qml
+    qml/controls/PromptTextField.qml
+    qml/controls/Ripple.qml
+    qml/controls/SearchField.qml
+    qml/controls/SegmentedControl.qml
+    qml/controls/SliderBubble.qml
+    qml/controls/TextPromptDialog.qml
+    qml/controls/Toast.qml
+    qml/controls/ToastStack.qml
+    qml/controls/VersionLabel.qml)
+
 qt_add_qml_module(lmp_ui
     URI LastMusicPlayer
     VERSION 1.0
@@ -23,6 +51,8 @@ qt_add_qml_module(lmp_ui
         icons/IconPart.h
         icons/IconSet.cpp
         icons/IconSet.h
+        menus/MenuItemListModel.cpp
+        menus/MenuItemListModel.h
         theme/ColorMix.cpp
         theme/ColorMix.h
         theme/FontLoader.cpp
@@ -43,26 +73,9 @@ qt_add_qml_module(lmp_ui
         theme/ThemePalette.h
         theme/ThemeTypography.cpp
         theme/ThemeTypography.h
-    QML_FILES
-        qml/Main.qml
-        qml/controls/AppButton.qml
-        qml/controls/AppScrollBar.qml
-        qml/controls/AppSelect.qml
-        qml/controls/AppSlider.qml
-        qml/controls/AppSwitch.qml
-        qml/controls/BoxShadow.qml
-        qml/controls/ButtonSurface.qml
-        qml/controls/Chip.qml
-        qml/controls/FocusRing.qml
-        qml/controls/Icon.qml
-        qml/controls/IconButton.qml
-        qml/controls/IconShapePath.qml
-        qml/controls/PlayButton.qml
-        qml/controls/Ripple.qml
-        qml/controls/SearchField.qml
-        qml/controls/SegmentedControl.qml
-        qml/controls/SliderBubble.qml
-        qml/controls/VersionLabel.qml
+        toasts/ToastQueue.cpp
+        toasts/ToastQueue.h
+    QML_FILES ${LMP_UI_QML_FILES}
     RESOURCES
         "${CMAKE_SOURCE_DIR}/Assets/fonts/MrDeHaviland-Regular.ttf")
 
@@ -72,7 +85,9 @@ qt_add_qml_module(lmp_ui
 set(LMP_UI_TYPE_FOLDERS
     app
     icons
-    theme)
+    menus
+    theme
+    toasts)
 
 target_include_directories(lmp_ui
     PUBLIC "${CMAKE_SOURCE_DIR}/src"
@@ -82,3 +97,18 @@ target_link_libraries(lmp_ui
     PUBLIC lmp_core Qt6::Gui Qt6::Qml Qt6::Quick Qt6::QuickControls2)
 
 lmp_enable_warnings(lmp_ui)
+
+# The QML compiler turns each QML file into C++ that reads results of C++
+# methods through QJSEngine::fromVariant<T>(). For bool, int, double and
+# QString that template ends in a branch the compiler can never reach, and
+# MSVC reports C4702 inside the Qt header. Silence that one warning in those
+# generated files only; hand-written code keeps it.
+if(MSVC)
+    foreach(qml_file IN LISTS LMP_UI_QML_FILES)
+        string(REGEX REPLACE "\\.qml$" "" qml_stem "${qml_file}")
+        set_source_files_properties(
+            "${CMAKE_CURRENT_BINARY_DIR}/.rcc/qmlcache/lmp_ui_${qml_stem}_qml.cpp"
+            TARGET_DIRECTORY lmp_ui
+            PROPERTIES COMPILE_OPTIONS /wd4702)
+    endforeach()
+endif()

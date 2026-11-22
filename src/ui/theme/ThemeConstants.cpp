@@ -63,6 +63,21 @@ QVariantList ThemeConstants::shadowBubble()
     return shadowLayers({{0, 4, 14, 0, rgba(0, 0, 0, 0.22f)}});
 }
 
+QVariantList ThemeConstants::shadowMenu()
+{
+    return shadowLayers({{0, 8, 24, 0, rgba(0, 0, 0, 0.18f)}, {0, 2, 6, 0, rgba(0, 0, 0, 0.10f)}});
+}
+
+QVariantList ThemeConstants::shadowDialog()
+{
+    return shadowLayers({{0, 24, 60, 0, rgba(0, 0, 0, 0.28f)}});
+}
+
+QVariantList ThemeConstants::shadowToast()
+{
+    return shadowLayers({{0, 14, 34, 0, rgba(0, 0, 0, 0.22f)}});
+}
+
 QVariantList ThemeConstants::artworkGradientList()
 {
     QVariantList list;

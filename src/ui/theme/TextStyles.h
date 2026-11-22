@@ -49,6 +49,13 @@ struct TextStyles {
     TextStyle segmentSelectedLabel;
     TextStyle segmentCompactLabel;
     TextStyle shortcutLabel;
+    TextStyle menuLabel;
+    TextStyle modalDescription;
+    TextStyle fieldLabel;
+    TextStyle fieldInput;
+    TextStyle errorText;
+    TextStyle toastLabel;
+    TextStyle toastAction;
 
     [[nodiscard]] static TextStyles build(const FontFamilies& families);
 };

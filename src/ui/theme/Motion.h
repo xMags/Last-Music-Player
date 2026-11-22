@@ -24,6 +24,10 @@ class Motion : public QObject {
     Q_PROPERTY(QEasingCurve segment READ segment CONSTANT FINAL)
     // The value bubble popping in over a slider.
     Q_PROPERTY(QEasingCurve bubblePop READ bubblePop CONSTANT FINAL)
+    // The CSS keywords `ease-in` and `ease-out`, and a straight line.
+    Q_PROPERTY(QEasingCurve easeIn READ easeIn CONSTANT FINAL)
+    Q_PROPERTY(QEasingCurve easeOut READ easeOut CONSTANT FINAL)
+    Q_PROPERTY(QEasingCurve linear READ linear CONSTANT FINAL)
 
     // Durations in milliseconds.
     Q_PROPERTY(int page READ page CONSTANT FINAL)
@@ -49,6 +53,10 @@ class Motion : public QObject {
     Q_PROPERTY(int chevronTurn READ chevronTurn CONSTANT FINAL)
     // The pause after typing before a search query is committed.
     Q_PROPERTY(int searchCommitDelay READ searchCommitDelay CONSTANT FINAL)
+    Q_PROPERTY(int menuItemFade READ menuItemFade CONSTANT FINAL)
+    Q_PROPERTY(int toastEnter READ toastEnter CONSTANT FINAL)
+    Q_PROPERTY(int toastExit READ toastExit CONSTANT FINAL)
+    Q_PROPERTY(int toastReflow READ toastReflow CONSTANT FINAL)
 
     Q_PROPERTY(bool reduced READ reduced WRITE setReduced NOTIFY reducedChanged FINAL)
 
@@ -62,6 +70,9 @@ public:
     [[nodiscard]] QEasingCurve ease() const { return m_ease; }
     [[nodiscard]] QEasingCurve segment() const { return m_segment; }
     [[nodiscard]] QEasingCurve bubblePop() const { return m_bubblePop; }
+    [[nodiscard]] QEasingCurve easeIn() const { return m_easeIn; }
+    [[nodiscard]] QEasingCurve easeOut() const { return m_easeOut; }
+    [[nodiscard]] QEasingCurve linear() const { return QEasingCurve(QEasingCurve::Linear); }
 
     [[nodiscard]] int page() const { return 280; }
     [[nodiscard]] int menuDuration() const { return 170; }
@@ -84,6 +95,10 @@ public:
     [[nodiscard]] int popupOpen() const { return 120; }
     [[nodiscard]] int chevronTurn() const { return 150; }
     [[nodiscard]] int searchCommitDelay() const { return 350; }
+    [[nodiscard]] int menuItemFade() const { return 80; }
+    [[nodiscard]] int toastEnter() const { return 420; }
+    [[nodiscard]] int toastExit() const { return 200; }
+    [[nodiscard]] int toastReflow() const { return 280; }
 
     [[nodiscard]] bool reduced() const { return m_reduced; }
     void setReduced(bool reduced);
@@ -94,6 +109,14 @@ public:
     // Diameter of a ripple pressed at (x, y) in a width x height box: twice
     // the distance to the farthest corner, so the disc reaches every corner.
     Q_INVOKABLE qreal rippleDiameter(qreal width, qreal height, qreal x, qreal y) const;
+
+    // A new toast springs up: keyframes at 0, 70% and 100% (opacity 0, 1, 1;
+    // rise 26px, -3px, 0; scale 0.92, 1.01, 1) joined by straight lines, with
+    // the spring curve applied to the whole run. `progress` is the curve's
+    // output, so it overshoots 1 and the last segment is extended.
+    Q_INVOKABLE qreal toastEnterOpacity(qreal progress) const;
+    Q_INVOKABLE qreal toastEnterOffset(qreal progress) const;
+    Q_INVOKABLE qreal toastEnterScale(qreal progress) const;
 
 signals:
     void reducedChanged();
@@ -106,6 +129,8 @@ private:
     QEasingCurve m_ease = cubicBezier(0.25, 0.1, 0.25, 1);
     QEasingCurve m_segment = cubicBezier(0.3, 0.7, 0.2, 1);
     QEasingCurve m_bubblePop = cubicBezier(0.3, 1.4, 0.5, 1);
+    QEasingCurve m_easeIn = cubicBezier(0.42, 0, 1, 1);
+    QEasingCurve m_easeOut = cubicBezier(0, 0, 0.58, 1);
     bool m_reduced = false;
 };
 
