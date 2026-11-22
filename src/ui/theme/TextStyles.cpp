@@ -31,6 +31,11 @@ TextStyle makeTextStyle(const TextStyleSpec& spec)
         font.setPointSizeF(spec.pixelSize * 0.75);
     }
     font.setWeight(static_cast<QFont::Weight>(spec.weight));
+    // Segoe UI Variable keeps every weight in one variable font, and the font
+    // matcher only offers its Regular and Bold faces: weight 600 came out
+    // Bold and 500 Regular. Setting the weight axis draws the exact weight;
+    // fonts without that axis ignore it.
+    font.setVariableAxis(QFont::Tag("wght"), static_cast<float>(spec.weight));
     if (spec.letterSpacingEm != 0) {
         font.setLetterSpacing(QFont::AbsoluteSpacing, spec.letterSpacingEm * spec.pixelSize);
     }

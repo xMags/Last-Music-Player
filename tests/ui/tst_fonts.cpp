@@ -1,5 +1,6 @@
 #include <QFont>
 #include <QFontDatabase>
+#include <QFontInfo>
 #include <QObject>
 #include <QString>
 #include <QStringList>
@@ -17,6 +18,7 @@ private slots:
     void textStylesMatchReference();
     void fractionalSizeKeepsExactPixels();
     void familiesFollowTheStacks();
+    void variableFontsGetTheExactWeight();
 
 private:
     QStringList m_loaded;
@@ -79,6 +81,22 @@ void FontsTest::familiesFollowTheStacks()
     QCOMPARE(theme.fontText(), expectedText);
     QCOMPARE(theme.sectionTitle().family(), theme.fontDisplay());
     QCOMPARE(theme.trackTitle().family(), theme.fontText());
+}
+
+void FontsTest::variableFontsGetTheExactWeight()
+{
+    const lmp::ui::Theme theme;
+    // Every style carries its weight on the variable weight axis too.
+    for (const QFont& font : {theme.playerBarTitle(), theme.sectionTitle(), theme.playerTime(), theme.body()}) {
+        QVERIFY(font.variableAxisTags().contains(QFont::Tag("wght")));
+        QCOMPARE(font.variableAxisValue(QFont::Tag("wght")), static_cast<float>(font.weight()));
+    }
+    if (!QFontDatabase::families().contains(QStringLiteral("Segoe UI Variable Text"))) {
+        QSKIP("Segoe UI Variable is not installed here");
+    }
+    // Without the axis this resolved to the Bold face (700).
+    QCOMPARE(QFontInfo(theme.playerBarTitle()).weight(), 600);
+    QCOMPARE(QFontInfo(theme.playerTime()).weight(), 500);
 }
 
 QTEST_MAIN(FontsTest)
