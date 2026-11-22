@@ -48,6 +48,7 @@ private slots:
     void mixOklabMatchesHandValues();
     void switchingEmitsOneSignal();
     void artworkGradients();
+    void rippleColoursFollowTheSurface();
 };
 
 // A macro because QVERIFY2 has to expand inside the test function to end it on
@@ -188,6 +189,24 @@ void ThemeTest::artworkGradients()
     LMP_CHECK_COLOR(first.at(0).value<QColor>(), QColor(QStringLiteral("#8B7BE8")));
     LMP_CHECK_COLOR(gradients.last().toList().at(1).value<QColor>(),
                     QColor(QStringLiteral("#007A86")));
+}
+
+void ThemeTest::rippleColoursFollowTheSurface()
+{
+    Theme theme;
+    theme.setMode(Theme::ThemeMode::Light);
+    // White has luminance 255: a light surface gets the faint shadow disc and
+    // the accent ring at 75%.
+    LMP_CHECK_COLOR(theme.rippleFillOn(Qt::white), rgba(0, 0, 0, 0.12f));
+    LMP_CHECK_COLOR(theme.rippleRingOn(Qt::white), rgba(0x00, 0x68, 0x7A, 0.75f));
+    // #1A202C: 0.2126*26 + 0.7152*32 + 0.0722*44 = 31.6, below 140, so dark.
+    const QColor playBg(QStringLiteral("#1A202C"));
+    LMP_CHECK_COLOR(theme.rippleFillOn(playBg), rgba(255, 255, 255, 0.2f));
+    LMP_CHECK_COLOR(theme.rippleRingOn(playBg), rgba(255, 255, 255, 0.55f));
+    // A transparent surface follows the theme.
+    LMP_CHECK_COLOR(theme.rippleFillOn(Qt::transparent), rgba(0, 0, 0, 0.12f));
+    theme.setMode(Theme::ThemeMode::Dark);
+    LMP_CHECK_COLOR(theme.rippleFillOn(Qt::transparent), rgba(255, 255, 255, 0.2f));
 }
 
 QTEST_MAIN(ThemeTest)

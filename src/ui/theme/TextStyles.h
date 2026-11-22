@@ -38,6 +38,9 @@ struct TextStyles {
     TextStyle nowPlayingTitle;
     TextStyle fullScreenTitle;
     TextStyle homeGreeting;
+    TextStyle buttonLabel;
+    TextStyle settingsButtonLabel;
+    TextStyle chipLabel;
 
     [[nodiscard]] static TextStyles build(const FontFamilies& families);
 };

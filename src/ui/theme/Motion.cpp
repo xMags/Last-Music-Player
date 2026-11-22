@@ -2,6 +2,9 @@
 
 #include <QPointF>
 
+#include <algorithm>
+#include <cmath>
+
 namespace lmp::ui {
 
 Motion::Motion(QObject* parent)
@@ -16,6 +19,13 @@ void Motion::setReduced(bool reduced)
     }
     m_reduced = reduced;
     emit reducedChanged();
+}
+
+qreal Motion::rippleDiameter(qreal width, qreal height, qreal x, qreal y) const
+{
+    const qreal dx = std::max(x, width - x);
+    const qreal dy = std::max(y, height - y);
+    return std::hypot(dx, dy) * 2;
 }
 
 QEasingCurve Motion::cubicBezier(qreal x1, qreal y1, qreal x2, qreal y2)

@@ -1,19 +1,18 @@
 #pragma once
 
-#include <QFont>
+#include <QColor>
 #include <QObject>
-#include <QString>
 #include <QVariantList>
 
-#include "ui/theme/TextStyles.h"
+#include "ui/theme/ThemeTypography.h"
 
 namespace lmp::ui {
 
 // The part of the theme that is the same in light and dark and for every
-// accent: corner radii, fixed layout sizes, fonts, text styles and the fixed
-// colour lists. Theme derives from it so QML reads every token flat, as
+// accent: corner radii, fixed layout sizes and fixed colours. Theme derives
+// from it (and it from ThemeTypography) so QML reads every token flat, as
 // `Theme.radiusMd`.
-class ThemeConstants : public QObject {
+class ThemeConstants : public ThemeTypography {
     Q_OBJECT
 
     // Corner scale.
@@ -37,36 +36,18 @@ class ThemeConstants : public QObject {
     // The five accent seed colours, in Theme.Accent order, for the accent picker.
     Q_PROPERTY(QVariantList accentSeeds READ accentSeedList CONSTANT FINAL)
 
-    // Font families of the design stacks, resolved against installed fonts.
-    Q_PROPERTY(QString fontText READ fontText CONSTANT FINAL)
-    Q_PROPERTY(QString fontDisplay READ fontDisplay CONSTANT FINAL)
-    Q_PROPERTY(QString fontExpressive READ fontExpressive CONSTANT FINAL)
+    // Colours that are the same in both themes.
+    Q_PROPERTY(QColor rippleFill READ rippleFill CONSTANT FINAL)
+    Q_PROPERTY(QColor rippleFillOnDark READ rippleFillOnDark CONSTANT FINAL)
+    Q_PROPERTY(QColor rippleRingOnDark READ rippleRingOnDark CONSTANT FINAL)
+    // Round buttons drawn over artwork, and their glyph colour.
+    Q_PROPERTY(QColor overlayButton READ overlayButton CONSTANT FINAL)
+    Q_PROPERTY(QColor overlayButtonHover READ overlayButtonHover CONSTANT FINAL)
+    Q_PROPERTY(QColor onOverlay READ onOverlay CONSTANT FINAL)
+    Q_PROPERTY(QVariantList shadowPlayButton READ shadowPlayButton CONSTANT FINAL)
 
-    // Text styles. Each line height is in pixels, for Text.FixedHeight.
-    Q_PROPERTY(QFont body READ body CONSTANT FINAL)
-    Q_PROPERTY(QFont sectionTitle READ sectionTitle CONSTANT FINAL)
-    Q_PROPERTY(QFont sidebarSectionLabel READ sidebarSectionLabel CONSTANT FINAL)
-    Q_PROPERTY(QFont profileName READ profileName CONSTANT FINAL)
-    Q_PROPERTY(QFont playerBarTitle READ playerBarTitle CONSTANT FINAL)
-    Q_PROPERTY(QFont playerBarArtist READ playerBarArtist CONSTANT FINAL)
-    Q_PROPERTY(QFont trackTitle READ trackTitle CONSTANT FINAL)
-    Q_PROPERTY(QFont trackArtist READ trackArtist CONSTANT FINAL)
-    Q_PROPERTY(QFont modalTitle READ modalTitle CONSTANT FINAL)
-    Q_PROPERTY(QFont settingsHeading READ settingsHeading CONSTANT FINAL)
-    Q_PROPERTY(QFont nowPlayingTitle READ nowPlayingTitle CONSTANT FINAL)
-    Q_PROPERTY(QFont fullScreenTitle READ fullScreenTitle CONSTANT FINAL)
-    Q_PROPERTY(QFont homeGreeting READ homeGreeting CONSTANT FINAL)
-    Q_PROPERTY(qreal lineHeightSectionTitle READ lineHeightSectionTitle CONSTANT FINAL)
-    Q_PROPERTY(qreal lineHeightSidebarSectionLabel READ lineHeightSidebarSectionLabel CONSTANT FINAL)
-    Q_PROPERTY(qreal lineHeightPlayerBarTitle READ lineHeightPlayerBarTitle CONSTANT FINAL)
-    Q_PROPERTY(qreal lineHeightPlayerBarArtist READ lineHeightPlayerBarArtist CONSTANT FINAL)
-    Q_PROPERTY(qreal lineHeightTrackTitle READ lineHeightTrackTitle CONSTANT FINAL)
-    Q_PROPERTY(qreal lineHeightTrackArtist READ lineHeightTrackArtist CONSTANT FINAL)
-    Q_PROPERTY(qreal lineHeightModalTitle READ lineHeightModalTitle CONSTANT FINAL)
-    Q_PROPERTY(qreal lineHeightSettingsHeading READ lineHeightSettingsHeading CONSTANT FINAL)
-    Q_PROPERTY(qreal lineHeightNowPlayingTitle READ lineHeightNowPlayingTitle CONSTANT FINAL)
-    Q_PROPERTY(qreal lineHeightFullScreenTitle READ lineHeightFullScreenTitle CONSTANT FINAL)
-    Q_PROPERTY(qreal lineHeightHomeGreeting READ lineHeightHomeGreeting CONSTANT FINAL)
+    Q_PROPERTY(qreal disabledOpacity READ disabledOpacity CONSTANT FINAL)
+    Q_PROPERTY(int focusRingWidth READ focusRingWidth CONSTANT FINAL)
 
 public:
     explicit ThemeConstants(QObject* parent = nullptr);
@@ -88,38 +69,18 @@ public:
     [[nodiscard]] static QVariantList artworkGradientList();
     [[nodiscard]] static QVariantList accentSeedList();
 
-    [[nodiscard]] QString fontText() const { return m_families.text; }
-    [[nodiscard]] QString fontDisplay() const { return m_families.display; }
-    [[nodiscard]] QString fontExpressive() const { return m_families.expressive; }
+    [[nodiscard]] static QColor rippleFill();
+    [[nodiscard]] static QColor rippleFillOnDark();
+    [[nodiscard]] static QColor rippleRingOnDark();
+    [[nodiscard]] static QColor overlayButton();
+    [[nodiscard]] static QColor overlayButtonHover();
+    [[nodiscard]] static QColor onOverlay();
+    [[nodiscard]] static QVariantList shadowPlayButton();
 
-    [[nodiscard]] QFont body() const { return m_text.body.font; }
-    [[nodiscard]] QFont sectionTitle() const { return m_text.sectionTitle.font; }
-    [[nodiscard]] QFont sidebarSectionLabel() const { return m_text.sidebarSectionLabel.font; }
-    [[nodiscard]] QFont profileName() const { return m_text.profileName.font; }
-    [[nodiscard]] QFont playerBarTitle() const { return m_text.playerBarTitle.font; }
-    [[nodiscard]] QFont playerBarArtist() const { return m_text.playerBarArtist.font; }
-    [[nodiscard]] QFont trackTitle() const { return m_text.trackTitle.font; }
-    [[nodiscard]] QFont trackArtist() const { return m_text.trackArtist.font; }
-    [[nodiscard]] QFont modalTitle() const { return m_text.modalTitle.font; }
-    [[nodiscard]] QFont settingsHeading() const { return m_text.settingsHeading.font; }
-    [[nodiscard]] QFont nowPlayingTitle() const { return m_text.nowPlayingTitle.font; }
-    [[nodiscard]] QFont fullScreenTitle() const { return m_text.fullScreenTitle.font; }
-    [[nodiscard]] QFont homeGreeting() const { return m_text.homeGreeting.font; }
-    [[nodiscard]] qreal lineHeightSectionTitle() const { return m_text.sectionTitle.lineHeight; }
-    [[nodiscard]] qreal lineHeightSidebarSectionLabel() const { return m_text.sidebarSectionLabel.lineHeight; }
-    [[nodiscard]] qreal lineHeightPlayerBarTitle() const { return m_text.playerBarTitle.lineHeight; }
-    [[nodiscard]] qreal lineHeightPlayerBarArtist() const { return m_text.playerBarArtist.lineHeight; }
-    [[nodiscard]] qreal lineHeightTrackTitle() const { return m_text.trackTitle.lineHeight; }
-    [[nodiscard]] qreal lineHeightTrackArtist() const { return m_text.trackArtist.lineHeight; }
-    [[nodiscard]] qreal lineHeightModalTitle() const { return m_text.modalTitle.lineHeight; }
-    [[nodiscard]] qreal lineHeightSettingsHeading() const { return m_text.settingsHeading.lineHeight; }
-    [[nodiscard]] qreal lineHeightNowPlayingTitle() const { return m_text.nowPlayingTitle.lineHeight; }
-    [[nodiscard]] qreal lineHeightFullScreenTitle() const { return m_text.fullScreenTitle.lineHeight; }
-    [[nodiscard]] qreal lineHeightHomeGreeting() const { return m_text.homeGreeting.lineHeight; }
+    // Disabled buttons fade to this opacity.
+    [[nodiscard]] qreal disabledOpacity() const { return 0.55; }
+    [[nodiscard]] int focusRingWidth() const { return 2; }
 
-private:
-    FontFamilies m_families;
-    TextStyles m_text;
 };
 
 } // namespace lmp::ui

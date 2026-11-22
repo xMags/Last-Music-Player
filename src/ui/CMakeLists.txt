@@ -39,10 +39,20 @@ qt_add_qml_module(lmp_ui
         theme/ThemeConstants.h
         theme/ThemePalette.cpp
         theme/ThemePalette.h
+        theme/ThemeTypography.cpp
+        theme/ThemeTypography.h
     QML_FILES
         qml/Main.qml
+        qml/controls/AppButton.qml
+        qml/controls/BoxShadow.qml
+        qml/controls/ButtonSurface.qml
+        qml/controls/Chip.qml
+        qml/controls/FocusRing.qml
         qml/controls/Icon.qml
+        qml/controls/IconButton.qml
         qml/controls/IconShapePath.qml
+        qml/controls/PlayButton.qml
+        qml/controls/Ripple.qml
         qml/controls/VersionLabel.qml
     RESOURCES
         "${CMAKE_SOURCE_DIR}/Assets/fonts/MrDeHaviland-Regular.ttf")

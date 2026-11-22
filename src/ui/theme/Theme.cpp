@@ -140,6 +140,28 @@ QVariantList Theme::shadowButtonHover() const
                          {0, 14, 32, 0, lmp::ui::mixSrgb(accentSeed(), Qt::transparent, 0.42)}});
 }
 
+QColor Theme::rippleFillOn(const QColor& surface) const
+{
+    return darkSurface(surface) ? rippleFillOnDark() : rippleFill();
+}
+
+QColor Theme::rippleRingOn(const QColor& surface) const
+{
+    return darkSurface(surface) ? rippleRingOnDark()
+                                : lmp::ui::mixSrgb(primary(), Qt::transparent, 0.75);
+}
+
+// Relative luminance on the 0 to 255 scale, as the design computes it.
+bool Theme::darkSurface(const QColor& surface) const
+{
+    if (!surface.isValid() || surface.alphaF() < 0.5f) {
+        return dark();
+    }
+    const QColor rgb = surface.toRgb();
+    const double luminance = 0.2126 * rgb.red() + 0.7152 * rgb.green() + 0.0722 * rgb.blue();
+    return luminance < 140;
+}
+
 QColor Theme::mixSrgb(const QColor& a, const QColor& b, qreal amountOfA) const
 {
     return lmp::ui::mixSrgb(a, b, amountOfA);

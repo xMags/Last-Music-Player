@@ -100,6 +100,9 @@ TextStyles TextStyles::build(const FontFamilies& families)
                                    .weight = kGreeting,
                                    .lineHeight = 44 * 1.3,
                                    .letterSpacingEm = -0.015}),
+        .buttonLabel = makeStyle({.family = text, .pixelSize = 14, .weight = kSemiBold}),
+        .settingsButtonLabel = makeStyle({.family = text, .pixelSize = 13, .weight = kSemiBold}),
+        .chipLabel = makeStyle({.family = text, .pixelSize = 13, .weight = kSemiBold}),
     };
 }
 

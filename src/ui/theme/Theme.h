@@ -134,12 +134,18 @@ public:
 
     Q_INVOKABLE QColor mixSrgb(const QColor& a, const QColor& b, qreal amountOfA) const;
     Q_INVOKABLE QColor mixOklab(const QColor& a, const QColor& b, qreal amountOfA) const;
+    // Colours of a press ripple drawn on a surface of the given colour: light
+    // water on dark or coloured surfaces, a faint shadow and an accent ring on
+    // light ones. A mostly transparent surface follows the theme.
+    Q_INVOKABLE QColor rippleFillOn(const QColor& surface) const;
+    Q_INVOKABLE QColor rippleRingOn(const QColor& surface) const;
 
 signals:
     void changed();
 
 private:
     [[nodiscard]] const ThemePalette& palette() const;
+    [[nodiscard]] bool darkSurface(const QColor& surface) const;
     [[nodiscard]] const BrandAccent& currentAccent() const;
 
     ThemeMode m_mode = ThemeMode::System;

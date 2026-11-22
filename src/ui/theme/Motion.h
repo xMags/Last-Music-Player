@@ -18,6 +18,8 @@ class Motion : public QObject {
     Q_PROPERTY(QEasingCurve water READ water CONSTANT FINAL)
     Q_PROPERTY(QEasingCurve toastSpring READ toastSpring CONSTANT FINAL)
     Q_PROPERTY(QEasingCurve menu READ menu CONSTANT FINAL)
+    // The CSS `ease` keyword.
+    Q_PROPERTY(QEasingCurve ease READ ease CONSTANT FINAL)
 
     // Durations in milliseconds.
     Q_PROPERTY(int page READ page CONSTANT FINAL)
@@ -28,6 +30,12 @@ class Motion : public QObject {
     Q_PROPERTY(int heart READ heart CONSTANT FINAL)
     Q_PROPERTY(int artCrossfade READ artCrossfade CONSTANT FINAL)
     Q_PROPERTY(int ambient READ ambient CONSTANT FINAL)
+    Q_PROPERTY(int rippleRing READ rippleRing CONSTANT FINAL)
+    Q_PROPERTY(int rippleRingDelay READ rippleRingDelay CONSTANT FINAL)
+    // Hover and press colour fades of buttons, chips and the play button.
+    Q_PROPERTY(int controlFade READ controlFade CONSTANT FINAL)
+    Q_PROPERTY(int chipFade READ chipFade CONSTANT FINAL)
+    Q_PROPERTY(int playPress READ playPress CONSTANT FINAL)
 
     Q_PROPERTY(bool reduced READ reduced WRITE setReduced NOTIFY reducedChanged FINAL)
 
@@ -38,6 +46,7 @@ public:
     [[nodiscard]] QEasingCurve water() const { return m_water; }
     [[nodiscard]] QEasingCurve toastSpring() const { return m_toastSpring; }
     [[nodiscard]] QEasingCurve menu() const { return m_menu; }
+    [[nodiscard]] QEasingCurve ease() const { return m_ease; }
 
     [[nodiscard]] int page() const { return 280; }
     [[nodiscard]] int menuDuration() const { return 170; }
@@ -47,12 +56,21 @@ public:
     [[nodiscard]] int heart() const { return 640; }
     [[nodiscard]] int artCrossfade() const { return 320; }
     [[nodiscard]] int ambient() const { return 1200; }
+    [[nodiscard]] int rippleRing() const { return 560; }
+    [[nodiscard]] int rippleRingDelay() const { return 60; }
+    [[nodiscard]] int controlFade() const { return 120; }
+    [[nodiscard]] int chipFade() const { return 150; }
+    [[nodiscard]] int playPress() const { return 100; }
 
     [[nodiscard]] bool reduced() const { return m_reduced; }
     void setReduced(bool reduced);
 
     // A CSS cubic-bezier(x1, y1, x2, y2) timing function.
     [[nodiscard]] static QEasingCurve cubicBezier(qreal x1, qreal y1, qreal x2, qreal y2);
+
+    // Diameter of a ripple pressed at (x, y) in a width x height box: twice
+    // the distance to the farthest corner, so the disc reaches every corner.
+    Q_INVOKABLE qreal rippleDiameter(qreal width, qreal height, qreal x, qreal y) const;
 
 signals:
     void reducedChanged();
@@ -62,6 +80,7 @@ private:
     QEasingCurve m_water = cubicBezier(0.22, 0.61, 0.36, 1);
     QEasingCurve m_toastSpring = cubicBezier(0.34, 1.45, 0.5, 1);
     QEasingCurve m_menu = cubicBezier(0.1, 0.9, 0.2, 1);
+    QEasingCurve m_ease = cubicBezier(0.25, 0.1, 0.25, 1);
     bool m_reduced = false;
 };
 

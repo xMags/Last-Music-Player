@@ -6,6 +6,8 @@
 #include <QTest>
 #include <QVariantList>
 
+#include <cmath>
+
 #include "ui/theme/Motion.h"
 #include "ui/theme/ShadowLayer.h"
 #include "ui/theme/Theme.h"
@@ -35,6 +37,7 @@ private slots:
     void curvesMatchReference();
     void durationsMatchReference();
     void reducedNotifiesOnChangeOnly();
+    void rippleReachesTheFarthestCorner();
     void layoutTokensMatchReference();
     void shadowsMatchReference();
 };
@@ -50,6 +53,8 @@ void MotionTest::curvesMatchReference()
     QVERIFY(hasControlPoints(motion.toastSpring(), {0.34, 1.45}, {0.5, 1}));
     // Action menu: cubic-bezier(0.1, 0.9, 0.2, 1)
     QVERIFY(hasControlPoints(motion.menu(), {0.1, 0.9}, {0.2, 1}));
+    // The CSS keyword `ease`: cubic-bezier(0.25, 0.1, 0.25, 1)
+    QVERIFY(hasControlPoints(motion.ease(), {0.25, 0.1}, {0.25, 1}));
 }
 
 void MotionTest::durationsMatchReference()
@@ -63,6 +68,11 @@ void MotionTest::durationsMatchReference()
     QCOMPARE(motion.heart(), 640);
     QCOMPARE(motion.artCrossfade(), 320);
     QCOMPARE(motion.ambient(), 1200);
+    QCOMPARE(motion.rippleRing(), 560);
+    QCOMPARE(motion.rippleRingDelay(), 60);
+    QCOMPARE(motion.controlFade(), 120);
+    QCOMPARE(motion.chipFade(), 150);
+    QCOMPARE(motion.playPress(), 100);
 }
 
 void MotionTest::reducedNotifiesOnChangeOnly()
@@ -75,6 +85,16 @@ void MotionTest::reducedNotifiesOnChangeOnly()
     QVERIFY(motion.reduced());
     motion.setReduced(false);
     QCOMPARE(spy.count(), 2);
+}
+
+void MotionTest::rippleReachesTheFarthestCorner()
+{
+    const Motion motion;
+    // Pressed at (10, 10) in a 100 x 40 box: the farthest corner is
+    // (100, 40), 90 across and 30 down; twice the distance.
+    QCOMPARE(motion.rippleDiameter(100, 40, 10, 10), 2 * std::hypot(90.0, 30.0));
+    // Pressed in the centre of a 30 x 40 box: 2 * hypot(15, 20) = 50.
+    QCOMPARE(motion.rippleDiameter(30, 40, 15, 20), 50.0);
 }
 
 void MotionTest::layoutTokensMatchReference()
