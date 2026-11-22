@@ -61,6 +61,11 @@ struct TextStyles {
     TextStyle artTileLabel;
     TextStyle artTileLabelBig;
     TextStyle captionGlyph;
+    TextStyle brandLabel;
+    TextStyle navLabel;
+    TextStyle navLabelActive;
+    TextStyle profileTier;
+    TextStyle profileDots;
 
     [[nodiscard]] static TextStyles build(const FontFamilies& families);
 };

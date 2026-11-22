@@ -49,10 +49,15 @@ set(LMP_UI_QML_FILES
     qml/dev/GalleryOverlays.qml
     qml/dev/GallerySection.qml
     qml/dev/GalleryTokens.qml
+    qml/shell/BrandMark.qml
     qml/shell/CaptionButton.qml
+    qml/shell/NavItem.qml
     qml/shell/PageHost.qml
     qml/shell/PlaceholderPage.qml
+    qml/shell/ProfileButton.qml
     qml/shell/Shell.qml
+    qml/shell/Sidebar.qml
+    qml/shell/SidebarPlaylistRow.qml
     qml/shell/TitleStrip.qml)
 
 qt_add_qml_module(lmp_ui
@@ -87,6 +92,10 @@ qt_add_qml_module(lmp_ui
         shell/AppRoot.h
         shell/ShellLayoutViewModel.cpp
         shell/ShellLayoutViewModel.h
+        shell/SidebarListModels.cpp
+        shell/SidebarListModels.h
+        shell/SidebarViewModel.cpp
+        shell/SidebarViewModel.h
         shell/WindowChromeViewModel.cpp
         shell/WindowChromeViewModel.h
         theme/ColorMix.cpp

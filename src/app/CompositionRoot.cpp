@@ -27,10 +27,12 @@ CompositionRoot::CompositionRoot()
     : m_singleInstance(std::make_unique<platform::windows::WindowsSingleInstance>(
           core::AppIdentity::singleInstanceMutexName(), core::AppIdentity::displayName()))
     , m_windowChromeViewModel(&m_windowChrome)
+    , m_sidebar(&m_navigator)
     , m_appRoot({
           .windowChrome = &m_windowChromeViewModel,
           .navigator = &m_navigator,
           .layout = &m_layout,
+          .sidebar = &m_sidebar,
           .showGallery = QCoreApplication::arguments().contains(QStringLiteral("--gallery")),
       })
 {

@@ -17,13 +17,12 @@ Item {
     onWidthChanged: App.layout.windowWidth = width
     Component.onCompleted: App.layout.windowWidth = width
 
-    // Left sidebar slot: the full height of the body, beside the title strip.
-    Rectangle {
+    // The left sidebar: the full height of the body, beside the title strip.
+    Sidebar {
         id: sidebarSlot
 
         width: App.layout.sidebarWidth
         height: shell.bodyHeight
-        color: Theme.surface
     }
 
     TitleStrip {

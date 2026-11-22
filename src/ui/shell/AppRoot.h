@@ -6,6 +6,7 @@
 
 #include "ui/navigation/Navigator.h"
 #include "ui/shell/ShellLayoutViewModel.h"
+#include "ui/shell/SidebarViewModel.h"
 #include "ui/shell/WindowChromeViewModel.h"
 
 class QJSEngine;
@@ -26,6 +27,7 @@ class AppRoot : public QObject {
     Q_PROPERTY(lmp::ui::WindowChromeViewModel* windowChrome READ windowChrome CONSTANT FINAL)
     Q_PROPERTY(lmp::ui::Navigator* navigator READ navigator CONSTANT FINAL)
     Q_PROPERTY(lmp::ui::ShellLayoutViewModel* layout READ layout CONSTANT FINAL)
+    Q_PROPERTY(lmp::ui::SidebarViewModel* sidebar READ sidebar CONSTANT FINAL)
     // Started with --gallery: the design gallery shows instead of the shell.
     Q_PROPERTY(bool showGallery READ showGallery CONSTANT FINAL)
 
@@ -35,6 +37,7 @@ public:
         WindowChromeViewModel* windowChrome = nullptr;
         Navigator* navigator = nullptr;
         ShellLayoutViewModel* layout = nullptr;
+        SidebarViewModel* sidebar = nullptr;
         bool showGallery = false;
     };
 
@@ -48,6 +51,7 @@ public:
     [[nodiscard]] WindowChromeViewModel* windowChrome() const { return m_parts.windowChrome; }
     [[nodiscard]] Navigator* navigator() const { return m_parts.navigator; }
     [[nodiscard]] ShellLayoutViewModel* layout() const { return m_parts.layout; }
+    [[nodiscard]] SidebarViewModel* sidebar() const { return m_parts.sidebar; }
     [[nodiscard]] bool showGallery() const { return m_parts.showGallery; }
 
     // Called by the QML engine the first time QML uses `App`. Returns the

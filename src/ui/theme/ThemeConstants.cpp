@@ -109,6 +109,21 @@ QColor ThemeConstants::captionCloseGlyph()
     return QColor(Qt::white);
 }
 
+QColor ThemeConstants::brandLogoStart()
+{
+    return QColor(0x00, 0xAF, 0xCA);
+}
+
+QColor ThemeConstants::brandLogoEnd()
+{
+    return QColor(0x00, 0x9F, 0xBA);
+}
+
+QColor ThemeConstants::brandLogoBar()
+{
+    return QColor(Qt::white);
+}
+
 QColor ThemeConstants::railShadow()
 {
     return rgba(0, 0, 0, 0.18f);

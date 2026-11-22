@@ -51,6 +51,11 @@ class ThemeTypography : public QObject {
     Q_PROPERTY(QFont artTileLabel READ artTileLabel CONSTANT FINAL)
     Q_PROPERTY(QFont artTileLabelBig READ artTileLabelBig CONSTANT FINAL)
     Q_PROPERTY(QFont captionGlyph READ captionGlyph CONSTANT FINAL)
+    Q_PROPERTY(QFont brandLabel READ brandLabel CONSTANT FINAL)
+    Q_PROPERTY(QFont navLabel READ navLabel CONSTANT FINAL)
+    Q_PROPERTY(QFont navLabelActive READ navLabelActive CONSTANT FINAL)
+    Q_PROPERTY(QFont profileTier READ profileTier CONSTANT FINAL)
+    Q_PROPERTY(QFont profileDots READ profileDots CONSTANT FINAL)
     Q_PROPERTY(qreal lineHeightModalDescription READ lineHeightModalDescription CONSTANT FINAL)
     Q_PROPERTY(qreal lineHeightBubbleLabel READ lineHeightBubbleLabel CONSTANT FINAL)
     Q_PROPERTY(qreal lineHeightSectionTitle READ lineHeightSectionTitle CONSTANT FINAL)
@@ -105,6 +110,11 @@ public:
     [[nodiscard]] QFont artTileLabel() const { return m_text.artTileLabel.font; }
     [[nodiscard]] QFont artTileLabelBig() const { return m_text.artTileLabelBig.font; }
     [[nodiscard]] QFont captionGlyph() const { return m_text.captionGlyph.font; }
+    [[nodiscard]] QFont brandLabel() const { return m_text.brandLabel.font; }
+    [[nodiscard]] QFont navLabel() const { return m_text.navLabel.font; }
+    [[nodiscard]] QFont navLabelActive() const { return m_text.navLabelActive.font; }
+    [[nodiscard]] QFont profileTier() const { return m_text.profileTier.font; }
+    [[nodiscard]] QFont profileDots() const { return m_text.profileDots.font; }
     [[nodiscard]] qreal lineHeightModalDescription() const { return m_text.modalDescription.lineHeight; }
     [[nodiscard]] qreal lineHeightBubbleLabel() const { return m_text.bubbleLabel.lineHeight; }
     [[nodiscard]] qreal lineHeightSectionTitle() const { return m_text.sectionTitle.lineHeight; }

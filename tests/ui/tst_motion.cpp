@@ -92,6 +92,9 @@ void MotionTest::durationsMatchReference()
     QCOMPARE(motion.toastReflow(), 280);
     QCOMPARE(motion.skeletonSweep(), 2800);
     QCOMPARE(motion.artRevealTimeout(), 2500);
+    QCOMPARE(motion.navItemFade(), 100);
+    QCOMPARE(motion.logoRipple(), 1900);
+    QCOMPARE(motion.logoRippleStep(), 160);
 }
 
 void MotionTest::reducedNotifiesOnChangeOnly()

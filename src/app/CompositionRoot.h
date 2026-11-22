@@ -10,6 +10,7 @@
 #include "ui/navigation/Navigator.h"
 #include "ui/shell/AppRoot.h"
 #include "ui/shell/ShellLayoutViewModel.h"
+#include "ui/shell/SidebarViewModel.h"
 #include "ui/shell/WindowChromeViewModel.h"
 #include "ui/theme/Theme.h"
 
@@ -49,6 +50,7 @@ private:
     ui::WindowChromeViewModel m_windowChromeViewModel;
     ui::Navigator m_navigator;
     ui::ShellLayoutViewModel m_layout;
+    ui::SidebarViewModel m_sidebar;
     ui::AppRoot m_appRoot;
     QPointer<ui::Theme> m_theme; // owned by the QML engine
 };

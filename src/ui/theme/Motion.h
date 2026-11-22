@@ -62,6 +62,11 @@ class Motion : public QObject {
     Q_PROPERTY(int skeletonSweep READ skeletonSweep CONSTANT FINAL)
     // How long a cover crossfade waits for the new picture.
     Q_PROPERTY(int artRevealTimeout READ artRevealTimeout CONSTANT FINAL)
+    Q_PROPERTY(int navItemFade READ navItemFade CONSTANT FINAL)
+    // The logo's bars while music plays: one ripple, and the delay per bar
+    // outward from the middle.
+    Q_PROPERTY(int logoRipple READ logoRipple CONSTANT FINAL)
+    Q_PROPERTY(int logoRippleStep READ logoRippleStep CONSTANT FINAL)
 
     Q_PROPERTY(bool reduced READ reduced WRITE setReduced NOTIFY reducedChanged FINAL)
 
@@ -107,6 +112,9 @@ public:
     [[nodiscard]] int toastReflow() const { return 280; }
     [[nodiscard]] int skeletonSweep() const { return 2800; }
     [[nodiscard]] int artRevealTimeout() const { return 2500; }
+    [[nodiscard]] int navItemFade() const { return 100; }
+    [[nodiscard]] int logoRipple() const { return 1900; }
+    [[nodiscard]] int logoRippleStep() const { return 160; }
 
     [[nodiscard]] bool reduced() const { return m_reduced; }
     void setReduced(bool reduced);

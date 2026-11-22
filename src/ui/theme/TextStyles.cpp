@@ -144,6 +144,15 @@ TextStyles TextStyles::build(const FontFamilies& families)
         .artTileLabelBig = makeStyle({.family = text, .pixelSize = 48, .weight = kBold}),
         .captionGlyph =
             makeStyle({.family = families.captionIcons, .pixelSize = 10, .weight = kRegular}),
+        .brandLabel = makeStyle({.family = text, .pixelSize = 12, .weight = kSemiBold}),
+        .navLabel = makeStyle({.family = text, .pixelSize = 14, .weight = kRegular}),
+        .navLabelActive = makeStyle({.family = text, .pixelSize = 14, .weight = kSemiBold}),
+        // .profile-tier: 10px, 700, letter-spacing 0.08em.
+        .profileTier = makeStyle(
+            {.family = text, .pixelSize = 10, .weight = kBold, .letterSpacingEm = 0.08}),
+        // .profile-menu-dots: 20px, line-height 1.
+        .profileDots =
+            makeStyle({.family = text, .pixelSize = 20, .weight = kRegular, .lineHeight = 20}),
     };
 }
 
