@@ -221,3 +221,7 @@ lmp_add_test(tst_auto_sync_policy
 lmp_add_test(tst_queue_engine
     SOURCES core/tst_queue_engine.cpp
     LIBS lmp_core)
+
+lmp_add_test(tst_windows_audio_player
+    SOURCES platform/tst_windows_audio_player.cpp
+    LIBS lmp_platform_windows)

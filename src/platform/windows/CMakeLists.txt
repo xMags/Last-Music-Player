@@ -3,6 +3,10 @@
 qt_add_library(lmp_platform_windows STATIC
     WindowsAppIdentity.cpp
     WindowsAppIdentity.h
+    WindowsAudioPlayer.cpp
+    WindowsAudioPlayer.h
+    WindowsAudioPlayerEvents.cpp
+    WindowsAudioPlayerNative.h
     WindowsCredentialStore.cpp
     WindowsCredentialStore.h
     WindowsReducedMotion.cpp
@@ -14,7 +18,7 @@ qt_add_library(lmp_platform_windows STATIC
 
 target_link_libraries(lmp_platform_windows
     PUBLIC lmp_core Qt6::Core
-    PRIVATE user32 shell32 dwmapi advapi32)
+    PRIVATE user32 shell32 dwmapi advapi32 windowsapp)
 
 target_compile_definitions(lmp_platform_windows PRIVATE
     WIN32_LEAN_AND_MEAN
@@ -22,4 +26,7 @@ target_compile_definitions(lmp_platform_windows PRIVATE
     UNICODE
     _UNICODE)
 
+# The Windows Runtime projection headers ship with the Windows SDK, whose
+# include folders the MSVC environment already lists. They need standard
+# coroutine support, which C++20 provides, and nothing else.
 lmp_enable_strict_warnings(lmp_platform_windows)

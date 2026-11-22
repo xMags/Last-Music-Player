@@ -123,6 +123,7 @@ qt_add_library(lmp_core STATIC
     text/CaseFold.h
     text/StrictUtf8.cpp
     text/StrictUtf8.h
+    ../platform/IAudioPlayer.h
     ../platform/ICredentialStore.h
     ../platform/IReducedMotion.h
     ../platform/ISingleInstance.h
