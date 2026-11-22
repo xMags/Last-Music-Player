@@ -9,9 +9,14 @@ qt_add_library(lmp_core STATIC
     config/PrivateConfig.cpp
     config/PrivateConfig.h
     db/Database.cpp
+    db/AccountSchema.h
+    db/CollectionSql.h
     db/Database.h
+    db/Schema.cpp
+    db/Schema.h
     db/SqliteConnection.cpp
     db/SqliteConnection.h
+    db/TrackSchema.h
     model/ArtworkPlaceholder.cpp
     model/ArtworkPlaceholder.h
     model/Track.cpp

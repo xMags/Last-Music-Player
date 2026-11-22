@@ -1,5 +1,7 @@
 #include "core/db/Database.h"
 
+#include "core/db/Schema.h"
+
 #include <QDir>
 
 #include <array>
@@ -41,6 +43,23 @@ Result<void> Database::open()
     for (const char* pragma : kPragmas) {
         // Earlier versions ignored a pragma that failed; so does this.
         static_cast<void>(m_connection.exec(pragma));
+    }
+    return Result<void>::success();
+}
+
+Result<void> Database::initialize()
+{
+    const Result<void> opened = open();
+    if (!opened) {
+        return opened;
+    }
+    if (const Result<void> schema = Schema::ensure(m_connection); !schema) {
+        close();
+        return schema;
+    }
+    if (const Result<void> context = resetActiveAccountContext(); !context) {
+        close();
+        return context;
     }
     return Result<void>::success();
 }

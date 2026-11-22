@@ -20,6 +20,9 @@ public:
     // mmap_size=268435456. As before, a pragma that fails does not stop the
     // open.
     [[nodiscard]] Result<void> open();
+    // What each start does: open(), then the schema step, then
+    // resetActiveAccountContext(). Closes the database again on failure.
+    [[nodiscard]] Result<void> initialize();
     void close();
     [[nodiscard]] bool isOpen() const { return m_connection.isOpen(); }
 
