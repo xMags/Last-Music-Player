@@ -1,5 +1,6 @@
 #include "core/model/ArtistIdentity.h"
 
+#include "core/text/CaseFold.h"
 #include <QChar>
 
 namespace lmp::core {
@@ -20,7 +21,7 @@ QString normalizeArtistName(QStringView value)
         }
         collapsed.append(character);
     }
-    return collapsed.toLower();
+    return foldCaseAscii(collapsed);
 }
 
 QString artistIdentityKey(const ArtistIdentity& artist)

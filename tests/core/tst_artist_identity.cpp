@@ -16,6 +16,7 @@ private slots:
     void keysPreferTheStrongestIdentity();
     void namesNormalise();
     void sameIdentityFollowsTheStrongestSide();
+    void onlyAsciiLettersFold();
 };
 
 void ArtistIdentityTest::keysPreferTheStrongestIdentity()
@@ -56,6 +57,14 @@ void ArtistIdentityTest::sameIdentityFollowsTheStrongestSide()
                                 {{}, {}, QStringLiteral("Same"), {}}));
     QVERIFY(sameArtistIdentity({{}, {}, QStringLiteral(" Artist One "), {}}, {{}, {}, QStringLiteral("artist   one"), {}}));
     QVERIFY(!sameArtistIdentity({{}, {}, QStringLiteral(""), {}}, {{}, {}, QStringLiteral(""), {}}));
+}
+
+void ArtistIdentityTest::onlyAsciiLettersFold()
+{
+    // Stored name keys of earlier versions changed A to Z only.
+    lmp::core::ArtistIdentity artist;
+    artist.name = QStringLiteral("  Émile   BAND ");
+    QCOMPARE(lmp::core::artistIdentityKey(artist), QStringLiteral("name|Émile band"));
 }
 
 QTEST_GUILESS_MAIN(ArtistIdentityTest)

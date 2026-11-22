@@ -1,5 +1,6 @@
 #include "core/db/Schema.h"
 
+#include "core/text/CaseFold.h"
 #include "core/db/AccountSchema.h"
 #include "core/db/CollectionSql.h"
 #include "core/db/SqliteConnection.h"
@@ -449,7 +450,7 @@ Result<void> Schema::migrateImportedAlbumCollectionsToPlaylists(SqliteConnection
     for (const ImportedAlbumCollection& collection : std::as_const(collections)) {
         const QString provider = collection.sourceKind.isEmpty() ? QStringLiteral("provider") : collection.sourceKind;
         const QString keyPart = collection.sourceUrl.isEmpty() ? collection.albumKey : collection.sourceUrl;
-        const QString playlistKey = QStringLiteral("import-playlist|") + provider.toLower() + QLatin1Char('|') + keyPart;
+        const QString playlistKey = QStringLiteral("import-playlist|") + foldCaseAscii(provider) + QLatin1Char('|') + keyPart;
 
         QString artworkUrl = collection.artworkUrl;
         if (provider != QLatin1StringView("manual")

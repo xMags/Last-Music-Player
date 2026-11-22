@@ -1,5 +1,6 @@
 #include "core/db/AccountPlaylistPage.h"
 
+#include "core/text/CaseFold.h"
 #include <QLatin1StringView>
 
 #include <algorithm>
@@ -10,13 +11,13 @@ namespace {
 
 bool lessByTitle(const Track& left, const Track& right)
 {
-    return left.title.toLower() < right.title.toLower();
+    return foldCaseAscii(left.title) < foldCaseAscii(right.title);
 }
 
 bool lessByArtist(const Track& left, const Track& right)
 {
-    const QString leftArtist = left.artist.toLower();
-    const QString rightArtist = right.artist.toLower();
+    const QString leftArtist = foldCaseAscii(left.artist);
+    const QString rightArtist = foldCaseAscii(right.artist);
     if (leftArtist != rightArtist) {
         return leftArtist < rightArtist;
     }
@@ -44,14 +45,14 @@ bool newerFirst(const Track& left, const Track& right)
 TrackPage pageAccountPlaylistTracks(QList<Track> tracks, const TrackQuery& query)
 {
     if (!query.searchText.isEmpty()) {
-        const QString needle = query.searchText.toLower();
+        const QString needle = foldCaseAscii(query.searchText);
         tracks.removeIf([&needle](const Track& track) {
-            return !track.title.toLower().contains(needle) && !track.artist.toLower().contains(needle)
-                && !track.album.toLower().contains(needle);
+            return !foldCaseAscii(track.title).contains(needle) && !foldCaseAscii(track.artist).contains(needle)
+                && !foldCaseAscii(track.album).contains(needle);
         });
     }
 
-    const QString sort = query.sort.toLower();
+    const QString sort = foldCaseAscii(query.sort);
     if (sort == QLatin1StringView("title")) {
         std::stable_sort(tracks.begin(), tracks.end(), lessByTitle);
     } else if (sort == QLatin1StringView("artist")) {
