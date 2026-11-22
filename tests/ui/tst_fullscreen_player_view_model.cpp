@@ -29,7 +29,6 @@ private slots:
     void opensOnlyWithASong();
     void theSidePanelNeedsMoreThan900Pixels();
     void albumLineJoinsAlbumAndYear();
-    void upcomingListsTheVisibleQueue();
 
 private:
     [[nodiscard]] std::unique_ptr<FullscreenPlayerViewModel> makeViewModel();
@@ -163,19 +162,6 @@ void FullscreenPlayerViewModelTest::albumLineJoinsAlbumAndYear()
     m_player->playTrack(track);
     settle();
     QCOMPARE(fullscreen->albumLine(), QStringLiteral("Album"));
-}
-
-void FullscreenPlayerViewModelTest::upcomingListsTheVisibleQueue()
-{
-    const auto fullscreen = makeViewModel();
-    QVERIFY(!fullscreen->hasUpcoming());
-    QSignalSpy upcoming(fullscreen.get(), &FullscreenPlayerViewModel::upcomingChanged);
-    play({QStringLiteral("One"), QStringLiteral("Two"), QStringLiteral("Three")});
-    QVERIFY(fullscreen->hasUpcoming());
-    QVERIFY(upcoming.count() >= 1);
-    QAbstractItemModel* model = fullscreen->upcoming();
-    QCOMPARE(model->rowCount(), 2);
-    QCOMPARE(model->data(model->index(0, 0)).toString(), QStringLiteral("Two · Artist"));
 }
 
 QTEST_GUILESS_MAIN(FullscreenPlayerViewModelTest)

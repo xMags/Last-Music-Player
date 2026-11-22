@@ -1,14 +1,13 @@
-pragma ComponentBehavior: Bound
-
 import QtQuick
 import QtQuick.Layouts
 import LastMusicPlayer
 
 // The side panel of the full-screen player (.fs-side, .fs-panel,
-// styles.css 2253-2284): the Lyrics / Up Next switch across the top, 12px
+// styles.css 2253-2287): the Lyrics / Up Next switch across the top, 12px
 // above a glass panel with a 20px radius and 20px of padding (none below).
-// Lyrics stay empty until lyrics exist. Up Next shows the songs to come,
-// one line each, until the queue list replaces this simple list.
+// Lyrics stay empty until lyrics exist. Up Next shows the same list as the
+// queue rail (views/queue.ts 268-296): its header stays put while the rows
+// scroll below it with 20px of space at the end and a thin scroll bar.
 ColumnLayout {
     id: side
 
@@ -33,43 +32,24 @@ ColumnLayout {
             anchors.rightMargin: 20
             anchors.topMargin: 20
             visible: App.fullscreen.queueChosen
-            spacing: 12
+            spacing: 0
 
-            Text {
-                text: qsTr("NEXT IN QUEUE")
-                font: Theme.sidebarSectionLabel
-                color: Theme.fullscreenTertiaryText
-            }
-
-            Text {
+            QueueSectionHeader {
                 Layout.fillWidth: true
-                visible: !App.fullscreen.hasUpcoming
-                text: qsTr("Your queue is clear.")
-                font: Theme.body
-                color: Theme.fullscreenEmptyText
-                wrapMode: Text.Wrap
+                Layout.bottomMargin: 10
+                rule: false
+                labelColor: Theme.fullscreenTertiaryText
             }
 
-            ListView {
-                id: list
-
+            // The rows reach 8px past the panel's padding on each side.
+            QueueList {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                clip: true
-                boundsBehavior: Flickable.StopAtBounds
-                model: App.fullscreen.upcoming
-
-                delegate: Text {
-                    required property string display
-
-                    width: list.width
-                    topPadding: 8
-                    bottomPadding: 8
-                    text: display
-                    font: Theme.trackTitle
-                    color: Theme.fullscreenSecondaryText
-                    elide: Text.ElideRight
-                }
+                Layout.leftMargin: -8
+                Layout.rightMargin: -8
+                onDark: true
+                showScrollBar: true
+                bottomMargin: 20
             }
         }
     }

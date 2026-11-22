@@ -1,9 +1,7 @@
 #pragma once
 
-#include <QAbstractItemModel>
 #include <QObject>
 #include <QString>
-#include <QStringListModel>
 #include <QtQml/qqmlregistration.h>
 
 namespace lmp::core {
@@ -19,7 +17,8 @@ class ToastQueue;
 // The full-screen player (`App.fullscreen`): whether it is open, which side
 // panel it shows (Lyrics, Up Next or none, kept in the FullscreenPanel
 // setting) and whether the window is wide enough for that panel. The song
-// and transport come from App.playerBar. It opens only with a song loaded
+// and transport come from App.playerBar, the Up Next list from
+// App.queueRail. It opens only with a song loaded
 // and closes when the song goes away.
 //
 // Lives on the GUI thread; the settings write is one small file write per
@@ -39,9 +38,6 @@ class FullscreenPlayerViewModel : public QObject {
     Q_PROPERTY(bool sidePanelShown READ sidePanelShown NOTIFY panelChanged FINAL)
     // "Album · 2021", or what of it is known.
     Q_PROPERTY(QString albumLine READ albumLine NOTIFY trackChanged FINAL)
-    // The songs up next, one line each, until the queue list takes over.
-    Q_PROPERTY(QAbstractItemModel* upcoming READ upcoming CONSTANT FINAL)
-    Q_PROPERTY(bool hasUpcoming READ hasUpcoming NOTIFY upcomingChanged FINAL)
 
 public:
     enum class Panel { None, Lyrics, Queue };
@@ -60,8 +56,6 @@ public:
     [[nodiscard]] bool panelFits() const;
     [[nodiscard]] bool sidePanelShown() const { return m_panel != Panel::None && panelFits(); }
     [[nodiscard]] QString albumLine() const;
-    [[nodiscard]] QAbstractItemModel* upcoming() { return &m_upcoming; }
-    [[nodiscard]] bool hasUpcoming() const { return m_upcoming.rowCount() > 0; }
 
     // Opens the player, or says "Play something first." with no song.
     Q_INVOKABLE void openPlayer();
@@ -79,18 +73,15 @@ signals:
     void openChanged();
     void panelChanged();
     void trackChanged();
-    void upcomingChanged();
 
 private:
     void pick(Panel panel);
     void setOpen(bool open);
-    void refreshUpcoming();
 
     core::PlayerController& m_player;
     core::SettingsStore& m_settings;
     ShellLayoutViewModel& m_layout;
     ToastQueue& m_toasts;
-    QStringListModel m_upcoming;
     Panel m_panel = Panel::Lyrics;
     bool m_open = false;
 };

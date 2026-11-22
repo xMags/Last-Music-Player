@@ -53,6 +53,7 @@ private slots:
     void rippleColoursFollowTheSurface();
     void ambientDefaultsToTheAccentSeed();
     void fullscreenTokensMatchReference();
+    void queueTokensMatchReference();
 };
 
 // A macro because QVERIFY2 has to expand inside the test function to end it on
@@ -279,6 +280,36 @@ void ThemeTest::fullscreenTokensMatchReference()
     QCOMPARE(layer.offsetY, 30.0);
     QCOMPARE(layer.blur, 80.0);
     LMP_CHECK_COLOR(layer.color, rgba(0, 0, 0, 0.55f));
+}
+
+void ThemeTest::queueTokensMatchReference()
+{
+    Theme theme;
+    // styles.css 1902-1912: Clear is a deeper red in light mode.
+    theme.setMode(Theme::ThemeMode::Light);
+    LMP_CHECK_COLOR(theme.queueClear(), QColor(QStringLiteral("#E00000")));
+    LMP_CHECK_COLOR(theme.queueClearHover(), QColor(QStringLiteral("#B80000")));
+    theme.setMode(Theme::ThemeMode::Dark);
+    LMP_CHECK_COLOR(theme.queueClear(), QColor(QStringLiteral("#FF0000")));
+    LMP_CHECK_COLOR(theme.queueClearHover(), QColor(QStringLiteral("#FF4D4D")));
+    // styles.css 2108: --hover inside the full-screen player.
+    LMP_CHECK_COLOR(theme.fullscreenRowHover(), rgba(255, 255, 255, 0.08f));
+
+    // .np-artist 13px 500, line-height 1.35; .queue-dur 12px; .queue-clear
+    // 10.5px 600 with 0.04em, uppercase; .queue-radio-status 10.5px;
+    // .empty-state 13px 600.
+    QCOMPARE(theme.nowPlayingArtist().pixelSize(), 13);
+    QCOMPARE(theme.nowPlayingArtist().weight(), QFont::Medium);
+    QCOMPARE(theme.lineHeightNowPlayingArtist(), 13 * 1.35);
+    QCOMPARE(theme.queueDuration().pixelSize(), 12);
+    QCOMPARE(theme.queueAction().pointSizeF(), 10.5 * 0.75);
+    QCOMPARE(theme.queueAction().weight(), QFont::DemiBold);
+    QCOMPARE(theme.queueAction().capitalization(), QFont::AllUppercase);
+    // QFont keeps letter spacing in 1/64 px steps.
+    QVERIFY(qAbs(theme.queueAction().letterSpacing() - 10.5 * 0.04) <= 1.0 / 64);
+    QCOMPARE(theme.queueStatus().pointSizeF(), 10.5 * 0.75);
+    QCOMPARE(theme.emptyStateCompact().pixelSize(), 13);
+    QCOMPARE(theme.emptyStateCompact().weight(), QFont::DemiBold);
 }
 
 QTEST_MAIN(ThemeTest)

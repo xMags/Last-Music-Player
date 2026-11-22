@@ -1,7 +1,6 @@
 #include "ui/player/FullscreenPlayerViewModel.h"
 
 #include <QLatin1StringView>
-#include <QList>
 #include <QStringList>
 
 #include "core/playback/PlayerController.h"
@@ -39,8 +38,6 @@ FullscreenPlayerViewModel::FullscreenPlayerViewModel(core::PlayerController& pla
         }
         emit trackChanged();
     });
-    connect(&m_player, &core::PlayerController::queueChanged, this, &FullscreenPlayerViewModel::refreshUpcoming);
-    refreshUpcoming();
 }
 
 bool FullscreenPlayerViewModel::panelFits() const
@@ -137,23 +134,6 @@ void FullscreenPlayerViewModel::setOpen(bool open)
     }
     m_open = open;
     emit openChanged();
-}
-
-void FullscreenPlayerViewModel::refreshUpcoming()
-{
-    QStringList lines;
-    const QList<core::QueueEntry> entries = m_player.visibleQueue();
-    lines.reserve(entries.size());
-    for (const core::QueueEntry& entry : entries) {
-        lines.append(entry.track.artist.isEmpty()
-                         ? entry.track.title
-                         : QStringLiteral("%1 · %2").arg(entry.track.title, entry.track.artist));
-    }
-    if (lines == m_upcoming.stringList()) {
-        return;
-    }
-    m_upcoming.setStringList(lines);
-    emit upcomingChanged();
 }
 
 } // namespace lmp::ui

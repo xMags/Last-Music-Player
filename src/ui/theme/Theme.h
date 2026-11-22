@@ -32,6 +32,9 @@ class Theme : public ThemeColors {
     Q_PROPERTY(QColor scrollThumbHover READ scrollThumbHover NOTIFY changed FINAL)
     // The dimmed backdrop behind a dialog.
     Q_PROPERTY(QColor scrim READ scrim NOTIFY changed FINAL)
+    // The Up Next "Clear" action, red because it is destructive.
+    Q_PROPERTY(QColor queueClear READ queueClear NOTIFY changed FINAL)
+    Q_PROPERTY(QColor queueClearHover READ queueClearHover NOTIFY changed FINAL)
     // The current cover's colour that tints the panels; the accent's seed
     // colour until playback sets one. Readers fade to a new value over
     // Motion.ambient.
@@ -53,6 +56,8 @@ public:
     [[nodiscard]] QColor scrollThumb() const;
     [[nodiscard]] QColor scrollThumbHover() const;
     [[nodiscard]] QColor scrim() const;
+    [[nodiscard]] QColor queueClear() const;
+    [[nodiscard]] QColor queueClearHover() const;
     [[nodiscard]] QColor ambient() const;
     void setAmbient(const QColor& color);
     void resetAmbient();

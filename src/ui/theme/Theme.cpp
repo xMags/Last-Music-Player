@@ -117,6 +117,16 @@ QColor Theme::scrollThumbHover() const
     return dark() ? scrollThumb() : black(0.20f);
 }
 
+QColor Theme::queueClear() const
+{
+    return dark() ? QColor(0xFF, 0x00, 0x00) : QColor(0xE0, 0x00, 0x00);
+}
+
+QColor Theme::queueClearHover() const
+{
+    return dark() ? QColor(0xFF, 0x4D, 0x4D) : QColor(0xB8, 0x00, 0x00);
+}
+
 QColor Theme::scrim() const
 {
     if (dark()) {

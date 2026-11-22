@@ -78,6 +78,23 @@ class Motion : public QObject {
     Q_PROPERTY(int songChangeCover READ songChangeCover CONSTANT FINAL)
     // How far, in pixels, the text travels.
     Q_PROPERTY(int songChangeShift READ songChangeShift CONSTANT FINAL)
+    // The Up Next list: rows glide to new places, new rows slide in from
+    // listEnterShift to the right (each listEnterStagger after the one
+    // before), leaving rows fade, shrink to listLeaveScale and drift left.
+    Q_PROPERTY(int listGlide READ listGlide CONSTANT FINAL)
+    Q_PROPERTY(int listEnterDelay READ listEnterDelay CONSTANT FINAL)
+    Q_PROPERTY(int listEnterStagger READ listEnterStagger CONSTANT FINAL)
+    Q_PROPERTY(int listLeave READ listLeave CONSTANT FINAL)
+    Q_PROPERTY(int listEnterShift READ listEnterShift CONSTANT FINAL)
+    Q_PROPERTY(int listLeaveShift READ listLeaveShift CONSTANT FINAL)
+    Q_PROPERTY(qreal listLeaveScale READ listLeaveScale CONSTANT FINAL)
+    // A queue row settling back after it was carried.
+    Q_PROPERTY(int queueRowSettle READ queueRowSettle CONSTANT FINAL)
+    // One breath of the glow under the playing song's cover, and how it
+    // rests while it does not breathe (reduced motion).
+    Q_PROPERTY(int nowPlayingBreathe READ nowPlayingBreathe CONSTANT FINAL)
+    Q_PROPERTY(qreal glowRestScale READ glowRestScale CONSTANT FINAL)
+    Q_PROPERTY(qreal glowRestOpacity READ glowRestOpacity CONSTANT FINAL)
 
     Q_PROPERTY(bool reduced READ reduced WRITE setReduced NOTIFY reducedChanged FINAL)
 
@@ -133,6 +150,17 @@ public:
     [[nodiscard]] int songChangeInDelay() const { return 90; }
     [[nodiscard]] int songChangeCover() const { return 380; }
     [[nodiscard]] int songChangeShift() const { return 10; }
+    [[nodiscard]] int listGlide() const { return 300; }
+    [[nodiscard]] int listEnterDelay() const { return 60; }
+    [[nodiscard]] int listEnterStagger() const { return 30; }
+    [[nodiscard]] int listLeave() const { return 240; }
+    [[nodiscard]] int listEnterShift() const { return 14; }
+    [[nodiscard]] int listLeaveShift() const { return 10; }
+    [[nodiscard]] qreal listLeaveScale() const { return 0.94; }
+    [[nodiscard]] int queueRowSettle() const { return 160; }
+    [[nodiscard]] int nowPlayingBreathe() const { return 6500; }
+    [[nodiscard]] qreal glowRestScale() const { return 0.96; }
+    [[nodiscard]] qreal glowRestOpacity() const { return 0.7; }
 
     [[nodiscard]] bool reduced() const { return m_reduced; }
     void setReduced(bool reduced);
@@ -154,11 +182,19 @@ public:
     // The cover of a new song: scale 0.9, 1.04 at 60% and 1 at the end,
     // straight lines between, the curve applied to the whole run.
     Q_INVOKABLE qreal songChangeCoverScale(qreal progress) const;
+    // The glow's breath at `phase` (0 to 1, straight in time): scale 0.94
+    // and opacity 0.55 at both ends, 1.06 and 0.95 halfway, eased in and out
+    // between.
+    Q_INVOKABLE qreal glowBreathScale(qreal phase) const;
+    Q_INVOKABLE qreal glowBreathOpacity(qreal phase) const;
 
 signals:
     void reducedChanged();
 
 private:
+    // One of the glow's values over a breath, from `rest` to `peak` and back.
+    [[nodiscard]] qreal breath(qreal phase, qreal rest, qreal peak) const;
+
     QEasingCurve m_standard = cubicBezier(0.2, 0, 0, 1);
     QEasingCurve m_water = cubicBezier(0.22, 0.61, 0.36, 1);
     QEasingCurve m_toastSpring = cubicBezier(0.34, 1.45, 0.5, 1);

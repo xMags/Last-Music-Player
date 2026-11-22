@@ -22,6 +22,7 @@
 #include "ui/player/AmbientAccentSampler.h"
 #include "ui/player/FullscreenPlayerViewModel.h"
 #include "ui/player/PlayerBarViewModel.h"
+#include "ui/player/QueueRailViewModel.h"
 #include "ui/shell/AppRoot.h"
 #include "ui/shell/ShellLayoutViewModel.h"
 #include "ui/shell/SidebarViewModel.h"
@@ -94,6 +95,7 @@ private:
     ui::ToastQueue m_toasts;
     ui::PlayerBarViewModel m_playerBar;
     ui::FullscreenPlayerViewModel m_fullscreen;
+    ui::QueueRailViewModel m_queueRail;
     ui::AmbientAccentSampler m_ambient;
     ui::AppRoot m_appRoot;
     QPointer<ui::Theme> m_theme; // owned by the QML engine

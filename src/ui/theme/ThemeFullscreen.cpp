@@ -95,6 +95,11 @@ QColor ThemeFullscreen::fullscreenButtonHover()
     return white(0.12f);
 }
 
+QColor ThemeFullscreen::fullscreenRowHover()
+{
+    return white(0.08f);
+}
+
 QColor ThemeFullscreen::fullscreenPlayFill()
 {
     return QColor(Qt::white);

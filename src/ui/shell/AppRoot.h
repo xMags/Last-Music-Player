@@ -9,6 +9,7 @@
 #include "ui/shell/SidebarViewModel.h"
 #include "ui/player/FullscreenPlayerViewModel.h"
 #include "ui/player/PlayerBarViewModel.h"
+#include "ui/player/QueueRailViewModel.h"
 #include "ui/shell/WindowChromeViewModel.h"
 #include "ui/toasts/ToastQueue.h"
 
@@ -33,6 +34,8 @@ class AppRoot : public QObject {
     Q_PROPERTY(lmp::ui::SidebarViewModel* sidebar READ sidebar CONSTANT FINAL)
     Q_PROPERTY(lmp::ui::PlayerBarViewModel* playerBar READ playerBar CONSTANT FINAL)
     Q_PROPERTY(lmp::ui::FullscreenPlayerViewModel* fullscreen READ fullscreen CONSTANT FINAL)
+    // The Up Next list, in the queue rail and the full-screen player.
+    Q_PROPERTY(lmp::ui::QueueRailViewModel* queueRail READ queueRail CONSTANT FINAL)
     // The short messages above the player bar.
     Q_PROPERTY(lmp::ui::ToastQueue* toasts READ toasts CONSTANT FINAL)
     // Started with --gallery: the design gallery shows instead of the shell.
@@ -47,6 +50,7 @@ public:
         SidebarViewModel* sidebar = nullptr;
         PlayerBarViewModel* playerBar = nullptr;
         FullscreenPlayerViewModel* fullscreen = nullptr;
+        QueueRailViewModel* queueRail = nullptr;
         ToastQueue* toasts = nullptr;
         bool showGallery = false;
     };
@@ -64,6 +68,7 @@ public:
     [[nodiscard]] SidebarViewModel* sidebar() const { return m_parts.sidebar; }
     [[nodiscard]] PlayerBarViewModel* playerBar() const { return m_parts.playerBar; }
     [[nodiscard]] FullscreenPlayerViewModel* fullscreen() const { return m_parts.fullscreen; }
+    [[nodiscard]] QueueRailViewModel* queueRail() const { return m_parts.queueRail; }
     [[nodiscard]] ToastQueue* toasts() const { return m_parts.toasts; }
     [[nodiscard]] bool showGallery() const { return m_parts.showGallery; }
 

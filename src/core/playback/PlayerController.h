@@ -78,6 +78,13 @@ public:
     void seek(double seconds);
     // Empties the visible queue; the current song plays on.
     void clearUpcoming();
+    // Edits of the visible queue, by visible row (the QueueEngine edits of
+    // the same names); the current song plays on. Out-of-range rows change
+    // nothing, and queueChanged is emitted only for a real change.
+    void removeVisibleEntry(qsizetype visibleIndex);
+    void restoreVisibleEntry(qsizetype visibleIndex, const QueueEntry& entry);
+    void moveVisibleEntry(qsizetype visibleIndex, QueueDirection delta);
+    void commitVisibleOrder(const QList<Track>& visibleTracks);
     // Shows `track` as the current song with `queue` as the queue, without
     // opening anything (the state stays Idle); the first togglePlay() opens
     // it at `startAtSeconds`. For the launch restore: ignored while a song

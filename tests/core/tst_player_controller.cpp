@@ -48,6 +48,7 @@ private slots:
     void backHistoryKeepsTheLatestFifty();
     void seekMovesAndClampsToTheDuration();
     void clearUpcomingEmptiesTheVisibleQueue();
+    void visibleQueueEditsChangeTheQueueOnly();
     void endOfSongAdvancesAndStopsAtTheEnd();
     void repeatOneReplaysOnAutomaticAdvanceOnly();
     void restoreShowsTheSongAndFirstPlayOpensItAtItsPoint();
@@ -318,6 +319,40 @@ void PlayerControllerTest::clearUpcomingEmptiesTheVisibleQueue()
     QVERIFY(player->visibleQueue().isEmpty());
     QCOMPARE(player->currentTrack()->title, QStringLiteral("a"));
     QCOMPARE(player->state(), PlayerController::State::Playing);
+}
+
+void PlayerControllerTest::visibleQueueEditsChangeTheQueueOnly()
+{
+    PlayerFixture fixture;
+    QVERIFY(fixture.ok());
+    auto player = fixture.makeController();
+    startPlaying(fixture, *player, QStringLiteral("a"), {"a", "b", "c", "d"});
+    player->addToQueue(fixture.songs({"x"}));
+    QCOMPARE(visibleTitles(*player), QStringList({"x", "b", "c", "d"}));
+    QSignalSpy queueSpy(player.get(), &PlayerController::queueChanged);
+    const auto opens = fixture.audio.opens.size();
+
+    const lmp::core::QueueEntry removed = player->visibleQueue().at(2);
+    player->removeVisibleEntry(2);
+    QCOMPARE(visibleTitles(*player), QStringList({"x", "b", "d"}));
+    player->restoreVisibleEntry(2, removed);
+    QCOMPARE(visibleTitles(*player), QStringList({"x", "b", "c", "d"}));
+    player->moveVisibleEntry(3, lmp::core::QueueDirection::Previous);
+    QCOMPARE(visibleTitles(*player), QStringList({"x", "b", "d", "c"}));
+    player->commitVisibleOrder(fixture.songs({"c", "x", "b", "d"}));
+    QCOMPARE(visibleTitles(*player), QStringList({"c", "x", "b", "d"}));
+    QCOMPARE(queueSpy.count(), 4);
+
+    // Rows outside the queue and edits that change nothing emit nothing.
+    player->removeVisibleEntry(9);
+    player->moveVisibleEntry(0, lmp::core::QueueDirection::Previous);
+    player->restoreVisibleEntry(1, removed);
+    QCOMPARE(queueSpy.count(), 4);
+
+    // The current song plays on untouched.
+    QCOMPARE(player->currentTrack()->title, QStringLiteral("a"));
+    QCOMPARE(player->state(), PlayerController::State::Playing);
+    QCOMPARE(fixture.audio.opens.size(), opens);
 }
 
 void PlayerControllerTest::endOfSongAdvancesAndStopsAtTheEnd()

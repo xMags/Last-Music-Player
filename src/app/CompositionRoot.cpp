@@ -66,6 +66,7 @@ CompositionRoot::CompositionRoot()
     , m_sidebar(&m_navigator)
     , m_playerBar(m_player)
     , m_fullscreen(m_player, m_settings, m_layout, m_toasts)
+    , m_queueRail(m_player, m_library, m_toasts)
     , m_ambient(m_player)
     , m_appRoot({
           .windowChrome = &m_windowChromeViewModel,
@@ -74,6 +75,7 @@ CompositionRoot::CompositionRoot()
           .sidebar = &m_sidebar,
           .playerBar = &m_playerBar,
           .fullscreen = &m_fullscreen,
+          .queueRail = &m_queueRail,
           .toasts = &m_toasts,
           .showGallery = QCoreApplication::arguments().contains(QStringLiteral("--gallery")),
       })

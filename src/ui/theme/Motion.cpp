@@ -61,6 +61,26 @@ qreal Motion::songChangeCoverScale(qreal progress) const
     return threeKeyframes(progress, 0.9, 1.04, 1, 0.6);
 }
 
+qreal Motion::glowBreathScale(qreal phase) const
+{
+    return breath(phase, 0.94, 1.06);
+}
+
+qreal Motion::glowBreathOpacity(qreal phase) const
+{
+    return breath(phase, 0.55, 0.95);
+}
+
+qreal Motion::breath(qreal phase, qreal rest, qreal peak) const
+{
+    // Keyframes at 0, 50% and 100%; the CSS timing function eases each half.
+    const qreal clamped = std::clamp(phase, 0.0, 1.0);
+    if (clamped <= 0.5) {
+        return rest + (peak - rest) * m_easeInOut.valueForProgress(clamped * 2);
+    }
+    return peak + (rest - peak) * m_easeInOut.valueForProgress((clamped - 0.5) * 2);
+}
+
 QEasingCurve Motion::cubicBezier(qreal x1, qreal y1, qreal x2, qreal y2)
 {
     QEasingCurve curve(QEasingCurve::BezierSpline);

@@ -40,6 +40,7 @@ private slots:
     void rippleReachesTheFarthestCorner();
     void toastEnterFollowsItsKeyframes();
     void songChangeMatchesReference();
+    void queueListMotionMatchesReference();
     void layoutTokensMatchReference();
     void shadowsMatchReference();
 };
@@ -116,6 +117,38 @@ void MotionTest::songChangeMatchesReference()
     QCOMPARE(motion.songChangeCoverScale(0.6), 1.04);
     QCOMPARE(motion.songChangeCoverScale(0.8), 1.02);
     QCOMPARE(motion.songChangeCoverScale(1), 1.0);
+}
+
+void MotionTest::queueListMotionMatchesReference()
+{
+    const Motion motion;
+    // list-flip.ts: moves glide 300ms; new rows slide in from 14px over
+    // 300ms after 60ms plus 30ms per row; rows that leave fade, shrink to
+    // 0.94 and drift 10px left over 240ms (ease-in).
+    QCOMPARE(motion.listGlide(), 300);
+    QCOMPARE(motion.listEnterDelay(), 60);
+    QCOMPARE(motion.listEnterStagger(), 30);
+    QCOMPARE(motion.listEnterShift(), 14);
+    QCOMPARE(motion.listLeave(), 240);
+    QCOMPARE(motion.listLeaveShift(), 10);
+    QCOMPARE(motion.listLeaveScale(), 0.94);
+    // styles.css 1294: a queue row's transform settles in 160ms (ease).
+    QCOMPARE(motion.queueRowSettle(), 160);
+    // motion.css 114-141: np-breathe 6.5s ease-in-out; at rest 0.96 and 0.7.
+    QCOMPARE(motion.nowPlayingBreathe(), 6500);
+    QCOMPARE(motion.glowRestScale(), 0.96);
+    QCOMPARE(motion.glowRestOpacity(), 0.7);
+    QCOMPARE(motion.glowBreathScale(0), 0.94);
+    QCOMPARE(motion.glowBreathScale(0.5), 1.06);
+    QCOMPARE(motion.glowBreathScale(1), 0.94);
+    QCOMPARE(motion.glowBreathOpacity(0), 0.55);
+    QCOMPARE(motion.glowBreathOpacity(0.5), 0.95);
+    QCOMPARE(motion.glowBreathOpacity(1), 0.55);
+    // ease-in-out is symmetric: a quarter of the way is halfway between.
+    QVERIFY(qAbs(motion.glowBreathScale(0.25) - 1.0) < 1e-6);
+    QVERIFY(qAbs(motion.glowBreathOpacity(0.75) - 0.75) < 1e-6);
+    // Slow near the keyframes.
+    QVERIFY(motion.glowBreathScale(0.05) - 0.94 < (1.06 - 0.94) * 0.1);
 }
 
 void MotionTest::reducedNotifiesOnChangeOnly()

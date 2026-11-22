@@ -58,6 +58,12 @@ class ThemeTypography : public QObject {
     Q_PROPERTY(QFont profileDots READ profileDots CONSTANT FINAL)
     Q_PROPERTY(QFont playerTime READ playerTime CONSTANT FINAL)
     Q_PROPERTY(QFont repeatBadge READ repeatBadge CONSTANT FINAL)
+    Q_PROPERTY(QFont nowPlayingArtist READ nowPlayingArtist CONSTANT FINAL)
+    Q_PROPERTY(qreal lineHeightNowPlayingArtist READ lineHeightNowPlayingArtist CONSTANT FINAL)
+    Q_PROPERTY(QFont queueDuration READ queueDuration CONSTANT FINAL)
+    Q_PROPERTY(QFont queueAction READ queueAction CONSTANT FINAL)
+    Q_PROPERTY(QFont queueStatus READ queueStatus CONSTANT FINAL)
+    Q_PROPERTY(QFont emptyStateCompact READ emptyStateCompact CONSTANT FINAL)
     Q_PROPERTY(qreal lineHeightModalDescription READ lineHeightModalDescription CONSTANT FINAL)
     Q_PROPERTY(qreal lineHeightBubbleLabel READ lineHeightBubbleLabel CONSTANT FINAL)
     Q_PROPERTY(qreal lineHeightSectionTitle READ lineHeightSectionTitle CONSTANT FINAL)
@@ -119,6 +125,12 @@ public:
     [[nodiscard]] QFont profileDots() const { return m_text.profileDots.font; }
     [[nodiscard]] QFont playerTime() const { return m_text.playerTime.font; }
     [[nodiscard]] QFont repeatBadge() const { return m_text.repeatBadge.font; }
+    [[nodiscard]] QFont nowPlayingArtist() const { return m_text.nowPlayingArtist.font; }
+    [[nodiscard]] qreal lineHeightNowPlayingArtist() const { return m_text.nowPlayingArtist.lineHeight; }
+    [[nodiscard]] QFont queueDuration() const { return m_text.queueDuration.font; }
+    [[nodiscard]] QFont queueAction() const { return m_text.queueAction.font; }
+    [[nodiscard]] QFont queueStatus() const { return m_text.queueStatus.font; }
+    [[nodiscard]] QFont emptyStateCompact() const { return m_text.emptyStateCompact.font; }
     [[nodiscard]] qreal lineHeightModalDescription() const { return m_text.modalDescription.lineHeight; }
     [[nodiscard]] qreal lineHeightBubbleLabel() const { return m_text.bubbleLabel.lineHeight; }
     [[nodiscard]] qreal lineHeightSectionTitle() const { return m_text.sectionTitle.lineHeight; }

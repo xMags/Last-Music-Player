@@ -208,6 +208,26 @@ void PlayerController::clearUpcoming()
     applyQueue(m_queue.commitVisibleOrder({}));
 }
 
+void PlayerController::removeVisibleEntry(qsizetype visibleIndex)
+{
+    applyQueue(m_queue.removeVisibleEntry(visibleIndex));
+}
+
+void PlayerController::restoreVisibleEntry(qsizetype visibleIndex, const QueueEntry& entry)
+{
+    applyQueue(m_queue.restoreVisibleEntry(visibleIndex, entry));
+}
+
+void PlayerController::moveVisibleEntry(qsizetype visibleIndex, QueueDirection delta)
+{
+    applyQueue(m_queue.moveVisibleEntry(visibleIndex, delta));
+}
+
+void PlayerController::commitVisibleOrder(const QList<Track>& visibleTracks)
+{
+    applyQueue(m_queue.commitVisibleOrder(visibleTracks));
+}
+
 void PlayerController::restore(const QueueEngine& queue, const Track& track, double startAtSeconds)
 {
     if (m_current || !std::isfinite(startAtSeconds)) {

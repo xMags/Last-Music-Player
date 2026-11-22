@@ -27,6 +27,8 @@ class ThemeFullscreen : public ThemeTypography {
     Q_PROPERTY(QColor fullscreenEmptyText READ fullscreenEmptyText CONSTANT FINAL)
     Q_PROPERTY(QColor fullscreenButtonGlyph READ fullscreenButtonGlyph CONSTANT FINAL)
     Q_PROPERTY(QColor fullscreenButtonHover READ fullscreenButtonHover CONSTANT FINAL)
+    // A pointed-at Up Next row in the side panel.
+    Q_PROPERTY(QColor fullscreenRowHover READ fullscreenRowHover CONSTANT FINAL)
     Q_PROPERTY(QColor fullscreenPlayFill READ fullscreenPlayFill CONSTANT FINAL)
     Q_PROPERTY(QColor fullscreenPlayGlyph READ fullscreenPlayGlyph CONSTANT FINAL)
     Q_PROPERTY(QColor fullscreenSeekFill READ fullscreenSeekFill CONSTANT FINAL)
@@ -78,6 +80,7 @@ public:
     [[nodiscard]] static QColor fullscreenEmptyText();
     [[nodiscard]] static QColor fullscreenButtonGlyph();
     [[nodiscard]] static QColor fullscreenButtonHover();
+    [[nodiscard]] static QColor fullscreenRowHover();
     [[nodiscard]] static QColor fullscreenPlayFill();
     [[nodiscard]] static QColor fullscreenPlayGlyph();
     [[nodiscard]] static QColor fullscreenSeekFill();

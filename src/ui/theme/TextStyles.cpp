@@ -147,6 +147,22 @@ TextStyles TextStyles::build(const FontFamilies& families)
             {.family = text, .pixelSize = 11, .weight = kMedium, .tabularNumbers = true}),
         // .repeat-one-badge: 8px, 800.
         .repeatBadge = makeTextStyle({.family = text, .pixelSize = 8, .weight = kExtraBold}),
+        // .np-artist: 13px, 500, line-height 1.35.
+        .nowPlayingArtist = makeTextStyle(
+            {.family = text, .pixelSize = 13, .weight = kMedium, .lineHeight = 13 * 1.35}),
+        // .queue-dur: 12px, tabular figures.
+        .queueDuration = makeTextStyle(
+            {.family = text, .pixelSize = 12, .weight = kRegular, .tabularNumbers = true}),
+        // .queue-clear: 10.5px, 600, 0.04em, uppercase.
+        .queueAction = makeTextStyle({.family = text,
+                                      .pixelSize = 10.5,
+                                      .weight = kSemiBold,
+                                      .letterSpacingEm = 0.04,
+                                      .uppercase = true}),
+        // .queue-radio-status: 10.5px.
+        .queueStatus = makeTextStyle({.family = text, .pixelSize = 10.5, .weight = kRegular}),
+        // .empty-state: 13px, 600.
+        .emptyStateCompact = makeTextStyle({.family = text, .pixelSize = 13, .weight = kSemiBold}),
     };
 }
 

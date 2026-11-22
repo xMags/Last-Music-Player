@@ -84,6 +84,11 @@ struct TextStyles {
     TextStyle profileDots;
     TextStyle playerTime;
     TextStyle repeatBadge;
+    TextStyle nowPlayingArtist;
+    TextStyle queueDuration;
+    TextStyle queueAction;
+    TextStyle queueStatus;
+    TextStyle emptyStateCompact;
 
     [[nodiscard]] static TextStyles build(const FontFamilies& families);
 };

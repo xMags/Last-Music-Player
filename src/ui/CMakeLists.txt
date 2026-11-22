@@ -25,6 +25,8 @@ set(LMP_UI_QML_FILES
     qml/controls/BoxShadow.qml
     qml/controls/ButtonSurface.qml
     qml/controls/Chip.qml
+    qml/controls/CompactEmptyState.qml
+    qml/controls/ConfirmDialog.qml
     qml/controls/FocusRing.qml
     qml/controls/Icon.qml
     qml/controls/IconButton.qml
@@ -61,6 +63,14 @@ set(LMP_UI_QML_FILES
     qml/player/PlayerBar.qml
     qml/player/PlayerTrackBlock.qml
     qml/player/PlayerTransport.qml
+    qml/player/QueueArtGlow.qml
+    qml/player/QueueIdlePanel.qml
+    qml/player/QueueList.qml
+    qml/player/QueueNowPlayingHeader.qml
+    qml/player/QueueRail.qml
+    qml/player/QueueRow.qml
+    qml/player/QueueSectionHeader.qml
+    qml/player/RailSectionLabel.qml
     qml/shell/BrandMark.qml
     qml/shell/ContentPanel.qml
     qml/shell/CaptionButton.qml
@@ -112,6 +122,14 @@ qt_add_qml_module(lmp_ui
         player/FullscreenPlayerViewModel.h
         player/PlayerBarViewModel.cpp
         player/PlayerBarViewModel.h
+        player/QueueListDiff.cpp
+        player/QueueListDiff.h
+        player/QueueListModel.cpp
+        player/QueueListModel.h
+        player/QueueRailViewModel.cpp
+        player/QueueRailViewModel.h
+        player/QueueRowDrag.cpp
+        player/QueueRowDrag.h
         shell/AppRoot.cpp
         shell/AppRoot.h
         shell/ShellLayoutViewModel.cpp
