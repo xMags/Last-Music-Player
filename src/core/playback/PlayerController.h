@@ -78,6 +78,11 @@ public:
     void seek(double seconds);
     // Empties the visible queue; the current song plays on.
     void clearUpcoming();
+    // Shows `track` as the current song with `queue` as the queue, without
+    // opening anything (the state stays Idle); the first togglePlay() opens
+    // it at `startAtSeconds`. For the launch restore: ignored while a song
+    // is current, and nothing is emitted for a song left.
+    void restore(const QueueEngine& queue, const Track& track, double startAtSeconds);
 
     void setShuffle(Shuffle shuffle);
     void setRepeatMode(RepeatMode repeatMode);

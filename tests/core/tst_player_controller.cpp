@@ -50,6 +50,8 @@ private slots:
     void clearUpcomingEmptiesTheVisibleQueue();
     void endOfSongAdvancesAndStopsAtTheEnd();
     void repeatOneReplaysOnAutomaticAdvanceOnly();
+    void restoreShowsTheSongAndFirstPlayOpensItAtItsPoint();
+    void restoreIsIgnoredWhileASongIsCurrent();
 };
 
 void PlayerControllerTest::playInContextStartsTheChosenSong()
@@ -365,6 +367,51 @@ void PlayerControllerTest::repeatOneReplaysOnAutomaticAdvanceOnly()
     settle();
     QCOMPARE(fixture.audio.opens.size(), 2);
     QCOMPARE(lastOpenedTitle(fixture.audio), QStringLiteral("b"));
+}
+
+void PlayerControllerTest::restoreShowsTheSongAndFirstPlayOpensItAtItsPoint()
+{
+    PlayerFixture fixture;
+    QVERIFY(fixture.ok());
+    auto player = fixture.makeController();
+    QSignalSpy leftSpy(player.get(), &PlayerController::trackLeft);
+    const QList<Track> songs = fixture.songs({"a", "b", "c"});
+    player->restore(lmp::core::QueueEngine::create(songs, 1), songs.at(1), 75.0);
+
+    QCOMPARE(player->currentTrack()->title, QStringLiteral("b"));
+    QCOMPARE(player->state(), PlayerController::State::Idle);
+    QCOMPARE(player->positionSeconds(), 75.0);
+    QCOMPARE(player->durationSeconds(), 200.0);
+    QCOMPARE(visibleTitles(*player), QStringList{QStringLiteral("c")});
+    QVERIFY(fixture.audio.opens.isEmpty());
+    QCOMPARE(fixture.resolver.calls, 0);
+    QVERIFY(leftSpy.isEmpty()); // nothing was left
+
+    player->togglePlay();
+    settle();
+    QCOMPARE(fixture.audio.opens.size(), 1);
+    QCOMPARE(lastOpenedTitle(fixture.audio), QStringLiteral("b"));
+    QCOMPARE(fixture.audio.opens.first().startAtSeconds, 75.0);
+    QVERIFY(fixture.audio.opens.first().autoplay);
+    fixture.audio.start();
+    QCOMPARE(player->state(), PlayerController::State::Playing);
+
+    player->next();
+    settle();
+    QCOMPARE(lastOpenedTitle(fixture.audio), QStringLiteral("c"));
+}
+
+void PlayerControllerTest::restoreIsIgnoredWhileASongIsCurrent()
+{
+    PlayerFixture fixture;
+    QVERIFY(fixture.ok());
+    auto player = fixture.makeController();
+    startPlaying(fixture, *player, QStringLiteral("a"), {"a", "b"});
+    const QList<Track> other = fixture.songs({"x", "y"});
+    player->restore(lmp::core::QueueEngine::create(other, 0), other.at(0), 40.0);
+    QCOMPARE(player->currentTrack()->title, QStringLiteral("a"));
+    QCOMPARE(visibleTitles(*player), QStringList{QStringLiteral("b")});
+    QCOMPARE(player->state(), PlayerController::State::Playing);
 }
 
 QTEST_GUILESS_MAIN(PlayerControllerTest)

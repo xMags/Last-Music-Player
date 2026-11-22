@@ -237,3 +237,15 @@ lmp_add_test(tst_player_controller_recovery
 lmp_add_test(tst_windows_audio_player
     SOURCES platform/tst_windows_audio_player.cpp
     LIBS lmp_platform_windows)
+
+lmp_add_test(tst_playback_state_file
+    SOURCES core/tst_playback_state_file.cpp
+    LIBS lmp_core)
+
+lmp_add_test(tst_resume_position_tracker
+    SOURCES core/tst_resume_position_tracker.cpp core/TempLibrary.h
+    LIBS lmp_core)
+
+lmp_add_test(tst_playback_state_persistence
+    SOURCES core/tst_playback_state_persistence.cpp core/PlayerFixture.h core/FakeAudioPlayer.h core/FakePlaybackClock.h core/TempLibrary.h
+    LIBS lmp_core)

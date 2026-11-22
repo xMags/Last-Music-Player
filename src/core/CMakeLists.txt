@@ -104,6 +104,8 @@ qt_add_library(lmp_core STATIC
     net/RemoteUrlPolicy.cpp
     net/RemoteUrlPolicy.h
     playback/BrokenTrackGuard.h
+    playback/LastTrackIdentity.cpp
+    playback/LastTrackIdentity.h
     playback/LocalFileSourceResolver.cpp
     playback/PlaybackBackHistory.cpp
     playback/PlaybackBackHistory.h
@@ -115,6 +117,14 @@ qt_add_library(lmp_core STATIC
     playback/PlaybackHistoryRecorder.h
     playback/PlaybackPreferences.cpp
     playback/PlaybackPreferences.h
+    playback/PlaybackStateFile.cpp
+    playback/PlaybackStateFile.h
+    playback/PlaybackStatePersistence.cpp
+    playback/PlaybackStatePersistence.h
+    playback/PlaybackStateRestore.cpp
+    playback/PlaybackStateRestore.h
+    playback/PlaybackStateSnapshot.cpp
+    playback/PlaybackStateSnapshot.h
     playback/PlayerController.cpp
     playback/PlayerController.h
     playback/PlayerControllerPlayback.cpp
@@ -132,6 +142,8 @@ qt_add_library(lmp_core STATIC
     playback/QueueTrackLists.h
     playback/QueueTypes.h
     playback/ResumePositionPolicy.h
+    playback/ResumePositionTracker.cpp
+    playback/ResumePositionTracker.h
     playback/TrackSourceResolver.h
     settings/SettingKeys.h
     settings/SettingsStore.cpp
@@ -150,7 +162,7 @@ target_include_directories(lmp_core
     PUBLIC "${CMAKE_SOURCE_DIR}/src"
     PRIVATE "${CMAKE_BINARY_DIR}/generated")
 
-target_link_libraries(lmp_core PUBLIC Qt6::Core Qt6::Network)
+target_link_libraries(lmp_core PUBLIC Qt6::Core Qt6::Concurrent Qt6::Network)
 target_link_libraries(lmp_core PRIVATE lmp_sqlite)
 
 target_compile_definitions(lmp_core PRIVATE

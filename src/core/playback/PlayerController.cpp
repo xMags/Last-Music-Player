@@ -208,6 +208,20 @@ void PlayerController::clearUpcoming()
     applyQueue(m_queue.commitVisibleOrder({}));
 }
 
+void PlayerController::restore(const QueueEngine& queue, const Track& track, double startAtSeconds)
+{
+    if (m_current || !std::isfinite(startAtSeconds)) {
+        return;
+    }
+    applyQueue(queue);
+    m_current = track;
+    m_skipDirection = QueueDirection::Next;
+    m_skipTrigger = AdvanceTrigger::Automatic;
+    emit currentTrackChanged();
+    setDuration(std::max(0.0, track.durationSeconds));
+    setPosition(std::max(0.0, startAtSeconds));
+}
+
 void PlayerController::setShuffle(Shuffle shuffle)
 {
     if (this->shuffle() == shuffle) {
