@@ -179,7 +179,7 @@ lmp_add_test(tst_artist_identity
     LIBS lmp_core)
 
 lmp_add_test(tst_secret_store
-    SOURCES core/tst_secret_store.cpp
+    SOURCES core/tst_secret_store.cpp core/FakeCredentialStore.h
     LIBS lmp_core)
 
 lmp_add_test(tst_windows_credential_store
@@ -300,4 +300,28 @@ lmp_add_test(tst_loopback_request
 
 lmp_add_test(tst_loopback_callback
     SOURCES core/tst_loopback_callback.cpp
+    LIBS lmp_core)
+
+lmp_add_test(tst_retry_after
+    SOURCES core/tst_retry_after.cpp
+    LIBS lmp_core)
+
+lmp_add_test(tst_user_messages
+    SOURCES core/tst_user_messages.cpp
+    LIBS lmp_core)
+
+lmp_add_test(tst_external_link_policy
+    SOURCES core/tst_external_link_policy.cpp
+    LIBS lmp_core)
+
+lmp_add_test(tst_account_client
+    SOURCES core/tst_account_client.cpp core/FakeHttpTransport.h
+    LIBS lmp_core)
+
+lmp_add_test(tst_account_session_restore
+    SOURCES core/tst_account_session_restore.cpp core/AccountSessionFixture.h core/FakeCredentialStore.h core/FakeHttpTransport.h
+    LIBS lmp_core)
+
+lmp_add_test(tst_account_session_sign_in
+    SOURCES core/tst_account_session_sign_in.cpp core/AccountSessionFixture.h core/FakeCredentialStore.h core/FakeHttpTransport.h
     LIBS lmp_core)

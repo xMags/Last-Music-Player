@@ -1,5 +1,13 @@
 qt_add_library(lmp_core STATIC
+    account/AccountClient.cpp
+    account/AccountClient.h
     account/AccountDataLifecycleStorage.h
+    account/AccountSessionProtocol.cpp
+    account/AccountSessionProtocol.h
+    account/AccountSessionService.cpp
+    account/AccountSessionService.h
+    account/AccountSessionSignIn.cpp
+    account/AccountSessionState.h
     account/AccountUrlPolicy.cpp
     account/AccountUrlPolicy.h
     account/AutoSyncPolicy.cpp
@@ -15,6 +23,8 @@ qt_add_library(lmp_core STATIC
     app/AppIdentity.cpp
     app/AppIdentity.h
     app/AppPaths.cpp
+    app/ExternalLinkPolicy.cpp
+    app/ExternalLinkPolicy.h
     app/AppPaths.h
     async/RequestScope.cpp
     async/RequestScope.h
@@ -103,6 +113,9 @@ qt_add_library(lmp_core STATIC
     net/ArtworkUrl.h
     net/HttpClient.cpp
     net/HttpClient.h
+    net/HttpMessage.cpp
+    net/HttpMessage.h
+    net/IHttpTransport.h
     net/InlineProfileImage.cpp
     net/InlineProfileImage.h
     net/Json.cpp
@@ -111,6 +124,10 @@ qt_add_library(lmp_core STATIC
     net/ProviderUrlCredential.h
     net/RemoteUrlPolicy.cpp
     net/RemoteUrlPolicy.h
+    net/RetryAfter.cpp
+    net/RetryAfter.h
+    net/UserMessages.cpp
+    net/UserMessages.h
     playback/ArtworkAccent.cpp
     playback/ArtworkAccent.h
     playback/BrokenTrackGuard.h
@@ -168,6 +185,7 @@ qt_add_library(lmp_core STATIC
     text/StrictUtf8.h
     ../platform/IAudioPlayer.h
     ../platform/ICredentialStore.h
+    ../platform/IExternalLinks.h
     ../platform/IMediaControls.h
     ../platform/IReducedMotion.h
     ../platform/ISingleInstance.h

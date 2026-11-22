@@ -2,6 +2,7 @@
 
 #include <QString>
 
+#include <optional>
 #include <type_traits>
 #include <utility>
 #include <variant>
@@ -30,10 +31,13 @@ struct Failure {
     // The HTTP status that caused it, or 0 when no response was involved.
     int httpStatus = 0;
     QString detail;
+    // How long the server asked the client to wait before trying again
+    // (its Retry-After header), or nothing when it did not say.
+    std::optional<int> retryAfterSeconds;
 
     [[nodiscard]] static Failure of(FailureKind kind, QString detail = {}, int httpStatus = 0)
     {
-        return Failure{kind, httpStatus, std::move(detail)};
+        return Failure{kind, httpStatus, std::move(detail), std::nullopt};
     }
 };
 

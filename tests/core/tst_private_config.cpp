@@ -9,21 +9,38 @@ class PrivateConfigTest : public QObject {
     Q_OBJECT
 
 private slots:
-    void accountServiceNeedsAllThreeOrigins();
+    void accountServiceNeedsTheApiOrigin();
+    void mediaOriginFallsBackToTheApiOrigin();
     void buildValuesAreWellFormed();
 };
 
-void PrivateConfigTest::accountServiceNeedsAllThreeOrigins()
+void PrivateConfigTest::accountServiceNeedsTheApiOrigin()
 {
     lmp::core::PrivateConfig config;
     QVERIFY(!config.hasAccountService());
 
-    config.accountApiOrigin = QStringLiteral("https://api.example.invalid");
     config.accountFrontendOrigin = QStringLiteral("https://app.example.invalid");
+    config.accountMediaOrigin = QStringLiteral("https://media.example.invalid");
     QVERIFY(!config.hasAccountService());
 
-    config.accountMediaOrigin = QStringLiteral("https://media.example.invalid");
-    QVERIFY(config.hasAccountService());
+    lmp::core::PrivateConfig apiOnly;
+    apiOnly.accountApiOrigin = QStringLiteral("https://api.example.invalid");
+    QVERIFY(apiOnly.hasAccountService());
+}
+
+void PrivateConfigTest::mediaOriginFallsBackToTheApiOrigin()
+{
+    lmp::core::PrivateConfig apiOnly;
+    apiOnly.accountApiOrigin = QStringLiteral("https://api.example.invalid");
+    const lmp::core::PrivateConfig filled = apiOnly.withDefaults();
+    QCOMPARE(filled.accountMediaOrigin, QStringLiteral("https://api.example.invalid"));
+    QVERIFY(filled.accountFrontendOrigin.isEmpty());
+
+    lmp::core::PrivateConfig full = apiOnly;
+    full.accountMediaOrigin = QStringLiteral("https://media.example.invalid");
+    QCOMPARE(full.withDefaults().accountMediaOrigin, QStringLiteral("https://media.example.invalid"));
+
+    QVERIFY(lmp::core::PrivateConfig{}.withDefaults().accountMediaOrigin.isEmpty());
 }
 
 void PrivateConfigTest::buildValuesAreWellFormed()

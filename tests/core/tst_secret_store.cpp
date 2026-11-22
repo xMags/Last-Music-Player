@@ -1,5 +1,4 @@
 #include <QFile>
-#include <QHash>
 #include <QObject>
 #include <QString>
 #include <QTemporaryDir>
@@ -8,87 +7,21 @@
 #include <memory>
 #include <optional>
 
+#include "FakeCredentialStore.h"
 #include "core/account/SecretStore.h"
 #include "core/settings/SettingKeys.h"
 #include "core/settings/SettingsStore.h"
-#include "platform/ICredentialStore.h"
 
-using lmp::core::Failure;
 using lmp::core::FailureKind;
 using lmp::core::Result;
 using lmp::core::SettingsStore;
 using lmp::core::account::LegacyKeyMigration;
 using lmp::core::account::SecretStore;
 using lmp::platform::CredentialRemoval;
-using lmp::platform::ICredentialStore;
+using lmp::test::FakeCredentialStore;
 namespace keys = lmp::core::settings::keys;
 
 namespace {
-
-// Keeps credentials in memory and can be told to fail, following the
-// contract of ICredentialStore.
-class FakeCredentialStore final : public ICredentialStore {
-public:
-    Result<std::optional<QString>> read(const QString& target) override
-    {
-        if (corruptNextRead) {
-            corruptNextRead = false;
-            return std::optional<QString>(QStringLiteral("wrong"));
-        }
-        const auto found = values.constFind(target);
-        if (found == values.constEnd()) {
-            return std::optional<QString>{};
-        }
-        return std::optional<QString>(found.value());
-    }
-
-    Result<void> write(const QString& target, const QString& secret) override
-    {
-        lastWriteTarget = target;
-        ++writeCount;
-        if (failWrite || secret.isEmpty()) {
-            return Failure::of(FailureKind::Storage, QStringLiteral("write refused"));
-        }
-        values.insert(target, secret);
-        return {};
-    }
-
-    Result<void> remove(const QString& target) override
-    {
-        lastRemoveTarget = target;
-        if (failRemove) {
-            return Failure::of(FailureKind::Storage, QStringLiteral("remove refused"));
-        }
-        values.remove(target);
-        return {};
-    }
-
-    Result<CredentialRemoval> removeIfMatches(const QString& target, const QString& expected) override
-    {
-        ++conditionalRemoveCount;
-        const auto found = values.constFind(target);
-        if (found == values.constEnd()) {
-            return CredentialRemoval::NotFound;
-        }
-        if (expected.isEmpty() || found.value() != expected) {
-            return CredentialRemoval::Mismatch;
-        }
-        const Result<void> removed = remove(target);
-        if (!removed) {
-            return removed.failure();
-        }
-        return CredentialRemoval::Removed;
-    }
-
-    QHash<QString, QString> values;
-    QString lastWriteTarget;
-    QString lastRemoveTarget;
-    int writeCount = 0;
-    int conditionalRemoveCount = 0;
-    bool failWrite = false;
-    bool failRemove = false;
-    bool corruptNextRead = false;
-};
 
 QByteArray readFile(const QString& path)
 {

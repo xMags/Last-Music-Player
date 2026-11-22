@@ -13,6 +13,7 @@
 #include <chrono>
 #include <functional>
 #include <memory>
+#include <optional>
 
 #include "core/net/HttpClient.h"
 
@@ -133,6 +134,7 @@ private slots:
     void postBodyReachesTheServer();
     void statusCodesMapToFailureKinds_data();
     void statusCodesMapToFailureKinds();
+    void retryAfterIsKeptOnTheFailure();
     void silentServerTimesOut();
     void refusedRedirectFailsAndIsNotFollowed();
     void allowedRedirectIsFollowed();
@@ -179,6 +181,10 @@ void HttpClientTest::init()
         socket->write("258\r\n" + chunk + "\r\n258\r\n" + chunk + "\r\n0\r\n\r\n");
         socket->disconnectFromHost();
     });
+    m_server->route("/limited", [](QTcpSocket* socket) {
+        TestServer::respond(socket, 429, "{}", "Retry-After: 70001\r\n");
+    });
+    m_server->route("/limited-without-delay", [](QTcpSocket* socket) { TestServer::respond(socket, 503, {}); });
     m_server->route("/at-limit", [](QTcpSocket* socket) { TestServer::respond(socket, 200, QByteArray(1000, 'b')); });
     for (int status : {400, 401, 403, 404, 409, 429, 500, 503}) {
         m_server->route("/status/" + QByteArray::number(status),
@@ -245,6 +251,23 @@ void HttpClientTest::statusCodesMapToFailureKinds()
     QVERIFY(!result);
     QCOMPARE(result.failure().kind, kind);
     QCOMPARE(result.failure().httpStatus, status);
+}
+
+void HttpClientTest::retryAfterIsKeptOnTheFailure()
+{
+    HttpClient client;
+    const QFuture<Result<HttpResponse>> limited = client.send(request("/limited"));
+    QVERIFY(waitFor(limited));
+    QVERIFY(!limited.result());
+    QCOMPARE(limited.result().failure().kind, FailureKind::RateLimited);
+    QCOMPARE(limited.result().failure().httpStatus, 429);
+    QVERIFY(limited.result().failure().retryAfterSeconds == std::optional<int>(70001));
+
+    const QFuture<Result<HttpResponse>> unavailable = client.send(request("/limited-without-delay"));
+    QVERIFY(waitFor(unavailable));
+    QVERIFY(!unavailable.result());
+    QCOMPARE(unavailable.result().failure().kind, FailureKind::Server);
+    QVERIFY(!unavailable.result().failure().retryAfterSeconds.has_value());
 }
 
 void HttpClientTest::silentServerTimesOut()

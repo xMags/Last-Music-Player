@@ -1,5 +1,8 @@
 #include "core/net/HttpClient.h"
 
+#include "core/net/RetryAfter.h"
+
+#include <QDateTime>
 #include <QFutureWatcher>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
@@ -91,16 +94,6 @@ void finishPromise(Promise& promise, Result<HttpResponse> result)
 }
 
 } // namespace
-
-QByteArray HttpResponse::header(QByteArrayView name) const
-{
-    for (const auto& [key, value] : headers) {
-        if (key.compare(name, Qt::CaseInsensitive) == 0) {
-            return value;
-        }
-    }
-    return {};
-}
 
 struct HttpClient::Pending {
     Promise promise;
@@ -295,7 +288,10 @@ Result<HttpResponse> HttpClient::outcomeOf(QNetworkReply& reply, Pending& pendin
         return Failure::of(FailureKind::InvalidResponse, QStringLiteral("HTTP status out of range"), status);
     }
     if (status < 200 || status >= 300) {
-        return statusFailure(status);
+        Failure failure = statusFailure(status);
+        failure.retryAfterSeconds = parseRetryAfterSeconds(reply.rawHeader(QByteArrayLiteral("Retry-After")),
+                                                           QDateTime::currentDateTimeUtc());
+        return failure;
     }
     if (error != QNetworkReply::NoError) {
         // A success status whose body did not arrive whole.
