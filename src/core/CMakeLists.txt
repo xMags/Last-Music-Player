@@ -1,6 +1,11 @@
 qt_add_library(lmp_core STATIC
     app/AppIdentity.cpp
     app/AppIdentity.h
+    app/AppPaths.cpp
+    app/AppPaths.h
+    async/RequestScope.cpp
+    async/RequestScope.h
+    async/Result.h
     config/PrivateConfig.cpp
     config/PrivateConfig.h
     model/ArtworkPlaceholder.cpp
