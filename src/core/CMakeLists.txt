@@ -103,6 +103,18 @@ qt_add_library(lmp_core STATIC
     net/RemoteUrlPolicy.h
     playback/PlaybackHistoryQualifier.cpp
     playback/PlaybackHistoryQualifier.h
+    playback/QueueEngine.cpp
+    playback/QueueEngine.h
+    playback/QueueEngineEdits.cpp
+    playback/QueueShuffle.cpp
+    playback/QueueShuffle.h
+    playback/QueueSnapshot.cpp
+    playback/QueueSnapshot.h
+    playback/QueueTrackIdentity.cpp
+    playback/QueueTrackIdentity.h
+    playback/QueueTrackLists.cpp
+    playback/QueueTrackLists.h
+    playback/QueueTypes.h
     playback/ResumePositionPolicy.h
     settings/SettingKeys.h
     settings/SettingsStore.cpp

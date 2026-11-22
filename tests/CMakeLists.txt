@@ -217,3 +217,7 @@ lmp_add_test(tst_download_policy
 lmp_add_test(tst_auto_sync_policy
     SOURCES core/tst_auto_sync_policy.cpp
     LIBS lmp_core)
+
+lmp_add_test(tst_queue_engine
+    SOURCES core/tst_queue_engine.cpp
+    LIBS lmp_core)
