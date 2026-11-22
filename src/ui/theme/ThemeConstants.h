@@ -61,6 +61,8 @@ class ThemeConstants : public ThemeTypography {
     // The close caption button under the pointer, and its glyph.
     Q_PROPERTY(QColor captionCloseHover READ captionCloseHover CONSTANT FINAL)
     Q_PROPERTY(QColor captionCloseGlyph READ captionCloseGlyph CONSTANT FINAL)
+    // The shadow of the queue rail when it opens over the content.
+    Q_PROPERTY(QColor railShadow READ railShadow CONSTANT FINAL)
     // The thin ring inside an accent colour swatch.
     Q_PROPERTY(QColor swatchRing READ swatchRing CONSTANT FINAL)
 
@@ -104,6 +106,7 @@ public:
     [[nodiscard]] static QColor artSheenTop();
     [[nodiscard]] static QColor artSheenBottom();
     [[nodiscard]] static QColor swatchRing();
+    [[nodiscard]] static QColor railShadow();
     [[nodiscard]] static QColor captionCloseHover();
     [[nodiscard]] static QColor captionCloseGlyph();
     [[nodiscard]] static QVariantList shadowBubble();

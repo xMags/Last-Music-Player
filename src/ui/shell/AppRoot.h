@@ -5,6 +5,7 @@
 #include <QtQml/qqmlregistration.h>
 
 #include "ui/navigation/Navigator.h"
+#include "ui/shell/ShellLayoutViewModel.h"
 #include "ui/shell/WindowChromeViewModel.h"
 
 class QJSEngine;
@@ -24,18 +25,30 @@ class AppRoot : public QObject {
     Q_PROPERTY(QString version READ version CONSTANT FINAL)
     Q_PROPERTY(lmp::ui::WindowChromeViewModel* windowChrome READ windowChrome CONSTANT FINAL)
     Q_PROPERTY(lmp::ui::Navigator* navigator READ navigator CONSTANT FINAL)
+    Q_PROPERTY(lmp::ui::ShellLayoutViewModel* layout READ layout CONSTANT FINAL)
+    // Started with --gallery: the design gallery shows instead of the shell.
+    Q_PROPERTY(bool showGallery READ showGallery CONSTANT FINAL)
 
 public:
     // The view models are owned by the composition root and outlive this.
-    AppRoot(WindowChromeViewModel* windowChrome, Navigator* navigator, QObject* parent = nullptr);
+    struct Parts {
+        WindowChromeViewModel* windowChrome = nullptr;
+        Navigator* navigator = nullptr;
+        ShellLayoutViewModel* layout = nullptr;
+        bool showGallery = false;
+    };
+
+    explicit AppRoot(Parts parts, QObject* parent = nullptr);
     ~AppRoot() override;
 
     AppRoot(const AppRoot&) = delete;
     AppRoot& operator=(const AppRoot&) = delete;
 
     [[nodiscard]] QString version() const;
-    [[nodiscard]] WindowChromeViewModel* windowChrome() const { return m_windowChrome; }
-    [[nodiscard]] Navigator* navigator() const { return m_navigator; }
+    [[nodiscard]] WindowChromeViewModel* windowChrome() const { return m_parts.windowChrome; }
+    [[nodiscard]] Navigator* navigator() const { return m_parts.navigator; }
+    [[nodiscard]] ShellLayoutViewModel* layout() const { return m_parts.layout; }
+    [[nodiscard]] bool showGallery() const { return m_parts.showGallery; }
 
     // Called by the QML engine the first time QML uses `App`. Returns the
     // instance the composition root registered, with C++ ownership.
@@ -46,8 +59,7 @@ public:
     static void registerInstance(AppRoot* instance);
 
 private:
-    WindowChromeViewModel* m_windowChrome;
-    Navigator* m_navigator;
+    Parts m_parts;
 };
 
 } // namespace lmp::ui

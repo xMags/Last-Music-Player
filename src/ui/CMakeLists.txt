@@ -52,6 +52,7 @@ set(LMP_UI_QML_FILES
     qml/shell/CaptionButton.qml
     qml/shell/PageHost.qml
     qml/shell/PlaceholderPage.qml
+    qml/shell/Shell.qml
     qml/shell/TitleStrip.qml)
 
 qt_add_qml_module(lmp_ui
@@ -84,6 +85,8 @@ qt_add_qml_module(lmp_ui
         navigation/RouteRules.h
         shell/AppRoot.cpp
         shell/AppRoot.h
+        shell/ShellLayoutViewModel.cpp
+        shell/ShellLayoutViewModel.h
         shell/WindowChromeViewModel.cpp
         shell/WindowChromeViewModel.h
         theme/ColorMix.cpp

@@ -9,6 +9,7 @@
 #include "platform/windows/WindowsWindowChrome.h"
 #include "ui/navigation/Navigator.h"
 #include "ui/shell/AppRoot.h"
+#include "ui/shell/ShellLayoutViewModel.h"
 #include "ui/shell/WindowChromeViewModel.h"
 #include "ui/theme/Theme.h"
 
@@ -47,6 +48,7 @@ private:
     platform::windows::WindowsWindowChrome m_windowChrome;
     ui::WindowChromeViewModel m_windowChromeViewModel;
     ui::Navigator m_navigator;
+    ui::ShellLayoutViewModel m_layout;
     ui::AppRoot m_appRoot;
     QPointer<ui::Theme> m_theme; // owned by the QML engine
 };

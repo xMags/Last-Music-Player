@@ -16,16 +16,34 @@ ApplicationWindow {
     // See-through only once the system backdrop is confirmed on.
     color: App.windowChrome.backdropActive ? "transparent" : Theme.surface
 
-    TitleStrip {
-        id: titleStrip
-
-        visible: App.windowChrome.custom
-        width: parent.width
-        z: 2
+    Loader {
+        anchors.fill: parent
+        sourceComponent: App.showGallery ? galleryPage : shell
     }
 
-    Gallery {
-        anchors.fill: parent
-        anchors.topMargin: titleStrip.visible ? titleStrip.height : 0
+    Component {
+        id: shell
+
+        Shell {}
+    }
+
+    // Started with --gallery: the design gallery below a full-width strip.
+    Component {
+        id: galleryPage
+
+        Item {
+            TitleStrip {
+                id: strip
+
+                width: parent.width
+                visible: App.windowChrome.custom
+                z: 2
+            }
+
+            Gallery {
+                anchors.fill: parent
+                anchors.topMargin: strip.visible ? strip.height : 0
+            }
+        }
     }
 }

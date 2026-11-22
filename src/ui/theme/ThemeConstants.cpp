@@ -109,6 +109,11 @@ QColor ThemeConstants::captionCloseGlyph()
     return QColor(Qt::white);
 }
 
+QColor ThemeConstants::railShadow()
+{
+    return rgba(0, 0, 0, 0.18f);
+}
+
 QColor ThemeConstants::swatchRing()
 {
     return rgba(0, 0, 0, 0.12f);

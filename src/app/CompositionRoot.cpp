@@ -1,5 +1,6 @@
 #include "app/CompositionRoot.h"
 
+#include <QCoreApplication>
 #include <QList>
 #include <QLoggingCategory>
 #include <QObject>
@@ -26,7 +27,12 @@ CompositionRoot::CompositionRoot()
     : m_singleInstance(std::make_unique<platform::windows::WindowsSingleInstance>(
           core::AppIdentity::singleInstanceMutexName(), core::AppIdentity::displayName()))
     , m_windowChromeViewModel(&m_windowChrome)
-    , m_appRoot(&m_windowChromeViewModel, &m_navigator)
+    , m_appRoot({
+          .windowChrome = &m_windowChromeViewModel,
+          .navigator = &m_navigator,
+          .layout = &m_layout,
+          .showGallery = QCoreApplication::arguments().contains(QStringLiteral("--gallery")),
+      })
 {
     // Before any window exists, so the taskbar and the media session use it.
     // A failure is logged inside and the app runs on.
