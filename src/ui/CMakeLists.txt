@@ -72,6 +72,8 @@ qt_add_qml_module(lmp_ui
         icons/IconSet.h
         menus/MenuItemListModel.cpp
         menus/MenuItemListModel.h
+        shell/AppRoot.cpp
+        shell/AppRoot.h
         theme/ColorMix.cpp
         theme/ColorMix.h
         theme/FontLoader.cpp
@@ -107,6 +109,7 @@ set(LMP_UI_TYPE_FOLDERS
     dev
     icons
     menus
+    shell
     theme
     toasts)
 

@@ -1,4 +1,6 @@
 qt_add_executable(lmp_app WIN32
+    CompositionRoot.cpp
+    CompositionRoot.h
     main.cpp
     AppIcon.rc
     app.manifest)

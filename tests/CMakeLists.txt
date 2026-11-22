@@ -45,3 +45,7 @@ lmp_add_test(tst_menu_item_list_model
 lmp_add_test(tst_artwork_placeholder
     SOURCES core/tst_artwork_placeholder.cpp
     LIBS lmp_core)
+
+lmp_add_test(tst_windows_single_instance
+    SOURCES platform/tst_windows_single_instance.cpp
+    LIBS lmp_platform_windows)

@@ -5,7 +5,8 @@ qt_add_library(lmp_core STATIC
     config/PrivateConfig.h
     model/ArtworkPlaceholder.cpp
     model/ArtworkPlaceholder.h
-    ../platform/IReducedMotion.h)
+    ../platform/IReducedMotion.h
+    ../platform/ISingleInstance.h)
 
 target_include_directories(lmp_core
     PUBLIC "${CMAKE_SOURCE_DIR}/src"
