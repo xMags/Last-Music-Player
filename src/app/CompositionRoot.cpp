@@ -11,7 +11,9 @@
 #include <QWindow>
 
 #include <memory>
+#include <optional>
 
+#include "app/DeveloperPlayFolder.h"
 #include "core/app/AppIdentity.h"
 #include "core/async/Result.h"
 #include "core/playback/QueueEngine.h"
@@ -90,6 +92,18 @@ CompositionRoot::CompositionRoot()
     // The last song comes back into the player bar once the state file is
     // read (on the file's worker); the first Play opens it.
     m_persistence.restoreAtLaunch();
+
+    // DEVELOPER OPTION, removed in P06: "--play-folder <path>" plays the
+    // folder's audio files at once. The launch restore then finds a song
+    // already current and leaves it alone.
+    if (const std::optional<QString> folder = developerPlayFolder(QCoreApplication::arguments())) {
+        const QList<core::Track> tracks = developerPlayFolderTracks(*folder);
+        if (tracks.isEmpty()) {
+            qCWarning(lcComposition) << "--play-folder: no .mp3, .flac, .wav or .m4a files in" << *folder;
+        } else {
+            m_player.playInContext(tracks.first(), tracks);
+        }
+    }
 }
 
 CompositionRoot::~CompositionRoot()
