@@ -9,6 +9,7 @@
 #include "core/db/LibraryQueries.h"
 #include "core/db/TrackRepository.h"
 #include "core/library/UserDataOperationGate.h"
+#include "core/playback/MediaControlsBridge.h"
 #include "core/playback/PlaybackClock.h"
 #include "core/playback/PlaybackStatePersistence.h"
 #include "core/playback/PlayerController.h"
@@ -16,6 +17,7 @@
 #include "core/settings/SettingsStore.h"
 #include "platform/ISingleInstance.h"
 #include "platform/windows/WindowsAudioPlayer.h"
+#include "platform/windows/WindowsMediaControls.h"
 #include "platform/windows/WindowsReducedMotion.h"
 #include "platform/windows/WindowsWindowChrome.h"
 #include "ui/navigation/Navigator.h"
@@ -83,10 +85,13 @@ private:
     core::db::LibraryQueries m_library;
     core::UserDataOperationGate m_userDataGate;
     platform::windows::WindowsAudioPlayer m_audio;
+    // Bound to the main window once it exists (showMainWindow).
+    platform::windows::WindowsMediaControls m_mediaControls;
     core::LocalFileSourceResolver m_resolver;
     core::SystemPlaybackClock m_clock;
     core::PlayerController m_player;
     core::PlaybackStatePersistence m_persistence;
+    core::MediaControlsBridge m_mediaBridge;
 
     ui::WindowChromeViewModel m_windowChromeViewModel;
     ui::Navigator m_navigator;

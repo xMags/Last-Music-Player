@@ -14,6 +14,8 @@ import LastMusicPlayer
 // so neither the pointer nor Tab reaches it, while the title strip stays on
 // top across the whole width (styles.css 2311-2322). F opens and closes the
 // player, Escape closes it; neither acts while a text field has the keys.
+// Space plays and pauses, Ctrl+Right and Ctrl+Left skip; these three leave
+// the keys to a focused text field, button, slider, drop-down or popup.
 Item {
     id: shell
 
@@ -50,6 +52,30 @@ Item {
         sequence: "Escape"
         enabled: App.fullscreen.open && !shell.typing
         onActivated: App.fullscreen.close()
+    }
+
+    PlaybackKeyGuard {
+        id: playbackKeys
+
+        focusItem: shell.Window.activeFocusItem
+    }
+
+    Shortcut {
+        sequence: "Space"
+        enabled: !playbackKeys.blocked
+        onActivated: App.playerBar.togglePlay()
+    }
+
+    Shortcut {
+        sequence: "Ctrl+Right"
+        enabled: !playbackKeys.blocked
+        onActivated: App.playerBar.next()
+    }
+
+    Shortcut {
+        sequence: "Ctrl+Left"
+        enabled: !playbackKeys.blocked
+        onActivated: App.playerBar.previous()
     }
 
     Item {

@@ -273,3 +273,15 @@ lmp_add_test(tst_resume_position_tracker
 lmp_add_test(tst_playback_state_persistence
     SOURCES core/tst_playback_state_persistence.cpp core/PlayerFixture.h core/FakeAudioPlayer.h core/FakePlaybackClock.h core/TempLibrary.h
     LIBS lmp_core)
+
+lmp_add_test(tst_media_controls_throttle
+    SOURCES core/tst_media_controls_throttle.cpp core/FakePlaybackClock.h
+    LIBS lmp_core)
+
+lmp_add_test(tst_media_controls_bridge
+    SOURCES core/tst_media_controls_bridge.cpp core/PlayerFixture.h core/FakeAudioPlayer.h core/FakePlaybackClock.h core/TempLibrary.h
+    LIBS lmp_core)
+
+lmp_add_test(tst_playback_key_guard
+    SOURCES ui/tst_playback_key_guard.cpp
+    LIBS lmp_ui)

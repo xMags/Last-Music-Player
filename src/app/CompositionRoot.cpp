@@ -62,6 +62,7 @@ CompositionRoot::CompositionRoot()
                      .userDataGate = m_userDataGate,
                      .clock = m_clock},
                     m_paths)
+    , m_mediaBridge({.player = m_player, .controls = m_mediaControls, .settings = m_settings, .clock = m_clock})
     , m_windowChromeViewModel(&m_windowChrome)
     , m_sidebar(&m_navigator)
     , m_playerBar(m_player)
@@ -125,6 +126,10 @@ bool CompositionRoot::showMainWindow(QQmlApplicationEngine& engine)
         qCWarning(lcComposition) << "Keeping the system window frame";
     }
     m_windowChromeViewModel.setAttached(custom);
+    // The system routes the media keys to the session of this window.
+    if (!m_mediaControls.attach(static_cast<quintptr>(window->winId()))) {
+        qCWarning(lcComposition) << "The system media controls are not available";
+    }
     if (m_theme) {
         // The frame follows the theme: dark frame and backdrop in dark mode.
         m_windowChromeViewModel.applyTheme(m_theme->dark());

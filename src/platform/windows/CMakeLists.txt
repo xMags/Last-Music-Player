@@ -9,6 +9,8 @@ qt_add_library(lmp_platform_windows STATIC
     WindowsAudioPlayerNative.h
     WindowsCredentialStore.cpp
     WindowsCredentialStore.h
+    WindowsMediaControls.cpp
+    WindowsMediaControls.h
     WindowsReducedMotion.cpp
     WindowsReducedMotion.h
     WindowsSingleInstance.cpp

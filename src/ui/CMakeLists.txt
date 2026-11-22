@@ -132,6 +132,8 @@ qt_add_qml_module(lmp_ui
         player/QueueRowDrag.h
         shell/AppRoot.cpp
         shell/AppRoot.h
+        shell/PlaybackKeyGuard.cpp
+        shell/PlaybackKeyGuard.h
         shell/ShellLayoutViewModel.cpp
         shell/ShellLayoutViewModel.h
         shell/SidebarListModels.cpp

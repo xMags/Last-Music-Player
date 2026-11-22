@@ -109,6 +109,10 @@ qt_add_library(lmp_core STATIC
     playback/LastTrackIdentity.cpp
     playback/LastTrackIdentity.h
     playback/LocalFileSourceResolver.cpp
+    playback/MediaControlsBridge.cpp
+    playback/MediaControlsBridge.h
+    playback/MediaControlsThrottle.cpp
+    playback/MediaControlsThrottle.h
     playback/PlaybackBackHistory.cpp
     playback/PlaybackBackHistory.h
     playback/PlaybackClock.cpp
@@ -156,6 +160,7 @@ qt_add_library(lmp_core STATIC
     text/StrictUtf8.h
     ../platform/IAudioPlayer.h
     ../platform/ICredentialStore.h
+    ../platform/IMediaControls.h
     ../platform/IReducedMotion.h
     ../platform/ISingleInstance.h
     ../platform/IWindowChrome.h)
