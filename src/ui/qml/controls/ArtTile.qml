@@ -57,9 +57,14 @@ Item {
 
         anchors.fill: parent
         layer.enabled: true
+        // The mask's anti-aliased edge decides coverage: half coverage is the
+        // edge, spread over the full soft band. With the defaults every
+        // partly covered pixel counted as inside, so the corners stair-stepped.
         layer.effect: MultiEffect {
             maskEnabled: true
             maskSource: mask
+            maskThresholdMin: 0.5
+            maskSpreadAtMin: 1.0
         }
 
         // linear-gradient(135deg, a, b): corner to corner on a square.

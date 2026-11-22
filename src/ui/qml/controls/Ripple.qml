@@ -32,9 +32,12 @@ Item {
     anchors.fill: parent
     visible: drop.running
     layer.enabled: drop.running
+    // Half coverage of the mask's soft edge is the edge (see ArtTile).
     layer.effect: MultiEffect {
         maskEnabled: true
         maskSource: mask
+        maskThresholdMin: 0.5
+        maskSpreadAtMin: 1.0
     }
 
     Rectangle {
