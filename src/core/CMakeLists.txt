@@ -52,6 +52,20 @@ qt_add_library(lmp_core STATIC
     db/TrackRows.cpp
     db/TrackRows.h
     db/TrackSchema.h
+    library/BrowseGroupingPolicy.cpp
+    library/BrowseGroupingPolicy.h
+    library/DetailSortPolicy.cpp
+    library/DetailSortPolicy.h
+    library/GenreArtworkRecipe.cpp
+    library/GenreArtworkRecipe.h
+    library/PlaylistSuggestionPolicy.cpp
+    library/PlaylistSuggestionPolicy.h
+    library/RecentSearchStore.cpp
+    library/RecentSearchStore.h
+    library/TrackSearchPolicy.cpp
+    library/TrackSearchPolicy.h
+    library/UserDataOperationGate.cpp
+    library/UserDataOperationGate.h
     model/ArtistIdentity.cpp
     model/ArtistIdentity.h
     model/ArtworkPlaceholder.cpp
@@ -73,6 +87,8 @@ qt_add_library(lmp_core STATIC
     settings/SettingKeys.h
     settings/SettingsStore.cpp
     settings/SettingsStore.h
+    text/CaseFold.cpp
+    text/CaseFold.h
     text/StrictUtf8.cpp
     text/StrictUtf8.h
     ../platform/ICredentialStore.h

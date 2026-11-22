@@ -169,3 +169,31 @@ lmp_add_test(tst_json
 lmp_add_test(tst_http_client
     SOURCES core/tst_http_client.cpp
     LIBS lmp_core)
+
+lmp_add_test(tst_track_search_policy
+    SOURCES core/tst_track_search_policy.cpp
+    LIBS lmp_core)
+
+lmp_add_test(tst_detail_sort_policy
+    SOURCES core/tst_detail_sort_policy.cpp
+    LIBS lmp_core)
+
+lmp_add_test(tst_browse_grouping_policy
+    SOURCES core/tst_browse_grouping_policy.cpp
+    LIBS lmp_core)
+
+lmp_add_test(tst_playlist_suggestion_policy
+    SOURCES core/tst_playlist_suggestion_policy.cpp
+    LIBS lmp_core)
+
+lmp_add_test(tst_genre_artwork_recipe
+    SOURCES core/tst_genre_artwork_recipe.cpp
+    LIBS lmp_core)
+
+lmp_add_test(tst_recent_search_store
+    SOURCES core/tst_recent_search_store.cpp
+    LIBS lmp_core)
+
+lmp_add_test(tst_user_data_operation_gate
+    SOURCES core/tst_user_data_operation_gate.cpp
+    LIBS lmp_core)
