@@ -43,8 +43,14 @@ Item {
         }
 
         header: Item {
+            // ListView keeps its position when the header changes height, which
+            // left the list scrolled by the difference (the header's top cut
+            // off). A list that was at the top stays at the top.
+            property real shownHeight: 0
+
             width: list.width
             height: headerLoader.height
+            onHeightChanged: { if (list.contentY <= 1 - shownHeight) list.contentY = -height; shownHeight = height }
 
             Loader {
                 id: headerLoader
