@@ -4,6 +4,7 @@
 #include <QString>
 #include <QtQml/qqmlregistration.h>
 
+#include "ui/navigation/Navigator.h"
 #include "ui/shell/WindowChromeViewModel.h"
 
 class QJSEngine;
@@ -22,10 +23,11 @@ class AppRoot : public QObject {
 
     Q_PROPERTY(QString version READ version CONSTANT FINAL)
     Q_PROPERTY(lmp::ui::WindowChromeViewModel* windowChrome READ windowChrome CONSTANT FINAL)
+    Q_PROPERTY(lmp::ui::Navigator* navigator READ navigator CONSTANT FINAL)
 
 public:
     // The view models are owned by the composition root and outlive this.
-    explicit AppRoot(WindowChromeViewModel* windowChrome, QObject* parent = nullptr);
+    AppRoot(WindowChromeViewModel* windowChrome, Navigator* navigator, QObject* parent = nullptr);
     ~AppRoot() override;
 
     AppRoot(const AppRoot&) = delete;
@@ -33,6 +35,7 @@ public:
 
     [[nodiscard]] QString version() const;
     [[nodiscard]] WindowChromeViewModel* windowChrome() const { return m_windowChrome; }
+    [[nodiscard]] Navigator* navigator() const { return m_navigator; }
 
     // Called by the QML engine the first time QML uses `App`. Returns the
     // instance the composition root registered, with C++ ownership.
@@ -44,6 +47,7 @@ public:
 
 private:
     WindowChromeViewModel* m_windowChrome;
+    Navigator* m_navigator;
 };
 
 } // namespace lmp::ui

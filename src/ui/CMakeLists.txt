@@ -50,6 +50,8 @@ set(LMP_UI_QML_FILES
     qml/dev/GallerySection.qml
     qml/dev/GalleryTokens.qml
     qml/shell/CaptionButton.qml
+    qml/shell/PageHost.qml
+    qml/shell/PlaceholderPage.qml
     qml/shell/TitleStrip.qml)
 
 qt_add_qml_module(lmp_ui
@@ -74,6 +76,12 @@ qt_add_qml_module(lmp_ui
         icons/IconSet.h
         menus/MenuItemListModel.cpp
         menus/MenuItemListModel.h
+        navigation/Navigator.cpp
+        navigation/Navigator.h
+        navigation/Route.cpp
+        navigation/Route.h
+        navigation/RouteRules.cpp
+        navigation/RouteRules.h
         shell/AppRoot.cpp
         shell/AppRoot.h
         shell/WindowChromeViewModel.cpp
@@ -113,6 +121,7 @@ set(LMP_UI_TYPE_FOLDERS
     dev
     icons
     menus
+    navigation
     shell
     theme
     toasts)

@@ -49,3 +49,7 @@ lmp_add_test(tst_artwork_placeholder
 lmp_add_test(tst_windows_single_instance
     SOURCES platform/tst_windows_single_instance.cpp
     LIBS lmp_platform_windows)
+
+lmp_add_test(tst_navigator
+    SOURCES ui/tst_navigator.cpp
+    LIBS lmp_ui)

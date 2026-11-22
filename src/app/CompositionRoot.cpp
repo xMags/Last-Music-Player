@@ -26,7 +26,7 @@ CompositionRoot::CompositionRoot()
     : m_singleInstance(std::make_unique<platform::windows::WindowsSingleInstance>(
           core::AppIdentity::singleInstanceMutexName(), core::AppIdentity::displayName()))
     , m_windowChromeViewModel(&m_windowChrome)
-    , m_appRoot(&m_windowChromeViewModel)
+    , m_appRoot(&m_windowChromeViewModel, &m_navigator)
 {
     // Before any window exists, so the taskbar and the media session use it.
     // A failure is logged inside and the app runs on.

@@ -7,6 +7,7 @@
 #include "platform/ISingleInstance.h"
 #include "platform/windows/WindowsReducedMotion.h"
 #include "platform/windows/WindowsWindowChrome.h"
+#include "ui/navigation/Navigator.h"
 #include "ui/shell/AppRoot.h"
 #include "ui/shell/WindowChromeViewModel.h"
 #include "ui/theme/Theme.h"
@@ -45,6 +46,7 @@ private:
     std::unique_ptr<platform::windows::WindowsReducedMotion> m_reducedMotion;
     platform::windows::WindowsWindowChrome m_windowChrome;
     ui::WindowChromeViewModel m_windowChromeViewModel;
+    ui::Navigator m_navigator;
     ui::AppRoot m_appRoot;
     QPointer<ui::Theme> m_theme; // owned by the QML engine
 };
