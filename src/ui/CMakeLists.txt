@@ -10,6 +10,12 @@ qt_add_qml_module(lmp_ui
     SOURCES
         app/AppInfo.cpp
         app/AppInfo.h
+        theme/ColorMix.cpp
+        theme/ColorMix.h
+        theme/Theme.cpp
+        theme/Theme.h
+        theme/ThemePalette.cpp
+        theme/ThemePalette.h
     QML_FILES
         qml/Main.qml
         qml/controls/VersionLabel.qml)
@@ -18,7 +24,8 @@ qt_add_qml_module(lmp_ui
 # registration code includes those headers by file name only, so each folder
 # must be on the include path and header file names must be unique in src/ui.
 set(LMP_UI_TYPE_FOLDERS
-    app)
+    app
+    theme)
 
 target_include_directories(lmp_ui
     PUBLIC "${CMAKE_SOURCE_DIR}/src"

@@ -17,3 +17,7 @@ lmp_add_test(tst_app_identity
 lmp_add_test(tst_private_config
     SOURCES core/tst_private_config.cpp
     LIBS lmp_core)
+
+lmp_add_test(tst_theme
+    SOURCES ui/tst_theme.cpp
+    LIBS lmp_ui)
