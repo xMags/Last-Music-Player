@@ -2,7 +2,9 @@
 
 #include "core/db/LibraryGroupingSql.h"
 #include "core/db/TrackRows.h"
+#include "core/model/ArtistIdentity.h"
 
+#include <QChar>
 #include <QLatin1StringView>
 
 #include <algorithm>
@@ -62,6 +64,61 @@ int columnInt(const SqliteStatement& statement, int column)
 QString captionOr(const QString& description, int count)
 {
     return description.isEmpty() ? track_rows::songCountText(count) : description;
+}
+
+// The identity an artist card stands for. Only an http(s) address counts:
+// a card built from song tags keeps its name in sourceUrl.
+ArtistIdentity identityOfCard(const Track& group)
+{
+    return ArtistIdentity{group.artistCatalogId,
+                          group.sourceUrl.startsWith(QLatin1StringView("http")) ? group.sourceUrl : QString(),
+                          group.title,
+                          group.sourceTag};
+}
+
+// Merges the artists followed in `scopeKey` into the cards: see
+// GroupQueries::loadArtists. Cards appended here are matched by later
+// followed rows too, as before.
+void applyFollowedArtists(SqliteConnection& connection, QList<Track>& groups, const QString& scopeKey)
+{
+    auto followed = connection.prepare(
+        "SELECT IdentityKey, CatalogId, SourceUrl, Name, Provider, AddedAtUtc, "
+        "CAST(strftime('%s',AddedAtUtc) AS REAL) "
+        "FROM FollowedArtists WHERE ScopeKey=? ORDER BY AddedAtUtc DESC, Name COLLATE NOCASE ASC;");
+    if (!followed) {
+        return;
+    }
+    SqliteStatement& statement = followed.value();
+    statement.bindText(1, scopeKey);
+    while (statement.step().valueOr(false)) {
+        const ArtistIdentity followedIdentity{
+            statement.columnText(1), statement.columnText(2), statement.columnText(3), statement.columnText(4)};
+        const auto existing =
+            std::find_if(groups.begin(), groups.end(), [&followedIdentity](const Track& group) {
+                return sameArtistIdentity(identityOfCard(group), followedIdentity);
+            });
+        if (existing != groups.end()) {
+            existing->followed = true;
+            existing->dateAdded = statement.columnText(5);
+            existing->dateAddedSortKey = statement.columnDouble(6);
+            // Two spaces, U+00B7 MIDDLE DOT, two spaces.
+            existing->artist += QStringLiteral("  ") + QChar(char16_t{0x00B7}) + QStringLiteral("  Following");
+            continue;
+        }
+
+        Track group;
+        group.title = followedIdentity.name;
+        group.artist = QStringLiteral("Following");
+        group.sourceKind = QStringLiteral("artist");
+        group.sourceUrl = followedIdentity.sourceUrl.isEmpty() ? followedIdentity.name : followedIdentity.sourceUrl;
+        group.artistCatalogId = followedIdentity.catalogId;
+        group.sourceTag = followedIdentity.provider;
+        group.sourceLabel = QStringLiteral("Remote");
+        group.followed = true;
+        group.dateAdded = statement.columnText(5);
+        group.dateAddedSortKey = statement.columnDouble(6);
+        groups.append(std::move(group));
+    }
 }
 
 } // namespace
@@ -197,7 +254,7 @@ QList<Track> GroupQueries::loadRecentPlaylists(int limit)
     return groups;
 }
 
-QList<Track> GroupQueries::loadArtists()
+QList<Track> GroupQueries::loadArtists(const QString& followedScopeKey)
 {
     QList<Track> groups;
     const std::string sql = grouping::EligibleTracksCte(grouping::GroupKind::Artist)
@@ -237,6 +294,10 @@ QList<Track> GroupQueries::loadArtists()
         group.sourceTag = statement.columnText(6);
         group.origin = statement.columnText(7);
         groups.append(std::move(group));
+    }
+
+    if (!followedScopeKey.isEmpty()) {
+        applyFollowedArtists(m_connection, groups, followedScopeKey);
     }
     return groups;
 }

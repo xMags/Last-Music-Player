@@ -117,3 +117,39 @@ lmp_add_test(tst_collection_repository
 lmp_add_test(tst_library_queries
     SOURCES core/tst_library_queries.cpp core/TempLibrary.h
     LIBS lmp_core)
+
+lmp_add_test(tst_account_repository
+    SOURCES core/tst_account_repository.cpp core/TempLibrary.h
+    LIBS lmp_core)
+
+lmp_add_test(tst_account_data_lifecycle
+    SOURCES core/tst_account_data_lifecycle.cpp core/TempLibrary.h
+    LIBS lmp_core)
+
+lmp_add_test(tst_followed_artists
+    SOURCES core/tst_followed_artists.cpp core/TempLibrary.h
+    LIBS lmp_core)
+
+lmp_add_test(tst_account_outbox_repository
+    SOURCES core/tst_account_outbox_repository.cpp core/TempLibrary.h
+    LIBS lmp_core)
+
+lmp_add_test(tst_account_outbox_migration
+    SOURCES core/tst_account_outbox_migration.cpp core/TempLibrary.h
+    LIBS lmp_core)
+
+lmp_add_test(tst_account_track_json
+    SOURCES core/tst_account_track_json.cpp
+    LIBS lmp_core)
+
+lmp_add_test(tst_artwork_url
+    SOURCES core/tst_artwork_url.cpp
+    LIBS lmp_core)
+
+lmp_add_test(tst_inline_profile_image
+    SOURCES core/tst_inline_profile_image.cpp
+    LIBS lmp_core)
+
+lmp_add_test(tst_artist_identity
+    SOURCES core/tst_artist_identity.cpp
+    LIBS lmp_core)

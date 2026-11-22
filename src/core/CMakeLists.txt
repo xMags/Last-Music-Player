@@ -1,4 +1,5 @@
 qt_add_library(lmp_core STATIC
+    account/AccountDataLifecycleStorage.h
     app/AppIdentity.cpp
     app/AppIdentity.h
     app/AppPaths.cpp
@@ -8,15 +9,29 @@ qt_add_library(lmp_core STATIC
     async/Result.h
     config/PrivateConfig.cpp
     config/PrivateConfig.h
+    db/AccountOutboxRecords.h
+    db/AccountOutboxRepository.cpp
+    db/AccountOutboxRepository.h
+    db/AccountOutboxRepositoryPreferences.cpp
     db/AccountPlaylistPage.cpp
     db/AccountPlaylistPage.h
+    db/AccountRecords.h
+    db/AccountRepository.cpp
+    db/AccountRepository.h
+    db/AccountRepositoryLibrary.cpp
+    db/AccountRows.cpp
+    db/AccountRows.h
     db/AccountSchema.h
+    db/AccountTrackJson.cpp
+    db/AccountTrackJson.h
     db/CollectionRepository.cpp
     db/CollectionRepository.h
     db/CollectionRepositoryPlaylists.cpp
     db/CollectionSql.h
     db/Database.cpp
     db/Database.h
+    db/FollowedArtistRepository.cpp
+    db/FollowedArtistRepository.h
     db/GroupQueries.cpp
     db/GroupQueries.h
     db/LibraryGroupingSql.h
@@ -35,10 +50,16 @@ qt_add_library(lmp_core STATIC
     db/TrackRows.cpp
     db/TrackRows.h
     db/TrackSchema.h
+    model/ArtistIdentity.cpp
+    model/ArtistIdentity.h
     model/ArtworkPlaceholder.cpp
     model/ArtworkPlaceholder.h
     model/Track.cpp
     model/Track.h
+    net/ArtworkUrl.cpp
+    net/ArtworkUrl.h
+    net/InlineProfileImage.cpp
+    net/InlineProfileImage.h
     net/ProviderUrlCredential.cpp
     net/ProviderUrlCredential.h
     net/RemoteUrlPolicy.cpp

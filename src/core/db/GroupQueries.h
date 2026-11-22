@@ -34,8 +34,14 @@ public:
     // loadPlaylists with account playlists first, then by title; at most
     // `limit` cards, none for 0 or less.
     [[nodiscard]] QList<Track> loadRecentPlaylists(int limit);
-    // Largest first.
-    [[nodiscard]] QList<Track> loadArtists();
+    // Largest first. With a scope key, the artists followed in that scope
+    // (see FollowedArtistRepository) are merged in: a card that matches one
+    // by ArtistIdentity is marked followed, takes the follow time as its
+    // added time and gains a "Following" suffix in its caption (after two
+    // spaces, a U+00B7 middle dot and two spaces); every other followed
+    // artist is appended as a card of its own, captioned "Following", in
+    // the order most recently followed first.
+    [[nodiscard]] QList<Track> loadArtists(const QString& followedScopeKey = {});
     [[nodiscard]] QList<Track> loadGenres();
     // Genre names ranked by total listening (SUM(PlayCount)), falling back to
     // genre size when there is no play history yet. Untagged songs and broad
