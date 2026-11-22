@@ -13,6 +13,8 @@ Item {
     readonly property int titleHeight: App.windowChrome.custom ? Theme.titleBarHeight : 0
     readonly property int bodyHeight: height - Theme.playerBarHeight
     readonly property bool railInColumn: App.layout.railDocked && App.layout.railOpen
+    // The rail's tab, shared by its docked and overlay forms.
+    property int railTab: 0
 
     onWidthChanged: App.layout.windowWidth = width
     Component.onCompleted: App.layout.windowWidth = width
@@ -51,7 +53,7 @@ Item {
     }
 
     // The rail as a column of the layout.
-    Rectangle {
+    RightRail {
         id: dockedRail
 
         x: shell.width - width
@@ -59,7 +61,8 @@ Item {
         width: App.layout.railWidth
         height: shell.bodyHeight - y
         visible: shell.railInColumn
-        color: Theme.surface
+        tab: shell.railTab
+        onTabChanged: shell.railTab = tab
     }
 
     // The rail over the content in narrower windows: from the top of the
@@ -80,10 +83,12 @@ Item {
             color: Theme.railShadow
         }
 
-        Rectangle {
+        RightRail {
             anchors.fill: parent
-            color: Theme.surface
+            tab: shell.railTab
+            onTabChanged: shell.railTab = tab
 
+            // border-left: 1px solid divider
             Rectangle {
                 width: 1
                 height: parent.height

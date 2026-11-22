@@ -55,6 +55,7 @@ set(LMP_UI_QML_FILES
     qml/shell/PageHost.qml
     qml/shell/PlaceholderPage.qml
     qml/shell/ProfileButton.qml
+    qml/shell/RightRail.qml
     qml/shell/Shell.qml
     qml/shell/Sidebar.qml
     qml/shell/SidebarPlaylistRow.qml
