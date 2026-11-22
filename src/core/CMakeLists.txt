@@ -10,6 +10,8 @@ qt_add_library(lmp_core STATIC
     config/PrivateConfig.h
     model/ArtworkPlaceholder.cpp
     model/ArtworkPlaceholder.h
+    text/StrictUtf8.cpp
+    text/StrictUtf8.h
     ../platform/IReducedMotion.h
     ../platform/ISingleInstance.h
     ../platform/IWindowChrome.h)

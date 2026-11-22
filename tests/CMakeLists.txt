@@ -73,3 +73,7 @@ lmp_add_test(tst_request_scope
 lmp_add_test(tst_app_paths
     SOURCES core/tst_app_paths.cpp
     LIBS lmp_core)
+
+lmp_add_test(tst_strict_utf8
+    SOURCES core/tst_strict_utf8.cpp
+    LIBS lmp_core)
