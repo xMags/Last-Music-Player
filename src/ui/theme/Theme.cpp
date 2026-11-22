@@ -26,6 +26,32 @@ QColor white(float alpha)
 Theme::Theme(QObject* parent)
     : ThemeColors(parent)
 {
+    // The default ambient colour follows the accent.
+    connect(this, &ThemeColors::changed, this, &Theme::ambientChanged);
+}
+
+QColor Theme::ambient() const
+{
+    return m_ambientOverride.isValid() ? m_ambientOverride : accentSeed();
+}
+
+void Theme::setAmbient(const QColor& color)
+{
+    if (color == m_ambientOverride) {
+        return;
+    }
+    m_ambientOverride = color;
+    emit ambientChanged();
+}
+
+void Theme::resetAmbient()
+{
+    setAmbient(QColor());
+}
+
+qreal Theme::ambientStrength() const
+{
+    return dark() ? 1.45 : 1.0;
 }
 
 QVariantList Theme::shadow() const

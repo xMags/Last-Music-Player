@@ -71,6 +71,7 @@ Rectangle {
                 }
             }
 
+            GalleryPanels { width: column.width }
             GalleryTokens { width: column.width }
             GalleryIcons { width: column.width }
             GalleryControls { width: column.width; model: gallery }

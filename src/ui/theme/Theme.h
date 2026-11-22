@@ -32,6 +32,12 @@ class Theme : public ThemeColors {
     Q_PROPERTY(QColor scrollThumbHover READ scrollThumbHover NOTIFY changed FINAL)
     // The dimmed backdrop behind a dialog.
     Q_PROPERTY(QColor scrim READ scrim NOTIFY changed FINAL)
+    // The current cover's colour that tints the panels; the accent's seed
+    // colour until playback sets one. Readers fade to a new value over
+    // Motion.ambient.
+    Q_PROPERTY(QColor ambient READ ambient WRITE setAmbient RESET resetAmbient NOTIFY ambientChanged FINAL)
+    // How strongly the ambient colour shows: 1 light, 1.45 dark.
+    Q_PROPERTY(qreal ambientStrength READ ambientStrength NOTIFY changed FINAL)
 
 public:
     explicit Theme(QObject* parent = nullptr);
@@ -47,6 +53,10 @@ public:
     [[nodiscard]] QColor scrollThumb() const;
     [[nodiscard]] QColor scrollThumbHover() const;
     [[nodiscard]] QColor scrim() const;
+    [[nodiscard]] QColor ambient() const;
+    void setAmbient(const QColor& color);
+    void resetAmbient();
+    [[nodiscard]] qreal ambientStrength() const;
 
     // Colours of a press ripple drawn on a surface of the given colour: light
     // water on dark or coloured surfaces, a faint shadow and an accent ring on
@@ -54,8 +64,14 @@ public:
     Q_INVOKABLE QColor rippleFillOn(const QColor& surface) const;
     Q_INVOKABLE QColor rippleRingOn(const QColor& surface) const;
 
+signals:
+    void ambientChanged();
+
 private:
     [[nodiscard]] bool darkSurface(const QColor& surface) const;
+
+    // Invalid while no song colour is set.
+    QColor m_ambientOverride;
 };
 
 } // namespace lmp::ui

@@ -49,6 +49,7 @@ private slots:
     void switchingEmitsOneSignal();
     void artworkGradients();
     void rippleColoursFollowTheSurface();
+    void ambientDefaultsToTheAccentSeed();
 };
 
 // A macro because QVERIFY2 has to expand inside the test function to end it on
@@ -207,6 +208,31 @@ void ThemeTest::rippleColoursFollowTheSurface()
     LMP_CHECK_COLOR(theme.rippleFillOn(Qt::transparent), rgba(0, 0, 0, 0.12f));
     theme.setMode(Theme::ThemeMode::Dark);
     LMP_CHECK_COLOR(theme.rippleFillOn(Qt::transparent), rgba(255, 255, 255, 0.2f));
+}
+
+void ThemeTest::ambientDefaultsToTheAccentSeed()
+{
+    Theme theme;
+    theme.setMode(Theme::ThemeMode::Light);
+    theme.setAccent(Theme::Accent::Teal);
+    QCOMPARE(theme.ambient(), QColor(QStringLiteral("#0097B2")));
+    QCOMPARE(theme.ambientStrength(), 1.0);
+
+    QSignalSpy spy(&theme, &Theme::ambientChanged);
+    theme.setAccent(Theme::Accent::Coral);
+    QCOMPARE(theme.ambient(), QColor(QStringLiteral("#E0574A")));
+    QCOMPARE(spy.count(), 1);
+
+    const QColor song(QStringLiteral("#336699"));
+    theme.setAmbient(song);
+    QCOMPARE(theme.ambient(), song);
+    theme.setAccent(Theme::Accent::Purple);
+    QCOMPARE(theme.ambient(), song);
+    theme.resetAmbient();
+    QCOMPARE(theme.ambient(), QColor(QStringLiteral("#6A5CD6")));
+
+    theme.setMode(Theme::ThemeMode::Dark);
+    QCOMPARE(theme.ambientStrength(), 1.45);
 }
 
 QTEST_MAIN(ThemeTest)

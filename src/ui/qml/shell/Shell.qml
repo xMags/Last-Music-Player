@@ -35,17 +35,14 @@ Item {
     }
 
     // The content panel sits 8px below the title strip.
-    Rectangle {
+    ContentPanel {
         id: contentSlot
 
         x: sidebarSlot.width
         y: shell.titleHeight + 8
         width: shell.width - sidebarSlot.width - (shell.railInColumn ? App.layout.railWidth : 0)
         height: shell.bodyHeight - y
-        // border-radius: 16px 16px 0 0
-        topLeftRadius: Theme.radius2xl
-        topRightRadius: Theme.radius2xl
-        color: Theme.panelGrad1
+        playing: App.playerBar.playing
 
         PageHost {
             anchors.fill: parent

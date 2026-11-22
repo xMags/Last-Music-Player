@@ -39,6 +39,9 @@ class Motion : public QObject {
     Q_PROPERTY(int heart READ heart CONSTANT FINAL)
     Q_PROPERTY(int artCrossfade READ artCrossfade CONSTANT FINAL)
     Q_PROPERTY(int ambient READ ambient CONSTANT FINAL)
+    // The song-colour glow: one sweep across the panel top, and its fade in or out.
+    Q_PROPERTY(int ambientDrift READ ambientDrift CONSTANT FINAL)
+    Q_PROPERTY(int ambientFade READ ambientFade CONSTANT FINAL)
     Q_PROPERTY(int rippleRing READ rippleRing CONSTANT FINAL)
     Q_PROPERTY(int rippleRingDelay READ rippleRingDelay CONSTANT FINAL)
     // Hover and press colour fades of buttons, chips and the play button.
@@ -93,6 +96,8 @@ public:
     [[nodiscard]] int heart() const { return 640; }
     [[nodiscard]] int artCrossfade() const { return 320; }
     [[nodiscard]] int ambient() const { return 1200; }
+    [[nodiscard]] int ambientDrift() const { return 26000; }
+    [[nodiscard]] int ambientFade() const { return 1400; }
     [[nodiscard]] int rippleRing() const { return 560; }
     [[nodiscard]] int rippleRingDelay() const { return 60; }
     [[nodiscard]] int controlFade() const { return 120; }

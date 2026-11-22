@@ -47,6 +47,7 @@ set(LMP_UI_QML_FILES
     qml/dev/GalleryControls.qml
     qml/dev/GalleryIcons.qml
     qml/dev/GalleryOverlays.qml
+    qml/dev/GalleryPanels.qml
     qml/dev/GallerySection.qml
     qml/dev/GalleryTokens.qml
     qml/player/IdleArt.qml
@@ -54,6 +55,7 @@ set(LMP_UI_QML_FILES
     qml/player/PlayerTrackBlock.qml
     qml/player/PlayerTransport.qml
     qml/shell/BrandMark.qml
+    qml/shell/ContentPanel.qml
     qml/shell/CaptionButton.qml
     qml/shell/NavItem.qml
     qml/shell/PageHost.qml

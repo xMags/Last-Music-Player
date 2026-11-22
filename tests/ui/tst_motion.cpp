@@ -73,6 +73,8 @@ void MotionTest::durationsMatchReference()
     QCOMPARE(motion.heart(), 640);
     QCOMPARE(motion.artCrossfade(), 320);
     QCOMPARE(motion.ambient(), 1200);
+    QCOMPARE(motion.ambientDrift(), 26000);
+    QCOMPARE(motion.ambientFade(), 1400);
     QCOMPARE(motion.rippleRing(), 560);
     QCOMPARE(motion.rippleRingDelay(), 60);
     QCOMPARE(motion.controlFade(), 120);
