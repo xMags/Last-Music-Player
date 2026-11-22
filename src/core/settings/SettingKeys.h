@@ -70,6 +70,9 @@ inline constexpr QLatin1StringView RecentSearches{"RecentSearches"};
 inline constexpr QLatin1StringView BrowseResultView{"BrowseResultView"};
 // string "Comfortable" or "Compact", default "Comfortable".
 inline constexpr QLatin1StringView LibraryDetailDensity{"LibraryDetailDensity"};
+// string "lyrics", "queue" or "none", default "lyrics". The side panel of the
+// full-screen player; "none" hides it. Added by this version.
+inline constexpr QLatin1StringView FullscreenPanel{"FullscreenPanel"};
 // bool, default false. The one-time move of the old home history into the database.
 inline constexpr QLatin1StringView LegacyHomeHistoryMigrated{"LegacyHomeHistoryMigrated"};
 // strings, default "". The cached account profile, for signing back in offline.

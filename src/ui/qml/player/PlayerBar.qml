@@ -62,6 +62,7 @@ Rectangle {
 
         IconButton {
             iconName: "fullscreen"
+            onClicked: App.fullscreen.openPlayer()
         }
 
         IconButton {
@@ -75,7 +76,7 @@ Rectangle {
 
             Layout.preferredWidth: 110
             playerStyle: true
-            sourceValue: App.playerBar.volume / 100
+            sourceValue: App.playerBar.volumeRatio
             bubbleText: App.playerBar.volumeLabelAt(volume.hoverRatio)
             onMoved: App.playerBar.setVolumeRatio(volume.value)
         }

@@ -39,6 +39,7 @@ private slots:
     void reducedNotifiesOnChangeOnly();
     void rippleReachesTheFarthestCorner();
     void toastEnterFollowsItsKeyframes();
+    void songChangeMatchesReference();
     void layoutTokensMatchReference();
     void shadowsMatchReference();
 };
@@ -97,6 +98,24 @@ void MotionTest::durationsMatchReference()
     QCOMPARE(motion.navItemFade(), 100);
     QCOMPARE(motion.logoRipple(), 1900);
     QCOMPARE(motion.logoRippleStep(), 160);
+}
+
+void MotionTest::songChangeMatchesReference()
+{
+    const Motion motion;
+    // song-change-motion.ts: the copy leaves in 220ms (ease-in), the new
+    // text rises 10px in 320ms after 90ms, the cover settles in 380ms.
+    QCOMPARE(motion.songChangeOut(), 220);
+    QCOMPARE(motion.songChangeIn(), 320);
+    QCOMPARE(motion.songChangeInDelay(), 90);
+    QCOMPARE(motion.songChangeCover(), 380);
+    QCOMPARE(motion.songChangeShift(), 10);
+    // Cover keyframes: scale 0.9, 1.04 at 60%, then 1.
+    QCOMPARE(motion.songChangeCoverScale(0), 0.9);
+    QCOMPARE(motion.songChangeCoverScale(0.3), 0.97);
+    QCOMPARE(motion.songChangeCoverScale(0.6), 1.04);
+    QCOMPARE(motion.songChangeCoverScale(0.8), 1.02);
+    QCOMPARE(motion.songChangeCoverScale(1), 1.0);
 }
 
 void MotionTest::reducedNotifiesOnChangeOnly()

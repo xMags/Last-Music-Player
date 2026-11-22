@@ -1,4 +1,5 @@
 #include <QColor>
+#include <QFont>
 #include <QObject>
 #include <QSignalSpy>
 #include <QString>
@@ -7,6 +8,7 @@
 
 #include <cmath>
 
+#include "ui/theme/ShadowLayer.h"
 #include "ui/theme/Theme.h"
 
 using lmp::ui::Theme;
@@ -50,6 +52,7 @@ private slots:
     void artworkGradients();
     void rippleColoursFollowTheSurface();
     void ambientDefaultsToTheAccentSeed();
+    void fullscreenTokensMatchReference();
 };
 
 // A macro because QVERIFY2 has to expand inside the test function to end it on
@@ -233,6 +236,49 @@ void ThemeTest::ambientDefaultsToTheAccentSeed()
 
     theme.setMode(Theme::ThemeMode::Dark);
     QCOMPARE(theme.ambientStrength(), 1.45);
+}
+
+void ThemeTest::fullscreenTokensMatchReference()
+{
+    // styles.css 2089-2339: the same in both themes.
+    Theme theme;
+    for (const Theme::ThemeMode mode : {Theme::ThemeMode::Light, Theme::ThemeMode::Dark}) {
+        theme.setMode(mode);
+        LMP_CHECK_COLOR(theme.fullscreenBackground(), QColor(QStringLiteral("#0E1016")));
+        LMP_CHECK_COLOR(theme.fullscreenText(), QColor(QStringLiteral("#FFFFFF")));
+        LMP_CHECK_COLOR(theme.fullscreenArtistText(), rgba(255, 255, 255, 0.75f));
+        LMP_CHECK_COLOR(theme.fullscreenMetaText(), rgba(255, 255, 255, 0.55f));
+        LMP_CHECK_COLOR(theme.fullscreenTimeText(), rgba(255, 255, 255, 0.6f));
+        LMP_CHECK_COLOR(theme.fullscreenButtonGlyph(), rgba(255, 255, 255, 0.85f));
+        LMP_CHECK_COLOR(theme.fullscreenButtonHover(), rgba(255, 255, 255, 0.12f));
+        LMP_CHECK_COLOR(theme.fullscreenPlayGlyph(), QColor(QStringLiteral("#101216")));
+        LMP_CHECK_COLOR(theme.fullscreenSeekTrack(), rgba(255, 255, 255, 0.22f));
+        LMP_CHECK_COLOR(theme.fullscreenTabsFill(), rgba(255, 255, 255, 0.07f));
+        LMP_CHECK_COLOR(theme.fullscreenTabsBorder(), rgba(255, 255, 255, 0.1f));
+        LMP_CHECK_COLOR(theme.fullscreenTabText(), rgba(255, 255, 255, 0.7f));
+        LMP_CHECK_COLOR(theme.fullscreenTabActiveFill(), rgba(255, 255, 255, 0.16f));
+        LMP_CHECK_COLOR(theme.fullscreenPanelFill(), rgba(8, 10, 16, 0.34f));
+        LMP_CHECK_COLOR(theme.fullscreenPanelBorder(), rgba(255, 255, 255, 0.08f));
+        LMP_CHECK_COLOR(theme.fullscreenBackdropEnd(), QColor(QStringLiteral("#1A2340")));
+        // brightness(0.42): black over the picture at 58%.
+        LMP_CHECK_COLOR(theme.fullscreenBackdropDim(), rgba(0, 0, 0, 0.58f));
+    }
+    QCOMPARE(theme.fullscreenBackdropBlur(), 56);
+    QCOMPARE(theme.fullscreenBackdropScale(), 1.1);
+    QCOMPARE(theme.fullscreenBackdropInset(), 60);
+    QCOMPARE(theme.fullscreenArtRadius(), 20);
+    QCOMPARE(theme.fullscreenPanelRadius(), 20);
+    QCOMPARE(theme.fullscreenArtist().pixelSize(), 16);
+    QCOMPARE(theme.lineHeightFullscreenArtist(), 21.6);
+    QCOMPARE(theme.fullscreenTime().pixelSize(), 12);
+    QCOMPARE(theme.fullscreenTabActive().weight(), QFont::DemiBold);
+    QCOMPARE(theme.fullscreenRepeatBadge().pixelSize(), 9);
+    const QVariantList art = theme.shadowFullscreenArt();
+    QCOMPARE(art.size(), 1);
+    const auto layer = art.first().value<lmp::ui::ShadowLayer>();
+    QCOMPARE(layer.offsetY, 30.0);
+    QCOMPARE(layer.blur, 80.0);
+    LMP_CHECK_COLOR(layer.color, rgba(0, 0, 0, 0.55f));
 }
 
 QTEST_MAIN(ThemeTest)

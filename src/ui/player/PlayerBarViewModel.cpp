@@ -1,6 +1,10 @@
 #include "ui/player/PlayerBarViewModel.h"
 
 #include "core/app/AppIdentity.h"
+#include "core/model/ArtworkPlaceholder.h"
+#include "core/playback/PlayerController.h"
+#include "core/playback/QueueTrackIdentity.h"
+#include "ui/player/CoverSource.h"
 
 #include <QtGlobal>
 
@@ -9,194 +13,219 @@
 
 namespace lmp::ui {
 
-PlayerBarViewModel::PlayerBarViewModel(QObject* parent)
+namespace {
+
+using State = core::PlayerController::State;
+
+} // namespace
+
+PlayerBarViewModel::PlayerBarViewModel(core::PlayerController& player, QObject* parent)
     : QObject(parent)
+    , m_player(player)
 {
+    connect(&m_player, &core::PlayerController::currentTrackChanged, this, &PlayerBarViewModel::onTrackChanged);
+    connect(&m_player, &core::PlayerController::stateChanged, this, &PlayerBarViewModel::stateChanged);
+    connect(&m_player, &core::PlayerController::shuffleChanged, this, &PlayerBarViewModel::stateChanged);
+    connect(&m_player, &core::PlayerController::repeatModeChanged, this, &PlayerBarViewModel::stateChanged);
+    connect(&m_player, &core::PlayerController::positionChanged, this, &PlayerBarViewModel::positionChanged);
+    connect(&m_player, &core::PlayerController::durationChanged, this, &PlayerBarViewModel::positionChanged);
+    connect(&m_player, &core::PlayerController::volumeChanged, this, &PlayerBarViewModel::volumeChanged);
+    connect(&m_player, &core::PlayerController::mutedChanged, this, &PlayerBarViewModel::volumeChanged);
+
+    if (const std::optional<core::Track>& track = m_player.currentTrack()) {
+        m_shownIdentity = core::queueTrackIdentity(*track);
+        m_artworkUrl = CoverSource::forTrack(*track).displayUrl();
+        m_artworkId = CoverSource::placeholderIdFor(*track);
+        m_liked = track->liked;
+    }
+    m_shownTitle = displayTitle();
+    m_shownArtist = displayArtist();
 }
 
-void PlayerBarViewModel::setTitle(const QString& title)
+void PlayerBarViewModel::onTrackChanged()
 {
-    if (title == m_title) {
-        return;
-    }
-    m_title = title;
-    emit trackChanged();
-}
+    // The controller already holds the new song; what was shown is kept here.
+    const QString previousTitle = m_shownTitle;
+    const QString previousArtist = m_shownArtist;
+    m_shownTitle = displayTitle();
+    m_shownArtist = displayArtist();
+    const std::optional<core::Track>& track = m_player.currentTrack();
+    const QString identity = track ? core::queueTrackIdentity(*track) : QString();
+    const bool liked = track && track->liked;
+    // Only a new song moves; a redraw of the same one (or the launch
+    // restore, which opens nothing) does not.
+    const bool newSong = track && identity != m_shownIdentity && m_player.state() != State::Idle;
 
-void PlayerBarViewModel::setArtist(const QString& artist)
-{
-    if (artist == m_artist) {
-        return;
+    m_shownIdentity = identity;
+    if (newSong) {
+        m_previousTitle = previousTitle;
+        m_previousArtist = previousArtist;
     }
-    m_artist = artist;
-    emit trackChanged();
-}
-
-void PlayerBarViewModel::setArtworkUrl(const QUrl& url)
-{
-    if (url == m_artworkUrl) {
-        return;
-    }
-    m_artworkUrl = url;
-    emit trackChanged();
-}
-
-void PlayerBarViewModel::setArtworkId(const QString& id)
-{
-    if (id == m_artworkId) {
-        return;
-    }
-    m_artworkId = id;
-    emit trackChanged();
-}
-
-void PlayerBarViewModel::setLiked(bool liked)
-{
-    if (liked == m_liked) {
-        return;
-    }
+    m_artworkUrl = track ? CoverSource::forTrack(*track).displayUrl() : QUrl();
+    m_artworkId = track ? CoverSource::placeholderIdFor(*track) : QString();
+    const bool likedMoved = liked != m_liked;
     m_liked = liked;
-    emit stateChanged();
+    emit trackChanged();
+    if (likedMoved) {
+        emit stateChanged();
+    }
+    if (newSong) {
+        emit songChanged();
+    }
 }
 
-void PlayerBarViewModel::setPlaying(bool playing)
+bool PlayerBarViewModel::hasTrack() const
 {
-    if (playing == m_playing) {
-        return;
-    }
-    m_playing = playing;
-    emit stateChanged();
+    return m_player.currentTrack().has_value();
 }
 
-void PlayerBarViewModel::setShuffle(bool shuffle)
+QString PlayerBarViewModel::title() const
 {
-    if (shuffle == m_shuffle) {
-        return;
-    }
-    m_shuffle = shuffle;
-    emit stateChanged();
+    const std::optional<core::Track>& track = m_player.currentTrack();
+    return track ? track->title : QString();
 }
 
-void PlayerBarViewModel::setRepeatMode(int mode)
+QString PlayerBarViewModel::artist() const
 {
-    const int bounded = std::clamp(mode, 0, 2);
-    if (bounded == m_repeatMode) {
-        return;
-    }
-    m_repeatMode = bounded;
-    emit stateChanged();
-}
-
-void PlayerBarViewModel::setElapsedSeconds(qreal seconds)
-{
-    const qreal bounded = std::isfinite(seconds) ? std::max<qreal>(0, seconds) : 0;
-    if (bounded == m_elapsed) {
-        return;
-    }
-    m_elapsed = bounded;
-    emit positionChanged();
-}
-
-void PlayerBarViewModel::setTotalSeconds(qreal seconds)
-{
-    const qreal bounded = std::isfinite(seconds) ? std::max<qreal>(0, seconds) : 0;
-    if (bounded == m_total) {
-        return;
-    }
-    m_total = bounded;
-    emit positionChanged();
+    const std::optional<core::Track>& track = m_player.currentTrack();
+    return track ? track->artist : QString();
 }
 
 QString PlayerBarViewModel::displayTitle() const
 {
-    return hasTrack() ? m_title : tr("Search for something");
+    return hasTrack() ? title() : tr("Search for something");
 }
 
 QString PlayerBarViewModel::displayArtist() const
 {
-    return hasTrack() ? m_artist : core::AppIdentity::displayName();
+    return hasTrack() ? artist() : core::AppIdentity::displayName();
+}
+
+QString PlayerBarViewModel::artworkLabel() const
+{
+    return core::ArtworkPlaceholder::tileLabelFor(title());
+}
+
+bool PlayerBarViewModel::playing() const
+{
+    const State state = m_player.state();
+    return state == State::Playing || state == State::Loading;
+}
+
+bool PlayerBarViewModel::shuffle() const
+{
+    return m_player.shuffle() == core::Shuffle::On;
+}
+
+int PlayerBarViewModel::repeatMode() const
+{
+    return static_cast<int>(m_player.repeatMode());
+}
+
+qreal PlayerBarViewModel::elapsedSeconds() const
+{
+    const double seconds = m_player.positionSeconds();
+    return std::isfinite(seconds) ? std::max(0.0, seconds) : 0.0;
+}
+
+qreal PlayerBarViewModel::totalSeconds() const
+{
+    const double seconds = m_player.durationSeconds();
+    return std::isfinite(seconds) ? std::max(0.0, seconds) : 0.0;
 }
 
 qreal PlayerBarViewModel::progress() const
 {
-    return m_total > 0 ? std::clamp<qreal>(m_elapsed / m_total, 0, 1) : 0;
+    const qreal total = totalSeconds();
+    return total > 0 ? std::clamp<qreal>(elapsedSeconds() / total, 0, 1) : 0;
 }
 
-void PlayerBarViewModel::setVolume(int volume)
+int PlayerBarViewModel::volume() const
 {
-    const int bounded = std::clamp(volume, 0, 100);
-    if (bounded == m_volume) {
-        return;
-    }
-    m_volume = bounded;
-    emit volumeChanged();
+    return qRound(std::clamp(m_player.volume(), 0.0, 1.0) * 100);
 }
 
-void PlayerBarViewModel::setMuted(bool muted)
+bool PlayerBarViewModel::muted() const
 {
-    if (muted == m_muted) {
-        return;
-    }
-    m_muted = muted;
-    emit volumeChanged();
+    return m_player.muted();
+}
+
+qreal PlayerBarViewModel::volumeRatio() const
+{
+    return muted() ? 0.0 : volume() / 100.0;
 }
 
 void PlayerBarViewModel::togglePlay()
 {
-    setPlaying(!m_playing);
+    m_player.togglePlay();
 }
 
 void PlayerBarViewModel::previous()
 {
-    emit previousRequested();
+    m_player.previous();
 }
 
 void PlayerBarViewModel::next()
 {
-    emit nextRequested();
+    m_player.next();
 }
 
 void PlayerBarViewModel::toggleShuffle()
 {
-    setShuffle(!m_shuffle);
+    m_player.setShuffle(shuffle() ? core::Shuffle::Off : core::Shuffle::On);
 }
 
 void PlayerBarViewModel::cycleRepeat()
 {
-    setRepeatMode((m_repeatMode + 1) % 3);
+    m_player.setRepeatMode(static_cast<core::RepeatMode>((repeatMode() + 1) % 3));
 }
 
 void PlayerBarViewModel::toggleLike()
 {
-    setLiked(!m_liked);
+    if (!hasTrack()) {
+        return;
+    }
+    m_liked = !m_liked;
+    emit stateChanged();
 }
 
 void PlayerBarViewModel::toggleMute()
 {
-    setMuted(!m_muted);
+    m_player.setMuted(!m_player.muted());
 }
 
 void PlayerBarViewModel::share()
 {
-    emit shareRequested();
+    if (hasTrack()) {
+        emit shareRequested();
+    }
 }
 
 void PlayerBarViewModel::seekToRatio(qreal ratio)
 {
-    setElapsedSeconds(std::clamp<qreal>(ratio, 0, 1) * m_total);
+    const qreal total = totalSeconds();
+    if (!std::isfinite(ratio) || total <= 0) {
+        return;
+    }
+    m_player.seek(std::clamp<qreal>(ratio, 0, 1) * total);
 }
 
 void PlayerBarViewModel::setVolumeRatio(qreal ratio)
 {
-    setVolume(qRound(std::clamp<qreal>(ratio, 0, 1) * 100));
+    if (!std::isfinite(ratio)) {
+        return;
+    }
+    // The slider steps in whole percent, as the design's 0 to 100 range does.
+    m_player.setVolume(qRound(std::clamp<qreal>(ratio, 0, 1) * 100) / 100.0);
 }
 
 QString PlayerBarViewModel::seekLabelAt(qreal ratio) const
 {
-    if (!hasTrack() || m_total <= 0) {
+    const qreal total = totalSeconds();
+    if (!hasTrack() || total <= 0) {
         return {};
     }
-    return formatTime(std::clamp<qreal>(ratio, 0, 1) * m_total);
+    return formatTime(std::clamp<qreal>(ratio, 0, 1) * total);
 }
 
 QString PlayerBarViewModel::volumeLabelAt(qreal ratio) const

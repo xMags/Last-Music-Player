@@ -13,12 +13,19 @@ import LastMusicPlayer
 // a track that thickens to 6px while pointed at, and a fill that glides to new
 // values. `bubbleText`, when set, shows in a bubble over the pointer; read
 // `hoverRatio` (0 to 1) to decide what it says.
+//
+// The full-screen seek bar recolours the fill and track and uses its own
+// thicknesses (at rest, and while pointed at, held or focused).
 T.Slider {
     id: control
 
     property real sourceValue: 0
     property bool playerStyle: false
     property string bubbleText: ""
+    property color fillColor: Theme.accentColor
+    property color trackColor: Theme.sliderTrack
+    property real trackThickness: 4
+    property real engagedTrackThickness: playerStyle ? 6 : 4
     readonly property real hoverRatio: hover.hovered && width > 0 ? Math.max(0, Math.min(1, hover.point.position.x / width)) : 0
     readonly property bool engaged: hovered || pressed || visualFocus
 
@@ -58,14 +65,14 @@ T.Slider {
 
             anchors.verticalCenter: parent.verticalCenter
             width: parent.width
-            height: control.playerStyle && control.engaged ? 6 : 4
+            height: control.engaged ? control.engagedTrackThickness : control.trackThickness
             radius: height / 2
-            color: Theme.sliderTrack
+            color: control.trackColor
 
             Rectangle {
                 height: parent.height
                 radius: parent.radius
-                color: Theme.accentColor
+                color: control.fillColor
                 width: control.visualPosition * parent.width
 
                 Behavior on width {

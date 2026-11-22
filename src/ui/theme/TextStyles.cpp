@@ -17,19 +17,9 @@ constexpr int kGreeting = 750;
 constexpr int kExtraBold = 800;
 constexpr int kBubble = 650;
 
-struct StyleSpec {
-    const QString& family;
-    qreal pixelSize;
-    int weight;
-    qreal lineHeight = 0;
-    // CSS letter-spacing in em; converted to pixels for QFont.
-    qreal letterSpacingEm = 0;
-    bool uppercase = false;
-    // font-variant-numeric: tabular-nums, so changing digits do not shift.
-    bool tabularNumbers = false;
-};
+} // namespace
 
-TextStyle makeStyle(const StyleSpec& spec)
+TextStyle makeTextStyle(const TextStyleSpec& spec)
 {
     QFont font(spec.family);
     const int wholePixels = static_cast<int>(spec.pixelSize);
@@ -53,8 +43,6 @@ TextStyle makeStyle(const StyleSpec& spec)
     return TextStyle{font, spec.lineHeight};
 }
 
-} // namespace
-
 FontFamilies FontFamilies::resolve()
 {
     return FontFamilies{
@@ -74,91 +62,91 @@ TextStyles TextStyles::build(const FontFamilies& families)
     const QString& text = families.text;
     const QString& display = families.display;
     return TextStyles{
-        .body = makeStyle({.family = text, .pixelSize = 14, .weight = kRegular}),
-        .sectionTitle = makeStyle(
+        .body = makeTextStyle({.family = text, .pixelSize = 14, .weight = kRegular}),
+        .sectionTitle = makeTextStyle(
             {.family = display, .pixelSize = 20, .weight = kBold, .lineHeight = 26}),
-        .sidebarSectionLabel = makeStyle({.family = text,
+        .sidebarSectionLabel = makeTextStyle({.family = text,
                                           .pixelSize = 11,
                                           .weight = kBold,
                                           .lineHeight = 16,
                                           .letterSpacingEm = 0.16,
                                           .uppercase = true}),
-        .profileName = makeStyle({.family = text, .pixelSize = 14, .weight = kSemiBold}),
-        .playerBarTitle = makeStyle(
+        .profileName = makeTextStyle({.family = text, .pixelSize = 14, .weight = kSemiBold}),
+        .playerBarTitle = makeTextStyle(
             {.family = text, .pixelSize = 14, .weight = kSemiBold, .lineHeight = 18}),
-        .playerBarArtist = makeStyle(
+        .playerBarArtist = makeTextStyle(
             {.family = text, .pixelSize = 12, .weight = kRegular, .lineHeight = 16}),
-        .trackTitle = makeStyle(
+        .trackTitle = makeTextStyle(
             {.family = text, .pixelSize = 14, .weight = kSemiBold, .lineHeight = 20}),
-        .trackArtist = makeStyle(
+        .trackArtist = makeTextStyle(
             {.family = text, .pixelSize = 12.5, .weight = kRegular, .lineHeight = 18}),
-        .modalTitle = makeStyle(
+        .modalTitle = makeTextStyle(
             {.family = display, .pixelSize = 20, .weight = kSemiBold, .lineHeight = 26}),
-        .settingsHeading = makeStyle({.family = display,
+        .settingsHeading = makeTextStyle({.family = display,
                                       .pixelSize = 32,
                                       .weight = kBold,
                                       .lineHeight = 40,
                                       .letterSpacingEm = -0.01}),
-        .nowPlayingTitle = makeStyle(
+        .nowPlayingTitle = makeTextStyle(
             {.family = display, .pixelSize = 20, .weight = kBold, .lineHeight = 26}),
         // line-height: 1.2 of 30px.
-        .fullScreenTitle = makeStyle(
+        .fullScreenTitle = makeTextStyle(
             {.family = display, .pixelSize = 30, .weight = kBold, .lineHeight = 36}),
         // The greeting's name line: 44px, line-height 1.3, weight 750.
-        .homeGreeting = makeStyle({.family = display,
+        .homeGreeting = makeTextStyle({.family = display,
                                    .pixelSize = 44,
                                    .weight = kGreeting,
                                    .lineHeight = 44 * 1.3,
                                    .letterSpacingEm = -0.015}),
-        .buttonLabel = makeStyle({.family = text, .pixelSize = 14, .weight = kSemiBold}),
-        .settingsButtonLabel = makeStyle({.family = text, .pixelSize = 13, .weight = kSemiBold}),
-        .chipLabel = makeStyle({.family = text, .pixelSize = 13, .weight = kSemiBold}),
+        .buttonLabel = makeTextStyle({.family = text, .pixelSize = 14, .weight = kSemiBold}),
+        .settingsButtonLabel = makeTextStyle({.family = text, .pixelSize = 13, .weight = kSemiBold}),
+        .chipLabel = makeTextStyle({.family = text, .pixelSize = 13, .weight = kSemiBold}),
         // .seek-bubble: line-height 1.2 of 11.5px.
-        .bubbleLabel = makeStyle({.family = text,
+        .bubbleLabel = makeTextStyle({.family = text,
                                   .pixelSize = 11.5,
                                   .weight = kBubble,
                                   .lineHeight = 11.5 * 1.2,
                                   .tabularNumbers = true}),
-        .selectLabel = makeStyle({.family = text, .pixelSize = 13, .weight = kMedium}),
-        .optionLabel = makeStyle({.family = text, .pixelSize = 13, .weight = kRegular}),
-        .searchInput = makeStyle({.family = text, .pixelSize = 14, .weight = kRegular}),
-        .segmentLabel = makeStyle({.family = text, .pixelSize = 14, .weight = kRegular}),
-        .segmentSelectedLabel = makeStyle({.family = text, .pixelSize = 14, .weight = kSemiBold}),
-        .segmentCompactLabel = makeStyle({.family = text, .pixelSize = 12, .weight = kSemiBold}),
+        .selectLabel = makeTextStyle({.family = text, .pixelSize = 13, .weight = kMedium}),
+        .optionLabel = makeTextStyle({.family = text, .pixelSize = 13, .weight = kRegular}),
+        .searchInput = makeTextStyle({.family = text, .pixelSize = 14, .weight = kRegular}),
+        .segmentLabel = makeTextStyle({.family = text, .pixelSize = 14, .weight = kRegular}),
+        .segmentSelectedLabel = makeTextStyle({.family = text, .pixelSize = 14, .weight = kSemiBold}),
+        .segmentCompactLabel = makeTextStyle({.family = text, .pixelSize = 12, .weight = kSemiBold}),
         // .kbd-chip: 11.5px, weight 500, letter-spacing 0.02em.
-        .shortcutLabel = makeStyle(
+        .shortcutLabel = makeTextStyle(
             {.family = text, .pixelSize = 11.5, .weight = kMedium, .letterSpacingEm = 0.02}),
-        .menuLabel = makeStyle({.family = text, .pixelSize = 13, .weight = kRegular}),
-        .modalDescription = makeStyle(
+        .menuLabel = makeTextStyle({.family = text, .pixelSize = 13, .weight = kRegular}),
+        .modalDescription = makeTextStyle(
             {.family = text, .pixelSize = 14, .weight = kRegular, .lineHeight = 20}),
         // .modal-field span: 10.5px, 700, letter-spacing 0.08em, uppercase.
-        .fieldLabel = makeStyle({.family = text,
+        .fieldLabel = makeTextStyle({.family = text,
                                  .pixelSize = 10.5,
                                  .weight = kBold,
                                  .letterSpacingEm = 0.08,
                                  .uppercase = true}),
-        .fieldInput = makeStyle({.family = text, .pixelSize = 14, .weight = kRegular}),
-        .errorText = makeStyle({.family = text, .pixelSize = 12.5, .weight = kRegular}),
-        .toastLabel = makeStyle({.family = text, .pixelSize = 12.5, .weight = kRegular}),
-        .toastAction = makeStyle({.family = text, .pixelSize = 12.5, .weight = kBold}),
-        .artTileLabel = makeStyle({.family = text, .pixelSize = 22, .weight = kBold}),
-        .artTileLabelBig = makeStyle({.family = text, .pixelSize = 48, .weight = kBold}),
+        .fieldInput = makeTextStyle({.family = text, .pixelSize = 14, .weight = kRegular}),
+        .errorText = makeTextStyle({.family = text, .pixelSize = 12.5, .weight = kRegular}),
+        .toastLabel = makeTextStyle({.family = text, .pixelSize = 12.5, .weight = kRegular}),
+        .toastAction = makeTextStyle({.family = text, .pixelSize = 12.5, .weight = kBold}),
+        .artTileLabel = makeTextStyle({.family = text, .pixelSize = 22, .weight = kBold}),
+        .artTileLabelBig = makeTextStyle({.family = text, .pixelSize = 48, .weight = kBold}),
         .captionGlyph =
-            makeStyle({.family = families.captionIcons, .pixelSize = 10, .weight = kRegular}),
-        .brandLabel = makeStyle({.family = text, .pixelSize = 12, .weight = kSemiBold}),
-        .navLabel = makeStyle({.family = text, .pixelSize = 14, .weight = kRegular}),
-        .navLabelActive = makeStyle({.family = text, .pixelSize = 14, .weight = kSemiBold}),
+            makeTextStyle({.family = families.captionIcons, .pixelSize = 10, .weight = kRegular}),
+        .brandLabel = makeTextStyle({.family = text, .pixelSize = 12, .weight = kSemiBold}),
+        .navLabel = makeTextStyle({.family = text, .pixelSize = 14, .weight = kRegular}),
+        .navLabelActive = makeTextStyle({.family = text, .pixelSize = 14, .weight = kSemiBold}),
         // .profile-tier: 10px, 700, letter-spacing 0.08em.
-        .profileTier = makeStyle(
+        .profileTier = makeTextStyle(
             {.family = text, .pixelSize = 10, .weight = kBold, .letterSpacingEm = 0.08}),
         // .profile-menu-dots: 20px, line-height 1.
         .profileDots =
-            makeStyle({.family = text, .pixelSize = 20, .weight = kRegular, .lineHeight = 20}),
+            makeTextStyle({.family = text, .pixelSize = 20, .weight = kRegular, .lineHeight = 20}),
         // .pb-time: 11px, 500, tabular figures.
-        .playerTime = makeStyle(
+        .playerTime = makeTextStyle(
             {.family = text, .pixelSize = 11, .weight = kMedium, .tabularNumbers = true}),
         // .repeat-one-badge: 8px, 800.
-        .repeatBadge = makeStyle({.family = text, .pixelSize = 8, .weight = kExtraBold}),
+        .repeatBadge = makeTextStyle({.family = text, .pixelSize = 8, .weight = kExtraBold}),
     };
 }
 

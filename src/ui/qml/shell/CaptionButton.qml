@@ -4,7 +4,8 @@ import LastMusicPlayer
 
 // One window caption button (.caption-button, styles.css 196-214): 46px wide,
 // the title strip's height, a Segoe Fluent Icons glyph. Close turns red under
-// the pointer; every glyph dims while the window is inactive.
+// the pointer; every glyph dims while the window is inactive. Over the
+// full-screen player the glyphs are light (styles.css 2316-2318).
 T.AbstractButton {
     id: control
 
@@ -16,6 +17,8 @@ T.AbstractButton {
     property bool externalHover: false
     property bool externalPress: false
     property bool windowActive: true
+    // Over the full-screen player: light glyphs and a faint white hover.
+    property bool overPlayer: false
 
     readonly property bool lit: hovered || externalHover
 
@@ -30,7 +33,7 @@ T.AbstractButton {
 
         text: control.glyph
         font: Theme.captionGlyph
-        color: control.windowActive ? Theme.fg : Theme.fgTertiary
+        color: control.overPlayer ? Theme.fullscreenCaptionGlyph : control.windowActive ? Theme.fg : Theme.fgTertiary
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
     }
@@ -46,6 +49,11 @@ T.AbstractButton {
             name: "closeHover"
             when: control.closeButton && control.lit
             PropertyChanges { surface.color: Theme.captionCloseHover; label.color: Theme.captionCloseGlyph }
+        },
+        State {
+            name: "playerHover"
+            when: control.overPlayer && (control.lit || control.down || control.externalPress)
+            PropertyChanges { surface.color: Theme.fullscreenButtonHover }
         },
         State {
             name: "hover"

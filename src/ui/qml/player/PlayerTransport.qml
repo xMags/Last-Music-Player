@@ -83,7 +83,8 @@ ColumnLayout {
             playerStyle: true
             sourceValue: App.playerBar.progress
             bubbleText: App.playerBar.seekLabelAt(seek.hoverRatio)
-            onCommitted: value => App.playerBar.seekToRatio(value)
+            // The song follows the drag; the bar ignores playback while held.
+            onMoved: App.playerBar.seekToRatio(seek.value)
         }
 
         Text {

@@ -8,8 +8,11 @@ import LastMusicPlayer
 Rectangle {
     id: strip
 
+    // Over the full-screen player the strip is see-through and its buttons light.
+    property bool overPlayer: false
+
     implicitHeight: Theme.titleBarHeight
-    color: App.windowChrome.backdropActive ? "transparent" : Theme.surface
+    color: App.windowChrome.backdropActive || overPlayer ? "transparent" : Theme.surface
 
     function reportButtons() {
         App.windowChrome.setCaptionButtons(minimize.mapToItem(null, 0, 0, minimize.width, minimize.height),
@@ -33,6 +36,7 @@ Rectangle {
 
             glyph: ""
             windowActive: App.windowChrome.active
+            overPlayer: strip.overPlayer
             onClicked: App.windowChrome.minimize()
         }
 
@@ -42,6 +46,7 @@ Rectangle {
 
             glyph: App.windowChrome.maximized ? "" : ""
             windowActive: App.windowChrome.active
+            overPlayer: strip.overPlayer
             externalHover: App.windowChrome.maximizeHovered
             externalPress: App.windowChrome.maximizePressed
             onClicked: App.windowChrome.toggleMaximize()
@@ -53,6 +58,7 @@ Rectangle {
             glyph: ""
             closeButton: true
             windowActive: App.windowChrome.active
+            overPlayer: strip.overPlayer
             onClicked: App.windowChrome.close()
         }
     }

@@ -30,14 +30,13 @@ qreal Motion::rippleDiameter(qreal width, qreal height, qreal x, qreal y) const
 
 namespace {
 
-// Straight-line keyframes at 0, 0.7 and 1, extended past both ends.
-qreal threeKeyframes(qreal progress, qreal start, qreal middle, qreal end)
+// Straight-line keyframes at 0, `at` and 1, extended past both ends.
+qreal threeKeyframes(qreal progress, qreal start, qreal middle, qreal end, qreal at = 0.7)
 {
-    constexpr qreal kMiddle = 0.7;
-    if (progress < kMiddle) {
-        return start + (middle - start) * (progress / kMiddle);
+    if (progress < at) {
+        return start + (middle - start) * (progress / at);
     }
-    return middle + (end - middle) * ((progress - kMiddle) / (1 - kMiddle));
+    return middle + (end - middle) * ((progress - at) / (1 - at));
 }
 
 } // namespace
@@ -55,6 +54,11 @@ qreal Motion::toastEnterOffset(qreal progress) const
 qreal Motion::toastEnterScale(qreal progress) const
 {
     return threeKeyframes(progress, 0.92, 1.01, 1);
+}
+
+qreal Motion::songChangeCoverScale(qreal progress) const
+{
+    return threeKeyframes(progress, 0.9, 1.04, 1, 0.6);
 }
 
 QEasingCurve Motion::cubicBezier(qreal x1, qreal y1, qreal x2, qreal y2)

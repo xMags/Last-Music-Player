@@ -20,7 +20,7 @@ QColor rgba(int red, int green, int blue, float alpha)
 } // namespace
 
 ThemeConstants::ThemeConstants(QObject* parent)
-    : ThemeTypography(parent)
+    : ThemeFullscreen(parent)
 {
 }
 

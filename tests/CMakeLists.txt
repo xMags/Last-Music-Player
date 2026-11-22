@@ -59,8 +59,20 @@ lmp_add_test(tst_shell_layout
     LIBS lmp_ui)
 
 lmp_add_test(tst_player_bar_view_model
-    SOURCES ui/tst_player_bar_view_model.cpp
+    SOURCES ui/tst_player_bar_view_model.cpp core/PlayerFixture.h core/FakeAudioPlayer.h core/FakePlaybackClock.h core/TempLibrary.h
     LIBS lmp_ui)
+
+lmp_add_test(tst_fullscreen_player_view_model
+    SOURCES ui/tst_fullscreen_player_view_model.cpp core/PlayerFixture.h core/FakeAudioPlayer.h core/FakePlaybackClock.h core/TempLibrary.h
+    LIBS lmp_ui)
+
+lmp_add_test(tst_ambient_accent_sampler
+    SOURCES ui/tst_ambient_accent_sampler.cpp core/ArtworkFixtures.h core/PlayerFixture.h core/FakeAudioPlayer.h core/FakePlaybackClock.h core/TempLibrary.h
+    LIBS lmp_ui)
+
+lmp_add_test(tst_artwork_accent
+    SOURCES core/tst_artwork_accent.cpp
+    LIBS lmp_core)
 
 lmp_add_test(tst_result
     SOURCES core/tst_result.cpp

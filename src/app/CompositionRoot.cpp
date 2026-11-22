@@ -7,11 +7,18 @@
 #include <QPointer>
 #include <QQmlApplicationEngine>
 #include <QQmlEngine>
+#include <QString>
 #include <QWindow>
 
+#include <memory>
+
 #include "core/app/AppIdentity.h"
+#include "core/async/Result.h"
+#include "core/playback/QueueEngine.h"
 #include "platform/windows/WindowsAppIdentity.h"
 #include "platform/windows/WindowsSingleInstance.h"
+#include "ui/player/CoverSource.h"
+#include "ui/player/EmbeddedCoverImageProvider.h"
 #include "ui/theme/FontLoader.h"
 #include "ui/theme/Motion.h"
 
@@ -21,19 +28,53 @@ namespace {
 
 Q_LOGGING_CATEGORY(lcComposition, "lmp.app.composition")
 
+// Opens the library database on this (the GUI) thread, its owner. A failure
+// is logged and the app runs on without it: songs still play, but plays and
+// resume points are not stored, and the history stays empty.
+bool openDatabase(core::db::Database& database)
+{
+    const core::Result<void> opened = database.initialize();
+    if (!opened) {
+        qCWarning(lcComposition) << "The library database did not open; running without history:"
+                                 << opened.failure().detail;
+        return false;
+    }
+    return true;
+}
+
 } // namespace
 
 CompositionRoot::CompositionRoot()
     : m_singleInstance(std::make_unique<platform::windows::WindowsSingleInstance>(
           core::AppIdentity::singleInstanceMutexName(), core::AppIdentity::displayName()))
+    , m_paths(core::AppPaths::forCurrentUser())
+    , m_settings(m_paths.settingsFile())
+    , m_database(m_paths)
+    , m_databaseOpen(openDatabase(m_database))
+    , m_tracks(m_database)
+    , m_library(m_database)
+    , m_player({.audio = m_audio, .settings = m_settings, .tracks = m_tracks, .resolver = m_resolver, .clock = m_clock},
+               core::QueueEngine())
+    , m_persistence({.player = m_player,
+                     .settings = m_settings,
+                     .tracks = m_tracks,
+                     .library = m_library,
+                     .userDataGate = m_userDataGate,
+                     .clock = m_clock},
+                    m_paths)
     , m_windowChromeViewModel(&m_windowChrome)
     , m_sidebar(&m_navigator)
+    , m_playerBar(m_player)
+    , m_fullscreen(m_player, m_settings, m_layout, m_toasts)
+    , m_ambient(m_player)
     , m_appRoot({
           .windowChrome = &m_windowChromeViewModel,
           .navigator = &m_navigator,
           .layout = &m_layout,
           .sidebar = &m_sidebar,
           .playerBar = &m_playerBar,
+          .fullscreen = &m_fullscreen,
+          .toasts = &m_toasts,
           .showGallery = QCoreApplication::arguments().contains(QStringLiteral("--gallery")),
       })
 {
@@ -42,11 +83,21 @@ CompositionRoot::CompositionRoot()
     [[maybe_unused]] const bool identitySet =
         platform::windows::WindowsAppIdentity::apply(core::AppIdentity::appUserModelId());
     ui::AppRoot::registerInstance(&m_appRoot);
+
+    // The last song comes back into the player bar once the state file is
+    // read (on the file's worker); the first Play opens it.
+    m_persistence.restoreAtLaunch();
 }
 
 CompositionRoot::~CompositionRoot()
 {
     ui::AppRoot::registerInstance(nullptr);
+    // QML is gone by now (the engine is destroyed first). Stop the sampling
+    // worker, then save where playback stood and wait for the file, then
+    // the pending volume, while every service still exists.
+    m_ambient.shutdown();
+    m_persistence.shutdown();
+    m_player.shutdown();
 }
 
 bool CompositionRoot::claimSingleInstance()
@@ -92,6 +143,10 @@ void CompositionRoot::attachEngine(QQmlEngine& engine)
     ui::FontLoader::loadBundledFonts();
 
     m_theme = engine.singletonInstance<ui::Theme*>("LastMusicPlayer", "Theme");
+    m_ambient.setTheme(m_theme);
+    // The engine takes ownership of the provider.
+    engine.addImageProvider(QString(ui::CoverSource::ProviderId),
+                            std::make_unique<ui::EmbeddedCoverImageProvider>().release());
 
     m_reducedMotion = std::make_unique<platform::windows::WindowsReducedMotion>();
     QPointer<ui::Motion> motion =

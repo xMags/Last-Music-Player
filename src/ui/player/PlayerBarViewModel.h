@@ -5,73 +5,81 @@
 #include <QUrl>
 #include <QtQml/qqmlregistration.h>
 
+namespace lmp::core {
+class PlayerController;
+}
+
 namespace lmp::ui {
 
-// The player bar (`App.playerBar`). Until playback exists it only keeps what
-// is set on it: the buttons flip their states and the sliders store their
-// values. Playback drives it later through the same properties.
+// The player bar (`App.playerBar`), and the song and transport the
+// full-screen player shows: a view of the PlayerController. Every command
+// goes to the controller; every property follows its change signals. The
+// volume is 0 to 100 here and 0 to 1 in the controller.
+//
+// The seek bar keeps its own value while it is held (AppSlider shows
+// `progress` only while not pressed), so position updates never move it
+// under the pointer; seekToRatio() follows the drag, as the design does.
 class PlayerBarViewModel : public QObject {
     Q_OBJECT
     QML_ELEMENT
     QML_UNCREATABLE("Provided by App.playerBar")
 
     Q_PROPERTY(bool hasTrack READ hasTrack NOTIFY trackChanged FINAL)
-    Q_PROPERTY(QString title READ title WRITE setTitle NOTIFY trackChanged FINAL)
-    Q_PROPERTY(QString artist READ artist WRITE setArtist NOTIFY trackChanged FINAL)
+    Q_PROPERTY(QString title READ title NOTIFY trackChanged FINAL)
+    Q_PROPERTY(QString artist READ artist NOTIFY trackChanged FINAL)
     // What the bar shows: the song, or the prompt while nothing is loaded.
     Q_PROPERTY(QString displayTitle READ displayTitle NOTIFY trackChanged FINAL)
     Q_PROPERTY(QString displayArtist READ displayArtist NOTIFY trackChanged FINAL)
-    Q_PROPERTY(QUrl artworkUrl READ artworkUrl WRITE setArtworkUrl NOTIFY trackChanged FINAL)
-    Q_PROPERTY(QString artworkId READ artworkId WRITE setArtworkId NOTIFY trackChanged FINAL)
-    Q_PROPERTY(bool liked READ liked WRITE setLiked NOTIFY stateChanged FINAL)
-    Q_PROPERTY(bool playing READ playing WRITE setPlaying NOTIFY stateChanged FINAL)
-    Q_PROPERTY(bool shuffle READ shuffle WRITE setShuffle NOTIFY stateChanged FINAL)
+    Q_PROPERTY(QUrl artworkUrl READ artworkUrl NOTIFY trackChanged FINAL)
+    Q_PROPERTY(QString artworkId READ artworkId NOTIFY trackChanged FINAL)
+    // What the bar showed before the latest song change (songChanged).
+    Q_PROPERTY(QString previousTitle READ previousTitle NOTIFY trackChanged FINAL)
+    Q_PROPERTY(QString previousArtist READ previousArtist NOTIFY trackChanged FINAL)
+    // The placeholder letter of the cover.
+    Q_PROPERTY(QString artworkLabel READ artworkLabel NOTIFY trackChanged FINAL)
+    Q_PROPERTY(bool liked READ liked NOTIFY stateChanged FINAL)
+    // Playing, or starting to play.
+    Q_PROPERTY(bool playing READ playing NOTIFY stateChanged FINAL)
+    Q_PROPERTY(bool shuffle READ shuffle NOTIFY stateChanged FINAL)
     // 0: off, 1: repeat all, 2: repeat one.
-    Q_PROPERTY(int repeatMode READ repeatMode WRITE setRepeatMode NOTIFY stateChanged FINAL)
-    Q_PROPERTY(qreal elapsedSeconds READ elapsedSeconds WRITE setElapsedSeconds NOTIFY positionChanged FINAL)
-    Q_PROPERTY(qreal totalSeconds READ totalSeconds WRITE setTotalSeconds NOTIFY positionChanged FINAL)
+    Q_PROPERTY(int repeatMode READ repeatMode NOTIFY stateChanged FINAL)
+    Q_PROPERTY(qreal elapsedSeconds READ elapsedSeconds NOTIFY positionChanged FINAL)
+    Q_PROPERTY(qreal totalSeconds READ totalSeconds NOTIFY positionChanged FINAL)
     Q_PROPERTY(QString elapsedText READ elapsedText NOTIFY positionChanged FINAL)
     Q_PROPERTY(QString totalText READ totalText NOTIFY positionChanged FINAL)
     Q_PROPERTY(qreal progress READ progress NOTIFY positionChanged FINAL)
-    // 0 to 100.
-    Q_PROPERTY(int volume READ volume WRITE setVolume NOTIFY volumeChanged FINAL)
-    Q_PROPERTY(bool muted READ muted WRITE setMuted NOTIFY volumeChanged FINAL)
+    // 0 to 100: the level, kept while muted.
+    Q_PROPERTY(int volume READ volume NOTIFY volumeChanged FINAL)
+    Q_PROPERTY(bool muted READ muted NOTIFY volumeChanged FINAL)
+    // What the volume slider shows: 0 while muted, otherwise the level (0 to 1).
+    Q_PROPERTY(qreal volumeRatio READ volumeRatio NOTIFY volumeChanged FINAL)
 
 public:
-    static constexpr int kDefaultVolume = 62;
+    // `player` must outlive this view model.
+    explicit PlayerBarViewModel(core::PlayerController& player, QObject* parent = nullptr);
 
-    explicit PlayerBarViewModel(QObject* parent = nullptr);
-
-    [[nodiscard]] bool hasTrack() const { return !m_title.isEmpty(); }
-    [[nodiscard]] QString title() const { return m_title; }
-    void setTitle(const QString& title);
-    [[nodiscard]] QString artist() const { return m_artist; }
+    [[nodiscard]] bool hasTrack() const;
+    [[nodiscard]] QString title() const;
+    [[nodiscard]] QString artist() const;
     [[nodiscard]] QString displayTitle() const;
     [[nodiscard]] QString displayArtist() const;
-    void setArtist(const QString& artist);
     [[nodiscard]] QUrl artworkUrl() const { return m_artworkUrl; }
-    void setArtworkUrl(const QUrl& url);
     [[nodiscard]] QString artworkId() const { return m_artworkId; }
-    void setArtworkId(const QString& id);
+    [[nodiscard]] QString previousTitle() const { return m_previousTitle; }
+    [[nodiscard]] QString previousArtist() const { return m_previousArtist; }
+    [[nodiscard]] QString artworkLabel() const;
     [[nodiscard]] bool liked() const { return m_liked; }
-    void setLiked(bool liked);
-    [[nodiscard]] bool playing() const { return m_playing; }
-    void setPlaying(bool playing);
-    [[nodiscard]] bool shuffle() const { return m_shuffle; }
-    void setShuffle(bool shuffle);
-    [[nodiscard]] int repeatMode() const { return m_repeatMode; }
-    void setRepeatMode(int mode);
-    [[nodiscard]] qreal elapsedSeconds() const { return m_elapsed; }
-    void setElapsedSeconds(qreal seconds);
-    [[nodiscard]] qreal totalSeconds() const { return m_total; }
-    void setTotalSeconds(qreal seconds);
-    [[nodiscard]] QString elapsedText() const { return formatTime(m_elapsed); }
-    [[nodiscard]] QString totalText() const { return formatTime(m_total); }
+    [[nodiscard]] bool playing() const;
+    [[nodiscard]] bool shuffle() const;
+    [[nodiscard]] int repeatMode() const;
+    [[nodiscard]] qreal elapsedSeconds() const;
+    [[nodiscard]] qreal totalSeconds() const;
+    [[nodiscard]] QString elapsedText() const { return formatTime(elapsedSeconds()); }
+    [[nodiscard]] QString totalText() const { return formatTime(totalSeconds()); }
     [[nodiscard]] qreal progress() const;
-    [[nodiscard]] int volume() const { return m_volume; }
-    void setVolume(int volume);
-    [[nodiscard]] bool muted() const { return m_muted; }
-    void setMuted(bool muted);
+    [[nodiscard]] int volume() const;
+    [[nodiscard]] bool muted() const;
+    [[nodiscard]] qreal volumeRatio() const;
 
     Q_INVOKABLE void togglePlay();
     Q_INVOKABLE void previous();
@@ -79,11 +87,13 @@ public:
     Q_INVOKABLE void toggleShuffle();
     // Off, then repeat all, then repeat one, then off again.
     Q_INVOKABLE void cycleRepeat();
+    // Only the shown state for now: liking is stored once the library exists.
     Q_INVOKABLE void toggleLike();
     Q_INVOKABLE void toggleMute();
     Q_INVOKABLE void share();
     // Seeks to a point along the song, 0 to 1.
     Q_INVOKABLE void seekToRatio(qreal ratio);
+    // Sets the level, 0 to 1 (rounded to whole percent); ends mute.
     Q_INVOKABLE void setVolumeRatio(qreal ratio);
     // What the seek bubble shows at a point along the bar: the time there,
     // or nothing when no song with a known length is loaded.
@@ -99,23 +109,25 @@ signals:
     void stateChanged();
     void positionChanged();
     void volumeChanged();
-    void previousRequested();
-    void nextRequested();
     void shareRequested();
+    // Another song replaced the one shown (not the launch restore, which
+    // shows a song without opening it); previousTitle and previousArtist
+    // hold what was shown before, for the song-change motion.
+    void songChanged();
 
 private:
-    QString m_title;
-    QString m_artist;
+    void onTrackChanged();
+
+    core::PlayerController& m_player;
+    // The identity of the song shown; empty while idle.
+    QString m_shownIdentity;
+    QString m_shownTitle;
+    QString m_shownArtist;
     QUrl m_artworkUrl;
     QString m_artworkId;
+    QString m_previousTitle;
+    QString m_previousArtist;
     bool m_liked = false;
-    bool m_playing = false;
-    bool m_shuffle = false;
-    int m_repeatMode = 0;
-    qreal m_elapsed = 0;
-    qreal m_total = 0;
-    int m_volume = kDefaultVolume;
-    bool m_muted = false;
 };
 
 } // namespace lmp::ui

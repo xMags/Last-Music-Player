@@ -103,6 +103,8 @@ qt_add_library(lmp_core STATIC
     net/ProviderUrlCredential.h
     net/RemoteUrlPolicy.cpp
     net/RemoteUrlPolicy.h
+    playback/ArtworkAccent.cpp
+    playback/ArtworkAccent.h
     playback/BrokenTrackGuard.h
     playback/LastTrackIdentity.cpp
     playback/LastTrackIdentity.h

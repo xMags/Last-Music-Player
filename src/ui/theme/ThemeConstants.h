@@ -5,15 +5,15 @@
 #include <QString>
 #include <QVariantList>
 
-#include "ui/theme/ThemeTypography.h"
+#include "ui/theme/ThemeFullscreen.h"
 
 namespace lmp::ui {
 
 // The part of the theme that is the same in light and dark and for every
 // accent: corner radii, fixed layout sizes and fixed colours. Theme derives
-// from it (and it from ThemeTypography) so QML reads every token flat, as
-// `Theme.radiusMd`.
-class ThemeConstants : public ThemeTypography {
+// from it (and it from ThemeFullscreen, which derives from ThemeTypography)
+// so QML reads every token flat, as `Theme.radiusMd`.
+class ThemeConstants : public ThemeFullscreen {
     Q_OBJECT
 
     // Corner scale.

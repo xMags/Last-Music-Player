@@ -25,6 +25,22 @@ struct TextStyle {
     qreal lineHeight = 0;
 };
 
+// What a text style is made from, in CSS terms.
+struct TextStyleSpec {
+    const QString& family;
+    qreal pixelSize;
+    // The CSS 100 to 1000 scale, which QFont shares.
+    int weight;
+    qreal lineHeight = 0;
+    // CSS letter-spacing in em; converted to pixels for QFont.
+    qreal letterSpacingEm = 0;
+    bool uppercase = false;
+    // font-variant-numeric: tabular-nums, so changing digits do not shift.
+    bool tabularNumbers = false;
+};
+
+[[nodiscard]] TextStyle makeTextStyle(const TextStyleSpec& spec);
+
 // Every named text style of the design.
 struct TextStyles {
     TextStyle body;

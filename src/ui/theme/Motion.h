@@ -70,6 +70,14 @@ class Motion : public QObject {
     // outward from the middle.
     Q_PROPERTY(int logoRipple READ logoRipple CONSTANT FINAL)
     Q_PROPERTY(int logoRippleStep READ logoRippleStep CONSTANT FINAL)
+    // A new song in the player bar: the old title and artist leave (ease-in),
+    // the new ones rise in after a short delay and the cover settles (water).
+    Q_PROPERTY(int songChangeOut READ songChangeOut CONSTANT FINAL)
+    Q_PROPERTY(int songChangeIn READ songChangeIn CONSTANT FINAL)
+    Q_PROPERTY(int songChangeInDelay READ songChangeInDelay CONSTANT FINAL)
+    Q_PROPERTY(int songChangeCover READ songChangeCover CONSTANT FINAL)
+    // How far, in pixels, the text travels.
+    Q_PROPERTY(int songChangeShift READ songChangeShift CONSTANT FINAL)
 
     Q_PROPERTY(bool reduced READ reduced WRITE setReduced NOTIFY reducedChanged FINAL)
 
@@ -120,6 +128,11 @@ public:
     [[nodiscard]] int navItemFade() const { return 100; }
     [[nodiscard]] int logoRipple() const { return 1900; }
     [[nodiscard]] int logoRippleStep() const { return 160; }
+    [[nodiscard]] int songChangeOut() const { return 220; }
+    [[nodiscard]] int songChangeIn() const { return 320; }
+    [[nodiscard]] int songChangeInDelay() const { return 90; }
+    [[nodiscard]] int songChangeCover() const { return 380; }
+    [[nodiscard]] int songChangeShift() const { return 10; }
 
     [[nodiscard]] bool reduced() const { return m_reduced; }
     void setReduced(bool reduced);
@@ -138,6 +151,9 @@ public:
     Q_INVOKABLE qreal toastEnterOpacity(qreal progress) const;
     Q_INVOKABLE qreal toastEnterOffset(qreal progress) const;
     Q_INVOKABLE qreal toastEnterScale(qreal progress) const;
+    // The cover of a new song: scale 0.9, 1.04 at 60% and 1 at the end,
+    // straight lines between, the curve applied to the whole run.
+    Q_INVOKABLE qreal songChangeCoverScale(qreal progress) const;
 
 signals:
     void reducedChanged();

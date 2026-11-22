@@ -50,6 +50,13 @@ set(LMP_UI_QML_FILES
     qml/dev/GalleryPanels.qml
     qml/dev/GallerySection.qml
     qml/dev/GalleryTokens.qml
+    qml/player/FullscreenBackdrop.qml
+    qml/player/FullscreenBody.qml
+    qml/player/FullscreenButton.qml
+    qml/player/FullscreenPlayButton.qml
+    qml/player/FullscreenPlayer.qml
+    qml/player/FullscreenSidePanel.qml
+    qml/player/FullscreenTabs.qml
     qml/player/IdleArt.qml
     qml/player/PlayerBar.qml
     qml/player/PlayerTrackBlock.qml
@@ -95,6 +102,14 @@ qt_add_qml_module(lmp_ui
         navigation/Route.h
         navigation/RouteRules.cpp
         navigation/RouteRules.h
+        player/AmbientAccentSampler.cpp
+        player/AmbientAccentSampler.h
+        player/CoverSource.cpp
+        player/CoverSource.h
+        player/EmbeddedCoverImageProvider.cpp
+        player/EmbeddedCoverImageProvider.h
+        player/FullscreenPlayerViewModel.cpp
+        player/FullscreenPlayerViewModel.h
         player/PlayerBarViewModel.cpp
         player/PlayerBarViewModel.h
         shell/AppRoot.cpp
@@ -123,6 +138,8 @@ qt_add_qml_module(lmp_ui
         theme/ThemeColors.h
         theme/ThemeConstants.cpp
         theme/ThemeConstants.h
+        theme/ThemeFullscreen.cpp
+        theme/ThemeFullscreen.h
         theme/ThemePalette.cpp
         theme/ThemePalette.h
         theme/ThemeTypography.cpp
@@ -153,7 +170,7 @@ target_include_directories(lmp_ui
     PRIVATE ${LMP_UI_TYPE_FOLDERS})
 
 target_link_libraries(lmp_ui
-    PUBLIC lmp_core Qt6::Gui Qt6::Qml Qt6::Quick Qt6::QuickControls2)
+    PUBLIC lmp_core Qt6::Concurrent Qt6::Gui Qt6::Qml Qt6::Quick Qt6::QuickControls2)
 
 lmp_enable_warnings(lmp_ui)
 

@@ -7,8 +7,10 @@
 #include "ui/navigation/Navigator.h"
 #include "ui/shell/ShellLayoutViewModel.h"
 #include "ui/shell/SidebarViewModel.h"
+#include "ui/player/FullscreenPlayerViewModel.h"
 #include "ui/player/PlayerBarViewModel.h"
 #include "ui/shell/WindowChromeViewModel.h"
+#include "ui/toasts/ToastQueue.h"
 
 class QJSEngine;
 class QQmlEngine;
@@ -30,6 +32,9 @@ class AppRoot : public QObject {
     Q_PROPERTY(lmp::ui::ShellLayoutViewModel* layout READ layout CONSTANT FINAL)
     Q_PROPERTY(lmp::ui::SidebarViewModel* sidebar READ sidebar CONSTANT FINAL)
     Q_PROPERTY(lmp::ui::PlayerBarViewModel* playerBar READ playerBar CONSTANT FINAL)
+    Q_PROPERTY(lmp::ui::FullscreenPlayerViewModel* fullscreen READ fullscreen CONSTANT FINAL)
+    // The short messages above the player bar.
+    Q_PROPERTY(lmp::ui::ToastQueue* toasts READ toasts CONSTANT FINAL)
     // Started with --gallery: the design gallery shows instead of the shell.
     Q_PROPERTY(bool showGallery READ showGallery CONSTANT FINAL)
 
@@ -41,6 +46,8 @@ public:
         ShellLayoutViewModel* layout = nullptr;
         SidebarViewModel* sidebar = nullptr;
         PlayerBarViewModel* playerBar = nullptr;
+        FullscreenPlayerViewModel* fullscreen = nullptr;
+        ToastQueue* toasts = nullptr;
         bool showGallery = false;
     };
 
@@ -56,6 +63,8 @@ public:
     [[nodiscard]] ShellLayoutViewModel* layout() const { return m_parts.layout; }
     [[nodiscard]] SidebarViewModel* sidebar() const { return m_parts.sidebar; }
     [[nodiscard]] PlayerBarViewModel* playerBar() const { return m_parts.playerBar; }
+    [[nodiscard]] FullscreenPlayerViewModel* fullscreen() const { return m_parts.fullscreen; }
+    [[nodiscard]] ToastQueue* toasts() const { return m_parts.toasts; }
     [[nodiscard]] bool showGallery() const { return m_parts.showGallery; }
 
     // Called by the QML engine the first time QML uses `App`. Returns the
