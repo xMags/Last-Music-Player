@@ -99,6 +99,16 @@ QColor ThemeConstants::artSheenBottom()
     return rgba(0, 0, 0, 0.10f);
 }
 
+QColor ThemeConstants::captionCloseHover()
+{
+    return QColor(0xc4, 0x2b, 0x1c);
+}
+
+QColor ThemeConstants::captionCloseGlyph()
+{
+    return QColor(Qt::white);
+}
+
 QColor ThemeConstants::swatchRing()
 {
     return rgba(0, 0, 0, 0.12f);

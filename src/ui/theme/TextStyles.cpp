@@ -63,6 +63,8 @@ FontFamilies FontFamilies::resolve()
             {QStringLiteral("Segoe UI Variable Display"), QStringLiteral("Segoe UI")}),
         .expressive = FontLoader::firstAvailableFamily(
             {QStringLiteral("Mr De Haviland"), QStringLiteral("Segoe Script")}),
+        .captionIcons = FontLoader::firstAvailableFamily(
+            {QStringLiteral("Segoe Fluent Icons"), QStringLiteral("Segoe MDL2 Assets")}),
     };
 }
 
@@ -140,6 +142,8 @@ TextStyles TextStyles::build(const FontFamilies& families)
         .toastAction = makeStyle({.family = text, .pixelSize = 12.5, .weight = kBold}),
         .artTileLabel = makeStyle({.family = text, .pixelSize = 22, .weight = kBold}),
         .artTileLabelBig = makeStyle({.family = text, .pixelSize = 48, .weight = kBold}),
+        .captionGlyph =
+            makeStyle({.family = families.captionIcons, .pixelSize = 10, .weight = kRegular}),
     };
 }
 

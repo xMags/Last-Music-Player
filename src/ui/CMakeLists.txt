@@ -48,7 +48,9 @@ set(LMP_UI_QML_FILES
     qml/dev/GalleryIcons.qml
     qml/dev/GalleryOverlays.qml
     qml/dev/GallerySection.qml
-    qml/dev/GalleryTokens.qml)
+    qml/dev/GalleryTokens.qml
+    qml/shell/CaptionButton.qml
+    qml/shell/TitleStrip.qml)
 
 qt_add_qml_module(lmp_ui
     URI LastMusicPlayer
@@ -74,6 +76,8 @@ qt_add_qml_module(lmp_ui
         menus/MenuItemListModel.h
         shell/AppRoot.cpp
         shell/AppRoot.h
+        shell/WindowChromeViewModel.cpp
+        shell/WindowChromeViewModel.h
         theme/ColorMix.cpp
         theme/ColorMix.h
         theme/FontLoader.cpp

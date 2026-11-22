@@ -6,11 +6,13 @@ qt_add_library(lmp_platform_windows STATIC
     WindowsReducedMotion.cpp
     WindowsReducedMotion.h
     WindowsSingleInstance.cpp
-    WindowsSingleInstance.h)
+    WindowsSingleInstance.h
+    WindowsWindowChrome.cpp
+    WindowsWindowChrome.h)
 
 target_link_libraries(lmp_platform_windows
     PUBLIC lmp_core Qt6::Core
-    PRIVATE user32 shell32)
+    PRIVATE user32 shell32 dwmapi)
 
 target_compile_definitions(lmp_platform_windows PRIVATE
     WIN32_LEAN_AND_MEAN

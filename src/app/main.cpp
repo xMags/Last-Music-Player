@@ -31,6 +31,9 @@ int main(int argc, char* argv[])
         []() { QCoreApplication::exit(1); }, Qt::QueuedConnection);
     root.attachEngine(engine);
     engine.loadFromModule("LastMusicPlayer", "Main");
+    if (!root.showMainWindow(engine)) {
+        return 1;
+    }
 
     // Used by automated checks: prove the window loads, then leave.
     if (QCoreApplication::arguments().contains(QStringLiteral("--smoke-test"))) {

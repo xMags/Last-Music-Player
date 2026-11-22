@@ -15,8 +15,9 @@ AppRoot* g_instance = nullptr;
 
 } // namespace
 
-AppRoot::AppRoot(QObject* parent)
+AppRoot::AppRoot(WindowChromeViewModel* windowChrome, QObject* parent)
     : QObject(parent)
+    , m_windowChrome(windowChrome)
 {
 }
 

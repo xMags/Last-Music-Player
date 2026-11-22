@@ -10,6 +10,8 @@ struct FontFamilies {
     QString text;
     QString display;
     QString expressive;
+    // The glyph font of the window caption buttons.
+    QString captionIcons;
 
     // Picks the first installed family of each design stack.
     [[nodiscard]] static FontFamilies resolve();
@@ -58,6 +60,7 @@ struct TextStyles {
     TextStyle toastAction;
     TextStyle artTileLabel;
     TextStyle artTileLabelBig;
+    TextStyle captionGlyph;
 
     [[nodiscard]] static TextStyles build(const FontFamilies& families);
 };

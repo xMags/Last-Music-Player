@@ -1,11 +1,17 @@
 #pragma once
 
+#include <QPointer>
+
 #include <memory>
 
 #include "platform/ISingleInstance.h"
 #include "platform/windows/WindowsReducedMotion.h"
+#include "platform/windows/WindowsWindowChrome.h"
 #include "ui/shell/AppRoot.h"
+#include "ui/shell/WindowChromeViewModel.h"
+#include "ui/theme/Theme.h"
 
+class QQmlApplicationEngine;
 class QQmlEngine;
 
 namespace lmp::app {
@@ -30,10 +36,17 @@ public:
     // once, after the engine exists and before QML is loaded.
     void attachEngine(QQmlEngine& engine);
 
+    // Takes over the frame of the main window the engine loaded, then shows
+    // it. Returns false when there is no window to show.
+    [[nodiscard]] bool showMainWindow(QQmlApplicationEngine& engine);
+
 private:
     std::unique_ptr<platform::ISingleInstance> m_singleInstance;
     std::unique_ptr<platform::windows::WindowsReducedMotion> m_reducedMotion;
+    platform::windows::WindowsWindowChrome m_windowChrome;
+    ui::WindowChromeViewModel m_windowChromeViewModel;
     ui::AppRoot m_appRoot;
+    QPointer<ui::Theme> m_theme; // owned by the QML engine
 };
 
 } // namespace lmp::app
