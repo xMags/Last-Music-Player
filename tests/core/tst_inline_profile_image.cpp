@@ -4,6 +4,7 @@
 
 #include "core/net/InlineProfileImage.h"
 
+using lmp::core::net::isInlineProfileImageData;
 using lmp::core::net::isSafeInlineProfileImage;
 
 class InlineProfileImageTest : public QObject {
@@ -14,6 +15,7 @@ private slots:
     void refusesOtherShapes();
     void refusesMalformedPayloads();
     void refusesOversizedPictures();
+    void tellsInlineDataFromAddresses();
 };
 
 void InlineProfileImageTest::acceptsStillImages()
@@ -57,6 +59,17 @@ void InlineProfileImageTest::refusesOversizedPictures()
     // Just under the limit is still accepted.
     const qsizetype payload = (1'500'000 - header.size()) / 4 * 4;
     QVERIFY(isSafeInlineProfileImage(header + QString(payload, QLatin1Char('A'))));
+}
+
+void InlineProfileImageTest::tellsInlineDataFromAddresses()
+{
+    // An address is not inline data; the scheme is compared without case.
+    QVERIFY(isInlineProfileImageData(
+        QStringLiteral("data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7")));
+    QVERIFY(!isInlineProfileImageData(QStringLiteral("https://cdn.example.test/a.png")));
+    QVERIFY(isInlineProfileImageData(QStringLiteral("DATA:")));
+    QVERIFY(!isInlineProfileImageData(QStringLiteral("data")));
+    QVERIFY(!isInlineProfileImageData(QString()));
 }
 
 QTEST_GUILESS_MAIN(InlineProfileImageTest)

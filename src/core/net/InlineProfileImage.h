@@ -13,4 +13,10 @@ namespace lmp::core::net {
 // value reaches the image decoder or the account database.
 [[nodiscard]] bool isSafeInlineProfileImage(const QString& value);
 
+// Whether a stored profile picture is inline data rather than an address: it
+// starts with "data:", A to Z compared without regard to case. A cheap test
+// for callers that must route the two apart; it says nothing about whether
+// the payload is safe.
+[[nodiscard]] bool isInlineProfileImageData(const QString& value);
+
 } // namespace lmp::core::net

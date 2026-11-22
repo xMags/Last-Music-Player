@@ -285,3 +285,7 @@ lmp_add_test(tst_media_controls_bridge
 lmp_add_test(tst_playback_key_guard
     SOURCES ui/tst_playback_key_guard.cpp
     LIBS lmp_ui)
+
+lmp_add_test(tst_account_url_policy
+    SOURCES core/tst_account_url_policy.cpp
+    LIBS lmp_core)

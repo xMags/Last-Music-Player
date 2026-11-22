@@ -1,5 +1,7 @@
 #include "core/net/InlineProfileImage.h"
 
+#include "core/text/CaseFold.h"
+
 #include <QChar>
 #include <QLatin1StringView>
 #include <QStringView>
@@ -82,6 +84,12 @@ bool isSafeInlineProfileImage(const QString& value)
         }
     }
     return true;
+}
+
+bool isInlineProfileImageData(const QString& value)
+{
+    constexpr QLatin1StringView kScheme{"data:"};
+    return value.size() >= kScheme.size() && foldCaseAscii(QStringView(value).first(kScheme.size())) == kScheme;
 }
 
 } // namespace lmp::core::net

@@ -20,6 +20,18 @@ struct AppIdentity {
     [[nodiscard]] static QString singleInstanceMutexName();
 
     [[nodiscard]] static QString version();
+
+    // Public values the account service knows this application by. They
+    // name the client, are not secrets, and match earlier versions.
+
+    // The client id sent with sign-in and the token exchange.
+    [[nodiscard]] static QString accountClientId();
+
+    // The X-Requested-With value sent on every account request.
+    [[nodiscard]] static QString accountRequestedWith();
+
+    // The path of the loopback address the browser returns to after sign-in.
+    [[nodiscard]] static QString accountCallbackPath();
 };
 
 } // namespace lmp::core

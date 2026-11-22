@@ -1,5 +1,7 @@
 qt_add_library(lmp_core STATIC
     account/AccountDataLifecycleStorage.h
+    account/AccountUrlPolicy.cpp
+    account/AccountUrlPolicy.h
     account/AutoSyncPolicy.cpp
     account/AutoSyncPolicy.h
     account/SecretStore.cpp

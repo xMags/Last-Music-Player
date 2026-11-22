@@ -11,6 +11,7 @@ class AppIdentityTest : public QObject {
 private slots:
     void identityMatchesInstalledVersions();
     void versionIsSet();
+    void accountValuesMatchInstalledVersions();
 };
 
 void AppIdentityTest::identityMatchesInstalledVersions()
@@ -25,6 +26,13 @@ void AppIdentityTest::identityMatchesInstalledVersions()
 void AppIdentityTest::versionIsSet()
 {
     QVERIFY(lmp::core::AppIdentity::version().startsWith(QStringLiteral("2.")));
+}
+
+void AppIdentityTest::accountValuesMatchInstalledVersions()
+{
+    QCOMPARE(lmp::core::AppIdentity::accountClientId(), QStringLiteral("last-music-desktop"));
+    QCOMPARE(lmp::core::AppIdentity::accountRequestedWith(), QStringLiteral("last-music-desktop"));
+    QCOMPARE(lmp::core::AppIdentity::accountCallbackPath(), QStringLiteral("/callback"));
 }
 
 QTEST_GUILESS_MAIN(AppIdentityTest)

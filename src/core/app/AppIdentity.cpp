@@ -27,4 +27,19 @@ QString AppIdentity::version()
     return QStringLiteral(LMP_VERSION_STRING);
 }
 
+QString AppIdentity::accountClientId()
+{
+    return QStringLiteral("last-music-desktop");
+}
+
+QString AppIdentity::accountRequestedWith()
+{
+    return QStringLiteral("last-music-desktop");
+}
+
+QString AppIdentity::accountCallbackPath()
+{
+    return QStringLiteral("/callback");
+}
+
 } // namespace lmp::core
