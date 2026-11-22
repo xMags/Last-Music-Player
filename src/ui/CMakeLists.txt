@@ -17,6 +17,7 @@ set(LMP_UI_QML_FILES
     qml/controls/AppSelect.qml
     qml/controls/AppSlider.qml
     qml/controls/AppSwitch.qml
+    qml/controls/ArtTile.qml
     qml/controls/BoxShadow.qml
     qml/controls/ButtonSurface.qml
     qml/controls/Chip.qml
@@ -29,6 +30,10 @@ set(LMP_UI_QML_FILES
     qml/controls/Ripple.qml
     qml/controls/SearchField.qml
     qml/controls/SegmentedControl.qml
+    qml/controls/Skeleton.qml
+    qml/controls/SkeletonGrid.qml
+    qml/controls/SkeletonRows.qml
+    qml/controls/SkeletonSweep.qml
     qml/controls/SliderBubble.qml
     qml/controls/TextPromptDialog.qml
     qml/controls/Toast.qml

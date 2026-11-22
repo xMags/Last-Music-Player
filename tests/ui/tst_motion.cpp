@@ -90,6 +90,8 @@ void MotionTest::durationsMatchReference()
     QCOMPARE(motion.toastEnter(), 420);
     QCOMPARE(motion.toastExit(), 200);
     QCOMPARE(motion.toastReflow(), 280);
+    QCOMPARE(motion.skeletonSweep(), 2800);
+    QCOMPARE(motion.artRevealTimeout(), 2500);
 }
 
 void MotionTest::reducedNotifiesOnChangeOnly()

@@ -41,3 +41,7 @@ lmp_add_test(tst_toast_queue
 lmp_add_test(tst_menu_item_list_model
     SOURCES ui/tst_menu_item_list_model.cpp
     LIBS lmp_ui)
+
+lmp_add_test(tst_artwork_placeholder
+    SOURCES core/tst_artwork_placeholder.cpp
+    LIBS lmp_core)

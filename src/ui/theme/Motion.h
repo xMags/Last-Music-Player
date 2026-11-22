@@ -27,6 +27,7 @@ class Motion : public QObject {
     // The CSS keywords `ease-in` and `ease-out`, and a straight line.
     Q_PROPERTY(QEasingCurve easeIn READ easeIn CONSTANT FINAL)
     Q_PROPERTY(QEasingCurve easeOut READ easeOut CONSTANT FINAL)
+    Q_PROPERTY(QEasingCurve easeInOut READ easeInOut CONSTANT FINAL)
     Q_PROPERTY(QEasingCurve linear READ linear CONSTANT FINAL)
 
     // Durations in milliseconds.
@@ -57,6 +58,10 @@ class Motion : public QObject {
     Q_PROPERTY(int toastEnter READ toastEnter CONSTANT FINAL)
     Q_PROPERTY(int toastExit READ toastExit CONSTANT FINAL)
     Q_PROPERTY(int toastReflow READ toastReflow CONSTANT FINAL)
+    // One full pass of the loading-skeleton sweep, pauses included.
+    Q_PROPERTY(int skeletonSweep READ skeletonSweep CONSTANT FINAL)
+    // How long a cover crossfade waits for the new picture.
+    Q_PROPERTY(int artRevealTimeout READ artRevealTimeout CONSTANT FINAL)
 
     Q_PROPERTY(bool reduced READ reduced WRITE setReduced NOTIFY reducedChanged FINAL)
 
@@ -72,6 +77,7 @@ public:
     [[nodiscard]] QEasingCurve bubblePop() const { return m_bubblePop; }
     [[nodiscard]] QEasingCurve easeIn() const { return m_easeIn; }
     [[nodiscard]] QEasingCurve easeOut() const { return m_easeOut; }
+    [[nodiscard]] QEasingCurve easeInOut() const { return m_easeInOut; }
     [[nodiscard]] QEasingCurve linear() const { return QEasingCurve(QEasingCurve::Linear); }
 
     [[nodiscard]] int page() const { return 280; }
@@ -99,6 +105,8 @@ public:
     [[nodiscard]] int toastEnter() const { return 420; }
     [[nodiscard]] int toastExit() const { return 200; }
     [[nodiscard]] int toastReflow() const { return 280; }
+    [[nodiscard]] int skeletonSweep() const { return 2800; }
+    [[nodiscard]] int artRevealTimeout() const { return 2500; }
 
     [[nodiscard]] bool reduced() const { return m_reduced; }
     void setReduced(bool reduced);
@@ -131,6 +139,7 @@ private:
     QEasingCurve m_bubblePop = cubicBezier(0.3, 1.4, 0.5, 1);
     QEasingCurve m_easeIn = cubicBezier(0.42, 0, 1, 1);
     QEasingCurve m_easeOut = cubicBezier(0, 0, 0.58, 1);
+    QEasingCurve m_easeInOut = cubicBezier(0.42, 0, 0.58, 1);
     bool m_reduced = false;
 };
 

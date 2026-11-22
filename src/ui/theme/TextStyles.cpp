@@ -138,6 +138,8 @@ TextStyles TextStyles::build(const FontFamilies& families)
         .errorText = makeStyle({.family = text, .pixelSize = 12.5, .weight = kRegular}),
         .toastLabel = makeStyle({.family = text, .pixelSize = 12.5, .weight = kRegular}),
         .toastAction = makeStyle({.family = text, .pixelSize = 12.5, .weight = kBold}),
+        .artTileLabel = makeStyle({.family = text, .pixelSize = 22, .weight = kBold}),
+        .artTileLabelBig = makeStyle({.family = text, .pixelSize = 48, .weight = kBold}),
     };
 }
 

@@ -3,6 +3,8 @@ qt_add_library(lmp_core STATIC
     app/AppIdentity.h
     config/PrivateConfig.cpp
     config/PrivateConfig.h
+    model/ArtworkPlaceholder.cpp
+    model/ArtworkPlaceholder.h
     ../platform/IReducedMotion.h)
 
 target_include_directories(lmp_core

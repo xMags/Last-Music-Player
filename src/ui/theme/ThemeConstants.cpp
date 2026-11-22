@@ -2,6 +2,7 @@
 
 #include <QVariant>
 
+#include "core/model/ArtworkPlaceholder.h"
 #include "ui/theme/ShadowLayer.h"
 #include "ui/theme/ThemePalette.h"
 
@@ -76,6 +77,40 @@ QVariantList ThemeConstants::shadowDialog()
 QVariantList ThemeConstants::shadowToast()
 {
     return shadowLayers({{0, 14, 34, 0, rgba(0, 0, 0, 0.22f)}});
+}
+
+QColor ThemeConstants::artLabel()
+{
+    return rgba(255, 255, 255, 0.88f);
+}
+
+QColor ThemeConstants::artLabelShadow()
+{
+    return rgba(0, 0, 0, 0.18f);
+}
+
+QColor ThemeConstants::artSheenTop()
+{
+    return rgba(255, 255, 255, 0.15f);
+}
+
+QColor ThemeConstants::artSheenBottom()
+{
+    return rgba(0, 0, 0, 0.10f);
+}
+
+QColor ThemeConstants::artworkGradientStart(const QString& id) const
+{
+    const int index = core::ArtworkPlaceholder::gradientIndexForId(
+        id, static_cast<int>(kArtworkGradientCount));
+    return artworkGradients().at(static_cast<std::size_t>(index)).first;
+}
+
+QColor ThemeConstants::artworkGradientEnd(const QString& id) const
+{
+    const int index = core::ArtworkPlaceholder::gradientIndexForId(
+        id, static_cast<int>(kArtworkGradientCount));
+    return artworkGradients().at(static_cast<std::size_t>(index)).second;
 }
 
 QVariantList ThemeConstants::artworkGradientList()

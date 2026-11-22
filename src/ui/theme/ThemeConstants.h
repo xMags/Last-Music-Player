@@ -2,6 +2,7 @@
 
 #include <QColor>
 #include <QObject>
+#include <QString>
 #include <QVariantList>
 
 #include "ui/theme/ThemeTypography.h"
@@ -51,6 +52,13 @@ class ThemeConstants : public ThemeTypography {
     Q_PROPERTY(QVariantList shadowDialog READ shadowDialog CONSTANT FINAL)
     Q_PROPERTY(QVariantList shadowToast READ shadowToast CONSTANT FINAL)
 
+    // Cover placeholders: the letter, its soft shadow, and the light-to-dark
+    // sheen laid over the gradient.
+    Q_PROPERTY(QColor artLabel READ artLabel CONSTANT FINAL)
+    Q_PROPERTY(QColor artLabelShadow READ artLabelShadow CONSTANT FINAL)
+    Q_PROPERTY(QColor artSheenTop READ artSheenTop CONSTANT FINAL)
+    Q_PROPERTY(QColor artSheenBottom READ artSheenBottom CONSTANT FINAL)
+
     Q_PROPERTY(qreal disabledOpacity READ disabledOpacity CONSTANT FINAL)
     Q_PROPERTY(qreal disabledSwitchOpacity READ disabledSwitchOpacity CONSTANT FINAL)
     Q_PROPERTY(int focusRingWidth READ focusRingWidth CONSTANT FINAL)
@@ -75,6 +83,10 @@ public:
     [[nodiscard]] static QVariantList artworkGradientList();
     [[nodiscard]] static QVariantList accentSeedList();
 
+    // The two colours of the placeholder gradient for an item id.
+    Q_INVOKABLE QColor artworkGradientStart(const QString& id) const;
+    Q_INVOKABLE QColor artworkGradientEnd(const QString& id) const;
+
     [[nodiscard]] static QColor rippleFill();
     [[nodiscard]] static QColor rippleFillOnDark();
     [[nodiscard]] static QColor rippleRingOnDark();
@@ -82,6 +94,10 @@ public:
     [[nodiscard]] static QColor overlayButtonHover();
     [[nodiscard]] static QColor onOverlay();
     [[nodiscard]] static QVariantList shadowPlayButton();
+    [[nodiscard]] static QColor artLabel();
+    [[nodiscard]] static QColor artLabelShadow();
+    [[nodiscard]] static QColor artSheenTop();
+    [[nodiscard]] static QColor artSheenBottom();
     [[nodiscard]] static QVariantList shadowBubble();
     [[nodiscard]] static QVariantList shadowMenu();
     [[nodiscard]] static QVariantList shadowDialog();

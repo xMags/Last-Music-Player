@@ -56,6 +56,8 @@ struct TextStyles {
     TextStyle errorText;
     TextStyle toastLabel;
     TextStyle toastAction;
+    TextStyle artTileLabel;
+    TextStyle artTileLabelBig;
 
     [[nodiscard]] static TextStyles build(const FontFamilies& families);
 };
