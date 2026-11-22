@@ -1,5 +1,7 @@
 qt_add_library(lmp_core STATIC
     account/AccountDataLifecycleStorage.h
+    account/AutoSyncPolicy.cpp
+    account/AutoSyncPolicy.h
     account/SecretStore.cpp
     account/SecretStore.h
     app/AppIdentity.cpp
@@ -52,6 +54,8 @@ qt_add_library(lmp_core STATIC
     db/TrackRows.cpp
     db/TrackRows.h
     db/TrackSchema.h
+    downloads/DownloadPolicy.cpp
+    downloads/DownloadPolicy.h
     library/ArtworkByteSource.cpp
     library/ArtworkByteSource.h
     library/ArtworkPictureCandidate.cpp
@@ -97,6 +101,9 @@ qt_add_library(lmp_core STATIC
     net/ProviderUrlCredential.h
     net/RemoteUrlPolicy.cpp
     net/RemoteUrlPolicy.h
+    playback/PlaybackHistoryQualifier.cpp
+    playback/PlaybackHistoryQualifier.h
+    playback/ResumePositionPolicy.h
     settings/SettingKeys.h
     settings/SettingsStore.cpp
     settings/SettingsStore.h

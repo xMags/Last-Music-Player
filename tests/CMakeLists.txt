@@ -201,3 +201,19 @@ lmp_add_test(tst_user_data_operation_gate
 lmp_add_test(tst_embedded_artwork
     SOURCES core/tst_embedded_artwork.cpp core/ArtworkFixtures.h
     LIBS lmp_core)
+
+lmp_add_test(tst_resume_position_policy
+    SOURCES core/tst_resume_position_policy.cpp
+    LIBS lmp_core)
+
+lmp_add_test(tst_playback_history_qualifier
+    SOURCES core/tst_playback_history_qualifier.cpp
+    LIBS lmp_core)
+
+lmp_add_test(tst_download_policy
+    SOURCES core/tst_download_policy.cpp
+    LIBS lmp_core)
+
+lmp_add_test(tst_auto_sync_policy
+    SOURCES core/tst_auto_sync_policy.cpp
+    LIBS lmp_core)
