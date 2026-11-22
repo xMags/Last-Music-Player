@@ -9,6 +9,7 @@
 
 #include "core/app/AppIdentity.h"
 #include "platform/windows/WindowsReducedMotion.h"
+#include "ui/theme/FontLoader.h"
 #include "ui/theme/Motion.h"
 
 Q_IMPORT_QML_PLUGIN(LastMusicPlayerPlugin)
@@ -18,6 +19,9 @@ int main(int argc, char* argv[])
     QGuiApplication app(argc, argv);
     QCoreApplication::setApplicationName(lmp::core::AppIdentity::displayName());
     QCoreApplication::setApplicationVersion(lmp::core::AppIdentity::version());
+
+    // Before the theme resolves its font families.
+    lmp::ui::FontLoader::loadBundledFonts();
 
     QQmlApplicationEngine engine;
     QObject::connect(

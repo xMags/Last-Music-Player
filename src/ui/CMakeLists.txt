@@ -2,6 +2,11 @@
 # every QML file belong to this target.
 qt_add_library(lmp_ui STATIC)
 
+# Bundled fonts live in Assets/ with the other shipped files. The alias gives
+# them a short path inside the module's resources (FontLoader reads it).
+set_source_files_properties("${CMAKE_SOURCE_DIR}/Assets/fonts/MrDeHaviland-Regular.ttf"
+    PROPERTIES QT_RESOURCE_ALIAS "fonts/MrDeHaviland-Regular.ttf")
+
 qt_add_qml_module(lmp_ui
     URI LastMusicPlayer
     VERSION 1.0
@@ -12,10 +17,14 @@ qt_add_qml_module(lmp_ui
         app/AppInfo.h
         theme/ColorMix.cpp
         theme/ColorMix.h
+        theme/FontLoader.cpp
+        theme/FontLoader.h
         theme/Motion.cpp
         theme/Motion.h
         theme/ShadowLayer.cpp
         theme/ShadowLayer.h
+        theme/TextStyles.cpp
+        theme/TextStyles.h
         theme/Theme.cpp
         theme/Theme.h
         theme/ThemeConstants.cpp
@@ -24,7 +33,9 @@ qt_add_qml_module(lmp_ui
         theme/ThemePalette.h
     QML_FILES
         qml/Main.qml
-        qml/controls/VersionLabel.qml)
+        qml/controls/VersionLabel.qml
+    RESOURCES
+        "${CMAKE_SOURCE_DIR}/Assets/fonts/MrDeHaviland-Regular.ttf")
 
 # Every folder that holds a header with a QML-registered type. The generated
 # registration code includes those headers by file name only, so each folder

@@ -25,3 +25,7 @@ lmp_add_test(tst_theme
 lmp_add_test(tst_motion
     SOURCES ui/tst_motion.cpp
     LIBS lmp_ui)
+
+lmp_add_test(tst_fonts
+    SOURCES ui/tst_fonts.cpp
+    LIBS lmp_ui)

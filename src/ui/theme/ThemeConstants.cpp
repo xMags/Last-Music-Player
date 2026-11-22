@@ -8,6 +8,8 @@ namespace lmp::ui {
 
 ThemeConstants::ThemeConstants(QObject* parent)
     : QObject(parent)
+    , m_families(FontFamilies::resolve())
+    , m_text(TextStyles::build(m_families))
 {
 }
 
