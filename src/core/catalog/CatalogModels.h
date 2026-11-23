@@ -2,6 +2,7 @@
 
 #include "core/account/LibraryArtistContract.h"
 #include "core/config/PrivateConfig.h"
+#include "core/catalog/CatalogPaging.h"
 #include "core/model/Track.h"
 
 #include <QList>
@@ -189,10 +190,7 @@ struct Detail {
     QList<Shelf> sections;
 };
 
-struct ItemPage {
-    QList<CatalogItem> items;
-    std::optional<int> nextOffset;
-};
+using ItemPage = CatalogPage<CatalogItem>;
 
 // The sections an artist page can open in full.
 enum class ArtistSection {

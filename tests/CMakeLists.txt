@@ -489,3 +489,11 @@ lmp_add_test(tst_catalog_parser
 lmp_add_test(tst_catalog_detail
     SOURCES core/tst_catalog_detail.cpp core/CatalogFixtures.h
     LIBS lmp_core)
+
+lmp_add_test(tst_catalog_paging
+    SOURCES core/tst_catalog_paging.cpp
+    LIBS lmp_core)
+
+lmp_add_test(tst_catalog_service
+    SOURCES core/tst_catalog_service.cpp core/CatalogFixtures.h
+    LIBS lmp_core)

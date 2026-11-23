@@ -60,14 +60,19 @@ qt_add_library(lmp_core STATIC
     async/RequestScope.cpp
     async/RequestScope.h
     async/Result.h
+    catalog/CatalogClient.cpp
+    catalog/CatalogClient.h
     catalog/CatalogDetailParser.cpp
     catalog/CatalogDetailParser.h
     catalog/CatalogModels.cpp
     catalog/CatalogModels.h
     catalog/CatalogParser.cpp
     catalog/CatalogParser.h
+    catalog/CatalogPaging.h
     catalog/CatalogPresentation.cpp
     catalog/CatalogPresentation.h
+    catalog/CatalogService.cpp
+    catalog/CatalogService.h
     catalog/CatalogValues.cpp
     catalog/CatalogValues.h
     catalog/MusicGenres.cpp
