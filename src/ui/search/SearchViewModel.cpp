@@ -49,6 +49,7 @@ SearchViewModel::SearchViewModel(Parts parts, QObject* parent)
     , m_settings(parts.settings)
     , m_trackMenu(parts.trackMenu)
     , m_navigator(parts.navigator)
+    , m_accountLibrary(std::move(parts.accountLibrary))
 {
     m_typing.setSingleShot(true);
     m_typing.setInterval(TypingDelayMs);
@@ -331,6 +332,10 @@ void SearchViewModel::clearRecents()
 
 void SearchViewModel::refreshLanding()
 {
+    if (const std::optional<core::home::HomeLibrary> account = m_accountLibrary ? m_accountLibrary() : std::nullopt) {
+        refreshAccountLanding(*account);
+        return;
+    }
     const QList<core::BrowseLandingCategory> categories =
         core::browseLandingCategories(m_groups.loadTopGenres(static_cast<int>(core::BrowseLandingCategoryLimit)));
     QList<CollectionCardModel::Card> tiles;
@@ -356,6 +361,46 @@ void SearchViewModel::refreshLanding()
         tiles.append({.kind = category.isCurated ? QStringLiteral("shortcut") : QStringLiteral("genre"),
                       .key = category.name,
                       .title = category.name,
+                      .artworkUrl = cover,
+                      .gradientStart = color,
+                      .gradientEnd = color});
+    }
+    m_categories.setCards(std::move(tiles));
+}
+
+void SearchViewModel::refreshAccountLanding(const core::home::HomeLibrary& library)
+{
+    // views/search.ts renderBrowseLanding: the library's genres as the
+    // reference ranks them (plays and likes count), else its artists, then
+    // the default categories to fill two rows; every tile searches.
+    static const QStringList defaults{QStringLiteral("Pop"),   QStringLiteral("Hip-Hop"), QStringLiteral("Electronic"),
+                                      QStringLiteral("Chill"), QStringLiteral("Bollywood"), QStringLiteral("Rock"),
+                                      QStringLiteral("Indie"), QStringLiteral("R&B"),       QStringLiteral("Jazz"),
+                                      QStringLiteral("Lo-Fi")};
+    const QList<core::Track> catalog = core::home::deriveHomeModel(library).catalog;
+    const QStringList genres = core::home::rankedValues(catalog, true);
+    const bool byGenre = !genres.isEmpty();
+    const QStringList titles = core::home::fillLabels(byGenre ? genres : core::home::rankedValues(catalog, false),
+                                                      defaults, CategoryTileCount);
+    QList<CollectionCardModel::Card> tiles;
+    QSet<QString> usedSongs;
+    for (const QString& title : titles) {
+        // One of the listener's own covers, never the same song twice.
+        QUrl cover;
+        const QString wanted = title.trimmed().toLower();
+        for (const core::Track& song : catalog) {
+            const QString value = (byGenre ? song.genre : song.artist).trimmed().toLower();
+            if (song.artworkUrl.isEmpty() || value != wanted || usedSongs.contains(song.remoteId)) {
+                continue;
+            }
+            usedSongs.insert(song.remoteId);
+            cover = CoverSource::forTrack(song).displayUrl();
+            break;
+        }
+        const QColor color = QColor::fromRgba(kCategoryColors[tiles.size() % std::size(kCategoryColors)]);
+        tiles.append({.kind = QStringLiteral("shortcut"),
+                      .key = title,
+                      .title = title,
                       .artworkUrl = cover,
                       .gradientStart = color,
                       .gradientEnd = color});

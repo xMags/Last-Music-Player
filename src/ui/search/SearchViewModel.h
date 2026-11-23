@@ -8,6 +8,11 @@
 #include <QUrl>
 #include <QtQml/qqmlregistration.h>
 
+#include <functional>
+#include <optional>
+
+#include "core/home/HomeModel.h"
+
 #include <optional>
 
 #include "core/model/Track.h"
@@ -82,6 +87,9 @@ public:
         core::SettingsStore& settings;
         TrackMenuController& trackMenu;
         Navigator& navigator;
+        // The account library in Account mode, else nothing: Browse's tiles
+        // then come from it as the reference client ranks them.
+        std::function<std::optional<core::home::HomeLibrary>()> accountLibrary = {};
     };
 
     // The pause after typing (views/search.ts and the current app: 350 ms)
@@ -143,6 +151,7 @@ signals:
     void focusRequested();
 
 private:
+    void refreshAccountLanding(const core::home::HomeLibrary& library);
     void run();
     void apply(quint64 generation, const QString& query, SearchHits hits);
     void showSongs();
@@ -168,6 +177,7 @@ private:
     QString m_shownQuery;
     QStringList m_recent;
     CollectionCardModel m_categories;
+    std::function<std::optional<core::home::HomeLibrary>()> m_accountLibrary;
     QList<core::Track> m_hits;
     QString m_topKind;
     QString m_topTitle;

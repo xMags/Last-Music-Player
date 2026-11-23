@@ -15,6 +15,7 @@
 #include "core/account/SecretStore.h"
 #include "core/app/AppPaths.h"
 #include "core/catalog/CatalogClient.h"
+#include "core/home/HomeModel.h"
 #include "core/catalog/CatalogService.h"
 #include "core/config/PrivateConfig.h"
 #include "core/db/AccountOutboxRepository.h"
@@ -130,6 +131,12 @@ public:
 
     // Opens the welcome flow for review (the Debug build's --show-welcome).
     void showWelcomeForReview();
+
+private:
+    // The account library as the home model reads it, in Account mode only.
+    [[nodiscard]] std::optional<core::home::HomeLibrary> accountHomeLibrary() const;
+
+public:
 
 private:
     // Every view that shows the library reads it again.

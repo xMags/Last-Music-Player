@@ -262,7 +262,8 @@ CompositionRoot::CompositionRoot()
                 .player = m_player,
                 .settings = m_settings,
                 .trackMenu = m_trackMenu,
-                .navigator = m_navigator})
+                .navigator = m_navigator,
+                .accountLibrary = [this]() { return accountHomeLibrary(); }})
     , m_cleanup({.gate = m_userDataGate,
                  .scanner = m_scanner,
                  .player = m_player,
@@ -314,15 +315,7 @@ CompositionRoot::CompositionRoot()
 
     // In Account mode the mixes come from the account library, read as the
     // reference client's home model reads it.
-    m_homeMixes.setAccountSource([this]() -> std::optional<core::home::HomeLibrary> {
-        if (m_mode.mode() != core::mode::SourceMode::Account) {
-            return std::nullopt;
-        }
-        const QString owner = m_session.profile().id;
-        const std::optional<core::db::AccountLibrarySnapshot> snapshot =
-            owner.isEmpty() ? std::nullopt : m_accounts.loadAccountLibrary(owner);
-        return snapshot ? std::optional(core::home::homeLibraryFromSnapshot(*snapshot)) : std::nullopt;
-    });
+    m_homeMixes.setAccountSource([this]() { return accountHomeLibrary(); });
 
     // Whether this is a first run, read before the mode service stores its
     // first-run default.
@@ -422,6 +415,17 @@ CompositionRoot::CompositionRoot()
 void CompositionRoot::showWelcomeForReview()
 {
     m_welcome.open(false);
+}
+
+std::optional<core::home::HomeLibrary> CompositionRoot::accountHomeLibrary() const
+{
+    if (m_mode.mode() != core::mode::SourceMode::Account) {
+        return std::nullopt;
+    }
+    const QString owner = m_session.profile().id;
+    const std::optional<core::db::AccountLibrarySnapshot> snapshot =
+        owner.isEmpty() ? std::nullopt : m_accounts.loadAccountLibrary(owner);
+    return snapshot ? std::optional(core::home::homeLibraryFromSnapshot(*snapshot)) : std::nullopt;
 }
 
 void CompositionRoot::refreshLibraryViews()
