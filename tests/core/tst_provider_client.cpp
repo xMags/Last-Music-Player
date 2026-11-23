@@ -4,6 +4,7 @@
 #include <QString>
 #include <QStringList>
 #include <QTest>
+#include <QUrl>
 
 #include <chrono>
 
@@ -52,6 +53,9 @@ private slots:
     void unusableConnectionsSendNothing();
     void pathOutsideVersionOneIsRefused();
     void jsonBodyIsSentWithItsType();
+    void musicCallsAskTheRightPaths();
+    void detailCallsNeedTheCapability();
+    void lyricsLeavesOutEmptyFields();
 };
 
 void ProviderClientTest::baseAddressNormalisation_data()
@@ -271,6 +275,74 @@ void ProviderClientTest::jsonBodyIsSentWithItsType()
     const auto& request = transport.requests.constFirst();
     QCOMPARE(request.header("Content-Type"), QByteArray("application/json; charset=utf-8"));
     QCOMPARE(request.body, call.jsonBody);
+}
+
+void ProviderClientTest::musicCallsAskTheRightPaths()
+{
+    FakeHttpTransport transport;
+    for (const char* path : {"/v1/search", "/v1/related", "/v1/resolve", "/v1/import-album"}) {
+        transport.script(QString::fromLatin1(path), FakeHttpTransport::ok("{\"results\":[]}"));
+    }
+    ProviderClient client(transport);
+    const ProviderConnection connection{QStringLiteral("https://provider.example.test"), QStringLiteral("key-a")};
+    auto search = client.search(connection, QStringLiteral("a & b"));
+    auto related = client.related(connection, QStringLiteral("https://music.example.test/x?y=1"));
+    auto resolve = client.resolve(connection, QStringLiteral("https://music.example.test/x"));
+    auto import = client.importAlbum(connection, QStringLiteral("https://music.example.test/list"));
+    for (QFuture<Result<QByteArray>>* future : {&search, &related, &resolve, &import}) {
+        future->waitForFinished();
+        QVERIFY(future->result().isOk());
+        QCOMPARE(future->result().value(), QByteArray("{\"results\":[]}"));
+    }
+    QCOMPARE(transport.requests.size(), 4);
+    QCOMPARE(transport.requests.at(0).url.toString(QUrl::FullyEncoded),
+             QStringLiteral("https://provider.example.test/v1/search?q=a%20%26%20b"));
+    QCOMPARE(transport.requests.at(1).url.toString(QUrl::FullyEncoded),
+             QStringLiteral("https://provider.example.test/v1/related?sourceUrl=https%3A%2F%2Fmusic.example.test%2Fx%3Fy%3D1"));
+    QCOMPARE(transport.requests.at(2).body, QByteArray("{\"url\":\"https://music.example.test/x\"}"));
+    QCOMPARE(transport.requests.at(3).url.path(), QStringLiteral("/v1/import-album"));
+    QCOMPARE(transport.requests.at(3).body, QByteArray("{\"url\":\"https://music.example.test/list\"}"));
+}
+
+void ProviderClientTest::detailCallsNeedTheCapability()
+{
+    FakeHttpTransport transport;
+    transport.script(QStringLiteral("/v1/artists/detail"), FakeHttpTransport::ok("{}"));
+    ProviderClient client(transport);
+    const ProviderConnection connection{QStringLiteral("https://provider.example.test"), QStringLiteral("key-a")};
+    lmp::core::account::LibraryArtistIdentity identity;
+    identity.name = QStringLiteral("Some One");
+    identity.provider = QStringLiteral("tag-b");
+    auto refused = client.artistDetail(connection, {}, identity);
+    refused.waitForFinished();
+    QCOMPARE(refused.result().failure().kind, FailureKind::NotAvailable);
+    auto album = client.albumDetail(connection, {QStringLiteral("artist-detail-v1")}, identity);
+    album.waitForFinished();
+    QCOMPARE(album.result().failure().kind, FailureKind::NotAvailable);
+    QVERIFY(transport.requests.isEmpty());
+    auto artist = client.artistDetail(connection, {QStringLiteral("artist-detail-v1")}, identity);
+    artist.waitForFinished();
+    QVERIFY(artist.result().isOk());
+    QCOMPARE(transport.requests.size(), 1);
+    QCOMPARE(transport.requests.constFirst().url.query(QUrl::FullyEncoded), QStringLiteral("name=Some%20One"));
+    QCOMPARE(transport.requests.constFirst().timeout, std::chrono::milliseconds(5000));
+}
+
+void ProviderClientTest::lyricsLeavesOutEmptyFields()
+{
+    FakeHttpTransport transport;
+    transport.script(QStringLiteral("/v1/lyrics"), FakeHttpTransport::ok("{}"));
+    transport.script(QStringLiteral("/v1/lyrics"), FakeHttpTransport::ok("{}"));
+    ProviderClient client(transport);
+    const ProviderConnection connection{QStringLiteral("https://provider.example.test"), QStringLiteral("key-a")};
+    auto bare = client.lyrics(connection, {QStringLiteral("A"), QStringLiteral("T"), {}, 0, {}});
+    bare.waitForFinished();
+    auto full = client.lyrics(connection, {QStringLiteral("A"), QStringLiteral("T"), QStringLiteral("Al"), 201000,
+                                           QStringLiteral("https://music.example.test/x")});
+    full.waitForFinished();
+    QCOMPARE(transport.requests.at(0).url.query(QUrl::FullyEncoded), QStringLiteral("artist=A&title=T"));
+    QCOMPARE(transport.requests.at(1).url.query(QUrl::FullyEncoded),
+             QStringLiteral("artist=A&title=T&album=Al&durationMs=201000&sourceUrl=https%3A%2F%2Fmusic.example.test%2Fx"));
 }
 
 QTEST_GUILESS_MAIN(ProviderClientTest)

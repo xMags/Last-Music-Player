@@ -525,3 +525,7 @@ lmp_add_test(tst_autoplay_service
 lmp_add_test(tst_share_links
     SOURCES core/tst_share_links.cpp core/CatalogFixtures.h
     LIBS lmp_core)
+
+lmp_add_test(tst_provider_media_addresses
+    SOURCES core/tst_provider_media_addresses.cpp
+    LIBS lmp_core)

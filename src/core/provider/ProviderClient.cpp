@@ -1,11 +1,14 @@
 #include "core/provider/ProviderClient.h"
 
+#include "core/catalog/CatalogDetailParser.h"
+
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonValue>
 #include <QLatin1StringView>
 #include <QUrl>
+#include <QUrlQuery>
 
 #include <algorithm>
 #include <optional>
@@ -186,6 +189,118 @@ QFuture<Result<ProviderStatus>> ProviderClient::fetchStatus(const ProviderConnec
         }
         return ProviderStatus{parseProviderCapabilities(response.value().body)};
     });
+}
+
+namespace {
+
+[[nodiscard]] QString encoded(const QString& value)
+{
+    return QString::fromLatin1(QUrl::toPercentEncoding(value));
+}
+
+[[nodiscard]] QFuture<Result<QByteArray>> refusedCall(FailureKind kind, const QString& detail)
+{
+    return QtFuture::makeReadyValueFuture(Result<QByteArray>(Failure::of(kind, detail)));
+}
+
+[[nodiscard]] QByteArray urlBody(const QString& url)
+{
+    return QJsonDocument(QJsonObject{{QStringLiteral("url"), url}}).toJson(QJsonDocument::Compact);
+}
+
+} // namespace
+
+QFuture<Result<QByteArray>> ProviderClient::body(const ProviderConnection& connection, const ProviderCall& call)
+{
+    return send(connection, call).then([](const Result<net::HttpResponse>& response) -> Result<QByteArray> {
+        if (!response) {
+            return response.failure();
+        }
+        return response.value().body;
+    });
+}
+
+QFuture<Result<QByteArray>> ProviderClient::search(const ProviderConnection& connection, const QString& query)
+{
+    ProviderCall call;
+    call.pathAndQuery = QStringLiteral("/v1/search?q=") + encoded(query);
+    return body(connection, call);
+}
+
+QFuture<Result<QByteArray>> ProviderClient::detail(const ProviderConnection& connection,
+                                                   const QStringList& capabilities, QLatin1StringView capability,
+                                                   const QString& path,
+                                                   const account::LibraryArtistIdentity& identity)
+{
+    if (!capabilities.contains(QString(capability))) {
+        return refusedCall(FailureKind::NotAvailable, QStringLiteral("The provider does not offer this page."));
+    }
+    const std::optional<QUrlQuery> query = catalog::detailIdentityQuery(identity);
+    if (!query) {
+        return refusedCall(FailureKind::Unknown, QStringLiteral("This identity cannot be looked up."));
+    }
+    ProviderCall call;
+    call.pathAndQuery = path + QLatin1Char('?') + query->toString(QUrl::FullyEncoded);
+    call.timeout = DetailTimeout;
+    return body(connection, call);
+}
+
+QFuture<Result<QByteArray>> ProviderClient::artistDetail(const ProviderConnection& connection,
+                                                         const QStringList& capabilities,
+                                                         const account::LibraryArtistIdentity& identity)
+{
+    return detail(connection, capabilities, ArtistDetailCapability, QStringLiteral("/v1/artists/detail"), identity);
+}
+
+QFuture<Result<QByteArray>> ProviderClient::albumDetail(const ProviderConnection& connection,
+                                                        const QStringList& capabilities,
+                                                        const account::LibraryArtistIdentity& identity)
+{
+    return detail(connection, capabilities, AlbumDetailCapability, QStringLiteral("/v1/albums/detail"), identity);
+}
+
+QFuture<Result<QByteArray>> ProviderClient::related(const ProviderConnection& connection, const QString& sourceUrl)
+{
+    ProviderCall call;
+    call.pathAndQuery = QStringLiteral("/v1/related?sourceUrl=") + encoded(sourceUrl);
+    return body(connection, call);
+}
+
+QFuture<Result<QByteArray>> ProviderClient::resolve(const ProviderConnection& connection, const QString& url)
+{
+    ProviderCall call;
+    call.method = net::HttpMethod::Post;
+    call.pathAndQuery = QStringLiteral("/v1/resolve");
+    call.jsonBody = urlBody(url);
+    return body(connection, call);
+}
+
+QFuture<Result<QByteArray>> ProviderClient::lyrics(const ProviderConnection& connection,
+                                                   const ProviderLyricsQuery& query)
+{
+    QString path = QStringLiteral("/v1/lyrics?artist=") + encoded(query.artist) + QStringLiteral("&title=")
+        + encoded(query.title);
+    if (!query.album.isEmpty()) {
+        path += QStringLiteral("&album=") + encoded(query.album);
+    }
+    if (query.durationMs > 0) {
+        path += QStringLiteral("&durationMs=") + QString::number(query.durationMs);
+    }
+    if (!query.sourceUrl.isEmpty()) {
+        path += QStringLiteral("&sourceUrl=") + encoded(query.sourceUrl);
+    }
+    ProviderCall call;
+    call.pathAndQuery = path;
+    return body(connection, call);
+}
+
+QFuture<Result<QByteArray>> ProviderClient::importAlbum(const ProviderConnection& connection, const QString& url)
+{
+    ProviderCall call;
+    call.method = net::HttpMethod::Post;
+    call.pathAndQuery = QStringLiteral("/v1/import-album");
+    call.jsonBody = urlBody(url);
+    return body(connection, call);
 }
 
 } // namespace lmp::core::provider

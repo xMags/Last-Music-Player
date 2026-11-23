@@ -3,6 +3,8 @@
 #include <QLatin1StringView>
 #include <QStringList>
 
+#include <algorithm>
+
 namespace lmp::core::net {
 
 namespace {
@@ -15,9 +17,9 @@ bool startsWithHttpScheme(const QString& url)
     return lowered.startsWith(QLatin1StringView("http://")) || lowered.startsWith(QLatin1StringView("https://"));
 }
 
-// Drops every query field named `loweredName` (compared without regard to
-// case) and every empty field, keeping the order of the rest and any fragment.
-QString stripQueryField(const QString& url, QLatin1StringView loweredName)
+} // namespace
+
+QString stripQueryFields(const QString& url, std::initializer_list<QLatin1StringView> loweredNames)
 {
     const qsizetype queryStart = url.indexOf(QLatin1Char('?'));
     if (queryStart < 0) {
@@ -35,7 +37,9 @@ QString stripQueryField(const QString& url, QLatin1StringView loweredName)
         const QString part = ampersand < 0 ? query.mid(start) : query.mid(start, ampersand - start);
         const qsizetype equals = part.indexOf(QLatin1Char('='));
         const QString fieldName = (equals < 0 ? part : part.left(equals)).toLower();
-        if (fieldName != loweredName && !part.isEmpty()) {
+        const bool dropped = std::any_of(loweredNames.begin(), loweredNames.end(),
+                                         [&fieldName](QLatin1StringView name) { return fieldName == name; });
+        if (!dropped && !part.isEmpty()) {
             kept.append(part);
         }
         if (ampersand < 0) {
@@ -55,8 +59,6 @@ QString stripQueryField(const QString& url, QLatin1StringView loweredName)
     return rebuilt;
 }
 
-} // namespace
-
 QString removeLegacyProviderUrlCredential(const QString& url)
 {
     if (!startsWithHttpScheme(url)) {
@@ -66,7 +68,7 @@ QString removeLegacyProviderUrlCredential(const QString& url)
     if (!lowered.contains(QLatin1StringView("/v1/stream/")) && !lowered.contains(QLatin1StringView("/v1/artwork"))) {
         return url;
     }
-    return stripQueryField(url, QLatin1StringView("access_token"));
+    return stripQueryFields(url, {QLatin1StringView("access_token")});
 }
 
 } // namespace lmp::core::net

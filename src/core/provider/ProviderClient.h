@@ -6,6 +6,9 @@
 
 #include <QByteArray>
 #include <QFuture>
+#include <QStringList>
+
+#include "core/account/LibraryArtistContract.h"
 #include <QLatin1StringView>
 #include <QString>
 #include <QStringList>
@@ -63,6 +66,16 @@ struct ProviderCall {
     qint64 maxResponseBytes = 32 * 1024 * 1024;
 };
 
+// What a lyrics request names (GET /v1/lyrics). Empty or zero fields are
+// left out of the query.
+struct ProviderLyricsQuery {
+    QString artist;
+    QString title;
+    QString album;
+    qint64 durationMs = 0;
+    QString sourceUrl;
+};
+
 // What the status call reports about a reachable provider.
 struct ProviderStatus {
     QStringList capabilities;
@@ -93,7 +106,43 @@ public:
     // 2xx status; the body only adds the capability list.
     [[nodiscard]] QFuture<Result<ProviderStatus>> fetchStatus(const ProviderConnection& connection);
 
+    // The calls below answer with the body of a 2xx answer, unread; their
+    // readers live with the features that use them.
+
+    // GET /v1/search?q=: songs ({"results": [...]}).
+    [[nodiscard]] QFuture<Result<QByteArray>> search(const ProviderConnection& connection, const QString& query);
+    // GET /v1/artists/detail and /v1/albums/detail, by one identity (a
+    // catalogue id, else a link, else a name). Asked only when the
+    // provider's capability list names the call (ArtistDetailCapability,
+    // AlbumDetailCapability); refused with NotAvailable otherwise, and with
+    // Unknown for an identity that cannot be sent. Limited to 5 s.
+    [[nodiscard]] QFuture<Result<QByteArray>> artistDetail(const ProviderConnection& connection,
+                                                           const QStringList& capabilities,
+                                                           const account::LibraryArtistIdentity& identity);
+    [[nodiscard]] QFuture<Result<QByteArray>> albumDetail(const ProviderConnection& connection,
+                                                          const QStringList& capabilities,
+                                                          const account::LibraryArtistIdentity& identity);
+    // GET /v1/related?sourceUrl=: songs that follow `sourceUrl` (autoplay).
+    [[nodiscard]] QFuture<Result<QByteArray>> related(const ProviderConnection& connection, const QString& sourceUrl);
+    // POST /v1/resolve {"url"}: a song link to a playable song.
+    [[nodiscard]] QFuture<Result<QByteArray>> resolve(const ProviderConnection& connection, const QString& url);
+    // GET /v1/lyrics.
+    [[nodiscard]] QFuture<Result<QByteArray>> lyrics(const ProviderConnection& connection,
+                                                     const ProviderLyricsQuery& query);
+    // POST /v1/import-album {"url"}: an album or playlist link to its songs.
+    [[nodiscard]] QFuture<Result<QByteArray>> importAlbum(const ProviderConnection& connection, const QString& url);
+
+    // The limit for the detail calls.
+    static constexpr std::chrono::milliseconds DetailTimeout{std::chrono::seconds(5)};
+
 private:
+    // The body of a 2xx answer to `call`.
+    [[nodiscard]] QFuture<Result<QByteArray>> body(const ProviderConnection& connection, const ProviderCall& call);
+    [[nodiscard]] QFuture<Result<QByteArray>> detail(const ProviderConnection& connection,
+                                                     const QStringList& capabilities, QLatin1StringView capability,
+                                                     const QString& path,
+                                                     const account::LibraryArtistIdentity& identity);
+
     net::IHttpTransport& m_transport;
 };
 

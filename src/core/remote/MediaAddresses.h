@@ -5,9 +5,8 @@
 #include <QStringView>
 #include <QtGlobal>
 
-// The stream and artwork address rules Account mode needs, as earlier
-// versions applied them. Pure functions, no I/O. (The API key server's
-// builders follow with API key mode.)
+// The stream and artwork address rules of both server modes, as earlier
+// versions applied them. Pure functions, no I/O.
 namespace lmp::core::remote {
 
 // Whether `url`, without its fragment, starts with the base address (as
@@ -40,5 +39,27 @@ struct ResolvedStream {
     QString artworkUrl;
 };
 [[nodiscard]] ResolvedStream parseResolvedStream(const QByteArray& body);
+
+// API key mode: the address a song streams from on the user's provider.
+// A saved provider stream address ("/v1/stream/" anywhere in an http(s)
+// address) is moved to `baseUrl`, keeping its path and query, without the
+// internal "#lmp=" fragment and old media_token or access_token fields;
+// else a web source link gets "<base>/v1/stream/<kind>:<hash>?url=<link>",
+// the kind being "direct" for an empty or "direct" source tag and "remote"
+// for any other, the hash the earlier versions' 64-bit FNV-1a of the link's
+// UTF-16 text (stableStreamId); else an old stream address in `filePath` is cleaned as above
+// without moving it. The API key goes in an access_token field when there
+// is one. Empty when nothing applies (a song on this PC, another scheme).
+[[nodiscard]] QString providerStreamUrl(const QString& filePath, const QString& sourceUrl, const QString& sourceTag,
+                                        const QString& baseUrl, const QString& apiKey);
+
+// API key mode: a provider artwork address ("/v1/artwork" in an http(s)
+// address) moved to `baseUrl` with the API key as above; any other address
+// is returned as is.
+[[nodiscard]] QString providerArtworkUrl(const QString& artworkUrl, const QString& baseUrl, const QString& apiKey);
+
+// The stream id the earlier versions gave a source link: "<kind>:" and 16
+// lower-case hex digits.
+[[nodiscard]] QString stableStreamId(const QString& kind, const QString& sourceUrl);
 
 } // namespace lmp::core::remote
