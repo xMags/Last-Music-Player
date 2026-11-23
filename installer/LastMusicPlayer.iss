@@ -30,10 +30,8 @@ AppPublisherURL={#MyAppURL}
 AppSupportURL={#MyAppURL}
 AppUpdatesURL={#MyAppURL}
 VersionInfoVersion={#MyAppVersion}
-; The source license is shown for reference, then the end-user terms require
-; explicit acceptance before installation can continue.
+; The licence is shown before installation.
 InfoBeforeFile=..\LICENSE
-LicenseFile=..\licenses\TERMS.txt
 DefaultDirName={autopf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
@@ -66,9 +64,8 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 Source: "{#BuildDir}\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdirs ignoreversion; \
   Excludes: "LICENSE,TERMS.txt,THIRD-PARTY-NOTICES.txt,Licenses\*"
 ; Legal documents are sourced from the repository so a stale Release folder
-; cannot omit them. LicenseFile above makes TERMS.txt acceptance mandatory.
+; cannot omit them.
 Source: "..\LICENSE"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\licenses\TERMS.txt"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\licenses\THIRD-PARTY-NOTICES.txt"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\licenses\third-party\*"; DestDir: "{app}\Licenses\ThirdParty"; Flags: recursesubdirs createallsubdirs ignoreversion
 
@@ -80,6 +77,8 @@ Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; AppUserModelID: "{#MyAppUserModelId}"; Tasks: desktopicon
 
 [InstallDelete]
+; The end-user terms of earlier versions no longer apply.
+Type: files; Name: "{app}\TERMS.txt"
 ; The notices of the components shipped now replace every earlier one.
 Type: filesandordirs; Name: "{app}\Licenses\ThirdParty"
 ; Remove the legacy Start Menu shortcut older builds created on first launch

@@ -158,23 +158,7 @@ licenses/        End-user terms and third-party notices.
 
 ## License
 
-This project is **source available**, not open source. It is licensed under the
-custom [Last Projects License 1.0](LICENSE).
-
-- Installing or using a release also requires acceptance of the
-  [Last Projects End-User Terms](licenses/TERMS.txt).
-- Contributions require acceptance of the
-  [Last Projects Individual Contributor License Agreement](docs/CLA.md).
-- Natural persons may use, study, build, and modify it for strictly personal,
-  noncommercial purposes.
-- Modified source must be published in a qualifying public repository within
-  seven calendar days.
-- Companies, employers, nonprofits, schools, government bodies, and every other
-  organization require a separate written license.
-- Commercial use, private derivatives, binary redistribution, and AI training
-  or dataset use are not permitted without written permission.
+See [LICENSE](LICENSE).
 
 Third-party components remain under their own terms, listed in
 [`THIRD-PARTY-NOTICES.txt`](licenses/THIRD-PARTY-NOTICES.txt).
-
-Commercial and organization licensing: **info@lastprojects.com**
