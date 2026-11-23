@@ -66,6 +66,6 @@ SettingsSection {
         title: qsTr("Album art on player bar")
         description: qsTr("Display artwork next to the now-playing track.")
         checked: App.settings.showAlbumArt
-        onToggled: value => App.settings.showAlbumArt = value
+        onChangeRequested: value => App.settings.showAlbumArt = value
     }
 }

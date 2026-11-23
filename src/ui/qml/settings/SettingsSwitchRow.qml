@@ -5,7 +5,7 @@ import LastMusicPlayer
 
 // A whole row that toggles (.settings-row-switch, views.css 1167-1171): the
 // row is the switch, so a click or Space anywhere on it flips the setting.
-// It tints on hover and press; disabled it fades to half. `toggled` reports
+// It tints on hover and press; disabled it fades to half. `changeRequested` reports
 // the new value; the owner writes it and binds `checked` back.
 T.AbstractButton {
     id: row
@@ -13,7 +13,7 @@ T.AbstractButton {
     property string title: ""
     property string description: ""
 
-    signal toggled(bool value)
+    signal changeRequested(bool value)
 
     width: parent ? parent.width : 0
     implicitHeight: Math.max(64, layout.implicitHeight + 2 * 12)
@@ -21,7 +21,7 @@ T.AbstractButton {
     focusPolicy: Qt.StrongFocus
     opacity: enabled ? 1 : 0.5
 
-    onClicked: row.toggled(!row.checked)
+    onClicked: row.changeRequested(!row.checked)
 
     HoverHandler {
         cursorShape: row.enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
@@ -87,7 +87,7 @@ T.AbstractButton {
                 checked: row.checked
                 hoverShown: row.hovered
                 focusPolicy: Qt.NoFocus
-                onClicked: row.toggled(!row.checked)
+                onClicked: row.changeRequested(!row.checked)
             }
         }
     }

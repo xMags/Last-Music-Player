@@ -73,7 +73,7 @@ Item {
                     ? qsTr("Keep playing similar music when your queue ends")
                     : qsTr("Stop when your queue ends")
                 checked: App.settings.autoplay
-                onToggled: value => App.settings.autoplay = value
+                onChangeRequested: value => App.settings.autoplay = value
             }
 
             SettingsDivider {}
@@ -82,7 +82,7 @@ Item {
                 title: qsTr("Gapless playback")
                 description: qsTr("Remove silence between consecutive tracks.")
                 checked: App.settings.gapless
-                onToggled: value => App.settings.gapless = value
+                onChangeRequested: value => App.settings.gapless = value
             }
 
             SettingsDivider {}
@@ -111,7 +111,7 @@ Item {
                 title: qsTr("Windows media controls")
                 description: qsTr("Play and pause from the system media controls and the media keys.")
                 checked: App.settings.mediaControls
-                onToggled: value => App.settings.mediaControls = value
+                onChangeRequested: value => App.settings.mediaControls = value
             }
         }
 
