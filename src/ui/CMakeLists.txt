@@ -201,6 +201,8 @@ qt_add_qml_module(lmp_ui
         player/EmbeddedCoverImageProvider.h
         player/FullscreenPlayerViewModel.cpp
         player/FullscreenPlayerViewModel.h
+        player/PlaybackNoticeToasts.cpp
+        player/PlaybackNoticeToasts.h
         player/PlayerBarViewModel.cpp
         player/PlayerBarViewModel.h
         player/QueueListDiff.cpp

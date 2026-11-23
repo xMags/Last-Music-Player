@@ -171,6 +171,8 @@ qt_add_library(lmp_core STATIC
     net/RetryAfter.h
     net/UserMessages.cpp
     net/UserMessages.h
+    playback/AccountTrackSourceResolver.cpp
+    playback/AccountTrackSourceResolver.h
     playback/ArtworkAccent.cpp
     playback/ArtworkAccent.h
     playback/BrokenTrackGuard.h
@@ -202,6 +204,9 @@ qt_add_library(lmp_core STATIC
     playback/PlayerController.cpp
     playback/PlayerController.h
     playback/PlayerControllerPlayback.cpp
+    playback/PlayerControllerRecovery.cpp
+    playback/PlaybackSourceRouter.cpp
+    playback/PlaybackSourceRouter.h
     playback/PlayerControllerServices.h
     playback/QueueEngine.cpp
     playback/QueueEngine.h
@@ -221,6 +226,8 @@ qt_add_library(lmp_core STATIC
     playback/TrackSourceResolver.h
     provider/ProviderClient.cpp
     provider/ProviderClient.h
+    remote/MediaAddresses.cpp
+    remote/MediaAddresses.h
     remote/TrackJson.cpp
     remote/TrackJson.h
     settings/AppearanceSettings.cpp
@@ -240,6 +247,7 @@ qt_add_library(lmp_core STATIC
     ../platform/IFolderPicker.h
     ../platform/IWindowPlacement.h
     ../platform/IMediaControls.h
+    ../platform/INetworkStatus.h
     ../platform/IReducedMotion.h
     ../platform/IShellThumbnail.h
     ../platform/ISingleInstance.h

@@ -3,6 +3,7 @@
 
 #include "core/playback/PlayerController.h"
 
+#include "core/playback/PlaybackSourceRouter.h"
 #include "core/playback/QueueTrackIdentity.h"
 #include "core/playback/TrackSourceResolver.h"
 
@@ -59,6 +60,9 @@ void PlayerController::handleResolved(RequestScope::Token token, const Result<QU
         return; // a newer load started
     }
     if (!source) {
+        if (PlaybackSourceRouter::isRemote(*m_current)) {
+            noticeResolveFailure(source.failure());
+        }
         handleTrackFailure();
         return;
     }
@@ -141,6 +145,9 @@ void PlayerController::handleTrackFailure()
     }
     if (!m_brokenTracks.skipAfterFailure()) {
         setStoppedAfterBrokenTracks(true);
+        if (PlaybackSourceRouter::isRemote(*m_current)) {
+            emit playbackNotice(PlaybackNotice::RemoteFailuresStopped, *m_current);
+        }
         return;
     }
     // Any newer load stops the timer, so when it fires the failed song is
@@ -230,6 +237,12 @@ void PlayerController::onAudioDuration(quint64 loadId, double seconds)
 void PlayerController::onAudioError(quint64 loadId)
 {
     if (loadId == 0 || loadId != m_audioLoadId || !m_current || m_state == State::Error) {
+        return;
+    }
+    // A remote stream can stop working mid-song (its address expired, the
+    // connection dropped): it is fetched again rather than skipped.
+    if (PlaybackSourceRouter::isRemote(*m_current)) {
+        recoverStream();
         return;
     }
     handleTrackFailure();

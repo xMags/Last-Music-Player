@@ -37,10 +37,26 @@ public:
     enum class State { Idle, Loading, Paused, Playing, Error };
     Q_ENUM(State)
 
+    // Something about a remote song the user should be told.
+    enum class PlaybackNotice {
+        // A remote song was asked for while only songs on this PC can play.
+        NeedsMusicSource,
+        // No stream could be found for the song.
+        NoPlayableSource,
+        // Several songs in a row could not be played; playback stopped.
+        RemoteFailuresStopped,
+    };
+    Q_ENUM(PlaybackNotice)
+
     // Previous restarts the song instead once it is further in than this.
     static constexpr double PreviousRestartSeconds = 3.0;
     // How long a failed song stays shown before the next one is tried.
     static constexpr std::chrono::milliseconds BrokenTrackSkipDelay{250};
+    // A remote stream that fails is fetched again and reopened where it
+    // stopped, at most this many times within StreamRecoveryWindow; past that
+    // playback pauses on the song.
+    static constexpr int StreamRecoveryAttempts = 3;
+    static constexpr qint64 StreamRecoveryWindowMs = 20000;
 
     // `queue` is the starting queue; the saved shuffle and repeat replace its own.
     PlayerController(PlayerControllerServices services, QueueEngine queue,
@@ -118,6 +134,7 @@ signals:
     void stoppedAfterBrokenTracksChanged();
     void trackFailed(const lmp::core::Track& track);      // no source, or the player failed
     void trackUnavailable(const lmp::core::Track& track); // asked for; nothing changed
+    void playbackNotice(lmp::core::PlayerController::PlaybackNotice notice, const lmp::core::Track& track);
     void playRecorded(const lmp::core::Track& track);     // the play reached the history
     void trackEnded(const lmp::core::Track& track);       // played to its end
     // Replaced before its end (for saving where it stopped).
@@ -142,6 +159,11 @@ private:
     void onAudioPosition(quint64 loadId, double seconds);
     void onAudioDuration(quint64 loadId, double seconds);
     void onAudioError(quint64 loadId);
+    // Remote streams (PlayerControllerRecovery.cpp).
+    void noticeResolveFailure(const Failure& failure);
+    void recoverStream();
+    void handleRecovered(RequestScope::Token token, const Result<QUrl>& source, double resumeAt);
+    void pauseOnFailedStream();
     void observeHistory(bool playing);
     void applyVolume();
     void setState(State state);
@@ -172,6 +194,9 @@ private:
     bool m_startedThisLoad = false;
     bool m_endedThisLoad = false;
     bool m_stoppedAfterBrokenTracks = false;
+    // Stream recovery attempts in the current window, and when the last began.
+    int m_streamRecoveries = 0;
+    std::optional<qint64> m_lastStreamRecoveryMs;
     // How the current song was reached, so a broken one is skipped the same way.
     QueueDirection m_skipDirection = QueueDirection::Next;
     AdvanceTrigger m_skipTrigger = AdvanceTrigger::Automatic;

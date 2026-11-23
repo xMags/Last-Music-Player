@@ -21,6 +21,11 @@ public:
 
     [[nodiscard]] virtual QFuture<Result<QUrl>> resolve(const Track& track) = 0;
 
+    // Like resolve, but never reuses an address the song already carries:
+    // used when that address stopped working mid-song. The same as resolve
+    // for sources that hand out no addresses of their own.
+    [[nodiscard]] virtual QFuture<Result<QUrl>> refresh(const Track& track) { return resolve(track); }
+
 protected:
     TrackSourceResolver() = default;
     TrackSourceResolver(const TrackSourceResolver&) = default;

@@ -27,9 +27,11 @@
 #include "core/library/UserDataOperationGate.h"
 #include "core/mode/ModeService.h"
 #include "core/net/HttpClient.h"
+#include "core/playback/AccountTrackSourceResolver.h"
 #include "core/playback/MediaControlsBridge.h"
 #include "core/playback/PlaybackClock.h"
 #include "core/playback/PlaybackStatePersistence.h"
+#include "core/playback/PlaybackSourceRouter.h"
 #include "core/playback/PlayerController.h"
 #include "core/playback/TrackSourceResolver.h"
 #include "core/provider/ProviderClient.h"
@@ -40,12 +42,14 @@
 #include "platform/windows/WindowsExternalLinks.h"
 #include "platform/windows/WindowsFolderPicker.h"
 #include "platform/windows/WindowsMediaControls.h"
+#include "platform/windows/WindowsNetworkStatus.h"
 #include "platform/windows/WindowsReducedMotion.h"
 #include "platform/windows/WindowsTagReader.h"
 #include "platform/windows/WindowsWindowChrome.h"
 #include "ui/navigation/Navigator.h"
 #include "ui/player/AmbientAccentSampler.h"
 #include "ui/player/FullscreenPlayerViewModel.h"
+#include "ui/player/PlaybackNoticeToasts.h"
 #include "ui/player/PlayerBarViewModel.h"
 #include "ui/player/QueueRailViewModel.h"
 #include "ui/settings/FirstRunViewModel.h"
@@ -130,14 +134,6 @@ private:
     platform::windows::WindowsTagReader m_tagReader;
     core::ArtworkCache m_artworkCache;
     core::LibraryScanner m_scanner;
-    platform::windows::WindowsAudioPlayer m_audio;
-    // Bound to the main window once it exists (showMainWindow).
-    platform::windows::WindowsMediaControls m_mediaControls;
-    core::LocalFileSourceResolver m_resolver;
-    core::SystemPlaybackClock m_clock;
-    core::PlayerController m_player;
-    core::PlaybackStatePersistence m_persistence;
-    core::MediaControlsBridge m_mediaBridge;
     // The music source: the account session (restored at launch), the API
     // key provider and the mode that chooses between them.
     platform::windows::WindowsExternalLinks m_externalLinks;
@@ -153,6 +149,19 @@ private:
     core::provider::ProviderClient m_providerClient;
     core::db::AccountRepository m_accounts;
     core::mode::ModeService m_mode;
+    platform::windows::WindowsAudioPlayer m_audio;
+    // Bound to the main window once it exists (showMainWindow).
+    platform::windows::WindowsMediaControls m_mediaControls;
+    // Where each song's audio comes from: files on this PC, or the account
+    // service for remote songs in Account mode.
+    platform::windows::WindowsNetworkStatus m_network;
+    core::LocalFileSourceResolver m_localResolver;
+    core::AccountTrackSourceResolver m_accountResolver;
+    core::PlaybackSourceRouter m_resolver;
+    core::SystemPlaybackClock m_clock;
+    core::PlayerController m_player;
+    core::PlaybackStatePersistence m_persistence;
+    core::MediaControlsBridge m_mediaBridge;
     core::account::LocalAccountSignOut m_signOut;
     platform::windows::WindowsFolderPicker m_folderPicker;
     // What a song's menu and buttons do.
@@ -168,6 +177,8 @@ private:
     ui::SidebarViewModel m_sidebar;
     ui::ToastQueue m_toasts;
     ui::PlayerBarViewModel m_playerBar;
+    // Tells the user when a remote song cannot play.
+    ui::PlaybackNoticeToasts m_playbackNotices;
     ui::FullscreenPlayerViewModel m_fullscreen;
     ui::QueueRailViewModel m_queueRail;
     ui::AmbientAccentSampler m_ambient;

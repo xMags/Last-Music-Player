@@ -15,6 +15,8 @@ qt_add_library(lmp_platform_windows STATIC
     WindowsFolderPicker.h
     WindowsMediaControls.cpp
     WindowsMediaControls.h
+    WindowsNetworkStatus.cpp
+    WindowsNetworkStatus.h
     WindowsReducedMotion.cpp
     WindowsReducedMotion.h
     WindowsSingleInstance.cpp

@@ -14,6 +14,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <vector>
 
 #include "FakeAudioPlayer.h"
@@ -44,6 +45,17 @@ public:
         return future;
     }
 
+    // A fresh lookup (mid-song recovery): answered at once.
+    [[nodiscard]] QFuture<lmp::core::Result<QUrl>> refresh(const lmp::core::Track& track) override
+    {
+        ++refreshCalls;
+        if (refreshFailure) {
+            return QtFuture::makeReadyValueFuture(
+                lmp::core::Result<QUrl>(lmp::core::Failure::of(*refreshFailure, QStringLiteral("refresh failed"))));
+        }
+        return QtFuture::makeReadyValueFuture(answerFor(track));
+    }
+
     // Answers the deferred request at `index` (in the order they were made).
     void finish(std::size_t index)
     {
@@ -55,7 +67,11 @@ public:
 
     bool deferred = false;
     QSet<QString> broken; // file paths that fail to resolve
+    // How songs that fail to resolve fail.
+    lmp::core::FailureKind brokenKind = lmp::core::FailureKind::NotFound;
+    std::optional<lmp::core::FailureKind> refreshFailure;
     int calls = 0;
+    int refreshCalls = 0;
 
 private:
     struct Pending {
@@ -65,8 +81,12 @@ private:
 
     [[nodiscard]] lmp::core::Result<QUrl> answerFor(const lmp::core::Track& track) const
     {
-        if (broken.contains(track.filePath)) {
-            return lmp::core::Failure::of(lmp::core::FailureKind::NotFound, QStringLiteral("missing"));
+        const QString key = track.filePath.isEmpty() ? track.sourceUrl : track.filePath;
+        if (broken.contains(key)) {
+            return lmp::core::Failure::of(brokenKind, QStringLiteral("missing"));
+        }
+        if (track.filePath.isEmpty() && !track.sourceUrl.isEmpty()) {
+            return QUrl(track.sourceUrl);
         }
         return QUrl::fromLocalFile(track.filePath);
     }

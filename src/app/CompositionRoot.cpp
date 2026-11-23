@@ -76,16 +76,6 @@ CompositionRoot::CompositionRoot()
                  .library = m_library,
                  .settings = m_settings,
                  .gate = m_userDataGate})
-    , m_player({.audio = m_audio, .settings = m_settings, .tracks = m_tracks, .resolver = m_resolver, .clock = m_clock},
-               core::QueueEngine())
-    , m_persistence({.player = m_player,
-                     .settings = m_settings,
-                     .tracks = m_tracks,
-                     .library = m_library,
-                     .userDataGate = m_userDataGate,
-                     .clock = m_clock},
-                    m_paths)
-    , m_mediaBridge({.player = m_player, .controls = m_mediaControls, .settings = m_settings, .clock = m_clock})
     , m_externalLinks(m_paths.root())
     , m_scopedCredentials(m_credentials,
                           core::account::ScopedCredentialStore::suffixForDataRoot(
@@ -106,6 +96,23 @@ CompositionRoot::CompositionRoot()
               .provider = m_providerClient,
               .accounts = m_accounts,
               .operationGate = m_userDataGate})
+    , m_accountResolver({.client = m_accountClient,
+                         .session = m_session,
+                         .settings = m_settings,
+                         .network = m_network,
+                         .mediaOrigin = m_privateConfig.accountMediaOrigin,
+                         .now = {}})
+    , m_resolver(m_localResolver, m_accountResolver, m_mode)
+    , m_player({.audio = m_audio, .settings = m_settings, .tracks = m_tracks, .resolver = m_resolver, .clock = m_clock},
+               core::QueueEngine())
+    , m_persistence({.player = m_player,
+                     .settings = m_settings,
+                     .tracks = m_tracks,
+                     .library = m_library,
+                     .userDataGate = m_userDataGate,
+                     .clock = m_clock},
+                    m_paths)
+    , m_mediaBridge({.player = m_player, .controls = m_mediaControls, .settings = m_settings, .clock = m_clock})
     , m_signOut(m_session)
     , m_trackActions({.player = m_player,
                       .tracks = m_tracks,
@@ -120,6 +127,7 @@ CompositionRoot::CompositionRoot()
                  .collections = m_collectionActions,
                  .actions = m_trackActions})
     , m_playerBar(m_player)
+    , m_playbackNotices(m_player, m_toasts)
     , m_fullscreen(m_player, m_settings, m_layout, m_toasts)
     , m_queueRail(m_player, m_library, m_toasts)
     , m_ambient(m_player)
