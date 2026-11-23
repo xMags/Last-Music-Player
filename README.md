@@ -53,7 +53,7 @@ The player works in one of three modes, chosen in **Settings**:
 | --- | --- | --- |
 | **On this PC** | Music files in the folders you add | Nothing else |
 | **Your own server** | Your files, plus search, lyrics, artist and album pages and streaming from a server you run | The server's address and an API key, entered in Settings. The server implements [the provider contract](docs/PROVIDER_API.md). |
-| **Account** | Your files, plus a synchronised library, playlists, likes and history, the catalogue, sharing, casting and downloads | A build with the account service configured (see [Private configuration](#private-configuration)) and a signed-in account |
+| **Account** | Your files, plus a synchronised library, playlists, likes and history, the catalogue, sharing, casting, control of your other devices and downloads | A build with the account service configured (see [Private configuration](#private-configuration)) and a signed-in account |
 
 What each mode can do is decided in one place (`src/core/mode/Capabilities.cpp`), so a feature is either fully there or cleanly absent.
 
@@ -66,6 +66,7 @@ What each mode can do is decided in one place (`src/core/mode/Capabilities.cpp`)
 - Downloads for offline listening, with rules for liked and recently played songs, Wi-Fi only and battery.
 - Windows media keys and media controls, a choice of output device, and a notification-area icon.
 - Optional Discord presence and casting to devices on the network.
+- In Account mode, the account's other devices show up next to cast devices: see and control what plays on them, or move playback between them.
 - Keyboard navigation throughout, screen-reader names on every control, Windows text size and high-contrast support.
 - The library is kept in SQLite on this PC.
 
