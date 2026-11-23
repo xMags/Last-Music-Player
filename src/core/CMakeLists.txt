@@ -2,6 +2,8 @@ qt_add_library(lmp_core STATIC
     account/AccountClient.cpp
     account/AccountClient.h
     account/AccountDataLifecycleStorage.h
+    account/AccountMusicContract.cpp
+    account/AccountMusicContract.h
     account/AccountSessionProtocol.cpp
     account/AccountSessionProtocol.h
     account/AccountSessionService.cpp
@@ -146,6 +148,8 @@ qt_add_library(lmp_core STATIC
     model/SingleRelease.h
     model/Track.cpp
     model/Track.h
+    model/TrackKeys.cpp
+    model/TrackKeys.h
     net/ArtworkUrl.cpp
     net/ArtworkUrl.h
     net/HttpClient.cpp
@@ -215,6 +219,8 @@ qt_add_library(lmp_core STATIC
     playback/TrackSourceResolver.h
     provider/ProviderClient.cpp
     provider/ProviderClient.h
+    remote/TrackJson.cpp
+    remote/TrackJson.h
     settings/AppearanceSettings.cpp
     settings/AppearanceSettings.h
     settings/PreferenceDefaults.cpp

@@ -433,3 +433,15 @@ lmp_add_test(tst_search_view_model
 lmp_add_test(tst_user_data_cleanup
     SOURCES core/tst_user_data_cleanup.cpp core/PlayerFixture.h core/FakeAudioPlayer.h core/FakePlaybackClock.h core/ModeServiceFixture.h core/AccountSessionFixture.h core/FakeCredentialStore.h core/FakeHttpTransport.h core/TempLibrary.h core/FakeTagReader.h
     LIBS lmp_core)
+
+lmp_add_test(tst_track_keys
+    SOURCES core/tst_track_keys.cpp
+    LIBS lmp_core)
+
+lmp_add_test(tst_remote_track_json
+    SOURCES core/tst_remote_track_json.cpp
+    LIBS lmp_core)
+
+lmp_add_test(tst_account_music_contract
+    SOURCES core/tst_account_music_contract.cpp
+    LIBS lmp_core)
