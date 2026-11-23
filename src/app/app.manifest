@@ -9,6 +9,18 @@
     </application>
   </compatibility>
 
+  <!-- The segment heap (Windows 10 2004 and later; older builds ignore this).
+       Pages are rebuilt on every visit and each loads its covers again, which
+       mixes short-lived picture buffers with small allocations. The default
+       heap kept the gaps that left behind as committed free space, so memory
+       grew with every visit while live data stayed level; the segment heap
+       reuses and returns that space. -->
+  <application xmlns="urn:schemas-microsoft-com:asm.v3">
+    <windowsSettings>
+      <heapType xmlns="http://schemas.microsoft.com/SMI/2020/WindowsSettings">SegmentHeap</heapType>
+    </windowsSettings>
+  </application>
+
   <!-- DPI awareness is set by the UI framework at start-up. Declaring it here
        as well makes that call fail and log a warning. -->
 </assembly>
