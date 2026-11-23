@@ -53,6 +53,10 @@ struct TextStyles {
     TextStyle trackArtist;
     TextStyle modalTitle;
     TextStyle settingsHeading;
+    TextStyle settingsSection;
+    TextStyle settingsRowTitle;
+    TextStyle settingsRowDescription;
+    TextStyle settingsTileLabel;
     TextStyle nowPlayingTitle;
     TextStyle fullScreenTitle;
     TextStyle homeGreeting;

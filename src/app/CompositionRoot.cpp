@@ -65,12 +65,34 @@ CompositionRoot::CompositionRoot()
                      .clock = m_clock},
                     m_paths)
     , m_mediaBridge({.player = m_player, .controls = m_mediaControls, .settings = m_settings, .clock = m_clock})
+    , m_externalLinks(m_paths.root())
+    , m_secrets(m_credentials, m_settings)
+    , m_privateConfig(core::PrivateConfig::fromBuild())
+    , m_accountClient(m_http, m_privateConfig)
+    , m_session({.client = m_accountClient,
+                 .secrets = m_secrets,
+                 .settings = m_settings,
+                 .links = m_externalLinks,
+                 .operationGate = m_userDataGate})
+    , m_providerClient(m_http)
+    , m_accounts(m_database)
+    , m_mode({.settings = m_settings,
+              .secrets = m_secrets,
+              .session = m_session,
+              .provider = m_providerClient,
+              .accounts = m_accounts,
+              .operationGate = m_userDataGate})
     , m_windowChromeViewModel(&m_windowChrome)
     , m_sidebar(&m_navigator)
     , m_playerBar(m_player)
     , m_fullscreen(m_player, m_settings, m_layout, m_toasts)
     , m_queueRail(m_player, m_library, m_toasts)
     , m_ambient(m_player)
+    , m_themeBinding(m_settings)
+    , m_settingsViewModel(m_settings, m_player, m_mode)
+    , m_settingsAbout({.library = m_databaseOpen ? &m_library : nullptr,
+                       .links = m_externalLinks,
+                       .dataRoot = m_paths.root()})
     , m_appRoot({
           .windowChrome = &m_windowChromeViewModel,
           .navigator = &m_navigator,
@@ -80,6 +102,9 @@ CompositionRoot::CompositionRoot()
           .fullscreen = &m_fullscreen,
           .queueRail = &m_queueRail,
           .toasts = &m_toasts,
+          .settings = &m_settingsViewModel,
+          .settingsAbout = &m_settingsAbout,
+          .mode = &m_mode,
           .showGallery = QCoreApplication::arguments().contains(QStringLiteral("--gallery")),
       })
 {
@@ -88,6 +113,11 @@ CompositionRoot::CompositionRoot()
     [[maybe_unused]] const bool identitySet =
         platform::windows::WindowsAppIdentity::apply(core::AppIdentity::appUserModelId());
     ui::AppRoot::registerInstance(&m_appRoot);
+
+    // Reads the stored music source (writing the first-run default) and
+    // sets the library's active context. A plaintext key left by an earlier
+    // version moves into the credential store here.
+    [[maybe_unused]] const core::account::LegacyKeyMigration migration = m_mode.start();
 
     // The last song comes back into the player bar once the state file is
     // read (on the file's worker); the first Play opens it.
@@ -164,6 +194,8 @@ void CompositionRoot::attachEngine(QQmlEngine& engine)
     ui::FontLoader::loadBundledFonts();
 
     m_theme = engine.singletonInstance<ui::Theme*>("LastMusicPlayer", "Theme");
+    // The saved theme and accent, before the first frame.
+    m_themeBinding.attach(m_theme);
     m_ambient.setTheme(m_theme);
     // The engine takes ownership of the provider.
     engine.addImageProvider(QString(ui::CoverSource::ProviderId),

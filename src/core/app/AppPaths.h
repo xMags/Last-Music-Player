@@ -15,8 +15,12 @@ public:
     // The real folder: the per-user local application data folder (the
     // LOCALAPPDATA environment variable) plus AppIdentity::dataFolderName().
     // Without that variable it falls back to a folder of that name in the
-    // current directory, as earlier versions did.
+    // current directory, as earlier versions did. In a Debug build a
+    // non-empty DataRootVariable names the data folder itself instead.
     [[nodiscard]] static AppPaths forCurrentUser();
+
+    // LMP_DATA_ROOT: the data folder for a developer run (Debug builds only).
+    static constexpr const char* DataRootVariable = "LMP_DATA_ROOT";
 
     [[nodiscard]] QString root() const { return m_root; }
 

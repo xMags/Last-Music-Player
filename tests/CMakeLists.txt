@@ -341,3 +341,19 @@ lmp_add_test(tst_mode_service
 lmp_add_test(tst_mode_service_api_key
     SOURCES core/tst_mode_service_api_key.cpp core/ModeServiceFixture.h core/AccountSessionFixture.h core/FakeCredentialStore.h core/FakeHttpTransport.h core/TempLibrary.h
     LIBS lmp_core)
+
+lmp_add_test(tst_appearance_settings
+    SOURCES core/tst_appearance_settings.cpp
+    LIBS lmp_core)
+
+lmp_add_test(tst_preference_defaults
+    SOURCES core/tst_preference_defaults.cpp
+    LIBS lmp_core)
+
+lmp_add_test(tst_settings_view_model
+    SOURCES ui/tst_settings_view_model.cpp core/PlayerFixture.h core/FakeAudioPlayer.h core/FakePlaybackClock.h core/ModeServiceFixture.h core/AccountSessionFixture.h core/FakeCredentialStore.h core/FakeHttpTransport.h core/TempLibrary.h
+    LIBS lmp_ui)
+
+lmp_add_test(tst_theme_settings_binding
+    SOURCES ui/tst_theme_settings_binding.cpp
+    LIBS lmp_ui)

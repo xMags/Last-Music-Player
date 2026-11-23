@@ -3,6 +3,8 @@
 #include "core/account/AccountSessionState.h"
 #include "core/mode/SourceMode.h"
 
+#include <QMetaType>
+#include <QObject>
 #include <QStringList>
 
 namespace lmp::core::mode {
@@ -48,6 +50,36 @@ struct CapabilityInputs {
 // refuses that feature; per-item rules (is this song remote, is a setting on)
 // stay with the feature.
 struct Capabilities {
+    Q_GADGET
+    // Read in QML as App.capabilities.<row>.
+    Q_PROPERTY(bool searchOnline MEMBER searchOnline FINAL)
+    Q_PROPERTY(bool browseCatalogue MEMBER browseCatalogue FINAL)
+    Q_PROPERTY(bool chooseRegion MEMBER chooseRegion FINAL)
+    Q_PROPERTY(bool showCatalogueHome MEMBER showCatalogueHome FINAL)
+    Q_PROPERTY(bool showOnlineMixes MEMBER showOnlineMixes FINAL)
+    Q_PROPERTY(bool showLyrics MEMBER showLyrics FINAL)
+    Q_PROPERTY(bool playRadio MEMBER playRadio FINAL)
+    Q_PROPERTY(bool streamRemoteSongs MEMBER streamRemoteSongs FINAL)
+    Q_PROPERTY(bool prefetchUpcomingSongs MEMBER prefetchUpcomingSongs FINAL)
+    Q_PROPERTY(bool downloadSongs MEMBER downloadSongs FINAL)
+    Q_PROPERTY(bool castToDevices MEMBER castToDevices FINAL)
+    Q_PROPERTY(bool openOnlineArtistPages MEMBER openOnlineArtistPages FINAL)
+    Q_PROPERTY(bool openOnlineAlbumPages MEMBER openOnlineAlbumPages FINAL)
+    Q_PROPERTY(bool loadArtistPictures MEMBER loadArtistPictures FINAL)
+    Q_PROPERTY(bool importFromLink MEMBER importFromLink FINAL)
+    Q_PROPERTY(bool followArtistsOnServer MEMBER followArtistsOnServer FINAL)
+    Q_PROPERTY(bool browseServerArtistList MEMBER browseServerArtistList FINAL)
+    Q_PROPERTY(bool editServerPlaylists MEMBER editServerPlaylists FINAL)
+    Q_PROPERTY(bool likeOnServer MEMBER likeOnServer FINAL)
+    Q_PROPERTY(bool recordServerHistory MEMBER recordServerHistory FINAL)
+    Q_PROPERTY(bool syncLibrary MEMBER syncLibrary FINAL)
+    Q_PROPERTY(bool importLocalHistory MEMBER importLocalHistory FINAL)
+    Q_PROPERTY(bool showAccountProfile MEMBER showAccountProfile FINAL)
+    Q_PROPERTY(bool lookUpPresenceArtwork MEMBER lookUpPresenceArtwork FINAL)
+    Q_PROPERTY(bool chooseLowQualityStreams MEMBER chooseLowQualityStreams FINAL)
+    Q_PROPERTY(bool lowQualityOnThisConnection MEMBER lowQualityOnThisConnection FINAL)
+
+public:
     // Search results from the provider or the account service, beside the
     // local ones.
     bool searchOnline = false;
@@ -104,3 +136,5 @@ struct Capabilities {
 };
 
 } // namespace lmp::core::mode
+
+Q_DECLARE_METATYPE(lmp::core::mode::Capabilities)

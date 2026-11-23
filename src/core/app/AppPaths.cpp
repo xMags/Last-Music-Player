@@ -16,6 +16,14 @@ AppPaths::AppPaths(QString root)
 
 AppPaths AppPaths::forCurrentUser()
 {
+#ifndef QT_NO_DEBUG
+    // A developer run can point the whole data folder somewhere else, so it
+    // never touches the real one. Release builds ignore the variable.
+    const QString overrideRoot = qEnvironmentVariable(DataRootVariable);
+    if (!overrideRoot.isEmpty()) {
+        return AppPaths(overrideRoot);
+    }
+#endif
     // Earlier versions read the variable directly rather than asking the
     // shell, so this does too: the two can differ under redirection.
     const QString localAppData = qEnvironmentVariable("LOCALAPPDATA");

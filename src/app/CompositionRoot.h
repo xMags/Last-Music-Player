@@ -4,19 +4,29 @@
 
 #include <memory>
 
+#include "core/account/AccountClient.h"
+#include "core/account/AccountSessionService.h"
+#include "core/account/SecretStore.h"
 #include "core/app/AppPaths.h"
+#include "core/config/PrivateConfig.h"
+#include "core/db/AccountRepository.h"
 #include "core/db/Database.h"
 #include "core/db/LibraryQueries.h"
 #include "core/db/TrackRepository.h"
 #include "core/library/UserDataOperationGate.h"
+#include "core/mode/ModeService.h"
+#include "core/net/HttpClient.h"
 #include "core/playback/MediaControlsBridge.h"
 #include "core/playback/PlaybackClock.h"
 #include "core/playback/PlaybackStatePersistence.h"
 #include "core/playback/PlayerController.h"
 #include "core/playback/TrackSourceResolver.h"
+#include "core/provider/ProviderClient.h"
 #include "core/settings/SettingsStore.h"
 #include "platform/ISingleInstance.h"
 #include "platform/windows/WindowsAudioPlayer.h"
+#include "platform/windows/WindowsCredentialStore.h"
+#include "platform/windows/WindowsExternalLinks.h"
 #include "platform/windows/WindowsMediaControls.h"
 #include "platform/windows/WindowsReducedMotion.h"
 #include "platform/windows/WindowsWindowChrome.h"
@@ -25,11 +35,14 @@
 #include "ui/player/FullscreenPlayerViewModel.h"
 #include "ui/player/PlayerBarViewModel.h"
 #include "ui/player/QueueRailViewModel.h"
+#include "ui/settings/SettingsAboutViewModel.h"
+#include "ui/settings/SettingsViewModel.h"
 #include "ui/shell/AppRoot.h"
 #include "ui/shell/ShellLayoutViewModel.h"
 #include "ui/shell/SidebarViewModel.h"
 #include "ui/shell/WindowChromeViewModel.h"
 #include "ui/theme/Theme.h"
+#include "ui/theme/ThemeSettingsBinding.h"
 #include "ui/toasts/ToastQueue.h"
 
 class QQmlApplicationEngine;
@@ -92,6 +105,18 @@ private:
     core::PlayerController m_player;
     core::PlaybackStatePersistence m_persistence;
     core::MediaControlsBridge m_mediaBridge;
+    // The music source. The session is not restored at launch yet: until
+    // sign-in arrives in Settings it stays signed out.
+    platform::windows::WindowsExternalLinks m_externalLinks;
+    platform::windows::WindowsCredentialStore m_credentials;
+    core::account::SecretStore m_secrets;
+    core::net::HttpClient m_http;
+    core::PrivateConfig m_privateConfig;
+    core::account::AccountClient m_accountClient;
+    core::account::AccountSessionService m_session;
+    core::provider::ProviderClient m_providerClient;
+    core::db::AccountRepository m_accounts;
+    core::mode::ModeService m_mode;
 
     ui::WindowChromeViewModel m_windowChromeViewModel;
     ui::Navigator m_navigator;
@@ -102,6 +127,9 @@ private:
     ui::FullscreenPlayerViewModel m_fullscreen;
     ui::QueueRailViewModel m_queueRail;
     ui::AmbientAccentSampler m_ambient;
+    ui::ThemeSettingsBinding m_themeBinding;
+    ui::SettingsViewModel m_settingsViewModel;
+    ui::SettingsAboutViewModel m_settingsAbout;
     ui::AppRoot m_appRoot;
     QPointer<ui::Theme> m_theme; // owned by the QML engine
 };

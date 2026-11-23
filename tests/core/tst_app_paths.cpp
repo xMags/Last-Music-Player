@@ -15,11 +15,19 @@ class AppPathsTest : public QObject {
     Q_OBJECT
 
 private slots:
+    void initTestCase();
     void namesMatchEarlierVersions();
     void forCurrentUserUsesLocalAppData();
     void forCurrentUserFallsBackToTheCurrentFolder();
     void constructingTouchesNothingOnDisk();
+    void dataRootVariableNamesTheFolderInDebugBuilds();
 };
+
+// A developer's own LMP_DATA_ROOT would change every forCurrentUser() case.
+void AppPathsTest::initTestCase()
+{
+    qunsetenv(AppPaths::DataRootVariable);
+}
 
 void AppPathsTest::namesMatchEarlierVersions()
 {
@@ -61,6 +69,27 @@ void AppPathsTest::constructingTouchesNothingOnDisk()
     QVERIFY(dir.isValid());
     const AppPaths paths(dir.filePath(QStringLiteral("Last Music Player")));
     QVERIFY(!QFileInfo::exists(paths.root()));
+}
+
+void AppPathsTest::dataRootVariableNamesTheFolderInDebugBuilds()
+{
+    QTemporaryDir fake;
+    QVERIFY(fake.isValid());
+    const QString root = fake.filePath(QStringLiteral("data"));
+    qputenv(AppPaths::DataRootVariable, QDir::toNativeSeparators(root).toLocal8Bit());
+    const AppPaths paths = AppPaths::forCurrentUser();
+    qunsetenv(AppPaths::DataRootVariable);
+#ifdef QT_NO_DEBUG
+    QVERIFY(paths.root() != QDir::cleanPath(root));
+#else
+    QCOMPARE(paths.root(), QDir::cleanPath(root));
+    QCOMPARE(paths.settingsFile(), QDir::cleanPath(root) + QStringLiteral("/Settings.json"));
+#endif
+    // An empty variable is the same as none.
+    qputenv(AppPaths::DataRootVariable, QByteArray());
+    const AppPaths empty = AppPaths::forCurrentUser();
+    qunsetenv(AppPaths::DataRootVariable);
+    QVERIFY(empty.root().endsWith(QStringLiteral("/Last Music Player")));
 }
 
 QTEST_GUILESS_MAIN(AppPathsTest)

@@ -71,6 +71,17 @@ set(LMP_UI_QML_FILES
     qml/player/QueueRow.qml
     qml/player/QueueSectionHeader.qml
     qml/player/RailSectionLabel.qml
+    qml/settings/SettingsAboutCard.qml
+    qml/settings/SettingsAppearanceCard.qml
+    qml/settings/SettingsCard.qml
+    qml/settings/SettingsDivider.qml
+    qml/settings/SettingsPage.qml
+    qml/settings/SettingsProfileCard.qml
+    qml/settings/SettingsRow.qml
+    qml/settings/SettingsSection.qml
+    qml/settings/SettingsSelectRow.qml
+    qml/settings/SettingsSwitchRow.qml
+    qml/settings/ThemeTile.qml
     qml/shell/BrandMark.qml
     qml/shell/ContentPanel.qml
     qml/shell/CaptionButton.qml
@@ -130,6 +141,10 @@ qt_add_qml_module(lmp_ui
         player/QueueRailViewModel.h
         player/QueueRowDrag.cpp
         player/QueueRowDrag.h
+        settings/SettingsAboutViewModel.cpp
+        settings/SettingsAboutViewModel.h
+        settings/SettingsViewModel.cpp
+        settings/SettingsViewModel.h
         shell/AppRoot.cpp
         shell/AppRoot.h
         shell/PlaybackKeyGuard.cpp
@@ -162,6 +177,8 @@ qt_add_qml_module(lmp_ui
         theme/ThemeFullscreen.h
         theme/ThemePalette.cpp
         theme/ThemePalette.h
+        theme/ThemeSettingsBinding.cpp
+        theme/ThemeSettingsBinding.h
         theme/ThemeTypography.cpp
         theme/ThemeTypography.h
         toasts/ToastQueue.cpp
@@ -181,6 +198,7 @@ set(LMP_UI_TYPE_FOLDERS
     menus
     navigation
     player
+    settings
     shell
     theme
     toasts)

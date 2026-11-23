@@ -60,6 +60,13 @@ private:
     QMap<QString, QString> m_params;
 };
 
+// The route kinds for QML, as `Route.Settings` and so on.
+namespace RouteForeign {
+Q_NAMESPACE
+QML_NAMED_ELEMENT(Route)
+QML_FOREIGN_NAMESPACE(lmp::ui::Route)
+} // namespace RouteForeign
+
 } // namespace lmp::ui
 
 Q_DECLARE_METATYPE(lmp::ui::Route)

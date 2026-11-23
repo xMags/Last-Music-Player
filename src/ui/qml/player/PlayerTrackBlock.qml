@@ -46,9 +46,11 @@ RowLayout {
         NumberAnimation { target: block; property: "coverProgress"; from: 0; to: 1; duration: Motion.songChangeCover; easing: Motion.water }
     }
 
+    // Hidden by the "Album art on player bar" setting; the text moves over.
     Item {
         Layout.preferredWidth: 52
         Layout.preferredHeight: 52
+        visible: App.settings.showAlbumArt
         scale: Motion.songChangeCoverScale(block.coverProgress)
 
         IdleArt {

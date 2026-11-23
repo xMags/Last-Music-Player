@@ -27,6 +27,10 @@ class ThemeTypography : public QObject {
     Q_PROPERTY(QFont trackArtist READ trackArtist CONSTANT FINAL)
     Q_PROPERTY(QFont modalTitle READ modalTitle CONSTANT FINAL)
     Q_PROPERTY(QFont settingsHeading READ settingsHeading CONSTANT FINAL)
+    Q_PROPERTY(QFont settingsSection READ settingsSection CONSTANT FINAL)
+    Q_PROPERTY(QFont settingsRowTitle READ settingsRowTitle CONSTANT FINAL)
+    Q_PROPERTY(QFont settingsRowDescription READ settingsRowDescription CONSTANT FINAL)
+    Q_PROPERTY(QFont settingsTileLabel READ settingsTileLabel CONSTANT FINAL)
     Q_PROPERTY(QFont nowPlayingTitle READ nowPlayingTitle CONSTANT FINAL)
     Q_PROPERTY(QFont fullScreenTitle READ fullScreenTitle CONSTANT FINAL)
     Q_PROPERTY(QFont homeGreeting READ homeGreeting CONSTANT FINAL)
@@ -74,6 +78,9 @@ class ThemeTypography : public QObject {
     Q_PROPERTY(qreal lineHeightTrackArtist READ lineHeightTrackArtist CONSTANT FINAL)
     Q_PROPERTY(qreal lineHeightModalTitle READ lineHeightModalTitle CONSTANT FINAL)
     Q_PROPERTY(qreal lineHeightSettingsHeading READ lineHeightSettingsHeading CONSTANT FINAL)
+    Q_PROPERTY(qreal lineHeightSettingsSection READ lineHeightSettingsSection CONSTANT FINAL)
+    Q_PROPERTY(qreal lineHeightSettingsRowTitle READ lineHeightSettingsRowTitle CONSTANT FINAL)
+    Q_PROPERTY(qreal lineHeightSettingsRowDescription READ lineHeightSettingsRowDescription CONSTANT FINAL)
     Q_PROPERTY(qreal lineHeightNowPlayingTitle READ lineHeightNowPlayingTitle CONSTANT FINAL)
     Q_PROPERTY(qreal lineHeightFullScreenTitle READ lineHeightFullScreenTitle CONSTANT FINAL)
     Q_PROPERTY(qreal lineHeightHomeGreeting READ lineHeightHomeGreeting CONSTANT FINAL)
@@ -94,6 +101,10 @@ public:
     [[nodiscard]] QFont trackArtist() const { return m_text.trackArtist.font; }
     [[nodiscard]] QFont modalTitle() const { return m_text.modalTitle.font; }
     [[nodiscard]] QFont settingsHeading() const { return m_text.settingsHeading.font; }
+    [[nodiscard]] QFont settingsSection() const { return m_text.settingsSection.font; }
+    [[nodiscard]] QFont settingsRowTitle() const { return m_text.settingsRowTitle.font; }
+    [[nodiscard]] QFont settingsRowDescription() const { return m_text.settingsRowDescription.font; }
+    [[nodiscard]] QFont settingsTileLabel() const { return m_text.settingsTileLabel.font; }
     [[nodiscard]] QFont nowPlayingTitle() const { return m_text.nowPlayingTitle.font; }
     [[nodiscard]] QFont fullScreenTitle() const { return m_text.fullScreenTitle.font; }
     [[nodiscard]] QFont homeGreeting() const { return m_text.homeGreeting.font; }
@@ -141,6 +152,9 @@ public:
     [[nodiscard]] qreal lineHeightTrackArtist() const { return m_text.trackArtist.lineHeight; }
     [[nodiscard]] qreal lineHeightModalTitle() const { return m_text.modalTitle.lineHeight; }
     [[nodiscard]] qreal lineHeightSettingsHeading() const { return m_text.settingsHeading.lineHeight; }
+    [[nodiscard]] qreal lineHeightSettingsSection() const { return m_text.settingsSection.lineHeight; }
+    [[nodiscard]] qreal lineHeightSettingsRowTitle() const { return m_text.settingsRowTitle.lineHeight; }
+    [[nodiscard]] qreal lineHeightSettingsRowDescription() const { return m_text.settingsRowDescription.lineHeight; }
     [[nodiscard]] qreal lineHeightNowPlayingTitle() const { return m_text.nowPlayingTitle.lineHeight; }
     [[nodiscard]] qreal lineHeightFullScreenTitle() const { return m_text.fullScreenTitle.lineHeight; }
     [[nodiscard]] qreal lineHeightHomeGreeting() const { return m_text.homeGreeting.lineHeight; }

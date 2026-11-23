@@ -92,6 +92,12 @@ TextStyles TextStyles::build(const FontFamilies& families)
                                       .weight = kBold,
                                       .lineHeight = 40,
                                       .letterSpacingEm = -0.01}),
+        // .settings-section-head h2, .settings-row-title, .settings-row-desc
+        // and .settings-theme-tile (views.css 1128-1165, 1293-1303).
+        .settingsSection = makeTextStyle({.family = display, .pixelSize = 16, .weight = kBold, .lineHeight = 22}),
+        .settingsRowTitle = makeTextStyle({.family = text, .pixelSize = 14, .weight = kSemiBold, .lineHeight = 20}),
+        .settingsRowDescription = makeTextStyle({.family = text, .pixelSize = 12, .weight = kRegular, .lineHeight = 17}),
+        .settingsTileLabel = makeTextStyle({.family = text, .pixelSize = 11, .weight = kSemiBold}),
         .nowPlayingTitle = makeTextStyle(
             {.family = display, .pixelSize = 20, .weight = kBold, .lineHeight = 26}),
         // line-height: 1.2 of 30px.

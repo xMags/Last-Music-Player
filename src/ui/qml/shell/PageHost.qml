@@ -44,12 +44,28 @@ Item {
             height: Math.max(scroller.height, content.implicitHeight)
             transform: Translate { id: rise }
 
-            PlaceholderPage {
+            // The page of the current route; routes whose page a later part
+            // of the work builds show its title.
+            Loader {
                 id: content
 
                 width: parent.width
-                title: App.navigator.currentTitle
+                sourceComponent: App.navigator.currentKind === Route.Settings ? settingsPage : placeholderPage
             }
+        }
+    }
+
+    Component {
+        id: settingsPage
+
+        SettingsPage {}
+    }
+
+    Component {
+        id: placeholderPage
+
+        PlaceholderPage {
+            title: App.navigator.currentTitle
         }
     }
 

@@ -8,6 +8,10 @@ import LastMusicPlayer
 T.Switch {
     id: control
 
+    // Whether the knob shows the hover growth. A whole row that toggles
+    // binds it to the row's hover.
+    property bool hoverShown: control.hovered
+
     implicitWidth: 40
     implicitHeight: 20
     padding: 0
@@ -22,7 +26,11 @@ T.Switch {
     indicator: Rectangle {
         id: track
 
-        implicitWidth: 40
+        // Whether the knob shows the hover growth. A whole row that toggles
+    // binds it to the row's hover.
+    property bool hoverShown: control.hovered
+
+    implicitWidth: 40
         implicitHeight: 20
         radius: height / 2
         color: control.checked ? Theme.accentColor : "transparent"
@@ -41,7 +49,7 @@ T.Switch {
         Rectangle {
             id: knob
 
-            readonly property real restScale: control.hovered ? 1 : 0.84
+            readonly property real restScale: control.hoverShown ? 1 : 0.84
 
             // 1px border plus 3px padding, then the 20px slide when on.
             x: control.checked ? 24 : 4
@@ -50,7 +58,7 @@ T.Switch {
             height: 12
             radius: width / 2
             color: control.checked ? Theme.accentInk : Theme.fgSecondary
-            scale: control.checked ? (control.hovered ? 1.1 : 1) : restScale
+            scale: control.checked ? (control.hoverShown ? 1.1 : 1) : restScale
 
             Behavior on x {
                 enabled: !Motion.reduced

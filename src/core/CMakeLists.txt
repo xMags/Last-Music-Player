@@ -183,6 +183,10 @@ qt_add_library(lmp_core STATIC
     playback/TrackSourceResolver.h
     provider/ProviderClient.cpp
     provider/ProviderClient.h
+    settings/AppearanceSettings.cpp
+    settings/AppearanceSettings.h
+    settings/PreferenceDefaults.cpp
+    settings/PreferenceDefaults.h
     settings/SettingKeys.h
     settings/SettingsStore.cpp
     settings/SettingsStore.h

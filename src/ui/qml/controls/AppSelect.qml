@@ -112,6 +112,10 @@ T.ComboBox {
     popup: T.Popup {
         id: flyout
 
+        // Drawn in the window. Qt 6.10 opens a dropdown's list as a
+        // separate native window by default, and a click on an option there
+        // closed the list without choosing it.
+        popupType: T.Popup.Item
         y: control.height + 6
         width: Math.max(control.width, 168)
         implicitHeight: implicitContentHeight + topPadding + bottomPadding
