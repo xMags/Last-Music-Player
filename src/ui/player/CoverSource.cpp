@@ -81,11 +81,27 @@ std::optional<QString> CoverSource::embeddedPathFromProviderId(QStringView id)
     return path;
 }
 
+std::optional<QString> CoverSource::remoteUrlFromProviderId(QStringView id)
+{
+    const QByteArray::FromBase64Result decoded =
+        QByteArray::fromBase64Encoding(id.toLatin1(), kIdEncoding | QByteArray::AbortOnBase64DecodingErrors);
+    if (!decoded) {
+        return std::nullopt;
+    }
+    QString url = QString::fromUtf8(*decoded);
+    if (!url.startsWith(QLatin1StringView("http://")) && !url.startsWith(QLatin1StringView("https://"))) {
+        return std::nullopt;
+    }
+    return url;
+}
+
 QUrl CoverSource::displayUrl() const
 {
     switch (kind) {
     case Kind::Remote:
-        return url;
+        return QUrl(QStringLiteral("image://%1/%2")
+                        .arg(RemoteProviderId,
+                             QString::fromLatin1(url.toString(QUrl::FullyEncoded).toUtf8().toBase64(kIdEncoding))));
     case Kind::ImageFile:
         return QUrl::fromLocalFile(path);
     case Kind::Embedded:

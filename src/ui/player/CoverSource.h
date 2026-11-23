@@ -14,7 +14,8 @@
 namespace lmp::ui {
 
 // Where a song's cover picture comes from, and how to show and decode it:
-// - Remote: an http(s) address, shown as it is (not decoded here);
+// - Remote: an http(s) address, shown through the ArtworkImageProvider
+//   ("image://artwork/...", which fetches it the way the mode needs);
 // - ImageFile: a picture file on this machine;
 // - Embedded: the picture stored inside a local audio file, shown through
 //   the EmbeddedCoverImageProvider ("image://embedded-cover/...");
@@ -23,8 +24,9 @@ namespace lmp::ui {
 struct CoverSource {
     enum class Kind { None, Remote, ImageFile, Embedded };
 
-    // The image provider id registered with the QML engine.
+    // The image provider ids registered with the QML engine.
     static constexpr QLatin1StringView ProviderId{"embedded-cover"};
+    static constexpr QLatin1StringView RemoteProviderId{"artwork"};
 
     Kind kind = Kind::None;
     // ImageFile: the picture; Embedded: the audio file that holds it.
@@ -44,6 +46,8 @@ struct CoverSource {
     [[nodiscard]] static QString placeholderIdFor(const core::Track& track);
     // The audio file path an "image://embedded-cover/<id>" request names.
     [[nodiscard]] static std::optional<QString> embeddedPathFromProviderId(QStringView id);
+    // The http(s) address an "image://artwork/<id>" request names.
+    [[nodiscard]] static std::optional<QString> remoteUrlFromProviderId(QStringView id);
 
     // What an Image item shows; empty for None.
     [[nodiscard]] QUrl displayUrl() const;

@@ -226,6 +226,8 @@ qt_add_library(lmp_core STATIC
     playback/TrackSourceResolver.h
     provider/ProviderClient.cpp
     provider/ProviderClient.h
+    remote/ArtworkService.cpp
+    remote/ArtworkService.h
     remote/MediaAddresses.cpp
     remote/MediaAddresses.h
     remote/TrackJson.cpp

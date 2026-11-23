@@ -1,0 +1,102 @@
+#include "ui/images/ArtworkImageProvider.h"
+
+#include "core/remote/ArtworkService.h"
+#include "ui/player/CoverSource.h"
+
+#include <QBuffer>
+#include <QFuture>
+#include <QImageReader>
+#include <QMetaObject>
+#include <QMutexLocker>
+#include <QtConcurrent/QtConcurrentRun>
+
+#include <optional>
+#include <utility>
+
+namespace lmp::ui {
+
+ArtworkImageProvider::ArtworkImageProvider(core::remote::ArtworkService& service)
+    : m_service(service)
+{
+}
+
+QQuickImageResponse* ArtworkImageProvider::requestImageResponse(const QString& id, const QSize& requestedSize)
+{
+    const std::optional<QString> url = CoverSource::remoteUrlFromProviderId(id);
+    return new ArtworkImageResponse(m_service, url.value_or(QString()), requestedSize);
+}
+
+QImage ArtworkImageProvider::decode(const QByteArray& bytes, QSize fit)
+{
+    QBuffer buffer;
+    buffer.setData(bytes);
+    if (!buffer.open(QIODevice::ReadOnly)) {
+        return {};
+    }
+    QImageReader reader(&buffer);
+    reader.setAutoTransform(true);
+    const QSize size = reader.size();
+    if (fit.isValid() && !fit.isEmpty() && size.isValid()) {
+        const QSize covering = size.scaled(fit, Qt::KeepAspectRatioByExpanding);
+        if (covering.width() < size.width()) {
+            reader.setScaledSize(covering); // never scaled up
+        }
+    }
+    return reader.read();
+}
+
+ArtworkImageResponse::ArtworkImageResponse(core::remote::ArtworkService& service, QString url, QSize requestedSize)
+    : m_service(service)
+    , m_url(std::move(url))
+    , m_requestedSize(requestedSize)
+{
+    // The engine asks on its image thread; the service answers on its own.
+    // Posted rather than called: a response the engine deletes first never
+    // starts.
+    moveToThread(service.thread());
+    QMetaObject::invokeMethod(this, &ArtworkImageResponse::start, Qt::QueuedConnection);
+}
+
+void ArtworkImageResponse::start()
+{
+    if (m_url.isEmpty()) {
+        deliver({}, QStringLiteral("not a picture address"));
+        return;
+    }
+    const QSize fit = m_requestedSize;
+    m_service.fetch(m_url).then(this, [this, fit](const core::Result<QByteArray>& bytes) {
+        if (!bytes) {
+            deliver({}, QStringLiteral("picture could not be fetched"));
+            return;
+        }
+        // Decoding can take a while for a large picture: off this thread.
+        QtConcurrent::run([data = bytes.value(), fit]() { return ArtworkImageProvider::decode(data, fit); })
+            .then(this, [this](const QImage& image) {
+                deliver(image, image.isNull() ? QStringLiteral("not a picture") : QString());
+            });
+    });
+}
+
+void ArtworkImageResponse::deliver(const QImage& image, const QString& error)
+{
+    {
+        const QMutexLocker locker(&m_lock);
+        m_image = image;
+        m_error = error;
+    }
+    emit finished();
+}
+
+QQuickTextureFactory* ArtworkImageResponse::textureFactory() const
+{
+    const QMutexLocker locker(&m_lock);
+    return QQuickTextureFactory::textureFactoryForImage(m_image);
+}
+
+QString ArtworkImageResponse::errorString() const
+{
+    const QMutexLocker locker(&m_lock);
+    return m_error;
+}
+
+} // namespace lmp::ui

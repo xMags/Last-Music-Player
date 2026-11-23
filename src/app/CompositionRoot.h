@@ -35,6 +35,7 @@
 #include "core/playback/PlayerController.h"
 #include "core/playback/TrackSourceResolver.h"
 #include "core/provider/ProviderClient.h"
+#include "core/remote/ArtworkService.h"
 #include "core/settings/SettingsStore.h"
 #include "platform/ISingleInstance.h"
 #include "platform/windows/WindowsAudioPlayer.h"
@@ -163,6 +164,8 @@ private:
     core::PlaybackStatePersistence m_persistence;
     core::MediaControlsBridge m_mediaBridge;
     core::account::LocalAccountSignOut m_signOut;
+    // Cover pictures from the network (the account relay in Account mode).
+    core::remote::ArtworkService m_artwork;
     platform::windows::WindowsFolderPicker m_folderPicker;
     // What a song's menu and buttons do.
     core::TrackActions m_trackActions;

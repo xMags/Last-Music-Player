@@ -22,6 +22,7 @@
 #include "core/playback/QueueEngine.h"
 #include "platform/windows/WindowsAppIdentity.h"
 #include "platform/windows/WindowsSingleInstance.h"
+#include "ui/images/ArtworkImageProvider.h"
 #include "ui/player/CoverSource.h"
 #include "ui/player/EmbeddedCoverImageProvider.h"
 #include "ui/theme/FontLoader.h"
@@ -114,6 +115,7 @@ CompositionRoot::CompositionRoot()
                     m_paths)
     , m_mediaBridge({.player = m_player, .controls = m_mediaControls, .settings = m_settings, .clock = m_clock})
     , m_signOut(m_session)
+    , m_artwork({.client = m_accountClient, .session = m_session, .mode = m_mode, .http = m_http, .clock = m_clock})
     , m_trackActions({.player = m_player,
                       .tracks = m_tracks,
                       .collections = m_collections,
@@ -354,6 +356,8 @@ void CompositionRoot::attachEngine(QQmlEngine& engine)
     // The engine takes ownership of the provider.
     engine.addImageProvider(QString(ui::CoverSource::ProviderId),
                             std::make_unique<ui::EmbeddedCoverImageProvider>().release());
+    engine.addImageProvider(QString(ui::CoverSource::RemoteProviderId),
+                            std::make_unique<ui::ArtworkImageProvider>(m_artwork).release());
 
     m_reducedMotion = std::make_unique<platform::windows::WindowsReducedMotion>();
     QPointer<ui::Motion> motion =
