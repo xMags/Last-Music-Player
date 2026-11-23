@@ -24,13 +24,44 @@ Item {
     property var shadowLayers: Theme.shadowArt
 
     readonly property bool loaded: current.status === Image.Ready
+    // Pictures are decoded at the tile's size in pixels. A zero size means
+    // "full resolution" to an image, so the size is only known while the tile
+    // is laid out and in a window (Screen.devicePixelRatio is 0 outside one):
+    // nothing loads before that, and the last size is kept after it, so a
+    // tile being torn down does not load its picture again at full size.
+    readonly property bool sized: root.width > 0 && root.height > 0 && Screen.devicePixelRatio > 0
+    property size decodeSize
+
+    Binding on decodeSize {
+        when: root.sized
+        value: Qt.size(Math.ceil(root.width * Screen.devicePixelRatio), Math.ceil(root.height * Screen.devicePixelRatio))
+        restoreMode: Binding.RestoreNone
+    }
 
     implicitWidth: 160
     implicitHeight: 160
 
-    onSourceChanged: {
-        previous.source = current.status === Image.Ready ? current.source : ""
+    onSourceChanged: root.load()
+    onDecodeSizeChanged: root.load()
+
+    // The only place the images get a source or a size, always the size
+    // first: a bound size can lag behind the source and load the picture at
+    // the old size (or at full size) before the right one.
+    function load() {
+        const size = root.decodeSize
+        if (size.width <= 0 || size.height <= 0)
+            return
+        if (current.source.toString() === root.source.toString() && current.sourceSize.width === size.width
+                && current.sourceSize.height === size.height)
+            return
+        previous.source = ""
+        if (current.status === Image.Ready) {
+            previous.sourceSize = current.sourceSize
+            previous.source = current.source
+        }
         current.opacity = 0
+        current.source = ""
+        current.sourceSize = size
         current.source = root.source
         revealTimeout.restart()
     }
@@ -119,7 +150,6 @@ Item {
             anchors.fill: parent
             asynchronous: true
             fillMode: Image.PreserveAspectCrop
-            sourceSize: Qt.size(root.width * Screen.devicePixelRatio, root.height * Screen.devicePixelRatio)
         }
 
         Image {
@@ -128,7 +158,6 @@ Item {
             anchors.fill: parent
             asynchronous: true
             fillMode: Image.PreserveAspectCrop
-            sourceSize: Qt.size(root.width * Screen.devicePixelRatio, root.height * Screen.devicePixelRatio)
             opacity: 0
 
             onStatusChanged: {
@@ -168,5 +197,5 @@ Item {
         onTriggered: previous.source = ""
     }
 
-    Component.onCompleted: current.source = root.source
+    Component.onCompleted: root.load()
 }

@@ -606,6 +606,10 @@ lmp_add_test(tst_focus_place
     SOURCES ui/tst_focus_place.cpp
     LIBS lmp_ui)
 
+lmp_add_test(tst_art_tile
+    SOURCES ui/tst_art_tile.cpp
+    LIBS lmp_ui lmp_uiplugin Qt6::Quick)
+
 # A manual check, built but not registered with CTest: see tests/manual/userdata_probe.cpp.
 qt_add_executable(userdata_probe manual/userdata_probe.cpp)
 target_link_libraries(userdata_probe PRIVATE lmp_core)
