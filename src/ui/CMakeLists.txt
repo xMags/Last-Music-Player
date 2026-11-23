@@ -6,6 +6,10 @@ qt_add_library(lmp_ui STATIC)
 # them a short path inside the module's resources (FontLoader reads it).
 set_source_files_properties("${CMAKE_SOURCE_DIR}/Assets/fonts/MrDeHaviland-Regular.ttf"
     PROPERTIES QT_RESOURCE_ALIAS "fonts/MrDeHaviland-Regular.ttf")
+set_source_files_properties("${CMAKE_SOURCE_DIR}/Assets/fonts/ArchivoExpanded-Black.ttf"
+    PROPERTIES QT_RESOURCE_ALIAS "fonts/ArchivoExpanded-Black.ttf")
+set_source_files_properties("${CMAKE_SOURCE_DIR}/Assets/fonts/JetBrainsMono-Medium.ttf"
+    PROPERTIES QT_RESOURCE_ALIAS "fonts/JetBrainsMono-Medium.ttf")
 # The design gallery's sample cover: the application logo.
 set_source_files_properties("${CMAKE_SOURCE_DIR}/Assets/Square44x44Logo.targetsize-256.png"
     PROPERTIES QT_RESOURCE_ALIAS "dev/sample-cover.png")
@@ -71,6 +75,9 @@ set(LMP_UI_QML_FILES
     qml/player/QueueRow.qml
     qml/player/QueueSectionHeader.qml
     qml/player/RailSectionLabel.qml
+    qml/account/SignInDialog.qml
+    qml/settings/AccountBlock.qml
+    qml/settings/ApiKeyForm.qml
     qml/settings/SettingsAboutCard.qml
     qml/settings/SettingsAppearanceCard.qml
     qml/settings/SettingsCard.qml
@@ -79,8 +86,10 @@ set(LMP_UI_QML_FILES
     qml/settings/SettingsProfileCard.qml
     qml/settings/SettingsRow.qml
     qml/settings/SettingsSection.qml
+    qml/settings/SettingsSectionHead.qml
     qml/settings/SettingsSelectRow.qml
     qml/settings/SettingsSwitchRow.qml
+    qml/settings/SourceModeCards.qml
     qml/settings/ThemeTile.qml
     qml/shell/BrandMark.qml
     qml/shell/ContentPanel.qml
@@ -145,6 +154,8 @@ qt_add_qml_module(lmp_ui
         settings/SettingsAboutViewModel.h
         settings/SettingsViewModel.cpp
         settings/SettingsViewModel.h
+        settings/SourceModeViewModel.cpp
+        settings/SourceModeViewModel.h
         shell/AppRoot.cpp
         shell/AppRoot.h
         shell/PlaybackKeyGuard.cpp
@@ -186,6 +197,8 @@ qt_add_qml_module(lmp_ui
     QML_FILES ${LMP_UI_QML_FILES}
     RESOURCES
         "${CMAKE_SOURCE_DIR}/Assets/fonts/MrDeHaviland-Regular.ttf"
+        "${CMAKE_SOURCE_DIR}/Assets/fonts/ArchivoExpanded-Black.ttf"
+        "${CMAKE_SOURCE_DIR}/Assets/fonts/JetBrainsMono-Medium.ttf"
         "${CMAKE_SOURCE_DIR}/Assets/Square44x44Logo.targetsize-256.png")
 
 # Every folder that holds a header with a QML-registered type. The generated

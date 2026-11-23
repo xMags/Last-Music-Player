@@ -31,6 +31,11 @@ class ThemeTypography : public QObject {
     Q_PROPERTY(QFont settingsRowTitle READ settingsRowTitle CONSTANT FINAL)
     Q_PROPERTY(QFont settingsRowDescription READ settingsRowDescription CONSTANT FINAL)
     Q_PROPERTY(QFont settingsTileLabel READ settingsTileLabel CONSTANT FINAL)
+    Q_PROPERTY(QFont signInTitle READ signInTitle CONSTANT FINAL)
+    Q_PROPERTY(QFont signInLabel READ signInLabel CONSTANT FINAL)
+    Q_PROPERTY(QFont signInTagline READ signInTagline CONSTANT FINAL)
+    Q_PROPERTY(QFont signInButton READ signInButton CONSTANT FINAL)
+    Q_PROPERTY(QFont signInError READ signInError CONSTANT FINAL)
     Q_PROPERTY(QFont nowPlayingTitle READ nowPlayingTitle CONSTANT FINAL)
     Q_PROPERTY(QFont fullScreenTitle READ fullScreenTitle CONSTANT FINAL)
     Q_PROPERTY(QFont homeGreeting READ homeGreeting CONSTANT FINAL)
@@ -81,6 +86,9 @@ class ThemeTypography : public QObject {
     Q_PROPERTY(qreal lineHeightSettingsSection READ lineHeightSettingsSection CONSTANT FINAL)
     Q_PROPERTY(qreal lineHeightSettingsRowTitle READ lineHeightSettingsRowTitle CONSTANT FINAL)
     Q_PROPERTY(qreal lineHeightSettingsRowDescription READ lineHeightSettingsRowDescription CONSTANT FINAL)
+    Q_PROPERTY(qreal lineHeightSignInTitle READ lineHeightSignInTitle CONSTANT FINAL)
+    Q_PROPERTY(qreal lineHeightSignInTagline READ lineHeightSignInTagline CONSTANT FINAL)
+    Q_PROPERTY(qreal lineHeightSignInError READ lineHeightSignInError CONSTANT FINAL)
     Q_PROPERTY(qreal lineHeightNowPlayingTitle READ lineHeightNowPlayingTitle CONSTANT FINAL)
     Q_PROPERTY(qreal lineHeightFullScreenTitle READ lineHeightFullScreenTitle CONSTANT FINAL)
     Q_PROPERTY(qreal lineHeightHomeGreeting READ lineHeightHomeGreeting CONSTANT FINAL)
@@ -105,6 +113,11 @@ public:
     [[nodiscard]] QFont settingsRowTitle() const { return m_text.settingsRowTitle.font; }
     [[nodiscard]] QFont settingsRowDescription() const { return m_text.settingsRowDescription.font; }
     [[nodiscard]] QFont settingsTileLabel() const { return m_text.settingsTileLabel.font; }
+    [[nodiscard]] QFont signInTitle() const { return m_text.signInTitle.font; }
+    [[nodiscard]] QFont signInLabel() const { return m_text.signInLabel.font; }
+    [[nodiscard]] QFont signInTagline() const { return m_text.signInTagline.font; }
+    [[nodiscard]] QFont signInButton() const { return m_text.signInButton.font; }
+    [[nodiscard]] QFont signInError() const { return m_text.signInError.font; }
     [[nodiscard]] QFont nowPlayingTitle() const { return m_text.nowPlayingTitle.font; }
     [[nodiscard]] QFont fullScreenTitle() const { return m_text.fullScreenTitle.font; }
     [[nodiscard]] QFont homeGreeting() const { return m_text.homeGreeting.font; }
@@ -155,6 +168,9 @@ public:
     [[nodiscard]] qreal lineHeightSettingsSection() const { return m_text.settingsSection.lineHeight; }
     [[nodiscard]] qreal lineHeightSettingsRowTitle() const { return m_text.settingsRowTitle.lineHeight; }
     [[nodiscard]] qreal lineHeightSettingsRowDescription() const { return m_text.settingsRowDescription.lineHeight; }
+    [[nodiscard]] qreal lineHeightSignInTitle() const { return m_text.signInTitle.lineHeight; }
+    [[nodiscard]] qreal lineHeightSignInTagline() const { return m_text.signInTagline.lineHeight; }
+    [[nodiscard]] qreal lineHeightSignInError() const { return m_text.signInError.lineHeight; }
     [[nodiscard]] qreal lineHeightNowPlayingTitle() const { return m_text.nowPlayingTitle.lineHeight; }
     [[nodiscard]] qreal lineHeightFullScreenTitle() const { return m_text.fullScreenTitle.lineHeight; }
     [[nodiscard]] qreal lineHeightHomeGreeting() const { return m_text.homeGreeting.lineHeight; }

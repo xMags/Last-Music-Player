@@ -6,6 +6,7 @@
 
 #include "core/account/AccountClient.h"
 #include "core/account/AccountSessionService.h"
+#include "core/account/AccountSignOutCoordinator.h"
 #include "core/account/SecretStore.h"
 #include "core/app/AppPaths.h"
 #include "core/config/PrivateConfig.h"
@@ -37,6 +38,7 @@
 #include "ui/player/QueueRailViewModel.h"
 #include "ui/settings/SettingsAboutViewModel.h"
 #include "ui/settings/SettingsViewModel.h"
+#include "ui/settings/SourceModeViewModel.h"
 #include "ui/shell/AppRoot.h"
 #include "ui/shell/ShellLayoutViewModel.h"
 #include "ui/shell/SidebarViewModel.h"
@@ -105,8 +107,8 @@ private:
     core::PlayerController m_player;
     core::PlaybackStatePersistence m_persistence;
     core::MediaControlsBridge m_mediaBridge;
-    // The music source. The session is not restored at launch yet: until
-    // sign-in arrives in Settings it stays signed out.
+    // The music source: the account session (restored at launch), the API
+    // key provider and the mode that chooses between them.
     platform::windows::WindowsExternalLinks m_externalLinks;
     platform::windows::WindowsCredentialStore m_credentials;
     core::account::SecretStore m_secrets;
@@ -117,6 +119,7 @@ private:
     core::provider::ProviderClient m_providerClient;
     core::db::AccountRepository m_accounts;
     core::mode::ModeService m_mode;
+    core::account::LocalAccountSignOut m_signOut;
 
     ui::WindowChromeViewModel m_windowChromeViewModel;
     ui::Navigator m_navigator;
@@ -130,6 +133,7 @@ private:
     ui::ThemeSettingsBinding m_themeBinding;
     ui::SettingsViewModel m_settingsViewModel;
     ui::SettingsAboutViewModel m_settingsAbout;
+    ui::SourceModeViewModel m_source;
     ui::AppRoot m_appRoot;
     QPointer<ui::Theme> m_theme; // owned by the QML engine
 };

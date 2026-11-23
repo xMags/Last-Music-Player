@@ -15,6 +15,7 @@ constexpr int kSemiBold = 600;
 constexpr int kBold = 700;
 constexpr int kGreeting = 750;
 constexpr int kExtraBold = 800;
+constexpr int kBlack = 900;
 constexpr int kBubble = 650;
 
 } // namespace
@@ -59,6 +60,12 @@ FontFamilies FontFamilies::resolve()
             {QStringLiteral("Mr De Haviland"), QStringLiteral("Segoe Script")}),
         .captionIcons = FontLoader::firstAvailableFamily(
             {QStringLiteral("Segoe Fluent Icons"), QStringLiteral("Segoe MDL2 Assets")}),
+        // The bundled Archivo instance names itself "Archivo SemiBold"
+        // although it is the width 125, weight 900 cut.
+        .sleeveDisplay = FontLoader::firstAvailableFamily(
+            {QStringLiteral("Archivo SemiBold"), QStringLiteral("Arial Black")}),
+        .sleeveMono = FontLoader::firstAvailableFamily(
+            {QStringLiteral("JetBrains Mono"), QStringLiteral("Cascadia Mono"), QStringLiteral("Consolas")}),
     };
 }
 
@@ -98,6 +105,18 @@ TextStyles TextStyles::build(const FontFamilies& families)
         .settingsRowTitle = makeTextStyle({.family = text, .pixelSize = 14, .weight = kSemiBold, .lineHeight = 20}),
         .settingsRowDescription = makeTextStyle({.family = text, .pixelSize = 12, .weight = kRegular, .lineHeight = 17}),
         .settingsTileLabel = makeTextStyle({.family = text, .pixelSize = 11, .weight = kSemiBold}),
+        // The sign-in dialog (auth.css 307-510): .auth-title, .auth-meta-foot,
+        // .auth-tagline, .auth-btn and .auth-err.
+        .signInTitle = makeTextStyle({.family = families.sleeveDisplay,
+                                      .pixelSize = 52,
+                                      .weight = kBlack,
+                                      .lineHeight = 52,
+                                      .letterSpacingEm = -0.015}),
+        .signInLabel = makeTextStyle(
+            {.family = families.sleeveMono, .pixelSize = 11, .weight = kMedium, .letterSpacingEm = 0.16}),
+        .signInTagline = makeTextStyle({.family = text, .pixelSize = 15, .weight = kRegular, .lineHeight = 21}),
+        .signInButton = makeTextStyle({.family = text, .pixelSize = 16, .weight = kSemiBold}),
+        .signInError = makeTextStyle({.family = text, .pixelSize = 13.5, .weight = kRegular, .lineHeight = 19.5}),
         .nowPlayingTitle = makeTextStyle(
             {.family = display, .pixelSize = 20, .weight = kBold, .lineHeight = 26}),
         // line-height: 1.2 of 30px.

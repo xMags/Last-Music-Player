@@ -12,6 +12,10 @@ struct FontFamilies {
     QString expressive;
     // The glyph font of the window caption buttons.
     QString captionIcons;
+    // The sign-in dialog's two bundled faces: an expanded black display face
+    // for its title and a monospace face for its small labels.
+    QString sleeveDisplay;
+    QString sleeveMono;
 
     // Picks the first installed family of each design stack.
     [[nodiscard]] static FontFamilies resolve();
@@ -57,6 +61,11 @@ struct TextStyles {
     TextStyle settingsRowTitle;
     TextStyle settingsRowDescription;
     TextStyle settingsTileLabel;
+    TextStyle signInTitle;
+    TextStyle signInLabel;
+    TextStyle signInTagline;
+    TextStyle signInButton;
+    TextStyle signInError;
     TextStyle nowPlayingTitle;
     TextStyle fullScreenTitle;
     TextStyle homeGreeting;

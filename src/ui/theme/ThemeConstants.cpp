@@ -159,6 +159,11 @@ QColor ThemeConstants::swatchRing()
     return rgba(0, 0, 0, 0.12f);
 }
 
+QColor ThemeConstants::sourceReady()
+{
+    return QColor(0x6F, 0xBF, 0x73);
+}
+
 QColor ThemeConstants::artworkGradientStart(const QString& id) const
 {
     const int index = core::ArtworkPlaceholder::gradientIndexForId(

@@ -82,6 +82,7 @@ CompositionRoot::CompositionRoot()
               .provider = m_providerClient,
               .accounts = m_accounts,
               .operationGate = m_userDataGate})
+    , m_signOut(m_session)
     , m_windowChromeViewModel(&m_windowChrome)
     , m_sidebar(&m_navigator)
     , m_playerBar(m_player)
@@ -93,6 +94,12 @@ CompositionRoot::CompositionRoot()
     , m_settingsAbout({.library = m_databaseOpen ? &m_library : nullptr,
                        .links = m_externalLinks,
                        .dataRoot = m_paths.root()})
+    , m_source({.mode = m_mode,
+                .session = m_session,
+                .accountClient = m_accountClient,
+                .signOut = m_signOut,
+                .links = m_externalLinks,
+                .library = m_databaseOpen ? &m_library : nullptr})
     , m_appRoot({
           .windowChrome = &m_windowChromeViewModel,
           .navigator = &m_navigator,
@@ -104,6 +111,7 @@ CompositionRoot::CompositionRoot()
           .toasts = &m_toasts,
           .settings = &m_settingsViewModel,
           .settingsAbout = &m_settingsAbout,
+          .source = &m_source,
           .mode = &m_mode,
           .showGallery = QCoreApplication::arguments().contains(QStringLiteral("--gallery")),
       })
@@ -118,6 +126,9 @@ CompositionRoot::CompositionRoot()
     // sets the library's active context. A plaintext key left by an earlier
     // version moves into the credential store here.
     [[maybe_unused]] const core::account::LegacyKeyMigration migration = m_mode.start();
+    // Checks a stored account session with the service (or falls back to
+    // the saved profile while offline); without one it stays signed out.
+    m_session.restore();
 
     // The last song comes back into the player bar once the state file is
     // read (on the file's worker); the first Play opens it.

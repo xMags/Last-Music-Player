@@ -14,6 +14,8 @@ const QStringList& bundledFontPaths()
 {
     static const QStringList paths{
         QStringLiteral(":/qt/qml/LastMusicPlayer/fonts/MrDeHaviland-Regular.ttf"),
+        QStringLiteral(":/qt/qml/LastMusicPlayer/fonts/ArchivoExpanded-Black.ttf"),
+        QStringLiteral(":/qt/qml/LastMusicPlayer/fonts/JetBrainsMono-Medium.ttf"),
     };
     return paths;
 }

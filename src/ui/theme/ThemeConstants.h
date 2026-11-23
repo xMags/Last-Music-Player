@@ -75,6 +75,9 @@ class ThemeConstants : public ThemeFullscreen {
     Q_PROPERTY(QColor railShadow READ railShadow CONSTANT FINAL)
     // The thin ring inside an accent colour swatch.
     Q_PROPERTY(QColor swatchRing READ swatchRing CONSTANT FINAL)
+    // The status dot of a music source that is ready (the current app's
+    // success green).
+    Q_PROPERTY(QColor sourceReady READ sourceReady CONSTANT FINAL)
 
     Q_PROPERTY(qreal disabledOpacity READ disabledOpacity CONSTANT FINAL)
     Q_PROPERTY(qreal disabledSwitchOpacity READ disabledSwitchOpacity CONSTANT FINAL)
@@ -116,6 +119,7 @@ public:
     [[nodiscard]] static QColor artSheenTop();
     [[nodiscard]] static QColor artSheenBottom();
     [[nodiscard]] static QColor swatchRing();
+    [[nodiscard]] static QColor sourceReady();
     [[nodiscard]] static QColor railShadow();
     [[nodiscard]] static QColor idleDisc();
     [[nodiscard]] static QColor idleDiscGroove();

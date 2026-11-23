@@ -11,6 +11,18 @@ Item {
 
     Component.onCompleted: App.settingsAbout.refresh()
 
+    Connections {
+        target: App.source
+
+        function onSignInRequested() {
+            signIn.open()
+        }
+    }
+
+    SignInDialog {
+        id: signIn
+    }
+
     Column {
         id: column
 
@@ -28,6 +40,21 @@ Item {
             lineHeight: Theme.lineHeightSettingsHeading
             lineHeightMode: Text.FixedHeight
             color: Theme.fg
+        }
+
+        SourceModeCards {
+            width: column.width
+        }
+
+        ApiKeyForm {
+            width: column.width
+            visible: App.source.apiKeyShown
+        }
+
+        AccountBlock {
+            width: column.width
+            visible: App.source.accountShown
+            onSignInRequested: signIn.open()
         }
 
         SettingsProfileCard {
