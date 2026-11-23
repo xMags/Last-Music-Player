@@ -8,12 +8,19 @@
 #include "core/playback/TrackSourceResolver.h"
 
 #include <QFuture>
+#include <QLoggingCategory>
 #include <QString>
 
 #include <algorithm>
 #include <utility>
 
 namespace lmp::core {
+
+namespace {
+// What went wrong with a song, never where it comes from (addresses can
+// carry tokens).
+Q_LOGGING_CATEGORY(lcPlayer, "lmp.playback.player")
+} // namespace
 
 void PlayerController::load(const Track& track, double startAtSeconds, bool autoplay, QueueDirection skipDirection,
                             AdvanceTrigger skipTrigger)
@@ -60,6 +67,8 @@ void PlayerController::handleResolved(RequestScope::Token token, const Result<QU
         return; // a newer load started
     }
     if (!source) {
+        qCWarning(lcPlayer) << "No source for the song: kind" << static_cast<int>(source.failure().kind) << "status"
+                            << source.failure().httpStatus << source.failure().detail;
         if (PlaybackSourceRouter::isRemote(*m_current)) {
             noticeResolveFailure(source.failure());
         }
@@ -239,6 +248,7 @@ void PlayerController::onAudioError(quint64 loadId)
     if (loadId == 0 || loadId != m_audioLoadId || !m_current || m_state == State::Error) {
         return;
     }
+    qCWarning(lcPlayer) << "The audio player could not play the song.";
     // A remote stream can stop working mid-song (its address expired, the
     // connection dropped): it is fetched again rather than skipped.
     if (PlaybackSourceRouter::isRemote(*m_current)) {
