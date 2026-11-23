@@ -113,6 +113,8 @@ public:
 
 signals:
     void likedChanged(const QString& sourceKey, bool liked);
+    // A song was just liked (for the automatic downloads).
+    void songLiked(const lmp::core::Track& track);
     void playlistsChanged();
     void playlistChanged(const QString& playlistKey);
     void albumRequested(const lmp::core::Track& track);

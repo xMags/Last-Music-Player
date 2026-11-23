@@ -275,6 +275,9 @@ std::optional<bool> TrackActions::toggleLike(const Track& track)
         const std::optional<bool> liked = m_account->setLiked(track, !m_account->isLiked(track));
         if (liked) {
             emit likedChanged(catalogSourceKey(track), *liked);
+            if (*liked) {
+                emit songLiked(track);
+            }
         }
         return liked;
     }
@@ -288,6 +291,9 @@ std::optional<bool> TrackActions::toggleLike(const Track& track)
         return std::nullopt;
     }
     emit likedChanged(key, liked);
+    if (liked) {
+        emit songLiked(track);
+    }
     return liked;
 }
 

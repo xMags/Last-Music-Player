@@ -38,6 +38,11 @@ QFuture<Result<QUrl>> PlaybackSourceRouter::resolve(const Track& track)
     if (!isRemote(track)) {
         return m_local.resolve(track);
     }
+    if (m_downloaded) {
+        if (const QString file = m_downloaded(track); !file.isEmpty()) {
+            return QtFuture::makeReadyValueFuture(Result<QUrl>(QUrl::fromLocalFile(file)));
+        }
+    }
     Result<QUrl> refusal = Failure::of(FailureKind::Unknown);
     if (TrackSourceResolver* resolver = remoteResolver(refusal)) {
         return resolver->resolve(track);

@@ -136,8 +136,12 @@ qt_add_library(lmp_core STATIC
     db/TrackRows.cpp
     db/TrackRows.h
     db/TrackSchema.h
+    downloads/DownloadManager.cpp
+    downloads/DownloadManager.h
     downloads/DownloadPolicy.cpp
     downloads/DownloadPolicy.h
+    downloads/HttpDownloadFetcher.cpp
+    downloads/HttpDownloadFetcher.h
     library/ArtworkByteSource.cpp
     library/ArtworkByteSource.h
     library/ArtworkPictureCandidate.cpp
@@ -319,6 +323,7 @@ qt_add_library(lmp_core STATIC
     ../platform/IWindowPlacement.h
     ../platform/IMediaControls.h
     ../platform/INetworkStatus.h
+    ../platform/IPowerStatus.h
     ../platform/IReducedMotion.h
     ../platform/IShellThumbnail.h
     ../platform/ISingleInstance.h

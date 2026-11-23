@@ -1,5 +1,7 @@
 #pragma once
 
+#include <QTimer>
+
 #include <QPointer>
 
 #include <memory>
@@ -32,6 +34,8 @@
 #include "core/library/ArtistFollowService.h"
 #include "core/library/CollectionActions.h"
 #include "core/library/HomeMixService.h"
+#include "core/downloads/DownloadManager.h"
+#include "core/downloads/HttpDownloadFetcher.h"
 #include "core/library/LibraryScanner.h"
 #include "core/library/LinkImportService.h"
 #include "core/lyrics/LyricsService.h"
@@ -63,6 +67,7 @@
 #include "platform/windows/WindowsFolderPicker.h"
 #include "platform/windows/WindowsMediaControls.h"
 #include "platform/windows/WindowsNetworkStatus.h"
+#include "platform/windows/WindowsPowerStatus.h"
 #include "platform/windows/WindowsReducedMotion.h"
 #include "platform/windows/WindowsTagReader.h"
 #include "platform/windows/WindowsWindowChrome.h"
@@ -213,6 +218,11 @@ private:
     core::StreamCache m_streamCache;
     core::ProviderTrackSourceResolver m_providerResolver;
     core::PlaybackSourceRouter m_resolver;
+    // Offline downloads: their state file, transfers and the rules.
+    platform::windows::WindowsPowerStatus m_power;
+    core::HttpDownloadFetcher m_downloadFetcher;
+    core::DownloadManager m_downloads;
+    QTimer m_downloadRules;
     core::SystemPlaybackClock m_clock;
     core::PlayerController m_player;
     core::PlaybackStatePersistence m_persistence;

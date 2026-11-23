@@ -2,6 +2,10 @@
 
 #include "core/playback/TrackSourceResolver.h"
 
+#include <QString>
+
+#include <functional>
+
 namespace lmp::core {
 
 namespace mode {
@@ -21,6 +25,10 @@ public:
     PlaybackSourceRouter(TrackSourceResolver& local, TrackSourceResolver& account, TrackSourceResolver& provider,
                          const mode::ModeService& mode);
 
+    // A finished download of a remote song plays before anything is asked
+    // of the network, in every mode (the earlier versions' order).
+    void setDownloadLookup(std::function<QString(const Track&)> lookup) { m_downloaded = std::move(lookup); }
+
     // Whether the router treats `track` as remote.
     [[nodiscard]] static bool isRemote(const Track& track);
 
@@ -34,6 +42,7 @@ private:
     TrackSourceResolver& m_account;
     TrackSourceResolver& m_provider;
     const mode::ModeService& m_mode;
+    std::function<QString(const Track&)> m_downloaded;
 };
 
 } // namespace lmp::core

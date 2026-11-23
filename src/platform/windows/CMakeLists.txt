@@ -17,6 +17,8 @@ qt_add_library(lmp_platform_windows STATIC
     WindowsMediaControls.h
     WindowsNetworkStatus.cpp
     WindowsNetworkStatus.h
+    WindowsPowerStatus.cpp
+    WindowsPowerStatus.h
     WindowsReducedMotion.cpp
     WindowsReducedMotion.h
     WindowsSingleInstance.cpp

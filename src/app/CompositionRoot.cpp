@@ -114,6 +114,28 @@ CompositionRoot::CompositionRoot()
     , m_streamCache(m_paths.streamCacheFolder(), m_userDataGate, m_streamDownloader)
     , m_providerResolver({.remote = m_remote, .mode = m_mode, .cache = m_streamCache, .tracks = m_tracks})
     , m_resolver(m_localResolver, m_accountResolver, m_providerResolver, m_mode)
+    , m_downloads({.settings = m_settings,
+                   .gate = m_userDataGate,
+                   .fetcher = m_downloadFetcher,
+                   .stateFile = m_paths.downloadsFile(),
+                   .defaultFolder = m_paths.offlineFolder(),
+                   .resolve =
+                       [this](const core::DownloadItem& item) {
+                           core::Track track;
+                           track.sourceKind = QStringLiteral("remote");
+                           track.sourceUrl = item.sourceUrl;
+                           track.sourceTag = item.provider;
+                           track.title = item.title;
+                           track.artist = item.artist;
+                           return m_resolver.refresh(track);
+                       },
+                   .scopePrefix =
+                       [this]() {
+                           return QStringLiteral("download|")
+                               + core::track_keys::remoteScopeCacheKey(m_remote.scopeKeyParts()) + QLatin1Char('\n');
+                       },
+                   .metered = [this]() { return m_network.metered() || !m_network.online(); },
+                   .onBattery = [this]() { return m_power.onBattery(); }})
     , m_player({.audio = m_audio, .settings = m_settings, .tracks = m_tracks, .resolver = m_resolver, .clock = m_clock},
                core::QueueEngine())
     , m_persistence({.player = m_player,
@@ -446,6 +468,35 @@ CompositionRoot::CompositionRoot()
                              emit m_collectionActions.albumsChanged();
                          }
                      });
+    // Offline downloads: a finished one plays first; liked and recently
+    // played songs are fetched when the rules say so; the rules are checked
+    // again every few seconds and on every connection change.
+    m_downloads.initialize();
+    m_resolver.setDownloadLookup([this](const core::Track& track) {
+        return m_downloads.readyPath(core::track_keys::downloadStableKey(m_remote.scopeKeyParts(), track));
+    });
+    const auto autoDownload = [this](const core::Track& track, const QString& reason) {
+        if (!m_mode.capabilities().downloadSongs || !track.isRemote() || !track.sourceUrl.startsWith(QLatin1StringView("http"))) {
+            return;
+        }
+        const QString key = core::track_keys::downloadStableKey(m_remote.scopeKeyParts(), track);
+        (void)m_downloads.enqueue(track.title, reason, track.artworkUrl,
+                                  {{key, track.sourceUrl, track.sourceTag, track.title, track.artist, track.album,
+                                    track.artworkUrl}});
+    };
+    QObject::connect(&m_trackActions, &core::TrackActions::songLiked, &m_downloads, [this, autoDownload](const core::Track& track) {
+        if (m_downloads.snapshot().autoDownloadLiked) {
+            autoDownload(track, QStringLiteral("Liked song"));
+        }
+    });
+    QObject::connect(&m_player, &core::PlayerController::playRecorded, &m_downloads, [this, autoDownload](const core::Track& track) {
+        if (m_downloads.snapshot().keepRecentOffline) {
+            autoDownload(track, QStringLiteral("Recently played"));
+        }
+    });
+    m_downloadRules.setInterval(3000);
+    QObject::connect(&m_downloadRules, &QTimer::timeout, &m_downloads, [this]() { m_downloads.refreshScheduling(); });
+    m_downloadRules.start();
     // API key mode: the local mixes are filled from provider searches.
     m_homeMixes.setRemoteFill(
         [this](const QString& query) { return m_remote.search(query).then(&core::catalog::parseProviderTrackListResult); },
@@ -655,6 +706,7 @@ CompositionRoot::~CompositionRoot()
     m_ambient.shutdown();
     m_persistence.shutdown();
     m_player.shutdown();
+    m_downloads.shutdown();
 }
 
 bool CompositionRoot::claimSingleInstance()
