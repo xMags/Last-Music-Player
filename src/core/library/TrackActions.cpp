@@ -41,6 +41,18 @@ bool TrackActions::canPlay(const Track& track) const
     return !track.isRemote() || m_mode.capabilities().streamRemoteSongs;
 }
 
+bool TrackActions::canStartMix(const Track& track) const
+{
+    return canPlay(track) && track.isRemote() && m_mode.capabilities().playRadio;
+}
+
+void TrackActions::startMix(const Track& track)
+{
+    if (canStartMix(track)) {
+        emit mixRequested(track);
+    }
+}
+
 bool TrackActions::canKeep(const Track& track) const
 {
     if (catalogSourceKey(track).isEmpty()) {

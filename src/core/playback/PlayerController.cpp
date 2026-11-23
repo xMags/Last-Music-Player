@@ -50,6 +50,7 @@ void PlayerController::playInContext(const Track& track, const QList<Track>& con
         return;
     }
     m_backHistory.clear();
+    emit contextReplaced();
 
     const QList<Track> tracks = uniqueQueueTracks(context);
     const QString identity = queueTrackIdentity(track);
@@ -142,6 +143,19 @@ void PlayerController::playVisibleQueueEntry(qsizetype visibleIndex)
     }
     load(entry.track, 0.0, true, QueueDirection::Next, AdvanceTrigger::Automatic);
     emit autoplayExtensionWanted(false);
+}
+
+void PlayerController::appendAutoplayTracks(const QList<Track>& tracks, bool resume)
+{
+    const QueueEngine extended = m_queue.appendAutoplayTracks(tracks);
+    if (extended.upcomingCount() == m_queue.upcomingCount()) {
+        return;
+    }
+    applyQueue(extended);
+    // The queue had run out on its last song: go on with the first new one.
+    if (resume && m_current && m_state != State::Playing) {
+        advance(QueueDirection::Next, AdvanceTrigger::Automatic, StepReason::User);
+    }
 }
 
 void PlayerController::setAccountPlaybackSink(AccountPlaybackSink* sink)
@@ -255,6 +269,7 @@ void PlayerController::reset()
     m_history.clear();
     m_backHistory.clear();
     applyQueue(QueueEngine().withShuffle(shuffle(), m_random).withRepeatMode(repeatMode()));
+    emit contextReplaced();
     if (m_current) {
         m_current.reset();
         emit currentTrackChanged();

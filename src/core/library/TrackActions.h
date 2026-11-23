@@ -65,6 +65,8 @@ public:
     [[nodiscard]] bool canPlay(const Track& track) const;
     // Whether the song can be liked or put in a playlist here.
     [[nodiscard]] bool canKeep(const Track& track) const;
+    // Whether a mix can start from the song: a remote song where mixes play.
+    [[nodiscard]] bool canStartMix(const Track& track) const;
 
     // Plays the song with `context` as the list around it (the song alone
     // when the context is empty).
@@ -93,6 +95,9 @@ public:
 
     void openAlbum(const Track& track);
     void openArtist(const Track& track);
+    // Plays the song alone and fills the queue with songs like it (the
+    // autoplay service follows mixRequested).
+    void startMix(const Track& track);
 
 signals:
     void likedChanged(const QString& sourceKey, bool liked);
@@ -100,6 +105,7 @@ signals:
     void playlistChanged(const QString& playlistKey);
     void albumRequested(const lmp::core::Track& track);
     void artistRequested(const lmp::core::Track& track);
+    void mixRequested(const lmp::core::Track& track);
 
 private:
     // The song's library row, written first when it has none.

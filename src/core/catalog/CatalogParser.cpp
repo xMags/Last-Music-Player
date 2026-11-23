@@ -488,6 +488,25 @@ QList<Track> parseProviderTracks(const QJsonValue& value)
     return tracks;
 }
 
+QList<Track> parseProviderTrackList(const QByteArray& payload)
+{
+    const QJsonDocument document = QJsonDocument::fromJson(payload);
+    if (document.isArray()) {
+        return parseProviderTracks(document.array());
+    }
+    const QJsonObject body = document.object();
+    if (body.value(QLatin1StringView("results")).isArray()) {
+        return parseProviderTracks(body.value(QLatin1StringView("results")));
+    }
+    if (body.value(QLatin1StringView("tracks")).isArray()) {
+        return parseProviderTracks(body.value(QLatin1StringView("tracks")));
+    }
+    if (body.value(QLatin1StringView("result")).isObject()) {
+        return parseProviderTracks(QJsonArray{body.value(QLatin1StringView("result"))});
+    }
+    return {};
+}
+
 QList<CatalogItem> parseProviderTrackItems(const QJsonValue& value)
 {
     QList<CatalogItem> items;

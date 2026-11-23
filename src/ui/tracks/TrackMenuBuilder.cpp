@@ -45,6 +45,12 @@ QList<MenuItemListModel::Item> TrackMenuBuilder::songMenu(const core::Track& tra
                       .iconName = QStringLiteral("trash"),
                       .danger = true});
     }
+    if (abilities.mix) {
+        items.append({.id = QString(Mix),
+                      .label = text("Start mix"),
+                      .iconName = QStringLiteral("radio"),
+                      .separatorBefore = true});
+    }
     items.append({.id = QString(Artist),
                   .label = text("Go to artist"),
                   .iconName = QStringLiteral("person"),

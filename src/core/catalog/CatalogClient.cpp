@@ -284,6 +284,19 @@ QFuture<Result<QByteArray>> CatalogClient::search(const QString& bearer, const Q
     return get(bearer, QStringLiteral("/v1/music/search?q=") + encoded(trimmed));
 }
 
+QFuture<Result<QByteArray>> CatalogClient::related(const QString& bearer, const QString& sourceUrl,
+                                                   const QString& sourceReference)
+{
+    const QString link = sourceUrl.trimmed();
+    if (link.isEmpty()) {
+        return refused(QStringLiteral("This song has no link."));
+    }
+    const QString reference = sourceReference.trimmed();
+    return get(bearer, QStringLiteral("/v1/music/related?")
+                           + (reference.isEmpty() ? queryText({{QStringLiteral("sourceUrl"), link}})
+                                                  : queryText({{QStringLiteral("sourceRef"), reference}})));
+}
+
 QFuture<Result<QByteArray>> CatalogClient::searchAll(const QString& bearer, const QString& query)
 {
     const QString trimmed = query.trimmed();

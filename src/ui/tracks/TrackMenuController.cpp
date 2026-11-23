@@ -18,7 +18,9 @@ void TrackMenuController::prepare(const core::Track& track, const QList<core::Tr
     m_context = context;
     m_playlistKey = playlistKey;
     m_menu.setItems(TrackMenuBuilder::songMenu(
-        track, {.play = m_actions.canPlay(track), .keep = m_actions.canKeep(track)}, playlistKey));
+        track,
+        {.play = m_actions.canPlay(track), .keep = m_actions.canKeep(track), .mix = m_actions.canStartMix(track)},
+        playlistKey));
 }
 
 void TrackMenuController::prepareInPlaylist(const core::Track& track, const QList<core::Track>& context,
@@ -31,7 +33,8 @@ void TrackMenuController::prepareInPlaylist(const core::Track& track, const QLis
                                                {.play = m_actions.canPlay(track),
                                                 .keep = m_actions.canKeep(track),
                                                 .moveUp = place.canMoveUp,
-                                                .moveDown = place.canMoveDown},
+                                                .moveDown = place.canMoveDown,
+                                                .mix = m_actions.canStartMix(track)},
                                                place.key));
 }
 
@@ -65,6 +68,8 @@ void TrackMenuController::trigger(const QString& itemId)
         m_actions.openArtist(m_track);
     } else if (itemId == TrackMenuBuilder::Album) {
         m_actions.openAlbum(m_track);
+    } else if (itemId == TrackMenuBuilder::Mix) {
+        m_actions.startMix(m_track);
     }
 }
 

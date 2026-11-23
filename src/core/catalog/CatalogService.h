@@ -126,6 +126,9 @@ public:
     // The search page's search: songs and cards (not kept). A pasted link
     // is searched like any query; the service answers with what it links to.
     [[nodiscard]] QFuture<Result<SearchAll>> searchAll(const QString& query);
+    // Songs for autoplay (not kept): like `seed`, or found by a plain search.
+    [[nodiscard]] QFuture<Result<QList<Track>>> relatedTracks(const Track& seed);
+    [[nodiscard]] QFuture<Result<QList<Track>>> searchTracks(const QString& query);
 
     // The album a song belongs to, as the service finds it (kept like a
     // page); nothing when it found none. Never fails: a failure reads as

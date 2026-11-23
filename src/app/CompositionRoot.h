@@ -39,9 +39,11 @@
 #include "core/mode/ModeService.h"
 #include "core/net/HttpClient.h"
 #include "core/playback/AccountTrackSourceResolver.h"
+#include "core/playback/AutoplayService.h"
 #include "core/playback/MediaControlsBridge.h"
 #include "core/playback/PlaybackClock.h"
 #include "core/playback/PlaybackStatePersistence.h"
+#include "core/playback/PlayerAutoplayQueue.h"
 #include "core/playback/PlaybackSourceRouter.h"
 #include "core/playback/PlayerController.h"
 #include "core/playback/TrackSourceResolver.h"
@@ -257,6 +259,9 @@ private:
     ui::CatalogArtistViewModel m_catalogArtist;
     // Lyrics of the playing song, asked for in the account's scope.
     core::lyrics::LyricsService m_lyricsService;
+    // Autoplay's top-up and "Start mix", over the player's queue.
+    core::PlayerAutoplayQueue m_autoplayQueue;
+    core::AutoplayService m_autoplay;
     ui::LyricsViewModel m_lyrics;
     ui::CollectionEditor m_collectionEditor;
     ui::HomeViewModel m_home;

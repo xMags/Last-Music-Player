@@ -22,6 +22,7 @@ private slots:
     void songsThatCannotPlayOrBeKeptLoseThoseItems();
     void singlesHaveNoAlbumItem();
     void playlistMenuStartsWithNewPlaylist();
+    void mixSitsBeforeGoToArtist();
 };
 
 namespace {
@@ -55,6 +56,17 @@ void TrackMenuBuilderTest::fullMenuInTheReferenceOrder()
     QVERIFY(items.at(3).separatorBefore);
     QVERIFY(items.at(5).separatorBefore);
     QCOMPARE(items.at(4).label, QStringLiteral("Add to Liked Songs"));
+}
+
+void TrackMenuBuilderTest::mixSitsBeforeGoToArtist()
+{
+    const auto items = TrackMenuBuilder::songMenu(song(QStringLiteral("Song"), QStringLiteral("Album")), {.mix = true});
+    QCOMPARE(ids(items), (QStringList{QStringLiteral("play"), QStringLiteral("next"), QStringLiteral("queue"),
+                                      QStringLiteral("playlist"), QStringLiteral("like"), QStringLiteral("mix"),
+                                      QStringLiteral("artist"), QStringLiteral("album")}));
+    QCOMPARE(items.at(5).label, QStringLiteral("Start mix"));
+    QVERIFY(items.at(5).separatorBefore);
+    QVERIFY(items.at(6).separatorBefore);
 }
 
 void TrackMenuBuilderTest::likedSongOffersRemovingTheLike()

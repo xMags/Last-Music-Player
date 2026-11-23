@@ -85,6 +85,10 @@ public:
     void playNext(const QList<Track>& tracks);
     void addToQueue(const QList<Track>& tracks);
     void shuffleAndPlay(const QList<Track>& tracks);
+    // Autoplay's songs at the end of the queue (at most 20, none already
+    // queued); `resume` goes on to the first of them when the queue had run
+    // out and the last song stopped.
+    void appendAutoplayTracks(const QList<Track>& tracks, bool resume);
     void playVisibleQueueEntry(qsizetype visibleIndex);
     void togglePlay();
     void next();
@@ -144,8 +148,10 @@ signals:
     // Replaced before its end (for saving where it stopped).
     void trackLeft(const lmp::core::Track& track, double positionSeconds, double durationSeconds);
     // A point where related songs may top up the queue (`queueEnded`: it ran
-    // out). Nothing listens yet; the autoplay service decides whether to act.
+    // out). The autoplay service decides whether to act.
     void autoplayExtensionWanted(bool queueEnded);
+    // A new queue replaced the old one (a new list, or everything forgotten).
+    void contextReplaced();
 
 private:
     enum class StepReason { User, TrackEnded, BrokenTrack };

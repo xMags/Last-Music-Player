@@ -254,6 +254,10 @@ qt_add_library(lmp_core STATIC
     playback/PlaybackStateRestore.h
     playback/PlaybackStateSnapshot.cpp
     playback/PlaybackStateSnapshot.h
+    playback/AutoplayService.cpp
+    playback/AutoplayService.h
+    playback/PlayerAutoplayQueue.cpp
+    playback/PlayerAutoplayQueue.h
     playback/PlayerController.cpp
     playback/PlayerController.h
     playback/PlayerControllerPlayback.cpp

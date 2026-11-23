@@ -66,6 +66,9 @@ struct ChartRefOptions {
 [[nodiscard]] std::optional<CatalogItem> parseProviderArtistItem(const QJsonValue& value);
 // Provider songs (the account's track form) that can be kept, in order.
 [[nodiscard]] QList<Track> parseProviderTracks(const QJsonValue& value);
+// A list of songs from search or related songs: {"results": [...]},
+// {"tracks": [...]}, {"result": {...}} or a bare array.
+[[nodiscard]] QList<Track> parseProviderTrackList(const QByteArray& payload);
 // Provider songs as song cards, in order.
 [[nodiscard]] QList<CatalogItem> parseProviderTrackItems(const QJsonValue& value);
 

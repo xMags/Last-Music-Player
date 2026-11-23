@@ -243,6 +243,32 @@ CompositionRoot::CompositionRoot()
               const std::optional<core::account::AccountOperationContext> context = m_session.captureOperation();
               return context ? QStringLiteral("account:") + context->ownerId : QString();
           })
+    , m_autoplayQueue(m_player)
+    , m_autoplay(m_autoplayQueue,
+                 {.related =
+                      [this](const core::Track& seed) -> QFuture<core::Result<QList<core::Track>>> {
+                          if (!m_mode.capabilities().playRadio || !m_mode.capabilities().browseCatalogue) {
+                              return QtFuture::makeReadyValueFuture(core::Result<QList<core::Track>>(
+                                  core::Failure::of(core::FailureKind::Unknown, QStringLiteral("No mixes here."))));
+                          }
+                          return m_catalog.relatedTracks(seed);
+                      },
+                  .search =
+                      [this](const QString& query) -> QFuture<core::Result<QList<core::Track>>> {
+                          if (!m_mode.capabilities().playRadio || !m_mode.capabilities().browseCatalogue) {
+                              return QtFuture::makeReadyValueFuture(core::Result<QList<core::Track>>(
+                                  core::Failure::of(core::FailureKind::Unknown, QStringLiteral("No mixes here."))));
+                          }
+                          return m_catalog.searchTracks(query);
+                      },
+                  .history =
+                      [this]() {
+                          QList<core::Track> recent = m_library.loadHistoryTracks();
+                          if (const std::optional<core::home::HomeLibrary> account = accountHomeLibrary()) {
+                              recent += account->history;
+                          }
+                          return recent;
+                      }})
     , m_lyrics(m_player, m_lyricsService)
     , m_collectionPage({.library = m_library,
                         .actions = m_trackActions,
@@ -370,6 +396,20 @@ CompositionRoot::CompositionRoot()
             m_catalogPage.openAlbumOf(track);
         }
     });
+    // Autoplay follows the player's queue; a mix that finds nothing says so.
+    QObject::connect(&m_player, &core::PlayerController::autoplayExtensionWanted, &m_autoplay,
+                     [this](bool queueEnded) { m_autoplay.extensionWanted(queueEnded); });
+    QObject::connect(&m_player, &core::PlayerController::contextReplaced, &m_autoplay,
+                     [this]() { m_autoplay.contextReplaced(); });
+    QObject::connect(&m_player, &core::PlayerController::autoplayChanged, &m_autoplay,
+                     [this]() { m_autoplay.invalidate(); });
+    QObject::connect(&m_player, &core::PlayerController::repeatModeChanged, &m_autoplay,
+                     [this]() { m_autoplay.invalidate(); });
+    QObject::connect(&m_mode, &core::mode::ModeService::changed, &m_autoplay, [this]() { m_autoplay.invalidate(); });
+    QObject::connect(&m_trackActions, &core::TrackActions::mixRequested, &m_autoplay,
+                     [this](const core::Track& track) { m_autoplay.startMix(track); });
+    QObject::connect(&m_autoplay, &core::AutoplayService::mixFoundNothing, &m_toasts,
+                     [this]() { m_toasts.show(QCoreApplication::translate("Autoplay", "No similar songs found for this radio.")); });
     // Another account, key or mode asks in another scope.
     QObject::connect(&m_mode, &core::mode::ModeService::changed, &m_lyrics, [this]() { m_lyrics.reload(); });
     QObject::connect(&m_session, &core::account::AccountSessionService::ownerChanged, &m_lyrics,
