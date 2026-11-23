@@ -40,7 +40,7 @@ Item {
         }
 
         SequentialAnimation on x {
-            running: !Motion.reduced && root.visible
+            running: !Motion.reduced && Motion.windowShown && root.visible
             loops: Animation.Infinite
 
             PropertyAction { value: -1.15 * root.width }

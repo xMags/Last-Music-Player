@@ -115,7 +115,7 @@ Item {
             }
 
             SequentialAnimation on scale {
-                running: field.running && field.visible && !Motion.reduced
+                running: field.running && field.visible && !Motion.reduced && Motion.windowShown
                 loops: Animation.Infinite
                 NumberAnimation { from: 1; to: 1.12; duration: 3000; easing.type: Easing.InOutSine }
                 NumberAnimation { from: 1.12; to: 1; duration: 3000; easing.type: Easing.InOutSine }
@@ -156,7 +156,7 @@ Item {
             }
 
             SequentialAnimation {
-                running: field.running && field.visible && !Motion.reduced
+                running: field.running && field.visible && !Motion.reduced && Motion.windowShown
                 loops: Animation.Infinite
                 ParallelAnimation {
                     NumberAnimation { target: breathe; property: "xScale"; from: 1; to: 1.035; duration: 3000; easing.type: Easing.InOutSine }

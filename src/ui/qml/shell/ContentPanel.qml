@@ -47,7 +47,7 @@ Item {
 
     // ambient-drift: 26s, ease-in-out between keyframes, alternating.
     SequentialAnimation {
-        running: panel.playing && !Motion.reduced && panel.visible
+        running: panel.playing && !Motion.reduced && panel.visible && Motion.windowShown
         loops: Animation.Infinite
 
         ParallelAnimation {

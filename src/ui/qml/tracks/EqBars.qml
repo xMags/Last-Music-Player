@@ -43,7 +43,7 @@ Row {
             }
 
             SequentialAnimation on scale {
-                running: bars.running && bars.visible && !Motion.reduced
+                running: bars.running && bars.visible && !Motion.reduced && Motion.windowShown
                 loops: Animation.Infinite
                 alwaysRunToEnd: false
 

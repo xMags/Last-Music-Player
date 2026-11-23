@@ -106,6 +106,10 @@ class Motion : public QObject {
     Q_PROPERTY(qreal glowRestOpacity READ glowRestOpacity CONSTANT FINAL)
 
     Q_PROPERTY(bool reduced READ reduced WRITE setReduced NOTIFY reducedChanged FINAL)
+    // False while the main window is minimised or hidden (closed to the
+    // tray): animations that loop without end stop, so nothing ticks for a
+    // window no one can see.
+    Q_PROPERTY(bool windowShown READ windowShown WRITE setWindowShown NOTIFY windowShownChanged FINAL)
 
 public:
     explicit Motion(QObject* parent = nullptr);
@@ -178,6 +182,8 @@ public:
 
     [[nodiscard]] bool reduced() const { return m_reduced; }
     void setReduced(bool reduced);
+    [[nodiscard]] bool windowShown() const { return m_windowShown; }
+    void setWindowShown(bool shown);
 
     // A CSS cubic-bezier(x1, y1, x2, y2) timing function.
     [[nodiscard]] static QEasingCurve cubicBezier(qreal x1, qreal y1, qreal x2, qreal y2);
@@ -204,6 +210,7 @@ public:
 
 signals:
     void reducedChanged();
+    void windowShownChanged();
 
 private:
     // One of the glow's values over a breath, from `rest` to `peak` and back.
@@ -223,6 +230,7 @@ private:
     QEasingCurve m_easeOut = cubicBezier(0, 0, 0.58, 1);
     QEasingCurve m_easeInOut = cubicBezier(0.42, 0, 0.58, 1);
     bool m_reduced = false;
+    bool m_windowShown = true;
 };
 
 } // namespace lmp::ui

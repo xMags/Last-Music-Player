@@ -880,6 +880,12 @@ bool CompositionRoot::showMainWindow(QQmlApplicationEngine& engine)
     m_librarySettings.setOwnerWindow(static_cast<quintptr>(window->winId()));
     m_offline.setOwnerWindow(static_cast<quintptr>(window->winId()));
     m_closeToTray.attach(window);
+    // Looping animations stop while the window is minimised or in the tray.
+    QObject::connect(window, &QWindow::visibilityChanged, window, [this](QWindow::Visibility visibility) {
+        if (m_motion) {
+            m_motion->setWindowShown(visibility != QWindow::Minimized && visibility != QWindow::Hidden);
+        }
+    });
     // Presses, for where the queue arc starts.
     window->installEventFilter(&m_effects);
     // The system routes the media keys to the session of this window.
@@ -931,6 +937,7 @@ void CompositionRoot::attachEngine(QQmlEngine& engine)
     if (motion.isNull()) {
         return;
     }
+    m_motion = motion;
     motion->setReduced(m_reducedMotion->reduced());
     // The engine owns Motion and is destroyed before this root, so the
     // guarded pointer is checked on every change.

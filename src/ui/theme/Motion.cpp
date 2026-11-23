@@ -12,6 +12,15 @@ Motion::Motion(QObject* parent)
 {
 }
 
+void Motion::setWindowShown(bool shown)
+{
+    if (shown == m_windowShown) {
+        return;
+    }
+    m_windowShown = shown;
+    emit windowShownChanged();
+}
+
 void Motion::setReduced(bool reduced)
 {
     if (reduced == m_reduced) {

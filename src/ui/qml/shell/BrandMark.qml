@@ -37,7 +37,7 @@ Item {
         }
 
         SequentialAnimation {
-            running: mark.rippling
+            running: mark.rippling && Motion.windowShown
             onStopped: squeeze.yScale = 1
 
             PauseAnimation { duration: bar.delay }

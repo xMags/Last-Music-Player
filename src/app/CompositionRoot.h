@@ -65,6 +65,7 @@
 #include "ui/motion/CoverFlight.h"
 #include "ui/motion/PageCascade.h"
 #include "ui/motion/MotionEffects.h"
+#include "ui/theme/Motion.h"
 #include "ui/navigation/FocusPlace.h"
 #include "core/playback/TrackSourceResolver.h"
 #include "core/provider/ProviderClient.h"
@@ -344,6 +345,9 @@ private:
     ui::PageCascade m_pageCascade;
     // The queue arc, heart burst and save motion.
     ui::MotionEffects m_effects;
+    // The engine's Motion singleton (owned by the engine), told when the
+    // window is minimised or hidden.
+    QPointer<ui::Motion> m_motion;
     // Back gives the control that had keyboard focus its focus again.
     ui::FocusPlace m_focusPlace;
     // Settings > Sound (shown, inert) and the one-time history import offer.
