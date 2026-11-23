@@ -114,7 +114,6 @@ CompositionRoot::CompositionRoot()
                      .clock = m_clock},
                     m_paths)
     , m_mediaBridge({.player = m_player, .controls = m_mediaControls, .settings = m_settings, .clock = m_clock})
-    , m_signOut(m_session)
     , m_artwork({.client = m_accountClient, .session = m_session, .mode = m_mode, .http = m_http, .clock = m_clock})
     , m_outbox(m_database)
     , m_sync({.transport = m_accountClient,
@@ -127,6 +126,12 @@ CompositionRoot::CompositionRoot()
               .clock = m_clock,
               .nowUtc = {}})
     , m_syncScheduler({.sync = m_sync, .session = m_session, .mode = m_mode, .network = m_network, .clock = m_clock})
+    , m_signOut({.session = m_session,
+                 .outboundSync = m_sync,
+                 .storage = m_accounts,
+                 .settings = m_settings,
+                 .gate = m_userDataGate,
+                 .idleTimeout = std::chrono::seconds(30)})
     , m_accountEditor({.client = m_accountClient,
                        .session = m_session,
                        .mode = m_mode,
@@ -287,6 +292,18 @@ CompositionRoot::CompositionRoot()
         .sessionStored = storedSessionExists(m_secrets),
     };
 
+    // A sign-out that could not clear its data finishes now, unless the same
+    // account signed in again (decided once the stored session was checked).
+    if (!m_settings.string(core::settings::keys::PendingAccountCleanupOwnerId).isEmpty()) {
+        const auto resolve = [this]() { (void)m_signOut.resolvePendingCleanup(); };
+        if (storedSessionExists(m_secrets)) {
+            QObject::connect(&m_session, &core::account::AccountSessionService::stateChanged, &m_signOut, resolve,
+                             Qt::SingleShotConnection);
+        } else {
+            QMetaObject::invokeMethod(&m_signOut, resolve, Qt::QueuedConnection);
+        }
+    }
+
     // Reads the stored music source (writing the first-run default) and
     // sets the library's active context. A plaintext key left by an earlier
     // version moves into the credential store here.
@@ -304,6 +321,30 @@ CompositionRoot::CompositionRoot()
         m_sidebar.refreshPlaylists();
     }
 
+    // A signed-out account's songs leave the player and the views.
+    QObject::connect(&m_signOut, &core::account::AccountDataLifecycleService::accountDataRemoved, &m_signOut,
+                     [this](const QString&) {
+                         const auto isAccountSong = [](const core::Track& track) {
+                             return track.origin == QLatin1StringView("account");
+                         };
+                         if (m_player.currentTrack() && isAccountSong(*m_player.currentTrack())) {
+                             m_player.reset();
+                         } else {
+                             const QList<core::QueueEntry> upcoming = m_player.visibleQueue();
+                             for (qsizetype index = upcoming.size() - 1; index >= 0; --index) {
+                                 if (isAccountSong(upcoming.at(index).track)) {
+                                     m_player.removeVisibleEntry(index);
+                                 }
+                             }
+                         }
+                         refreshLibraryViews();
+                     });
+    QObject::connect(&m_signOut, &core::account::AccountDataLifecycleService::signOutFinished, &m_toasts,
+                     [this](const core::account::AccountLogoutResult& result) {
+                         if (!result.safeError.isEmpty()) {
+                             m_toasts.show(result.safeError, !result.signedOut);
+                         }
+                     });
     // Account songs and playlists are kept on the account in Account mode.
     m_collectionActions.setAccountEditor(&m_accountEditor);
     m_player.setAccountPlaybackSink(&m_accountEditor);

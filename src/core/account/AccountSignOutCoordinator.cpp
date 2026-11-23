@@ -9,9 +9,13 @@ LocalAccountSignOut::LocalAccountSignOut(AccountSessionService& session)
 {
 }
 
-SignOutOutcome LocalAccountSignOut::signOut()
+QFuture<AccountLogoutResult> LocalAccountSignOut::signOut()
 {
-    return m_session.removeLocalSession() ? SignOutOutcome::SignedOut : SignOutOutcome::CredentialRemovalFailed;
+    if (m_session.removeLocalSession()) {
+        return QtFuture::makeReadyValueFuture(AccountLogoutResult{AccountLogoutOutcome::Succeeded, true, {}});
+    }
+    return QtFuture::makeReadyValueFuture(AccountLogoutResult{
+        AccountLogoutOutcome::UnexpectedFailure, false, QStringLiteral("Could not safely complete account sign out.")});
 }
 
 } // namespace lmp::core::account

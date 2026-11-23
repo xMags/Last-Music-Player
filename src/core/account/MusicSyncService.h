@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/account/AccountDataLifecycleService.h"
 #include "core/account/AccountMusicContract.h"
 #include "core/account/AccountSessionState.h"
 #include "core/async/Result.h"
@@ -57,7 +58,7 @@ class AccountSyncTransport;
 //
 // Threading: GUI thread only; continuations run there with this object as
 // their context.
-class MusicSyncService final : public QObject {
+class MusicSyncService final : public QObject, public AccountOutboundSync {
     Q_OBJECT
 
 public:
@@ -102,7 +103,7 @@ public:
     // Sends what is queued here now (history, likes, preferences), retrying
     // rows that are not blocked at once. False when the schedule could not be
     // reset or a lane failed. Used before signing out.
-    [[nodiscard]] QFuture<bool> requestOutboundSync();
+    [[nodiscard]] QFuture<bool> requestOutboundSync() override;
     // A change was queued here: the lane runs after MutationDelay.
     void scheduleMutation(Lane lane);
     // Queues a portable preference changed here and schedules the push.

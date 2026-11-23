@@ -473,3 +473,7 @@ lmp_add_test(tst_account_library_editor
 lmp_add_test(tst_account_artists
     SOURCES ui/tst_account_artists.cpp core/ModeServiceFixture.h
     LIBS lmp_ui)
+
+lmp_add_test(tst_account_sign_out
+    SOURCES core/tst_account_sign_out.cpp core/AccountSessionFixture.h
+    LIBS lmp_core)

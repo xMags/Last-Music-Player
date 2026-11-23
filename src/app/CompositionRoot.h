@@ -5,6 +5,7 @@
 #include <memory>
 
 #include "core/account/AccountClient.h"
+#include "core/account/AccountDataLifecycleService.h"
 #include "core/account/AccountLibraryEditor.h"
 #include "core/account/AccountSessionService.h"
 #include "core/account/AccountSignOutCoordinator.h"
@@ -174,7 +175,6 @@ private:
     core::PlayerController m_player;
     core::PlaybackStatePersistence m_persistence;
     core::MediaControlsBridge m_mediaBridge;
-    core::account::LocalAccountSignOut m_signOut;
     // Cover pictures from the network (the account relay in Account mode).
     core::remote::ArtworkService m_artwork;
     // The account library on this PC: changes queued here, the sync that
@@ -182,6 +182,9 @@ private:
     core::db::AccountOutboxRepository m_outbox;
     core::account::MusicSyncService m_sync;
     core::account::AccountSyncScheduler m_syncScheduler;
+    // Signing out: a last sync, the service's logout, then the account's
+    // data here (finished at the next launch if it could not be then).
+    core::account::AccountDataLifecycleService m_signOut;
     // What the user changes in the account library from this PC.
     core::account::AccountLibraryEditor m_accountEditor;
     // Followed artists: on the account in Account mode, on this PC otherwise.

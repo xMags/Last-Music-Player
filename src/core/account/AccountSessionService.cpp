@@ -171,6 +171,24 @@ bool AccountSessionService::commitOffline(Token token, const AccountProfile& pro
     return true;
 }
 
+QFuture<bool> AccountSessionService::logoutForLifecycle(const AccountOperationContext& context)
+{
+    const Token token = beginIntent();
+    if (!isCurrent(context)) {
+        return QtFuture::makeReadyValueFuture(false);
+    }
+    return m_client.logout(context.bearerSession).then(this, [this, token, context](const Result<void>& result) {
+        if (!m_intents.isCurrent(token) || !isCurrent(context)) {
+            return false;
+        }
+        if (!result && result.failure().kind != FailureKind::Unauthorized) {
+            m_lastFailure = result.failure();
+            return false;
+        }
+        return commitSignedOut(token, CredentialChange::RemoveIfMatches, context.bearerSession, std::nullopt);
+    });
+}
+
 bool AccountSessionService::commitSignedOut(Token token, CredentialChange change, const QString& expectedSession,
                                             std::optional<Failure> reason)
 {

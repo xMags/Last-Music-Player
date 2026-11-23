@@ -107,7 +107,8 @@ void ProfileViewModel::triggerMenu(const QString& itemId)
         return;
     }
     if (itemId == kSignOutItem && signedIn()) {
-        [[maybe_unused]] const core::account::SignOutOutcome outcome = m_signOut.signOut();
+        // How it ended is reported where the sign-out is (a toast).
+        [[maybe_unused]] const QFuture<core::account::AccountLogoutResult> ended = m_signOut.signOut();
     }
 }
 

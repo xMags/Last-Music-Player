@@ -358,10 +358,12 @@ void SourceModeViewModel::manageAccount()
 
 void SourceModeViewModel::signOut()
 {
-    if (m_signOut.signOut() == core::account::SignOutOutcome::CredentialRemovalFailed) {
-        // Nothing changed; the block keeps showing the session.
-        emit changed();
-    }
+    m_signOut.signOut().then(this, [this](const core::account::AccountLogoutResult& result) {
+        if (!result.signedOut) {
+            // Nothing changed; the block keeps showing the session.
+            emit changed();
+        }
+    });
 }
 
 void SourceModeViewModel::setApiKeyStatus(const QString& status)

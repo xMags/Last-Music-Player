@@ -2,6 +2,8 @@ qt_add_library(lmp_core STATIC
     account/AccountClient.cpp
     account/AccountClient.h
     account/AccountClientMusic.cpp
+    account/AccountDataLifecycleService.cpp
+    account/AccountDataLifecycleService.h
     account/AccountDataLifecycleStorage.h
     account/AccountLibraryEditor.cpp
     account/AccountLibraryEditor.h

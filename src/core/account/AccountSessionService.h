@@ -85,6 +85,12 @@ public:
     // changes) when the credential could not be removed.
     bool removeLocalSession();
 
+    // Ends `context`'s session on the service (POST /v1/auth/logout), then
+    // here: true once it is signed out, which a 401 also counts as. False
+    // when the service could not be reached or refused, or when the session
+    // is no longer `context`'s (a newer sign-in is never ended).
+    [[nodiscard]] QFuture<bool> logoutForLifecycle(const AccountOperationContext& context);
+
     // The session an account request should use, when there is one.
     [[nodiscard]] std::optional<AccountOperationContext> captureOperation() const;
     [[nodiscard]] bool isCurrent(const AccountOperationContext& context) const;
