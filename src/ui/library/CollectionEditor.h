@@ -63,7 +63,8 @@ public:
     // Importing an album or playlist from a link (API key mode); without an
     // importer nothing is offered.
     void setLinkImporter(core::LinkImportService* importer) { m_importer = importer; }
-    Q_INVOKABLE void requestImportLink();
+    // `kind` "album" or "playlist" only changes the prompt's words.
+    Q_INVOKABLE void requestImportLink(const QString& kind);
 
     Q_INVOKABLE void requestCreatePlaylist();
     Q_INVOKABLE void requestCreateAlbum();

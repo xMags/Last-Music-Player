@@ -50,6 +50,7 @@ private slots:
     void providerSongsJoinAMixOnce();
     void importAnswerIsRead();
     void importedAlbumAndPlaylistAreStored();
+    void accountImportIsReadAsTheReferenceDoes();
 };
 
 void ApiKeyModeTest::followsAreKeptPerProvider()
@@ -187,6 +188,27 @@ void ApiKeyModeTest::importedAlbumAndPlaylistAreStored()
     QFuture<Result<lmp::core::ImportOutcome>> refused = importer.importLink(QStringLiteral("https://music.example.test/a"));
     QTRY_VERIFY(refused.isFinished());
     QCOMPARE(refused.result().failure().kind, lmp::core::FailureKind::NotAvailable);
+}
+
+void ApiKeyModeTest::accountImportIsReadAsTheReferenceDoes()
+{
+    const std::optional<lmp::core::ImportedCollection> named = lmp::core::parseAccountImport(
+        json("{'album':{'title':'Road Trip','artist':'Various'},'results':[{'id':'tag-b:1','provider':'tag-b',"
+             "'title':'One','album':'A','sourceUrl':'https://music.example.test/1'}]}"),
+        QStringLiteral("https://music.example.test/list"));
+    QVERIFY(named.has_value());
+    QCOMPARE(named->title, QStringLiteral("Road Trip"));
+    QCOMPARE(named->artist, QStringLiteral("Various"));
+    QCOMPARE(named->kind, QStringLiteral("playlist"));
+    // Without a title, the songs' most common album names it.
+    const std::optional<lmp::core::ImportedCollection> byAlbum = lmp::core::parseAccountImport(
+        json("{'tracks':[{'id':'tag-b:1','provider':'tag-b','title':'One','album':'Blue','sourceUrl':'https://music.example.test/1'},"
+             "{'id':'tag-b:2','provider':'tag-b','title':'Two','album':'Blue','sourceUrl':'https://music.example.test/2'},"
+             "{'id':'tag-b:3','provider':'tag-b','title':'Three','album':'Red','sourceUrl':'https://music.example.test/3'}]}"),
+        QStringLiteral("https://music.example.test/list"));
+    QVERIFY(byAlbum.has_value());
+    QCOMPARE(byAlbum->title, QStringLiteral("Blue"));
+    QVERIFY(!lmp::core::parseAccountImport(json("{'results':[]}"), QString()).has_value());
 }
 
 QTEST_GUILESS_MAIN(ApiKeyModeTest)

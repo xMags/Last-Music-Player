@@ -1,5 +1,6 @@
 #include "core/library/LinkImportService.h"
 
+#include "core/account/AccountLibraryEditor.h"
 #include "core/catalog/CatalogParser.h"
 #include "core/db/CollectionRepository.h"
 #include "core/db/TrackRepository.h"
@@ -10,6 +11,7 @@
 
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QHash>
 
 namespace lmp::core {
 
@@ -46,6 +48,41 @@ std::optional<ImportedCollection> parseImportedCollection(const QByteArray& payl
     return collection;
 }
 
+std::optional<ImportedCollection> parseAccountImport(const QByteArray& payload, const QString& link)
+{
+    ImportedCollection collection;
+    collection.tracks = catalog::parseProviderTrackList(payload);
+    if (collection.tracks.isEmpty()) {
+        return std::nullopt;
+    }
+    const QJsonObject root = QJsonDocument::fromJson(payload).object();
+    const QJsonObject album = root.value(QLatin1StringView("album")).toObject();
+    QHash<QString, int> albumCounts;
+    QString dominant;
+    for (const Track& track : collection.tracks) {
+        const QString name = track.album.trimmed();
+        if (name.isEmpty()) {
+            continue;
+        }
+        const int count = ++albumCounts[name];
+        if (dominant.isEmpty() || count > albumCounts.value(dominant)) {
+            dominant = name;
+        }
+    }
+    QString title = text(album, QLatin1StringView("title"), QString());
+    if (title.isEmpty()) {
+        title = text(root, QLatin1StringView("title"), text(root, QLatin1StringView("name"), QString()));
+    }
+    if (title.isEmpty()) {
+        title = dominant.isEmpty() ? QStringLiteral("Imported playlist") : dominant;
+    }
+    collection.title = title;
+    collection.artist = text(album, QLatin1StringView("artist"), QString());
+    collection.sourceUrl = link.trimmed();
+    collection.kind = QStringLiteral("playlist");
+    return collection;
+}
+
 LinkImportService::LinkImportService(Dependencies dependencies, QObject* parent)
     : QObject(parent)
     , m_deps(dependencies)
@@ -58,6 +95,31 @@ QFuture<Result<ImportOutcome>> LinkImportService::importLink(const QString& link
     if (!net::isHttpUrl(trimmed)) {
         return QtFuture::makeReadyValueFuture(
             Result<ImportOutcome>(Failure::of(FailureKind::NotFound, QStringLiteral("Paste an album or playlist link."))));
+    }
+    if (m_deps.accountEditor != nullptr && m_deps.toAccount && m_deps.toAccount()) {
+        account::AccountLibraryEditor* editor = m_deps.accountEditor;
+        return m_deps.remote.importCollection(trimmed)
+            .then(this,
+                  [editor, trimmed](const Result<QByteArray>& answer) -> QFuture<Result<ImportOutcome>> {
+                      if (!answer) {
+                          return QtFuture::makeReadyValueFuture(Result<ImportOutcome>(answer.failure()));
+                      }
+                      const std::optional<ImportedCollection> collection = parseAccountImport(answer.value(), trimmed);
+                      if (!collection) {
+                          return QtFuture::makeReadyValueFuture(Result<ImportOutcome>(
+                              Failure::of(FailureKind::NotFound, QStringLiteral("No songs were found at that link."))));
+                      }
+                      const QString title = collection->title;
+                      const int count = static_cast<int>(collection->tracks.size());
+                      return editor->saveCollection(title, collection->artist, collection->tracks, trimmed)
+                          .then([title, count](const Result<QString>& key) -> Result<ImportOutcome> {
+                              if (!key) {
+                                  return key.failure();
+                              }
+                              return ImportOutcome{QStringLiteral("playlist"), key.value(), title, count};
+                          });
+                  })
+            .unwrap();
     }
     return m_deps.remote.importCollection(trimmed).then(
         this, [this, trimmed](const Result<QByteArray>& answer) -> Result<ImportOutcome> {

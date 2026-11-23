@@ -62,14 +62,16 @@ Item {
                     anchors.bottomMargin: 6
                     spacing: 8
 
-                    // Albums and playlists from a provider link (API key mode).
+                    // Albums from a provider link (API key mode), playlists from a
+                    // link in both server modes.
                     AppButton {
-                        visible: App.library.tab === "albums" && App.capabilities.importFromLink
-                            && !App.capabilities.browseCatalogue
-                        text: qsTr("Import album")
+                        visible: App.capabilities.importFromLink
+                            && ((App.library.tab === "albums" && !App.capabilities.browseCatalogue)
+                                || App.library.tab === "playlists")
+                        text: App.library.tab === "playlists" ? qsTr("Import playlist") : qsTr("Import album")
                         iconName: "link"
                         iconSize: 14
-                        onClicked: App.collections.requestImportLink()
+                        onClicked: App.collections.requestImportLink(App.library.tab === "playlists" ? "playlist" : "album")
                     }
 
                     AppButton {

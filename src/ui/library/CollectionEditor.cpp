@@ -57,16 +57,17 @@ int CollectionEditor::promptMaximumLength() const
     return m_pending == Pending::ImportLink ? MaximumLinkLength : maximumNameLength();
 }
 
-void CollectionEditor::requestImportLink()
+void CollectionEditor::requestImportLink(const QString& kind)
 {
     if (m_importer == nullptr) {
         return;
     }
     m_pending = Pending::ImportLink;
-    // The current app's (LibraryImportAlbum_Click).
-    m_promptTitle = tr("Import album");
-    m_promptLabel = tr("Music API album link");
-    m_promptPlaceholder = tr("Paste album link");
+    // The current app's (LibraryImportAlbum_Click, LibraryImportPlaylist_Click).
+    const bool playlist = kind == QLatin1StringView("playlist");
+    m_promptTitle = playlist ? tr("Import playlist") : tr("Import album");
+    m_promptLabel = playlist ? tr("Playlist link") : tr("Music API album link");
+    m_promptPlaceholder = playlist ? tr("Paste playlist link") : tr("Paste album link");
     m_promptSubmit = tr("Import");
     m_promptValue.clear();
     emit promptChanged();
@@ -147,11 +148,11 @@ bool CollectionEditor::submitPrompt(const QString& value)
         if (m_importer == nullptr || value.trimmed().isEmpty()) {
             return true;
         }
-        m_toasts.show(tr("Importing album..."));
+        m_toasts.show(tr("Importing..."));
         m_importer->importLink(value).then(this, [this](const core::Result<core::ImportOutcome>& outcome) {
             if (!outcome) {
                 m_toasts.show(outcome.failure().kind == core::FailureKind::NotAvailable
-                                  ? tr("Importing needs a connected provider.")
+                                  ? tr("Importing needs a connected music source.")
                                   : tr("Import failed: %1").arg(outcome.failure().detail),
                               true);
                 return;

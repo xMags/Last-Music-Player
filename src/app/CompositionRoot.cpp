@@ -264,7 +264,12 @@ CompositionRoot::CompositionRoot()
                           }
                           return recent;
                       }})
-    , m_linkImport({.remote = m_remote, .tracks = m_tracks, .collections = m_collections, .gate = m_userDataGate})
+    , m_linkImport({.remote = m_remote,
+                    .tracks = m_tracks,
+                    .collections = m_collections,
+                    .gate = m_userDataGate,
+                    .accountEditor = &m_accountEditor,
+                    .toAccount = [this]() { return m_mode.capabilities().editServerPlaylists; }})
     , m_lyrics(m_player, m_lyricsService)
     , m_share([this](const QByteArray& body) { return sendAccount(core::net::HttpMethod::Post, QStringLiteral("/v1/music/shares"), body); },
               [this]() {
