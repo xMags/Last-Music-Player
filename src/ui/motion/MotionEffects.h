@@ -4,6 +4,7 @@
 #include <QObject>
 #include <QPointF>
 #include <QPointer>
+#include <QQuickItem>
 #include <QString>
 #include <QUrl>
 #include <QVariantList>
@@ -33,6 +34,13 @@ class MotionEffects : public QObject {
     QML_ELEMENT
     QML_UNCREATABLE("Provided by App.effects")
 
+    // What blurred surfaces show through (BackdropBlur.source): the window's
+    // content under popups and dialogs, and the full-screen player's
+    // backdrop under its panels. Set by the shell and the player.
+    Q_PROPERTY(QQuickItem* windowBackdrop READ windowBackdrop WRITE setWindowBackdrop NOTIFY backdropsChanged FINAL)
+    Q_PROPERTY(QQuickItem* fullscreenBackdrop READ fullscreenBackdrop WRITE setFullscreenBackdrop NOTIFY backdropsChanged
+                   FINAL)
+
 public:
     // A press older than this did not start the queue action that follows.
     static constexpr qint64 PressWindowMs = 1500;
@@ -46,6 +54,11 @@ public:
     Q_INVOKABLE void addQueueTarget(QObject* item, qreal fractionX = 0.5, int priority = 0);
     // [{item, fractionX}] of the targets still alive, in that order.
     Q_INVOKABLE QVariantList queueTargets() const;
+
+    [[nodiscard]] QQuickItem* windowBackdrop() const { return m_windowBackdrop; }
+    void setWindowBackdrop(QQuickItem* item);
+    [[nodiscard]] QQuickItem* fullscreenBackdrop() const { return m_fullscreenBackdrop; }
+    void setFullscreenBackdrop(QQuickItem* item);
 
     Q_INVOKABLE void heartLiked(QObject* heart);
     Q_INVOKABLE void collectionSaved(QObject* button);
@@ -62,6 +75,7 @@ signals:
     void queueArc(const QPointF& from, const QUrl& source, const QString& artworkId, const QString& label);
     void heartBurst(QObject* heart);
     void saveBurst(QObject* button);
+    void backdropsChanged();
 
 private:
     struct Target {
@@ -75,6 +89,8 @@ private:
     };
 
     std::function<qint64()> m_now;
+    QPointer<QQuickItem> m_windowBackdrop;
+    QPointer<QQuickItem> m_fullscreenBackdrop;
     QList<Target> m_targets;
     std::optional<Press> m_press;
 };

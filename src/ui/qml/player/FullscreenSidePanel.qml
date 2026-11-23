@@ -26,6 +26,14 @@ ColumnLayout {
         border.width: 1
         border.color: Theme.fullscreenPanelBorder
 
+        // .fs-panel: backdrop-filter: blur(24px) (styles.css 2265-2275).
+        BackdropBlur {
+            z: -1
+            source: App.effects.fullscreenBackdrop
+            blurPx: 24
+            cornerRadius: Theme.fullscreenPanelRadius
+        }
+
         LyricsPanel {
             anchors.fill: parent
             anchors.leftMargin: 24

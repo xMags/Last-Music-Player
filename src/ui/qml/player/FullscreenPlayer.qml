@@ -40,8 +40,12 @@ Rectangle {
     }
 
     FullscreenBackdrop {
+        id: backdrop
+
         anchors.fill: parent
         source: App.playerBar.artworkUrl
+        // What the tabs and the side panel blur.
+        Component.onCompleted: App.effects.fullscreenBackdrop = backdrop
     }
 
     // .fs-toolbar: 22px from the top (12px below the custom title strip),

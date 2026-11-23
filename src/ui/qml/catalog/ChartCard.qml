@@ -127,6 +127,14 @@ T.AbstractButton {
                 border.width: 1
                 border.color: Qt.rgba(1, 1, 1, 0.2)
 
+                // .home-chart-kind: backdrop-filter: blur(5px) (views.css 857-859).
+                BackdropBlur {
+                    z: -1
+                    source: picture.visible ? picture : drawnCover
+                    blurPx: 5
+                    cornerRadius: parent.radius
+                }
+
                 Text {
                     id: pillText
 

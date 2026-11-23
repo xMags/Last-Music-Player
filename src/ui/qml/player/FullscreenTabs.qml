@@ -22,6 +22,14 @@ Rectangle {
     border.width: 1
     border.color: Theme.fullscreenTabsBorder
 
+    // .fs-tabs: backdrop-filter: blur(12px) (styles.css 2217-2224).
+    BackdropBlur {
+        z: -1
+        source: App.effects.fullscreenBackdrop
+        blurPx: 12
+        cornerRadius: root.radius
+    }
+
     component Tab: T.AbstractButton {
         id: tab
 

@@ -41,6 +41,7 @@ set(LMP_UI_QML_FILES
     qml/controls/AppSlider.qml
     qml/controls/AppSwitch.qml
     qml/controls/ArtTile.qml
+    qml/controls/BackdropBlur.qml
     qml/controls/BoxShadow.qml
     qml/controls/ButtonSurface.qml
     qml/controls/Chip.qml

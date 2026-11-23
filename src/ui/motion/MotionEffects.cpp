@@ -53,6 +53,22 @@ QVariantList MotionEffects::queueTargets() const
     return list;
 }
 
+void MotionEffects::setWindowBackdrop(QQuickItem* item)
+{
+    if (m_windowBackdrop != item) {
+        m_windowBackdrop = item;
+        emit backdropsChanged();
+    }
+}
+
+void MotionEffects::setFullscreenBackdrop(QQuickItem* item)
+{
+    if (m_fullscreenBackdrop != item) {
+        m_fullscreenBackdrop = item;
+        emit backdropsChanged();
+    }
+}
+
 void MotionEffects::heartLiked(QObject* heart)
 {
     if (heart != nullptr) {

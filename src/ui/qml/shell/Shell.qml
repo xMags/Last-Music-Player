@@ -112,6 +112,8 @@ Item {
 
         anchors.fill: parent
         visible: !App.fullscreen.open
+        // What menus and dialog backdrops blur.
+        Component.onCompleted: App.effects.windowBackdrop = page
 
         // The left sidebar: the full height of the body, beside the title strip.
         Sidebar {

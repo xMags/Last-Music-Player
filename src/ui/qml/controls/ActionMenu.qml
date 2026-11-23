@@ -90,6 +90,14 @@ T.Popup {
             radius: Theme.radiusMd
         }
 
+        // backdrop-filter: blur(48px) saturate(1.5) (styles.css 918-922).
+        BackdropBlur {
+            source: App.effects.windowBackdrop
+            blurPx: 48
+            saturate: 1.5
+            cornerRadius: Theme.radiusMd
+        }
+
         Rectangle {
             anchors.fill: parent
             radius: Theme.radiusMd

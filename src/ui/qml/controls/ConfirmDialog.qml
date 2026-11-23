@@ -35,6 +35,13 @@ T.Popup {
     T.Overlay.modal: Rectangle {
         color: Theme.scrim
 
+        // .modal-overlay: backdrop-filter: blur(3px) (styles.css 980-988).
+        BackdropBlur {
+            z: -1
+            source: App.effects.windowBackdrop
+            blurPx: 3
+        }
+
         Behavior on opacity {
             enabled: !Motion.reduced
             NumberAnimation { duration: Motion.modal; easing: Motion.easeOut }
