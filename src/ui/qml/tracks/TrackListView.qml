@@ -20,6 +20,8 @@ Item {
     property Component header: null
     // Space below the last row, inside the scrolling area.
     property real bottomMargin: 32
+    // Space at each side of the rows; the scroll bar sits in the right one.
+    property real sidePadding: 0
 
     signal activated(int row)
     signal likeRequested(int row)
@@ -28,9 +30,15 @@ Item {
 
     readonly property int rowHeight: 36 + 2 * 8 + 1
     readonly property int headHeight: 41
+    // The list or grid that scrolls, for keeping its position.
+    readonly property Flickable view: form.item as Flickable
 
     Loader {
+        id: form
+
         anchors.fill: parent
+        anchors.leftMargin: root.sidePadding
+        anchors.rightMargin: root.sidePadding
         sourceComponent: root.grid ? gridForm : listForm
     }
 
@@ -48,10 +56,16 @@ Item {
             keyNavigationEnabled: true
             currentIndex: -1
 
-            AppScrollBar.vertical: AppScrollBar {}
+            readonly property real rowWidth: width
+
+            AppScrollBar.vertical: AppScrollBar {
+                parent: root
+                x: root.width - width
+                height: root.height
+            }
 
             header: Column {
-                width: list.width
+                width: list.rowWidth
 
                 Loader {
                     width: parent.width
@@ -94,8 +108,8 @@ Item {
                         spacing: 16
 
                         TableHeading { width: 40; text: "#"; horizontalAlignment: Text.AlignHCenter }
-                        TableHeading { width: list.width - 24 - 40 - 16 - (albumHeading.visible ? 216 : 0) - 60 - 76; text: qsTr("TITLE") }
-                        TableHeading { id: albumHeading; width: 200; visible: list.width >= 560; text: qsTr("ALBUM") }
+                        TableHeading { width: list.rowWidth - 24 - 40 - 16 - (albumHeading.visible ? 216 : 0) - 60 - 76; text: qsTr("TITLE") }
+                        TableHeading { id: albumHeading; width: 200; visible: list.rowWidth >= 560; text: qsTr("ALBUM") }
                         TableHeading { width: 44; text: qsTr("TIME"); horizontalAlignment: Text.AlignRight }
                     }
                 }
@@ -106,7 +120,7 @@ Item {
                 parent: list.contentItem
                 z: -1
                 y: 0
-                width: list.width
+                width: list.rowWidth
                 height: list.count * root.rowHeight
                 visible: list.count > 0
                 color: Theme.surface
@@ -131,7 +145,7 @@ Item {
 
                 required property int index
 
-                width: list.width
+                width: list.rowWidth
                 onClicked: root.activated(row.index)
                 onLikeRequested: root.likeRequested(row.index)
                 onMenuRequested: (at, fromKeyboard) => root.menuRequested(row.index, row.mapToItem(root, at), fromKeyboard)
@@ -149,6 +163,7 @@ Item {
 
             model: root.model
             bottomMargin: root.bottomMargin
+            scrollBarHost: root
             keyNavigationEnabled: true
             currentIndex: -1
 

@@ -35,6 +35,10 @@ struct CoverSource {
     // The song's artwork address when it has one, otherwise the picture
     // inside its local file.
     [[nodiscard]] static CoverSource forTrack(const core::Track& track);
+    // A song read from the library, whose file the scan has already looked
+    // into: an empty artwork means it has no picture, so its file is not
+    // asked again (which would fail for every song without a cover).
+    [[nodiscard]] static CoverSource forLibraryTrack(const core::Track& track);
     // The id that picks the song's placeholder gradient: its queue identity
     // (server id or file path), or its title when it has neither.
     [[nodiscard]] static QString placeholderIdFor(const core::Track& track);

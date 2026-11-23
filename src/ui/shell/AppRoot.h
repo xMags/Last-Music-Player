@@ -12,7 +12,9 @@
 #include "ui/player/FullscreenPlayerViewModel.h"
 #include "ui/player/PlayerBarViewModel.h"
 #include "ui/player/QueueRailViewModel.h"
+#include "ui/library/LibraryViewModel.h"
 #include "ui/settings/FirstRunViewModel.h"
+#include "ui/tracks/TrackMenuController.h"
 #include "ui/settings/LibrarySettingsViewModel.h"
 #include "ui/settings/SettingsAboutViewModel.h"
 #include "ui/settings/SettingsViewModel.h"
@@ -67,6 +69,10 @@ class AppRoot : public QObject {
     Q_PROPERTY(lmp::ui::ProfileViewModel* profile READ profile CONSTANT FINAL)
     // The Library card of Settings: music folder, scan and formats.
     Q_PROPERTY(lmp::ui::LibrarySettingsViewModel* librarySettings READ librarySettings CONSTANT FINAL)
+    // The Library page.
+    Q_PROPERTY(lmp::ui::LibraryViewModel* library READ library CONSTANT FINAL)
+    // The song menu every page shares.
+    Q_PROPERTY(lmp::ui::TrackMenuController* trackMenu READ trackMenu CONSTANT FINAL)
     // The current music source: "LocalOnly", "ApiKey" or "Account".
     Q_PROPERTY(QString sourceMode READ sourceMode NOTIFY sourceChanged FINAL)
     // What the current source lets the user do (core::mode::Capabilities).
@@ -91,6 +97,8 @@ public:
         FirstRunViewModel* firstRun = nullptr;
         ProfileViewModel* profile = nullptr;
         LibrarySettingsViewModel* librarySettings = nullptr;
+        LibraryViewModel* library = nullptr;
+        TrackMenuController* trackMenu = nullptr;
         core::mode::ModeService* mode = nullptr;
         bool showGallery = false;
     };
@@ -116,6 +124,8 @@ public:
     [[nodiscard]] FirstRunViewModel* firstRun() const { return m_parts.firstRun; }
     [[nodiscard]] ProfileViewModel* profile() const { return m_parts.profile; }
     [[nodiscard]] LibrarySettingsViewModel* librarySettings() const { return m_parts.librarySettings; }
+    [[nodiscard]] LibraryViewModel* library() const { return m_parts.library; }
+    [[nodiscard]] TrackMenuController* trackMenu() const { return m_parts.trackMenu; }
     [[nodiscard]] QString sourceMode() const;
     [[nodiscard]] core::mode::Capabilities capabilities() const;
     [[nodiscard]] bool showGallery() const { return m_parts.showGallery; }

@@ -44,6 +44,9 @@ class ThemeTypography : public QObject {
     Q_PROPERTY(QFont stateTitle READ stateTitle CONSTANT FINAL)
     Q_PROPERTY(QFont stateText READ stateText CONSTANT FINAL)
     Q_PROPERTY(QFont tableHeading READ tableHeading CONSTANT FINAL)
+    Q_PROPERTY(QFont eyebrow READ eyebrow CONSTANT FINAL)
+    Q_PROPERTY(QFont pill READ pill CONSTANT FINAL)
+    Q_PROPERTY(QFont genreLabel READ genreLabel CONSTANT FINAL)
     Q_PROPERTY(QFont nowPlayingTitle READ nowPlayingTitle CONSTANT FINAL)
     Q_PROPERTY(QFont fullScreenTitle READ fullScreenTitle CONSTANT FINAL)
     Q_PROPERTY(QFont homeGreeting READ homeGreeting CONSTANT FINAL)
@@ -137,6 +140,9 @@ public:
     [[nodiscard]] QFont stateTitle() const { return m_text.stateTitle.font; }
     [[nodiscard]] QFont stateText() const { return m_text.stateText.font; }
     [[nodiscard]] QFont tableHeading() const { return m_text.tableHeading.font; }
+    [[nodiscard]] QFont eyebrow() const { return m_text.eyebrow.font; }
+    [[nodiscard]] QFont pill() const { return m_text.pill.font; }
+    [[nodiscard]] QFont genreLabel() const { return m_text.genreLabel.font; }
     [[nodiscard]] QFont nowPlayingTitle() const { return m_text.nowPlayingTitle.font; }
     [[nodiscard]] QFont fullScreenTitle() const { return m_text.fullScreenTitle.font; }
     [[nodiscard]] QFont homeGreeting() const { return m_text.homeGreeting.font; }

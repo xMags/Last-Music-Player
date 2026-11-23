@@ -52,6 +52,15 @@ CoverSource CoverSource::forTrack(const core::Track& track)
     return {};
 }
 
+CoverSource CoverSource::forLibraryTrack(const core::Track& track)
+{
+    CoverSource source = forTrack(track);
+    if (source.kind == Kind::Embedded) {
+        return {};
+    }
+    return source;
+}
+
 QString CoverSource::placeholderIdFor(const core::Track& track)
 {
     const QString identity = core::queueTrackIdentity(track);

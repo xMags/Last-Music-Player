@@ -41,6 +41,9 @@ public:
         // A list of charts, and one chart.
         Charts,
         Chart,
+        // A collection of the local library: params "kind" (album, artist,
+        // genre, playlist, system or mix), "key" and "title".
+        Collection,
     };
     Q_ENUM(Kind)
 
@@ -52,6 +55,7 @@ public:
     // A parameter by name; empty when the route has none of that name.
     Q_INVOKABLE QString param(const QString& name) const;
     [[nodiscard]] const QMap<QString, QString>& params() const { return m_params; }
+    void setParam(const QString& name, const QString& value) { m_params.insert(name, value); }
 
     friend bool operator==(const Route&, const Route&) = default;
 

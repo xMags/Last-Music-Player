@@ -13,11 +13,15 @@ set_source_files_properties("${CMAKE_SOURCE_DIR}/Assets/fonts/JetBrainsMono-Medi
 # The design gallery's sample cover: the application logo.
 set_source_files_properties("${CMAKE_SOURCE_DIR}/Assets/Square44x44Logo.targetsize-256.png"
     PROPERTIES QT_RESOURCE_ALIAS "dev/sample-cover.png")
+# The stripes over a genre tile, from the current app.
+set_source_files_properties("${CMAKE_SOURCE_DIR}/Assets/LibraryStripeOverlay.svg"
+    PROPERTIES QT_RESOURCE_ALIAS "library/LibraryStripeOverlay.svg")
 
 # Every QML file of the module. File names are unique: each is a type name.
 set(LMP_UI_QML_FILES
     qml/Main.qml
     qml/cards/Card.qml
+    qml/cards/CountPill.qml
     qml/cards/CardGrid.qml
     qml/cards/EmptyState.qml
     qml/cards/ErrorState.qml
@@ -65,6 +69,10 @@ set(LMP_UI_QML_FILES
     qml/dev/GalleryPanels.qml
     qml/dev/GallerySection.qml
     qml/dev/GalleryTokens.qml
+    qml/library/CollectionCard.qml
+    qml/library/GenreMark.qml
+    qml/library/GenreTile.qml
+    qml/library/LibraryPage.qml
     qml/player/FullscreenBackdrop.qml
     qml/player/FullscreenBody.qml
     qml/player/FullscreenButton.qml
@@ -110,12 +118,14 @@ set(LMP_UI_QML_FILES
     qml/shell/PlaceholderPage.qml
     qml/shell/ProfileButton.qml
     qml/shell/RightRail.qml
+    qml/shell/ScrollMemory.qml
     qml/shell/Shell.qml
     qml/shell/Sidebar.qml
     qml/shell/SidebarPlaylistRow.qml
     qml/shell/TitleStrip.qml
     qml/tracks/EqBars.qml
     qml/tracks/TableHeading.qml
+    qml/tracks/TrackMenus.qml
     qml/tracks/TrackListView.qml
     qml/tracks/TrackRow.qml
     qml/tracks/TrackTile.qml)
@@ -140,6 +150,14 @@ qt_add_qml_module(lmp_ui
         icons/IconPart.h
         icons/IconSet.cpp
         icons/IconSet.h
+        library/CollectionCardModel.cpp
+        library/CollectionCardModel.h
+        library/GenreArtwork.cpp
+        library/GenreArtwork.h
+        library/LibraryViewModel.cpp
+        library/LibraryViewModel.h
+        library/SystemPlaylists.cpp
+        library/SystemPlaylists.h
         menus/MenuItemListModel.cpp
         menus/MenuItemListModel.h
         navigation/Navigator.cpp
@@ -220,12 +238,17 @@ qt_add_qml_module(lmp_ui
         tracks/TrackListModel.h
         tracks/TrackMenuBuilder.cpp
         tracks/TrackMenuBuilder.h
+        tracks/TrackMenuController.cpp
+        tracks/TrackMenuController.h
+        tracks/QueryTrackSource.cpp
+        tracks/QueryTrackSource.h
     QML_FILES ${LMP_UI_QML_FILES}
     RESOURCES
         "${CMAKE_SOURCE_DIR}/Assets/fonts/MrDeHaviland-Regular.ttf"
         "${CMAKE_SOURCE_DIR}/Assets/fonts/ArchivoExpanded-Black.ttf"
         "${CMAKE_SOURCE_DIR}/Assets/fonts/JetBrainsMono-Medium.ttf"
-        "${CMAKE_SOURCE_DIR}/Assets/Square44x44Logo.targetsize-256.png")
+        "${CMAKE_SOURCE_DIR}/Assets/Square44x44Logo.targetsize-256.png"
+        "${CMAKE_SOURCE_DIR}/Assets/LibraryStripeOverlay.svg")
 
 # Every folder that holds a header with a QML-registered type. The generated
 # registration code includes those headers by file name only, so each folder
@@ -234,6 +257,7 @@ set(LMP_UI_TYPE_FOLDERS
     app
     dev
     icons
+    library
     menus
     navigation
     player

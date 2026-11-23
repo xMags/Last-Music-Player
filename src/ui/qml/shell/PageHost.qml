@@ -8,8 +8,15 @@ import LastMusicPlayer
 Item {
     id: host
 
+    // Pages that scroll themselves (long lists) fill the panel; they keep
+    // and restore their own position (ScrollMemory).
+    function scrollsItself(kind: int): bool {
+        return kind === Route.Library
+    }
+
     function showCurrent() {
-        scroller.contentY = App.navigator.returning ? App.navigator.currentScrollOffset : 0
+        const ownScroll = host.scrollsItself(App.navigator.currentKind)
+        scroller.contentY = App.navigator.returning && !ownScroll ? App.navigator.currentScrollOffset : 0
         if (!App.navigator.returning && !Motion.reduced)
             enter.restart()
     }
@@ -28,20 +35,28 @@ Item {
         id: scroller
 
         anchors.fill: parent
+        readonly property bool pageScrollsItself: host.scrollsItself(App.navigator.currentKind)
+
         contentWidth: width
         contentHeight: page.height
+        interactive: !pageScrollsItself
         boundsBehavior: Flickable.StopAtBounds
 
         // The history entry keeps how far its page is scrolled.
-        onContentYChanged: App.navigator.setCurrentScrollOffset(contentY)
+        onContentYChanged: {
+            if (!pageScrollsItself)
+                App.navigator.setCurrentScrollOffset(contentY)
+        }
 
-        AppScrollBar.vertical: AppScrollBar {}
+        AppScrollBar.vertical: AppScrollBar {
+            visible: !scroller.pageScrollsItself && size < 1
+        }
 
         Item {
             id: page
 
             width: scroller.width
-            height: Math.max(scroller.height, content.implicitHeight)
+            height: scroller.pageScrollsItself ? scroller.height : Math.max(scroller.height, content.implicitHeight)
             transform: Translate { id: rise }
 
             // The page of the current route; routes whose page a later part
@@ -50,7 +65,10 @@ Item {
                 id: content
 
                 width: parent.width
-                sourceComponent: App.navigator.currentKind === Route.Settings ? settingsPage : placeholderPage
+                height: scroller.pageScrollsItself ? parent.height : implicitHeight
+                sourceComponent: App.navigator.currentKind === Route.Settings ? settingsPage
+                    : App.navigator.currentKind === Route.Library ? libraryPage
+                    : placeholderPage
             }
         }
     }
@@ -59,6 +77,12 @@ Item {
         id: settingsPage
 
         SettingsPage {}
+    }
+
+    Component {
+        id: libraryPage
+
+        LibraryPage {}
     }
 
     Component {

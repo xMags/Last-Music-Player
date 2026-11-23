@@ -65,6 +65,8 @@ CompositionRoot::CompositionRoot()
     , m_databaseOpen(openDatabase(m_database))
     , m_tracks(m_database)
     , m_library(m_database)
+    , m_collections(m_database)
+    , m_groups(m_database)
     , m_artworkCache(m_paths.thumbsFolder(), &m_tagReader)
     , m_scanner({.tags = m_tagReader,
                  .artwork = m_artworkCache,
@@ -100,6 +102,12 @@ CompositionRoot::CompositionRoot()
               .accounts = m_accounts,
               .operationGate = m_userDataGate})
     , m_signOut(m_session)
+    , m_trackActions({.player = m_player,
+                      .tracks = m_tracks,
+                      .collections = m_collections,
+                      .groups = m_groups,
+                      .mode = m_mode,
+                      .gate = m_userDataGate})
     , m_windowChromeViewModel(&m_windowChrome)
     , m_sidebar(&m_navigator)
     , m_playerBar(m_player)
@@ -128,6 +136,14 @@ CompositionRoot::CompositionRoot()
                          .gate = m_userDataGate,
                          .picker = m_folderPicker,
                          .links = m_externalLinks})
+    , m_trackMenu(m_trackActions)
+    , m_libraryPage({.library = m_library,
+                     .groups = m_groups,
+                     .actions = m_trackActions,
+                     .player = m_player,
+                     .scanner = m_scanner,
+                     .trackMenu = m_trackMenu,
+                     .navigator = m_navigator})
     , m_appRoot({
           .windowChrome = &m_windowChromeViewModel,
           .navigator = &m_navigator,
@@ -143,6 +159,8 @@ CompositionRoot::CompositionRoot()
           .firstRun = &m_firstRun,
           .profile = &m_profile,
           .librarySettings = &m_librarySettings,
+          .library = &m_libraryPage,
+          .trackMenu = &m_trackMenu,
           .mode = &m_mode,
           .showGallery = QCoreApplication::arguments().contains(QStringLiteral("--gallery")),
       })

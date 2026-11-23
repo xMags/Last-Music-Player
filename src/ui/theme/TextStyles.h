@@ -16,6 +16,8 @@ struct FontFamilies {
     // for its title and a monospace face for its small labels.
     QString sleeveDisplay;
     QString sleeveMono;
+    // A monospace face for small labels (the genre tile's).
+    QString mono;
 
     // Picks the first installed family of each design stack.
     [[nodiscard]] static FontFamilies resolve();
@@ -74,6 +76,9 @@ struct TextStyles {
     TextStyle stateTitle;
     TextStyle stateText;
     TextStyle tableHeading;
+    TextStyle eyebrow;
+    TextStyle pill;
+    TextStyle genreLabel;
     TextStyle nowPlayingTitle;
     TextStyle fullScreenTitle;
     TextStyle homeGreeting;

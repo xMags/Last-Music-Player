@@ -11,11 +11,14 @@
 #include "core/app/AppPaths.h"
 #include "core/config/PrivateConfig.h"
 #include "core/db/AccountRepository.h"
+#include "core/db/CollectionRepository.h"
+#include "core/db/GroupQueries.h"
 #include "core/db/Database.h"
 #include "core/db/LibraryQueries.h"
 #include "core/db/TrackRepository.h"
 #include "core/library/ArtworkCache.h"
 #include "core/library/LibraryScanner.h"
+#include "core/library/TrackActions.h"
 #include "core/library/UserDataOperationGate.h"
 #include "core/mode/ModeService.h"
 #include "core/net/HttpClient.h"
@@ -41,7 +44,9 @@
 #include "ui/player/PlayerBarViewModel.h"
 #include "ui/player/QueueRailViewModel.h"
 #include "ui/settings/FirstRunViewModel.h"
+#include "ui/library/LibraryViewModel.h"
 #include "ui/settings/LibrarySettingsViewModel.h"
+#include "ui/tracks/TrackMenuController.h"
 #include "ui/settings/SettingsAboutViewModel.h"
 #include "ui/settings/SettingsViewModel.h"
 #include "ui/settings/SourceModeViewModel.h"
@@ -105,6 +110,8 @@ private:
     bool m_databaseOpen = false;
     core::db::TrackRepository m_tracks;
     core::db::LibraryQueries m_library;
+    core::db::CollectionRepository m_collections;
+    core::db::GroupQueries m_groups;
     core::UserDataOperationGate m_userDataGate;
     // The music folder scan: tags and system thumbnails, the cover cache, the scanner.
     platform::windows::WindowsTagReader m_tagReader;
@@ -132,6 +139,8 @@ private:
     core::mode::ModeService m_mode;
     core::account::LocalAccountSignOut m_signOut;
     platform::windows::WindowsFolderPicker m_folderPicker;
+    // What a song's menu and buttons do.
+    core::TrackActions m_trackActions;
 
     ui::WindowChromeViewModel m_windowChromeViewModel;
     ui::Navigator m_navigator;
@@ -149,6 +158,8 @@ private:
     ui::FirstRunViewModel m_firstRun;
     ui::ProfileViewModel m_profile;
     ui::LibrarySettingsViewModel m_librarySettings;
+    ui::TrackMenuController m_trackMenu;
+    ui::LibraryViewModel m_libraryPage;
     ui::AppRoot m_appRoot;
     QPointer<ui::Theme> m_theme; // owned by the QML engine
 };

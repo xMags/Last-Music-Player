@@ -51,6 +51,9 @@ public:
     Q_INVOKABLE void back();
     // Opens a main view (the sidebar's items).
     Q_INVOKABLE void openView(int kind);
+    // Changes a parameter of the current entry in place (a page's tab), so
+    // Back to this entry brings it back; the page is not shown again.
+    Q_INVOKABLE void setCurrentParam(const QString& name, const QString& value);
 
     // The current page reports how far it is scrolled, so the entry can keep it.
     Q_INVOKABLE void setCurrentScrollOffset(qreal offset);

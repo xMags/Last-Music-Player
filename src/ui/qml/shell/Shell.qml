@@ -16,6 +16,8 @@ import LastMusicPlayer
 // player, Escape closes it; neither acts while a text field has the keys.
 // Space plays and pauses, Ctrl+Right and Ctrl+Left skip; these three leave
 // the keys to a focused text field, button, slider, drop-down or popup.
+// Alt+Left and the mouse's back button go back a page (the browser Back the
+// reference relies on), except while the full-screen player is open.
 Item {
     id: shell
 
@@ -76,6 +78,21 @@ Item {
         sequence: "Ctrl+Left"
         enabled: !playbackKeys.blocked
         onActivated: App.playerBar.previous()
+    }
+
+    Shortcut {
+        sequences: [StandardKey.Back]
+        enabled: App.navigator.canGoBack && !App.fullscreen.open
+        onActivated: App.navigator.back()
+    }
+
+    // Sees only the back button; every other click passes through.
+    MouseArea {
+        anchors.fill: parent
+        z: 1000
+        acceptedButtons: Qt.BackButton
+        enabled: App.navigator.canGoBack && !App.fullscreen.open
+        onClicked: App.navigator.back()
     }
 
     Item {

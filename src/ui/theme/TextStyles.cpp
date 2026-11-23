@@ -66,6 +66,7 @@ FontFamilies FontFamilies::resolve()
             {QStringLiteral("Archivo SemiBold"), QStringLiteral("Arial Black")}),
         .sleeveMono = FontLoader::firstAvailableFamily(
             {QStringLiteral("JetBrains Mono"), QStringLiteral("Cascadia Mono"), QStringLiteral("Consolas")}),
+        .mono = FontLoader::firstAvailableFamily({QStringLiteral("Cascadia Mono"), QStringLiteral("Consolas")}),
     };
 }
 
@@ -129,6 +130,13 @@ TextStyles TextStyles::build(const FontFamilies& families)
         .stateTitle = makeTextStyle({.family = text, .pixelSize = 17, .weight = kSemiBold}),
         .stateText = makeTextStyle({.family = text, .pixelSize = 14, .weight = kRegular, .lineHeight = 19.6}),
         .tableHeading = makeTextStyle({.family = text, .pixelSize = 11, .weight = kBold, .letterSpacingEm = 0.08}),
+        // .view-title-block .eyebrow (views.css 13-19); .section-pill
+        // (styles.css 488-501); the genre tile's label (GenreArtworkTile.cpp).
+        .eyebrow = makeTextStyle({.family = text, .pixelSize = 11, .weight = kBold, .letterSpacingEm = 0.16}),
+        .pill = makeTextStyle(
+            {.family = text, .pixelSize = 10, .weight = kSemiBold, .letterSpacingEm = 0.04, .uppercase = true}),
+        .genreLabel = makeTextStyle(
+            {.family = families.mono, .pixelSize = 11.5, .weight = kRegular, .letterSpacingEm = 0.14}),
         .nowPlayingTitle = makeTextStyle(
             {.family = display, .pixelSize = 20, .weight = kBold, .lineHeight = 26}),
         // line-height: 1.2 of 30px.

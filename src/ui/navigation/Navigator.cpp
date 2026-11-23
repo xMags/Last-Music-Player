@@ -20,7 +20,8 @@ Route Navigator::current() const
 
 QString Navigator::currentTitle() const
 {
-    return titleFor(current().kind());
+    const QString title = current().param(QStringLiteral("title"));
+    return title.isEmpty() ? titleFor(current().kind()) : title;
 }
 
 qreal Navigator::currentScrollOffset() const
@@ -122,8 +123,15 @@ QString Navigator::titleFor(Route::Kind kind)
     case Route::Kind::Charts:
     case Route::Kind::Chart:
         return tr("Charts");
+    case Route::Kind::Collection:
+        return tr("Collection");
     }
     return {};
+}
+
+void Navigator::setCurrentParam(const QString& name, const QString& value)
+{
+    m_entries.last().route.setParam(name, value);
 }
 
 void Navigator::releasePage(Entry& entry)

@@ -36,7 +36,7 @@ QVariant TrackListModel::data(const QModelIndex& index, int role) const
     case DurationTextRole:
         return track.unavailable ? QString() : track.durationText;
     case ArtworkUrlRole:
-        return CoverSource::forTrack(track).displayUrl();
+        return CoverSource::forLibraryTrack(track).displayUrl();
     case ArtworkIdRole:
         return CoverSource::placeholderIdFor(track);
     case ArtworkLabelRole:

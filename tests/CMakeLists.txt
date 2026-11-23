@@ -405,3 +405,7 @@ lmp_add_test(tst_track_actions
 lmp_add_test(tst_track_menu_builder
     SOURCES ui/tst_track_menu_builder.cpp
     LIBS lmp_ui)
+
+lmp_add_test(tst_library_view_model
+    SOURCES ui/tst_library_view_model.cpp core/PlayerFixture.h core/FakeAudioPlayer.h core/FakePlaybackClock.h core/ModeServiceFixture.h core/AccountSessionFixture.h core/FakeCredentialStore.h core/FakeHttpTransport.h core/TempLibrary.h core/FakeTagReader.h
+    LIBS lmp_ui)

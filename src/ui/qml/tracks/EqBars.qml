@@ -24,7 +24,9 @@ Row {
             required property int index
             required property int modelData
 
-            anchors.bottom: parent.bottom
+            // Standing on the bottom edge; a position, not an anchor, since a
+            // row put aside for reuse leaves the bar briefly without a parent.
+            y: bars.height - height
             width: 2
             height: modelData
             radius: 1
