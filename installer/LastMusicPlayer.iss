@@ -80,6 +80,8 @@ Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; AppUserModelID: "{#MyAppUserModelId}"; Tasks: desktopicon
 
 [InstallDelete]
+; The notices of the components shipped now replace every earlier one.
+Type: filesandordirs; Name: "{app}\Licenses\ThirdParty"
 ; Remove the legacy Start Menu shortcut older builds created on first launch
 ; (the app no longer self-creates it; the installer owns shortcuts now).
 Type: files; Name: "{autoprograms}\Last Music.lnk"

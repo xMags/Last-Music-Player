@@ -1,0 +1,410 @@
+Third-party components inside the shipped Qt 6.10.3 libraries
+=============================================================
+
+Taken from the software bills of materials The Qt Company publishes with
+Qt 6.10.3 (qtbase, qtdeclarative, qtsvg, qtimageformats, qtwebsockets),
+limited to the modules and plugins Last Music Player ships. Licence texts
+named "licenses/..." are in the licenses folder next to this file.
+
+aglfn 1.7
+  Used by:   Qt Gui
+  Licence:   BSD-3-Clause
+  Text:      licenses/BSD-3-Clause.txt
+  Copyright 2002, 2003, 2005, 2006, 2008, 2010, 2015 Adobe Systems
+
+blake2 ed1974ea83433eba7b2d95c5dcd9ac33cb847913
+  Used by:   Qt Core
+  Licence:   CC0-1.0 OR Apache-2.0
+  Text:      used under CC0 1.0 (public domain dedication); Apache 2.0 text in licenses/Apache-2.0.txt
+  Copyright 2012, Samuel Neves <sneves@dei.uc.pt>
+
+d3d12memoryallocator f128d39b7a95b4235bd228d231646278dc6c24b2
+  Used by:   Qt Gui
+  Licence:   MIT
+  Text:      licenses/MIT.txt
+  Copyright (c) 2019-2022 Advanced Micro Devices, Inc. All rights reserved.
+
+doubleconversion 3.4.0
+  Used by:   Qt Core
+  Licence:   BSD-3-Clause
+  Text:      licenses/BSD-3-Clause.txt
+  Copyright 2006-2012, the V8 project authors
+
+easing
+  Used by:   Qt Core
+  Licence:   BSD-3-Clause
+  Text:      licenses/BSD-3-Clause.txt
+  Copyright (c) 2001 Robert Penner
+
+emoji-segmenter 0.4.0
+  Used by:   Qt Gui
+  Licence:   Apache-2.0
+  Text:      licenses/Apache-2.0.txt
+  Copyright 2019 Google LLC
+
+Freetype 2.14.3
+  Used by:   Qt (bundled library)
+  Licence:   FTL OR GPL-2.0-only
+  Text:      licenses/FreeType.txt
+  Copyright (c) 2007-2014 Adobe Systems Incorporated
+  Copyright (c) 2004-2026 Albert Chin-A-Young
+  Copyright (c) 2018-2026 Armin Hasitzka, David Turner, Robert Wilhelm, and Werner Lemberg
+  Copyright (c) 2000 Computing Research Labs, New Mexico State University
+  Copyright (c) 1996-2026 David Turner, Robert Wilhelm, Dominik Röttsches, and Werner Lemberg
+  Copyright (c) 2004-2026 David Turner, Robert Wilhelm, Werner Lemberg and George Williams
+  Copyright (c) 2022-2026 David Turner, Robert Wilhelm, Werner Lemberg, and Moazin Khatti
+  Copyright (c) 2008-2026 David Turner, Robert Wilhelm, Werner Lemberg, and suzuki toshiya
+  Copyright (c) 2003-2026 David Turner, Robert Wilhelm, and Werner Lemberg
+  Copyright (c) 2005-2026 David Turner
+  Copyright (c) 2007-2026 Derek Clegg and Michael Toftdal
+  Copyright (c) 2007 Dmitry Timoshkov for Codeweavers
+  Copyright (c) 2001-2015 Francesco Zappa Nardelli
+  Copyright (c) 2005, 2007, 2008, 2013 George Williams
+  Copyright (c) 2013-2026 Google, Inc. Google Author(s) Behdad Esfahbod and Stuart Gill
+  Copyright (c) 2013-2022 Google, Inc.
+  Copyright (c) 2003 Huw D M Davies for Codeweavers
+  Copyright (c) 2010-2026 Joel Klinghed
+  Copyright (c) 1996-2026 Just van Rossum, David Turner, Robert Wilhelm, and Werner Lemberg
+  Copyright (c) 2003-2026 Masatake YAMATO and Redhat K.K.
+  Copyright (c) 2004-2026 Masatake YAMATO, Redhat K.K, David Turner, Robert Wilhelm, and Werner Lemberg
+  Copyright (c) 2019-2026 Nikhil Ramakrishnan, David Turner, Robert Wilhelm, and Werner Lemberg
+  Copyright (c) 2009-2026 Oran Agra and Mickey Gabel
+  Copyright (c) 2007-2026 Rahul Bhalerao <rahul.bhalerao@redhat.com>
+  Copyright (c) 2002-2026 Roberto Alameda
+  Copyright (c) 2015-2026 Werner Lemberg
+  Copyright (c) 2004-2026 suzuki toshiya, Masatake YAMATO, Red Hat K.K., David Turner, Robert Wilhelm, and Werner Lemberg
+  Copyright (c) 2019 nyorain
+  Copyright (c) 2022-2026 David Turner, Robert Wilhelm, Werner Lemberg, George Williams, and Dominik Röttsches
+  Copyright (C) 2009, 2023  Red Hat, Inc.
+
+grayraster
+  Used by:   Qt Gui
+  Licence:   FTL OR GPL-2.0-only
+  Text:      licenses/FreeType.txt
+  Copyright 2000-2016 by David Turner, Robert Wilhelm, and Werner Lemberg.
+
+Harfbuzz 13.2.1
+  Used by:   Qt (bundled library)
+  Licence:   MIT
+  Text:      licenses/HarfBuzz.txt
+  Copyright © 2010-2022  Google, Inc.
+  Copyright © 2015-2020  Ebrahim Byagowi
+  Copyright © 2019,2020  Facebook, Inc.
+  Copyright © 2012,2015  Mozilla Foundation
+  Copyright © 2011  Codethink Limited
+  Copyright © 2008,2010  Nokia Corporation and/or its subsidiary(-ies)
+  Copyright © 2009  Keith Stribley
+  Copyright © 2011  Martin Hosken and SIL International
+  Copyright © 2007  Chris Wilson
+  Copyright © 2005,2006,2020,2021,2022,2023  Behdad Esfahbod
+  Copyright © 2004,2007,2008,2009,2010,2013,2021,2022,2023  Red Hat, Inc.
+  Copyright © 1998-2005  David Turner and Werner Lemberg
+  Copyright © 2016  Igalia S.L.
+  Copyright © 2022  Matthias Clasen
+  Copyright © 2018,2021  Khaled Hosny
+  Copyright © 2018,2019,2020  Adobe, Inc
+  Copyright © 2013-2015  Alexei Podtelezhnikov
+
+icc-srgb-color-profile
+  Used by:   Qt Gui
+  Licence:   LicenseRef-ICC-License
+  Text:      licenses/LicenseRef-ICC-License.txt
+  Copyright International Color Consortium, 2015
+
+Libjpeg 3.1.4
+  Used by:   Qt (bundled library)
+  Licence:   IJG AND BSD-3-Clause
+  Text:      licenses/libjpeg-turbo.txt
+  Copyright (C) 2009-2026 D. R. Commander
+  Copyright (C) 2015-2016, 2018, 2022 Matthieu Darbois
+  Copyright (C) 2019-2021 Arm Limited
+  Copyright (C) 2015, 2020 Google, Inc.
+  Copyright (C) 2011, 2014, 2016 Siarhei Siamashka
+  Copyright (C) 2015 Intel Corporation
+  Copyright (C) 2013-2014 Linaro Limited
+  Copyright (C) 2013-2014 MIPS Technologies, Inc.
+  Copyright (C) 2009, 2012 Pierre Ossman for Cendio AB
+  Copyright (C) 2009-2011 Nokia Corporation and/or its subsidiary(-ies)
+  Copyright (C) 1999-2006 MIYASAKA Masaru
+  Copyright (C) 1999 Ken Murchison
+  Copyright (C) 1991-2020 Thomas G. Lane, Guido Vollbeding
+
+Libjpeg12bits 3.1.4
+  Used by:   Qt (bundled library)
+  Licence:   IJG AND BSD-3-Clause
+  Text:      licenses/libjpeg-turbo.txt
+  Copyright (C) 2009-2026 D. R. Commander
+  Copyright (C) 2015-2016, 2018, 2022 Matthieu Darbois
+  Copyright (C) 2019-2021 Arm Limited
+  Copyright (C) 2015, 2020 Google, Inc.
+  Copyright (C) 2011, 2014, 2016 Siarhei Siamashka
+  Copyright (C) 2015 Intel Corporation
+  Copyright (C) 2013-2014 Linaro Limited
+  Copyright (C) 2013-2014 MIPS Technologies, Inc.
+  Copyright (C) 2009, 2012 Pierre Ossman for Cendio AB
+  Copyright (C) 2009-2011 Nokia Corporation and/or its subsidiary(-ies)
+  Copyright (C) 1999-2006 MIYASAKA Masaru
+  Copyright (C) 1999 Ken Murchison
+  Copyright (C) 1991-2020 Thomas G. Lane, Guido Vollbeding
+
+Libjpeg16bits 3.1.4
+  Used by:   Qt (bundled library)
+  Licence:   IJG AND BSD-3-Clause
+  Text:      licenses/libjpeg-turbo.txt
+  Copyright (C) 2009-2026 D. R. Commander
+  Copyright (C) 2015-2016, 2018, 2022 Matthieu Darbois
+  Copyright (C) 2019-2021 Arm Limited
+  Copyright (C) 2015, 2020 Google, Inc.
+  Copyright (C) 2011, 2014, 2016 Siarhei Siamashka
+  Copyright (C) 2015 Intel Corporation
+  Copyright (C) 2013-2014 Linaro Limited
+  Copyright (C) 2013-2014 MIPS Technologies, Inc.
+  Copyright (C) 2009, 2012 Pierre Ossman for Cendio AB
+  Copyright (C) 2009-2011 Nokia Corporation and/or its subsidiary(-ies)
+  Copyright (C) 1999-2006 MIYASAKA Masaru
+  Copyright (C) 1999 Ken Murchison
+  Copyright (C) 1991-2020 Thomas G. Lane, Guido Vollbeding
+
+Libpng 1.6.56
+  Used by:   Qt (bundled library)
+  Licence:   Libpng AND libpng-2.0
+  Text:      licenses/libpng.txt
+  Copyright (c) 1995-2026 The PNG Reference Library Authors
+  Copyright (c) 2000-2026 Cosmin Truta
+  Copyright (c) 1998-2018 Glenn Randers-Pehrson
+  Copyright (c) 1996-1997 Andreas Dilger
+  Copyright (c) 1995-1996 Guy Eric Schalnat, Group 42, Inc.
+  Copyright (c) 2000-2017 Simon-Pierre Cadieux
+  Copyright (c) 2000-2017 Eric S. Raymond
+  Copyright (c) 2000-2017 Mans Rullgard
+  Copyright (c) 2000-2017 Gilles Vollant
+  Copyright (c) 2000-2017 James Yu
+  Copyright (c) 2000-2017 Mandar Sahastrabuddhe
+  Copyright (c) 1998-2000 Tom Lane
+  Copyright (c) 1998-2000 Willem van Schaik
+  Copyright (c) 1996-1997 John Bowler
+  Copyright (c) 1996-1997 Kevin Bracey
+  Copyright (c) 1996-1997 Sam Bushell
+  Copyright (c) 1996-1997 Magnus Holmgren
+  Copyright (c) 1996-1997 Greg Roelofs
+  Copyright (c) 1996-1997 Tom Tanner
+  Copyright (c) 1995-1996 Dave Martindale
+  Copyright (c) 1995-1996 Paul Schmidt
+  Copyright (c) 1995-1996 Tim Wegner
+
+libpsl 664f3dc85259ec65e30248a61fa1c45b7b0e4c3f
+  Used by:   Qt Network
+  Licence:   BSD-3-Clause
+  Text:      licenses/libpsl.txt
+  Copyright 2014-2016 The Chromium Authors. All rights reserved.
+
+libtiff 4.7.1
+  Used by:   Qt QTiffPlugin
+  Licence:   libtiff
+  Text:      licenses/libtiff.txt
+  Copyright (c) 1988-1997 Sam Leffler
+  Copyright (c) 1991-1997 Silicon Graphics, Inc.
+
+libwebp 1.6.0
+  Used by:   Qt QWebpPlugin
+  Licence:   BSD-3-Clause
+  Text:      licenses/libwebp.txt
+  Copyright (c) 2010, Google Inc. All rights reserved.
+
+masm
+  Used by:   Qt Qml
+  Licence:   BSD-2-Clause
+  Text:      licenses/BSD-2-Clause.txt
+  Copyright (C) 2003-2018 Apple Inc. All rights reserved.
+  Copyright (C) 2007 Justin Haygood (jhaygood@reaktix.com)
+  Copyright (C) 2007-2009 Torch Mobile, Inc. All rights reserved. (http://www.torchmobile.com/)
+  Copyright (C) 2009, 2010 University of Szeged
+  Copyright (C) 2009-2011 STMicroelectronics. All rights reserved.
+  Copyright (C) 2010 MIPS Technologies, Inc. All rights reserved.
+  Copyright (C) 2010 Peter Varga (pvarga@inf.u-szeged.hu), University of Szeged
+  Copyright (C) 2010 MIPS Technologies, Inc. All rights reserved.
+  Copyright (C) 2010, 2011 Research In Motion Limited. All rights reserved.
+  Copyright (C) 2011 Google Inc. All rights reserved.
+  Copyright (C) 2013 Samsung Electronics. All rights reserved.
+  Copyright (C) 2015 Cisco Systems, Inc. All rights reserved.
+  Copyright (c) 2002-2009 Vivek Thampi
+
+md4
+  Used by:   Qt Core
+  Licence:   CC0-1.0
+  Text:      public domain dedication (CC0 1.0); no conditions
+  Written by Alexander Peslyak - better known as Solar Designer <solar@openwall.com> - in 2001, and placed in the public domain. There's absolutely no warranty.
+
+md4c 0.5.2
+  Used by:   Qt Gui
+  Licence:   MIT
+  Text:      licenses/MIT.txt
+  Copyright © 2016-2024 Martin Mitáš
+
+md5
+  Used by:   Qt Core
+  Licence:   CC0-1.0
+  Text:      public domain dedication (CC0 1.0); no conditions
+  Written by Colin Plumb in 1993, no copyright is claimed. Ian Jackson <ian@chiark.greenend.org.uk>.
+
+opengl-es2-headers Revision 27673
+  Used by:   Qt Gui
+  Licence:   MIT
+  Text:      licenses/MIT.txt
+  Copyright (c) 2013-2014 The Khronos Group Inc.
+
+opengl-headers Revision 27684
+  Used by:   Qt Gui
+  Licence:   MIT
+  Text:      licenses/MIT.txt
+  Copyright (c) 2013-2014 The Khronos Group Inc.
+
+Pcre2 10.47
+  Used by:   Qt (bundled library)
+  Licence:   LicenseRef-BSD-3-Clause-with-PCRE2-Binary-Like-Packages-Exception
+  Text:      licenses/PCRE2.txt
+  Copyright (c) 1997-2007 University of Cambridge
+  Copyright (c) 2007-2024 Philip Hazel
+  Copyright (c) 2010-2024 Zoltan Herczeg
+
+psl-data 2026-01-16_13-11-47_UTC
+  Used by:   Qt Network
+  Licence:   MPL-2.0
+  Text:      This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/. Source: https://github.com/publicsuffix/list
+  The list was originally provided by Jo Hermans <jo.hermans@gmail.com>.
+  It is now maintained on github (https://github.com/publicsuffix/list).
+
+rfc6234
+  Used by:   Qt Core
+  Licence:   BSD-3-Clause
+  Text:      licenses/BSD-3-Clause.txt
+  Copyright (c) 2011 IETF Trust and the persons identified as authors of the code.
+
+rhi-miniengine-d3d12-mipmap 0aa79bad78992da0b6a8279ddb9002c1753cb849
+  Used by:   Qt Gui
+  Licence:   MIT
+  Text:      licenses/MIT.txt
+  Copyright (c) 2015 Microsoft
+
+sha1
+  Used by:   Qt Core
+  Licence:   LicenseRef-SHA1-Public-Domain
+  Text:      licenses/LicenseRef-SHA1-Public-Domain.txt
+  Copyright (C) Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2016 The Qt Company Ltd
+
+sha3-endian 1.0.0
+  Used by:   Qt Core
+  Licence:   BSD-2-Clause
+  Text:      licenses/BSD-2-Clause.txt
+  Copyright (c) 1998-2013, Brian Gladman, Worcester, UK. All rights reserved.
+
+sha3-keccak 3.2
+  Used by:   Qt Core
+  Licence:   CC0-1.0
+  Text:      public domain dedication (CC0 1.0); no conditions
+  Guido Bertoni, Joan Daemen, Michaël Peeters and Gilles Van Assche.
+  To the extent possible under law, the implementers have waived all copyright
+  and related or neighboring rights to the source code in this file.
+
+shadow-angular-material
+  Used by:   Qt QuickControls2Material
+  Licence:   MIT
+  Text:      licenses/MIT.txt
+  Copyright (c) 2014-2016 Google, Inc
+
+siphash
+  Used by:   Qt Core
+  Licence:   CC0-1.0
+  Text:      public domain dedication (CC0 1.0); no conditions
+  Copyright (C) 2012-2014 Jean-Philippe Aumasson
+  Copyright (C) 2012-2014 Daniel J. Bernstein <djb@cr.yp.to>
+  Copyright (C) 2016 Intel Corporation
+
+smooth-scaling-algorithm
+  Used by:   Qt Gui
+  Licence:   BSD-2-Clause AND Imlib2
+  Text:      full text in the Qt unknown source (qt-everywhere-src-6.10.3, src/3rdparty or the attribution file named in the SBOM)
+  Copyright (C) 2004, 2005 Daniel M. Duley.
+  (C) Carsten Haitzler and various contributors.
+  (C) Willem Monsuwe <willem@stack.nl>
+
+tika-mimetypes 408c26e1e03e018a623e732dff6fb047a2fb8e19
+  Used by:   Qt Core
+  Licence:   Apache-2.0
+  Text:      licenses/Apache-2.0.txt
+  Copyright 2026 The Apache Software Foundation
+
+tinycbor 7.0
+  Used by:   Qt Core
+  Licence:   MIT
+  Text:      licenses/MIT.txt
+  Copyright (C) 2015-2025 Intel Corporation
+
+tlexpected 41d3e1f48d682992a2230b2a715bca38b848b269
+  Used by:   Qt Core
+  Licence:   CC0-1.0
+  Text:      public domain dedication (CC0 1.0); no conditions
+  To the extent possible under law, Sy Brand has waived all copyright and related or neighboring rights to the expected library. This work is published from: United Kingdom.
+
+unicode-character-database 36
+  Used by:   Qt Core
+  Licence:   Unicode-3.0
+  Text:      licenses/Unicode-3.0.txt
+  Copyright (C) 1991-2025 Unicode, Inc.
+
+unicode-cldr v48.1
+  Used by:   Qt Core
+  Licence:   Unicode-3.0
+  Text:      licenses/Unicode-3.0.txt
+  Copyright (C) 2004-2025 Unicode, Inc.
+
+vulkan-xml-spec 1.4.308
+  Used by:   Qt Gui
+  Licence:   Apache-2.0 OR MIT
+  Text:      used under MIT (licenses/MIT.txt)
+  Copyright (c) 2015-2025 The Khronos Group Inc.
+
+vulkanmemoryallocator 3.2.1
+  Used by:   Qt Gui
+  Licence:   MIT
+  Text:      licenses/MIT.txt
+  Copyright (c) 2017-2025 Advanced Micro Devices, Inc. All rights reserved.
+
+webgradients
+  Used by:   Qt Gui
+  Licence:   MIT
+  Text:      licenses/MIT.txt
+  Copyright (c) 2017 itmeo
+
+wintab
+  Used by:   Qt QWindowsIntegrationPlugin
+  Licence:   LicenseRef-Lcs-Telegraphics
+  Text:      licenses/LicenseRef-Lcs-Telegraphics.txt
+  Copyright 1991-1998 by LCS/Telegraphics.
+
+xserverhelper
+  Used by:   Qt Gui
+  Licence:   X11 AND HPND
+  Text:      full text in the Qt unknown source (qt-everywhere-src-6.10.3, src/3rdparty or the attribution file named in the SBOM)
+  Copyright (c) 1987, 1988 X Consortium
+  Copyright 1987, 1988 by Digital Equipment Corporation, Maynard, Massachusetts.
+
+xsvg
+  Used by:   Qt Svg
+  Licence:   HPND-sell-variant
+  Text:      full text in the Qt unknown source (qt-everywhere-src-6.10.3, src/3rdparty or the attribution file named in the SBOM)
+  Copyright 2002 USC/Information Sciences Institute
+
+yoga 2.0.1
+  Used by:   Qt QuickLayouts
+  Licence:   MIT
+  Text:      licenses/MIT.txt
+  Copyright (c) Facebook, Inc. and its affiliates.
+  Copyright (c) Meta Platforms, Inc. and affiliates.
+
+ZLIB 1.3.2
+  Used by:   Qt (bundled library), Qt Network, Qt Gui
+  Licence:   Zlib
+  Text:      licenses/zlib.txt
+  (C) 1995-2026 Jean-loup Gailly and Mark Adler

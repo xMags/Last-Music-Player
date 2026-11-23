@@ -1,7 +1,8 @@
 LAST MUSIC PLAYER - THIRD-PARTY NOTICES
 
 Last Music Player includes or is built with third-party software. Those
-components are governed by their own terms, not the Last Projects License.
+components are governed by their own terms, not by the licence of Last Music
+Player itself.
 
 Complete copies of the applicable license and notice files are stored in:
 
@@ -11,32 +12,94 @@ They are also installed under:
 
   Licenses/ThirdParty/
 
-The bundle currently covers the dependency versions declared in
-packages.config and the self-contained Windows App SDK runtime shipped by the
-Release build:
+No endorsement by any third-party author or licensor is implied.
 
-  Inno Setup 6.7.3 (installer packaging)
-  Microsoft.Web.WebView2 1.0.3179.45
-  Microsoft.Windows.CppWinRT 2.0.250303.1
-  Microsoft.Windows.ImplementationLibrary 1.0.260126.7
-  Microsoft.Windows.SDK.BuildTools 10.0.26100.7705
-  Microsoft.Windows.SDK.BuildTools.MSIX 1.7.20250829.1
-  Microsoft.WindowsAppSDK 1.8.260209005
-  Microsoft.WindowsAppSDK.AI 1.8.47
-  Microsoft.WindowsAppSDK.Base 1.8.251216001
-  Microsoft.WindowsAppSDK.DWrite 1.8.25122902
-  Microsoft.WindowsAppSDK.Foundation 1.8.260203002
-  Microsoft.WindowsAppSDK.InteractiveExperiences 1.8.260125001
-  Microsoft.WindowsAppSDK.ML 1.8.2124
-  Microsoft.WindowsAppSDK.Runtime 1.8.260209005
-  Microsoft.WindowsAppSDK.Widgets 1.8.251231004
-  Microsoft.WindowsAppSDK.WinUI 1.8.260204000
-  SQLite amalgamation (public domain)
 
-Some Microsoft packages include software from additional authors. Their full
-attributions and license texts appear in the corresponding NOTICE or
-ThirdPartyNotices file in licenses/third-party. Do not remove those files from
-a redistributed release.
+Qt 6.10.3
+---------
+
+Copyright (C) The Qt Company Ltd. and other contributors.
+
+The application uses the Qt toolkit under the GNU Lesser General Public
+License version 3 (LGPL-3.0). The LGPL-3.0 text is in
+licenses/third-party/qt/LGPL-3.0.txt; it builds on the GNU General Public
+License version 3, whose text is in licenses/third-party/qt/GPL-3.0.txt.
+
+Qt is linked dynamically: every Qt library and plugin is a separate DLL in the
+installation folder. You may replace them with your own builds of the same Qt
+version (for example, with your own modifications) and the application will
+use them. The complete source code of Qt 6.10.3 is available from The Qt
+Company at:
+
+  https://download.qt.io/official_releases/qt/6.10/6.10.3/single/
+
+and from the Qt project's repositories at https://code.qt.io/.
+
+Qt libraries shipped:
+
+  Qt6Core, Qt6Gui, Qt6Network, Qt6OpenGL, Qt6Qml, Qt6QmlMeta, Qt6QmlModels,
+  Qt6QmlWorkerScript, Qt6Quick, Qt6QuickControls2, Qt6QuickControls2Basic,
+  Qt6QuickControls2BasicStyleImpl, Qt6QuickControls2FluentWinUI3StyleImpl,
+  Qt6QuickControls2Fusion, Qt6QuickControls2FusionStyleImpl,
+  Qt6QuickControls2Imagine, Qt6QuickControls2ImagineStyleImpl,
+  Qt6QuickControls2Impl, Qt6QuickControls2Material,
+  Qt6QuickControls2MaterialStyleImpl, Qt6QuickControls2Universal,
+  Qt6QuickControls2UniversalStyleImpl, Qt6QuickControls2WindowsStyleImpl,
+  Qt6QuickEffects, Qt6QuickLayouts, Qt6QuickShapes, Qt6QuickTemplates2,
+  Qt6Svg, Qt6WebSockets
+
+Qt plugins shipped (subfolders of the installation folder):
+
+  platforms (qwindows), generic (qtuiotouchplugin), iconengines (qsvgicon),
+  imageformats (qgif, qicns, qico, qjpeg, qsvg, qtga, qtiff, qwbmp, qwebp),
+  networkinformation (qnetworklistmanager), tls (qcertonlybackend,
+  qschannelbackend), and the QML plugins under qml/ (QtQml, QtQml.Models,
+  QtQml.WorkerScript, QtQuick, QtQuick.Controls with its Basic, FluentWinUI3,
+  Fusion, Imagine, Material, Universal and Windows styles, QtQuick.Effects,
+  QtQuick.Layouts, QtQuick.NativeStyle, QtQuick.Shapes, QtQuick.Templates,
+  QtQuick.Window).
+
+Qt itself contains third-party code (for example zlib, libpng, libjpeg-turbo,
+FreeType, HarfBuzz, PCRE2, libtiff, libwebp and Unicode data). Each component,
+its version, licence and copyright notice are listed in
+licenses/third-party/qt/COMPONENTS.txt, with the licence texts in
+licenses/third-party/qt/licenses/.
+
+
+International Components for Unicode (ICU)
+------------------------------------------
+
+icuuc.dll is ICU, Copyright (C) 2016 and later Unicode, Inc. and others,
+under the Unicode License V3. See licenses/third-party/ICU--Unicode-3.0.txt.
+
+
+DirectX Shader Compiler
+-----------------------
+
+dxcompiler.dll and dxil.dll are redistributable files of the Microsoft
+Windows SDK 10.0.26100.0, distributed under its licence terms. See
+licenses/third-party/Microsoft.Windows.SDK.10.0.26100.0--sdk_license.rtf and
+licenses/third-party/Microsoft.Windows.SDK.10.0.26100.0--sdk_third_party_notices.rtf.
+
+
+Microsoft Visual C++ runtime
+----------------------------
+
+concrt140.dll, msvcp140.dll, msvcp140_1.dll, msvcp140_2.dll,
+msvcp140_atomic_wait.dll, msvcp140_codecvt_ids.dll, vccorlib140.dll,
+vcruntime140.dll, vcruntime140_1.dll and vcruntime140_threads.dll are the
+Microsoft Visual C++ runtime, (c) Microsoft Corporation, redistributed as
+distributable code under the Microsoft Visual Studio licence terms.
+
+
+Fonts
+-----
+
+Archivo, JetBrains Mono and Mr De Haviland are used under the SIL Open Font
+License 1.1. See licenses/third-party/archivo/OFL.txt,
+licenses/third-party/jetbrains-mono/OFL.txt and
+licenses/third-party/mr-de-haviland/OFL.txt.
+
 
 SQLite
 ------
@@ -46,7 +109,13 @@ See licenses/third-party/SQLite-Public-Domain.txt and:
 
   https://www.sqlite.org/copyright.html
 
-No endorsement by any third-party author or licensor is implied.
 
-When a dependency version changes, refresh this notice bundle from the exact
-restored package versions before publishing a release.
+Inno Setup
+----------
+
+The installer is built with Inno Setup 6.7.3. See
+licenses/third-party/Inno-Setup-6.7.3--LICENSE.txt.
+
+
+When Qt or another dependency changes version, refresh this notice bundle
+from the exact versions shipped before publishing a release.
