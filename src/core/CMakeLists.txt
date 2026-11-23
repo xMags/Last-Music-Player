@@ -31,6 +31,8 @@ qt_add_library(lmp_core STATIC
     account/AccountUrlPolicy.h
     account/AutoSyncPolicy.cpp
     account/AutoSyncPolicy.h
+    account/LibraryArtistContract.cpp
+    account/LibraryArtistContract.h
     account/LoopbackCallback.cpp
     account/LoopbackCallback.h
     account/LoopbackRequest.cpp
@@ -106,6 +108,8 @@ qt_add_library(lmp_core STATIC
     library/BigEndianBytes.h
     library/BrowseGroupingPolicy.cpp
     library/BrowseGroupingPolicy.h
+    library/ArtistFollowService.cpp
+    library/ArtistFollowService.h
     library/CollectionActions.cpp
     library/CollectionActions.h
     library/DetailSortPolicy.cpp

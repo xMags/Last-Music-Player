@@ -19,6 +19,7 @@
 #include "ui/library/SystemPlaylists.h"
 #include "ui/navigation/Navigator.h"
 #include "ui/navigation/Route.h"
+#include "ui/player/CoverSource.h"
 #include "ui/tracks/QueryTrackSource.h"
 #include "ui/tracks/TrackMenuController.h"
 
@@ -38,9 +39,17 @@ QString countLabel(int count)
     return count == 1 ? LibraryViewModel::tr("1 song") : LibraryViewModel::tr("%1 songs").arg(count);
 }
 
+// A card's cover by the same rules as a song's (CoverSource), so remote
+// pictures and account cover links load the way the mode needs.
 QUrl coverFor(const QString& artworkUrl)
 {
-    return artworkUrl.isEmpty() ? QUrl() : QUrl(artworkUrl);
+    if (artworkUrl.isEmpty()) {
+        return {};
+    }
+    core::Track cover;
+    cover.artworkUrl = artworkUrl;
+    cover.sourceKind = QStringLiteral("remote");
+    return CoverSource::forTrack(cover).displayUrl();
 }
 
 } // namespace

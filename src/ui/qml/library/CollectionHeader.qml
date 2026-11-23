@@ -37,10 +37,15 @@ Column {
     property string iconName: ""
     property string genre: ""
     property bool roundCover: false
+    // A Follow button (artist pages), its state, and whether a change is on its way.
+    property bool showFollow: false
+    property bool followed: false
+    property bool followBusy: false
 
     signal backClicked()
     signal playClicked()
     signal shuffleClicked()
+    signal followClicked()
     // `at` is in the header's coordinates.
     signal menuClicked(point at)
 
@@ -253,6 +258,16 @@ Column {
                     iconName: "more"
                     Accessible.name: qsTr("More options")
                     onClicked: header.menuClicked(menuButton.mapToItem(header, menuButton.width / 2, menuButton.height))
+                }
+
+                AppButton {
+                    visible: header.showFollow
+                    enabled: !header.followBusy
+                    variant: header.followed ? AppButton.Subtle : AppButton.Standard
+                    text: header.followed ? qsTr("Following") : qsTr("Follow")
+                    iconName: header.followed ? "check" : "plus"
+                    iconSize: 14
+                    onClicked: header.followClicked()
                 }
 
                 Item { Layout.fillWidth: true }

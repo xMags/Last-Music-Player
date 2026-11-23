@@ -192,12 +192,27 @@ Item {
         Item {
             id: cardTab
 
+            // In Account mode the Artists tab lists the account service's artists.
+            readonly property bool serverArtists: App.library.tab === "artists" && App.accountArtists.active
             readonly property CollectionCardModel cards: App.library.tab === "playlists" ? App.library.playlists
                 : App.library.tab === "albums" ? App.library.albums
-                : App.library.tab === "artists" ? App.library.artists
+                : App.library.tab === "artists" ? (cardTab.serverArtists ? App.accountArtists.artists : App.library.artists)
                 : App.library.genres
 
-            Component.onCompleted: page.currentView = grid
+            Component.onCompleted: {
+                page.currentView = grid
+                if (cardTab.serverArtists)
+                    App.accountArtists.reload()
+            }
+
+            Connections {
+                target: App.library
+
+                function onTabChanged() {
+                    if (cardTab.serverArtists)
+                        App.accountArtists.reload()
+                }
+            }
 
             CardGrid {
                 id: grid
@@ -209,6 +224,28 @@ Item {
                 scrollBarHost: cardTab
                 model: cardTab.cards
 
+                // More of the account's artists, and what went wrong.
+                footer: Column {
+                    width: grid.width
+                    visible: cardTab.serverArtists
+                    spacing: 12
+                    topPadding: 8
+
+                    Text {
+                        visible: App.accountArtists.status !== ""
+                        text: App.accountArtists.status
+                        color: Theme.fgSecondary
+                        font: Theme.stateText
+                    }
+
+                    AppButton {
+                        visible: App.accountArtists.hasMore
+                        enabled: !App.accountArtists.loading
+                        text: App.accountArtists.loading ? qsTr("Loading more artists...") : qsTr("Load more")
+                        onClicked: App.accountArtists.loadMore()
+                    }
+                }
+
                 header: Column {
                     width: grid.width
 
@@ -217,9 +254,23 @@ Item {
                         sourceComponent: heading
                     }
 
+                    SearchField {
+                        visible: cardTab.serverArtists
+                        width: Math.min(280, parent.width)
+                        placeholderText: qsTr("Search artists")
+                        text: App.accountArtists.query
+                        onTextChanged: App.accountArtists.query = text
+                    }
+
+                    Item {
+                        visible: cardTab.serverArtists
+                        width: 1
+                        height: 16
+                    }
+
                     EmptyState {
                         width: parent.width
-                        visible: cardTab.cards.count === 0
+                        visible: cardTab.cards.count === 0 && !(cardTab.serverArtists && App.accountArtists.loading)
                         iconName: "library"
                         title: App.library.tab === "genres" ? qsTr("No genres yet") : qsTr("Nothing here yet")
                         text: App.library.tab === "genres"
@@ -259,7 +310,8 @@ Item {
                         gradientStart: cell.gradientStart
                         gradientEnd: cell.gradientEnd
                         iconName: cell.iconName
-                        onClicked: App.library.openCard(App.library.tab, cell.index)
+                        onClicked: cardTab.serverArtists ? App.accountArtists.openCard(cell.index)
+                                                         : App.library.openCard(App.library.tab, cell.index)
                         onMenuRequested: (at, fromKeyboard) => {
                             if (cell.kind !== "playlist" && cell.kind !== "album-collection")
                                 return

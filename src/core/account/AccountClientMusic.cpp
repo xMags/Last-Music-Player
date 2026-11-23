@@ -223,6 +223,60 @@ QFuture<Result<QByteArray>> AccountClient::artwork(const QString& bearerSession,
     return send(call).then(toBody);
 }
 
+QFuture<Result<LibraryArtistPage>> AccountClient::libraryArtists(const QString& bearerSession,
+                                                                 const LibraryArtistListRequest& request)
+{
+    const std::optional<QString> path = libraryArtistListPath(request);
+    if (!path) {
+        return refused<LibraryArtistPage>(QStringLiteral("artist list request is invalid"));
+    }
+    AccountCall call = makeCall(net::HttpMethod::Get, *path, bearerSession);
+    call.timeout = std::chrono::seconds(5);
+    return send(call).then([](const Result<net::HttpResponse>& response) -> Result<LibraryArtistPage> {
+        if (!response) {
+            return response.failure();
+        }
+        return parseLibraryArtistPage(response.value().body);
+    });
+}
+
+QFuture<Result<QList<AccountLibraryTrack>>> AccountClient::libraryArtistTracks(const QString& bearerSession,
+                                                                             const QString& publicArtistId)
+{
+    if (!isValidLibraryArtistPublicId(publicArtistId)) {
+        return refused<QList<AccountLibraryTrack>>(QStringLiteral("artist id is invalid"));
+    }
+    AccountCall call = makeCall(net::HttpMethod::Get,
+                                QStringLiteral("/v1/music/library/artists/") + encoded(publicArtistId)
+                                    + QStringLiteral("/tracks"),
+                                bearerSession);
+    call.timeout = std::chrono::seconds(5);
+    return send(call).then([](const Result<net::HttpResponse>& response) -> Result<QList<AccountLibraryTrack>> {
+        if (!response) {
+            return response.failure();
+        }
+        std::optional<QList<AccountLibraryTrack>> tracks = parseLibraryArtistTracks(response.value().body);
+        if (!tracks) {
+            return Failure::of(FailureKind::InvalidResponse, QStringLiteral("artist songs answer is not a song list"));
+        }
+        return *tracks;
+    });
+}
+
+QFuture<Result<void>> AccountClient::setArtistFollowed(const QString& bearerSession, const QString& publicArtistId,
+                                                       bool followed)
+{
+    if (!isValidLibraryArtistPublicId(publicArtistId)) {
+        return refused<void>(QStringLiteral("artist id is invalid"));
+    }
+    AccountCall call = makeCall(followed ? net::HttpMethod::Put : net::HttpMethod::Delete,
+                                QStringLiteral("/v1/music/library/artists/") + encoded(publicArtistId)
+                                    + QStringLiteral("/follow"),
+                                bearerSession);
+    call.timeout = std::chrono::seconds(5);
+    return send(call).then(toVoid);
+}
+
 QFuture<Result<QByteArray>> AccountClient::coverArt(const QString& bearerSession, const QString& coverLinkPath)
 {
     if (net::accountCoverLinkPath(coverLinkPath) != coverLinkPath || coverLinkPath.isEmpty()) {

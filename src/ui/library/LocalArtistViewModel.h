@@ -6,6 +6,7 @@
 #include <QUrl>
 #include <QtQml/qqmlregistration.h>
 
+#include "core/library/ArtistFollowService.h"
 #include "core/model/Track.h"
 #include "ui/library/CollectionCardModel.h"
 #include "ui/tracks/TrackListModel.h"
@@ -22,6 +23,7 @@ class LibraryQueries;
 namespace lmp::ui {
 
 class Navigator;
+class ToastQueue;
 class TrackMenuController;
 
 // The page of an artist from the local library (`App.localArtist`), as the
@@ -50,6 +52,11 @@ class LocalArtistViewModel : public QObject {
     // More songs than the top five.
     Q_PROPERTY(bool hasMore READ hasMore NOTIFY opened FINAL)
     Q_PROPERTY(lmp::ui::CollectionCardModel* albums READ albums CONSTANT FINAL)
+    // Following is offered for this artist here, and its state.
+    Q_PROPERTY(bool canFollow READ canFollow NOTIFY followChanged FINAL)
+    Q_PROPERTY(bool followed READ followed NOTIFY followChanged FINAL)
+    // A follow change is on its way.
+    Q_PROPERTY(bool followBusy READ followBusy NOTIFY followChanged FINAL)
 
 public:
     struct Parts {
@@ -58,6 +65,8 @@ public:
         core::PlayerController& player;
         TrackMenuController& trackMenu;
         Navigator& navigator;
+        core::ArtistFollowService& follows;
+        ToastQueue& toasts;
     };
 
     static constexpr int TopSongCount = 5;
@@ -77,7 +86,12 @@ public:
     void setShowingAll(bool all);
     [[nodiscard]] bool hasMore() const { return m_songs.size() > TopSongCount; }
     [[nodiscard]] CollectionCardModel* albums() { return &m_albums; }
+    [[nodiscard]] bool canFollow() const;
+    [[nodiscard]] bool followed() const;
+    [[nodiscard]] bool followBusy() const { return m_followBusy; }
 
+    // Follows the artist, or stops following it.
+    Q_INVOKABLE void toggleFollow();
     Q_INVOKABLE void play();
     Q_INVOKABLE void shuffle();
     Q_INVOKABLE void playSong(int row);
@@ -87,9 +101,11 @@ public:
 
 signals:
     void opened();
+    void followChanged();
 
 private:
     void followNavigator();
+    [[nodiscard]] core::FollowableArtist followable() const;
     void showSongs();
     void followPlayer();
 
@@ -98,8 +114,14 @@ private:
     core::PlayerController& m_player;
     TrackMenuController& m_trackMenu;
     Navigator& m_navigator;
+    core::ArtistFollowService& m_follows;
+    ToastQueue& m_toasts;
 
     QString m_name;
+    // The account service's id for the artist, when the page was opened
+    // from its artist list.
+    QString m_publicId;
+    bool m_followBusy = false;
     QUrl m_artworkUrl;
     QList<core::Track> m_songs;
     bool m_showingAll = false;

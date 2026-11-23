@@ -469,3 +469,7 @@ lmp_add_test(tst_music_sync_service
 lmp_add_test(tst_account_library_editor
     SOURCES core/tst_account_library_editor.cpp core/ModeServiceFixture.h core/FakePlaybackClock.h
     LIBS lmp_core)
+
+lmp_add_test(tst_account_artists
+    SOURCES ui/tst_account_artists.cpp core/ModeServiceFixture.h
+    LIBS lmp_ui)

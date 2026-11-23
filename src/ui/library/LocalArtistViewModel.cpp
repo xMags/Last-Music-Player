@@ -10,6 +10,7 @@
 #include "ui/navigation/Navigator.h"
 #include "ui/navigation/Route.h"
 #include "ui/player/CoverSource.h"
+#include "ui/toasts/ToastQueue.h"
 #include "ui/tracks/TrackMenuController.h"
 
 namespace lmp::ui {
@@ -30,6 +31,8 @@ LocalArtistViewModel::LocalArtistViewModel(Parts parts, QObject* parent)
     , m_player(parts.player)
     , m_trackMenu(parts.trackMenu)
     , m_navigator(parts.navigator)
+    , m_follows(parts.follows)
+    , m_toasts(parts.toasts)
 {
     connect(&m_navigator, &Navigator::currentChanged, this, &LocalArtistViewModel::followNavigator);
     connect(&m_player, &core::PlayerController::currentTrackChanged, this, &LocalArtistViewModel::followPlayer);
@@ -49,7 +52,48 @@ void LocalArtistViewModel::followNavigator()
     if (route.kind() != Route::Kind::Collection || route.param(QStringLiteral("kind")) != QLatin1StringView("artist")) {
         return;
     }
+    m_publicId = route.param(QStringLiteral("artistId"));
     open(route.param(QStringLiteral("key")));
+    emit followChanged();
+}
+
+core::FollowableArtist LocalArtistViewModel::followable() const
+{
+    core::FollowableArtist artist;
+    artist.publicId = m_publicId;
+    artist.identity.name = m_name;
+    return artist;
+}
+
+bool LocalArtistViewModel::canFollow() const
+{
+    return !m_name.isEmpty() && m_follows.canFollow(followable());
+}
+
+bool LocalArtistViewModel::followed() const
+{
+    return canFollow() && m_follows.isFollowed(followable());
+}
+
+void LocalArtistViewModel::toggleFollow()
+{
+    if (m_followBusy || !canFollow()) {
+        return;
+    }
+    const bool wanted = !followed();
+    m_followBusy = true;
+    emit followChanged();
+    m_follows.setFollowed(followable(), wanted).then(this, [this, wanted](const core::Result<bool>& result) {
+        m_followBusy = false;
+        if (!result) {
+            if (result.failure().kind != core::FailureKind::Cancelled) {
+                m_toasts.show(tr("Could not update artist follow state."), true);
+            }
+        } else {
+            m_toasts.show(wanted ? tr("Artist followed") : tr("Artist unfollowed"));
+        }
+        emit followChanged();
+    });
 }
 
 void LocalArtistViewModel::open(const QString& name)

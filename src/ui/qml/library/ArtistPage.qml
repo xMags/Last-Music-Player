@@ -40,6 +40,10 @@ Item {
             onBackClicked: App.navigator.back()
             onPlayClicked: page.model.play()
             onShuffleClicked: page.model.shuffle()
+            showFollow: page.model.canFollow
+            followed: page.model.followed
+            followBusy: page.model.followBusy
+            onFollowClicked: page.model.toggleFollow()
         }
 
         SectionHeader {

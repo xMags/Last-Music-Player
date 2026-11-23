@@ -17,6 +17,7 @@
 #include "core/db/AccountOutboxRepository.h"
 #include "core/db/AccountRepository.h"
 #include "core/db/CollectionRepository.h"
+#include "core/db/FollowedArtistRepository.h"
 #include "core/db/GroupQueries.h"
 #include "core/db/Database.h"
 #include "core/db/LibraryQueries.h"
@@ -24,6 +25,7 @@
 #include "core/library/ArtworkCache.h"
 #include "app/WindowPlacementKeeper.h"
 #include "core/app/UserDataCleanup.h"
+#include "core/library/ArtistFollowService.h"
 #include "core/library/CollectionActions.h"
 #include "core/library/HomeMixService.h"
 #include "core/library/LibraryScanner.h"
@@ -62,6 +64,7 @@
 #include "platform/windows/WindowsWindowPlacement.h"
 #include "ui/search/SearchSource.h"
 #include "ui/search/SearchViewModel.h"
+#include "ui/library/AccountArtistsViewModel.h"
 #include "ui/library/CollectionEditor.h"
 #include "ui/library/CollectionViewModel.h"
 #include "ui/library/LibraryViewModel.h"
@@ -181,6 +184,9 @@ private:
     core::account::AccountSyncScheduler m_syncScheduler;
     // What the user changes in the account library from this PC.
     core::account::AccountLibraryEditor m_accountEditor;
+    // Followed artists: on the account in Account mode, on this PC otherwise.
+    core::db::FollowedArtistRepository m_followedArtists;
+    core::ArtistFollowService m_artistFollows;
     platform::windows::WindowsFolderPicker m_folderPicker;
     // What a song's menu and buttons do.
     core::TrackActions m_trackActions;
@@ -211,6 +217,8 @@ private:
     ui::LibraryViewModel m_libraryPage;
     ui::CollectionViewModel m_collectionPage;
     ui::LocalArtistViewModel m_artistPage;
+    // The Artists tab in Account mode: the account service's artist list.
+    ui::AccountArtistsViewModel m_accountArtists;
     ui::CollectionEditor m_collectionEditor;
     ui::HomeViewModel m_home;
     // Browse and search (the local library; remote sources join in P08 and P09).

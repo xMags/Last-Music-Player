@@ -18,6 +18,9 @@
 #include "core/settings/SettingKeys.h"
 #include "ui/library/CollectionViewModel.h"
 #include "ui/library/LocalArtistViewModel.h"
+#include "ui/toasts/ToastQueue.h"
+#include "core/db/FollowedArtistRepository.h"
+#include "core/library/ArtistFollowService.h"
 #include "ui/navigation/Navigator.h"
 #include "ui/navigation/Route.h"
 #include "ui/tracks/TrackMenuController.h"
@@ -69,6 +72,9 @@ private:
     std::unique_ptr<lmp::core::HomeMixService> m_mixes;
     std::unique_ptr<lmp::ui::TrackMenuController> m_menu;
     std::unique_ptr<Navigator> m_navigator;
+    std::unique_ptr<lmp::core::db::FollowedArtistRepository> m_followed;
+    std::unique_ptr<lmp::core::ArtistFollowService> m_follows;
+    std::unique_ptr<lmp::ui::ToastQueue> m_toasts;
     std::unique_ptr<CollectionViewModel> m_model;
     std::unique_ptr<LocalArtistViewModel> m_artist;
 };
@@ -93,8 +99,12 @@ void CollectionViewModelTest::init()
     m_navigator = std::make_unique<Navigator>();
     m_model = std::make_unique<CollectionViewModel>(CollectionViewModel::Parts{
         *m_queries, *m_actions, *m_collectionActions, *m_mixes, *m_controller, m_player->settings, *m_menu, *m_navigator});
-    m_artist = std::make_unique<LocalArtistViewModel>(
-        LocalArtistViewModel::Parts{*m_queries, *m_actions, *m_controller, *m_menu, *m_navigator});
+    m_followed = std::make_unique<lmp::core::db::FollowedArtistRepository>(database);
+    m_follows = std::make_unique<lmp::core::ArtistFollowService>(lmp::core::ArtistFollowService::Dependencies{
+        m_modes->session.client, m_modes->session.service, m_modes->modes, *m_followed, *m_gate});
+    m_toasts = std::make_unique<lmp::ui::ToastQueue>();
+    m_artist = std::make_unique<LocalArtistViewModel>(LocalArtistViewModel::Parts{
+        *m_queries, *m_actions, *m_controller, *m_menu, *m_navigator, *m_follows, *m_toasts});
 
     addSong(QStringLiteral("Bravo"), QStringLiteral("Night Owls"), QStringLiteral("Late Hours"), QStringLiteral("Rock"), 300);
     addSong(QStringLiteral("Alpha"), QStringLiteral("Night Owls"), QStringLiteral("Late Hours"), QStringLiteral("Rock"), 100);
@@ -106,6 +116,9 @@ void CollectionViewModelTest::init()
 void CollectionViewModelTest::cleanup()
 {
     m_artist.reset();
+    m_toasts.reset();
+    m_follows.reset();
+    m_followed.reset();
     m_model.reset();
     m_navigator.reset();
     m_menu.reset();
@@ -388,6 +401,16 @@ void CollectionViewModelTest::artistGroupsAlbumsAndTopSongs()
     m_artist->playSong(0);
     settle();
     QCOMPARE(lastOpenedTitle(m_player->audio), QStringLiteral("Charlie"));
+
+    // Songs on this PC: the artist is followed in the list kept here.
+    QVERIFY(m_artist->canFollow());
+    QVERIFY(!m_artist->followed());
+    m_artist->toggleFollow();
+    QTRY_VERIFY(m_artist->followed());
+    QCOMPARE(m_followed->loadFollowedArtists(QStringLiteral("local")).size(), 1);
+    m_artist->toggleFollow();
+    QTRY_VERIFY(!m_artist->followed());
+    QVERIFY(m_followed->loadFollowedArtists(QStringLiteral("local")).isEmpty());
 }
 
 QTEST_MAIN(CollectionViewModelTest)

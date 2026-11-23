@@ -18,6 +18,7 @@
 #include "ui/library/CollectionViewModel.h"
 #include "ui/library/LibraryViewModel.h"
 #include "ui/library/LocalArtistViewModel.h"
+#include "ui/library/AccountArtistsViewModel.h"
 #include "ui/settings/DataSettingsViewModel.h"
 #include "ui/settings/FirstRunViewModel.h"
 #include "ui/tracks/TrackMenuController.h"
@@ -90,6 +91,7 @@ class AppRoot : public QObject {
     Q_PROPERTY(lmp::ui::SearchViewModel* search READ search CONSTANT FINAL)
     // The Settings Data card.
     Q_PROPERTY(lmp::ui::DataSettingsViewModel* dataSettings READ dataSettings CONSTANT FINAL)
+    Q_PROPERTY(lmp::ui::AccountArtistsViewModel* accountArtists READ accountArtists CONSTANT FINAL)
     // The current music source: "LocalOnly", "ApiKey" or "Account".
     Q_PROPERTY(QString sourceMode READ sourceMode NOTIFY sourceChanged FINAL)
     // What the current source lets the user do (core::mode::Capabilities).
@@ -122,6 +124,7 @@ public:
         HomeViewModel* home = nullptr;
         SearchViewModel* search = nullptr;
         DataSettingsViewModel* dataSettings = nullptr;
+        AccountArtistsViewModel* accountArtists = nullptr;
         core::mode::ModeService* mode = nullptr;
         bool showGallery = false;
     };
@@ -155,6 +158,7 @@ public:
     [[nodiscard]] HomeViewModel* home() const { return m_parts.home; }
     [[nodiscard]] SearchViewModel* search() const { return m_parts.search; }
     [[nodiscard]] DataSettingsViewModel* dataSettings() const { return m_parts.dataSettings; }
+    [[nodiscard]] AccountArtistsViewModel* accountArtists() const { return m_parts.accountArtists; }
     [[nodiscard]] QString sourceMode() const;
     [[nodiscard]] core::mode::Capabilities capabilities() const;
     [[nodiscard]] bool showGallery() const { return m_parts.showGallery; }

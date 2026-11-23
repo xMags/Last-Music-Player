@@ -171,6 +171,8 @@ qt_add_qml_module(lmp_ui
         home/HomeListModels.h
         home/HomeViewModel.cpp
         home/HomeViewModel.h
+        library/AccountArtistsViewModel.cpp
+        library/AccountArtistsViewModel.h
         library/CollectionCardModel.cpp
         library/CollectionCardModel.h
         library/CollectionEditor.cpp

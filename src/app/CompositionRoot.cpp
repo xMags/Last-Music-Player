@@ -136,6 +136,12 @@ CompositionRoot::CompositionRoot()
                        .gate = m_userDataGate,
                        .nowUtc = {},
                        .newEventId = {}})
+    , m_followedArtists(m_database)
+    , m_artistFollows({.client = m_accountClient,
+                       .session = m_session,
+                       .mode = m_mode,
+                       .followed = m_followedArtists,
+                       .gate = m_userDataGate})
     , m_trackActions({.player = m_player,
                       .tracks = m_tracks,
                       .collections = m_collections,
@@ -198,7 +204,14 @@ CompositionRoot::CompositionRoot()
                     .actions = m_trackActions,
                     .player = m_player,
                     .trackMenu = m_trackMenu,
-                    .navigator = m_navigator})
+                    .navigator = m_navigator,
+                    .follows = m_artistFollows,
+                    .toasts = m_toasts})
+    , m_accountArtists({.client = m_accountClient,
+                        .session = m_session,
+                        .mode = m_mode,
+                        .follows = m_artistFollows,
+                        .navigator = m_navigator})
     , m_collectionEditor(m_collectionActions, m_navigator, m_toasts)
     , m_home({.library = m_library,
               .actions = m_trackActions,
@@ -253,6 +266,7 @@ CompositionRoot::CompositionRoot()
           .home = &m_home,
           .search = &m_search,
           .dataSettings = &m_dataSettings,
+          .accountArtists = &m_accountArtists,
           .mode = &m_mode,
           .showGallery = QCoreApplication::arguments().contains(QStringLiteral("--gallery")),
       })

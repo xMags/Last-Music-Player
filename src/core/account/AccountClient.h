@@ -3,6 +3,7 @@
 #include "core/account/AccountMusicContract.h"
 #include "core/account/AccountSessionProtocol.h"
 #include "core/account/AccountSyncTransport.h"
+#include "core/account/LibraryArtistContract.h"
 #include "core/account/AccountUrlPolicy.h"
 #include "core/account/Pkce.h"
 #include "core/async/Result.h"
@@ -134,6 +135,20 @@ public:
     // GET /v1/music/artwork?url=<address>: the image bytes, at most
     // MaxArtworkBytes (InvalidResponse beyond).
     [[nodiscard]] QFuture<Result<QByteArray>> artwork(const QString& bearerSession, const QString& artworkUrl);
+    // GET /v1/music/library/artists?... (libraryArtistListPath), 5 s. The
+    // page as read (`valid` false when it was not accepted); a request the
+    // path refuses sends nothing (Unknown).
+    [[nodiscard]] QFuture<Result<LibraryArtistPage>> libraryArtists(const QString& bearerSession,
+                                                                     const LibraryArtistListRequest& request);
+    // GET /v1/music/library/artists/<public id>/tracks, 5 s. InvalidResponse
+    // when the answer is not a song list.
+    [[nodiscard]] QFuture<Result<QList<AccountLibraryTrack>>> libraryArtistTracks(const QString& bearerSession,
+                                                                                const QString& publicArtistId);
+    // PUT (follow) or DELETE (unfollow) /v1/music/library/artists/<public
+    // id>/follow, 5 s.
+    [[nodiscard]] QFuture<Result<void>> setArtistFollowed(const QString& bearerSession, const QString& publicArtistId,
+                                                          bool followed);
+
     // GET <cover link path> (net::accountCoverLinkPath): the image bytes, at
     // most MaxArtworkBytes. Anything that is not a cover link sends nothing
     // (Unknown).
