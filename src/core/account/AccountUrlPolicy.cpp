@@ -21,6 +21,8 @@ constexpr qsizetype kMaxProfileUrlCharacters = 2048;
 // A media token is refreshed this long before it expires, so playback that
 // starts now does not run into the expiry.
 constexpr qint64 kMediaTokenRefreshMarginMs = 30'000;
+// "v2.<scope>.<expiry ms>.<signature>": the second form of media token.
+constexpr QLatin1StringView kMediaTokenVersion2Prefix{"v2."};
 
 struct TrustedOrigin {
     QString normalized;
@@ -249,16 +251,19 @@ bool mediaTokenNeedsRefresh(const QString& mediaUrl, AccountMediaScope scope, qi
         return false;
     }
 
-    const QString token = rawQueryValue(mediaUrl, QLatin1StringView("media_token"));
+    const QString rawToken = rawQueryValue(mediaUrl, QLatin1StringView("media_token"));
+    QStringView token = rawToken;
+    // The service's second token form puts "v2." in front of the first one.
+    if (token.startsWith(kMediaTokenVersion2Prefix)) {
+        token = token.sliced(kMediaTokenVersion2Prefix.size());
+    }
     const qsizetype firstDot = token.indexOf(QLatin1Char('.'));
     const qsizetype secondDot = firstDot < 0 ? -1 : token.indexOf(QLatin1Char('.'), firstDot + 1);
     // The scope part is compared exactly, without folding.
-    if (firstDot < 0 || secondDot < 0 || secondDot + 1 >= token.size()
-        || QStringView(token).left(firstDot) != scopeName(scope)) {
+    if (firstDot < 0 || secondDot < 0 || secondDot + 1 >= token.size() || token.left(firstDot) != scopeName(scope)) {
         return true;
     }
-    const std::optional<qint64> expiresAtMs =
-        parseLeadingInteger(QStringView(token).sliced(firstDot + 1, secondDot - firstDot - 1));
+    const std::optional<qint64> expiresAtMs = parseLeadingInteger(token.sliced(firstDot + 1, secondDot - firstDot - 1));
     if (!expiresAtMs) {
         return true;
     }

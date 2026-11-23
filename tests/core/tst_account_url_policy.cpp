@@ -240,6 +240,20 @@ void AccountUrlPolicyTest::mediaTokenRefreshRules()
 
 void AccountUrlPolicyTest::mediaTokenExpiryParsing()
 {
+    // The newer token form: "v2." in front of the same three parts.
+    {
+        const QString base = QStringLiteral("https://media.example.test");
+        const QString v2 = QStringLiteral("v2.") + token(QLatin1StringView("stream"), kFiveMinutesMs);
+        QVERIFY(!mediaTokenNeedsRefresh(streamUrl(base, v2), AccountMediaScope::Stream, kNowMs));
+        QVERIFY(trustedStream(streamUrl(base, v2)));
+        QVERIFY(mediaTokenNeedsRefresh(streamUrl(base, QStringLiteral("v2.") + token(QLatin1StringView("stream"), 10000)),
+                                       AccountMediaScope::Stream, kNowMs));
+        QVERIFY(mediaTokenNeedsRefresh(streamUrl(base, QStringLiteral("v2.") + token(QLatin1StringView("artwork"), kFiveMinutesMs)),
+                                       AccountMediaScope::Stream, kNowMs));
+        QVERIFY(mediaTokenNeedsRefresh(streamUrl(base, QStringLiteral("v3.") + token(QLatin1StringView("stream"), kFiveMinutesMs)),
+                                       AccountMediaScope::Stream, kNowMs));
+    }
+
     const QString base = QStringLiteral("https://provider.example.test/v1/stream/a?media_token=stream.");
     const QString future = QString::number(kNowMs + kFiveMinutesMs);
     const auto needsRefresh = [&base](const QString& expiry) {

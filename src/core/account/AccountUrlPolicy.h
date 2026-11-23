@@ -55,7 +55,8 @@ enum class LoopbackHttp { Refused, Allowed };
 // "/v1/stream/<id>" and pictures at "/v1/artwork".
 enum class AccountMediaScope { Stream, Artwork };
 
-// Signed media addresses carry media_token=<scope>.<expiry ms>.<signature>.
+// Signed media addresses carry media_token=<scope>.<expiry ms>.<signature>,
+// or the service's newer form v2.<scope>.<expiry ms>.<signature>.
 // True when the address belongs to the scope's path but its token is
 // missing, malformed, for another scope, or expires within 30 seconds of
 // `nowMsSinceEpoch`; such an address must be fetched again through an
