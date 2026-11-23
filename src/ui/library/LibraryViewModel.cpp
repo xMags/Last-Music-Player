@@ -9,6 +9,7 @@
 
 #include "core/db/GroupQueries.h"
 #include "core/db/LibraryQueries.h"
+#include "core/library/CollectionActions.h"
 #include "core/library/LibraryScanner.h"
 #include "core/library/TrackActions.h"
 #include "core/model/CatalogSourceKey.h"
@@ -55,6 +56,8 @@ LibraryViewModel::LibraryViewModel(Parts parts, QObject* parent)
     connect(&m_actions, &core::TrackActions::likedChanged, this, &LibraryViewModel::onLiked);
     connect(&m_actions, &core::TrackActions::playlistsChanged, this, &LibraryViewModel::readPlaylists);
     connect(&m_actions, &core::TrackActions::playlistChanged, this, &LibraryViewModel::readPlaylists);
+    connect(&parts.collections, &core::CollectionActions::playlistsChanged, this, &LibraryViewModel::readPlaylists);
+    connect(&parts.collections, &core::CollectionActions::albumsChanged, this, &LibraryViewModel::readGroups);
     connect(&parts.scanner, &core::LibraryScanner::finished, this, &LibraryViewModel::refresh);
     connect(&parts.scanner, &core::LibraryScanner::pruned, this, &LibraryViewModel::refresh);
     connect(&m_navigator, &Navigator::currentChanged, this, &LibraryViewModel::followNavigator);

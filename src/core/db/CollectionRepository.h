@@ -31,6 +31,9 @@ public:
     // An empty title becomes "Untitled Album" or "Untitled Playlist".
     [[nodiscard]] Result<qint64> createAlbumCollection(const QString& title);
     [[nodiscard]] Result<qint64> createPlaylist(const QString& title);
+    // The key of the collection with this id; empty when there is none.
+    [[nodiscard]] QString playlistKey(qint64 playlistId);
+    [[nodiscard]] QString albumKey(qint64 albumId);
 
     // Inserts or updates the collection with this key and returns its id.
     // Artwork that is not safe to keep is stored empty unless the album's

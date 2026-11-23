@@ -11,6 +11,17 @@ Rectangle {
     id: sidebar
 
     readonly property bool collapsed: App.layout.sidebarCollapsed
+    // How many playlists fit below Liked Songs without scrolling (one place
+    // goes to "All playlists" when some are left out).
+    readonly property int playlistRowHeight: 42 + column.spacing
+    readonly property int playlistCount: App.sidebar.playlists.count
+    readonly property real playlistsTop: column.y + likedAnchor.y + playlistRowHeight
+    readonly property int fitting: Math.max(0, Math.floor((scroller.height - playlistsTop - 8) / playlistRowHeight))
+    readonly property bool overflowing: playlistCount > fitting
+    readonly property int shownPlaylists: overflowing ? Math.max(0, fitting - 1) : playlistCount
+    // The playlist whose menu is open.
+    property string menuKey: ""
+    property string menuTitle: ""
 
     color: App.windowChrome.backdropActive ? "transparent" : Theme.surface
 
@@ -106,27 +117,59 @@ Rectangle {
                     shape: IconButton.Square
                     iconName: "plus"
                     iconSize: 14
-                    onClicked: App.sidebar.newPlaylistRequested()
+                    Accessible.name: qsTr("New playlist")
+                    onClicked: App.collections.requestCreatePlaylist()
+                }
+            }
+
+            SidebarPlaylistRow {
+                id: likedAnchor
+
+                width: column.width
+                text: qsTr("Liked Songs")
+                liked: true
+                collapsed: sidebar.collapsed
+                onClicked: App.sidebar.openLiked()
+            }
+
+            // Only the playlists that fit without scrolling; when some are
+            // left out, "All playlists" takes the last place and opens
+            // Library (main.ts fitSidebarPlaylists).
+            Repeater {
+                model: App.sidebar.playlists
+
+                SidebarPlaylistRow {
+                    id: playlistRow
+
+                    required property int index
+                    required property string playlistId
+                    required property string name
+
+                    width: column.width
+                    visible: index < sidebar.shownPlaylists
+                    text: name
+                    collapsed: sidebar.collapsed
+                    onClicked: App.sidebar.openPlaylist(index)
+
+                    TapHandler {
+                        acceptedButtons: Qt.RightButton
+                        onTapped: eventPoint => {
+                            sidebar.menuKey = playlistRow.playlistId
+                            sidebar.menuTitle = playlistRow.name
+                            const place = playlistRow.mapToItem(sidebar, eventPoint.position.x, eventPoint.position.y)
+                            playlistMenu.openAt(place.x, place.y)
+                        }
+                    }
                 }
             }
 
             SidebarPlaylistRow {
                 width: column.width
-                text: qsTr("Liked Songs")
-                liked: true
+                visible: sidebar.overflowing
+                text: qsTr("All playlists")
+                more: true
                 collapsed: sidebar.collapsed
-            }
-
-            Repeater {
-                model: App.sidebar.playlists
-
-                SidebarPlaylistRow {
-                    required property string name
-
-                    width: column.width
-                    text: name
-                    collapsed: sidebar.collapsed
-                }
+                onClicked: App.sidebar.openAllPlaylists()
             }
         }
     }
@@ -144,6 +187,27 @@ Rectangle {
         onClicked: {
             App.profile.prepareMenu()
             profileMenu.openAt(12, profile.y - profileMenu.implicitHeight - 4)
+        }
+    }
+
+    MenuItemListModel {
+        id: playlistMenuItems
+
+        Component.onCompleted: {
+            playlistMenuItems.addItem("rename", qsTr("Rename playlist"))
+            playlistMenuItems.addItem("delete", qsTr("Delete playlist"), "trash", true)
+        }
+    }
+
+    ActionMenu {
+        id: playlistMenu
+
+        items: playlistMenuItems
+        onTriggered: itemId => {
+            if (itemId === "rename")
+                App.collections.requestRename(sidebar.menuKey, sidebar.menuTitle)
+            else if (itemId === "delete")
+                App.collections.requestDelete("playlist", sidebar.menuKey, sidebar.menuTitle)
         }
     }
 

@@ -71,9 +71,13 @@ QHash<int, QByteArray> SidebarPlaylistListModel::roleNames() const
 
 void SidebarPlaylistListModel::setItems(QList<Item> items)
 {
+    const int before = count();
     beginResetModel();
     m_items = std::move(items);
     endResetModel();
+    if (count() != before) {
+        emit countChanged();
+    }
 }
 
 } // namespace lmp::ui

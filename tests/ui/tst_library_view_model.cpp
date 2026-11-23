@@ -13,6 +13,7 @@
 #include "core/db/LibraryQueries.h"
 #include "core/library/ArtworkCache.h"
 #include "core/library/LibraryScanner.h"
+#include "core/library/CollectionActions.h"
 #include "core/library/TrackActions.h"
 #include "core/library/UserDataOperationGate.h"
 #include "core/model/CatalogSourceKey.h"
@@ -58,6 +59,7 @@ private:
     std::unique_ptr<lmp::core::db::GroupQueries> m_groups;
     std::unique_ptr<lmp::core::UserDataOperationGate> m_gate;
     std::unique_ptr<lmp::core::TrackActions> m_actions;
+    std::unique_ptr<lmp::core::CollectionActions> m_collectionActions;
     std::unique_ptr<lmp::test::FakeTagReader> m_tags;
     std::unique_ptr<QTemporaryDir> m_thumbs;
     std::unique_ptr<lmp::core::ArtworkCache> m_artwork;
@@ -82,6 +84,7 @@ void LibraryViewModelTest::init()
     m_gate = std::make_unique<lmp::core::UserDataOperationGate>();
     m_actions = std::make_unique<lmp::core::TrackActions>(lmp::core::TrackActions::Dependencies{
         *m_controller, m_player->tracks, *m_collections, *m_groups, m_modes->modes, *m_gate});
+    m_collectionActions = std::make_unique<lmp::core::CollectionActions>(*m_collections, *m_gate);
     m_tags = std::make_unique<lmp::test::FakeTagReader>();
     m_thumbs = std::make_unique<QTemporaryDir>();
     m_artwork = std::make_unique<lmp::core::ArtworkCache>(m_thumbs->path(), nullptr);
@@ -90,7 +93,7 @@ void LibraryViewModelTest::init()
     m_menu = std::make_unique<lmp::ui::TrackMenuController>(*m_actions);
     m_navigator = std::make_unique<Navigator>();
     m_model = std::make_unique<LibraryViewModel>(LibraryViewModel::Parts{
-        *m_queries, *m_groups, *m_actions, *m_controller, *m_scanner, *m_menu, *m_navigator});
+        *m_queries, *m_groups, *m_actions, *m_collectionActions, *m_controller, *m_scanner, *m_menu, *m_navigator});
     m_songs.clear();
 }
 
@@ -103,6 +106,7 @@ void LibraryViewModelTest::cleanup()
     m_artwork.reset();
     m_thumbs.reset();
     m_tags.reset();
+    m_collectionActions.reset();
     m_actions.reset();
     m_gate.reset();
     m_groups.reset();

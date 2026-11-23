@@ -33,6 +33,12 @@ QList<MenuItemListModel::Item> TrackMenuBuilder::songMenu(const core::Track& tra
                       .label = track.liked ? text("Remove from Liked Songs") : text("Add to Liked Songs"),
                       .iconName = track.liked ? QStringLiteral("heart-fill") : QStringLiteral("heart")});
     }
+    if (!playlistKey.isEmpty() && abilities.keep && abilities.moveUp) {
+        items.append({.id = QString(MoveUp), .label = text("Move up"), .iconName = QStringLiteral("arrow-up")});
+    }
+    if (!playlistKey.isEmpty() && abilities.keep && abilities.moveDown) {
+        items.append({.id = QString(MoveDown), .label = text("Move down"), .iconName = QStringLiteral("arrow-down")});
+    }
     if (!playlistKey.isEmpty() && abilities.keep) {
         items.append({.id = QString(RemoveFromPlaylist),
                       .label = text("Remove from playlist"),

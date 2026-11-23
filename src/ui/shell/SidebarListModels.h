@@ -43,6 +43,8 @@ class SidebarPlaylistListModel : public QAbstractListModel {
     QML_ELEMENT
     QML_UNCREATABLE("Provided by App.sidebar")
 
+    Q_PROPERTY(int count READ count NOTIFY countChanged FINAL)
+
 public:
     enum Role { PlaylistIdRole = Qt::UserRole + 1, NameRole };
     Q_ENUM(Role)
@@ -59,6 +61,10 @@ public:
     [[nodiscard]] QHash<int, QByteArray> roleNames() const override;
 
     void setItems(QList<Item> items);
+    [[nodiscard]] int count() const { return static_cast<int>(m_items.size()); }
+
+signals:
+    void countChanged();
 
 private:
     QList<Item> m_items;

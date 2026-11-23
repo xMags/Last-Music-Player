@@ -85,6 +85,8 @@ qt_add_library(lmp_core STATIC
     library/BigEndianBytes.h
     library/BrowseGroupingPolicy.cpp
     library/BrowseGroupingPolicy.h
+    library/CollectionActions.cpp
+    library/CollectionActions.h
     library/DetailSortPolicy.cpp
     library/DetailSortPolicy.h
     library/EmbeddedArtwork.cpp

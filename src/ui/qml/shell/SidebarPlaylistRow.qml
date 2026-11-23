@@ -12,6 +12,8 @@ NavItem {
     id: row
 
     property bool liked: false
+    // The "All playlists" row: a "..." in the swatch.
+    property bool more: false
 
     gap: 14
     leading: Item {
@@ -47,8 +49,8 @@ NavItem {
 
         Icon {
             anchors.centerIn: parent
-            name: row.liked ? "heart-fill" : "music-note"
-            size: 12
+            name: row.liked ? "heart-fill" : row.more ? "more" : "music-note"
+            size: row.more ? 14 : 12
             color: row.liked ? Theme.onOverlay : Theme.fgTertiary
         }
     }

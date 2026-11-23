@@ -14,6 +14,7 @@
 #include "ui/tracks/TrackListModel.h"
 
 namespace lmp::core {
+class CollectionActions;
 class PlayerController;
 class SettingsStore;
 class TrackActions;
@@ -50,6 +51,7 @@ class CollectionViewModel : public QObject {
 
     // "album", "album-collection", "genre", "playlist" or "system".
     Q_PROPERTY(QString kind READ kind NOTIFY opened FINAL)
+    Q_PROPERTY(QString key READ key NOTIFY opened FINAL)
     Q_PROPERTY(QString title READ title NOTIFY opened FINAL)
     Q_PROPERTY(QString eyebrow READ eyebrow NOTIFY opened FINAL)
     Q_PROPERTY(QString backLabel READ backLabel NOTIFY opened FINAL)
@@ -89,6 +91,7 @@ public:
     struct Parts {
         core::db::LibraryQueries& library;
         core::TrackActions& actions;
+        core::CollectionActions& collections;
         core::PlayerController& player;
         core::SettingsStore& settings;
         TrackMenuController& trackMenu;
@@ -198,6 +201,8 @@ private:
     double m_totalSeconds = 0.0;
     // Set while this page stores a dragged order.
     bool m_reordering = false;
+    // The row whose song menu is open, for its Move up and Move down.
+    int m_menuRow = -1;
 
     TrackListModel m_tracks;
     QString m_findText;

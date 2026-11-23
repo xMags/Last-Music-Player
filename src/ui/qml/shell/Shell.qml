@@ -194,6 +194,9 @@ Item {
         z: 95
     }
 
+    // New, rename and delete for playlists and albums (App.collections).
+    CollectionDialogs {}
+
     // Toasts stack upwards from 104px above the window's bottom.
     ToastStack {
         anchors.horizontalCenter: parent.horizontalCenter

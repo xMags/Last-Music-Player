@@ -8,6 +8,7 @@
 #include <utility>
 
 #include "core/db/LibraryQueries.h"
+#include "core/library/CollectionActions.h"
 #include "core/library/TrackActions.h"
 #include "core/model/ArtworkPlaceholder.h"
 #include "core/model/CatalogSourceKey.h"
@@ -81,6 +82,29 @@ CollectionViewModel::CollectionViewModel(Parts parts, QObject* parent)
     , m_navigator(parts.navigator)
 {
     connect(&m_navigator, &Navigator::currentChanged, this, &CollectionViewModel::followNavigator);
+    connect(&parts.collections, &core::CollectionActions::playlistRenamed, this,
+            [this](const QString& playlistKey, const QString& name) {
+                if (!userPlaylist() || playlistKey != m_key) {
+                    return;
+                }
+                m_title = name;
+                const Route route = m_navigator.current();
+                if (route.kind() == Route::Kind::Collection && route.param(QStringLiteral("key")) == m_key) {
+                    m_navigator.setCurrentParam(QStringLiteral("title"), name);
+                }
+                emit opened();
+                // The lettered cover follows the name.
+                emit contentChanged();
+            });
+    // Other playlists came or went: the Move to playlist choices change.
+    connect(&parts.collections, &core::CollectionActions::playlistsChanged, this,
+            &CollectionViewModel::selectionChanged);
+    connect(&m_trackMenu, &TrackMenuController::moveRequested, this, [this](int step) {
+        const int row = std::exchange(m_menuRow, -1);
+        if (row >= 0) {
+            moveRow(row, row + step);
+        }
+    });
     connect(&m_player, &core::PlayerController::currentTrackChanged, this, &CollectionViewModel::followPlayer);
     connect(&m_actions, &core::TrackActions::likedChanged, this, [this](const QString& sourceKey, bool liked) {
         m_tracks.setLiked(sourceKey, liked);
@@ -535,10 +559,17 @@ void CollectionViewModel::like(int row)
 
 void CollectionViewModel::prepareMenu(int row)
 {
+    m_menuRow = -1;
     if (row < 0 || row >= m_tracks.count()) {
         return;
     }
-    m_trackMenu.prepare(m_tracks.trackAt(row), m_tracks.tracks(), userPlaylist() ? m_key : QString());
+    if (!canReorder()) {
+        m_trackMenu.prepare(m_tracks.trackAt(row), m_tracks.tracks(), userPlaylist() ? m_key : QString());
+        return;
+    }
+    m_menuRow = row;
+    m_trackMenu.prepareInPlaylist(m_tracks.trackAt(row), m_tracks.tracks(),
+                                  {.key = m_key, .canMoveUp = row > 0, .canMoveDown = row < songCount() - 1});
 }
 
 void CollectionViewModel::loadAll()

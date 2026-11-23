@@ -20,29 +20,63 @@ Item {
 
     Component.onCompleted: App.library.refresh()
 
-    // The page heading and tabs, at the top of every tab's scrolling list.
+    // The page heading and tabs, at the top of every tab's scrolling list:
+    // the eyebrow and title with New playlist (and, on Albums, the current
+    // app's New album) at the right, then the tabs.
     Component {
         id: heading
 
         Column {
+            width: parent ? parent.width : 0
             spacing: 0
 
             Item { width: 1; height: 24 }
 
-            Text {
-                x: 4
-                text: qsTr("YOUR COLLECTION")
-                font: Theme.eyebrow
-                color: Theme.fgTertiary
-            }
+            Item {
+                width: parent.width
+                height: titleBlock.implicitHeight
 
-            Text {
-                x: 4
-                text: qsTr("Library")
-                font: Theme.settingsHeading
-                lineHeight: Theme.lineHeightSettingsHeading
-                lineHeightMode: Text.FixedHeight
-                color: Theme.fg
+                Column {
+                    id: titleBlock
+
+                    x: 4
+
+                    Text {
+                        text: qsTr("YOUR COLLECTION")
+                        font: Theme.eyebrow
+                        color: Theme.fgTertiary
+                    }
+
+                    Text {
+                        text: qsTr("Library")
+                        font: Theme.settingsHeading
+                        lineHeight: Theme.lineHeightSettingsHeading
+                        lineHeightMode: Text.FixedHeight
+                        color: Theme.fg
+                    }
+                }
+
+                Row {
+                    anchors.right: parent.right
+                    anchors.bottom: parent.bottom
+                    anchors.bottomMargin: 6
+                    spacing: 8
+
+                    AppButton {
+                        visible: App.library.tab === "albums"
+                        text: qsTr("New album")
+                        iconName: "plus"
+                        iconSize: 14
+                        onClicked: App.collections.requestCreateAlbum()
+                    }
+
+                    AppButton {
+                        text: qsTr("New playlist")
+                        iconName: "plus"
+                        iconSize: 14
+                        onClicked: App.collections.requestCreatePlaylist()
+                    }
+                }
             }
 
             Item { width: 1; height: 22 }
@@ -65,7 +99,10 @@ Item {
         Column {
             width: parent ? parent.width : 0
 
-            Loader { sourceComponent: heading }
+            Loader {
+                width: parent.width
+                sourceComponent: heading
+            }
 
             RowLayout {
                 width: parent.width
@@ -175,7 +212,10 @@ Item {
                 header: Column {
                     width: grid.width
 
-                    Loader { sourceComponent: heading }
+                    Loader {
+                        width: parent.width
+                        sourceComponent: heading
+                    }
 
                     EmptyState {
                         width: parent.width
@@ -202,6 +242,7 @@ Item {
                     required property color gradientStart
                     required property color gradientEnd
                     required property string iconName
+                    required property string key
 
                     width: grid.cellWidth
                     height: grid.cellHeight
@@ -219,6 +260,23 @@ Item {
                         gradientEnd: cell.gradientEnd
                         iconName: cell.iconName
                         onClicked: App.library.openCard(App.library.tab, cell.index)
+                        onMenuRequested: (at, fromKeyboard) => {
+                            if (cell.kind !== "playlist" && cell.kind !== "album-collection")
+                                return
+                            page.menuKind = cell.kind
+                            page.menuKey = cell.key
+                            page.menuTitle = cell.title
+                            cardMenuItems.clear()
+                            if (cell.kind === "playlist") {
+                                cardMenuItems.addItem("rename", qsTr("Rename playlist"))
+                                cardMenuItems.addItem("delete", qsTr("Delete playlist"), "trash", true)
+                            } else {
+                                cardMenuItems.addItem("delete", qsTr("Delete album"), "trash", true)
+                            }
+                            const place = mapToItem(page, at.x, at.y)
+                            cardMenu.openAt(place.x, place.y)
+                            cardMenu.keyboardActive = fromKeyboard
+                        }
                     }
                 }
             }
@@ -231,6 +289,7 @@ Item {
         Column {
             Loader {
                 x: page.gutter
+                width: parent.width - 2 * page.gutter
                 sourceComponent: heading
             }
 
@@ -242,6 +301,27 @@ Item {
                 actionText: qsTr("Choose music folder")
                 onActionClicked: App.librarySettings.changeFolder()
             }
+        }
+    }
+
+    // The menu of a user playlist's or album's card.
+    property string menuKind: ""
+    property string menuKey: ""
+    property string menuTitle: ""
+
+    MenuItemListModel {
+        id: cardMenuItems
+    }
+
+    ActionMenu {
+        id: cardMenu
+
+        items: cardMenuItems
+        onTriggered: itemId => {
+            if (itemId === "rename")
+                App.collections.requestRename(page.menuKey, page.menuTitle)
+            else if (itemId === "delete")
+                App.collections.requestDelete(page.menuKind, page.menuKey, page.menuTitle)
         }
     }
 

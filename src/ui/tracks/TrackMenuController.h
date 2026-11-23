@@ -37,6 +37,13 @@ public:
     // The song and where its menu opened: the list it was in (for Play now)
     // and the playlist whose page shows it, if any.
     void prepare(const core::Track& track, const QList<core::Track>& context, const QString& playlistKey = {});
+    // Where a song sits on a playlist page that shows the playlist's own order.
+    struct PlaylistPlace {
+        QString key;
+        bool canMoveUp = false;
+        bool canMoveDown = false;
+    };
+    void prepareInPlaylist(const core::Track& track, const QList<core::Track>& context, const PlaylistPlace& place);
     Q_INVOKABLE void trigger(const QString& itemId);
     // Adds the prepared song to a new playlist of this name.
     Q_INVOKABLE void createPlaylist(const QString& name);
@@ -46,6 +53,8 @@ signals:
     void playlistMenuRequested();
     // Ask for a new playlist's name.
     void newPlaylistRequested();
+    // Move up (-1) or Move down (+1) was chosen; the page moves the song.
+    void moveRequested(int step);
 
 private:
     core::TrackActions& m_actions;

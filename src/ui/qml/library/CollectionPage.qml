@@ -36,6 +36,7 @@ Item {
                 byline: page.model.byline
                 info: page.model.info
                 canPlay: page.model.songCount > 0
+                menuWithoutSongs: page.model.userPlaylist || page.model.kind === "album-collection"
                 coverStyle: page.model.coverStyle
                 artworkUrl: page.model.artworkUrl
                 artworkId: page.model.artworkId
@@ -48,6 +49,16 @@ Item {
                 onPlayClicked: page.model.play()
                 onShuffleClicked: page.model.shuffle()
                 onMenuClicked: at => {
+                    moreItems.clear()
+                    const songs = page.model.songCount > 0
+                    moreItems.addItem("playNext", qsTr("Play next"), "play-next", false, false, songs)
+                    moreItems.addItem("addToQueue", qsTr("Add to queue"), "queue-add", false, false, songs)
+                    if (page.model.userPlaylist) {
+                        moreItems.addItem("rename", qsTr("Rename playlist"), "", false, true)
+                        moreItems.addItem("delete", qsTr("Delete playlist"), "trash", true)
+                    } else if (page.model.kind === "album-collection") {
+                        moreItems.addItem("delete", qsTr("Delete album"), "trash", true, true)
+                    }
                     const place = mapToItem(page, at.x, at.y)
                     moreMenu.openAt(place.x - 20, place.y + 4)
                 }
@@ -207,11 +218,6 @@ Item {
 
     MenuItemListModel {
         id: moreItems
-
-        Component.onCompleted: {
-            moreItems.addItem("playNext", qsTr("Play next"), "play")
-            moreItems.addItem("addToQueue", qsTr("Add to queue"), "queue")
-        }
     }
 
     ActionMenu {
@@ -223,6 +229,10 @@ Item {
                 page.model.playNextAll()
             else if (itemId === "addToQueue")
                 page.model.addAllToQueue()
+            else if (itemId === "rename")
+                App.collections.requestRename(page.model.key, page.model.title)
+            else if (itemId === "delete")
+                App.collections.requestDelete(page.model.kind, page.model.key, page.model.title)
         }
     }
 

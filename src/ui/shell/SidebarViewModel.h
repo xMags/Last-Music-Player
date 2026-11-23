@@ -7,11 +7,22 @@
 #include "ui/navigation/Navigator.h"
 #include "ui/shell/SidebarListModels.h"
 
+namespace lmp::core {
+class CollectionActions;
+class TrackActions;
+} // namespace lmp::core
+
 namespace lmp::ui {
 
 // The left sidebar (`App.sidebar`): navigation items with the active one and
 // the playlists section (the profile card is App.profile). The active item
 // is the last main view opened; catalogue pages leave it as it was.
+//
+// The playlists section (main.ts renderSidebarPlaylists): Liked Songs, then
+// the user's playlists on this PC (the account's join with account sync),
+// at most 50; the sidebar shows those that fit and an "All playlists" row
+// that opens Library. It follows playlists as they are made, renamed and
+// deleted.
 class SidebarViewModel : public QObject {
     Q_OBJECT
     QML_ELEMENT
@@ -23,8 +34,17 @@ class SidebarViewModel : public QObject {
 
 
 public:
-    // The navigator is owned by the composition root and outlives this.
-    explicit SidebarViewModel(Navigator* navigator, QObject* parent = nullptr);
+    struct Parts {
+        Navigator& navigator;
+        core::CollectionActions& collections;
+        core::TrackActions& actions;
+    };
+
+    // More playlists than this never reach the sidebar; Library lists them all.
+    static constexpr int PlaylistLimit = 50;
+
+    // Everything in `parts` is owned by the composition root and outlives this.
+    explicit SidebarViewModel(Parts parts, QObject* parent = nullptr);
 
     [[nodiscard]] SidebarNavListModel* navItems() { return &m_navItems; }
     [[nodiscard]] SidebarPlaylistListModel* playlists() { return &m_playlists; }
@@ -32,18 +52,24 @@ public:
 
 
     Q_INVOKABLE void openView(int kind);
+    Q_INVOKABLE void openPlaylist(int row);
+    // Liked Songs: the Favourites playlist.
+    Q_INVOKABLE void openLiked();
+    // "All playlists": Library's Playlists tab.
+    Q_INVOKABLE void openAllPlaylists();
+    // Reads the playlists again.
+    void refreshPlaylists();
 
 
 signals:
     void activeKindChanged();
 
-    // The "+" beside Playlists; creating playlists arrives with the library.
-    void newPlaylistRequested();
 
 private:
     void followNavigator();
 
-    Navigator* m_navigator;
+    Navigator& m_navigator;
+    core::TrackActions& m_actions;
     SidebarNavListModel m_navItems;
     SidebarPlaylistListModel m_playlists;
     int m_activeKind;

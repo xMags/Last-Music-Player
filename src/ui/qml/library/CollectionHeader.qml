@@ -22,6 +22,9 @@ Column {
     property string info: ""
     property bool canPlay: true
     property bool showMenu: true
+    // The menu has something besides playing (Rename, Delete), so it shows
+    // while the collection is empty too.
+    property bool menuWithoutSongs: false
     property bool showViewSwitch: true
     // The cover, as CollectionCover takes it.
     property string coverStyle: "image"
@@ -246,7 +249,7 @@ Column {
                 RoundAction {
                     id: menuButton
 
-                    visible: header.showMenu && header.canPlay
+                    visible: header.showMenu && (header.canPlay || header.menuWithoutSongs)
                     iconName: "more"
                     Accessible.name: qsTr("More options")
                     onClicked: header.menuClicked(menuButton.mapToItem(header, menuButton.width / 2, menuButton.height))

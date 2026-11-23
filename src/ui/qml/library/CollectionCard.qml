@@ -20,7 +20,8 @@ Card {
     required property color gradientEnd
     required property string iconName
 
-    hasMenu: false
+    // Only the user's own playlists and albums have something to offer here.
+    hasMenu: kind === "playlist" || kind === "album-collection"
     art: kind === "system" ? systemArt : (kind === "genre" ? genreArt : null)
 
     Component {

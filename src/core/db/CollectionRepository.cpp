@@ -82,6 +82,26 @@ qint64 CollectionRepository::lookupId(const char* sql, const QString& key)
     return lookup.value().step().valueOr(false) ? lookup.value().columnInt64(0) : 0;
 }
 
+QString CollectionRepository::playlistKey(qint64 playlistId)
+{
+    auto lookup = m_connection.prepare("SELECT PlaylistKey FROM Playlists WHERE Id=?;");
+    if (!lookup || playlistId <= 0) {
+        return {};
+    }
+    lookup.value().bindInt64(1, playlistId);
+    return lookup.value().step().valueOr(false) ? lookup.value().columnText(0) : QString();
+}
+
+QString CollectionRepository::albumKey(qint64 albumId)
+{
+    auto lookup = m_connection.prepare("SELECT AlbumKey FROM Albums WHERE Id=?;");
+    if (!lookup || albumId <= 0) {
+        return {};
+    }
+    lookup.value().bindInt64(1, albumId);
+    return lookup.value().step().valueOr(false) ? lookup.value().columnText(0) : QString();
+}
+
 Result<qint64> CollectionRepository::createAlbumCollection(const QString& title)
 {
     const QString cleanedTitle = valueOr(title, QStringLiteral("Untitled Album"));

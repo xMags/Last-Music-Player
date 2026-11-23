@@ -10,6 +10,7 @@
 #include "core/db/CollectionRepository.h"
 #include "core/db/GroupQueries.h"
 #include "core/db/LibraryQueries.h"
+#include "core/library/CollectionActions.h"
 #include "core/library/TrackActions.h"
 #include "core/library/UserDataOperationGate.h"
 #include "core/model/CatalogSourceKey.h"
@@ -63,6 +64,7 @@ private:
     std::unique_ptr<lmp::core::db::GroupQueries> m_groups;
     std::unique_ptr<lmp::core::UserDataOperationGate> m_gate;
     std::unique_ptr<lmp::core::TrackActions> m_actions;
+    std::unique_ptr<lmp::core::CollectionActions> m_collectionActions;
     std::unique_ptr<lmp::ui::TrackMenuController> m_menu;
     std::unique_ptr<Navigator> m_navigator;
     std::unique_ptr<CollectionViewModel> m_model;
@@ -83,10 +85,11 @@ void CollectionViewModelTest::init()
     m_gate = std::make_unique<lmp::core::UserDataOperationGate>();
     m_actions = std::make_unique<lmp::core::TrackActions>(lmp::core::TrackActions::Dependencies{
         *m_controller, m_player->tracks, *m_collections, *m_groups, m_modes->modes, *m_gate});
+    m_collectionActions = std::make_unique<lmp::core::CollectionActions>(*m_collections, *m_gate);
     m_menu = std::make_unique<lmp::ui::TrackMenuController>(*m_actions);
     m_navigator = std::make_unique<Navigator>();
     m_model = std::make_unique<CollectionViewModel>(CollectionViewModel::Parts{
-        *m_queries, *m_actions, *m_controller, m_player->settings, *m_menu, *m_navigator});
+        *m_queries, *m_actions, *m_collectionActions, *m_controller, m_player->settings, *m_menu, *m_navigator});
     m_artist = std::make_unique<LocalArtistViewModel>(
         LocalArtistViewModel::Parts{*m_queries, *m_actions, *m_controller, *m_menu, *m_navigator});
 
@@ -103,6 +106,7 @@ void CollectionViewModelTest::cleanup()
     m_model.reset();
     m_navigator.reset();
     m_menu.reset();
+    m_collectionActions.reset();
     m_actions.reset();
     m_gate.reset();
     m_groups.reset();

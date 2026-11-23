@@ -72,6 +72,7 @@ set(LMP_UI_QML_FILES
     qml/library/ArtistPage.qml
     qml/library/CollectionCard.qml
     qml/library/CollectionCover.qml
+    qml/library/CollectionDialogs.qml
     qml/library/CollectionHeader.qml
     qml/library/CollectionPage.qml
     qml/library/GenreMark.qml
@@ -159,6 +160,8 @@ qt_add_qml_module(lmp_ui
         icons/IconSet.h
         library/CollectionCardModel.cpp
         library/CollectionCardModel.h
+        library/CollectionEditor.cpp
+        library/CollectionEditor.h
         library/CollectionViewModel.cpp
         library/CollectionViewModel.h
         library/GenreArtwork.cpp

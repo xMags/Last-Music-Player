@@ -17,6 +17,7 @@
 #include "core/db/LibraryQueries.h"
 #include "core/db/TrackRepository.h"
 #include "core/library/ArtworkCache.h"
+#include "core/library/CollectionActions.h"
 #include "core/library/LibraryScanner.h"
 #include "core/library/TrackActions.h"
 #include "core/library/UserDataOperationGate.h"
@@ -44,6 +45,7 @@
 #include "ui/player/PlayerBarViewModel.h"
 #include "ui/player/QueueRailViewModel.h"
 #include "ui/settings/FirstRunViewModel.h"
+#include "ui/library/CollectionEditor.h"
 #include "ui/library/CollectionViewModel.h"
 #include "ui/library/LibraryViewModel.h"
 #include "ui/library/LocalArtistViewModel.h"
@@ -143,6 +145,8 @@ private:
     platform::windows::WindowsFolderPicker m_folderPicker;
     // What a song's menu and buttons do.
     core::TrackActions m_trackActions;
+    // Making, renaming and deleting the user's playlists and albums.
+    core::CollectionActions m_collectionActions;
 
     ui::WindowChromeViewModel m_windowChromeViewModel;
     ui::Navigator m_navigator;
@@ -164,6 +168,7 @@ private:
     ui::LibraryViewModel m_libraryPage;
     ui::CollectionViewModel m_collectionPage;
     ui::LocalArtistViewModel m_artistPage;
+    ui::CollectionEditor m_collectionEditor;
     ui::AppRoot m_appRoot;
     QPointer<ui::Theme> m_theme; // owned by the QML engine
 };

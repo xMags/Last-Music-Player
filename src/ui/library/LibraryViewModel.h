@@ -10,6 +10,7 @@
 #include "ui/tracks/TrackListModel.h"
 
 namespace lmp::core {
+class CollectionActions;
 class LibraryScanner;
 class PlayerController;
 class TrackActions;
@@ -67,6 +68,7 @@ public:
         core::db::LibraryQueries& library;
         core::db::GroupQueries& groups;
         core::TrackActions& actions;
+        core::CollectionActions& collections;
         core::PlayerController& player;
         core::LibraryScanner& scanner;
         TrackMenuController& trackMenu;

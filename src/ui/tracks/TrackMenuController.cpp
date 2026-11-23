@@ -21,6 +21,20 @@ void TrackMenuController::prepare(const core::Track& track, const QList<core::Tr
         track, {.play = m_actions.canPlay(track), .keep = m_actions.canKeep(track)}, playlistKey));
 }
 
+void TrackMenuController::prepareInPlaylist(const core::Track& track, const QList<core::Track>& context,
+                                            const PlaylistPlace& place)
+{
+    m_track = track;
+    m_context = context;
+    m_playlistKey = place.key;
+    m_menu.setItems(TrackMenuBuilder::songMenu(track,
+                                               {.play = m_actions.canPlay(track),
+                                                .keep = m_actions.canKeep(track),
+                                                .moveUp = place.canMoveUp,
+                                                .moveDown = place.canMoveDown},
+                                               place.key));
+}
+
 void TrackMenuController::trigger(const QString& itemId)
 {
     if (itemId == TrackMenuBuilder::Play) {
@@ -43,6 +57,10 @@ void TrackMenuController::trigger(const QString& itemId)
             m_actions.addToPlaylist(m_track, itemId.mid(TrackMenuBuilder::PlaylistPrefix.size()));
     } else if (itemId == TrackMenuBuilder::RemoveFromPlaylist) {
         [[maybe_unused]] const core::Result<void> removed = m_actions.removeFromPlaylist(m_track, m_playlistKey);
+    } else if (itemId == TrackMenuBuilder::MoveUp) {
+        emit moveRequested(-1);
+    } else if (itemId == TrackMenuBuilder::MoveDown) {
+        emit moveRequested(1);
     } else if (itemId == TrackMenuBuilder::Artist) {
         m_actions.openArtist(m_track);
     } else if (itemId == TrackMenuBuilder::Album) {
