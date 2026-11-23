@@ -2,7 +2,6 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Shapes
-import LastMusicPlayer
 
 // The marks of a genre tile in their 96-unit box (GenreArtworkTile.cpp
 // BuildPrimitive): dots, rings and ovals (some dashed), bars, squares,
