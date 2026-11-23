@@ -66,6 +66,14 @@ struct TextStyles {
     TextStyle signInTagline;
     TextStyle signInButton;
     TextStyle signInError;
+    TextStyle trackNumber;
+    TextStyle trackAlbum;
+    TextStyle cardTitle;
+    TextStyle cardSubtitle;
+    TextStyle sectionLink;
+    TextStyle stateTitle;
+    TextStyle stateText;
+    TextStyle tableHeading;
     TextStyle nowPlayingTitle;
     TextStyle fullScreenTitle;
     TextStyle homeGreeting;

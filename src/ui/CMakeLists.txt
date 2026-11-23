@@ -17,6 +17,14 @@ set_source_files_properties("${CMAKE_SOURCE_DIR}/Assets/Square44x44Logo.targetsi
 # Every QML file of the module. File names are unique: each is a type name.
 set(LMP_UI_QML_FILES
     qml/Main.qml
+    qml/cards/Card.qml
+    qml/cards/CardGrid.qml
+    qml/cards/EmptyState.qml
+    qml/cards/ErrorState.qml
+    qml/cards/LinkButton.qml
+    qml/cards/SectionHeader.qml
+    qml/cards/Shelf.qml
+    qml/cards/ShelfArrow.qml
     qml/controls/AccentSwatch.qml
     qml/controls/ActionMenu.qml
     qml/controls/ActionMenuItem.qml
@@ -52,6 +60,7 @@ set(LMP_UI_QML_FILES
     qml/dev/GalleryArtwork.qml
     qml/dev/GalleryControls.qml
     qml/dev/GalleryIcons.qml
+    qml/dev/GalleryLists.qml
     qml/dev/GalleryOverlays.qml
     qml/dev/GalleryPanels.qml
     qml/dev/GallerySection.qml
@@ -104,7 +113,12 @@ set(LMP_UI_QML_FILES
     qml/shell/Shell.qml
     qml/shell/Sidebar.qml
     qml/shell/SidebarPlaylistRow.qml
-    qml/shell/TitleStrip.qml)
+    qml/shell/TitleStrip.qml
+    qml/tracks/EqBars.qml
+    qml/tracks/TableHeading.qml
+    qml/tracks/TrackListView.qml
+    qml/tracks/TrackRow.qml
+    qml/tracks/TrackTile.qml)
 
 qt_add_qml_module(lmp_ui
     URI LastMusicPlayer
@@ -202,6 +216,8 @@ qt_add_qml_module(lmp_ui
         theme/ThemeTypography.h
         toasts/ToastQueue.cpp
         toasts/ToastQueue.h
+        tracks/TrackListModel.cpp
+        tracks/TrackListModel.h
     QML_FILES ${LMP_UI_QML_FILES}
     RESOURCES
         "${CMAKE_SOURCE_DIR}/Assets/fonts/MrDeHaviland-Regular.ttf"
@@ -222,7 +238,8 @@ set(LMP_UI_TYPE_FOLDERS
     settings
     shell
     theme
-    toasts)
+    toasts
+    tracks)
 
 target_include_directories(lmp_ui
     PUBLIC "${CMAKE_SOURCE_DIR}/src"

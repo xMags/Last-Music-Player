@@ -73,6 +73,9 @@ inline constexpr QLatin1StringView LibraryDetailDensity{"LibraryDetailDensity"};
 // string "lyrics", "queue" or "none", default "lyrics". The side panel of the
 // full-screen player; "none" hides it. Added by this version.
 inline constexpr QLatin1StringView FullscreenPanel{"FullscreenPanel"};
+// string "grid" or "list", default "grid". How every song list is laid out.
+// Added by this version.
+inline constexpr QLatin1StringView TrackView{"TrackView"};
 // bool. The first-run music source page: stored false when it is shown and
 // true once a source was chosen; missing until then. Added by this version.
 inline constexpr QLatin1StringView SourceChoiceSeen{"SourceChoiceSeen"};

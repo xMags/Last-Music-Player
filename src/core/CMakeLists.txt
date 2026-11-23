@@ -122,6 +122,8 @@ qt_add_library(lmp_core STATIC
     model/ArtworkPlaceholder.h
     model/CatalogSourceKey.cpp
     model/CatalogSourceKey.h
+    model/DisplayTitle.cpp
+    model/DisplayTitle.h
     model/Track.cpp
     model/Track.h
     net/ArtworkUrl.cpp

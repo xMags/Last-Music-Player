@@ -51,6 +51,8 @@ class SettingsViewModel : public QObject {
     // The typed name is the profile name outside Account mode, so it can be
     // edited there.
     Q_PROPERTY(bool displayNameShown READ displayNameShown NOTIFY preferencesChanged FINAL)
+    // "grid" or "list": how every song list is laid out (TrackView).
+    Q_PROPERTY(QString trackView READ trackView WRITE setTrackView NOTIFY preferencesChanged FINAL)
 
 public:
     // All three are owned by the composition root and outlive this.
@@ -76,6 +78,8 @@ public:
     [[nodiscard]] QStringList closeChoices() const;
     [[nodiscard]] QString displayName() const;
     [[nodiscard]] bool displayNameShown() const;
+    [[nodiscard]] QString trackView() const;
+    void setTrackView(const QString& view);
 
     // Whether saving `text` would change the saved name: leading and trailing
     // white space alone does not.

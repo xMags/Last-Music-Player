@@ -64,6 +64,13 @@ QVariantList Theme::shadowCard() const
     return shadowLayers({{0, 2, 6, 0, black(dark() ? 0.36f : 0.07f)}});
 }
 
+QVariantList Theme::shadowCardHover() const
+{
+    // A hovered card's cover: the card shadow and a deeper one below
+    // (styles.css 597-599).
+    return shadowLayers({{0, 2, 6, 0, black(dark() ? 0.36f : 0.07f)}, {0, 14, 28, -12, black(0.38f)}});
+}
+
 // The same in both themes.
 QVariantList Theme::shadowFlyout() const
 {

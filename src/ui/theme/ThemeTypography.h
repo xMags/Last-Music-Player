@@ -36,6 +36,14 @@ class ThemeTypography : public QObject {
     Q_PROPERTY(QFont signInTagline READ signInTagline CONSTANT FINAL)
     Q_PROPERTY(QFont signInButton READ signInButton CONSTANT FINAL)
     Q_PROPERTY(QFont signInError READ signInError CONSTANT FINAL)
+    Q_PROPERTY(QFont trackNumber READ trackNumber CONSTANT FINAL)
+    Q_PROPERTY(QFont trackAlbum READ trackAlbum CONSTANT FINAL)
+    Q_PROPERTY(QFont cardTitle READ cardTitle CONSTANT FINAL)
+    Q_PROPERTY(QFont cardSubtitle READ cardSubtitle CONSTANT FINAL)
+    Q_PROPERTY(QFont sectionLink READ sectionLink CONSTANT FINAL)
+    Q_PROPERTY(QFont stateTitle READ stateTitle CONSTANT FINAL)
+    Q_PROPERTY(QFont stateText READ stateText CONSTANT FINAL)
+    Q_PROPERTY(QFont tableHeading READ tableHeading CONSTANT FINAL)
     Q_PROPERTY(QFont nowPlayingTitle READ nowPlayingTitle CONSTANT FINAL)
     Q_PROPERTY(QFont fullScreenTitle READ fullScreenTitle CONSTANT FINAL)
     Q_PROPERTY(QFont homeGreeting READ homeGreeting CONSTANT FINAL)
@@ -89,6 +97,9 @@ class ThemeTypography : public QObject {
     Q_PROPERTY(qreal lineHeightSignInTitle READ lineHeightSignInTitle CONSTANT FINAL)
     Q_PROPERTY(qreal lineHeightSignInTagline READ lineHeightSignInTagline CONSTANT FINAL)
     Q_PROPERTY(qreal lineHeightSignInError READ lineHeightSignInError CONSTANT FINAL)
+    Q_PROPERTY(qreal lineHeightCardTitle READ lineHeightCardTitle CONSTANT FINAL)
+    Q_PROPERTY(qreal lineHeightCardSubtitle READ lineHeightCardSubtitle CONSTANT FINAL)
+    Q_PROPERTY(qreal lineHeightStateText READ lineHeightStateText CONSTANT FINAL)
     Q_PROPERTY(qreal lineHeightNowPlayingTitle READ lineHeightNowPlayingTitle CONSTANT FINAL)
     Q_PROPERTY(qreal lineHeightFullScreenTitle READ lineHeightFullScreenTitle CONSTANT FINAL)
     Q_PROPERTY(qreal lineHeightHomeGreeting READ lineHeightHomeGreeting CONSTANT FINAL)
@@ -118,6 +129,14 @@ public:
     [[nodiscard]] QFont signInTagline() const { return m_text.signInTagline.font; }
     [[nodiscard]] QFont signInButton() const { return m_text.signInButton.font; }
     [[nodiscard]] QFont signInError() const { return m_text.signInError.font; }
+    [[nodiscard]] QFont trackNumber() const { return m_text.trackNumber.font; }
+    [[nodiscard]] QFont trackAlbum() const { return m_text.trackAlbum.font; }
+    [[nodiscard]] QFont cardTitle() const { return m_text.cardTitle.font; }
+    [[nodiscard]] QFont cardSubtitle() const { return m_text.cardSubtitle.font; }
+    [[nodiscard]] QFont sectionLink() const { return m_text.sectionLink.font; }
+    [[nodiscard]] QFont stateTitle() const { return m_text.stateTitle.font; }
+    [[nodiscard]] QFont stateText() const { return m_text.stateText.font; }
+    [[nodiscard]] QFont tableHeading() const { return m_text.tableHeading.font; }
     [[nodiscard]] QFont nowPlayingTitle() const { return m_text.nowPlayingTitle.font; }
     [[nodiscard]] QFont fullScreenTitle() const { return m_text.fullScreenTitle.font; }
     [[nodiscard]] QFont homeGreeting() const { return m_text.homeGreeting.font; }
@@ -171,6 +190,9 @@ public:
     [[nodiscard]] qreal lineHeightSignInTitle() const { return m_text.signInTitle.lineHeight; }
     [[nodiscard]] qreal lineHeightSignInTagline() const { return m_text.signInTagline.lineHeight; }
     [[nodiscard]] qreal lineHeightSignInError() const { return m_text.signInError.lineHeight; }
+    [[nodiscard]] qreal lineHeightCardTitle() const { return m_text.cardTitle.lineHeight; }
+    [[nodiscard]] qreal lineHeightCardSubtitle() const { return m_text.cardSubtitle.lineHeight; }
+    [[nodiscard]] qreal lineHeightStateText() const { return m_text.stateText.lineHeight; }
     [[nodiscard]] qreal lineHeightNowPlayingTitle() const { return m_text.nowPlayingTitle.lineHeight; }
     [[nodiscard]] qreal lineHeightFullScreenTitle() const { return m_text.fullScreenTitle.lineHeight; }
     [[nodiscard]] qreal lineHeightHomeGreeting() const { return m_text.homeGreeting.lineHeight; }

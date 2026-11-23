@@ -20,6 +20,7 @@ class Theme : public ThemeColors {
     // Box shadows: lists of ShadowLayer, drawn in order.
     Q_PROPERTY(QVariantList shadow READ shadow NOTIFY changed FINAL)
     Q_PROPERTY(QVariantList shadowCard READ shadowCard NOTIFY changed FINAL)
+    Q_PROPERTY(QVariantList shadowCardHover READ shadowCardHover NOTIFY changed FINAL)
     Q_PROPERTY(QVariantList shadowFlyout READ shadowFlyout NOTIFY changed FINAL)
     Q_PROPERTY(QVariantList shadowArt READ shadowArt NOTIFY changed FINAL)
     Q_PROPERTY(QVariantList shadowButton READ shadowButton NOTIFY changed FINAL)
@@ -47,6 +48,7 @@ public:
 
     [[nodiscard]] QVariantList shadow() const;
     [[nodiscard]] QVariantList shadowCard() const;
+    [[nodiscard]] QVariantList shadowCardHover() const;
     [[nodiscard]] QVariantList shadowFlyout() const;
     [[nodiscard]] QVariantList shadowArt() const;
     [[nodiscard]] QVariantList shadowButton() const;

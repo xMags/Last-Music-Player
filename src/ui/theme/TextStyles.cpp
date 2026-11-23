@@ -117,6 +117,18 @@ TextStyles TextStyles::build(const FontFamilies& families)
         .signInTagline = makeTextStyle({.family = text, .pixelSize = 15, .weight = kRegular, .lineHeight = 21}),
         .signInButton = makeTextStyle({.family = text, .pixelSize = 16, .weight = kSemiBold}),
         .signInError = makeTextStyle({.family = text, .pixelSize = 13.5, .weight = kRegular, .lineHeight = 19.5}),
+        // .tr-num and .tr-dur, .tr-album (views.css 202-240); .lib-name and
+        // .lib-meta (views.css 292-299).
+        .trackNumber = makeTextStyle({.family = text, .pixelSize = 13, .weight = kMedium, .tabularNumbers = true}),
+        .trackAlbum = makeTextStyle({.family = text, .pixelSize = 13, .weight = kRegular}),
+        .cardTitle = makeTextStyle({.family = text, .pixelSize = 14, .weight = kSemiBold, .lineHeight = 22}),
+        .cardSubtitle = makeTextStyle({.family = text, .pixelSize = 12, .weight = kRegular, .lineHeight = 18}),
+        // .section-link (styles.css 503-511); the empty and error states
+        // (views.css 124-134: strong 17px, text 14px).
+        .sectionLink = makeTextStyle({.family = text, .pixelSize = 12, .weight = kSemiBold}),
+        .stateTitle = makeTextStyle({.family = text, .pixelSize = 17, .weight = kSemiBold}),
+        .stateText = makeTextStyle({.family = text, .pixelSize = 14, .weight = kRegular, .lineHeight = 19.6}),
+        .tableHeading = makeTextStyle({.family = text, .pixelSize = 11, .weight = kBold, .letterSpacingEm = 0.08}),
         .nowPlayingTitle = makeTextStyle(
             {.family = display, .pixelSize = 20, .weight = kBold, .lineHeight = 26}),
         // line-height: 1.2 of 30px.

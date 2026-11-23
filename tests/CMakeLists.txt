@@ -385,3 +385,11 @@ lmp_add_test(tst_library_scanner
 lmp_add_test(tst_library_settings_view_model
     SOURCES ui/tst_library_settings_view_model.cpp core/FakeTagReader.h core/TempLibrary.h
     LIBS lmp_ui)
+
+lmp_add_test(tst_display_title
+    SOURCES core/tst_display_title.cpp
+    LIBS lmp_core)
+
+lmp_add_test(tst_track_list_model
+    SOURCES ui/tst_track_list_model.cpp
+    LIBS lmp_ui)

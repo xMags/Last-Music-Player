@@ -173,6 +173,22 @@ bool SettingsViewModel::displayNameShown() const
     return m_mode.mode() != core::mode::SourceMode::Account;
 }
 
+QString SettingsViewModel::trackView() const
+{
+    // Grid is the default; only "list" chooses the table.
+    return m_settings.string(keys::TrackView) == QLatin1StringView("list") ? QStringLiteral("list")
+                                                                           : QStringLiteral("grid");
+}
+
+void SettingsViewModel::setTrackView(const QString& view)
+{
+    const QString stored = view == QLatin1StringView("list") ? QStringLiteral("list") : QStringLiteral("grid");
+    if (m_settings.contains(keys::TrackView) && trackView() == stored) {
+        return;
+    }
+    m_settings.setString(keys::TrackView, stored);
+}
+
 bool SettingsViewModel::isDisplayNameEdit(const QString& text) const
 {
     return trimmedName(text) != displayName();
