@@ -7,5 +7,9 @@ inline constexpr char16_t kAccountApiOrigin[] = u"@LMP_ACCOUNT_API_ORIGIN@";
 inline constexpr char16_t kAccountFrontendOrigin[] = u"@LMP_ACCOUNT_FRONTEND_ORIGIN@";
 inline constexpr char16_t kAccountMediaOrigin[] = u"@LMP_ACCOUNT_MEDIA_ORIGIN@";
 inline constexpr char16_t kDiscordClientId[] = u"@LMP_DISCORD_CLIENT_ID@";
+inline constexpr char16_t kSourceTagCatalog[] = u"@LMP_SOURCE_TAG_CATALOG@";
+inline constexpr char16_t kSourceTagsStream[] = u"@LMP_SOURCE_TAGS_STREAM@";
+inline constexpr char16_t kSourceLabels[] = u"@LMP_SOURCE_LABELS@";
+inline constexpr char16_t kExternalPlaylistIdPrefix[] = u"@LMP_EXTERNAL_PLAYLIST_ID_PREFIX@";
 
 } // namespace lmp::core::generated

@@ -481,3 +481,11 @@ lmp_add_test(tst_account_sign_out
 lmp_add_test(tst_welcome_model
     SOURCES core/tst_welcome_model.cpp
     LIBS lmp_core)
+
+lmp_add_test(tst_catalog_parser
+    SOURCES core/tst_catalog_parser.cpp core/CatalogFixtures.h
+    LIBS lmp_core)
+
+lmp_add_test(tst_catalog_detail
+    SOURCES core/tst_catalog_detail.cpp core/CatalogFixtures.h
+    LIBS lmp_core)

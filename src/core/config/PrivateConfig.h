@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QString>
+#include <QStringList>
 
 namespace lmp::core {
 
@@ -12,6 +13,16 @@ struct PrivateConfig {
     QString accountFrontendOrigin;
     QString accountMediaOrigin;
     QString discordClientId;
+    // Source tag of catalogue items that carry the catalogue's own numeric ids.
+    QString sourceTagCatalog;
+    // Source tags whose songs and albums the service resolves directly; the
+    // first is assumed when an item has none.
+    QStringList sourceTagsStream;
+    // Words (lower case) naming where music comes from; never shown as an
+    // artist, curator or album name.
+    QStringList sourceLabels;
+    // The prefix of an external playlist id.
+    QString externalPlaylistIdPrefix;
 
     // The values compiled into this binary, with withDefaults() applied.
     [[nodiscard]] static PrivateConfig fromBuild();
