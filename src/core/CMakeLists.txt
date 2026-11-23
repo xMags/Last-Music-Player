@@ -30,6 +30,10 @@ qt_add_library(lmp_core STATIC
     account/ProfileIdentity.cpp
     account/ProfileIdentity.h
     account/AccountUrlPolicy.cpp
+    account/HistoryImport.cpp
+    account/HistoryImport.h
+    account/HistoryImportService.cpp
+    account/HistoryImportService.h
     account/AccountUrlPolicy.h
     account/AutoSyncPolicy.cpp
     account/AutoSyncPolicy.h

@@ -150,6 +150,10 @@ Item {
             }
         }
 
+        SettingsEqualizerCard {
+            width: column.width
+        }
+
         SettingsAppearanceCard {
             width: column.width
         }

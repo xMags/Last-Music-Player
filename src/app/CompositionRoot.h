@@ -57,6 +57,9 @@
 #include "core/playback/PlayerController.h"
 #include "core/presence/PresenceService.h"
 #include "core/cast/CastController.h"
+#include "core/account/HistoryImportService.h"
+#include "ui/settings/EqualizerViewModel.h"
+#include "ui/settings/HistoryImportViewModel.h"
 #include "platform/windows/WindowsDnsServiceBrowser.h"
 #include "ui/cast/CastViewModel.h"
 #include "core/playback/TrackSourceResolver.h"
@@ -331,6 +334,10 @@ private:
     platform::windows::WindowsDnsServiceBrowser m_dnsBrowser;
     core::cast::CastController m_cast;
     ui::CastViewModel m_castViewModel;
+    // Settings > Sound (shown, inert) and the one-time history import offer.
+    ui::EqualizerViewModel m_equalizer;
+    core::account::HistoryImportService m_historyImport;
+    ui::HistoryImportViewModel m_historyImportViewModel;
     // Updates the presence from the player.
     void updatePresence();
     // The song the presence's provider picture lookup was asked for.

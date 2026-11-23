@@ -24,6 +24,8 @@
 #include "ui/downloads/OfflineViewModel.h"
 #include "ui/settings/AudioOutputViewModel.h"
 #include "ui/cast/CastViewModel.h"
+#include "ui/settings/EqualizerViewModel.h"
+#include "ui/settings/HistoryImportViewModel.h"
 #include "ui/player/LyricsViewModel.h"
 #include "ui/share/ShareController.h"
 #include "ui/catalog/CatalogPageViewModel.h"
@@ -113,6 +115,8 @@ class AppRoot : public QObject {
     // The build has a Discord client id, so presence can be offered.
     Q_PROPERTY(bool presenceAvailable READ presenceAvailable CONSTANT FINAL)
     Q_PROPERTY(lmp::ui::CastViewModel* cast READ cast CONSTANT FINAL)
+    Q_PROPERTY(lmp::ui::EqualizerViewModel* equalizer READ equalizer CONSTANT FINAL)
+    Q_PROPERTY(lmp::ui::HistoryImportViewModel* historyImport READ historyImport CONSTANT FINAL)
     Q_PROPERTY(lmp::ui::ShareController* share READ share CONSTANT FINAL)
     // The current music source: "LocalOnly", "ApiKey" or "Account".
     Q_PROPERTY(QString sourceMode READ sourceMode NOTIFY sourceChanged FINAL)
@@ -157,6 +161,8 @@ public:
         AudioOutputViewModel* audioOutput = nullptr;
         bool presenceAvailable = false;
         CastViewModel* cast = nullptr;
+        EqualizerViewModel* equalizer = nullptr;
+        HistoryImportViewModel* historyImport = nullptr;
         ShareController* share = nullptr;
         core::mode::ModeService* mode = nullptr;
         bool showGallery = false;
@@ -202,6 +208,8 @@ public:
     [[nodiscard]] AudioOutputViewModel* audioOutput() const { return m_parts.audioOutput; }
     [[nodiscard]] bool presenceAvailable() const { return m_parts.presenceAvailable; }
     [[nodiscard]] CastViewModel* cast() const { return m_parts.cast; }
+    [[nodiscard]] EqualizerViewModel* equalizer() const { return m_parts.equalizer; }
+    [[nodiscard]] HistoryImportViewModel* historyImport() const { return m_parts.historyImport; }
     [[nodiscard]] ShareController* share() const { return m_parts.share; }
     [[nodiscard]] QString sourceMode() const;
     [[nodiscard]] core::mode::Capabilities capabilities() const;

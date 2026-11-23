@@ -565,3 +565,11 @@ lmp_add_test(tst_cast
 lmp_add_test(tst_player_sink
     SOURCES core/tst_player_sink.cpp core/PlayerFixture.h core/FakeAudioPlayer.h core/FakePlaybackClock.h core/TempLibrary.h
     LIBS lmp_core)
+
+lmp_add_test(tst_history_import
+    SOURCES core/tst_history_import.cpp
+    LIBS lmp_core)
+
+lmp_add_test(tst_equalizer_view_model
+    SOURCES ui/tst_equalizer_view_model.cpp
+    LIBS lmp_ui)

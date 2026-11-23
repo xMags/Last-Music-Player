@@ -13,6 +13,7 @@ T.Popup {
     property string title: ""
     property string description: ""
     property string confirmLabel: qsTr("OK")
+    property string cancelLabel: qsTr("Cancel")
 
     signal confirmed()
 
@@ -104,7 +105,7 @@ T.Popup {
 
                 AppButton {
                     Layout.minimumWidth: 86
-                    text: qsTr("Cancel")
+                    text: dialog.cancelLabel
                     onClicked: dialog.close()
                 }
 

@@ -244,6 +244,9 @@ Item {
     // New, rename and delete for playlists and albums (App.collections).
     CollectionDialogs {}
 
+    // The one-time history import question after signing in.
+    HistoryImportDialog {}
+
     // Toasts stack upwards from 104px above the window's bottom.
     ToastStack {
         anchors.horizontalCenter: parent.horizontalCenter

@@ -122,6 +122,8 @@ set(LMP_UI_QML_FILES
     qml/settings/SettingsCard.qml
     qml/settings/SettingsDivider.qml
     qml/settings/SettingsDownloadsCard.qml
+    qml/settings/SettingsEqualizerCard.qml
+    qml/settings/HistoryImportDialog.qml
     qml/settings/SettingsLibraryCard.qml
     qml/settings/LanguagePills.qml
     qml/settings/SettingsLanguagesSection.qml
@@ -238,6 +240,10 @@ qt_add_qml_module(lmp_ui
         cast/CastViewModel.cpp
         cast/CastViewModel.h
         settings/AudioOutputViewModel.cpp
+        settings/EqualizerViewModel.cpp
+        settings/EqualizerViewModel.h
+        settings/HistoryImportViewModel.cpp
+        settings/HistoryImportViewModel.h
         settings/AudioOutputViewModel.h
         downloads/OfflineViewModel.h
         player/LyricsViewModel.cpp

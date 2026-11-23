@@ -437,6 +437,28 @@ CompositionRoot::CompositionRoot()
                   return std::make_unique<core::cast::SslCastTransport>();
               }})
     , m_castViewModel(m_cast)
+    , m_equalizer(m_settings)
+    , m_historyImport({.gate = m_userDataGate,
+                       .accountId = [this]() {
+                           return m_mode.capabilities().importLocalHistory
+                                       && m_session.state() == core::account::AccountSessionState::Validated
+                                   ? m_session.profile().id
+                                   : QString();
+                       },
+                       .loadState = [this](const QString& owner) { return m_accounts.loadAccountSyncState(owner); },
+                       .saveState =
+                           [this](const core::db::AccountSyncState& state) {
+                               return static_cast<bool>(m_accounts.saveAccountSyncState(state));
+                           },
+                       .candidates = [this]() { return m_library.loadLegacyRemoteHistoryImportCandidates(); },
+                       .resolve = [this](const QString& url) { return m_remote.resolve(url); },
+                       .enqueue =
+                           [this](const core::db::PlaybackEventRecord& event) {
+                               return static_cast<bool>(m_outbox.enqueuePlaybackEvent(event));
+                           },
+                       .sendHistory =
+                           [this]() { (void)m_sync.requestSync(core::account::MusicSyncService::Lane::History); }})
+    , m_historyImportViewModel(m_historyImport)
     , m_appRoot({
           .windowChrome = &m_windowChromeViewModel,
           .navigator = &m_navigator,
@@ -471,6 +493,8 @@ CompositionRoot::CompositionRoot()
           .audioOutput = &m_audioOutput,
           .presenceAvailable = m_presence.available(),
           .cast = &m_castViewModel,
+          .equalizer = &m_equalizer,
+          .historyImport = &m_historyImportViewModel,
           .share = &m_share,
           .mode = &m_mode,
           .showGallery = QCoreApplication::arguments().contains(QStringLiteral("--gallery")),
@@ -540,6 +564,14 @@ CompositionRoot::CompositionRoot()
     // Casting ends when the mode no longer allows it; its messages are toasts.
     QObject::connect(&m_mode, &core::mode::ModeService::changed, &m_cast, [this]() { m_cast.refreshAllowed(); });
     QObject::connect(&m_cast, &core::cast::CastController::notice, &m_toasts,
+                     [this](const QString& text) { m_toasts.show(text); });
+    // After a clean sync, the one-time offer to import this PC's history.
+    QObject::connect(&m_sync, &core::account::MusicSyncService::syncingChanged, &m_historyImport, [this]() {
+        if (!m_sync.isSyncing() && m_sync.lastSafeError().isEmpty()) {
+            m_historyImport.offerIfDue();
+        }
+    });
+    QObject::connect(&m_historyImportViewModel, &ui::HistoryImportViewModel::message, &m_toasts,
                      [this](const QString& text) { m_toasts.show(text); });
     // Discord presence follows its setting and the player.
     m_presence.setEnabled(m_settings.boolean(core::settings::keys::DiscordPresence, false));
