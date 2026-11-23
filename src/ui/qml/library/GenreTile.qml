@@ -9,16 +9,17 @@ import LastMusicPlayer
 // stripe overlay and a shade at the bottom, a faint enlarged copy of the mark
 // in the lower right, the mark itself in the middle, a thin light edge and
 // the "genre" label with its dot in the lower left. The marks come from the
-// genre's recipe (core GenreArtworkRecipe), drawn in a 96-unit box.
-Item {
+// genre's recipe (core GenreArtworkRecipe), drawn in a 96-unit box. The
+// stripe overlay and the enlarged mark reach the corners, so the tile is a
+// RoundedClip cut to `radius`.
+RoundedClip {
     id: tile
 
     property string genre: ""
-    property real radius: 16
     readonly property var recipe: GenreArtwork.recipe(genre)
     readonly property color ink: Qt.rgba(1, 1, 1, 0xEB / 255)
 
-    clip: true
+    radius: 16
 
     Shape {
         anchors.fill: parent

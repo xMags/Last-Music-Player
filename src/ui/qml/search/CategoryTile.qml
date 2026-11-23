@@ -23,37 +23,42 @@ T.AbstractButton {
 
     background: Rectangle {
         radius: 16
-        clip: true
         color: tile.gradientStart
 
-        Item {
-            x: parent.width - 72 + 8
-            y: parent.height - 72 + 10
-            width: 72
-            height: 72
-            rotation: 22
+        // The tilted cover runs past the corner: cut to the tile's corners.
+        RoundedClip {
+            anchors.fill: parent
+            radius: 16
 
-            BoxShadow {
-                anchors.fill: parent
-                visible: tile.artworkUrl.toString() !== ""
-                layers: Theme.shadowArt
-                radius: 12
-            }
+            Item {
+                x: parent.width - 72 + 8
+                y: parent.height - 72 + 10
+                width: 72
+                height: 72
+                rotation: 22
 
-            Rectangle {
-                anchors.fill: parent
-                radius: 12
-                visible: tile.artworkUrl.toString() === ""
-                color: Qt.rgba(0, 0, 0, 0.18)
-            }
+                BoxShadow {
+                    anchors.fill: parent
+                    visible: tile.artworkUrl.toString() !== ""
+                    layers: Theme.shadowArt
+                    radius: 12
+                }
 
-            ArtTile {
-                anchors.fill: parent
-                visible: tile.artworkUrl.toString() !== ""
-                radius: 12
-                source: tile.artworkUrl
-                artworkId: "category:" + tile.title
-                label: ""
+                Rectangle {
+                    anchors.fill: parent
+                    radius: 12
+                    visible: tile.artworkUrl.toString() === ""
+                    color: Qt.rgba(0, 0, 0, 0.18)
+                }
+
+                ArtTile {
+                    anchors.fill: parent
+                    visible: tile.artworkUrl.toString() !== ""
+                    radius: 12
+                    source: tile.artworkUrl
+                    artworkId: "category:" + tile.title
+                    label: ""
+                }
             }
         }
 

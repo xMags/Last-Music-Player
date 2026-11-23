@@ -44,7 +44,8 @@ T.AbstractButton {
     }
 
     contentItem: Item {
-        Rectangle {
+        // The sidebar strip and the dark half reach the corners: cut to them.
+        RoundedClip {
             id: preview
 
             x: 5
@@ -52,8 +53,11 @@ T.AbstractButton {
             width: parent.width - 2 * 5
             height: 40
             radius: 5
-            clip: true
-            color: tile.mode === "dark" ? "#232323" : "#F7F7FA"
+
+            Rectangle {
+                anchors.fill: parent
+                color: tile.mode === "dark" ? "#232323" : "#F7F7FA"
+            }
 
             // The system tile is light, then dark past a line through the
             // middle at 45 degrees (linear-gradient(135deg, light 50%, dark 50%)):

@@ -36,16 +36,15 @@ T.AbstractButton {
 
     background: Rectangle {
         radius: 8
-        clip: true
         color: tile.hovered ? Qt.alpha(Theme.surface, 0.30) : Qt.alpha(Theme.surface, 0.55)
         border.width: 1
         border.color: Theme.stroke
 
-        // The tint: the cover's colours, very soft.
-        Item {
+        // The tint: the cover's colours, very soft, inside the 1px border.
+        RoundedClip {
             anchors.fill: parent
             anchors.margins: 1
-            clip: true
+            radius: 8 - 1
             opacity: Theme.dark ? 0.5 : 0.42
 
             Image {
@@ -85,7 +84,10 @@ T.AbstractButton {
         }
     }
 
-    contentItem: Item {
+    // Cut to the tile's corners: the cover square runs to its left edge.
+    contentItem: RoundedClip {
+        radius: 8
+
         Item {
             id: art
 

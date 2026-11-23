@@ -72,10 +72,10 @@ T.AbstractButton {
                 layers: card.hovered ? Theme.shadowCardHover : Theme.shadowCard
             }
 
-            // The picture zooms inside a clipped frame.
-            Item {
+            // The picture zooms inside a frame cut to the card's corners.
+            RoundedClip {
                 anchors.fill: parent
-                clip: true
+                radius: card.round ? width / 2 : Theme.radiusXl
 
                 Item {
                     anchors.fill: parent

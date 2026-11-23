@@ -20,22 +20,26 @@ T.AbstractButton {
 
     background: Rectangle {
         radius: 12
-        clip: true
         color: card.hovered ? Theme.rowHover : Theme.surfaceAlt
         border.width: 1
         border.color: Theme.stroke
 
-        // The cover's colours, faint.
-        Image {
+        // The cover's colours, faint, cut to the corners inside the border.
+        RoundedClip {
             anchors.fill: parent
             anchors.margins: 1
-            source: App.search.topArtworkUrl
-            sourceSize.width: 12
-            sourceSize.height: 12
-            fillMode: Image.Stretch
-            smooth: true
-            asynchronous: true
+            radius: 12 - 1
             opacity: 0.32
+
+            Image {
+                anchors.fill: parent
+                source: App.search.topArtworkUrl
+                sourceSize.width: 12
+                sourceSize.height: 12
+                fillMode: Image.Stretch
+                smooth: true
+                asynchronous: true
+            }
         }
 
         Rectangle {

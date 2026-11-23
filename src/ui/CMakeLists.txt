@@ -55,6 +55,7 @@ set(LMP_UI_QML_FILES
     qml/controls/PlayButton.qml
     qml/controls/PromptTextField.qml
     qml/controls/Ripple.qml
+    qml/controls/RoundedClip.qml
     qml/controls/SearchField.qml
     qml/controls/SegmentedControl.qml
     qml/controls/Skeleton.qml

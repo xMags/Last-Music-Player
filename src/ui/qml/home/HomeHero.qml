@@ -42,39 +42,44 @@ Column {
             NumberAnimation { target: content; property: "opacity"; from: 0; to: 1; duration: 450; easing: Motion.ease }
         }
 
-        // The cover's colours, stretched, quiet under the field lines.
-        Item {
-            id: heroBackdrop
-
+        // The backdrop and the field lines, cut to the card's rounded corners
+        // inside its 1px border.
+        RoundedClip {
             anchors.fill: parent
             anchors.margins: 1
-            clip: true
-            opacity: 0.55
+            radius: 16 - 1
 
-            Image {
+            // The cover's colours, stretched, quiet under the field lines.
+            Item {
+                id: heroBackdrop
+
                 anchors.fill: parent
-                source: App.home.heroArtworkUrl
-                sourceSize.width: 16
-                sourceSize.height: 16
-                fillMode: Image.Stretch
-                smooth: true
-                asynchronous: true
-                visible: status === Image.Ready
+                opacity: 0.55
+
+                Image {
+                    anchors.fill: parent
+                    source: App.home.heroArtworkUrl
+                    sourceSize.width: 16
+                    sourceSize.height: 16
+                    fillMode: Image.Stretch
+                    smooth: true
+                    asynchronous: true
+                    visible: status === Image.Ready
+                }
+
+                ArtTile {
+                    anchors.fill: parent
+                    visible: App.home.heroArtworkUrl.toString() === ""
+                    radius: 0
+                    artworkId: App.home.heroArtworkId
+                    label: ""
+                }
             }
 
-            ArtTile {
+            HeroField {
                 anchors.fill: parent
-                visible: App.home.heroArtworkUrl.toString() === ""
-                radius: 0
-                artworkId: App.home.heroArtworkId
-                label: ""
+                running: card.visible
             }
-        }
-
-        HeroField {
-            anchors.fill: parent
-            anchors.margins: 1
-            running: card.visible
         }
 
         Rectangle {

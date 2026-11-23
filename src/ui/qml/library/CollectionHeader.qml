@@ -102,12 +102,13 @@ Column {
 
         // The tint: the cover's colours only, stretched over the card. It
         // fades in when it appears or changes (wash-in, views.css 402-403).
-        Item {
+        // Cut to the card's corners inside its 1px border.
+        RoundedClip {
             id: tint
 
             anchors.fill: parent
             anchors.margins: 1
-            clip: true
+            radius: 16 - 1
             opacity: 0.55
 
             function washIn() {

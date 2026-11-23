@@ -75,9 +75,10 @@ T.AbstractButton {
             }
         }
 
-        Item {
+        // The sparkle runs past the top right corner: cut to the card's corners.
+        RoundedClip {
             anchors.fill: parent
-            clip: true
+            radius: Theme.radiusXl
 
             Icon {
                 x: parent.width - 90 + 8

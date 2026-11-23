@@ -83,27 +83,32 @@ Item {
             color: Theme.surface
             border.width: 1
             border.color: Theme.stroke
-            clip: true
 
-            Column {
-                id: songs
+            // The first and last rows' hover fill reaches the corners.
+            RoundedClip {
+                anchors.fill: parent
+                radius: 12
 
-                width: parent.width
+                Column {
+                    id: songs
 
-                Repeater {
-                    model: page.model.topSongs
+                    width: parent.width
 
-                    TrackRow {
-                        id: row
+                    Repeater {
+                        model: page.model.topSongs
 
-                        required property int index
+                        TrackRow {
+                            id: row
 
-                        width: songs.width
-                        onClicked: page.model.playSong(row.index)
-                        onLikeRequested: page.model.likeSong(row.index)
-                        onMenuRequested: (at, fromKeyboard) => {
-                            page.model.prepareSongMenu(row.index)
-                            menus.open(row, at.x, at.y, fromKeyboard)
+                            required property int index
+
+                            width: songs.width
+                            onClicked: page.model.playSong(row.index)
+                            onLikeRequested: page.model.likeSong(row.index)
+                            onMenuRequested: (at, fromKeyboard) => {
+                                page.model.prepareSongMenu(row.index)
+                                menus.open(row, at.x, at.y, fromKeyboard)
+                            }
                         }
                     }
                 }
