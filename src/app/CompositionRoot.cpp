@@ -16,6 +16,8 @@
 #include "app/DeveloperPlayFolder.h"
 #include "core/app/AppIdentity.h"
 #include "core/async/Result.h"
+#include "core/mode/SourceChoice.h"
+#include "core/settings/SettingKeys.h"
 #include "core/playback/QueueEngine.h"
 #include "platform/windows/WindowsAppIdentity.h"
 #include "platform/windows/WindowsSingleInstance.h"
@@ -42,6 +44,15 @@ bool openDatabase(core::db::Database& database)
         return false;
     }
     return true;
+}
+
+// Whether an account session is stored. A credential that cannot be read
+// counts as stored, so an upgrading user is never shown the first-run page
+// by a read error.
+bool storedSessionExists(core::account::SecretStore& secrets)
+{
+    const core::Result<std::optional<QString>> session = secrets.readAccountSession();
+    return !session || session.value().has_value();
 }
 
 } // namespace
@@ -100,6 +111,7 @@ CompositionRoot::CompositionRoot()
                 .signOut = m_signOut,
                 .links = m_externalLinks,
                 .library = m_databaseOpen ? &m_library : nullptr})
+    , m_firstRun(m_settings, m_mode, m_navigator)
     , m_appRoot({
           .windowChrome = &m_windowChromeViewModel,
           .navigator = &m_navigator,
@@ -112,6 +124,7 @@ CompositionRoot::CompositionRoot()
           .settings = &m_settingsViewModel,
           .settingsAbout = &m_settingsAbout,
           .source = &m_source,
+          .firstRun = &m_firstRun,
           .mode = &m_mode,
           .showGallery = QCoreApplication::arguments().contains(QStringLiteral("--gallery")),
       })
@@ -122,10 +135,22 @@ CompositionRoot::CompositionRoot()
         platform::windows::WindowsAppIdentity::apply(core::AppIdentity::appUserModelId());
     ui::AppRoot::registerInstance(&m_appRoot);
 
+    // Whether this is a first run, read before the mode service stores its
+    // first-run default.
+    core::mode::SourceChoiceInputs sourceChoice{
+        .choiceSeenStored = m_settings.contains(core::settings::keys::SourceChoiceSeen),
+        .choiceSeen = m_settings.boolean(core::settings::keys::SourceChoiceSeen, false),
+        .modeStoredBefore = !m_settings.string(core::settings::keys::RemoteAccessMode).isEmpty(),
+        .libraryHasSongs = m_databaseOpen && m_library.libraryStats().songCount > 0,
+        .sessionStored = storedSessionExists(m_secrets),
+    };
+
     // Reads the stored music source (writing the first-run default) and
     // sets the library's active context. A plaintext key left by an earlier
     // version moves into the credential store here.
     [[maybe_unused]] const core::account::LegacyKeyMigration migration = m_mode.start();
+    sourceChoice.mode = m_mode.mode();
+    m_firstRun.decide(sourceChoice);
     // Checks a stored account session with the service (or falls back to
     // the saved profile while offline); without one it stays signed out.
     m_session.restore();

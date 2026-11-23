@@ -18,13 +18,20 @@ ApplicationWindow {
 
     Loader {
         anchors.fill: parent
-        sourceComponent: App.showGallery ? galleryPage : shell
+        sourceComponent: App.showGallery ? galleryPage : (App.firstRun.shown ? firstRun : shell)
     }
 
     Component {
         id: shell
 
         Shell {}
+    }
+
+    // The one-time music source choice of a first run.
+    Component {
+        id: firstRun
+
+        FirstRunPage {}
     }
 
     // Started with --gallery: the design gallery below a full-width strip.

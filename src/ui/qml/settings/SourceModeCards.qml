@@ -88,6 +88,9 @@ Column {
                         x: 16
                         y: 16
                         width: parent.width - 2 * 16
+                        // The full card, so the status lines of all three
+                        // line up at the bottom.
+                        height: Math.max(implicitHeight, parent.height - 2 * 16)
                         spacing: 10
 
                         RowLayout {

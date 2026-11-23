@@ -36,6 +36,7 @@
 #include "ui/player/FullscreenPlayerViewModel.h"
 #include "ui/player/PlayerBarViewModel.h"
 #include "ui/player/QueueRailViewModel.h"
+#include "ui/settings/FirstRunViewModel.h"
 #include "ui/settings/SettingsAboutViewModel.h"
 #include "ui/settings/SettingsViewModel.h"
 #include "ui/settings/SourceModeViewModel.h"
@@ -134,6 +135,7 @@ private:
     ui::SettingsViewModel m_settingsViewModel;
     ui::SettingsAboutViewModel m_settingsAbout;
     ui::SourceModeViewModel m_source;
+    ui::FirstRunViewModel m_firstRun;
     ui::AppRoot m_appRoot;
     QPointer<ui::Theme> m_theme; // owned by the QML engine
 };

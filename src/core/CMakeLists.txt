@@ -107,6 +107,8 @@ qt_add_library(lmp_core STATIC
     mode/Capabilities.h
     mode/ModeService.cpp
     mode/ModeService.h
+    mode/SourceChoice.cpp
+    mode/SourceChoice.h
     mode/SourceMode.h
     model/ArtistIdentity.cpp
     model/ArtistIdentity.h

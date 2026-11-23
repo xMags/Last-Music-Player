@@ -11,6 +11,7 @@
 #include "ui/player/FullscreenPlayerViewModel.h"
 #include "ui/player/PlayerBarViewModel.h"
 #include "ui/player/QueueRailViewModel.h"
+#include "ui/settings/FirstRunViewModel.h"
 #include "ui/settings/SettingsAboutViewModel.h"
 #include "ui/settings/SettingsViewModel.h"
 #include "ui/settings/SourceModeViewModel.h"
@@ -58,6 +59,8 @@ class AppRoot : public QObject {
     Q_PROPERTY(lmp::ui::SettingsAboutViewModel* settingsAbout READ settingsAbout CONSTANT FINAL)
     // The music source cards, API key form, account block and sign-in.
     Q_PROPERTY(lmp::ui::SourceModeViewModel* source READ source CONSTANT FINAL)
+    // The one-time music source choice shown before the shell.
+    Q_PROPERTY(lmp::ui::FirstRunViewModel* firstRun READ firstRun CONSTANT FINAL)
     // The current music source: "LocalOnly", "ApiKey" or "Account".
     Q_PROPERTY(QString sourceMode READ sourceMode NOTIFY sourceChanged FINAL)
     // What the current source lets the user do (core::mode::Capabilities).
@@ -79,6 +82,7 @@ public:
         SettingsViewModel* settings = nullptr;
         SettingsAboutViewModel* settingsAbout = nullptr;
         SourceModeViewModel* source = nullptr;
+        FirstRunViewModel* firstRun = nullptr;
         core::mode::ModeService* mode = nullptr;
         bool showGallery = false;
     };
@@ -101,6 +105,7 @@ public:
     [[nodiscard]] SettingsViewModel* settings() const { return m_parts.settings; }
     [[nodiscard]] SettingsAboutViewModel* settingsAbout() const { return m_parts.settingsAbout; }
     [[nodiscard]] SourceModeViewModel* source() const { return m_parts.source; }
+    [[nodiscard]] FirstRunViewModel* firstRun() const { return m_parts.firstRun; }
     [[nodiscard]] QString sourceMode() const;
     [[nodiscard]] core::mode::Capabilities capabilities() const;
     [[nodiscard]] bool showGallery() const { return m_parts.showGallery; }

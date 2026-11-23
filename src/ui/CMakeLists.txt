@@ -93,6 +93,7 @@ set(LMP_UI_QML_FILES
     qml/settings/ThemeTile.qml
     qml/shell/BrandMark.qml
     qml/shell/ContentPanel.qml
+    qml/shell/FirstRunPage.qml
     qml/shell/CaptionButton.qml
     qml/shell/NavItem.qml
     qml/shell/PageHost.qml
@@ -150,6 +151,8 @@ qt_add_qml_module(lmp_ui
         player/QueueRailViewModel.h
         player/QueueRowDrag.cpp
         player/QueueRowDrag.h
+        settings/FirstRunViewModel.cpp
+        settings/FirstRunViewModel.h
         settings/SettingsAboutViewModel.cpp
         settings/SettingsAboutViewModel.h
         settings/SettingsViewModel.cpp

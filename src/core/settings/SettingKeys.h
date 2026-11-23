@@ -73,6 +73,9 @@ inline constexpr QLatin1StringView LibraryDetailDensity{"LibraryDetailDensity"};
 // string "lyrics", "queue" or "none", default "lyrics". The side panel of the
 // full-screen player; "none" hides it. Added by this version.
 inline constexpr QLatin1StringView FullscreenPanel{"FullscreenPanel"};
+// bool. The first-run music source page: stored false when it is shown and
+// true once a source was chosen; missing until then. Added by this version.
+inline constexpr QLatin1StringView SourceChoiceSeen{"SourceChoiceSeen"};
 // bool, default false. The one-time move of the old home history into the database.
 inline constexpr QLatin1StringView LegacyHomeHistoryMigrated{"LegacyHomeHistoryMigrated"};
 // strings, default "". The cached account profile, for signing back in offline.
