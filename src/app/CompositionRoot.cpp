@@ -66,6 +66,13 @@ CompositionRoot::CompositionRoot()
     , m_databaseOpen(openDatabase(m_database))
     , m_tracks(m_database)
     , m_library(m_database)
+    , m_artworkCache(m_paths.thumbsFolder(), &m_tagReader)
+    , m_scanner({.tags = m_tagReader,
+                 .artwork = m_artworkCache,
+                 .tracks = m_tracks,
+                 .library = m_library,
+                 .settings = m_settings,
+                 .gate = m_userDataGate})
     , m_player({.audio = m_audio, .settings = m_settings, .tracks = m_tracks, .resolver = m_resolver, .clock = m_clock},
                core::QueueEngine())
     , m_persistence({.player = m_player,
@@ -160,6 +167,12 @@ CompositionRoot::CompositionRoot()
     // Checks a stored account session with the service (or falls back to
     // the saved profile while offline); without one it stays signed out.
     m_session.restore();
+
+    // Songs whose files were removed since the last run leave the library
+    // (marked inactive, never deleted). The files are checked on a worker.
+    if (m_databaseOpen) {
+        [[maybe_unused]] const bool pruning = m_scanner.pruneMissingTracks();
+    }
 
     // The last song comes back into the player bar once the state file is
     // read (on the file's worker); the first Play opens it.

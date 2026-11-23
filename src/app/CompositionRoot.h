@@ -14,6 +14,8 @@
 #include "core/db/Database.h"
 #include "core/db/LibraryQueries.h"
 #include "core/db/TrackRepository.h"
+#include "core/library/ArtworkCache.h"
+#include "core/library/LibraryScanner.h"
 #include "core/library/UserDataOperationGate.h"
 #include "core/mode/ModeService.h"
 #include "core/net/HttpClient.h"
@@ -30,6 +32,7 @@
 #include "platform/windows/WindowsExternalLinks.h"
 #include "platform/windows/WindowsMediaControls.h"
 #include "platform/windows/WindowsReducedMotion.h"
+#include "platform/windows/WindowsTagReader.h"
 #include "platform/windows/WindowsWindowChrome.h"
 #include "ui/navigation/Navigator.h"
 #include "ui/player/AmbientAccentSampler.h"
@@ -101,6 +104,10 @@ private:
     core::db::TrackRepository m_tracks;
     core::db::LibraryQueries m_library;
     core::UserDataOperationGate m_userDataGate;
+    // The music folder scan: tags and system thumbnails, the cover cache, the scanner.
+    platform::windows::WindowsTagReader m_tagReader;
+    core::ArtworkCache m_artworkCache;
+    core::LibraryScanner m_scanner;
     platform::windows::WindowsAudioPlayer m_audio;
     // Bound to the main window once it exists (showMainWindow).
     platform::windows::WindowsMediaControls m_mediaControls;

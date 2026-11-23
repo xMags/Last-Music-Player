@@ -105,6 +105,10 @@ qt_add_library(lmp_core STATIC
     library/TrackSearchPolicy.h
     library/UserDataOperationGate.cpp
     library/UserDataOperationGate.h
+    library/ArtworkCache.cpp
+    library/ArtworkCache.h
+    library/LibraryScanner.cpp
+    library/LibraryScanner.h
     mode/Capabilities.cpp
     mode/Capabilities.h
     mode/ModeService.cpp
@@ -205,7 +209,9 @@ qt_add_library(lmp_core STATIC
     ../platform/IExternalLinks.h
     ../platform/IMediaControls.h
     ../platform/IReducedMotion.h
+    ../platform/IShellThumbnail.h
     ../platform/ISingleInstance.h
+    ../platform/ITagReader.h
     ../platform/IWindowChrome.h)
 
 target_include_directories(lmp_core
