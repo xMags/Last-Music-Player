@@ -101,6 +101,11 @@ qt_add_library(lmp_core STATIC
     library/TrackSearchPolicy.h
     library/UserDataOperationGate.cpp
     library/UserDataOperationGate.h
+    mode/Capabilities.cpp
+    mode/Capabilities.h
+    mode/ModeService.cpp
+    mode/ModeService.h
+    mode/SourceMode.h
     model/ArtistIdentity.cpp
     model/ArtistIdentity.h
     model/ArtworkPlaceholder.cpp
@@ -176,6 +181,8 @@ qt_add_library(lmp_core STATIC
     playback/ResumePositionTracker.cpp
     playback/ResumePositionTracker.h
     playback/TrackSourceResolver.h
+    provider/ProviderClient.cpp
+    provider/ProviderClient.h
     settings/SettingKeys.h
     settings/SettingsStore.cpp
     settings/SettingsStore.h

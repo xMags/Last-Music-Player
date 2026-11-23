@@ -325,3 +325,19 @@ lmp_add_test(tst_account_session_restore
 lmp_add_test(tst_account_session_sign_in
     SOURCES core/tst_account_session_sign_in.cpp core/AccountSessionFixture.h core/FakeCredentialStore.h core/FakeHttpTransport.h
     LIBS lmp_core)
+
+lmp_add_test(tst_provider_client
+    SOURCES core/tst_provider_client.cpp core/FakeHttpTransport.h
+    LIBS lmp_core)
+
+lmp_add_test(tst_capabilities
+    SOURCES core/tst_capabilities.cpp
+    LIBS lmp_core)
+
+lmp_add_test(tst_mode_service
+    SOURCES core/tst_mode_service.cpp core/ModeServiceFixture.h core/AccountSessionFixture.h core/FakeCredentialStore.h core/FakeHttpTransport.h core/TempLibrary.h
+    LIBS lmp_core)
+
+lmp_add_test(tst_mode_service_api_key
+    SOURCES core/tst_mode_service_api_key.cpp core/ModeServiceFixture.h core/AccountSessionFixture.h core/FakeCredentialStore.h core/FakeHttpTransport.h core/TempLibrary.h
+    LIBS lmp_core)

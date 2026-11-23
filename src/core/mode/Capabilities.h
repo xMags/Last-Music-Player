@@ -1,0 +1,106 @@
+#pragma once
+
+#include "core/account/AccountSessionState.h"
+#include "core/mode/SourceMode.h"
+
+#include <QStringList>
+
+namespace lmp::core::mode {
+
+// What the mode rules need to know about the two remote sources.
+struct ModeConditions {
+    // The build has an account service to sign in to.
+    bool accountServiceAvailable = false;
+    account::AccountSessionState sessionState = account::AccountSessionState::SignedOut;
+    // A provider base address is saved and its API key is stored.
+    bool providerConfigured = false;
+};
+
+// Whether a mode can serve requests now. LocalOnly always; ApiKey with a
+// configured provider; Account with an account service and a session that is
+// validated or offline.
+[[nodiscard]] bool isSourceModeAvailable(SourceMode mode, const ModeConditions& conditions);
+
+// Whether a mode may be entered. ApiKey always: its address and key are
+// typed into the card that entering the mode shows. The others only when
+// available: an account session comes from a browser sign-in, which commits
+// the switch itself.
+[[nodiscard]] bool isSourceModeSelectable(SourceMode mode, const ModeConditions& conditions);
+
+// The state of this machine's network.
+struct Connectivity {
+    bool online = true;
+    // The connection costs money per byte (fixed or variable cost, roaming
+    // or over its data limit).
+    bool metered = false;
+};
+
+struct CapabilityInputs {
+    SourceMode mode = SourceMode::LocalOnly;
+    ModeConditions conditions;
+    // From the provider's status answer; only read in ApiKey mode.
+    QStringList providerCapabilities;
+    Connectivity connectivity;
+};
+
+// What the user can do right now. Computed only by compute(); no other code
+// compares the mode to decide what is offered. A row that is false hides or
+// refuses that feature; per-item rules (is this song remote, is a setting on)
+// stay with the feature.
+struct Capabilities {
+    // Search results from the provider or the account service, beside the
+    // local ones.
+    bool searchOnline = false;
+    // Catalogue shelves, discovery, charts and catalogue pages.
+    bool browseCatalogue = false;
+    // Pick the catalogue region.
+    bool chooseRegion = false;
+    // The catalogue section of Home.
+    bool showCatalogueHome = false;
+    // Mixes made by the provider or the account service on Home.
+    bool showOnlineMixes = false;
+    bool showLyrics = false;
+    // Keep playing related songs when the queue ends.
+    bool playRadio = false;
+    // Play songs that have no downloaded file.
+    bool streamRemoteSongs = false;
+    // Fetch the next songs into the stream cache ahead of time.
+    bool prefetchUpcomingSongs = false;
+    // Download remote songs for offline listening.
+    bool downloadSongs = false;
+    // Play to a Cast device. Never in ApiKey mode: the device would receive
+    // addresses that carry the key.
+    bool castToDevices = false;
+    // Artist and album pages from the remote source instead of the local
+    // library.
+    bool openOnlineArtistPages = false;
+    bool openOnlineAlbumPages = false;
+    // Artist pictures on artist pages.
+    bool loadArtistPictures = false;
+    // Import an album or playlist from a pasted link.
+    bool importFromLink = false;
+    // Account library kept on the service.
+    bool followArtistsOnServer = false;
+    bool browseServerArtistList = false;
+    bool editServerPlaylists = false;
+    bool likeOnServer = false;
+    bool recordServerHistory = false;
+    // History, likes, preferences and library synchronised with the service.
+    bool syncLibrary = false;
+    // Offer to bring the local listening history into the account.
+    bool importLocalHistory = false;
+    // The profile button shows the account's name and picture.
+    bool showAccountProfile = false;
+    // The presence feature asks the provider for cover pictures.
+    bool lookUpPresenceArtwork = false;
+    // The data saver setting is offered.
+    bool chooseLowQualityStreams = false;
+    // Streams are asked for in low quality when that setting is on.
+    bool lowQualityOnThisConnection = false;
+
+    [[nodiscard]] static Capabilities compute(const CapabilityInputs& inputs);
+
+    friend bool operator==(const Capabilities&, const Capabilities&) = default;
+};
+
+} // namespace lmp::core::mode
