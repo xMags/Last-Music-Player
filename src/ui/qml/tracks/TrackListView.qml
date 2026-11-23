@@ -17,6 +17,10 @@ Item {
 
     required property TrackListModel model
     property bool grid: false
+
+    // Switching between List and Grid: the new form's rows or cards fade in
+    // one after another (the plan's fade in place of the cover glide).
+    onGridChanged: App.cascade.restart()
     property Component header: null
     // Space below the last row, inside the scrolling area.
     property real bottomMargin: 32

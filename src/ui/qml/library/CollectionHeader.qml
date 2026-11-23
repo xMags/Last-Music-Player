@@ -305,4 +305,9 @@ Column {
     }
 
     Item { width: 1; height: 18 }
+
+    // Arrives in the page cascade when the page has just opened.
+    CascadeIn {
+        target: header
+    }
 }

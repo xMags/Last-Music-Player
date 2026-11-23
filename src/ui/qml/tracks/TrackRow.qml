@@ -208,4 +208,9 @@ T.AbstractButton {
 
         Item { Layout.preferredWidth: 20 - 16 - 2 }
     }
+
+    // Arrives in the page cascade when the page has just opened.
+    CascadeIn {
+        target: row.contentItem
+    }
 }

@@ -494,6 +494,7 @@ CompositionRoot::CompositionRoot()
           .presenceAvailable = m_presence.available(),
           .cast = &m_castViewModel,
           .coverFlight = &m_coverFlight,
+          .cascade = &m_pageCascade,
           .equalizer = &m_equalizer,
           .historyImport = &m_historyImportViewModel,
           .share = &m_share,
@@ -574,6 +575,8 @@ CompositionRoot::CompositionRoot()
     });
     QObject::connect(&m_historyImportViewModel, &ui::HistoryImportViewModel::message, &m_toasts,
                      [this](const QString& text) { m_toasts.show(text); });
+    // Each page opened starts the cascade of its cards and rows.
+    QObject::connect(&m_navigator, &ui::Navigator::currentChanged, &m_pageCascade, [this]() { m_pageCascade.restart(); });
     // Discord presence follows its setting and the player.
     m_presence.setEnabled(m_settings.boolean(core::settings::keys::DiscordPresence, false));
     QObject::connect(&m_settings, &core::SettingsStore::changed, &m_presence, [this](const QString& key) {

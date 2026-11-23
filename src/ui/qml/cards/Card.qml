@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Shapes
 import QtQuick.Templates as T
 import LastMusicPlayer
 
@@ -44,6 +45,8 @@ T.AbstractButton {
     }
 
     HoverHandler {
+        id: pointer
+
         cursorShape: Qt.PointingHandCursor
     }
 
@@ -98,6 +101,46 @@ T.AbstractButton {
                         anchors.fill: parent
                         active: card.art !== null
                         sourceComponent: card.art
+                    }
+
+                    // The hover light (card-sheen.ts, motion.css 357-374): a
+                    // glossy sheen on the cover that follows the pointer.
+                    Shape {
+                        id: sheen
+
+                        readonly property real px: pointer.point.position.x
+                        readonly property real py: pointer.point.position.y
+                        // CSS's farthest-corner circle.
+                        readonly property real reach: Math.max(Math.hypot(px, py), Math.hypot(width - px, py),
+                                                               Math.hypot(px, height - py), Math.hypot(width - px, height - py))
+
+                        anchors.fill: parent
+                        visible: !Motion.reduced && opacity > 0
+                        opacity: card.hovered && !card.round ? 1 : 0
+
+                        Behavior on opacity {
+                            enabled: !Motion.reduced
+                            NumberAnimation { duration: 300; easing: Motion.ease }
+                        }
+
+                        ShapePath {
+                            strokeColor: "transparent"
+                            fillGradient: RadialGradient {
+                                centerX: sheen.px
+                                centerY: sheen.py
+                                focalX: sheen.px
+                                focalY: sheen.py
+                                centerRadius: Math.max(1, sheen.reach)
+                                GradientStop { position: 0; color: Qt.rgba(1, 1, 1, 0.24) }
+                                GradientStop { position: 0.34; color: Qt.rgba(1, 1, 1, 0.07) }
+                                GradientStop { position: 0.6; color: "transparent" }
+                            }
+                            PathRectangle {
+                                width: sheen.width
+                                height: sheen.height
+                                radius: Theme.radiusXl
+                            }
+                        }
                     }
                 }
             }
@@ -155,5 +198,10 @@ T.AbstractButton {
             color: Theme.fgSecondary
             elide: Text.ElideRight
         }
+    }
+
+    // Arrives in the page cascade when the page has just opened.
+    CascadeIn {
+        target: card.contentItem
     }
 }

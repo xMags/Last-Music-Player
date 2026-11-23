@@ -164,4 +164,9 @@ T.AbstractButton {
         }
     }
 
+
+    // Arrives in the page cascade when the page has just opened.
+    CascadeIn {
+        target: card.contentItem
+    }
 }

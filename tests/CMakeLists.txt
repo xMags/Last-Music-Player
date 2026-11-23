@@ -577,3 +577,7 @@ lmp_add_test(tst_equalizer_view_model
 lmp_add_test(tst_cover_flight
     SOURCES ui/tst_cover_flight.cpp
     LIBS lmp_ui)
+
+lmp_add_test(tst_page_cascade
+    SOURCES ui/tst_page_cascade.cpp
+    LIBS lmp_ui)

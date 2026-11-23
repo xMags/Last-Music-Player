@@ -58,4 +58,11 @@ Item {
     SkeletonSweep {
         anchors.fill: parent
     }
+
+    // Content replacing the skeleton cascades in, as a page opening does.
+    onVisibleChanged: {
+        if (!visible)
+            App.cascade.restart()
+    }
+    Component.onDestruction: App.cascade.restart()
 }

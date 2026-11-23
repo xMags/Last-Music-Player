@@ -85,4 +85,9 @@ T.AbstractButton {
             elide: Text.ElideRight
         }
     }
+
+    // Arrives in the page cascade when the page has just opened.
+    CascadeIn {
+        target: tile.contentItem
+    }
 }

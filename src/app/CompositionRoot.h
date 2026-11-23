@@ -63,6 +63,7 @@
 #include "platform/windows/WindowsDnsServiceBrowser.h"
 #include "ui/cast/CastViewModel.h"
 #include "ui/motion/CoverFlight.h"
+#include "ui/motion/PageCascade.h"
 #include "core/playback/TrackSourceResolver.h"
 #include "core/provider/ProviderClient.h"
 #include "core/remote/ArtworkService.h"
@@ -337,6 +338,8 @@ private:
     ui::CastViewModel m_castViewModel;
     // The cover flight from a card to the page it opens.
     ui::CoverFlight m_coverFlight;
+    // Cards and rows arriving one after another when a page opens.
+    ui::PageCascade m_pageCascade;
     // Settings > Sound (shown, inert) and the one-time history import offer.
     ui::EqualizerViewModel m_equalizer;
     core::account::HistoryImportService m_historyImport;
