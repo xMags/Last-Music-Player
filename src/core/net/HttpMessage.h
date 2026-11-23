@@ -37,6 +37,10 @@ struct HttpRequest {
     // The largest body accepted; anything larger is abandoned as soon as it
     // is announced or received.
     qint64 maxResponseBytes = 0;
+    // Finish as soon as the status and headers arrive: the body is never
+    // read (the response's body is empty) and the size limit does not apply.
+    // For checking an address whose body may be large, such as audio.
+    bool headersOnly = false;
 
     // The first header with this name, compared without case; empty when
     // there is none.

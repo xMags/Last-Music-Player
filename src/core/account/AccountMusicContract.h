@@ -133,6 +133,11 @@ using PortablePreferenceValues = QHash<PortablePreferenceKey, QString>;
 // time with its position. Not valid when none of those lists is present.
 [[nodiscard]] ParsedAccountLibrary parseAccountLibrary(const QByteArray& payload);
 
+// The playlist in a playlist call's answer ({"playlist": {...}}, or the
+// playlist object itself), read as a library playlist is. Nothing when it
+// has no id.
+[[nodiscard]] std::optional<AccountPlaylist> parsePlaylistAnswer(const QByteArray& payload);
+
 // The ids from "accepted" then "duplicates" that were submitted, each once.
 [[nodiscard]] QStringList parseAcknowledgedHistoryEvents(const QByteArray& payload,
                                                          const QStringList& submittedEventIds);

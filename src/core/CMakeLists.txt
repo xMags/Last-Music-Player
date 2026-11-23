@@ -1,6 +1,7 @@
 qt_add_library(lmp_core STATIC
     account/AccountClient.cpp
     account/AccountClient.h
+    account/AccountClientMusic.cpp
     account/AccountDataLifecycleStorage.h
     account/AccountMusicContract.cpp
     account/AccountMusicContract.h
@@ -12,6 +13,7 @@ qt_add_library(lmp_core STATIC
     account/AccountSessionState.h
     account/AccountSignOutCoordinator.cpp
     account/AccountSignOutCoordinator.h
+    account/AccountSyncTransport.h
     account/ProfileIdentity.cpp
     account/ProfileIdentity.h
     account/AccountUrlPolicy.cpp

@@ -1,6 +1,8 @@
 #pragma once
 
+#include "core/account/AccountMusicContract.h"
 #include "core/account/AccountSessionProtocol.h"
+#include "core/account/AccountSyncTransport.h"
 #include "core/account/AccountUrlPolicy.h"
 #include "core/account/Pkce.h"
 #include "core/async/Result.h"
@@ -11,6 +13,7 @@
 #include <QByteArray>
 #include <QFuture>
 #include <QString>
+#include <QStringList>
 #include <QUrl>
 #include <QtGlobal>
 
@@ -30,6 +33,8 @@ struct AccountCall {
     QByteArray jsonBody;
     std::chrono::milliseconds timeout{std::chrono::seconds(20)};
     qint64 maxResponseBytes = 32 * 1024 * 1024;
+    // Finish on the status and headers; the body is never read.
+    bool headersOnly = false;
 };
 
 // The account service's HTTP API.
@@ -44,8 +49,18 @@ struct AccountCall {
 //
 // Holds no state between calls. The transport must outlive the client;
 // futures finish on the transport's thread.
-class AccountClient {
+//
+// Music calls send the caller's JSON as given (build it with
+// AccountMusicContract and remote::track_json) and put every id they place
+// in a path or query through percent-encoding.
+class AccountClient final : public AccountSyncTransport {
 public:
+    // The largest artwork the relay may return (12 MiB).
+    static constexpr qint64 MaxArtworkBytes = 12LL * 1024 * 1024;
+    // How many plays the library answer carries, so History and Most Played
+    // are not held to the service's smaller default.
+    static constexpr int LibraryHistoryLimit = 300;
+
     AccountClient(net::IHttpTransport& transport, const PrivateConfig& config,
                   LoopbackHttp loopback = loopbackHttpForThisBuild());
 
@@ -75,6 +90,53 @@ public:
 
     // POST /v1/auth/logout: ends the session on the service.
     [[nodiscard]] QFuture<Result<void>> logout(const QString& bearerSession);
+
+    // Library sync (AccountSyncTransport). The library is asked for with
+    // "?historyLimit=" LibraryHistoryLimit. Liking needs a valid track object
+    // and unliking a remote id; otherwise nothing is sent (Unknown).
+    [[nodiscard]] QFuture<Result<ParsedAccountLibrary>> fetchLibrary(const QString& bearerSession) override;
+    [[nodiscard]] QFuture<Result<void>> setLiked(const QString& bearerSession, const QByteArray& trackJson,
+                                                 bool liked, const QString& remoteId) override;
+    [[nodiscard]] QFuture<Result<QStringList>> postHistoryBatch(const QString& bearerSession,
+                                                                const QByteArray& batchJson,
+                                                                const QStringList& submittedEventIds) override;
+    [[nodiscard]] QFuture<Result<PortablePreferences>> fetchPreferences(const QString& bearerSession) override;
+    [[nodiscard]] QFuture<Result<PortablePreferences>> putPreferences(const QString& bearerSession,
+                                                                      const QByteArray& preferencesJson) override;
+
+    // POST /v1/music/playlists. The new playlist; InvalidResponse when the
+    // answer names none.
+    [[nodiscard]] QFuture<Result<AccountPlaylist>> createPlaylist(const QString& bearerSession,
+                                                                  const QByteArray& playlistJson);
+    // PATCH /v1/music/playlists/<id>: a rename ({"name"}) or a replacement
+    // (account::serializePlaylistReplacement).
+    [[nodiscard]] QFuture<Result<void>> updatePlaylist(const QString& bearerSession, const QString& playlistId,
+                                                       const QByteArray& playlistJson);
+    // DELETE /v1/music/playlists/<id>.
+    [[nodiscard]] QFuture<Result<void>> deletePlaylist(const QString& bearerSession, const QString& playlistId);
+    // POST /v1/music/playlists/<id>/tracks {"track": ...}.
+    [[nodiscard]] QFuture<Result<void>> addPlaylistTrack(const QString& bearerSession, const QString& playlistId,
+                                                         const QByteArray& trackJson);
+    // DELETE /v1/music/playlists/<id>/tracks/<track id>: only that song goes,
+    // so songs another device added meanwhile stay.
+    [[nodiscard]] QFuture<Result<void>> removePlaylistTrack(const QString& bearerSession, const QString& playlistId,
+                                                            const QString& trackId);
+
+    // POST /v1/music/resolve {"url"[, "quality": "low"]}: the answer as sent,
+    // for the caller to read.
+    [[nodiscard]] QFuture<Result<QByteArray>> resolve(const QString& bearerSession, const QString& sourceUrl,
+                                                      bool lowQuality = false);
+    // GET /v1/music/related?sourceUrl=<address>: the answer as sent.
+    [[nodiscard]] QFuture<Result<QByteArray>> related(const QString& bearerSession, const QString& sourceUrl);
+    // POST /v1/music/import {"url"}: the answer as sent.
+    [[nodiscard]] QFuture<Result<QByteArray>> importCollection(const QString& bearerSession,
+                                                               const QString& sourceUrl);
+    // GET /v1/music/artwork?url=<address>: the image bytes, at most
+    // MaxArtworkBytes (InvalidResponse beyond).
+    [[nodiscard]] QFuture<Result<QByteArray>> artwork(const QString& bearerSession, const QString& artworkUrl);
+    // GET /v1/music/stream?url=<address>, headers only: the status of a
+    // stream that answers 2xx; the audio is never downloaded.
+    [[nodiscard]] QFuture<Result<int>> probeStream(const QString& bearerSession, const QString& streamUrl);
 
 private:
     net::IHttpTransport& m_transport;

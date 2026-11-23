@@ -50,7 +50,7 @@ public:
 
 private:
     // Why the client stopped a request before it finished on its own.
-    enum class Ending { None, TimedOut, Oversized, Cancelled };
+    enum class Ending { None, TimedOut, Oversized, Cancelled, HeadersArrived };
     struct Pending;
 
     [[nodiscard]] QNetworkReply* start(const HttpRequest& request);

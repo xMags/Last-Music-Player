@@ -93,12 +93,28 @@ void finishPromise(Promise& promise, Result<HttpResponse> result)
     }
 }
 
+// The answer to a headers-only request: its status and headers, no body.
+[[nodiscard]] Result<HttpResponse> headersOutcome(QNetworkReply& reply, int status)
+{
+    if (status < 100 || status > 599) {
+        return Failure::of(FailureKind::InvalidResponse, QStringLiteral("HTTP status out of range"), status);
+    }
+    if (status < 200 || status >= 300) {
+        Failure failure = statusFailure(status);
+        failure.retryAfterSeconds = parseRetryAfterSeconds(reply.rawHeader(QByteArrayLiteral("Retry-After")),
+                                                           QDateTime::currentDateTimeUtc());
+        return failure;
+    }
+    return HttpResponse{status, reply.rawHeaderPairs(), {}};
+}
+
 } // namespace
 
 struct HttpClient::Pending {
     Promise promise;
     QByteArray body;
     qint64 maxBytes = 0;
+    bool headersOnly = false;
     // Both are children of the reply, so they never outlive it.
     QTimer* deadline = nullptr;
     QFutureWatcher<Result<HttpResponse>>* cancelWatcher = nullptr;
@@ -129,6 +145,7 @@ QFuture<Result<HttpResponse>> HttpClient::send(const HttpRequest& request)
 
     QNetworkReply* reply = start(request);
     pending->maxBytes = request.maxResponseBytes;
+    pending->headersOnly = request.headersOnly;
     watch(reply, *pending, request);
     auto* watcher = new QFutureWatcher<Result<HttpResponse>>(reply);
     pending->cancelWatcher = watcher;
@@ -206,6 +223,13 @@ void HttpClient::onMetaDataChanged(QNetworkReply* reply)
     if (found == m_pending.end()) {
         return;
     }
+    if (found->second->headersOnly) {
+        // The status is known once the headers are: nothing more is read.
+        if (reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).isValid()) {
+            abortWith(reply, Ending::HeadersArrived);
+        }
+        return;
+    }
     bool known = false;
     const qint64 announced = reply->header(QNetworkRequest::ContentLengthHeader).toLongLong(&known);
     if (known && announced > found->second->maxBytes) {
@@ -220,6 +244,9 @@ void HttpClient::onReadyRead(QNetworkReply* reply)
         return;
     }
     Pending& pending = *found->second;
+    if (pending.headersOnly) {
+        return;
+    }
     if (pending.body.size() + reply->bytesAvailable() > pending.maxBytes) {
         abortWith(reply, Ending::Oversized);
         return;
@@ -268,8 +295,17 @@ Result<HttpResponse> HttpClient::outcomeOf(QNetworkReply& reply, Pending& pendin
         return Failure::of(FailureKind::Timeout, QStringLiteral("no complete response in time"), status);
     case Ending::Cancelled:
         return Failure::of(FailureKind::Cancelled, QStringLiteral("request cancelled"), status);
+    case Ending::HeadersArrived:
+        return headersOutcome(reply, status);
     case Ending::None:
         break;
+    }
+    if (pending.headersOnly) {
+        // Finished before the headers were seen (an error or an empty reply).
+        if (status == 0) {
+            return networkFailure(reply.error(), 0);
+        }
+        return headersOutcome(reply, status);
     }
 
     if (pending.body.size() + reply.bytesAvailable() > pending.maxBytes) {

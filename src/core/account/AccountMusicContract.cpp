@@ -454,6 +454,22 @@ ParsedAccountLibrary parseAccountLibrary(const QByteArray& payload)
     return parsed;
 }
 
+std::optional<AccountPlaylist> parsePlaylistAnswer(const QByteArray& payload)
+{
+    const std::optional<QJsonObject> root = parseObject(payload);
+    if (!root) {
+        return std::nullopt;
+    }
+    const QJsonObject playlist = objectValue(*root, QLatin1StringView("playlist")).value_or(*root);
+    QJsonObject library;
+    library.insert(QLatin1StringView("playlists"), QJsonArray{playlist});
+    ParsedAccountLibrary parsed = parseAccountLibrary(compact(library));
+    if (parsed.playlists.isEmpty()) {
+        return std::nullopt;
+    }
+    return parsed.playlists.takeFirst();
+}
+
 QStringList parseAcknowledgedHistoryEvents(const QByteArray& payload, const QStringList& submittedEventIds)
 {
     const std::optional<QJsonObject> root = parseObject(payload);

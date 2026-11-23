@@ -146,6 +146,8 @@ private slots:
     void cancelAllFinishesAsCancelled();
     void destroyingTheClientFinishesAsCancelled();
     void cancellingTheFutureAbortsTheRequest();
+    void headersOnlyStopsAtTheHeaders();
+    void headersOnlyKeepsFailureStatuses();
 
 private:
     [[nodiscard]] HttpRequest request(const QByteArray& path) const
@@ -180,6 +182,10 @@ void HttpClientTest::init()
         socket->write("HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\nConnection: close\r\n\r\n");
         socket->write("258\r\n" + chunk + "\r\n258\r\n" + chunk + "\r\n0\r\n\r\n");
         socket->disconnectFromHost();
+    });
+    m_server->route("/audio", [](QTcpSocket* socket) {
+        // A large body that never finishes: only its headers may be waited for.
+        socket->write("HTTP/1.1 200 OK\r\nContent-Type: audio/mpeg\r\nContent-Length: 50000000\r\n\r\n0123456789");
     });
     m_server->route("/limited", [](QTcpSocket* socket) {
         TestServer::respond(socket, 429, "{}", "Retry-After: 70001\r\n");
@@ -417,6 +423,37 @@ void HttpClientTest::cancellingTheFutureAbortsTheRequest()
     QVERIFY(future.isCanceled());
     QVERIFY(future.isFinished());
     QTRY_COMPARE(m_server->closedConnections, 1);
+}
+
+void HttpClientTest::headersOnlyStopsAtTheHeaders()
+{
+    HttpClient client;
+    HttpRequest probe = request("/audio");
+    probe.headersOnly = true;
+    QElapsedTimer elapsed;
+    elapsed.start();
+    const QFuture<Result<HttpResponse>> future = client.send(probe);
+    QVERIFY(waitFor(future));
+    QVERIFY(future.result());
+    QCOMPARE(future.result().value().status, 200);
+    QVERIFY(future.result().value().body.isEmpty());
+    QCOMPARE(future.result().value().header("Content-Type"), QByteArray("audio/mpeg"));
+    QVERIFY(elapsed.elapsed() < 3000);
+}
+
+void HttpClientTest::headersOnlyKeepsFailureStatuses()
+{
+    HttpClient client;
+    HttpRequest probe = request("/status/404");
+    probe.headersOnly = true;
+    const QFuture<Result<HttpResponse>> missing = client.send(probe);
+    QVERIFY(waitFor(missing));
+    QCOMPARE(missing.result().failure().httpStatus, 404);
+    HttpRequest limited = request("/limited");
+    limited.headersOnly = true;
+    const QFuture<Result<HttpResponse>> refused = client.send(limited);
+    QVERIFY(waitFor(refused));
+    QVERIFY(refused.result().failure().retryAfterSeconds == std::optional<int>(70001));
 }
 
 QTEST_GUILESS_MAIN(HttpClientTest)

@@ -81,6 +81,7 @@ QFuture<Result<net::HttpResponse>> AccountClient::send(const AccountCall& call)
     request.timeout = call.timeout;
     request.redirects = net::RedirectPolicy::Refuse;
     request.maxResponseBytes = call.maxResponseBytes;
+    request.headersOnly = call.headersOnly;
     request.headers.append({QByteArrayLiteral("X-Requested-With"), AppIdentity::accountRequestedWith().toUtf8()});
     request.headers.append({QByteArrayLiteral("Accept"), QByteArrayLiteral("application/json")});
     if (!call.bearerSession.isEmpty()) {

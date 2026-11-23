@@ -445,3 +445,7 @@ lmp_add_test(tst_remote_track_json
 lmp_add_test(tst_account_music_contract
     SOURCES core/tst_account_music_contract.cpp
     LIBS lmp_core)
+
+lmp_add_test(tst_account_music_calls
+    SOURCES core/tst_account_music_calls.cpp
+    LIBS lmp_core)
