@@ -6,6 +6,8 @@
 #include <QJsonObject>
 #include <QLoggingCategory>
 
+#include <algorithm>
+#include <chrono>
 #include <utility>
 
 namespace lmp::core::connect {
@@ -134,7 +136,9 @@ void ConnectClient::handleTicket(RequestScope::Token token, const Result<QByteAr
     }
     if (!url) {
         qCInfo(lcConnect) << "No device link ticket; trying again later";
-        scheduleReconnect({});
+        // A server that asked for a wait (Retry-After) gets at least that.
+        const int retryAfter = answer ? 0 : std::max(0, answer.failure().retryAfterSeconds.value_or(0));
+        scheduleReconnect(std::chrono::seconds(retryAfter));
         return;
     }
     std::unique_ptr<IConnectSocket> socket = m_dependencies.makeSocket();

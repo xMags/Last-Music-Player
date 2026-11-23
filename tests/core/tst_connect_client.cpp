@@ -235,6 +235,23 @@ private slots:
         QCOMPARE(harness.log->created, 1);
     }
 
+    void aTicketRefusalWaitsAsLongAsTheServerAsks()
+    {
+        FakePlaybackClock clock;
+        ConnectHarness harness(clock);
+        harness.ticketFails = true;
+        harness.ticketRetryAfterSeconds = 45;
+        harness.client->start();
+        settle();
+        QCOMPARE(harness.ticketCalls, 1);
+        clock.advance(44999);
+        settle();
+        QCOMPARE(harness.ticketCalls, 1);
+        clock.advance(1);
+        settle();
+        QCOMPARE(harness.ticketCalls, 2);
+    }
+
     void stopReleasesTheSessionAndStaysDown()
     {
         FakePlaybackClock clock;

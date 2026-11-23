@@ -64,6 +64,9 @@ public:
     static constexpr qint64 MaxPictureBytes = 12LL * 1024 * 1024;
     static constexpr std::array<std::chrono::milliseconds, 2> RetryDelays{std::chrono::milliseconds(500),
                                                                           std::chrono::milliseconds(1500)};
+    // A server that asks for a longer wait than this (Retry-After) gets no
+    // further try; the picture fails.
+    static constexpr std::chrono::milliseconds MaxServerWait{std::chrono::minutes(5)};
     static constexpr std::array<std::chrono::milliseconds, 4> RunBackoff{
         std::chrono::milliseconds(2000), std::chrono::milliseconds(5000), std::chrono::milliseconds(12000),
         std::chrono::milliseconds(30000)};

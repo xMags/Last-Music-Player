@@ -95,8 +95,14 @@ public:
                         return heldTicket->future();
                     }
                     if (ticketFails) {
-                        return QtFuture::makeReadyValueFuture(lmp::core::Result<QByteArray>(
-                            lmp::core::Failure::of(lmp::core::FailureKind::Network, QStringLiteral("offline"))));
+                        lmp::core::Failure failure =
+                            lmp::core::Failure::of(lmp::core::FailureKind::Network, QStringLiteral("offline"));
+                        if (ticketRetryAfterSeconds > 0) {
+                            failure = lmp::core::Failure::of(lmp::core::FailureKind::RateLimited,
+                                                             QStringLiteral("slow down"), 429);
+                            failure.retryAfterSeconds = ticketRetryAfterSeconds;
+                        }
+                        return QtFuture::makeReadyValueFuture(lmp::core::Result<QByteArray>(failure));
                     }
                     return QtFuture::makeReadyValueFuture(lmp::core::Result<QByteArray>(
                         QByteArrayLiteral(R"({"ticket":"tick-1","path":"/v1/music/connect","expiresInSec":60})")));
@@ -139,6 +145,8 @@ public:
     }
 
     bool ticketFails = false;
+    // With ticketFails: answer 429 with this Retry-After instead.
+    int ticketRetryAfterSeconds = 0;
     // The ticket request waits for releaseTicket().
     bool holdTicket = false;
     std::unique_ptr<QPromise<lmp::core::Result<QByteArray>>> heldTicket;

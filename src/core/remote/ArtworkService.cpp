@@ -33,6 +33,12 @@ template <typename T>
 
 // A failure another run could get past: the service was busy or the
 // network wobbled, as opposed to a picture that is not there.
+// The wait the server asked for (Retry-After), or 0.
+[[nodiscard]] std::chrono::milliseconds serverWait(const Failure& failure)
+{
+    return std::chrono::seconds(std::max(0, failure.retryAfterSeconds.value_or(0)));
+}
+
 [[nodiscard]] bool isTransient(const Failure& failure)
 {
     switch (failure.kind) {
@@ -316,8 +322,12 @@ void ArtworkService::onAttempt(const QString& key, quint64 id, Priority slot, in
     }
     const Failure failure = bytes ? Failure::of(FailureKind::InvalidResponse, QStringLiteral("empty picture"))
                                   : bytes.failure();
-    const bool transient = !bytes && isTransient(failure);
-    if (transient && current && attemptIndex < static_cast<int>(RetryDelays.size())) {
+    const bool transient = !bytes && isTransient(failure) && serverWait(failure) <= MaxServerWait;
+    // A quick retry keeps its slot; a server that asks for a longer wait
+    // than that gets the slot back and the request is requeued instead.
+    const bool retryInSlot = attemptIndex < static_cast<int>(RetryDelays.size())
+                             && serverWait(failure) <= RetryDelays[static_cast<std::size_t>(attemptIndex)];
+    if (transient && current && retryInSlot) {
         schedule({.kind = DueStep::Kind::NextAttempt,
                   .key = key,
                   .id = id,
@@ -339,7 +349,8 @@ void ArtworkService::finishFailure(const QString& key, Priority slot, const mode
     if (found != m_requests.end()) {
         if (transient && found->runs < MaxRuns && m_deps.mode.isCurrent(scope)) {
             const std::size_t index = static_cast<std::size_t>(std::max(0, found->runs - 1));
-            const std::chrono::milliseconds delay = RunBackoff[std::min(index, RunBackoff.size() - 1)];
+            const std::chrono::milliseconds delay =
+                std::max(RunBackoff[std::min(index, RunBackoff.size() - 1)], serverWait(failure));
             found->deferred = true;
             schedule({.kind = DueStep::Kind::Requeue,
                       .key = key,

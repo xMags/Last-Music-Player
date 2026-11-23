@@ -82,6 +82,7 @@ private slots:
     void samePictureSharesOneFetchAndIsCached();
     void passingFailuresAreRetriedThenBackedOff();
     void otherFailuresEndTheRequest();
+    void theServersRetryAfterIsHonoured();
     void modeChangeDropsEverything();
     void songsWithoutAPictureAreResolvedFirst();
     void outsideAccountModeTheAddressIsFetched();
@@ -204,6 +205,30 @@ void ArtworkServiceTest::passingFailuresAreRetriedThenBackedOff()
     QCOMPARE(fixture.artworkRequests(), ArtworkService::MaxRuns * 3);
     QVERIFY(future.isFinished());
     QCOMPARE(future.result().failure().kind, FailureKind::Timeout);
+    QCOMPARE(fixture.service.activeCount(), 0);
+}
+
+void ArtworkServiceTest::theServersRetryAfterIsHonoured()
+{
+    ArtworkFixture fixture;
+    QVERIFY(fixture.enterAccountMode());
+    const QFuture<Result<QByteArray>> future = fixture.service.fetch(picture(1));
+    settle();
+    // 20 s is longer than both quick retries and the first back-off: the
+    // slot is given back and nothing is asked before the 20 s are up.
+    lmp::core::Failure limited = lmp::core::Failure::of(FailureKind::RateLimited, QStringLiteral("slow down"), 429);
+    limited.retryAfterSeconds = 20;
+    QVERIFY(fixture.answer(limited));
+    QCOMPARE(fixture.service.activeCount(), 0);
+    fixture.advance(19999);
+    QCOMPARE(fixture.artworkRequests(), 1);
+    fixture.advance(1);
+    QCOMPARE(fixture.artworkRequests(), 2);
+    // A wait past the limit ends the request.
+    limited.retryAfterSeconds = 3600;
+    QVERIFY(fixture.answer(limited));
+    QVERIFY(future.isFinished());
+    QCOMPARE(future.result().failure().kind, FailureKind::RateLimited);
     QCOMPARE(fixture.service.activeCount(), 0);
 }
 
