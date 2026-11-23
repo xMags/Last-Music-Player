@@ -324,6 +324,7 @@ qt_add_library(lmp_core STATIC
     ../platform/IWindowPlacement.h
     ../platform/IMediaControls.h
     ../platform/INetworkStatus.h
+    ../platform/ITray.h
     ../platform/IPowerStatus.h
     ../platform/IReducedMotion.h
     ../platform/IShellThumbnail.h

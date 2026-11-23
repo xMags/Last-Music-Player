@@ -1,4 +1,6 @@
 qt_add_executable(lmp_app WIN32
+    CloseToTrayController.cpp
+    CloseToTrayController.h
     CompositionRoot.cpp
     CompositionRoot.h
     WindowPlacementKeeper.cpp

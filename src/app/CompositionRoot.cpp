@@ -418,6 +418,11 @@ CompositionRoot::CompositionRoot()
                  .coverFolder = m_paths.thumbsFolder()})
     , m_dataSettings(m_cleanup, m_toasts)
     , m_placementKeeper(m_windowPlacement, m_settings)
+    , m_closeToTray(m_tray,
+                    m_settings,
+                    {.togglePlay = [this]() { m_player.togglePlay(); },
+                     .next = [this]() { m_player.next(); },
+                     .previous = [this]() { m_player.previous(); }})
     , m_appRoot({
           .windowChrome = &m_windowChromeViewModel,
           .navigator = &m_navigator,
@@ -754,6 +759,7 @@ bool CompositionRoot::showMainWindow(QQmlApplicationEngine& engine)
     // The folder picker is modal to the main window.
     m_librarySettings.setOwnerWindow(static_cast<quintptr>(window->winId()));
     m_offline.setOwnerWindow(static_cast<quintptr>(window->winId()));
+    m_closeToTray.attach(window);
     // The system routes the media keys to the session of this window.
     if (!m_mediaControls.attach(static_cast<quintptr>(window->winId()))) {
         qCWarning(lcComposition) << "The system media controls are not available";

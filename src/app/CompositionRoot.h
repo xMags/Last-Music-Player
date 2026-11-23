@@ -29,6 +29,7 @@
 #include "core/db/LibraryQueries.h"
 #include "core/db/TrackRepository.h"
 #include "core/library/ArtworkCache.h"
+#include "app/CloseToTrayController.h"
 #include "app/WindowPlacementKeeper.h"
 #include "core/app/UserDataCleanup.h"
 #include "core/library/ArtistFollowService.h"
@@ -69,6 +70,7 @@
 #include "platform/windows/WindowsNetworkStatus.h"
 #include "platform/windows/WindowsAudioOutputs.h"
 #include "platform/windows/WindowsPowerStatus.h"
+#include "platform/windows/WindowsTray.h"
 #include "platform/windows/WindowsReducedMotion.h"
 #include "platform/windows/WindowsTagReader.h"
 #include "platform/windows/WindowsWindowChrome.h"
@@ -315,6 +317,9 @@ private:
     // The main window's size and place between runs.
     platform::windows::WindowsWindowPlacement m_windowPlacement;
     WindowPlacementKeeper m_placementKeeper;
+    // Closing the window to the tray, and the tray icon's menu.
+    platform::windows::WindowsTray m_tray;
+    CloseToTrayController m_closeToTray;
     ui::AppRoot m_appRoot;
     QPointer<ui::Theme> m_theme; // owned by the QML engine
 };

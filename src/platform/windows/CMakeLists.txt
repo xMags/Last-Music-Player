@@ -27,6 +27,8 @@ qt_add_library(lmp_platform_windows STATIC
     WindowsSingleInstance.cpp
     WindowsSingleInstance.h
     WindowsTagReader.cpp
+    WindowsTray.cpp
+    WindowsTray.h
     WindowsTagReader.h
     WindowsWindowChrome.cpp
     WindowsWindowChrome.h
