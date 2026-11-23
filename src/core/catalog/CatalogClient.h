@@ -85,6 +85,12 @@ public:
     // PUT /v1/music/preferences {"contentLanguages": <setting>}: the answer
     // is the stored preferences.
     [[nodiscard]] QFuture<Result<QByteArray>> saveLanguages(const QString& bearer, const QJsonObject& setting);
+    // GET /v1/music/artist-follow?provider&name[&catalogId][&sourceUrl]: the
+    // listener's view of an artist page's artist ({"artist": ...} or none).
+    // Without a provider, or without both a catalogue id and an address,
+    // nothing is sent.
+    [[nodiscard]] QFuture<Result<QByteArray>> artistFollow(const QString& bearer,
+                                                           const account::LibraryArtistIdentity& identity);
     // GET /v1/music/search?q=
     [[nodiscard]] QFuture<Result<QByteArray>> search(const QString& bearer, const QString& query);
     // GET /v1/music/search/all?q=

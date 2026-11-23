@@ -155,6 +155,9 @@ private:
     std::optional<core::catalog::CatalogPager<core::catalog::CatalogItem>> m_pager;
     std::optional<core::catalog::ChartRef> m_chart;
     QString m_shelfKey;
+    // A catalogue artist's section in full, which pages.
+    QString m_artistId;
+    std::optional<core::catalog::ArtistSection> m_artistSection;
 };
 
 } // namespace lmp::ui

@@ -86,6 +86,10 @@ LibraryViewModel::LibraryViewModel(Parts parts, QObject* parent)
                                                          {QStringLiteral("title"), album}}));
     });
     connect(&m_actions, &core::TrackActions::artistRequested, this, [this](const core::Track& track) {
+        // An account song's artist opens from the catalogue (CompositionRoot).
+        if (track.origin == QLatin1StringView("account")) {
+            return;
+        }
         const QString artist = track.artist.isEmpty() ? tr("Unknown Artist") : track.artist;
         m_navigator.push(Route(Route::Kind::Collection, {{QStringLiteral("kind"), QStringLiteral("artist")},
                                                          {QStringLiteral("key"), artist},

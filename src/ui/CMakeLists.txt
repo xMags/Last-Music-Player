@@ -172,6 +172,8 @@ qt_add_qml_module(lmp_ui
         icons/IconPart.h
         icons/IconSet.cpp
         icons/IconSet.h
+        catalog/CatalogArtistViewModel.cpp
+        catalog/CatalogArtistViewModel.h
         catalog/CatalogCardModel.cpp
         catalog/CatalogPageViewModel.cpp
         catalog/CatalogPageViewModel.h

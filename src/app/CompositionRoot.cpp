@@ -207,6 +207,13 @@ CompositionRoot::CompositionRoot()
                      .scanner = m_scanner,
                      .trackMenu = m_trackMenu,
                      .navigator = m_navigator})
+    , m_catalogArtist({.catalog = m_catalog,
+                       .client = m_catalogClient,
+                       .accountClient = m_accountClient,
+                       .session = m_session,
+                       .actions = m_trackActions,
+                       .trackMenu = m_trackMenu,
+                       .navigator = m_navigator})
     , m_collectionPage({.library = m_library,
                         .actions = m_trackActions,
                         .collections = m_collectionActions,
@@ -309,6 +316,7 @@ CompositionRoot::CompositionRoot()
           .connectivity = &m_connectivity,
           .regionLanguages = &m_regionLanguages,
           .catalogPage = &m_catalogPage,
+          .catalogArtist = &m_catalogArtist,
           .mode = &m_mode,
           .showGallery = QCoreApplication::arguments().contains(QStringLiteral("--gallery")),
       })
@@ -329,6 +337,12 @@ CompositionRoot::CompositionRoot()
             m_catalogPage.openAlbumOf(track);
         }
     });
+    QObject::connect(&m_trackActions, &core::TrackActions::artistRequested, &m_catalogArtist,
+                     [this](const core::Track& track) {
+                         if (track.origin == QLatin1StringView("account")) {
+                             m_catalogArtist.openArtistOf(track);
+                         }
+                     });
 
     // Whether this is a first run, read before the mode service stores its
     // first-run default.

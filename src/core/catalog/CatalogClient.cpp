@@ -255,6 +255,26 @@ QFuture<Result<QByteArray>> CatalogClient::saveLanguages(const QString& bearer, 
     });
 }
 
+QFuture<Result<QByteArray>> CatalogClient::artistFollow(const QString& bearer,
+                                                       const account::LibraryArtistIdentity& identity)
+{
+    const QString provider = identity.provider.trimmed();
+    const QString catalogId = identity.catalogId.trimmed();
+    const QString sourceUrl = identity.sourceUrl.trimmed();
+    if (provider.isEmpty() || (catalogId.isEmpty() && sourceUrl.isEmpty())) {
+        return refused(QStringLiteral("this artist cannot be followed"));
+    }
+    QList<std::pair<QString, QString>> items{{QStringLiteral("provider"), provider},
+                                             {QStringLiteral("name"), identity.name.trimmed()}};
+    if (!catalogId.isEmpty()) {
+        items.append({QStringLiteral("catalogId"), catalogId});
+    }
+    if (!sourceUrl.isEmpty()) {
+        items.append({QStringLiteral("sourceUrl"), sourceUrl});
+    }
+    return get(bearer, QStringLiteral("/v1/music/artist-follow?") + queryText(items));
+}
+
 QFuture<Result<QByteArray>> CatalogClient::search(const QString& bearer, const QString& query)
 {
     const QString trimmed = query.trimmed();

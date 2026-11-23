@@ -1,0 +1,155 @@
+#pragma once
+
+#include <QHash>
+#include <QObject>
+#include <QString>
+#include <QUrl>
+#include <QVariantList>
+#include <QtQml/qqmlregistration.h>
+
+#include <cstdint>
+#include <optional>
+
+#include "core/catalog/ArtistPageLoader.h"
+#include "core/catalog/CatalogModels.h"
+#include "ui/catalog/CatalogCardModel.h"
+#include "ui/tracks/TrackListModel.h"
+
+namespace lmp::core {
+class TrackActions;
+namespace account {
+class AccountClient;
+class AccountSessionService;
+} // namespace account
+namespace catalog {
+class CatalogClient;
+class CatalogService;
+} // namespace catalog
+} // namespace lmp::core
+
+namespace lmp::ui {
+
+class Navigator;
+class Route;
+class TrackMenuController;
+
+// An artist page from the catalogue (App.catalogArtist; views/catalog.ts
+// artist part): the header with the artist's picture, Play, Shuffle and
+// Follow; the top songs (five, then all); and the page's other sections as
+// shelves (latest release, albums, singles and EPs, similar artists), each
+// with "See all". The same ArtistPage component shows it and the library's
+// artist (App.localArtist): the properties it reads are named alike.
+//
+// It follows the navigator: SourceArtist routes and CatalogDetail routes of
+// type "artist" load here, through core::catalog::ArtistPageLoader.
+//
+// GUI thread only.
+class CatalogArtistViewModel final : public QObject {
+    Q_OBJECT
+    QML_ELEMENT
+    QML_UNCREATABLE("Provided by App.catalogArtist")
+
+    Q_PROPERTY(bool loading READ loading NOTIFY changed FINAL)
+    Q_PROPERTY(QString error READ error NOTIFY changed FINAL)
+    Q_PROPERTY(QString name READ name NOTIFY changed FINAL)
+    Q_PROPERTY(QString info READ info NOTIFY changed FINAL)
+    Q_PROPERTY(QString description READ description NOTIFY changed FINAL)
+    Q_PROPERTY(QUrl artworkUrl READ artworkUrl NOTIFY changed FINAL)
+    Q_PROPERTY(QString artworkId READ artworkId NOTIFY changed FINAL)
+    Q_PROPERTY(QString artworkLabel READ artworkLabel NOTIFY changed FINAL)
+    Q_PROPERTY(lmp::ui::TrackListModel* topSongs READ topSongs CONSTANT FINAL)
+    Q_PROPERTY(bool hasMore READ hasMore NOTIFY changed FINAL)
+    Q_PROPERTY(bool showingAll READ showingAll WRITE setShowingAll NOTIFY changed FINAL)
+    Q_PROPERTY(bool canFollow READ canFollow NOTIFY changed FINAL)
+    Q_PROPERTY(bool followed READ followed NOTIFY changed FINAL)
+    Q_PROPERTY(bool followBusy READ followBusy NOTIFY changed FINAL)
+    // One map per shelf below the top songs: key, title, link.
+    Q_PROPERTY(QVariantList sections READ sections NOTIFY changed FINAL)
+
+public:
+    static constexpr int TopSongsShown = 5;
+
+    struct Parts {
+        core::catalog::CatalogService& catalog;
+        core::catalog::CatalogClient& client;
+        core::account::AccountClient& accountClient;
+        core::account::AccountSessionService& session;
+        core::TrackActions& actions;
+        TrackMenuController& trackMenu;
+        Navigator& navigator;
+    };
+
+    // Everything in `parts` outlives this object.
+    explicit CatalogArtistViewModel(Parts parts, QObject* parent = nullptr);
+
+    // A route this page shows.
+    [[nodiscard]] static bool handles(const Route& route);
+
+    [[nodiscard]] bool loading() const { return m_loading; }
+    [[nodiscard]] QString error() const { return m_error; }
+    [[nodiscard]] QString name() const { return m_detail ? m_detail->item.title : m_pendingName; }
+    [[nodiscard]] QString info() const;
+    [[nodiscard]] QString description() const { return m_detail ? m_detail->item.description : QString(); }
+    [[nodiscard]] QUrl artworkUrl() const;
+    [[nodiscard]] QString artworkId() const { return QStringLiteral("artist:") + name(); }
+    [[nodiscard]] QString artworkLabel() const;
+    [[nodiscard]] TrackListModel* topSongs() { return &m_topSongs; }
+    [[nodiscard]] bool hasMore() const { return m_allTopSongs.size() > TopSongsShown; }
+    [[nodiscard]] bool showingAll() const { return m_showingAll; }
+    void setShowingAll(bool showingAll);
+    [[nodiscard]] bool canFollow() const;
+    [[nodiscard]] bool followed() const { return !m_followedId.isEmpty(); }
+    [[nodiscard]] bool followBusy() const { return m_followBusy; }
+    [[nodiscard]] QVariantList sections() const;
+
+    Q_INVOKABLE lmp::ui::CatalogCardModel* sectionCards(const QString& key);
+    Q_INVOKABLE void openSectionCard(const QString& key, int row);
+    Q_INVOKABLE void seeAllSection(const QString& key);
+    Q_INVOKABLE void play();
+    Q_INVOKABLE void shuffle();
+    Q_INVOKABLE void playSong(int row);
+    Q_INVOKABLE void likeSong(int row);
+    Q_INVOKABLE void prepareSongMenu(int row);
+    Q_INVOKABLE void toggleFollow();
+    Q_INVOKABLE void retry();
+    // The library page's call; the catalogue page has no album row of its own.
+    Q_INVOKABLE void openAlbum(int row) { Q_UNUSED(row); }
+
+    // A song's artist (Account mode): its identity as the song names it.
+    void openArtistOf(const core::Track& track);
+
+signals:
+    void changed();
+
+private:
+    void followNavigator();
+    void load(const Route& route, bool force);
+    void show(const core::catalog::ArtistPageResult& result);
+    void readFollow();
+    void showTopSongs();
+
+    core::catalog::CatalogService& m_catalog;
+    core::catalog::CatalogClient& m_client;
+    core::account::AccountClient& m_accountClient;
+    core::account::AccountSessionService& m_session;
+    core::TrackActions& m_actions;
+    TrackMenuController& m_trackMenu;
+    Navigator& m_navigator;
+    core::catalog::ArtistPageLoader m_loader;
+
+    std::uint64_t m_request = 0;
+    bool m_loading = false;
+    QString m_error;
+    QString m_pendingName;
+    std::optional<core::catalog::Detail> m_detail;
+    core::catalog::ArtistPageTarget m_target;
+    QList<core::Track> m_allTopSongs;
+    TrackListModel m_topSongs;
+    bool m_showingAll = false;
+    QHash<QString, CatalogCardModel*> m_sectionModels;
+    // The library's public id while the artist is followed.
+    QString m_followedId;
+    bool m_followBusy = false;
+};
+
+} // namespace lmp::ui

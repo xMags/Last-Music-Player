@@ -80,6 +80,7 @@ bool CatalogPageViewModel::handles(const Route& route)
     case Route::Kind::ExternalPlaylist:
     case Route::Kind::Chart:
     case Route::Kind::Shelf:
+    case Route::Kind::ArtistSection:
         return true;
     default:
         return false;
@@ -118,6 +119,8 @@ void CatalogPageViewModel::reset(const QString& kind)
     m_pager.reset();
     m_chart.reset();
     m_shelfKey.clear();
+    m_artistId.clear();
+    m_artistSection.reset();
     m_tracks.setTracks({});
     m_cards.setItems({});
 }
@@ -257,6 +260,41 @@ void CatalogPageViewModel::load(const Route& route, bool force)
         return;
     }
 
+    if (route.kind() == Route::Kind::ArtistSection) {
+        reset(QStringLiteral("shelf"));
+        const std::optional<catalog::ArtistSection> section =
+            catalog::parseArtistSectionId(route.param(QStringLiteral("section")));
+        if (!section) {
+            fail(tr("This list could not be loaded."));
+            return;
+        }
+        m_title = route.param(QStringLiteral("title"));
+        m_eyebrow = route.param(QStringLiteral("artistName")).toUpper();
+        emit changed();
+        const auto show = [this, current](const core::Result<catalog::Shelf>& result) {
+            if (!current()) {
+                return;
+            }
+            if (!result) {
+                fail(tr("This list could not be loaded. Try again."));
+                return;
+            }
+            m_loading = false;
+            m_showsCards = result.value().type != catalog::ResourceType::Song;
+            startPager(result.value().items, result.value().nextOffset, false);
+        };
+        const QString artistId = route.param(QStringLiteral("catalogArtistId"));
+        if (!artistId.isEmpty()) {
+            // The catalogue's own sections page; the provider's arrive whole.
+            m_artistId = artistId;
+            m_artistSection = section;
+            m_catalog.artistSection(artistId, *section, m_title, force).then(this, show);
+        } else {
+            m_catalog.providerArtistSection(routes::identityFromRoute(route), *section, m_title, force).then(this, show);
+        }
+        return;
+    }
+
     // A Home shelf's "See all".
     reset(QStringLiteral("shelf"));
     m_shelfKey = route.param(QStringLiteral("key"));
@@ -361,6 +399,8 @@ void CatalogPageViewModel::loadMore()
     QFuture<core::Result<catalog::ItemPage>> page;
     if (m_chart) {
         page = m_catalog.chartPage(*m_chart, request->offset);
+    } else if (m_artistSection && !m_artistId.isEmpty()) {
+        page = m_catalog.artistSectionPage(m_artistId, *m_artistSection, request->offset);
     } else if (m_shelfKey == QLatin1StringView("newSongs") || m_shelfKey == QLatin1StringView("newAlbums")) {
         page = m_catalog.newReleasesPage(m_shelfKey == QLatin1StringView("newSongs") ? catalog::NewReleasesKind::Songs
                                                                                      : catalog::NewReleasesKind::Albums,

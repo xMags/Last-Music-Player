@@ -22,7 +22,14 @@ Item {
             return type === "album" || type === "playlist"
         }
         return kind === Route.SourceAlbum || kind === Route.ExternalPlaylist || kind === Route.Chart
-            || kind === Route.Shelf
+            || kind === Route.Shelf || kind === Route.ArtistSection
+    }
+
+    // The catalogue's artist page (App.catalogArtist).
+    function showsCatalogArtist(): bool {
+        const kind = App.navigator.currentKind
+        return kind === Route.SourceArtist
+            || (kind === Route.CatalogDetail && App.navigator.current.param("type") === "artist")
     }
 
     // A Collection route of an artist shows the artist page.
@@ -88,6 +95,7 @@ Item {
                     : App.navigator.currentKind === Route.Library ? libraryPage
                     : App.navigator.currentKind === Route.Collection ? (host.showsArtist() ? artistPage : collectionPage)
                     : host.showsCatalog() ? catalogPage
+                    : host.showsCatalogArtist() ? catalogArtistPage
                     : placeholderPage
             }
         }
@@ -127,6 +135,14 @@ Item {
         id: catalogPage
 
         CatalogPage {}
+    }
+
+    Component {
+        id: catalogArtistPage
+
+        ArtistPage {
+            model: App.catalogArtist
+        }
     }
 
     Component {
