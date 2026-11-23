@@ -136,10 +136,22 @@ Rectangle {
 
         y: sidebar.height - height
         width: sidebar.width
-        name: App.sidebar.profileName
-        plan: App.sidebar.planLabel
-        letter: App.sidebar.avatarLetter
+        name: App.profile.name
+        plan: App.profile.plan
+        letter: App.profile.initials
+        avatarUrl: App.profile.avatarUrl
         collapsed: sidebar.collapsed
-        onClicked: App.sidebar.openProfile()
+        onClicked: {
+            App.profile.prepareMenu()
+            profileMenu.openAt(12, profile.y - profileMenu.implicitHeight - 4)
+        }
+    }
+
+    // Settings, and Sign out while signed in.
+    ActionMenu {
+        id: profileMenu
+
+        items: App.profile.menu
+        onTriggered: itemId => App.profile.triggerMenu(itemId)
     }
 }

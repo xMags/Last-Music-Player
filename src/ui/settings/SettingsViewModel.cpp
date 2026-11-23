@@ -2,6 +2,7 @@
 
 #include <QColor>
 
+#include "core/account/ProfileIdentity.h"
 #include "core/mode/ModeService.h"
 #include "core/mode/SourceMode.h"
 #include "core/playback/PlayerController.h"
@@ -24,11 +25,6 @@ constexpr bool MediaControlsByDefault = true;
 constexpr int CloseToTray = 0;
 constexpr int CloseQuits = 1;
 
-// The white space earlier versions trimmed: the C locale's, so ASCII only.
-bool isTrimmedSpace(QChar c)
-{
-    return c == QLatin1Char(' ') || (c >= QLatin1Char('\t') && c <= QLatin1Char('\r'));
-}
 
 } // namespace
 
@@ -198,15 +194,7 @@ void SettingsViewModel::resetDefaults()
 
 QString SettingsViewModel::trimmedName(const QString& text)
 {
-    qsizetype begin = 0;
-    qsizetype end = text.size();
-    while (begin < end && isTrimmedSpace(text.at(begin))) {
-        ++begin;
-    }
-    while (end > begin && isTrimmedSpace(text.at(end - 1))) {
-        --end;
-    }
-    return text.sliced(begin, end - begin);
+    return core::account::trimProfileName(text);
 }
 
 } // namespace lmp::ui

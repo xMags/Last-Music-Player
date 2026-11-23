@@ -41,6 +41,7 @@
 #include "ui/settings/SettingsViewModel.h"
 #include "ui/settings/SourceModeViewModel.h"
 #include "ui/shell/AppRoot.h"
+#include "ui/shell/ProfileViewModel.h"
 #include "ui/shell/ShellLayoutViewModel.h"
 #include "ui/shell/SidebarViewModel.h"
 #include "ui/shell/WindowChromeViewModel.h"
@@ -136,6 +137,7 @@ private:
     ui::SettingsAboutViewModel m_settingsAbout;
     ui::SourceModeViewModel m_source;
     ui::FirstRunViewModel m_firstRun;
+    ui::ProfileViewModel m_profile;
     ui::AppRoot m_appRoot;
     QPointer<ui::Theme> m_theme; // owned by the QML engine
 };

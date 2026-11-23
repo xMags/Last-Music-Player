@@ -163,6 +163,8 @@ qt_add_qml_module(lmp_ui
         shell/AppRoot.h
         shell/PlaybackKeyGuard.cpp
         shell/PlaybackKeyGuard.h
+        shell/ProfileViewModel.cpp
+        shell/ProfileViewModel.h
         shell/ShellLayoutViewModel.cpp
         shell/ShellLayoutViewModel.h
         shell/SidebarListModels.cpp

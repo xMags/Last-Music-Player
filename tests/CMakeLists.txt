@@ -369,3 +369,11 @@ lmp_add_test(tst_source_choice
 lmp_add_test(tst_first_run_view_model
     SOURCES ui/tst_first_run_view_model.cpp core/ModeServiceFixture.h core/AccountSessionFixture.h core/FakeCredentialStore.h core/FakeHttpTransport.h core/TempLibrary.h
     LIBS lmp_ui)
+
+lmp_add_test(tst_profile_identity
+    SOURCES core/tst_profile_identity.cpp
+    LIBS lmp_core)
+
+lmp_add_test(tst_profile_view_model
+    SOURCES ui/tst_profile_view_model.cpp core/ModeServiceFixture.h core/AccountSessionFixture.h core/FakeCredentialStore.h core/FakeHttpTransport.h core/TempLibrary.h
+    LIBS lmp_ui)

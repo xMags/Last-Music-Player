@@ -1,16 +1,21 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
+import QtQuick.Effects
 import QtQuick.Templates as T
 import LastMusicPlayer
 
 // The account card at the foot of the sidebar (.profile, styles.css 369-405):
-// a 40px avatar letter, the name and the plan label, and a chevron. Collapsed,
-// only the avatar shows.
+// a 40px avatar (the picture when there is one, else the initials), the name
+// and the plan label, and a chevron. Collapsed, only the avatar shows.
 T.AbstractButton {
     id: control
 
     property string name
     property string plan
     property string letter
+    // Already checked against the account address rules; empty for none.
+    property url avatarUrl
     property bool collapsed: false
 
     // padding: 20px 16px; collapsed: 16px 0
@@ -40,9 +45,40 @@ T.AbstractButton {
 
                 Text {
                     anchors.centerIn: parent
+                    visible: picture.status !== Image.Ready
                     text: control.letter
                     font: Theme.profileName
                     color: Theme.fg
+                }
+
+                // Cut to the circle; the initials stay until it has loaded.
+                Image {
+                    id: picture
+
+                    anchors.fill: parent
+                    visible: status === Image.Ready
+                    source: control.avatarUrl
+                    sourceSize.width: 80
+                    sourceSize.height: 80
+                    fillMode: Image.PreserveAspectCrop
+                    asynchronous: true
+                    cache: true
+                    layer.enabled: visible
+                    layer.effect: MultiEffect {
+                        maskEnabled: true
+                        maskSource: circle
+                        maskThresholdMin: 0.5
+                        maskSpreadAtMin: 1.0
+                    }
+                }
+
+                Rectangle {
+                    id: circle
+
+                    anchors.fill: parent
+                    radius: width / 2
+                    visible: false
+                    layer.enabled: true
                 }
             }
 
@@ -61,6 +97,7 @@ T.AbstractButton {
 
                 Text {
                     topPadding: 2
+                    visible: control.plan !== ""
                     text: control.plan
                     font: Theme.profileTier
                     color: Theme.accentColor

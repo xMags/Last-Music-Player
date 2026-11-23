@@ -10,6 +10,8 @@ qt_add_library(lmp_core STATIC
     account/AccountSessionState.h
     account/AccountSignOutCoordinator.cpp
     account/AccountSignOutCoordinator.h
+    account/ProfileIdentity.cpp
+    account/ProfileIdentity.h
     account/AccountUrlPolicy.cpp
     account/AccountUrlPolicy.h
     account/AutoSyncPolicy.cpp

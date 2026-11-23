@@ -112,6 +112,11 @@ CompositionRoot::CompositionRoot()
                 .links = m_externalLinks,
                 .library = m_databaseOpen ? &m_library : nullptr})
     , m_firstRun(m_settings, m_mode, m_navigator)
+    , m_profile({.settings = m_settings,
+                 .mode = m_mode,
+                 .session = m_session,
+                 .signOut = m_signOut,
+                 .navigator = m_navigator})
     , m_appRoot({
           .windowChrome = &m_windowChromeViewModel,
           .navigator = &m_navigator,
@@ -125,6 +130,7 @@ CompositionRoot::CompositionRoot()
           .settingsAbout = &m_settingsAbout,
           .source = &m_source,
           .firstRun = &m_firstRun,
+          .profile = &m_profile,
           .mode = &m_mode,
           .showGallery = QCoreApplication::arguments().contains(QStringLiteral("--gallery")),
       })

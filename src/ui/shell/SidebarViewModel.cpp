@@ -24,29 +24,17 @@ SidebarViewModel::SidebarViewModel(Navigator* navigator, QObject* parent)
     , m_navigator(navigator)
     , m_navItems(mainViews())
     , m_activeKind(static_cast<int>(Route::Kind::Home))
-    // Until an account or a local profile is wired in.
-    , m_profileName(tr("Listener"))
-    , m_planLabel(tr("SIGNED OUT"))
 {
     connect(m_navigator, &Navigator::currentChanged, this, &SidebarViewModel::followNavigator);
     followNavigator();
 }
 
-QString SidebarViewModel::avatarLetter() const
-{
-    const QString name = m_profileName.trimmed();
-    return name.isEmpty() ? QStringLiteral("L") : name.left(1).toUpper();
-}
 
 void SidebarViewModel::openView(int kind)
 {
     m_navigator->openView(kind);
 }
 
-void SidebarViewModel::openProfile()
-{
-    m_navigator->openView(static_cast<int>(Route::Kind::Settings));
-}
 
 void SidebarViewModel::followNavigator()
 {
