@@ -88,6 +88,7 @@ Type: files; Name: "{autoprograms}\Last Music.lnk"
 ; language resource folders), named one by one from a 1.1.0 install folder.
 ; Only {app} is touched; the data folder (%LOCALAPPDATA%\Last Music Player)
 ; is never deleted here.
+Type: files; Name: "{app}\App.xbf"
 Type: files; Name: "{app}\CoreMessagingXP.dll"
 Type: files; Name: "{app}\DWriteCore.dll"
 Type: files; Name: "{app}\DirectML.dll"
