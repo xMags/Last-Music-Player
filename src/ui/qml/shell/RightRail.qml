@@ -25,7 +25,7 @@ Rectangle {
     }
 
     // .right-scroll: the rest of the rail, padding 0 24px 16px. Up Next
-    // shows the queue; Lyrics stays empty until lyrics exist.
+    // shows the queue; Lyrics shows the playing song above its lyrics.
     Item {
         id: body
 
@@ -37,6 +37,11 @@ Rectangle {
         QueueRail {
             anchors.fill: parent
             visible: rail.tab === 0
+        }
+
+        LyricsRail {
+            anchors.fill: parent
+            visible: rail.tab === 1
         }
     }
 }

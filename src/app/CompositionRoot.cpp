@@ -214,6 +214,36 @@ CompositionRoot::CompositionRoot()
                        .actions = m_trackActions,
                        .trackMenu = m_trackMenu,
                        .navigator = m_navigator})
+    , m_lyricsService(
+          [this](const core::lyrics::LyricsQuery& query) -> QFuture<core::Result<QByteArray>> {
+              const std::optional<core::account::AccountOperationContext> context = m_session.captureOperation();
+              if (!context) {
+                  return QtFuture::makeReadyValueFuture(core::Result<QByteArray>(
+                      core::Failure::of(core::FailureKind::Unauthorized, QStringLiteral("Sign in to see lyrics."))));
+              }
+              core::account::AccountCall call;
+              call.method = core::net::HttpMethod::Get;
+              call.pathAndQuery = core::lyrics::lyricsPathAndQuery(query);
+              call.bearerSession = context->bearerSession;
+              return m_accountClient.send(call).then(
+                  [this, context = *context](const core::Result<core::net::HttpResponse>& response) -> core::Result<QByteArray> {
+                      if (!response) {
+                          if (response.failure().kind == core::FailureKind::Unauthorized) {
+                              m_session.handleUnauthorized(context);
+                          }
+                          return response.failure();
+                      }
+                      return response.value().body;
+                  });
+          },
+          [this]() -> QString {
+              if (m_mode.mode() != core::mode::SourceMode::Account) {
+                  return {};
+              }
+              const std::optional<core::account::AccountOperationContext> context = m_session.captureOperation();
+              return context ? QStringLiteral("account:") + context->ownerId : QString();
+          })
+    , m_lyrics(m_player, m_lyricsService)
     , m_collectionPage({.library = m_library,
                         .actions = m_trackActions,
                         .collections = m_collectionActions,
@@ -319,6 +349,7 @@ CompositionRoot::CompositionRoot()
           .regionLanguages = &m_regionLanguages,
           .catalogPage = &m_catalogPage,
           .catalogArtist = &m_catalogArtist,
+          .lyrics = &m_lyrics,
           .mode = &m_mode,
           .showGallery = QCoreApplication::arguments().contains(QStringLiteral("--gallery")),
       })
@@ -339,6 +370,10 @@ CompositionRoot::CompositionRoot()
             m_catalogPage.openAlbumOf(track);
         }
     });
+    // Another account, key or mode asks in another scope.
+    QObject::connect(&m_mode, &core::mode::ModeService::changed, &m_lyrics, [this]() { m_lyrics.reload(); });
+    QObject::connect(&m_session, &core::account::AccountSessionService::ownerChanged, &m_lyrics,
+                     [this]() { m_lyrics.reload(); });
     QObject::connect(&m_trackActions, &core::TrackActions::artistRequested, &m_catalogArtist,
                      [this](const core::Track& track) {
                          if (track.origin == QLatin1StringView("account")) {

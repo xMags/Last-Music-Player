@@ -5,7 +5,7 @@ import LastMusicPlayer
 // The side panel of the full-screen player (.fs-side, .fs-panel,
 // styles.css 2253-2287): the Lyrics / Up Next switch across the top, 12px
 // above a glass panel with a 20px radius and 20px of padding (none below).
-// Lyrics stay empty until lyrics exist. Up Next shows the same list as the
+// Lyrics shows the playing song's lyrics (LyricsPanel). Up Next shows the same list as the
 // queue rail (views/queue.ts 268-296): its header stays put while the rows
 // scroll below it with 20px of space at the end and a thin scroll bar.
 ColumnLayout {
@@ -25,6 +25,15 @@ ColumnLayout {
         color: Theme.fullscreenPanelFill
         border.width: 1
         border.color: Theme.fullscreenPanelBorder
+
+        LyricsPanel {
+            anchors.fill: parent
+            anchors.leftMargin: 24
+            anchors.rightMargin: 24
+            anchors.topMargin: 8
+            visible: App.fullscreen.lyricsChosen
+            fullscreen: true
+        }
 
         ColumnLayout {
             anchors.fill: parent

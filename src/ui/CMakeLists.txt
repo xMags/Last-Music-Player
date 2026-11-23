@@ -104,6 +104,8 @@ set(LMP_UI_QML_FILES
     qml/player/QueueList.qml
     qml/player/QueueNowPlayingHeader.qml
     qml/player/QueueRail.qml
+    qml/player/LyricsPanel.qml
+    qml/player/LyricsRail.qml
     qml/player/QueueRow.qml
     qml/player/QueueSectionHeader.qml
     qml/player/RailSectionLabel.qml
@@ -230,6 +232,8 @@ qt_add_qml_module(lmp_ui
         player/QueueListDiff.h
         player/QueueListModel.cpp
         player/QueueListModel.h
+        player/LyricsViewModel.cpp
+        player/LyricsViewModel.h
         player/QueueRailViewModel.cpp
         player/QueueRailViewModel.h
         player/QueueRowDrag.cpp

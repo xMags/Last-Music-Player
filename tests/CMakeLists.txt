@@ -513,3 +513,7 @@ lmp_add_test(tst_chart_art
 lmp_add_test(tst_catalog_routes
     SOURCES ui/tst_catalog_routes.cpp
     LIBS lmp_ui)
+
+lmp_add_test(tst_lyrics_service
+    SOURCES core/tst_lyrics_service.cpp core/CatalogFixtures.h
+    LIBS lmp_core)

@@ -33,6 +33,7 @@
 #include "core/library/CollectionActions.h"
 #include "core/library/HomeMixService.h"
 #include "core/library/LibraryScanner.h"
+#include "core/lyrics/LyricsService.h"
 #include "core/library/TrackActions.h"
 #include "core/library/UserDataOperationGate.h"
 #include "core/mode/ModeService.h"
@@ -70,6 +71,7 @@
 #include "ui/search/SearchViewModel.h"
 #include "ui/library/AccountArtistsViewModel.h"
 #include "ui/catalog/CatalogArtistViewModel.h"
+#include "ui/player/LyricsViewModel.h"
 #include "ui/catalog/CatalogPageViewModel.h"
 #include "ui/settings/RegionLanguagesViewModel.h"
 #include "ui/shell/ConnectivityViewModel.h"
@@ -253,6 +255,9 @@ private:
     // The catalogue's album, playlist, chart and shelf pages, and its artists.
     ui::CatalogPageViewModel m_catalogPage;
     ui::CatalogArtistViewModel m_catalogArtist;
+    // Lyrics of the playing song, asked for in the account's scope.
+    core::lyrics::LyricsService m_lyricsService;
+    ui::LyricsViewModel m_lyrics;
     ui::CollectionEditor m_collectionEditor;
     ui::HomeViewModel m_home;
     // Browse and search (the local library; remote sources join in P08 and P09).
