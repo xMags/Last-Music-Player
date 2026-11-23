@@ -44,6 +44,7 @@ private slots:
     void decodeScalesDownOnly();
     void responseDeliversTheDecodedPicture();
     void responseReportsAFailure();
+    void aCancelledResponseFinishesOnceWithoutAPicture();
 };
 
 void ArtworkImageProviderTest::remoteCoversUseTheProvider()
@@ -123,6 +124,37 @@ void ArtworkImageProviderTest::responseReportsAFailure()
         provider.requestImageResponse(CoverSource::forTrack(track).displayUrl().path().mid(1), QSize(64, 64)));
     QSignalSpy finished(response.get(), &QQuickImageResponse::finished);
     QVERIFY(finished.wait(3000));
+    QVERIFY(!response->errorString().isEmpty());
+}
+
+void ArtworkImageProviderTest::aCancelledResponseFinishesOnceWithoutAPicture()
+{
+    lmp::test::ModeServiceFixture modes;
+    (void)modes.modes.start();
+    FakePlaybackClock clock;
+    ArtworkService service({.client = modes.session.client,
+                            .session = modes.session.service,
+                            .mode = modes.modes,
+                            .http = modes.session.transport,
+                            .clock = clock});
+    lmp::core::Track track;
+    track.artworkUrl = QStringLiteral("https://images.example.test/slow.png");
+    ArtworkImageProvider provider(service);
+    std::unique_ptr<QQuickImageResponse> response(
+        provider.requestImageResponse(CoverSource::forTrack(track).displayUrl().path().mid(1), QSize(64, 64)));
+    QSignalSpy finished(response.get(), &QQuickImageResponse::finished);
+    QTRY_COMPARE(modes.session.transport.waitingCount(QStringLiteral("/slow.png")), 1);
+
+    // The engine gives up on it while the picture is still on its way: it
+    // still has to finish, or the engine never deletes it.
+    response->cancel();
+    QVERIFY(finished.wait(3000));
+    QVERIFY(!response->errorString().isEmpty());
+
+    // The picture arriving afterwards is not decoded or delivered again.
+    QVERIFY(modes.session.transport.answer(QStringLiteral("/slow.png"), FakeHttpTransport::ok(pngOf(QSize(600, 600)))));
+    QTest::qWait(200);
+    QCOMPARE(finished.count(), 1);
     QVERIFY(!response->errorString().isEmpty());
 }
 

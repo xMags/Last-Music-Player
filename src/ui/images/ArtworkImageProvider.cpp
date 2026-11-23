@@ -57,8 +57,21 @@ ArtworkImageResponse::ArtworkImageResponse(core::remote::ArtworkService& service
     QMetaObject::invokeMethod(this, &ArtworkImageResponse::start, Qt::QueuedConnection);
 }
 
+void ArtworkImageResponse::cancel()
+{
+    // Called on the engine's image thread. The engine deletes a response only
+    // once it has finished, so a cancelled one still finishes, on its own
+    // thread like every other answer, and skips any work not yet started.
+    m_cancelled.store(true);
+    QMetaObject::invokeMethod(
+        this, [this]() { deliver({}, QStringLiteral("cancelled")); }, Qt::QueuedConnection);
+}
+
 void ArtworkImageResponse::start()
 {
+    if (m_cancelled.load()) {
+        return; // finished by cancel()
+    }
     if (m_url.isEmpty()) {
         deliver({}, QStringLiteral("not a picture address"));
         return;
@@ -68,6 +81,9 @@ void ArtworkImageResponse::start()
         if (!bytes) {
             deliver({}, QStringLiteral("picture could not be fetched"));
             return;
+        }
+        if (m_cancelled.load()) {
+            return; // finished by cancel(); no picture to decode for
         }
         // Decoding can take a while for a large picture: off this thread.
         QtConcurrent::run([data = bytes.value(), fit]() { return ArtworkImageProvider::decode(data, fit); })
@@ -79,6 +95,11 @@ void ArtworkImageResponse::start()
 
 void ArtworkImageResponse::deliver(const QImage& image, const QString& error)
 {
+    // Exactly once: the engine deletes the response after its first finish.
+    if (m_delivered) {
+        return;
+    }
+    m_delivered = true;
     {
         const QMutexLocker locker(&m_lock);
         m_image = image;

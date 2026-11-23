@@ -7,6 +7,8 @@
 #include <QSize>
 #include <QString>
 
+#include <atomic>
+
 namespace lmp::core::remote {
 class ArtworkService;
 }
@@ -32,8 +34,8 @@ private:
     core::remote::ArtworkService& m_service;
 };
 
-// One picture on its way. Lives on the service's thread; the engine may
-// delete it at any time, and nothing runs for it after that.
+// One picture on its way. Lives on the service's thread and finishes there,
+// once; the engine deletes it after that, and nothing runs for it then.
 class ArtworkImageResponse final : public QQuickImageResponse {
     Q_OBJECT
 
@@ -42,6 +44,8 @@ public:
 
     [[nodiscard]] QQuickTextureFactory* textureFactory() const override;
     [[nodiscard]] QString errorString() const override;
+    // The engine no longer wants the picture; the response finishes without it.
+    void cancel() override;
 
 private:
     void start();
@@ -53,6 +57,10 @@ private:
     mutable QMutex m_lock;
     QImage m_image;
     QString m_error;
+    // Set by cancel() on the engine's thread, read on this one.
+    std::atomic_bool m_cancelled{false};
+    // This object's thread only.
+    bool m_delivered = false;
 };
 
 } // namespace lmp::ui
