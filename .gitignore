@@ -1,18 +1,13 @@
 # Build outputs
 /.build/
+# Output of the 1.x Visual Studio build, still present in older checkouts.
 x64/
-Debug/
-Release/
-AppPackages/
-Last Mus.*/
 
 # Compiled installer output (built by ISCC from installer/LastMusicPlayer.iss)
 installer/Output/
 
-# Visual Studio / WinUI generated state
+# Visual Studio state
 .vs/
-Generated Files/
-*.aps
 *.user
 *.VC.db
 *.VC.opendb
@@ -28,10 +23,9 @@ System.Drawing.Drawing2D.GraphicsPath
 .sisyphus/
 
 # Design handoff/reference docs
-design_handoff_winui_refresh/
 /docs/design/
 
-# Dependencies restored by tooling
+# Dependencies restored by tooling (packages/ is the 1.x NuGet folder)
 packages/
 node_modules/
 
@@ -39,6 +33,7 @@ node_modules/
 .env
 .env.local
 build/*.local.*
+# The 1.x private settings header, kept out of Git where it still exists.
 src/Backend/AppSecrets.local.h
 CMakeUserPresets.json
 
