@@ -34,33 +34,34 @@ namespace {
 [[nodiscard]] const QHash<QString, QStringList>& countryLanguages()
 {
     static const QHash<QString, QStringList> table = [] {
-        const std::initializer_list<std::pair<const char*, std::initializer_list<const char*>>> entries = {
-            {"in", {"hi", "bn", "ta", "te", "pa", "mr"}}, {"np", {"ne", "hi"}}, {"bd", {"bn", "hi"}},
-            {"pk", {"ur", "pa"}}, {"lk", {"ta"}}, {"us", {"en", "es"}}, {"ca", {"en", "fr"}}, {"gb", {"en"}},
-            {"ie", {"en"}}, {"au", {"en"}}, {"nz", {"en"}}, {"za", {"en"}}, {"ng", {"en"}}, {"gh", {"en"}},
-            {"mx", {"es"}}, {"ar", {"es"}}, {"co", {"es"}}, {"cl", {"es"}}, {"pe", {"es"}}, {"ve", {"es"}},
-            {"ec", {"es"}}, {"gt", {"es"}}, {"cr", {"es"}}, {"pa", {"es"}}, {"do", {"es"}}, {"uy", {"es"}},
-            {"py", {"es"}}, {"bo", {"es"}}, {"sv", {"es"}}, {"hn", {"es"}}, {"ni", {"es"}}, {"es", {"es"}},
-            {"br", {"pt"}}, {"pt", {"pt"}}, {"ao", {"pt"}}, {"mz", {"pt"}}, {"fr", {"fr"}}, {"be", {"nl", "fr"}},
-            {"lu", {"fr", "de"}}, {"ch", {"de", "fr", "it"}}, {"de", {"de"}}, {"at", {"de"}}, {"it", {"it"}},
-            {"ro", {"ro"}}, {"md", {"ro", "ru"}}, {"pl", {"pl"}}, {"nl", {"nl"}}, {"se", {"sv"}}, {"dk", {"da"}},
-            {"no", {"no"}}, {"fi", {"fi", "sv"}}, {"cz", {"cs"}}, {"sk", {"cs"}}, {"hu", {"hu"}}, {"gr", {"el"}},
-            {"cy", {"el", "tr"}}, {"ua", {"uk", "ru"}}, {"ru", {"ru"}}, {"by", {"ru"}}, {"kz", {"ru"}},
-            {"kg", {"ru"}}, {"uz", {"ru"}}, {"tj", {"ru", "fa"}}, {"am", {"ru"}}, {"az", {"tr", "ru"}},
-            {"tr", {"tr"}}, {"il", {"he", "ar"}}, {"ir", {"fa"}}, {"af", {"fa"}}, {"sa", {"ar"}}, {"ae", {"ar"}},
-            {"eg", {"ar"}}, {"jo", {"ar"}}, {"lb", {"ar", "fr"}}, {"kw", {"ar"}}, {"qa", {"ar"}}, {"bh", {"ar"}},
-            {"om", {"ar"}}, {"iq", {"ar"}}, {"ma", {"ar", "fr"}}, {"dz", {"ar", "fr"}}, {"tn", {"ar", "fr"}},
-            {"ly", {"ar"}}, {"ye", {"ar"}}, {"kr", {"ko"}}, {"jp", {"ja"}}, {"cn", {"zh"}}, {"tw", {"zh"}},
-            {"hk", {"zh"}}, {"mo", {"zh"}}, {"sg", {"en", "zh", "ms", "ta"}}, {"id", {"id"}}, {"my", {"ms", "zh"}},
-            {"ph", {"fil"}}, {"th", {"th"}}, {"vn", {"vi"}}, {"ke", {"sw"}}, {"tz", {"sw"}}, {"ug", {"sw"}},
+        // A plain table of literals: each row is a country and its languages,
+        // separated by spaces. (Nested initializer lists would point at
+        // arrays that no longer exist once the outer list is built.)
+        struct Row {
+            const char* region;
+            const char* languages;
+        };
+        static constexpr Row rows[] = {
+            {"in", "hi bn ta te pa mr"}, {"np", "ne hi"}, {"bd", "bn hi"}, {"pk", "ur pa"}, {"lk", "ta"},
+            {"us", "en es"}, {"ca", "en fr"}, {"gb", "en"}, {"ie", "en"}, {"au", "en"}, {"nz", "en"}, {"za", "en"},
+            {"ng", "en"}, {"gh", "en"}, {"mx", "es"}, {"ar", "es"}, {"co", "es"}, {"cl", "es"}, {"pe", "es"},
+            {"ve", "es"}, {"ec", "es"}, {"gt", "es"}, {"cr", "es"}, {"pa", "es"}, {"do", "es"}, {"uy", "es"},
+            {"py", "es"}, {"bo", "es"}, {"sv", "es"}, {"hn", "es"}, {"ni", "es"}, {"es", "es"}, {"br", "pt"},
+            {"pt", "pt"}, {"ao", "pt"}, {"mz", "pt"}, {"fr", "fr"}, {"be", "nl fr"}, {"lu", "fr de"},
+            {"ch", "de fr it"}, {"de", "de"}, {"at", "de"}, {"it", "it"}, {"ro", "ro"}, {"md", "ro ru"},
+            {"pl", "pl"}, {"nl", "nl"}, {"se", "sv"}, {"dk", "da"}, {"no", "no"}, {"fi", "fi sv"}, {"cz", "cs"},
+            {"sk", "cs"}, {"hu", "hu"}, {"gr", "el"}, {"cy", "el tr"}, {"ua", "uk ru"}, {"ru", "ru"}, {"by", "ru"},
+            {"kz", "ru"}, {"kg", "ru"}, {"uz", "ru"}, {"tj", "ru fa"}, {"am", "ru"}, {"az", "tr ru"}, {"tr", "tr"},
+            {"il", "he ar"}, {"ir", "fa"}, {"af", "fa"}, {"sa", "ar"}, {"ae", "ar"}, {"eg", "ar"}, {"jo", "ar"},
+            {"lb", "ar fr"}, {"kw", "ar"}, {"qa", "ar"}, {"bh", "ar"}, {"om", "ar"}, {"iq", "ar"}, {"ma", "ar fr"},
+            {"dz", "ar fr"}, {"tn", "ar fr"}, {"ly", "ar"}, {"ye", "ar"}, {"kr", "ko"}, {"jp", "ja"}, {"cn", "zh"},
+            {"tw", "zh"}, {"hk", "zh"}, {"mo", "zh"}, {"sg", "en zh ms ta"}, {"id", "id"}, {"my", "ms zh"},
+            {"ph", "fil"}, {"th", "th"}, {"vn", "vi"}, {"ke", "sw"}, {"tz", "sw"}, {"ug", "sw"},
         };
         QHash<QString, QStringList> built;
-        for (const auto& [region, languages] : entries) {
-            QStringList list;
-            for (const char* language : languages) {
-                list.append(QString::fromLatin1(language));
-            }
-            built.insert(QString::fromLatin1(region), list);
+        for (const Row& row : rows) {
+            built.insert(QString::fromLatin1(row.region),
+                         QString::fromLatin1(row.languages).split(QLatin1Char(' '), Qt::SkipEmptyParts));
         }
         return built;
     }();
