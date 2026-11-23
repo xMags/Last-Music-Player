@@ -43,6 +43,36 @@ Item {
         scroller.contentY = App.navigator.returning && !ownScroll ? App.navigator.currentScrollOffset : 0
         if (!App.navigator.returning && !Motion.reduced)
             enter.restart()
+        if (App.navigator.returning && App.navigator.currentFocusName !== "")
+            focusReturn.restart()
+    }
+
+    // Keeps which control has keyboard focus in the page's history entry.
+    Connections {
+        target: host.Window.window
+
+        function onActiveFocusItemChanged() {
+            const item = host.Window.activeFocusItem
+            if (!item || !App.focusPlace.hasKeyboardFocus(item) || !content.item)
+                return
+            const index = App.focusPlace.indexOf(content, item)
+            if (index >= 0)
+                App.navigator.setCurrentFocus(App.focusPlace.nameOf(item), index)
+        }
+    }
+
+    // Back: once the page and its scroll position are back, the control that
+    // had keyboard focus gets it again (view-place.ts).
+    Timer {
+        id: focusReturn
+
+        interval: 120
+        onTriggered: {
+            const target = App.focusPlace.find(content, App.navigator.currentFocusName,
+                                               App.navigator.currentFocusIndex)
+            if (target)
+                target.forceActiveFocus(Qt.TabFocusReason)
+        }
     }
 
     clip: true

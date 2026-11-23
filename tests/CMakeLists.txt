@@ -585,3 +585,7 @@ lmp_add_test(tst_page_cascade
 lmp_add_test(tst_motion_effects
     SOURCES ui/tst_motion_effects.cpp
     LIBS lmp_ui)
+
+lmp_add_test(tst_focus_place
+    SOURCES ui/tst_focus_place.cpp
+    LIBS lmp_ui)

@@ -51,6 +51,7 @@ Flow {
                 }
 
                 IconButton {
+                    Accessible.name: qsTr("Remove %1").arg(pill.modelData.name)
                     anchors.verticalCenter: parent.verticalCenter
                     visible: pill.modelData.removable
                     width: 20

@@ -129,6 +129,7 @@ FocusScope {
         }
 
         IconButton {
+            Accessible.name: qsTr("Clear search")
             visible: input.text.length > 0
             iconName: "close"
             shape: IconButton.Square

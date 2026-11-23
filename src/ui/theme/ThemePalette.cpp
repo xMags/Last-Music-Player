@@ -19,6 +19,41 @@ QColor rgba(int red, int green, int blue, float alpha)
 
 } // namespace
 
+ThemePalette ThemePalette::highContrast(const QPalette& system)
+{
+    const QColor window = system.color(QPalette::Active, QPalette::Window);
+    const QColor text = system.color(QPalette::Active, QPalette::WindowText);
+    const QColor muted = system.color(QPalette::Disabled, QPalette::WindowText);
+    const QColor highlight = system.color(QPalette::Active, QPalette::Highlight);
+    const QColor highlightText = system.color(QPalette::Active, QPalette::HighlightedText);
+    const QColor buttonText = system.color(QPalette::Active, QPalette::ButtonText);
+    return ThemePalette{
+        .onPrimary = highlightText,
+        .surface = window,
+        .surfaceAlt = window,
+        .canvas = window,
+        .neutral = window,
+        .grad1 = window,
+        .grad2 = window,
+        .stroke = text,
+        .strokeStrong = text,
+        .divider = text,
+        .rowHover = highlight,
+        .controlHover = highlight,
+        .segmentTrack = window,
+        .segmentSelected = highlight,
+        .fg1 = text,
+        .fg2 = text,
+        .fg3 = buttonText,
+        .fg4 = muted,
+        .playBg = highlight,
+        .playFg = highlightText,
+        .danger = text,
+        .artGrad1 = window,
+        .artGrad2 = window,
+    };
+}
+
 ThemePalette ThemePalette::light()
 {
     return ThemePalette{

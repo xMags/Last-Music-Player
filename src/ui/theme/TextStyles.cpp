@@ -1,6 +1,9 @@
 #include "ui/theme/TextStyles.h"
 
+#include <QGuiApplication>
 #include <QStringList>
+
+#include <algorithm>
 
 #include "ui/theme/FontLoader.h"
 
@@ -20,8 +23,28 @@ constexpr int kBubble = 650;
 
 } // namespace
 
-TextStyle makeTextStyle(const TextStyleSpec& spec)
+qreal systemTextScale()
 {
+#ifndef NDEBUG
+    // Debug builds: a size to look at without changing Windows' setting.
+    bool overridden = false;
+    const qreal forced = qEnvironmentVariable("LMP_TEXT_SCALE").toDouble(&overridden);
+    if (overridden && forced >= 1.0 && forced <= 2.25) {
+        return forced;
+    }
+#endif
+    // Qt's application font is Windows' message font: 9 pt at 100%, larger
+    // when "Make text bigger" is raised (up to 225%).
+    const qreal points = QGuiApplication::font().pointSizeF();
+    return points > 0 ? std::clamp(points / 9.0, 1.0, 2.25) : 1.0;
+}
+
+TextStyle makeTextStyle(const TextStyleSpec& unscaled)
+{
+    TextStyleSpec spec = unscaled;
+    const qreal scale = systemTextScale();
+    spec.pixelSize *= scale;
+    spec.lineHeight *= scale;
     QFont font(spec.family);
     const int wholePixels = static_cast<int>(spec.pixelSize);
     if (static_cast<qreal>(wholePixels) == spec.pixelSize) {

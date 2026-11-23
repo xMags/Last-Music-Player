@@ -18,6 +18,8 @@ class ThemeColors : public ThemeConstants {
     Q_PROPERTY(ThemeMode mode READ mode WRITE setMode NOTIFY changed FINAL)
     Q_PROPERTY(Accent accent READ accent WRITE setAccent NOTIFY changed FINAL)
     Q_PROPERTY(bool dark READ dark NOTIFY changed FINAL)
+    // Windows high contrast is on: the colours are the system's.
+    Q_PROPERTY(bool highContrast READ highContrast NOTIFY changed FINAL)
 
     // Design tokens.
     Q_PROPERTY(QColor accentSeed READ accentSeed NOTIFY changed FINAL)
@@ -80,6 +82,7 @@ public:
     [[nodiscard]] Accent accent() const { return m_accent; }
     void setAccent(Accent accent);
     [[nodiscard]] bool dark() const;
+    [[nodiscard]] bool highContrast() const { return m_highContrast; }
 
     [[nodiscard]] QColor accentSeed() const { return currentAccent().seed; }
     [[nodiscard]] QColor accentLight() const { return currentAccent().light; }
@@ -119,6 +122,9 @@ public:
 signals:
     void changed();
 
+
+protected:
+    bool eventFilter(QObject* watched, QEvent* event) override;
 private:
     [[nodiscard]] const ThemePalette& palette() const;
     [[nodiscard]] const BrandAccent& currentAccent() const;
@@ -126,6 +132,8 @@ private:
     ThemeMode m_mode = ThemeMode::System;
     Accent m_accent = Accent::Teal;
     bool m_systemDark = false;
+    bool m_highContrast = false;
+    ThemePalette m_contrast;
     ThemePalette m_light = ThemePalette::light();
     ThemePalette m_dark = ThemePalette::dark();
 };

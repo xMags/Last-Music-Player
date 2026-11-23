@@ -220,6 +220,8 @@ qt_add_qml_module(lmp_ui
         motion/PageCascade.cpp
         motion/PageCascade.h
         menus/MenuItemListModel.h
+        navigation/FocusPlace.cpp
+        navigation/FocusPlace.h
         navigation/Navigator.cpp
         navigation/Navigator.h
         navigation/Route.cpp

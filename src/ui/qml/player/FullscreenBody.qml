@@ -111,6 +111,7 @@ Item {
             implicitHeight: transport.implicitHeight
 
             FullscreenButton {
+                Accessible.name: App.playerBar.liked ? qsTr("Remove from Liked Songs") : qsTr("Add to Liked Songs")
                 id: fullscreenLike
 
                 anchors.left: parent.left
@@ -133,6 +134,7 @@ Item {
                 spacing: 16
 
                 FullscreenButton {
+                    Accessible.name: qsTr("Shuffle")
                     anchors.verticalCenter: parent.verticalCenter
                     iconName: "shuffle"
                     active: App.playerBar.shuffle
@@ -140,6 +142,7 @@ Item {
                 }
 
                 FullscreenButton {
+                    Accessible.name: qsTr("Previous")
                     anchors.verticalCenter: parent.verticalCenter
                     iconName: "skip-back"
                     iconSize: 26
@@ -156,6 +159,7 @@ Item {
                 }
 
                 FullscreenButton {
+                    Accessible.name: qsTr("Next")
                     anchors.verticalCenter: parent.verticalCenter
                     iconName: "skip-fwd"
                     iconSize: 26
@@ -164,6 +168,7 @@ Item {
                 }
 
                 FullscreenButton {
+                    Accessible.name: qsTr("Repeat")
                     anchors.verticalCenter: parent.verticalCenter
                     iconName: "repeat"
                     active: App.playerBar.repeatMode !== 0
@@ -173,6 +178,7 @@ Item {
             }
 
             FullscreenButton {
+                Accessible.name: qsTr("Share this song")
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
                 visible: App.share.available

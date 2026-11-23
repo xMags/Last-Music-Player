@@ -68,6 +68,7 @@ Rectangle {
         }
 
         IconButton {
+            Accessible.name: qsTr("Queue")
             id: queueButton
 
             iconName: "queue"
@@ -78,11 +79,13 @@ Rectangle {
         }
 
         IconButton {
+            Accessible.name: qsTr("Full screen")
             iconName: "fullscreen"
             onClicked: App.fullscreen.openPlayer()
         }
 
         IconButton {
+            Accessible.name: App.playerBar.muted ? qsTr("Unmute") : qsTr("Mute")
             Layout.leftMargin: 4
             iconName: App.playerBar.muted ? "volume-mute" : "volume"
             onClicked: App.playerBar.toggleMute()

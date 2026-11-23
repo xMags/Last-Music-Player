@@ -32,6 +32,7 @@ Rectangle {
         height: parent.height
 
         CaptionButton {
+            Accessible.name: qsTr("Minimize")
             id: minimize
 
             glyph: ""
@@ -42,6 +43,7 @@ Rectangle {
 
         // ChromeRestore while maximised, ChromeMaximize otherwise.
         CaptionButton {
+            Accessible.name: App.windowChrome.maximized ? qsTr("Restore") : qsTr("Maximize")
             id: maximize
 
             glyph: App.windowChrome.maximized ? "" : ""
@@ -53,6 +55,7 @@ Rectangle {
         }
 
         CaptionButton {
+            Accessible.name: qsTr("Close")
             id: close
 
             glyph: ""

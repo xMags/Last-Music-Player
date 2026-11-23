@@ -74,6 +74,25 @@ void Navigator::openView(int kind)
     push(route);
 }
 
+QString Navigator::currentFocusName() const
+{
+    return m_entries.isEmpty() ? QString() : m_entries.constLast().focusName;
+}
+
+int Navigator::currentFocusIndex() const
+{
+    return m_entries.isEmpty() ? 0 : m_entries.constLast().focusIndex;
+}
+
+void Navigator::setCurrentFocus(const QString& name, int index)
+{
+    if (m_entries.isEmpty()) {
+        return;
+    }
+    m_entries.last().focusName = name;
+    m_entries.last().focusIndex = qMax(0, index);
+}
+
 void Navigator::setCurrentScrollOffset(qreal offset)
 {
     m_entries.last().scrollOffset = qMax<qreal>(0, offset);

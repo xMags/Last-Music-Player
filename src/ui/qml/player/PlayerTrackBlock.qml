@@ -135,6 +135,7 @@ RowLayout {
 
     // Kept in place but hidden while idle, so nothing moves when a song loads.
     IconButton {
+        Accessible.name: App.playerBar.liked ? qsTr("Remove from Liked Songs") : qsTr("Add to Liked Songs")
         id: likeButton
 
         opacity: block.idle ? 0 : 1

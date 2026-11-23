@@ -45,6 +45,10 @@ struct TextStyleSpec {
     bool tabularNumbers = false;
 };
 
+// Windows' text size (Settings > Accessibility > Text size) as a factor,
+// 1 to 2.25. Every text style is made at this size.
+[[nodiscard]] qreal systemTextScale();
+
 [[nodiscard]] TextStyle makeTextStyle(const TextStyleSpec& spec);
 
 // Every named text style of the design.

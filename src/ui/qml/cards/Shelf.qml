@@ -68,6 +68,7 @@ Column {
         }
 
         ShelfArrow {
+            Accessible.name: qsTr("Scroll back")
             x: -10
             y: shelf.cardWidth / 2 - height / 2
             iconName: "chevron"
@@ -77,6 +78,7 @@ Column {
         }
 
         ShelfArrow {
+            Accessible.name: qsTr("Scroll forward")
             x: viewport.width - width + 10
             y: shelf.cardWidth / 2 - height / 2
             iconName: "chevron"

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QColor>
+#include <QPalette>
 
 #include <array>
 #include <utility>
@@ -38,6 +39,10 @@ struct ThemePalette {
 
     [[nodiscard]] static ThemePalette light();
     [[nodiscard]] static ThemePalette dark();
+    // Windows high contrast: every surface, line and text colour from the
+    // system's own colours (`system`, Qt's palette, follows the chosen
+    // contrast theme), so nothing depends on the brand colours.
+    [[nodiscard]] static ThemePalette highContrast(const QPalette& system);
 };
 
 // One of the five brand accents. The seed is shown in the picker and used for

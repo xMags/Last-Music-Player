@@ -25,6 +25,11 @@ class Navigator : public QObject {
     Q_PROPERTY(bool canGoBack READ canGoBack NOTIFY currentChanged FINAL)
     Q_PROPERTY(bool returning READ returning NOTIFY currentChanged FINAL)
     Q_PROPERTY(qreal currentScrollOffset READ currentScrollOffset NOTIFY currentChanged FINAL)
+    // The control that had keyboard focus on the current page, by its
+    // accessible name and its place among controls of that name; Back gives
+    // it focus again (view-place.ts). Empty when none.
+    Q_PROPERTY(QString currentFocusName READ currentFocusName NOTIFY currentChanged FINAL)
+    Q_PROPERTY(int currentFocusIndex READ currentFocusIndex NOTIFY currentChanged FINAL)
     Q_PROPERTY(QObject* currentPage READ currentPage NOTIFY currentPageChanged FINAL)
 
 public:
@@ -40,6 +45,8 @@ public:
     [[nodiscard]] bool canGoBack() const { return m_entries.size() > 1; }
     [[nodiscard]] bool returning() const { return m_returning; }
     [[nodiscard]] qreal currentScrollOffset() const;
+    [[nodiscard]] QString currentFocusName() const;
+    [[nodiscard]] int currentFocusIndex() const;
     [[nodiscard]] QObject* currentPage() const;
     [[nodiscard]] qsizetype depth() const { return m_entries.size(); }
 
@@ -57,6 +64,7 @@ public:
 
     // The current page reports how far it is scrolled, so the entry can keep it.
     Q_INVOKABLE void setCurrentScrollOffset(qreal offset);
+    Q_INVOKABLE void setCurrentFocus(const QString& name, int index);
     // Hands the current page's view model to its entry, which owns it from
     // now on and deletes it when the entry leaves the history.
     void setCurrentPage(QObject* page);
@@ -72,6 +80,8 @@ private:
     struct Entry {
         Route route;
         qreal scrollOffset = 0;
+        QString focusName;
+        int focusIndex = 0;
         QPointer<QObject> page; // owned: a child of the navigator
     };
 

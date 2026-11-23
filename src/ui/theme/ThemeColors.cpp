@@ -1,5 +1,7 @@
 #include "ui/theme/ThemeColors.h"
 
+#include <QAccessibilityHints>
+#include <QEvent>
 #include <QGuiApplication>
 #include <QStyleHints>
 
@@ -14,12 +16,28 @@ bool systemPrefersDark()
     return QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark;
 }
 
+bool systemHighContrast()
+{
+    return QGuiApplication::styleHints()->accessibility()->contrastPreference() == Qt::ContrastPreference::HighContrast;
+}
+
 } // namespace
 
 ThemeColors::ThemeColors(QObject* parent)
     : ThemeConstants(parent)
     , m_systemDark(systemPrefersDark())
+    , m_highContrast(systemHighContrast())
+    , m_contrast(ThemePalette::highContrast(QGuiApplication::palette()))
 {
+    // High contrast on or off, or another contrast theme chosen.
+    connect(QGuiApplication::styleHints()->accessibility(), &QAccessibilityHints::contrastPreferenceChanged, this,
+            [this]() {
+                m_highContrast = systemHighContrast();
+                m_contrast = ThemePalette::highContrast(QGuiApplication::palette());
+                emit changed();
+            });
+    // Another contrast theme chosen: the system palette changes.
+    qGuiApp->installEventFilter(this);
     connect(QGuiApplication::styleHints(), &QStyleHints::colorSchemeChanged, this,
             [this](Qt::ColorScheme scheme) {
                 const bool systemDark = scheme == Qt::ColorScheme::Dark;
@@ -67,6 +85,9 @@ bool ThemeColors::dark() const
 
 QColor ThemeColors::primary() const
 {
+    if (m_highContrast) {
+        return QGuiApplication::palette().color(QPalette::Active, QPalette::Highlight);
+    }
     return dark() ? currentAccent().dark : currentAccent().light;
 }
 
@@ -102,8 +123,22 @@ QColor ThemeColors::mixOklab(const QColor& a, const QColor& b, qreal amountOfA) 
     return lmp::ui::mixOklab(a, b, amountOfA);
 }
 
+bool ThemeColors::eventFilter(QObject* watched, QEvent* event)
+{
+    if (watched == qGuiApp && event->type() == QEvent::ApplicationPaletteChange) {
+        m_contrast = ThemePalette::highContrast(QGuiApplication::palette());
+        if (m_highContrast) {
+            emit changed();
+        }
+    }
+    return ThemeConstants::eventFilter(watched, event);
+}
+
 const ThemePalette& ThemeColors::palette() const
 {
+    if (m_highContrast) {
+        return m_contrast;
+    }
     return dark() ? m_dark : m_light;
 }
 

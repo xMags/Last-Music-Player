@@ -496,6 +496,7 @@ CompositionRoot::CompositionRoot()
           .coverFlight = &m_coverFlight,
           .cascade = &m_pageCascade,
           .effects = &m_effects,
+          .focusPlace = &m_focusPlace,
           .equalizer = &m_equalizer,
           .historyImport = &m_historyImportViewModel,
           .share = &m_share,

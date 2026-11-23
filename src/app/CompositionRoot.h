@@ -65,6 +65,7 @@
 #include "ui/motion/CoverFlight.h"
 #include "ui/motion/PageCascade.h"
 #include "ui/motion/MotionEffects.h"
+#include "ui/navigation/FocusPlace.h"
 #include "core/playback/TrackSourceResolver.h"
 #include "core/provider/ProviderClient.h"
 #include "core/remote/ArtworkService.h"
@@ -343,6 +344,8 @@ private:
     ui::PageCascade m_pageCascade;
     // The queue arc, heart burst and save motion.
     ui::MotionEffects m_effects;
+    // Back gives the control that had keyboard focus its focus again.
+    ui::FocusPlace m_focusPlace;
     // Settings > Sound (shown, inert) and the one-time history import offer.
     ui::EqualizerViewModel m_equalizer;
     core::account::HistoryImportService m_historyImport;

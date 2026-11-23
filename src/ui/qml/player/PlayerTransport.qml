@@ -17,6 +17,7 @@ ColumnLayout {
         spacing: 14
 
         IconButton {
+            Accessible.name: qsTr("Shuffle")
             iconName: "shuffle"
             active: App.playerBar.shuffle
             onClicked: App.playerBar.toggleShuffle()
@@ -24,6 +25,7 @@ ColumnLayout {
 
         // Skipping is greyed out while nothing is loaded.
         IconButton {
+            Accessible.name: qsTr("Previous")
             iconName: "skip-back"
             iconSize: 20
             enabled: !transport.idle
@@ -37,6 +39,7 @@ ColumnLayout {
         }
 
         IconButton {
+            Accessible.name: qsTr("Next")
             iconName: "skip-fwd"
             iconSize: 20
             enabled: !transport.idle
@@ -45,6 +48,7 @@ ColumnLayout {
         }
 
         IconButton {
+            Accessible.name: qsTr("Repeat")
             iconName: "repeat"
             active: App.playerBar.repeatMode !== 0
             onClicked: App.playerBar.cycleRepeat()
