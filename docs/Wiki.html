@@ -1187,8 +1187,8 @@
 
         <div class="badge-grid">
           <div class="tech-badge platform"><i class="fa-brands fa-windows"></i> Windows 10/11</div>
-          <div class="tech-badge ui"><i class="fa-solid fa-desktop"></i> WinUI 3 / WASDK</div>
-          <div class="tech-badge lang"><i class="fa-solid fa-c"></i> C++/WinRT</div>
+          <div class="tech-badge ui"><i class="fa-solid fa-desktop"></i> Qt Quick 6</div>
+          <div class="tech-badge lang"><i class="fa-solid fa-c"></i> C++20</div>
           <div class="tech-badge data"><i class="fa-solid fa-database"></i> SQLite 3</div>
         </div>
 
@@ -1202,7 +1202,7 @@
           <li><strong>Gapless Engine:</strong> Multi-source native queue manager fetches the next song block in advance for zero gap clicks.</li>
           <li><strong>Optional Provider System:</strong> Add your own remote catalog (Radio, Lyrics, Streaming, Resolving Links) by meeting a simple HTTP API.</li>
           <li><strong>Windows Shell Sync:</strong> Integrates natively with SMTC (System Media Transport Controls), media keys, and system flyouts.</li>
-          <li><strong>Extras Support:</strong> Optional Google Cast output engine, Discord Rich Presence, and system tray minimization.</li>
+          <li><strong>Extras Support:</strong> Optional casting to network devices, Discord presence, and closing to the notification area.</li>
         </ul>
       </div>
     </section>
@@ -1222,39 +1222,40 @@
             <span>Windows 10 (2004+) / Windows 11</span>
           </div>
           <div class="spec-card">
-            <span>IDE</span>
-            <span>Visual Studio 2022</span>
+            <span>Compiler</span>
+            <span>Visual Studio 2022+ (C++ desktop, C++ CMake tools)</span>
           </div>
           <div class="spec-card">
-            <span>Compiler Workload</span>
-            <span>C++ Desktop Development</span>
+            <span>Toolkit</span>
+            <span>Qt 6.10.3 for MSVC 2022 64-bit</span>
           </div>
           <div class="spec-card">
-            <span>SDKs Required</span>
-            <span>Windows App SDK + Windows 11 SDK</span>
+            <span>Build system</span>
+            <span>CMake + Ninja (preset <code class="font-mono-tag">windows</code>)</span>
           </div>
         </div>
 
-        <h4 style="margin: 24px 0 12px 0; font-weight: 600;">Building from Visual Studio</h4>
+        <h4 style="margin: 24px 0 12px 0; font-weight: 600;">Building</h4>
         <ol class="custom-list">
-          <li style="padding-left: 8px;">Clone the repository recursively to fetch submodules: `git clone --recursive`.</li>
-          <li style="padding-left: 8px;">Open <code class="font-mono-tag">Last Music Player.slnx</code> in Visual Studio 2022.</li>
-          <li style="padding-left: 8px;">NuGet packages should restore automatically. If not, right-click the solution and choose <strong>Restore NuGet Packages</strong>.</li>
-          <li style="padding-left: 8px;">Set the active architecture configuration to <strong>x64</strong> (Debug or Release).</li>
-          <li style="padding-left: 8px;">Build and run. The output binaries and self-contained DLL packaging will write to the build directories.</li>
+          <li style="padding-left: 8px;">Install Qt 6.10.3 at <code class="font-mono-tag">C:\Qt\6.10.3\msvc2022_64</code>, or set <code class="font-mono-tag">LMP_QT_ROOT</code> to where it is.</li>
+          <li style="padding-left: 8px;">In PowerShell 7, run <code class="font-mono-tag">.\tools\build.ps1</code> (Debug) or <code class="font-mono-tag">.\tools\build.ps1 -Config Release</code>. The script loads the compiler environment itself.</li>
+          <li style="padding-left: 8px;"><code class="font-mono-tag">.\tools\run.ps1</code> builds and starts the app; <code class="font-mono-tag">.\tools\test.ps1</code> runs qmllint and every test.</li>
+          <li style="padding-left: 8px;">Any IDE with CMake support can open the folder directly.</li>
         </ol>
 
-        <h4 style="margin: 24px 0 12px 0; font-weight: 600;">Building from Command Line</h4>
-        <p>Use the MSBuild toolchain from the Visual Studio Developer Command Prompt to compile the project headless:</p>
-        
+        <h4 style="margin: 24px 0 12px 0; font-weight: 600;">Packaging</h4>
+        <p>Deploy the Release build with its Qt libraries, check it, and build the installer:</p>
+
         <div class="code-block-wrapper">
           <button class="copy-btn" title="Copy to clipboard"><i class="fa-regular fa-copy"></i></button>
-          <pre><code>MSBuild.exe "Last Music Player.vcxproj" /t:Build /p:Configuration=Release /p:Platform=x64</code></pre>
+          <pre><code>.\tools\package.ps1
+.\tools\Verify-Package.ps1
+ISCC.exe installer\LastMusicPlayer.iss</code></pre>
         </div>
 
-        <p style="margin-top: 14px;">The release binaries will write directly to:</p>
+        <p style="margin-top: 14px;">The packaged application is written to:</p>
         <div class="code-block-wrapper">
-          <pre><code>x64/Release/Last_Music_Player.exe</code></pre>
+          <pre><code>.build/qt/package/Last_Music_Player.exe</code></pre>
         </div>
       </div>
     </section>
@@ -1263,32 +1264,29 @@
     <section id="secrets">
       <div class="card">
         <span class="card-title-badge">Guide</span>
-        <h3><i class="fa-solid fa-key"></i> Custom Secrets (`AppSecrets`)</h3>
+        <h3><i class="fa-solid fa-key"></i> Private Configuration</h3>
         <p>
-          For optional features like Discord Rich Presence, the developer API secrets are excluded from Git to prevent leakage. You can configure them locally for custom builds.
+          Distributor-specific values (the account service's addresses, the Discord application id, a few catalogue settings) are kept out of Git. Builds without them are complete players for local files and for your own server.
         </p>
 
         <div class="alert-box info">
           <i class="fa-solid fa-circle-info"></i>
           <div>
-            <strong>Note:</strong> If <code class="font-mono-tag">AppSecrets.local.h</code> is absent during compilation, the client falls back to <code class="font-mono-tag">AppSecrets.example.h</code> and automatically disables Discord integrations.
+            <strong>Note:</strong> A value left empty keeps the feature that needs it switched off. The values are compiled into the program and are not secrets: never put passwords, tokens or keys in the file.
           </div>
         </div>
 
         <h4 style="margin-bottom: 12px; font-weight: 600;">Configuration Steps</h4>
         <ol class="custom-list">
-          <li style="padding-left: 8px;">Navigate to the <code class="font-mono-tag">src/Backend/</code> directory.</li>
-          <li style="padding-left: 8px;">Copy the template file <code class="font-mono-tag">AppSecrets.example.h</code> and name the new file <code class="font-mono-tag">AppSecrets.local.h</code>.</li>
-          <li style="padding-left: 8px;">Open <code class="font-mono-tag">AppSecrets.local.h</code> and insert your custom API client IDs.</li>
+          <li style="padding-left: 8px;">Copy <code class="font-mono-tag">build/private-config.example.cmake</code> to <code class="font-mono-tag">build/private-config.local.cmake</code> (ignored by Git).</li>
+          <li style="padding-left: 8px;">Fill in the values you need.</li>
+          <li style="padding-left: 8px;">Rebuild with <code class="font-mono-tag">.\tools\build.ps1 -Reconfigure</code>.</li>
         </ol>
 
         <div class="code-block-wrapper">
           <button class="copy-btn" title="Copy to clipboard"><i class="fa-regular fa-copy"></i></button>
-          <pre><code>#pragma once
-
-// Discord Application Client ID for Rich Presence integrations.
-// Replace with your custom Discord Developer Portal Application ID.
-#define LMP_DISCORD_CLIENT_ID "your-discord-app-id-here"</code></pre>
+          <pre><code># Application id for the Discord presence integration.
+set(LMP_DISCORD_CLIENT_ID "your-discord-app-id-here")</code></pre>
         </div>
       </div>
     </section>
@@ -1299,8 +1297,7 @@
         <span class="card-title-badge">Guide</span>
         <h3><i class="fa-solid fa-network-wired"></i> Architecture & Component Layout</h3>
         <p>
-          Last Music Player separates components into distinct native layers. The Frontend manages the WinUI 3 presentation structure, while the Backend handles state, cache, hardware playback queues, and SQLite interactions.
-        </p>
+          Last Music Player separates components into distinct native layers. The QML screens are drawn by Qt Quick from C++ view models in src/ui; the portable logic (library, playback queue, modes, account and provider clients) lives in src/core, and everything that talks to Windows sits behind small interfaces in src/platform.</p>
 
         <!-- Interactive Architecture diagram -->
         <div class="arch-diagram" style="padding: 20px; overflow: hidden;">
@@ -1314,13 +1311,13 @@
               </defs>
 
               <!-- Connector Lines -->
-              <!-- WinUI 3 Frontend -> AudioPlayer -->
+              <!-- Qt Quick UI -> AudioPlayer -->
               <path d="M 400 85 v 35 H 130 v 44" fill="none" stroke="rgba(139, 92, 246, 0.4)" stroke-width="2.5" class="flow-line" marker-end="url(#arrow)"/>
               
-              <!-- WinUI 3 Frontend -> DatabaseEngine -->
+              <!-- Qt Quick UI -> DatabaseEngine -->
               <path d="M 400 85 v 79" fill="none" stroke="rgba(139, 92, 246, 0.4)" stroke-width="2.5" class="flow-line" marker-end="url(#arrow)"/>
               
-              <!-- WinUI 3 Frontend -> ProviderClient -->
+              <!-- Qt Quick UI -> ProviderClient -->
               <path d="M 400 85 v 35 H 670 v 44" fill="none" stroke="rgba(139, 92, 246, 0.4)" stroke-width="2.5" class="flow-line" marker-end="url(#arrow)"/>
               
               <!-- AudioPlayer <-> Windows SMTC (Bidirectional) -->
@@ -1333,8 +1330,8 @@
               <!-- Top Level: Frontend -->
               <foreignObject x="290" y="10" width="220" height="75">
                 <div class="flow-node" data-ref="ui-layer" style="margin: 0;">
-                  <h4>WinUI 3 Frontend</h4>
-                  <p>MainWindow.xaml / Navigation</p>
+                  <h4>Qt Quick UI</h4>
+                  <p>QML screens / view models</p>
                 </div>
               </foreignObject>
 
@@ -1342,7 +1339,7 @@
               <foreignObject x="40" y="170" width="180" height="75">
                 <div class="flow-node highlighted" data-ref="audio-layer" style="margin: 0;">
                   <h4>AudioPlayer</h4>
-                  <p>MediaPlayer / Gapless engine</p>
+                  <p>Windows media player / gapless queue</p>
                 </div>
               </foreignObject>
 
@@ -1391,20 +1388,20 @@
           </thead>
           <tbody>
             <tr>
-              <td><code class="font-mono-tag">src/App/</code></td>
-              <td>Main entry-point, WinUI life-cycle management, shell configuration, and application boot.</td>
+              <td><code class="font-mono-tag">src/core/</code></td>
+              <td>Portable logic: library and database, playback queue, modes and capabilities, account and provider clients, downloads, casting, presence. No user interface and no Windows calls.</td>
             </tr>
             <tr>
-              <td><a href="#architecture" class="in-doc-link">src/MainWindow/</a></td>
-              <td>Views, library browsers, playlists, now playing controls, queue visuals, and settings UI panels.</td>
+              <td><code class="font-mono-tag">src/platform/</code></td>
+              <td>Interfaces to the operating system, with the Windows implementations (audio, media controls, tray, credentials, DNS-SD) in src/platform/windows/.</td>
             </tr>
             <tr>
-              <td><a href="#architecture" class="in-doc-link">src/Backend/</a></td>
-              <td>Audio playback engine, SQLite integration, Google Cast client, Discord RPC client, settings, and lyrics services.</td>
+              <td><code class="font-mono-tag">src/ui/</code></td>
+              <td>C++ view models for each screen and the QML in src/ui/qml/.</td>
             </tr>
             <tr>
-              <td><code class="font-mono-tag">src/Frontend/</code></td>
-              <td>Navigation logic wrappers and converters, visual and layout helpers.</td>
+              <td><code class="font-mono-tag">src/app/</code></td>
+              <td>Start-up: builds every service and connects them.</td>
             </tr>
             <tr>
               <td><code class="font-mono-tag">ThirdParty/sqlite/</code></td>
@@ -1661,7 +1658,7 @@
               <i class="fa-solid fa-chevron-down"></i>
             </div>
             <div class="faq-content">
-              Windows manages media focus dynamically. If another application (such as Spotify or an active browser tab playing video) grabs exclusive SMTC focus, the OS stops routing media button presses to Last Music Player. Clicking play or pause inside the client app forces a re-registration of the player session to re-acquire focus.
+              Windows manages media focus dynamically. If another application (such as another music app or a browser tab playing video) grabs exclusive SMTC focus, the OS stops routing media button presses to Last Music Player. Clicking play or pause inside the client app forces a re-registration of the player session to re-acquire focus.
             </div>
           </div>
 
@@ -1897,7 +1894,7 @@
           { name: "access_token", type: "String", status: "Required", desc: "Settings API key." }
         ],
         curl: `curl -X GET "http://127.0.0.1:4527/v1/artwork?id=abc&access_token=YOUR_API_KEY"`,
-        js: `// Rendered via WinUI XAML Image ElementSource`,
+        js: `// Rendered by a QML Image`,
         response: `[Image binary bytes (JPEG/PNG/WebP)]`
       },
       {

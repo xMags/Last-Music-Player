@@ -115,7 +115,7 @@ Query: one of `catalogId`, `sourceUrl`, or `name`.
   "artist": {
     "catalogId": "artist-1",
     "name": "Example Artist",
-    "provider": "youtube-music",
+    "provider": "example-source",
     "sourceUrl": "https://catalog.example/artists/artist-1",
     "artworkUrl": "https://provider.example/v1/artwork/artist-1",
     "heroArtworkUrl": "https://provider.example/v1/artwork/artist-1-hero",
@@ -128,7 +128,7 @@ Query: one of `catalogId`, `sourceUrl`, or `name`.
       "catalogId": "album-1",
       "name": "Example Album",
       "artistName": "Example Artist",
-      "provider": "youtube-music",
+      "provider": "example-source",
       "sourceUrl": "https://catalog.example/albums/album-1",
       "artworkUrl": "https://provider.example/v1/artwork/album-1",
       "releaseType": "album",
@@ -156,7 +156,7 @@ Query: one of `catalogId`, `sourceUrl`, or `name`.
     "catalogId": "album-1",
     "name": "Example Album",
     "artistName": "Example Artist",
-    "provider": "youtube-music",
+    "provider": "example-source",
     "sourceUrl": "https://catalog.example/albums/album-1",
     "artworkUrl": "https://provider.example/v1/artwork/album-1",
     "releaseType": "album",
@@ -258,16 +258,11 @@ The app aborts artist and album detail requests after **5 seconds** and other
 JSON requests after **15 seconds**. Keep responses prompt; do heavy work such as
 transcoding on the `/v1/stream` path, which is not bounded by that timeout.
 
-## Official service adapters
+## Service adapters
 
-The provider contract is a client transport boundary, not an authorization to
-extract or relay protected media from third-party services.
+The provider contract is a client transport boundary. A server that implements
+it is responsible for using only content and catalogues it is authorized to
+use, under their own terms, with its credentials kept on the server.
 
-An Apple Music adapter may use Apple’s official Apple Music API for catalog and
-authorized subscriber-library data. Developer tokens must be signed outside the
-public client, and subscriber-specific requests require Apple’s Music User Token
-flow. Apple Music playback must remain within an Apple-supported MusicKit playback
-runtime.
-
-This repository intentionally does not publish such an adapter, its credentials,
-or its production configuration.
+This repository intentionally does not publish an adapter, its credentials, or
+its production configuration.
