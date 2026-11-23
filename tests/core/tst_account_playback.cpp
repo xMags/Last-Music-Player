@@ -13,7 +13,9 @@
 #include "ModeServiceFixture.h"
 #include "PlayerFixture.h"
 #include "core/account/AccountUrlPolicy.h"
+#include "core/catalog/CatalogClient.h"
 #include "core/playback/AccountTrackSourceResolver.h"
+#include "core/remote/RemoteMusicService.h"
 #include "core/playback/PlaybackSourceRouter.h"
 #include "core/remote/MediaAddresses.h"
 #include "core/settings/SettingKeys.h"
@@ -78,31 +80,38 @@ QByteArray resolveAnswer(const QString& stream)
     return "{\"result\":{\"streamUrl\":\"" + stream.toUtf8() + "\",\"artworkUrl\":\"\"}}";
 }
 
-// A validated session with the resolver over it.
+// The resolver over the remote facade; signIn() validates a session and
+// enters Account mode.
 struct ResolverFixture {
     ResolverFixture()
-        : resolver({.client = session.client,
-                    .session = session.service,
-                    .settings = session.settings,
+        : session(modes.session)
+        , catalog(modes.session.client)
+        , remoteMusic({.mode = modes.modes,
+                       .session = modes.session.service,
+                       .account = modes.session.client,
+                       .catalog = catalog,
+                       .provider = modes.provider})
+        , resolver({.remote = remoteMusic,
+                    .settings = modes.session.settings,
                     .network = network,
                     .mediaOrigin = kMedia,
                     .now = [] { return kNowMs; }})
     {
+        (void)modes.modes.start();
     }
 
     [[nodiscard]] bool signIn()
     {
-        session.storeSession(QStringLiteral("bearer-a"));
-        session.transport.script(lmp::test::kProfilePath, AccountSessionFixture::profileAnswer(QStringLiteral("owner-a")));
-        session.service.restore();
-        return QTest::qWaitFor(
-            [this]() { return session.service.state() == lmp::core::account::AccountSessionState::Validated; }, 3000);
+        return modes.validate(QStringLiteral("a")) && modes.modes.setMode(lmp::core::mode::SourceMode::Account);
     }
 
     [[nodiscard]] int resolveCalls() const { return session.transport.requestCount(QStringLiteral("/v1/music/resolve")); }
 
-    AccountSessionFixture session;
+    lmp::test::ModeServiceFixture modes;
+    AccountSessionFixture& session;
     FakeNetworkStatus network;
+    lmp::core::catalog::CatalogClient catalog;
+    lmp::core::remote::RemoteMusicService remoteMusic;
     lmp::core::AccountTrackSourceResolver resolver;
 };
 

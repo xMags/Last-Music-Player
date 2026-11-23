@@ -100,8 +100,13 @@ CompositionRoot::CompositionRoot()
               .provider = m_providerClient,
               .accounts = m_accounts,
               .operationGate = m_userDataGate})
-    , m_accountResolver({.client = m_accountClient,
-                         .session = m_session,
+    , m_catalogClient(m_accountClient)
+    , m_remote({.mode = m_mode,
+                .session = m_session,
+                .account = m_accountClient,
+                .catalog = m_catalogClient,
+                .provider = m_providerClient})
+    , m_accountResolver({.remote = m_remote,
                          .settings = m_settings,
                          .network = m_network,
                          .mediaOrigin = m_privateConfig.accountMediaOrigin,
@@ -150,7 +155,6 @@ CompositionRoot::CompositionRoot()
                        .mode = m_mode,
                        .followed = m_followedArtists,
                        .gate = m_userDataGate})
-    , m_catalogClient(m_accountClient)
     , m_catalog({.client = m_catalogClient,
                  .session = m_session,
                  .accounts = m_accounts,
@@ -216,33 +220,22 @@ CompositionRoot::CompositionRoot()
                        .navigator = m_navigator,
                        .share = &m_share})
     , m_lyricsService(
-          [this](const core::lyrics::LyricsQuery& query) {
-              return sendAccount(core::net::HttpMethod::Get, core::lyrics::lyricsPathAndQuery(query));
-          },
-          [this]() -> QString {
-              if (m_mode.mode() != core::mode::SourceMode::Account) {
-                  return {};
-              }
-              const std::optional<core::account::AccountOperationContext> context = m_session.captureOperation();
-              return context ? QStringLiteral("account:") + context->ownerId : QString();
-          })
+          [this](const core::lyrics::LyricsQuery& query) { return m_remote.lyrics(query); },
+          [this]() { return m_mode.capabilities().showLyrics ? m_remote.scopeKey() : QString(); })
     , m_autoplayQueue(m_player)
     , m_autoplay(m_autoplayQueue,
                  {.related =
-                      [this](const core::Track& seed) -> QFuture<core::Result<QList<core::Track>>> {
-                          if (!m_mode.capabilities().playRadio || !m_mode.capabilities().browseCatalogue) {
-                              return QtFuture::makeReadyValueFuture(core::Result<QList<core::Track>>(
-                                  core::Failure::of(core::FailureKind::Unknown, QStringLiteral("No mixes here."))));
-                          }
-                          return m_catalog.relatedTracks(seed);
+                      [this](const core::Track& seed) {
+                          return m_remote.related(seed).then(&core::catalog::parseProviderTrackListResult);
                       },
                   .search =
-                      [this](const QString& query) -> QFuture<core::Result<QList<core::Track>>> {
-                          if (!m_mode.capabilities().playRadio || !m_mode.capabilities().browseCatalogue) {
+                      [this](const QString& query) {
+                          // Mixes search only where they may play.
+                          if (!m_mode.capabilities().playRadio) {
                               return QtFuture::makeReadyValueFuture(core::Result<QList<core::Track>>(
-                                  core::Failure::of(core::FailureKind::Unknown, QStringLiteral("No mixes here."))));
+                                  core::Failure::of(core::FailureKind::NotAvailable, QStringLiteral("No mixes here."))));
                           }
-                          return m_catalog.searchTracks(query);
+                          return m_remote.search(query).then(&core::catalog::parseProviderTrackListResult);
                       },
                   .history =
                       [this]() {
@@ -255,7 +248,7 @@ CompositionRoot::CompositionRoot()
     , m_lyrics(m_player, m_lyricsService)
     , m_share([this](const QByteArray& body) { return sendAccount(core::net::HttpMethod::Post, QStringLiteral("/v1/music/shares"), body); },
               [this]() {
-                  return m_mode.mode() == core::mode::SourceMode::Account && m_session.captureOperation().has_value();
+                  return m_mode.capabilities().createShareLinks && m_session.captureOperation().has_value();
               },
               m_toasts)
     , m_collectionPage({.library = m_library,
@@ -561,7 +554,7 @@ QFuture<core::Result<QByteArray>> CompositionRoot::sendAccount(core::net::HttpMe
 
 std::optional<core::home::HomeLibrary> CompositionRoot::accountHomeLibrary() const
 {
-    if (m_mode.mode() != core::mode::SourceMode::Account) {
+    if (!m_mode.accountSelected()) {
         return std::nullopt;
     }
     const QString owner = m_session.profile().id;

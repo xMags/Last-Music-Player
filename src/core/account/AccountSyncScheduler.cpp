@@ -26,7 +26,7 @@ AccountSyncScheduler::AccountSyncScheduler(const Dependencies& dependencies, QOb
     });
     m_poll->start(AutoSyncPollInterval);
     m_offlineRecheck = m_deps.clock.createTimer([this]() {
-        if (m_deps.mode.mode() == mode::SourceMode::Account
+        if (m_deps.mode.accountSelected()
             && m_deps.session.state() == AccountSessionState::Offline) {
             m_deps.session.restore();
             m_offlineRecheck->start(OfflineRecheckInterval);
@@ -49,7 +49,7 @@ AccountSyncScheduler::~AccountSyncScheduler()
 
 void AccountSyncScheduler::onSessionOrModeChanged()
 {
-    const bool offline = m_deps.mode.mode() == mode::SourceMode::Account
+    const bool offline = m_deps.mode.accountSelected()
         && m_deps.session.state() == AccountSessionState::Offline;
     if (offline && !m_offlineRecheck->isActive()) {
         m_offlineRecheck->start(OfflineRecheckInterval);
@@ -57,7 +57,7 @@ void AccountSyncScheduler::onSessionOrModeChanged()
         m_offlineRecheck->stop();
     }
 
-    const bool ready = m_deps.mode.mode() == mode::SourceMode::Account
+    const bool ready = m_deps.mode.accountSelected()
         && m_deps.session.state() == AccountSessionState::Validated;
     const bool becameReady = ready && !m_wasReady;
     m_wasReady = ready;
@@ -71,7 +71,7 @@ void AccountSyncScheduler::onSessionOrModeChanged()
     QMetaObject::invokeMethod(
         this,
         [this]() {
-            if (m_deps.mode.mode() == mode::SourceMode::Account
+            if (m_deps.mode.accountSelected()
                 && m_deps.session.state() == AccountSessionState::Validated) {
                 (void)m_deps.sync.sync();
             }
@@ -86,7 +86,7 @@ void AccountSyncScheduler::windowActivated()
 
 void AccountSyncScheduler::recoverConnection()
 {
-    if (m_deps.mode.mode() != mode::SourceMode::Account) {
+    if (!m_deps.mode.accountSelected()) {
         return;
     }
     if (m_deps.session.state() == AccountSessionState::Offline) {
@@ -100,7 +100,7 @@ void AccountSyncScheduler::recoverConnection()
 void AccountSyncScheduler::requestBackgroundSync(bool fromTimer)
 {
     AutoSyncConditions conditions;
-    conditions.accountMode = m_deps.mode.mode() == mode::SourceMode::Account;
+    conditions.accountMode = m_deps.mode.accountSelected();
     conditions.sessionValidated = m_deps.session.state() == AccountSessionState::Validated;
     const std::uint64_t now = m_deps.clock.nowMilliseconds();
     if (m_lastAttemptMs) {

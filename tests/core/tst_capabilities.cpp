@@ -55,6 +55,7 @@ const std::array kRows{
     Row{"lookUpPresenceArtwork", &Capabilities::lookUpPresenceArtwork, {false, true, false}},
     Row{"chooseLowQualityStreams", &Capabilities::chooseLowQualityStreams, {false, false, true}},
     Row{"lowQualityOnThisConnection", &Capabilities::lowQualityOnThisConnection, {false, false, true}},
+    Row{"createShareLinks", &Capabilities::createShareLinks, {false, false, true}},
 };
 
 constexpr std::array kModes{SourceMode::LocalOnly, SourceMode::ApiKey, SourceMode::Account};

@@ -63,6 +63,7 @@ struct Capabilities {
     Q_PROPERTY(bool prefetchUpcomingSongs MEMBER prefetchUpcomingSongs FINAL)
     Q_PROPERTY(bool downloadSongs MEMBER downloadSongs FINAL)
     Q_PROPERTY(bool castToDevices MEMBER castToDevices FINAL)
+    Q_PROPERTY(bool createShareLinks MEMBER createShareLinks FINAL)
     Q_PROPERTY(bool openOnlineArtistPages MEMBER openOnlineArtistPages FINAL)
     Q_PROPERTY(bool openOnlineAlbumPages MEMBER openOnlineAlbumPages FINAL)
     Q_PROPERTY(bool loadArtistPictures MEMBER loadArtistPictures FINAL)
@@ -103,6 +104,8 @@ public:
     // Play to a Cast device. Never in ApiKey mode: the device would receive
     // addresses that carry the key.
     bool castToDevices = false;
+    // Links to songs, lists and artists, made by the account service.
+    bool createShareLinks = false;
     // Artist and album pages from the remote source instead of the local
     // library.
     bool openOnlineArtistPages = false;

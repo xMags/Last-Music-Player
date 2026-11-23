@@ -66,7 +66,7 @@ bool AccountLibraryEditor::isActive() const
 
 std::optional<AccountOperationContext> AccountLibraryEditor::writableContext() const
 {
-    if (m_deps.mode.mode() != mode::SourceMode::Account) {
+    if (!m_deps.mode.accountSelected()) {
         return std::nullopt;
     }
     std::optional<AccountOperationContext> context = m_deps.session.captureOperation();

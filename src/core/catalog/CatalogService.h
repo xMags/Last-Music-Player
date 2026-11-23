@@ -127,9 +127,6 @@ public:
     // The search page's search: songs and cards (not kept). A pasted link
     // is searched like any query; the service answers with what it links to.
     [[nodiscard]] QFuture<Result<SearchAll>> searchAll(const QString& query);
-    // Songs for autoplay (not kept): like `seed`, or found by a plain search.
-    [[nodiscard]] QFuture<Result<QList<Track>>> relatedTracks(const Track& seed);
-    [[nodiscard]] QFuture<Result<QList<Track>>> searchTracks(const QString& query);
     // The item behind a share link (not kept).
     [[nodiscard]] QFuture<Result<share::SharedItem>> sharedItem(const QString& code);
 

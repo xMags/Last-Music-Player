@@ -59,6 +59,7 @@ Capabilities Capabilities::compute(const CapabilityInputs& inputs)
     result.prefetchUpcomingSongs = provider && online;
     result.downloadSongs = remote;
     result.castToDevices = account;
+    result.createShareLinks = account;
     // The account service always has these pages; a provider only when its
     // status answer lists them.
     result.openOnlineArtistPages =

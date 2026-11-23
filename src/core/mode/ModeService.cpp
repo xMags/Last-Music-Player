@@ -225,6 +225,18 @@ ApiKeyDisconnectOutcome ModeService::disconnectApiKey()
     return addressRemoved ? ApiKeyDisconnectOutcome::Disconnected : ApiKeyDisconnectOutcome::AddressCleanupFailed;
 }
 
+std::optional<provider::ProviderConnection> ModeService::providerConnection() const
+{
+    if (m_mode != SourceMode::ApiKey || !m_providerConfigured) {
+        return std::nullopt;
+    }
+    const Result<std::optional<QString>> key = m_secrets.readProviderApiKey();
+    if (!key || !key.value() || key.value()->isEmpty()) {
+        return std::nullopt;
+    }
+    return provider::ProviderConnection{providerBaseUrl(), *key.value()};
+}
+
 QFuture<Result<void>> ModeService::refreshProviderStatus()
 {
     if (m_mode != SourceMode::ApiKey || !m_providerConfigured) {

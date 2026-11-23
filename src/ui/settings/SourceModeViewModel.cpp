@@ -168,7 +168,7 @@ QVariantList SourceModeViewModel::cards() const
 
 bool SourceModeViewModel::apiKeyShown() const
 {
-    return m_mode.mode() == SourceMode::ApiKey;
+    return m_mode.apiKeySelected();
 }
 
 QString SourceModeViewModel::providerBaseUrl() const
@@ -184,7 +184,7 @@ bool SourceModeViewModel::providerConnected() const
 
 bool SourceModeViewModel::accountShown() const
 {
-    return m_mode.mode() == SourceMode::Account;
+    return m_mode.accountSelected();
 }
 
 bool SourceModeViewModel::signedIn() const

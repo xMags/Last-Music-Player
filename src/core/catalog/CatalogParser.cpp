@@ -507,6 +507,14 @@ QList<Track> parseProviderTrackList(const QByteArray& payload)
     return {};
 }
 
+Result<QList<Track>> parseProviderTrackListResult(const Result<QByteArray>& answer)
+{
+    if (!answer) {
+        return answer.failure();
+    }
+    return parseProviderTrackList(answer.value());
+}
+
 QList<CatalogItem> parseProviderTrackItems(const QJsonValue& value)
 {
     QList<CatalogItem> items;

@@ -49,6 +49,7 @@
 #include "core/playback/TrackSourceResolver.h"
 #include "core/provider/ProviderClient.h"
 #include "core/remote/ArtworkService.h"
+#include "core/remote/RemoteMusicService.h"
 #include "core/settings/SettingsStore.h"
 #include "platform/ISingleInstance.h"
 #include "platform/windows/WindowsAudioPlayer.h"
@@ -190,6 +191,10 @@ private:
     core::account::AccountSessionService m_session;
     core::provider::ProviderClient m_providerClient;
     core::mode::ModeService m_mode;
+    // The account service's catalogue calls, and the one way to the remote
+    // music source (account or provider, by mode).
+    core::catalog::CatalogClient m_catalogClient;
+    core::remote::RemoteMusicService m_remote;
     platform::windows::WindowsAudioPlayer m_audio;
     // Bound to the main window once it exists (showMainWindow).
     platform::windows::WindowsMediaControls m_mediaControls;
@@ -218,8 +223,7 @@ private:
     // Followed artists: on the account in Account mode, on this PC otherwise.
     core::db::FollowedArtistRepository m_followedArtists;
     core::ArtistFollowService m_artistFollows;
-    // The account service's catalogue: its calls and the cache over them.
-    core::catalog::CatalogClient m_catalogClient;
+    // The account service's catalogue: the cache over its calls.
     core::catalog::CatalogService m_catalog;
     platform::windows::WindowsFolderPicker m_folderPicker;
     // What a song's menu and buttons do.

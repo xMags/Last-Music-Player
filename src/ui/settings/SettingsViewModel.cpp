@@ -170,7 +170,7 @@ QString SettingsViewModel::displayName() const
 
 bool SettingsViewModel::displayNameShown() const
 {
-    return m_mode.mode() != core::mode::SourceMode::Account;
+    return !m_mode.accountSelected();
 }
 
 QString SettingsViewModel::trackView() const

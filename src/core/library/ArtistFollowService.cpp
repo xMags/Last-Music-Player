@@ -37,20 +37,16 @@ ArtistFollowService::ArtistFollowService(const Dependencies& dependencies, QObje
 
 bool ArtistFollowService::accountMode() const
 {
-    return m_deps.mode.mode() == mode::SourceMode::Account;
+    return m_deps.mode.accountSelected();
 }
 
 bool ArtistFollowService::canFollow(const FollowableArtist& artist) const
 {
-    switch (m_deps.mode.mode()) {
-    case mode::SourceMode::Account:
+    if (m_deps.mode.accountSelected()) {
         return account::isValidLibraryArtistPublicId(artist.publicId) && m_deps.session.captureOperation().has_value();
-    case mode::SourceMode::LocalOnly:
-        return !artistIdentityKey(artist.identity).isEmpty();
-    case mode::SourceMode::ApiKey:
-        break;
     }
-    return false;
+    // A provider keeps no follows; Local mode keeps them on this PC.
+    return !m_deps.mode.apiKeySelected() && !artistIdentityKey(artist.identity).isEmpty();
 }
 
 bool ArtistFollowService::isFollowed(const FollowableArtist& artist) const

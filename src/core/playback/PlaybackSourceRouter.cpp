@@ -22,14 +22,12 @@ bool PlaybackSourceRouter::isRemote(const Track& track)
 
 TrackSourceResolver* PlaybackSourceRouter::remoteResolver(Result<QUrl>& refusal) const
 {
-    switch (m_mode.mode()) {
-    case mode::SourceMode::Account:
+    if (m_mode.accountSelected()) {
         return &m_account;
-    case mode::SourceMode::LocalOnly:
+    }
+    if (!m_mode.apiKeySelected()) {
         refusal = Failure::of(FailureKind::NotAvailable, QStringLiteral("remote songs need a music source"));
         return nullptr;
-    case mode::SourceMode::ApiKey:
-        break;
     }
     refusal = Failure::of(FailureKind::NotFound, QStringLiteral("no resolver for this source"));
     return nullptr;

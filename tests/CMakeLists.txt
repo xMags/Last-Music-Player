@@ -529,3 +529,7 @@ lmp_add_test(tst_share_links
 lmp_add_test(tst_provider_media_addresses
     SOURCES core/tst_provider_media_addresses.cpp
     LIBS lmp_core)
+
+lmp_add_test(tst_remote_music_service
+    SOURCES core/tst_remote_music_service.cpp core/ModeServiceFixture.h
+    LIBS lmp_core)

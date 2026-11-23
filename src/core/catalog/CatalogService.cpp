@@ -466,23 +466,6 @@ QFuture<Result<SearchAll>> CatalogService::searchAll(const QString& query)
         });
 }
 
-QFuture<Result<QList<Track>>> CatalogService::relatedTracks(const Track& seed)
-{
-    const QString link = seed.sourceUrl;
-    const QString reference = seed.sourceReference;
-    return uncached<QList<Track>>(
-        [this, link, reference](const QString& bearer) { return m_deps.client.related(bearer, link, reference); },
-        [](const QByteArray& payload) -> Result<QList<Track>> { return parseProviderTrackList(payload); });
-}
-
-QFuture<Result<QList<Track>>> CatalogService::searchTracks(const QString& query)
-{
-    const QString trimmed = query.trimmed();
-    return uncached<QList<Track>>(
-        [this, trimmed](const QString& bearer) { return m_deps.client.search(bearer, trimmed); },
-        [](const QByteArray& payload) -> Result<QList<Track>> { return parseProviderTrackList(payload); });
-}
-
 QFuture<Result<share::SharedItem>> CatalogService::sharedItem(const QString& code)
 {
     return uncached<share::SharedItem>(

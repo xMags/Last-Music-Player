@@ -18,7 +18,7 @@ ConnectivityViewModel::ConnectivityViewModel(core::account::AccountSessionServic
 
 void ConnectivityViewModel::update()
 {
-    const bool offline = m_mode.mode() == core::mode::SourceMode::Account
+    const bool offline = m_mode.accountSelected()
         && m_session.state() == core::account::AccountSessionState::Offline;
     if (offline != m_offline) {
         m_offline = offline;

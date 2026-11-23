@@ -69,6 +69,8 @@ struct ChartRefOptions {
 // A list of songs from search or related songs: {"results": [...]},
 // {"tracks": [...]}, {"result": {...}} or a bare array.
 [[nodiscard]] QList<Track> parseProviderTrackList(const QByteArray& payload);
+// The same over a call's answer: its failure, or the songs.
+[[nodiscard]] Result<QList<Track>> parseProviderTrackListResult(const Result<QByteArray>& answer);
 // Provider songs as song cards, in order.
 [[nodiscard]] QList<CatalogItem> parseProviderTrackItems(const QJsonValue& value);
 

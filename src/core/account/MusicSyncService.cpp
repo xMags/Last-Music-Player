@@ -146,7 +146,7 @@ void MusicSyncService::runNextBatch()
         finish(m_allSucceeded);
         return;
     }
-    if (m_deps.mode.mode() != mode::SourceMode::Account) {
+    if (!m_deps.mode.accountSelected()) {
         finish(false);
         return;
     }
@@ -268,7 +268,7 @@ void MusicSyncService::onSettingChanged(const QString& key)
 {
     // Only a change the user made here travels; values that just came from
     // the service do not go back up.
-    if (m_applyingRemote || m_deps.mode.mode() != mode::SourceMode::Account) {
+    if (m_applyingRemote || !m_deps.mode.accountSelected()) {
         return;
     }
     const std::optional<PortablePreferenceKey> preference = preferenceForSettingKey(key);

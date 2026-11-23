@@ -57,7 +57,7 @@ void TrackActions::startMix(const Track& track)
 
 bool TrackActions::canShare(const Track& track) const
 {
-    return m_mode.mode() == mode::SourceMode::Account && !remote::track_json::accountTrackJson(track).isEmpty();
+    return m_mode.capabilities().createShareLinks && !remote::track_json::accountTrackJson(track).isEmpty();
 }
 
 void TrackActions::share(const Track& track)
@@ -73,7 +73,7 @@ bool TrackActions::canKeep(const Track& track) const
         return false;
     }
     // An account song's likes and playlists live on the service.
-    if (track.isRemote() && m_mode.mode() == mode::SourceMode::Account) {
+    if (track.isRemote() && m_mode.accountSelected()) {
         return m_account != nullptr && m_account->handles(track);
     }
     return true;

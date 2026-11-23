@@ -289,6 +289,8 @@ qt_add_library(lmp_core STATIC
     remote/ArtworkService.h
     remote/MediaAddresses.cpp
     remote/MediaAddresses.h
+    remote/RemoteMusicService.cpp
+    remote/RemoteMusicService.h
     remote/TrackJson.cpp
     remote/TrackJson.h
     settings/AppearanceSettings.cpp

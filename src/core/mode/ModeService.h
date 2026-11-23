@@ -103,6 +103,12 @@ public:
     account::LegacyKeyMigration start();
 
     [[nodiscard]] SourceMode mode() const { return m_mode; }
+    // Which source is chosen, for code that keeps that source's own data
+    // (the account library, its sync, its artists). Features ask
+    // capabilities() instead; only the mode service and the remote facade
+    // compare modes themselves.
+    [[nodiscard]] bool accountSelected() const { return m_mode == SourceMode::Account; }
+    [[nodiscard]] bool apiKeySelected() const { return m_mode == SourceMode::ApiKey; }
     [[nodiscard]] bool isAvailable(SourceMode mode) const;
     [[nodiscard]] bool isSelectable(SourceMode mode) const;
     // The current mode is remote and available.
@@ -115,6 +121,10 @@ public:
     // The saved base address, as the user typed it; empty when none.
     [[nodiscard]] QString providerBaseUrl() const;
     [[nodiscard]] QStringList providerCapabilities() const { return m_providerCapabilities; }
+    // Where provider requests go and the key they carry, read now; nothing
+    // outside a usable ApiKey mode or when the key cannot be read. The key
+    // is never logged.
+    [[nodiscard]] std::optional<provider::ProviderConnection> providerConnection() const;
 
     // Tests the address and key with the status call, then stores the key,
     // saves the address and enters ApiKey mode.

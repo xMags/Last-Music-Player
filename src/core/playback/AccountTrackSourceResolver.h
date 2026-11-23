@@ -15,10 +15,9 @@ namespace lmp::core {
 
 class SettingsStore;
 
-namespace account {
-class AccountClient;
-class AccountSessionService;
-} // namespace account
+namespace remote {
+class RemoteMusicService;
+} // namespace remote
 
 // Remote songs in Account mode. A stream address the song already carries is
 // played as it is when it belongs to the media origin and its token is still
@@ -27,19 +26,20 @@ class AccountSessionService;
 // for. Only a resolved stream address of the media origin with a fresh
 // stream token is accepted.
 //
+// The call goes through the remote facade (remote::RemoteMusicService),
+// which refuses it outside a usable Account or API key mode, turns an answer
+// for an older mode, owner or session into Cancelled, and signs a session
+// out on a 401.
+//
 // Failures: NotFound when the song has no source address or the answer holds
 // no acceptable stream; NotAvailable without a session; Cancelled when the
-// session changed while the call ran; the call's own failure otherwise. A 401
-// is reported to the session, which signs out if that session is still the
-// current one.
+// source changed while the call ran; the call's own failure otherwise.
 //
-// Threading: GUI thread; continuations run there with the session as their
-// context, so they never outlive it.
+// Threading: GUI thread; continuations capture no object of their own.
 class AccountTrackSourceResolver final : public TrackSourceResolver {
 public:
     struct Dependencies {
-        account::AccountClient& client;
-        account::AccountSessionService& session;
+        remote::RemoteMusicService& remote;
         SettingsStore& settings;
         platform::INetworkStatus& network;
         // The configured media origin (PrivateConfig::accountMediaOrigin).

@@ -39,7 +39,7 @@ AccountArtistsViewModel::AccountArtistsViewModel(Parts parts, QObject* parent)
 
 void AccountArtistsViewModel::onModeChanged()
 {
-    const bool active = m_mode.mode() == core::mode::SourceMode::Account;
+    const bool active = m_mode.accountSelected();
     if (active == m_active) {
         return;
     }
