@@ -84,6 +84,7 @@ set(LMP_UI_QML_FILES
     qml/library/CollectionPage.qml
     qml/library/GenreMark.qml
     qml/library/GenreTile.qml
+    qml/downloads/OfflinePage.qml
     qml/library/LibraryPage.qml
     qml/library/PlayPill.qml
     qml/library/RoundAction.qml
@@ -120,6 +121,7 @@ set(LMP_UI_QML_FILES
     qml/settings/SettingsAppearanceCard.qml
     qml/settings/SettingsCard.qml
     qml/settings/SettingsDivider.qml
+    qml/settings/SettingsDownloadsCard.qml
     qml/settings/SettingsLibraryCard.qml
     qml/settings/LanguagePills.qml
     qml/settings/SettingsLanguagesSection.qml
@@ -232,6 +234,8 @@ qt_add_qml_module(lmp_ui
         player/QueueListDiff.h
         player/QueueListModel.cpp
         player/QueueListModel.h
+        downloads/OfflineViewModel.cpp
+        downloads/OfflineViewModel.h
         player/LyricsViewModel.cpp
         share/ShareController.cpp
         share/ShareController.h

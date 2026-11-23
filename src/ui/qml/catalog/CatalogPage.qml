@@ -48,6 +48,8 @@ Item {
                 onShuffleClicked: page.model.shuffle()
                 showShare: App.share.available && page.model.canShare
                 onShareClicked: page.model.share()
+                showDownload: App.capabilities.downloadSongs && page.model.canShare
+                onDownloadClicked: page.model.download()
             }
 
             AppButton {

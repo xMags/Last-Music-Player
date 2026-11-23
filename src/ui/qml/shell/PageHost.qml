@@ -11,7 +11,8 @@ Item {
     // Pages that scroll themselves (long lists) fill the panel; they keep
     // and restore their own position (ScrollMemory).
     function scrollsItself(kind: int): bool {
-        return kind === Route.Library || (kind === Route.Collection && !host.showsArtist()) || host.showsCatalog()
+        return kind === Route.Library || kind === Route.Offline || (kind === Route.Collection && !host.showsArtist())
+            || host.showsCatalog()
     }
 
     // The catalogue's album, playlist, chart and shelf pages (App.catalogPage).
@@ -93,6 +94,7 @@ Item {
                     : App.navigator.currentKind === Route.Browse ? browsePage
                     : App.navigator.currentKind === Route.Settings ? settingsPage
                     : App.navigator.currentKind === Route.Library ? libraryPage
+                    : App.navigator.currentKind === Route.Offline ? offlinePage
                     : App.navigator.currentKind === Route.Collection ? (host.showsArtist() ? artistPage : collectionPage)
                     : host.showsCatalog() ? catalogPage
                     : host.showsCatalogArtist() ? catalogArtistPage
@@ -117,6 +119,12 @@ Item {
         id: homePage
 
         HomePage {}
+    }
+
+    Component {
+        id: offlinePage
+
+        OfflinePage {}
     }
 
     Component {

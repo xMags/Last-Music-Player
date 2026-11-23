@@ -84,7 +84,9 @@ Rectangle {
                     active: kind === App.sidebar.activeKind
                     collapsed: sidebar.collapsed
                     leading: Icon {
-                        name: navRow.active ? "nav-" + navRow.iconName + "-active" : "nav-" + navRow.iconName
+                        // Offline uses the plain download glyph; the others have nav icons.
+                        name: navRow.iconName === "download" ? "download"
+                            : navRow.active ? "nav-" + navRow.iconName + "-active" : "nav-" + navRow.iconName
                         size: 20
                         color: navRow.active ? Theme.accentColor : Theme.fg
                     }

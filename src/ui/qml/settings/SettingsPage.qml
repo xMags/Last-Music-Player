@@ -87,6 +87,11 @@ Item {
             width: column.width
         }
 
+        SettingsDownloadsCard {
+            width: column.width
+            visible: App.capabilities.downloadSongs
+        }
+
         SettingsSection {
             width: column.width
             iconName: "play"

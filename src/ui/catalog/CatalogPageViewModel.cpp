@@ -64,6 +64,7 @@ CatalogPageViewModel::CatalogPageViewModel(Parts parts, QObject* parent)
     , m_share(parts.share)
     , m_providerPages(std::move(parts.providerPages))
     , m_providerAlbum(std::move(parts.providerAlbum))
+    , m_download(std::move(parts.download))
 {
     connect(&m_navigator, &Navigator::currentChanged, this, &CatalogPageViewModel::followNavigator);
     // A saved copy made or removed elsewhere changes the Save button.
@@ -443,6 +444,13 @@ void CatalogPageViewModel::applyPagerItems()
 bool CatalogPageViewModel::canShare() const
 {
     return !m_loading && !m_showsCards && m_tracks.count() > 0 && !m_title.isEmpty();
+}
+
+void CatalogPageViewModel::download()
+{
+    if (m_download && canShare()) {
+        (void)m_download(m_title, m_byline, m_shareArtwork, m_tracks.tracks());
+    }
 }
 
 void CatalogPageViewModel::share()

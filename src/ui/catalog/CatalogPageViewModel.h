@@ -88,6 +88,8 @@ public:
         Navigator& navigator;
         // Makes share links; none in tests.
         ShareController* share = nullptr;
+        // Queues songs for download as one job (title, subtitle, picture).
+        std::function<bool(const QString&, const QString&, const QString&, const QList<core::Track>&)> download = {};
         // API key mode: while `providerPages` says so, an album known by its
         // source identity comes from the provider's album detail.
         std::function<bool()> providerPages = {};
@@ -129,6 +131,8 @@ public:
     Q_INVOKABLE void openCard(int row);
     Q_INVOKABLE void toggleSave();
     Q_INVOKABLE void share();
+    // Downloads the songs on screen.
+    Q_INVOKABLE void download();
     // The next page of a chart or a long shelf, when there is one.
     Q_INVOKABLE void loadMore();
     Q_INVOKABLE void retry();
@@ -170,6 +174,7 @@ private:
     // The picture's own link, for a share link.
     QString m_shareArtwork;
     ShareController* m_share = nullptr;
+    std::function<bool(const QString&, const QString&, const QString&, const QList<core::Track>&)> m_download;
     std::function<bool()> m_providerPages;
     std::function<QFuture<core::Result<core::catalog::Detail>>(const core::account::LibraryArtistIdentity&,
                                                                 const QString& artist)>

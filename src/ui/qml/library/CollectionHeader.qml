@@ -38,8 +38,9 @@ Column {
     property string genre: ""
     property bool roundCover: false
     // A Follow button (artist pages), its state, and whether a change is on its way.
-    // The round Share button, after Shuffle.
+    // The round Share button, after Shuffle; Download after it.
     property bool showShare: false
+    property bool showDownload: false
     property bool showFollow: false
     property bool followed: false
     property bool followBusy: false
@@ -49,6 +50,7 @@ Column {
     signal shuffleClicked()
     signal followClicked()
     signal shareClicked()
+    signal downloadClicked()
     // `at` is in the header's coordinates.
     signal menuClicked(point at)
 
@@ -259,6 +261,13 @@ Column {
                     iconName: "share"
                     Accessible.name: qsTr("Share")
                     onClicked: header.shareClicked()
+                }
+
+                RoundAction {
+                    visible: header.showDownload
+                    iconName: "download"
+                    Accessible.name: qsTr("Download")
+                    onClicked: header.downloadClicked()
                 }
 
                 RoundAction {

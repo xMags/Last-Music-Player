@@ -143,6 +143,15 @@ RowLayout {
     }
 
     IconButton {
+        visible: App.capabilities.downloadSongs
+        opacity: block.idle ? 0 : 1
+        enabled: !block.idle
+        iconName: "download"
+        Accessible.name: qsTr("Download")
+        onClicked: App.offline.downloadPlaying()
+    }
+
+    IconButton {
         visible: App.share.available
         opacity: block.idle ? 0 : 1
         enabled: !block.idle

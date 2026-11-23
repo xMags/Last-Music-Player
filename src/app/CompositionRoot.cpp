@@ -293,6 +293,17 @@ CompositionRoot::CompositionRoot()
                     .accountEditor = &m_accountEditor,
                     .toAccount = [this]() { return m_mode.capabilities().editServerPlaylists; }})
     , m_lyrics(m_player, m_lyricsService)
+    , m_offline({.downloads = m_downloads,
+                 .actions = m_trackActions,
+                 .trackMenu = m_trackMenu,
+                 .toasts = m_toasts,
+                 .picker = m_folderPicker,
+                 .currentTrack = [this]() { return m_player.currentTrack(); },
+                 .canDownload = [this]() { return m_mode.capabilities().downloadSongs; },
+                 .stableKey =
+                     [this](const core::Track& track) {
+                         return core::track_keys::downloadStableKey(m_remote.scopeKeyParts(), track);
+                     }})
     , m_share([this](const QByteArray& body) { return sendAccount(core::net::HttpMethod::Post, QStringLiteral("/v1/music/shares"), body); },
               [this]() {
                   return m_mode.capabilities().createShareLinks && m_session.captureOperation().has_value();
@@ -337,6 +348,11 @@ CompositionRoot::CompositionRoot()
                      .trackMenu = m_trackMenu,
                      .navigator = m_navigator,
                      .share = &m_share,
+                     .download =
+                         [this](const QString& title, const QString& subtitle, const QString& artwork,
+                                const QList<core::Track>& tracks) {
+                             return m_offline.downloadTracks(title, subtitle, artwork, tracks);
+                         },
                      .providerPages =
                          [this]() {
                              return !m_mode.capabilities().browseCatalogue && m_mode.capabilities().openOnlineAlbumPages;
@@ -431,6 +447,7 @@ CompositionRoot::CompositionRoot()
           .catalogPage = &m_catalogPage,
           .catalogArtist = &m_catalogArtist,
           .lyrics = &m_lyrics,
+          .offline = &m_offline,
           .share = &m_share,
           .mode = &m_mode,
           .showGallery = QCoreApplication::arguments().contains(QStringLiteral("--gallery")),
@@ -734,6 +751,7 @@ bool CompositionRoot::showMainWindow(QQmlApplicationEngine& engine)
     m_windowChromeViewModel.setAttached(custom);
     // The folder picker is modal to the main window.
     m_librarySettings.setOwnerWindow(static_cast<quintptr>(window->winId()));
+    m_offline.setOwnerWindow(static_cast<quintptr>(window->winId()));
     // The system routes the media keys to the session of this window.
     if (!m_mediaControls.attach(static_cast<quintptr>(window->winId()))) {
         qCWarning(lcComposition) << "The system media controls are not available";

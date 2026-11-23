@@ -14,6 +14,8 @@ QList<SidebarNavListModel::Item> mainViews()
         {static_cast<int>(Route::Kind::Home), Navigator::tr("Home"), QStringLiteral("home")},
         {static_cast<int>(Route::Kind::Browse), Navigator::tr("Browse"), QStringLiteral("browse")},
         {static_cast<int>(Route::Kind::Library), Navigator::tr("Library"), QStringLiteral("library")},
+        // The Windows app's Offline page: the songs downloaded on this PC.
+        {static_cast<int>(Route::Kind::Offline), Navigator::tr("Offline"), QStringLiteral("download")},
         {static_cast<int>(Route::Kind::Settings), Navigator::tr("Settings"),
          QStringLiteral("settings")},
     };

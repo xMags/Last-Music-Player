@@ -84,6 +84,7 @@
 #include "ui/search/SearchViewModel.h"
 #include "ui/library/AccountArtistsViewModel.h"
 #include "ui/catalog/CatalogArtistViewModel.h"
+#include "ui/downloads/OfflineViewModel.h"
 #include "ui/player/LyricsViewModel.h"
 #include "ui/share/ShareController.h"
 #include "ui/catalog/CatalogPageViewModel.h"
@@ -294,6 +295,8 @@ private:
     // Albums and playlists imported from a provider link.
     core::LinkImportService m_linkImport;
     ui::LyricsViewModel m_lyrics;
+    // The Offline page and the download controls.
+    ui::OfflineViewModel m_offline;
     // Share links for songs, lists and artists (Account mode).
     ui::ShareController m_share;
     ui::CollectionEditor m_collectionEditor;
