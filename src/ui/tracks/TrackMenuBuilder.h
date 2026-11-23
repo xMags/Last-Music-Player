@@ -12,9 +12,9 @@ namespace lmp::ui {
 // Play now, Play next, Add to queue; Add to playlist, the heart; Remove from
 // playlist on a playlist's own page, with the current app's Move up and Move
 // down where the page shows the playlist's own order; Go to artist, Go to album (not for a
-// single). Start mix, for a remote song where mixes play, sits before Go to
-// artist. Items the mode cannot do for this song are left out, not shown
-// disabled. Download and Share join when their features exist.
+// single). Start mix, for a remote song where mixes play, and Share, where
+// links can be made, sit before Go to artist. Items the mode cannot do for
+// this song are left out, not shown disabled. Download joins when it exists.
 //
 // "Add to playlist" opens a second menu: New playlist, then the playlists.
 class TrackMenuBuilder {
@@ -29,6 +29,8 @@ public:
         bool moveDown = false;
         // A remote song can start a mix of songs like it.
         bool mix = false;
+        // A link to the song can be made (Account mode).
+        bool share = false;
     };
 
     // Item ids.
@@ -43,6 +45,7 @@ public:
     static constexpr QLatin1StringView Artist{"artist"};
     static constexpr QLatin1StringView Album{"album"};
     static constexpr QLatin1StringView Mix{"mix"};
+    static constexpr QLatin1StringView Share{"share"};
     static constexpr QLatin1StringView NewPlaylist{"new-playlist"};
     // A playlist item's id is this prefix and the playlist's key.
     static constexpr QLatin1StringView PlaylistPrefix{"to-playlist:"};

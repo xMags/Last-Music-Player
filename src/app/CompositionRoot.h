@@ -74,6 +74,7 @@
 #include "ui/library/AccountArtistsViewModel.h"
 #include "ui/catalog/CatalogArtistViewModel.h"
 #include "ui/player/LyricsViewModel.h"
+#include "ui/share/ShareController.h"
 #include "ui/catalog/CatalogPageViewModel.h"
 #include "ui/settings/RegionLanguagesViewModel.h"
 #include "ui/shell/ConnectivityViewModel.h"
@@ -143,6 +144,10 @@ public:
 private:
     // The account library as the home model reads it, in Account mode only.
     [[nodiscard]] std::optional<core::home::HomeLibrary> accountHomeLibrary() const;
+    // A call in the signed-in account's name; its body, or the failure. A
+    // rejected session signs out (when it is still the current one).
+    [[nodiscard]] QFuture<core::Result<QByteArray>> sendAccount(core::net::HttpMethod method, const QString& pathAndQuery,
+                                                                const QByteArray& jsonBody = {});
 
 public:
 
@@ -263,6 +268,8 @@ private:
     core::PlayerAutoplayQueue m_autoplayQueue;
     core::AutoplayService m_autoplay;
     ui::LyricsViewModel m_lyrics;
+    // Share links for songs, lists and artists (Account mode).
+    ui::ShareController m_share;
     ui::CollectionEditor m_collectionEditor;
     ui::HomeViewModel m_home;
     // Browse and search (the local library; remote sources join in P08 and P09).

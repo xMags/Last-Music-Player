@@ -23,6 +23,7 @@ private slots:
     void singlesHaveNoAlbumItem();
     void playlistMenuStartsWithNewPlaylist();
     void mixSitsBeforeGoToArtist();
+    void shareFollowsMix();
 };
 
 namespace {
@@ -67,6 +68,19 @@ void TrackMenuBuilderTest::mixSitsBeforeGoToArtist()
     QCOMPARE(items.at(5).label, QStringLiteral("Start mix"));
     QVERIFY(items.at(5).separatorBefore);
     QVERIFY(items.at(6).separatorBefore);
+}
+
+void TrackMenuBuilderTest::shareFollowsMix()
+{
+    const auto alone = TrackMenuBuilder::songMenu(song(QStringLiteral("Song"), QStringLiteral("Album")), {.share = true});
+    QCOMPARE(alone.at(5).id, QStringLiteral("share"));
+    QVERIFY(alone.at(5).separatorBefore);
+    const auto both =
+        TrackMenuBuilder::songMenu(song(QStringLiteral("Song"), QStringLiteral("Album")), {.mix = true, .share = true});
+    QCOMPARE(both.at(5).id, QStringLiteral("mix"));
+    QCOMPARE(both.at(6).id, QStringLiteral("share"));
+    QVERIFY(!both.at(6).separatorBefore);
+    QCOMPARE(both.at(7).id, QStringLiteral("artist"));
 }
 
 void TrackMenuBuilderTest::likedSongOffersRemovingTheLike()

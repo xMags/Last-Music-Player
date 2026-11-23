@@ -25,6 +25,8 @@ class CatalogService;
 
 namespace lmp::ui {
 
+class ShareController;
+
 class Navigator;
 class Route;
 class TrackMenuController;
@@ -63,6 +65,8 @@ class CatalogPageViewModel final : public QObject {
     // Cards instead of songs (a list of albums, playlists or artists).
     Q_PROPERTY(bool showsCards READ showsCards NOTIFY changed FINAL)
     Q_PROPERTY(bool canSave READ canSave NOTIFY changed FINAL)
+    // The songs on screen can be shared as a list.
+    Q_PROPERTY(bool canShare READ canShare NOTIFY changed FINAL)
     Q_PROPERTY(bool saved READ saved NOTIFY changed FINAL)
     Q_PROPERTY(bool saving READ saving NOTIFY changed FINAL)
     // "idle", "loading", "failed" or "done".
@@ -77,6 +81,8 @@ public:
         core::TrackActions& actions;
         TrackMenuController& trackMenu;
         Navigator& navigator;
+        // Makes share links; none in tests.
+        ShareController* share = nullptr;
     };
 
     // Everything in `parts` outlives this object.
@@ -98,6 +104,7 @@ public:
     [[nodiscard]] QString artworkId() const { return m_title; }
     [[nodiscard]] bool showsCards() const { return m_showsCards; }
     [[nodiscard]] bool canSave() const;
+    [[nodiscard]] bool canShare() const;
     [[nodiscard]] bool saved() const;
     [[nodiscard]] bool saving() const { return m_saving; }
     [[nodiscard]] QString pagingState() const;
@@ -110,6 +117,7 @@ public:
     Q_INVOKABLE void prepareSongMenu(int row);
     Q_INVOKABLE void openCard(int row);
     Q_INVOKABLE void toggleSave();
+    Q_INVOKABLE void share();
     // The next page of a chart or a long shelf, when there is one.
     Q_INVOKABLE void loadMore();
     Q_INVOKABLE void retry();
@@ -146,6 +154,9 @@ private:
     QString m_byline;
     QString m_description;
     QUrl m_artworkUrl;
+    // The picture's own link, for a share link.
+    QString m_shareArtwork;
+    ShareController* m_share = nullptr;
     QString m_sourceUrl;
     bool m_showsCards = false;
     bool m_saving = false;

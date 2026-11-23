@@ -169,6 +169,7 @@ Item {
             FullscreenButton {
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
+                visible: App.share.available
                 iconName: "share"
                 onClicked: App.playerBar.share()
             }

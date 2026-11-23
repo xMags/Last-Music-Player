@@ -1,5 +1,7 @@
 #include "core/library/TrackActions.h"
 
+#include "core/remote/TrackJson.h"
+
 #include "core/account/AccountLibraryEditor.h"
 
 #include <optional>
@@ -50,6 +52,18 @@ void TrackActions::startMix(const Track& track)
 {
     if (canStartMix(track)) {
         emit mixRequested(track);
+    }
+}
+
+bool TrackActions::canShare(const Track& track) const
+{
+    return m_mode.mode() == mode::SourceMode::Account && !remote::track_json::accountTrackJson(track).isEmpty();
+}
+
+void TrackActions::share(const Track& track)
+{
+    if (canShare(track)) {
+        emit shareRequested(track);
     }
 }
 

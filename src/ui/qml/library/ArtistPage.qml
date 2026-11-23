@@ -45,6 +45,8 @@ Item {
             onBackClicked: App.navigator.back()
             onPlayClicked: page.model.play()
             onShuffleClicked: page.model.shuffle()
+            showShare: page.catalogue && App.share.available && page.model.canShare
+            onShareClicked: page.model.share()
             showFollow: page.model.canFollow
             followed: page.model.followed
             followBusy: page.model.followBusy

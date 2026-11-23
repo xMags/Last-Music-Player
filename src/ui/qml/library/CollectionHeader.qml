@@ -38,6 +38,8 @@ Column {
     property string genre: ""
     property bool roundCover: false
     // A Follow button (artist pages), its state, and whether a change is on its way.
+    // The round Share button, after Shuffle.
+    property bool showShare: false
     property bool showFollow: false
     property bool followed: false
     property bool followBusy: false
@@ -46,6 +48,7 @@ Column {
     signal playClicked()
     signal shuffleClicked()
     signal followClicked()
+    signal shareClicked()
     // `at` is in the header's coordinates.
     signal menuClicked(point at)
 
@@ -249,6 +252,13 @@ Column {
                     iconName: "shuffle"
                     Accessible.name: qsTr("Shuffle")
                     onClicked: header.shuffleClicked()
+                }
+
+                RoundAction {
+                    visible: header.showShare
+                    iconName: "share"
+                    Accessible.name: qsTr("Share")
+                    onClicked: header.shareClicked()
                 }
 
                 RoundAction {

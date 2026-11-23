@@ -101,6 +101,9 @@ public:
         // the songs and cards the service finds, a pasted link included.
         core::catalog::CatalogService* catalog = nullptr;
         std::function<bool()> online = {};
+        // The code of a pasted share link, which opens its item instead of
+        // a search.
+        std::function<std::optional<QString>(const QString&)> shareCode = {};
     };
 
     // The pause after typing (views/search.ts and the current app: 350 ms)
@@ -192,6 +195,7 @@ private:
     std::function<std::optional<core::home::HomeLibrary>()> m_accountLibrary;
     core::catalog::CatalogService* m_catalog = nullptr;
     std::function<bool()> m_online;
+    std::function<std::optional<QString>(const QString&)> m_shareCode;
     // The cards of an online search, by group, and its top card.
     QHash<QString, QList<core::catalog::CatalogItem>> m_onlineCards;
     std::optional<core::catalog::CatalogItem> m_onlineTop;

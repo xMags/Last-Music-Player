@@ -46,6 +46,8 @@ Item {
                 onBackClicked: App.navigator.back()
                 onPlayClicked: page.model.play()
                 onShuffleClicked: page.model.shuffle()
+                showShare: App.share.available && page.model.canShare
+                onShareClicked: page.model.share()
             }
 
             AppButton {

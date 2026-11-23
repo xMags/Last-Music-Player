@@ -54,6 +54,7 @@ SearchViewModel::SearchViewModel(Parts parts, QObject* parent)
     , m_accountLibrary(std::move(parts.accountLibrary))
     , m_catalog(parts.catalog)
     , m_online(std::move(parts.online))
+    , m_shareCode(std::move(parts.shareCode))
 {
     m_typing.setSingleShot(true);
     m_typing.setInterval(TypingDelayMs);
@@ -115,6 +116,13 @@ void SearchViewModel::run()
     // The last results stay on screen until this search answers.
     if (m_state == QLatin1StringView("landing") || m_state == QLatin1StringView("empty")) {
         setState(QStringLiteral("searching"));
+    }
+    if (m_catalog != nullptr && m_online && m_online() && m_shareCode) {
+        if (const std::optional<QString> code = m_shareCode(query)) {
+            setState(QStringLiteral("landing"));
+            m_navigator.push(Route(Route::Kind::Shared, {{QStringLiteral("code"), *code}}));
+            return;
+        }
     }
     if (m_catalog != nullptr && m_online && m_online()) {
         m_catalog->searchAll(query).then(this, [this, generation, query](const core::Result<core::catalog::SearchAll>& found) {

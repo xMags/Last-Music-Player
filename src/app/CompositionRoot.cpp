@@ -213,28 +213,11 @@ CompositionRoot::CompositionRoot()
                        .session = m_session,
                        .actions = m_trackActions,
                        .trackMenu = m_trackMenu,
-                       .navigator = m_navigator})
+                       .navigator = m_navigator,
+                       .share = &m_share})
     , m_lyricsService(
-          [this](const core::lyrics::LyricsQuery& query) -> QFuture<core::Result<QByteArray>> {
-              const std::optional<core::account::AccountOperationContext> context = m_session.captureOperation();
-              if (!context) {
-                  return QtFuture::makeReadyValueFuture(core::Result<QByteArray>(
-                      core::Failure::of(core::FailureKind::Unauthorized, QStringLiteral("Sign in to see lyrics."))));
-              }
-              core::account::AccountCall call;
-              call.method = core::net::HttpMethod::Get;
-              call.pathAndQuery = core::lyrics::lyricsPathAndQuery(query);
-              call.bearerSession = context->bearerSession;
-              return m_accountClient.send(call).then(
-                  [this, context = *context](const core::Result<core::net::HttpResponse>& response) -> core::Result<QByteArray> {
-                      if (!response) {
-                          if (response.failure().kind == core::FailureKind::Unauthorized) {
-                              m_session.handleUnauthorized(context);
-                          }
-                          return response.failure();
-                      }
-                      return response.value().body;
-                  });
+          [this](const core::lyrics::LyricsQuery& query) {
+              return sendAccount(core::net::HttpMethod::Get, core::lyrics::lyricsPathAndQuery(query));
           },
           [this]() -> QString {
               if (m_mode.mode() != core::mode::SourceMode::Account) {
@@ -270,6 +253,11 @@ CompositionRoot::CompositionRoot()
                           return recent;
                       }})
     , m_lyrics(m_player, m_lyricsService)
+    , m_share([this](const QByteArray& body) { return sendAccount(core::net::HttpMethod::Post, QStringLiteral("/v1/music/shares"), body); },
+              [this]() {
+                  return m_mode.mode() == core::mode::SourceMode::Account && m_session.captureOperation().has_value();
+              },
+              m_toasts)
     , m_collectionPage({.library = m_library,
                         .actions = m_trackActions,
                         .collections = m_collectionActions,
@@ -307,7 +295,8 @@ CompositionRoot::CompositionRoot()
                      .editor = m_accountEditor,
                      .actions = m_trackActions,
                      .trackMenu = m_trackMenu,
-                     .navigator = m_navigator})
+                     .navigator = m_navigator,
+                     .share = &m_share})
     , m_collectionEditor(m_collectionActions, m_navigator, m_toasts)
     , m_home({.library = m_library,
               .actions = m_trackActions,
@@ -333,7 +322,11 @@ CompositionRoot::CompositionRoot()
                 .navigator = m_navigator,
                 .accountLibrary = [this]() { return accountHomeLibrary(); },
                 .catalog = &m_catalog,
-                .online = [this]() { return m_mode.capabilities().browseCatalogue; }})
+                .online = [this]() { return m_mode.capabilities().browseCatalogue; },
+                .shareCode =
+                    [this](const QString& text) {
+                        return core::share::shareCodeFromLink(text, m_privateConfig.accountFrontendOrigin);
+                    }})
     , m_cleanup({.gate = m_userDataGate,
                  .scanner = m_scanner,
                  .player = m_player,
@@ -376,6 +369,7 @@ CompositionRoot::CompositionRoot()
           .catalogPage = &m_catalogPage,
           .catalogArtist = &m_catalogArtist,
           .lyrics = &m_lyrics,
+          .share = &m_share,
           .mode = &m_mode,
           .showGallery = QCoreApplication::arguments().contains(QStringLiteral("--gallery")),
       })
@@ -410,6 +404,19 @@ CompositionRoot::CompositionRoot()
                      [this](const core::Track& track) { m_autoplay.startMix(track); });
     QObject::connect(&m_autoplay, &core::AutoplayService::mixFoundNothing, &m_toasts,
                      [this]() { m_toasts.show(QCoreApplication::translate("Autoplay", "No similar songs found for this radio.")); });
+    // Share links: a song from its menu or the player bar.
+    QObject::connect(&m_trackActions, &core::TrackActions::shareRequested, &m_share, [this](const core::Track& track) {
+        m_share.share({.kind = core::share::ShareKind::Song, .track = track},
+                      QCoreApplication::translate("Share", "Could not share this song."));
+    });
+    QObject::connect(&m_playerBar, &ui::PlayerBarViewModel::shareRequested, &m_share, [this]() {
+        if (const std::optional<core::Track>& track = m_player.currentTrack()) {
+            m_trackActions.share(*track);
+        }
+    });
+    QObject::connect(&m_mode, &core::mode::ModeService::changed, &m_share, [this]() { m_share.refresh(); });
+    QObject::connect(&m_session, &core::account::AccountSessionService::stateChanged, &m_share,
+                     [this]() { m_share.refresh(); });
     // Another account, key or mode asks in another scope.
     QObject::connect(&m_mode, &core::mode::ModeService::changed, &m_lyrics, [this]() { m_lyrics.reload(); });
     QObject::connect(&m_session, &core::account::AccountSessionService::ownerChanged, &m_lyrics,
@@ -525,6 +532,31 @@ void CompositionRoot::showSearchForReview(const QString& query)
 {
     m_navigator.openView(static_cast<int>(ui::Route::Kind::Browse));
     m_search.setQuery(query);
+}
+
+QFuture<core::Result<QByteArray>> CompositionRoot::sendAccount(core::net::HttpMethod method, const QString& pathAndQuery,
+                                                               const QByteArray& jsonBody)
+{
+    const std::optional<core::account::AccountOperationContext> context = m_session.captureOperation();
+    if (!context) {
+        return QtFuture::makeReadyValueFuture(
+            core::Result<QByteArray>(core::Failure::of(core::FailureKind::Unauthorized, QStringLiteral("Not signed in."))));
+    }
+    core::account::AccountCall call;
+    call.method = method;
+    call.pathAndQuery = pathAndQuery;
+    call.bearerSession = context->bearerSession;
+    call.jsonBody = jsonBody;
+    return m_accountClient.send(call).then(
+        [this, context = *context](const core::Result<core::net::HttpResponse>& response) -> core::Result<QByteArray> {
+            if (!response) {
+                if (response.failure().kind == core::FailureKind::Unauthorized) {
+                    m_session.handleUnauthorized(context);
+                }
+                return response.failure();
+            }
+            return response.value().body;
+        });
 }
 
 std::optional<core::home::HomeLibrary> CompositionRoot::accountHomeLibrary() const

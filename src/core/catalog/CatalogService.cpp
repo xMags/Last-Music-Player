@@ -483,6 +483,19 @@ QFuture<Result<QList<Track>>> CatalogService::searchTracks(const QString& query)
         [](const QByteArray& payload) -> Result<QList<Track>> { return parseProviderTrackList(payload); });
 }
 
+QFuture<Result<share::SharedItem>> CatalogService::sharedItem(const QString& code)
+{
+    return uncached<share::SharedItem>(
+        [this, code](const QString& bearer) { return m_deps.client.sharedItem(bearer, code); },
+        [code](const QByteArray& payload) -> Result<share::SharedItem> {
+            std::optional<share::SharedItem> item = share::parseSharedItem(payload, code);
+            if (!item) {
+                return Failure::of(FailureKind::NotFound, QStringLiteral("This share link is not available."));
+            }
+            return std::move(*item);
+        });
+}
+
 QFuture<std::optional<AlbumTarget>> CatalogService::songAlbum(const Track& track)
 {
     QUrlQuery fields;

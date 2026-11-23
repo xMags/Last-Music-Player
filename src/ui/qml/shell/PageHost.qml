@@ -22,7 +22,7 @@ Item {
             return type === "album" || type === "playlist"
         }
         return kind === Route.SourceAlbum || kind === Route.ExternalPlaylist || kind === Route.Chart
-            || kind === Route.Shelf || kind === Route.ArtistSection
+            || kind === Route.Shelf || kind === Route.ArtistSection || kind === Route.Shared
     }
 
     // The catalogue's artist page (App.catalogArtist).

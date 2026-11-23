@@ -143,9 +143,11 @@ RowLayout {
     }
 
     IconButton {
+        visible: App.share.available
         opacity: block.idle ? 0 : 1
         enabled: !block.idle
         iconName: "share"
+        Accessible.name: qsTr("Share")
         onClicked: App.playerBar.share()
     }
 }

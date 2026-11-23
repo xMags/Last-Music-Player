@@ -233,6 +233,8 @@ qt_add_qml_module(lmp_ui
         player/QueueListModel.cpp
         player/QueueListModel.h
         player/LyricsViewModel.cpp
+        share/ShareController.cpp
+        share/ShareController.h
         player/LyricsViewModel.h
         player/QueueRailViewModel.cpp
         player/QueueRailViewModel.h

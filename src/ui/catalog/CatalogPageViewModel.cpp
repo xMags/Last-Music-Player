@@ -7,6 +7,7 @@
 #include "core/catalog/CollectionSourceKey.h"
 #include "core/library/TrackActions.h"
 #include "ui/catalog/CatalogRoutes.h"
+#include "ui/share/ShareController.h"
 #include "ui/images/ChartArtImageProvider.h"
 #include "ui/navigation/Navigator.h"
 #include "ui/navigation/Route.h"
@@ -60,6 +61,7 @@ CatalogPageViewModel::CatalogPageViewModel(Parts parts, QObject* parent)
     , m_actions(parts.actions)
     , m_trackMenu(parts.trackMenu)
     , m_navigator(parts.navigator)
+    , m_share(parts.share)
 {
     connect(&m_navigator, &Navigator::currentChanged, this, &CatalogPageViewModel::followNavigator);
     // A saved copy made or removed elsewhere changes the Save button.
@@ -81,6 +83,7 @@ bool CatalogPageViewModel::handles(const Route& route)
     case Route::Kind::Chart:
     case Route::Kind::Shelf:
     case Route::Kind::ArtistSection:
+    case Route::Kind::Shared:
         return true;
     default:
         return false;
@@ -113,6 +116,7 @@ void CatalogPageViewModel::reset(const QString& kind)
     m_byline.clear();
     m_description.clear();
     m_artworkUrl.clear();
+    m_shareArtwork.clear();
     m_sourceUrl.clear();
     m_showsCards = false;
     m_saving = false;
@@ -138,6 +142,49 @@ void CatalogPageViewModel::load(const Route& route, bool force)
     const std::uint64_t request = ++m_request;
     const auto current = [this, request]() { return request == m_request; };
     const QString title = route.param(QStringLiteral("title"));
+
+    if (route.kind() == Route::Kind::Shared) {
+        reset(QStringLiteral("playlist"));
+        emit changed();
+        m_catalog.sharedItem(route.param(QStringLiteral("code")))
+            .then(this, [this, current](const core::Result<core::share::SharedItem>& result) {
+                if (!current()) {
+                    return;
+                }
+                if (!result) {
+                    fail(result.failure().kind == core::FailureKind::NotFound
+                             ? tr("This share link is not available.")
+                             : tr("This page could not be loaded. Try again."));
+                    return;
+                }
+                const core::share::SharedItem& item = result.value();
+                // An artist link shows that artist's own page, in place of this one.
+                if (item.kind == core::share::ShareKind::Artist && item.artist) {
+                    QMap<QString, QString> params{{QStringLiteral("provider"), item.artist->provider},
+                                                  {QStringLiteral("name"), item.artist->name},
+                                                  {QStringLiteral("title"), item.artist->name}};
+                    if (!item.artist->catalogId.isEmpty()) {
+                        params.insert(QStringLiteral("catalogId"), item.artist->catalogId);
+                    }
+                    if (!item.artist->sourceUrl.isEmpty()) {
+                        params.insert(QStringLiteral("sourceUrl"), item.artist->sourceUrl);
+                    }
+                    m_navigator.replace(Route(Route::Kind::SourceArtist, params));
+                    return;
+                }
+                m_loading = false;
+                m_kind = QStringLiteral("playlist");
+                m_eyebrow = item.kind == core::share::ShareKind::Song ? tr("SONG") : tr("PLAYLIST");
+                m_title = item.title;
+                m_byline = item.subtitle;
+                m_artworkUrl = coverUrl(item.artworkUrl);
+                m_shareArtwork = item.artworkUrl;
+                m_showsCards = false;
+                m_tracks.setTracks(item.tracks);
+                emit changed();
+            });
+        return;
+    }
 
     if (route.kind() == Route::Kind::CatalogDetail) {
         const QString type = route.param(QStringLiteral("type"));
@@ -251,6 +298,7 @@ void CatalogPageViewModel::load(const Route& route, bool force)
             m_eyebrow = tr("CHART");
             m_title = value.descriptor.title.isEmpty() ? value.shelf.title : value.descriptor.title;
             m_byline = value.descriptor.subtitle;
+            m_shareArtwork = value.descriptor.artworkUrl;
             m_artworkUrl = value.descriptor.artworkUrl.isEmpty()
                 ? QUrl(ChartArtImageProvider::sourceFor(catalog::resolveChartVisual(value.descriptor)))
                 : coverUrl(value.descriptor.artworkUrl);
@@ -361,6 +409,7 @@ void CatalogPageViewModel::showDetail(const catalog::Detail& detail, const QStri
     m_byline = shown.item.subtitle;
     m_description = shown.item.description;
     m_artworkUrl = coverUrl(shown.item.artworkUrl);
+    m_shareArtwork = shown.item.artworkUrl;
     m_sourceUrl = shown.item.sourceUrl;
     m_showsCards = false;
     m_tracks.setTracks(shown.tracks);
@@ -384,6 +433,29 @@ void CatalogPageViewModel::applyPagerItems()
         m_tracks.setTracks(songsOf(m_pager->items()));
     }
     emit changed();
+}
+
+bool CatalogPageViewModel::canShare() const
+{
+    return !m_loading && !m_showsCards && m_tracks.count() > 0 && !m_title.isEmpty();
+}
+
+void CatalogPageViewModel::share()
+{
+    if (m_share == nullptr || !canShare()) {
+        return;
+    }
+    const QList<core::Track>& songs = m_tracks.tracks();
+    if (songs.size() == 1 && m_eyebrow == tr("SONG")) {
+        m_share->share({.kind = core::share::ShareKind::Song, .track = songs.first()}, tr("Could not share this song."));
+        return;
+    }
+    m_share->share({.kind = core::share::ShareKind::List,
+                    .title = m_title,
+                    .subtitle = m_byline,
+                    .artworkUrl = m_shareArtwork,
+                    .tracks = songs},
+                   m_chart ? tr("Could not share this chart.") : tr("Could not share this item."));
 }
 
 void CatalogPageViewModel::loadMore()

@@ -521,3 +521,7 @@ lmp_add_test(tst_lyrics_service
 lmp_add_test(tst_autoplay_service
     SOURCES core/tst_autoplay_service.cpp
     LIBS lmp_core)
+
+lmp_add_test(tst_share_links
+    SOURCES core/tst_share_links.cpp core/CatalogFixtures.h
+    LIBS lmp_core)

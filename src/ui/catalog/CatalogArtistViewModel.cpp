@@ -11,6 +11,7 @@
 #include "ui/navigation/Navigator.h"
 #include "ui/navigation/Route.h"
 #include "ui/player/CoverSource.h"
+#include "ui/share/ShareController.h"
 #include "ui/tracks/TrackMenuController.h"
 
 #include <QJsonArray>
@@ -33,6 +34,7 @@ CatalogArtistViewModel::CatalogArtistViewModel(Parts parts, QObject* parent)
     , m_actions(parts.actions)
     , m_trackMenu(parts.trackMenu)
     , m_navigator(parts.navigator)
+    , m_share(parts.share)
     , m_loader(parts.catalog)
 {
     connect(&m_navigator, &Navigator::currentChanged, this, &CatalogArtistViewModel::followNavigator);
@@ -323,6 +325,21 @@ void CatalogArtistViewModel::toggleFollow()
     m_accountClient.followArtistByIdentity(context->bearerSession, m_target.identity,
                                            m_detail ? m_detail->item.artworkUrl : QString())
         .then(this, finish);
+}
+
+void CatalogArtistViewModel::share()
+{
+    if (m_share == nullptr || !canShare()) {
+        return;
+    }
+    core::account::LibraryArtistIdentity identity = m_target.identity;
+    if (identity.name.trimmed().isEmpty()) {
+        identity.name = name();
+    }
+    m_share->share({.kind = core::share::ShareKind::Artist,
+                    .artworkUrl = m_detail ? m_detail->item.artworkUrl : QString(),
+                    .artist = identity},
+                   tr("Could not share this artist."));
 }
 
 void CatalogArtistViewModel::openArtistOf(const core::Track& track)

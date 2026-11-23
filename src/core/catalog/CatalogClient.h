@@ -93,6 +93,8 @@ public:
                                                            const account::LibraryArtistIdentity& identity);
     // GET /v1/music/search?q=
     [[nodiscard]] QFuture<Result<QByteArray>> search(const QString& bearer, const QString& query);
+    // The item behind a share link, by its code.
+    [[nodiscard]] QFuture<Result<QByteArray>> sharedItem(const QString& bearer, const QString& code);
     // Songs like the one at `sourceUrl`; its reference stands in for the link.
     [[nodiscard]] QFuture<Result<QByteArray>> related(const QString& bearer, const QString& sourceUrl,
                                                       const QString& sourceReference);

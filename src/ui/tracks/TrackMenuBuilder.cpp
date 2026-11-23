@@ -51,6 +51,12 @@ QList<MenuItemListModel::Item> TrackMenuBuilder::songMenu(const core::Track& tra
                       .iconName = QStringLiteral("radio"),
                       .separatorBefore = true});
     }
+    if (abilities.share) {
+        items.append({.id = QString(Share),
+                      .label = text("Share"),
+                      .iconName = QStringLiteral("share"),
+                      .separatorBefore = !abilities.mix});
+    }
     items.append({.id = QString(Artist),
                   .label = text("Go to artist"),
                   .iconName = QStringLiteral("person"),

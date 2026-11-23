@@ -2,6 +2,7 @@
 
 #include "core/account/AccountClient.h"
 #include "core/catalog/CatalogDetailParser.h"
+#include "core/share/ShareLinks.h"
 
 #include <QJsonDocument>
 #include <QUrl>
@@ -282,6 +283,14 @@ QFuture<Result<QByteArray>> CatalogClient::search(const QString& bearer, const Q
         return refused(QStringLiteral("Empty search."));
     }
     return get(bearer, QStringLiteral("/v1/music/search?q=") + encoded(trimmed));
+}
+
+QFuture<Result<QByteArray>> CatalogClient::sharedItem(const QString& bearer, const QString& code)
+{
+    if (!share::isShareCode(code)) {
+        return refused(QStringLiteral("Invalid share link."));
+    }
+    return get(bearer, QStringLiteral("/v1/music/shares/") + code);
 }
 
 QFuture<Result<QByteArray>> CatalogClient::related(const QString& bearer, const QString& sourceUrl,

@@ -7,6 +7,7 @@
 #include "core/catalog/CatalogDetailParser.h"
 #include "core/catalog/CatalogModels.h"
 #include "core/catalog/CatalogParser.h"
+#include "core/share/ShareLinks.h"
 
 #include <QByteArray>
 #include <QFuture>
@@ -129,6 +130,8 @@ public:
     // Songs for autoplay (not kept): like `seed`, or found by a plain search.
     [[nodiscard]] QFuture<Result<QList<Track>>> relatedTracks(const Track& seed);
     [[nodiscard]] QFuture<Result<QList<Track>>> searchTracks(const QString& query);
+    // The item behind a share link (not kept).
+    [[nodiscard]] QFuture<Result<share::SharedItem>> sharedItem(const QString& code);
 
     // The album a song belongs to, as the service finds it (kept like a
     // page); nothing when it found none. Never fails: a failure reads as

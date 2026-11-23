@@ -29,6 +29,8 @@ class CatalogService;
 
 namespace lmp::ui {
 
+class ShareController;
+
 class Navigator;
 class Route;
 class TrackMenuController;
@@ -61,6 +63,8 @@ class CatalogArtistViewModel final : public QObject {
     Q_PROPERTY(bool hasMore READ hasMore NOTIFY changed FINAL)
     Q_PROPERTY(bool showingAll READ showingAll WRITE setShowingAll NOTIFY changed FINAL)
     Q_PROPERTY(bool canFollow READ canFollow NOTIFY changed FINAL)
+    // The artist can be shared by its identity.
+    Q_PROPERTY(bool canShare READ canShare NOTIFY changed FINAL)
     Q_PROPERTY(bool followed READ followed NOTIFY changed FINAL)
     Q_PROPERTY(bool followBusy READ followBusy NOTIFY changed FINAL)
     // One map per shelf below the top songs: key, title, link.
@@ -77,6 +81,7 @@ public:
         core::TrackActions& actions;
         TrackMenuController& trackMenu;
         Navigator& navigator;
+        ShareController* share = nullptr;
     };
 
     // Everything in `parts` outlives this object.
@@ -98,6 +103,7 @@ public:
     [[nodiscard]] bool showingAll() const { return m_showingAll; }
     void setShowingAll(bool showingAll);
     [[nodiscard]] bool canFollow() const;
+    [[nodiscard]] bool canShare() const { return canFollow(); }
     [[nodiscard]] bool followed() const { return !m_followedId.isEmpty(); }
     [[nodiscard]] bool followBusy() const { return m_followBusy; }
     [[nodiscard]] QVariantList sections() const;
@@ -111,6 +117,7 @@ public:
     Q_INVOKABLE void likeSong(int row);
     Q_INVOKABLE void prepareSongMenu(int row);
     Q_INVOKABLE void toggleFollow();
+    Q_INVOKABLE void share();
     Q_INVOKABLE void retry();
     // The library page's call; the catalogue page has no album row of its own.
     Q_INVOKABLE void openAlbum(int row) { Q_UNUSED(row); }
@@ -135,6 +142,7 @@ private:
     core::TrackActions& m_actions;
     TrackMenuController& m_trackMenu;
     Navigator& m_navigator;
+    ShareController* m_share = nullptr;
     core::catalog::ArtistPageLoader m_loader;
 
     std::uint64_t m_request = 0;
