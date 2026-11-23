@@ -206,6 +206,15 @@ Item {
         z: 95
     }
 
+    // A new account's welcome flow, over everything but the title strip.
+    Loader {
+        anchors.fill: parent
+        active: App.welcome.visible
+        z: 92
+
+        sourceComponent: WelcomeFlow {}
+    }
+
     // New, rename and delete for playlists and albums (App.collections).
     CollectionDialogs {}
 

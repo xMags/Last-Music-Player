@@ -477,3 +477,7 @@ lmp_add_test(tst_account_artists
 lmp_add_test(tst_account_sign_out
     SOURCES core/tst_account_sign_out.cpp core/AccountSessionFixture.h
     LIBS lmp_core)
+
+lmp_add_test(tst_welcome_model
+    SOURCES core/tst_welcome_model.cpp
+    LIBS lmp_core)

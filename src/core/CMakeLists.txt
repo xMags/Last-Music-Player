@@ -45,6 +45,8 @@ qt_add_library(lmp_core STATIC
     account/ScopedCredentialStore.h
     account/SecretStore.cpp
     account/SecretStore.h
+    account/WelcomeModel.cpp
+    account/WelcomeModel.h
     app/AppIdentity.cpp
     app/AppIdentity.h
     app/AppPaths.cpp

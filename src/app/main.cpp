@@ -35,6 +35,13 @@ int main(int argc, char* argv[])
         return 1;
     }
 
+#ifndef NDEBUG
+    // For reviewing the welcome flow without a new account.
+    if (QCoreApplication::arguments().contains(QStringLiteral("--show-welcome"))) {
+        root.showWelcomeForReview();
+    }
+#endif
+
     // Used by automated checks: prove the window loads, then leave.
     if (QCoreApplication::arguments().contains(QStringLiteral("--smoke-test"))) {
         QTimer::singleShot(1500, &app, &QCoreApplication::quit);

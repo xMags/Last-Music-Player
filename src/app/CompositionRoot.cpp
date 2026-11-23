@@ -217,6 +217,11 @@ CompositionRoot::CompositionRoot()
                         .mode = m_mode,
                         .follows = m_artistFollows,
                         .navigator = m_navigator})
+    , m_welcome({.client = m_accountClient,
+                 .session = m_session,
+                 .sync = m_sync,
+                 .accounts = m_accounts,
+                 .settings = m_settings})
     , m_collectionEditor(m_collectionActions, m_navigator, m_toasts)
     , m_home({.library = m_library,
               .actions = m_trackActions,
@@ -272,6 +277,7 @@ CompositionRoot::CompositionRoot()
           .search = &m_search,
           .dataSettings = &m_dataSettings,
           .accountArtists = &m_accountArtists,
+          .welcome = &m_welcome,
           .mode = &m_mode,
           .showGallery = QCoreApplication::arguments().contains(QStringLiteral("--gallery")),
       })
@@ -375,6 +381,11 @@ CompositionRoot::CompositionRoot()
     // The last song comes back into the player bar once the state file is
     // read (on the file's worker); the first Play opens it.
     m_persistence.restoreAtLaunch();
+}
+
+void CompositionRoot::showWelcomeForReview()
+{
+    m_welcome.open(false);
 }
 
 void CompositionRoot::refreshLibraryViews()

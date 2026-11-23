@@ -137,6 +137,7 @@ set(LMP_UI_QML_FILES
     qml/shell/RightRail.qml
     qml/shell/ScrollMemory.qml
     qml/shell/Shell.qml
+    qml/welcome/WelcomeFlow.qml
     qml/shell/Sidebar.qml
     qml/shell/SidebarPlaylistRow.qml
     qml/shell/TitleStrip.qml
@@ -221,6 +222,8 @@ qt_add_qml_module(lmp_ui
         search/SearchSource.h
         search/SearchViewModel.cpp
         search/SearchViewModel.h
+        welcome/WelcomeViewModel.cpp
+        welcome/WelcomeViewModel.h
         settings/DataSettingsViewModel.cpp
         settings/DataSettingsViewModel.h
         settings/FirstRunViewModel.cpp

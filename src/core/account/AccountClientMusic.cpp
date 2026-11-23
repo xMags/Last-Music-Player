@@ -1,6 +1,7 @@
 // AccountClient's music calls: library sync, playlists, songs and media.
 #include "core/account/AccountClient.h"
 
+#include "core/account/WelcomeModel.h"
 #include "core/net/ArtworkUrl.h"
 
 #include <QJsonDocument>
@@ -275,6 +276,56 @@ QFuture<Result<void>> AccountClient::setArtistFollowed(const QString& bearerSess
                                 bearerSession);
     call.timeout = std::chrono::seconds(5);
     return send(call).then(toVoid);
+}
+
+QFuture<Result<QByteArray>> AccountClient::languageCatalog(const QString& bearerSession)
+{
+    return send(makeCall(net::HttpMethod::Get, QString(LanguageCatalogPath), bearerSession)).then(toBody);
+}
+
+QFuture<Result<QByteArray>> AccountClient::suggestedArtists(const QString& bearerSession, const QString& region)
+{
+    return send(makeCall(net::HttpMethod::Get,
+                         QStringLiteral("/v1/music/catalog/artists/suggested?storefront=") + encoded(region),
+                         bearerSession))
+        .then(toBody);
+}
+
+QFuture<Result<void>> AccountClient::followArtistByIdentity(const QString& bearerSession,
+                                                            const LibraryArtistIdentity& identity,
+                                                            const QString& artworkUrl)
+{
+    const QString provider = identity.provider.trimmed();
+    const QString catalogId = identity.catalogId.trimmed();
+    const QString sourceUrl = identity.sourceUrl.trimmed();
+    if (provider.isEmpty() || (catalogId.isEmpty() && sourceUrl.isEmpty())) {
+        return refused<void>(QStringLiteral("this artist cannot be followed"));
+    }
+    QJsonObject artist{{QStringLiteral("provider"), provider}, {QStringLiteral("name"), identity.name.trimmed()}};
+    if (!catalogId.isEmpty()) {
+        artist.insert(QStringLiteral("catalogId"), catalogId);
+    }
+    if (!sourceUrl.isEmpty()) {
+        artist.insert(QStringLiteral("sourceUrl"), sourceUrl);
+    }
+    if (!artworkUrl.isEmpty()) {
+        artist.insert(QStringLiteral("artworkUrl"), artworkUrl);
+    }
+    const QJsonObject body{{QStringLiteral("artist"), artist}};
+    return send(makeCall(net::HttpMethod::Put, QStringLiteral("/v1/music/artist-follow"), bearerSession,
+                         QJsonDocument(body).toJson(QJsonDocument::Compact)))
+        .then(toVoid);
+}
+
+QFuture<Result<QByteArray>> AccountClient::preferencesDocument(const QString& bearerSession)
+{
+    return send(makeCall(net::HttpMethod::Get, QStringLiteral("/v1/music/preferences"), bearerSession)).then(toBody);
+}
+
+QFuture<Result<void>> AccountClient::savePreferencesDocument(const QString& bearerSession, const QByteArray& json)
+{
+    return send(makeCall(net::HttpMethod::Put, QStringLiteral("/v1/music/preferences"), bearerSession, json))
+        .then(toVoid);
 }
 
 QFuture<Result<QByteArray>> AccountClient::coverArt(const QString& bearerSession, const QString& coverLinkPath)

@@ -66,6 +66,7 @@
 #include "ui/search/SearchSource.h"
 #include "ui/search/SearchViewModel.h"
 #include "ui/library/AccountArtistsViewModel.h"
+#include "ui/welcome/WelcomeViewModel.h"
 #include "ui/library/CollectionEditor.h"
 #include "ui/library/CollectionViewModel.h"
 #include "ui/library/LibraryViewModel.h"
@@ -122,6 +123,9 @@ public:
     // Takes over the frame of the main window the engine loaded, then shows
     // it. Returns false when there is no window to show.
     [[nodiscard]] bool showMainWindow(QQmlApplicationEngine& engine);
+
+    // Opens the welcome flow for review (the Debug build's --show-welcome).
+    void showWelcomeForReview();
 
 private:
     // Every view that shows the library reads it again.
@@ -222,6 +226,8 @@ private:
     ui::LocalArtistViewModel m_artistPage;
     // The Artists tab in Account mode: the account service's artist list.
     ui::AccountArtistsViewModel m_accountArtists;
+    // The welcome flow a new account sees once.
+    ui::WelcomeViewModel m_welcome;
     ui::CollectionEditor m_collectionEditor;
     ui::HomeViewModel m_home;
     // Browse and search (the local library; remote sources join in P08 and P09).

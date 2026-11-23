@@ -149,6 +149,23 @@ public:
     [[nodiscard]] QFuture<Result<void>> setArtistFollowed(const QString& bearerSession, const QString& publicArtistId,
                                                           bool followed);
 
+    // GET LanguageCatalogPath: the content language catalogue as sent.
+    [[nodiscard]] QFuture<Result<QByteArray>> languageCatalog(const QString& bearerSession);
+    // GET /v1/music/catalog/artists/suggested?storefront=<region>: as sent.
+    [[nodiscard]] QFuture<Result<QByteArray>> suggestedArtists(const QString& bearerSession, const QString& region);
+    // PUT /v1/music/artist-follow {"artist": {provider, name, catalogId?,
+    // sourceUrl?, artworkUrl?}}: follows an artist known by its catalogue
+    // identity. Without a provider, or without both a catalogue id and an
+    // address, nothing is sent (Unknown).
+    [[nodiscard]] QFuture<Result<void>> followArtistByIdentity(const QString& bearerSession,
+                                                               const LibraryArtistIdentity& identity,
+                                                               const QString& artworkUrl);
+    // GET /v1/music/preferences, the answer as sent (the welcome flow reads
+    // fields the portable preferences do not hold).
+    [[nodiscard]] QFuture<Result<QByteArray>> preferencesDocument(const QString& bearerSession);
+    // PUT /v1/music/preferences with `json` as given.
+    [[nodiscard]] QFuture<Result<void>> savePreferencesDocument(const QString& bearerSession, const QByteArray& json);
+
     // GET <cover link path> (net::accountCoverLinkPath): the image bytes, at
     // most MaxArtworkBytes. Anything that is not a cover link sends nothing
     // (Unknown).
