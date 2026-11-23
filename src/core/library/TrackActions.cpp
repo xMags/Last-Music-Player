@@ -67,6 +67,29 @@ void TrackActions::share(const Track& track)
     }
 }
 
+TrackActions::PageSource TrackActions::artistPageSource(const Track& track) const
+{
+    if (track.origin == QLatin1StringView("account")) {
+        return PageSource::Catalogue;
+    }
+    const mode::Capabilities capabilities = m_mode.capabilities();
+    return track.isRemote() && !capabilities.browseCatalogue && capabilities.openOnlineArtistPages
+        ? PageSource::Provider
+        : PageSource::Library;
+}
+
+TrackActions::PageSource TrackActions::albumPageSource(const Track& track) const
+{
+    if (track.origin == QLatin1StringView("account")) {
+        return PageSource::Catalogue;
+    }
+    const mode::Capabilities capabilities = m_mode.capabilities();
+    return track.isRemote() && !capabilities.browseCatalogue && capabilities.openOnlineAlbumPages
+            && !track.album.trimmed().isEmpty()
+        ? PageSource::Provider
+        : PageSource::Library;
+}
+
 bool TrackActions::canKeep(const Track& track) const
 {
     if (catalogSourceKey(track).isEmpty()) {

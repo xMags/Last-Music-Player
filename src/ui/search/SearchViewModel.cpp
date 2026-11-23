@@ -55,6 +55,7 @@ SearchViewModel::SearchViewModel(Parts parts, QObject* parent)
     , m_catalog(parts.catalog)
     , m_online(std::move(parts.online))
     , m_shareCode(std::move(parts.shareCode))
+    , m_remoteSongs(std::move(parts.remoteSongs))
 {
     m_typing.setSingleShot(true);
     m_typing.setInterval(TypingDelayMs);
@@ -140,9 +141,35 @@ void SearchViewModel::run()
     }
     QPointer<SearchViewModel> self(this);
     m_source.search(query, [self, generation, query](SearchHits hits) {
-        if (self) {
-            self->apply(generation, query, std::move(hits));
+        if (!self) {
+            return;
         }
+        self->apply(generation, query, hits);
+        if (self->m_remoteSongs && generation == self->m_generation) {
+            self->joinRemote(generation, query, hits);
+        }
+    });
+}
+
+void SearchViewModel::joinRemote(quint64 generation, const QString& query, const SearchHits& local)
+{
+    m_remoteSongs(query).then(this, [this, generation, query, local](const core::Result<QList<core::Track>>& found) {
+        if (generation != m_generation || !found || found.value().isEmpty()) {
+            return;
+        }
+        SearchHits joined = local;
+        QSet<QString> seen;
+        for (const core::Track& song : local.songs) {
+            seen.insert(core::catalogSourceKey(song));
+        }
+        for (const core::Track& song : found.value()) {
+            const QString key = core::catalogSourceKey(song);
+            if (!key.isEmpty() && !seen.contains(key)) {
+                seen.insert(key);
+                joined.songs.append(song);
+            }
+        }
+        apply(generation, query, std::move(joined));
     });
 }
 

@@ -33,6 +33,7 @@
 #include "core/library/CollectionActions.h"
 #include "core/library/HomeMixService.h"
 #include "core/library/LibraryScanner.h"
+#include "core/library/LinkImportService.h"
 #include "core/lyrics/LyricsService.h"
 #include "core/library/TrackActions.h"
 #include "core/library/UserDataOperationGate.h"
@@ -52,6 +53,7 @@
 #include "core/playback/TrackSourceResolver.h"
 #include "core/provider/ProviderClient.h"
 #include "core/remote/ArtworkService.h"
+#include "core/catalog/CatalogDetailParser.h"
 #include "core/remote/RemoteMusicService.h"
 #include "core/settings/SettingsStore.h"
 #include "platform/ISingleInstance.h"
@@ -279,6 +281,8 @@ private:
     // Autoplay's top-up and "Start mix", over the player's queue.
     core::PlayerAutoplayQueue m_autoplayQueue;
     core::AutoplayService m_autoplay;
+    // Albums and playlists imported from a provider link.
+    core::LinkImportService m_linkImport;
     ui::LyricsViewModel m_lyrics;
     // Share links for songs, lists and artists (Account mode).
     ui::ShareController m_share;

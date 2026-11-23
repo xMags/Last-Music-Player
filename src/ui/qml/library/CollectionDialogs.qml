@@ -29,7 +29,7 @@ Item {
         fieldLabel: App.collections.promptLabel
         placeholderText: App.collections.promptPlaceholder
         submitLabel: App.collections.promptSubmit
-        maximumLength: App.collections.maximumNameLength
+        maximumLength: App.collections.promptMaximumLength
         onSubmitted: value => {
             if (App.collections.submitPrompt(value))
                 namePrompt.finish()

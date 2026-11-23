@@ -175,6 +175,8 @@ qt_add_library(lmp_core STATIC
     library/HomeMixBuilder.h
     library/HomeMixService.cpp
     library/HomeMixService.h
+    library/LinkImportService.cpp
+    library/LinkImportService.h
     library/LibraryScanner.cpp
     library/LibraryScanner.h
     library/LikedIndex.cpp

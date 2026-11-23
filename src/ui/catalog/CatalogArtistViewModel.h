@@ -1,5 +1,10 @@
 #pragma once
 
+#include <QFuture>
+#include <functional>
+
+#include "core/async/Result.h"
+
 #include <QHash>
 #include <QObject>
 #include <QString>
@@ -26,6 +31,10 @@ class CatalogClient;
 class CatalogService;
 } // namespace catalog
 } // namespace lmp::core
+
+namespace lmp::core {
+class ArtistFollowService;
+}
 
 namespace lmp::ui {
 
@@ -82,6 +91,13 @@ public:
         TrackMenuController& trackMenu;
         Navigator& navigator;
         ShareController* share = nullptr;
+        // API key mode: while `providerPages` says so, the page comes from
+        // the provider's artist detail (no catalogue lookup) and Follow uses
+        // the list on this PC (`follows`).
+        std::function<bool()> providerPages = {};
+        std::function<QFuture<core::Result<core::catalog::Detail>>(const core::account::LibraryArtistIdentity&)>
+            providerArtist = {};
+        core::ArtistFollowService* follows = nullptr;
     };
 
     // Everything in `parts` outlives this object.
@@ -104,7 +120,7 @@ public:
     void setShowingAll(bool showingAll);
     [[nodiscard]] bool canFollow() const;
     [[nodiscard]] bool canShare() const { return canFollow(); }
-    [[nodiscard]] bool followed() const { return !m_followedId.isEmpty(); }
+    [[nodiscard]] bool followed() const;
     [[nodiscard]] bool followBusy() const { return m_followBusy; }
     [[nodiscard]] QVariantList sections() const;
 
@@ -122,7 +138,7 @@ public:
     // The library page's call; the catalogue page has no album row of its own.
     Q_INVOKABLE void openAlbum(int row) { Q_UNUSED(row); }
 
-    // A song's artist (Account mode): its identity as the song names it.
+    // A song's artist: its identity as the song names it.
     void openArtistOf(const core::Track& track);
 
 signals:
@@ -142,6 +158,12 @@ private:
     core::TrackActions& m_actions;
     TrackMenuController& m_trackMenu;
     Navigator& m_navigator;
+    std::function<bool()> m_providerPages;
+    std::function<QFuture<core::Result<core::catalog::Detail>>(const core::account::LibraryArtistIdentity&)>
+        m_providerArtist;
+    core::ArtistFollowService* m_follows = nullptr;
+    // The page on screen came from the provider.
+    bool m_fromProvider = false;
     ShareController* m_share = nullptr;
     core::catalog::ArtistPageLoader m_loader;
 

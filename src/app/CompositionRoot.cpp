@@ -221,7 +221,23 @@ CompositionRoot::CompositionRoot()
                        .actions = m_trackActions,
                        .trackMenu = m_trackMenu,
                        .navigator = m_navigator,
-                       .share = &m_share})
+                       .share = &m_share,
+                       .providerPages =
+                           [this]() {
+                               return !m_mode.capabilities().browseCatalogue
+                                   && m_mode.capabilities().openOnlineArtistPages;
+                           },
+                       .providerArtist =
+                           [this](const core::account::LibraryArtistIdentity& identity) {
+                               return m_remote.artistDetail(identity).then(
+                                   [identity](const core::Result<QByteArray>& answer) -> core::Result<core::catalog::Detail> {
+                                       if (!answer) {
+                                           return answer.failure();
+                                       }
+                                       return core::catalog::parseProviderArtistDetail(answer.value(), identity);
+                                   });
+                           },
+                       .follows = &m_artistFollows})
     , m_lyricsService(
           [this](const core::lyrics::LyricsQuery& query) { return m_remote.lyrics(query); },
           [this]() { return m_mode.capabilities().showLyrics ? m_remote.scopeKey() : QString(); })
@@ -248,6 +264,7 @@ CompositionRoot::CompositionRoot()
                           }
                           return recent;
                       }})
+    , m_linkImport({.remote = m_remote, .tracks = m_tracks, .collections = m_collections, .gate = m_userDataGate})
     , m_lyrics(m_player, m_lyricsService)
     , m_share([this](const QByteArray& body) { return sendAccount(core::net::HttpMethod::Post, QStringLiteral("/v1/music/shares"), body); },
               [this]() {
@@ -292,7 +309,21 @@ CompositionRoot::CompositionRoot()
                      .actions = m_trackActions,
                      .trackMenu = m_trackMenu,
                      .navigator = m_navigator,
-                     .share = &m_share})
+                     .share = &m_share,
+                     .providerPages =
+                         [this]() {
+                             return !m_mode.capabilities().browseCatalogue && m_mode.capabilities().openOnlineAlbumPages;
+                         },
+                     .providerAlbum =
+                         [this](const core::account::LibraryArtistIdentity& identity, const QString& artist) {
+                             return m_remote.albumDetail(identity, artist)
+                                 .then([identity](const core::Result<QByteArray>& answer) -> core::Result<core::catalog::Detail> {
+                                     if (!answer) {
+                                         return answer.failure();
+                                     }
+                                     return core::catalog::parseProviderAlbumDetail(answer.value(), identity);
+                                 });
+                         }})
     , m_collectionEditor(m_collectionActions, m_navigator, m_toasts)
     , m_home({.library = m_library,
               .actions = m_trackActions,
@@ -322,6 +353,14 @@ CompositionRoot::CompositionRoot()
                 .shareCode =
                     [this](const QString& text) {
                         return core::share::shareCodeFromLink(text, m_privateConfig.accountFrontendOrigin);
+                    },
+                .remoteSongs =
+                    [this](const QString& query) -> QFuture<core::Result<QList<core::Track>>> {
+                        // The catalogue's own search covers Account mode.
+                        if (!m_mode.capabilities().searchOnline || m_mode.capabilities().browseCatalogue) {
+                            return QtFuture::makeReadyValueFuture(core::Result<QList<core::Track>>(QList<core::Track>()));
+                        }
+                        return m_remote.search(query).then(&core::catalog::parseProviderTrackListResult);
                     }})
     , m_cleanup({.gate = m_userDataGate,
                  .scanner = m_scanner,
@@ -382,10 +421,31 @@ CompositionRoot::CompositionRoot()
     // A song menu's Go to album: an account song's album comes from the
     // catalogue (the library's own albums open in the library otherwise).
     QObject::connect(&m_trackActions, &core::TrackActions::albumRequested, &m_catalogPage, [this](const core::Track& track) {
-        if (track.origin == QLatin1StringView("account")) {
+        switch (m_trackActions.albumPageSource(track)) {
+        case core::TrackActions::PageSource::Catalogue:
             m_catalogPage.openAlbumOf(track);
+            break;
+        case core::TrackActions::PageSource::Provider:
+            m_catalogPage.openProviderAlbumOf(track);
+            break;
+        case core::TrackActions::PageSource::Library:
+            break;
         }
     });
+    m_collectionEditor.setLinkImporter(&m_linkImport);
+    QObject::connect(&m_linkImport, &core::LinkImportService::imported, &m_collectionActions,
+                     [this](const QString& kind) {
+                         if (kind == QLatin1StringView("playlist")) {
+                             emit m_collectionActions.playlistsChanged();
+                         } else {
+                             emit m_collectionActions.albumsChanged();
+                         }
+                     });
+    // API key mode: the local mixes are filled from provider searches.
+    m_homeMixes.setRemoteFill(
+        [this](const QString& query) { return m_remote.search(query).then(&core::catalog::parseProviderTrackListResult); },
+        [this]() { return m_mode.capabilities().showOnlineMixes && !m_mode.capabilities().browseCatalogue; });
+    QObject::connect(&m_mode, &core::mode::ModeService::changed, &m_homeMixes, [this]() { m_homeMixes.refresh(true); });
     // Autoplay follows the player's queue; a mix that finds nothing says so.
     QObject::connect(&m_player, &core::PlayerController::autoplayExtensionWanted, &m_autoplay,
                      [this](bool queueEnded) { m_autoplay.extensionWanted(queueEnded); });
@@ -419,7 +479,7 @@ CompositionRoot::CompositionRoot()
                      [this]() { m_lyrics.reload(); });
     QObject::connect(&m_trackActions, &core::TrackActions::artistRequested, &m_catalogArtist,
                      [this](const core::Track& track) {
-                         if (track.origin == QLatin1StringView("account")) {
+                         if (m_trackActions.artistPageSource(track) != core::TrackActions::PageSource::Library) {
                              m_catalogArtist.openArtistOf(track);
                          }
                      });

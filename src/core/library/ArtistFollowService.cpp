@@ -1,5 +1,7 @@
 #include "core/library/ArtistFollowService.h"
 
+#include "core/remote/RemoteMusicService.h"
+
 #include "core/account/AccountClient.h"
 #include "core/account/AccountSessionService.h"
 #include "core/account/LibraryArtistContract.h"
@@ -35,6 +37,17 @@ ArtistFollowService::ArtistFollowService(const Dependencies& dependencies, QObje
     });
 }
 
+QString ArtistFollowService::listScope() const
+{
+    if (!m_deps.mode.apiKeySelected()) {
+        return QString(LocalScope);
+    }
+    const std::optional<provider::ProviderConnection> connection = m_deps.mode.providerConnection();
+    const QString partition =
+        connection ? remote::apiKeyCachePartition(connection->baseUrl, connection->apiKey) : QString();
+    return partition.isEmpty() ? QString() : QStringLiteral("api-key|") + partition;
+}
+
 bool ArtistFollowService::accountMode() const
 {
     return m_deps.mode.accountSelected();
@@ -45,8 +58,7 @@ bool ArtistFollowService::canFollow(const FollowableArtist& artist) const
     if (m_deps.mode.accountSelected()) {
         return account::isValidLibraryArtistPublicId(artist.publicId) && m_deps.session.captureOperation().has_value();
     }
-    // A provider keeps no follows; Local mode keeps them on this PC.
-    return !m_deps.mode.apiKeySelected() && !artistIdentityKey(artist.identity).isEmpty();
+    return !listScope().isEmpty() && !artistIdentityKey(artist.identity).isEmpty();
 }
 
 bool ArtistFollowService::isFollowed(const FollowableArtist& artist) const
@@ -55,7 +67,8 @@ bool ArtistFollowService::isFollowed(const FollowableArtist& artist) const
         return m_accountFollowed.value(artist.publicId, false);
     }
     const QString key = artistIdentityKey(artist.identity);
-    return !key.isEmpty() && m_deps.followed.isArtistFollowed(QString(LocalScope), key);
+    const QString scope = listScope();
+    return !key.isEmpty() && !scope.isEmpty() && m_deps.followed.isArtistFollowed(scope, key);
 }
 
 void ArtistFollowService::rememberAccountArtist(const QString& publicId, bool followed)
@@ -80,7 +93,7 @@ QFuture<Result<bool>> ArtistFollowService::setFollowed(const FollowableArtist& a
         Result<void> stored = Result<void>::success();
         if (followed) {
             db::FollowedArtist entry;
-            entry.scopeKey = QString(LocalScope);
+            entry.scopeKey = listScope();
             entry.identityKey = key;
             entry.catalogId = artist.identity.catalogId;
             entry.sourceUrl = net::isSafeRemoteUrl(artist.identity.sourceUrl, net::RemoteUrlUse::Durable)
@@ -91,7 +104,7 @@ QFuture<Result<bool>> ArtistFollowService::setFollowed(const FollowableArtist& a
             entry.addedAtUtc = QDateTime::currentDateTimeUtc().toString(Qt::ISODate);
             stored = m_deps.followed.followArtist(entry);
         } else {
-            stored = m_deps.followed.unfollowArtist(QString(LocalScope), key);
+            stored = m_deps.followed.unfollowArtist(listScope(), key);
         }
         if (!stored) {
             return ready(stored.failure());

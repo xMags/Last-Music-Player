@@ -1,4 +1,7 @@
 #include "core/library/HomeMixService.h"
+#include "core/model/CatalogSourceKey.h"
+#include <algorithm>
+#include <QSet>
 
 #include <utility>
 
@@ -66,8 +69,109 @@ void HomeMixService::refresh(bool force)
         return;
     }
     m_key = key;
-    m_mixes = HomeMixBuilder::build(readInputs());
+    const HomeMixInputs inputs = readInputs();
+    m_mixes = HomeMixBuilder::build(inputs);
+    ++m_fillGeneration;
     emit mixesChanged();
+    if (m_remoteSearch && m_remoteActive && m_remoteActive()) {
+        // The listener's most played artists, best first.
+        QHash<QString, int> counts;
+        QStringList order;
+        for (const Track& track : inputs.recentHistory) {
+            const QString artist = track.artist.trimmed();
+            if (artist.isEmpty()) {
+                continue;
+            }
+            if (!counts.contains(artist)) {
+                order.append(artist);
+            }
+            ++counts[artist];
+        }
+        std::stable_sort(order.begin(), order.end(),
+                         [&counts](const QString& a, const QString& b) { return counts.value(a) > counts.value(b); });
+        fillFromRemote(order);
+    }
+}
+
+void HomeMixService::setRemoteFill(RemoteSearch search, std::function<bool()> active)
+{
+    m_remoteSearch = std::move(search);
+    m_remoteActive = std::move(active);
+}
+
+QList<HomeMixService::FillRequest> HomeMixService::fillRequests(const QList<HomeMix>& mixes,
+                                                                const QStringList& topArtists)
+{
+    const auto artistOr = [&topArtists](qsizetype index, const char* fallback) {
+        return index < topArtists.size() && !topArtists.at(index).isEmpty() ? topArtists.at(index)
+                                                                            : QString::fromLatin1(fallback);
+    };
+    const auto genreOr = [&mixes](const QString& id, const QString& fallback) {
+        for (const HomeMix& mix : mixes) {
+            if (mix.id == id && !mix.genre.trimmed().isEmpty()) {
+                return mix.genre.trimmed() + QStringLiteral(" songs");
+            }
+        }
+        return fallback;
+    };
+    return {
+        {QStringLiteral("daily1"), genreOr(QStringLiteral("daily1"), artistOr(0, "popular songs")), false},
+        {QStringLiteral("daily2"), genreOr(QStringLiteral("daily2"), artistOr(1, "chill songs")), false},
+        {QStringLiteral("daily3"), genreOr(QStringLiteral("daily3"), artistOr(2, "rock alternative songs")), false},
+        {QStringLiteral("daily4"), genreOr(QStringLiteral("daily4"), artistOr(3, "top hits")), false},
+        {QStringLiteral("daily5"), genreOr(QStringLiteral("daily5"), artistOr(4, "feel good songs")), false},
+        {QStringLiteral("repeat"), artistOr(0, "popular songs"), false},
+        {QStringLiteral("discover"),
+         topArtists.isEmpty() ? QStringLiteral("new music") : topArtists.first() + QStringLiteral(" new songs"), true},
+    };
+}
+
+QList<Track> HomeMixService::joinFill(const QList<Track>& mix, const QList<Track>& found, bool prepend)
+{
+    QList<Track> joined;
+    QSet<QString> keys;
+    const auto append = [&joined, &keys](const Track& track) {
+        if (joined.size() >= FilledMixSize || track.unavailable
+            || (track.filePath.isEmpty() && track.sourceUrl.isEmpty())) {
+            return;
+        }
+        const QString key = catalogSourceKey(track);
+        if (key.isEmpty() || keys.contains(key)) {
+            return;
+        }
+        keys.insert(key);
+        joined.append(track);
+    };
+    const QList<Track>& first = prepend ? found : mix;
+    const QList<Track>& second = prepend ? mix : found;
+    for (const Track& track : first) {
+        append(track);
+    }
+    for (const Track& track : second) {
+        append(track);
+    }
+    return joined;
+}
+
+void HomeMixService::fillFromRemote(const QStringList& topArtists)
+{
+    const quint64 generation = m_fillGeneration;
+    for (const FillRequest& request : fillRequests(m_mixes, topArtists)) {
+        m_remoteSearch(request.query).then(this, [this, generation, request](const Result<QList<Track>>& found) {
+            if (generation != m_fillGeneration || !found || found.value().isEmpty()
+                || !(m_remoteActive && m_remoteActive())) {
+                return;
+            }
+            for (HomeMix& mix : m_mixes) {
+                if (mix.id == request.id) {
+                    // At most eight of the provider's songs per mix, as before.
+                    mix.tracks = joinFill(mix.tracks, found.value().mid(0, 8), request.prepend);
+                    emit mixesChanged();
+                    return;
+                }
+            }
+        });
+    }
 }
 
 std::optional<HomeMix> HomeMixService::mix(const QString& id) const

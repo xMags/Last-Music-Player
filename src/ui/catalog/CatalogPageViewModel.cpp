@@ -62,6 +62,8 @@ CatalogPageViewModel::CatalogPageViewModel(Parts parts, QObject* parent)
     , m_trackMenu(parts.trackMenu)
     , m_navigator(parts.navigator)
     , m_share(parts.share)
+    , m_providerPages(std::move(parts.providerPages))
+    , m_providerAlbum(std::move(parts.providerAlbum))
 {
     connect(&m_navigator, &Navigator::currentChanged, this, &CatalogPageViewModel::followNavigator);
     // A saved copy made or removed elsewhere changes the Save button.
@@ -244,7 +246,10 @@ void CatalogPageViewModel::load(const Route& route, bool force)
         reset(QStringLiteral("album"));
         m_title = title;
         emit changed();
-        m_catalog.providerAlbum(routes::identityFromRoute(route), route.param(QStringLiteral("artist")), force)
+        const bool fromProvider = m_providerPages && m_providerPages() && m_providerAlbum;
+        (fromProvider ? m_providerAlbum(routes::identityFromRoute(route), route.param(QStringLiteral("artist")))
+                      : m_catalog.providerAlbum(routes::identityFromRoute(route), route.param(QStringLiteral("artist")),
+                                                force))
             .then(this, [this, current](const core::Result<catalog::Detail>& result) {
                 if (!current()) {
                     return;
@@ -609,6 +614,16 @@ void CatalogPageViewModel::openCard(int row)
 void CatalogPageViewModel::openAlbumOf(const core::Track& track)
 {
     m_navigator.push(routes::routeFindingAlbum(track));
+}
+
+void CatalogPageViewModel::openProviderAlbumOf(const core::Track& track)
+{
+    core::account::LibraryArtistIdentity identity;
+    identity.catalogId = track.albumCatalogId.trimmed();
+    identity.name = track.album.trimmed();
+    identity.provider = track.sourceTag.trimmed();
+    const QString artist = track.artist.trimmed();
+    m_navigator.push(routes::routeForAlbumIdentity(identity, artist));
 }
 
 } // namespace lmp::ui

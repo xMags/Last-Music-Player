@@ -76,8 +76,8 @@ LibraryViewModel::LibraryViewModel(Parts parts, QObject* parent)
     connect(&m_navigator, &Navigator::currentChanged, this, &LibraryViewModel::followNavigator);
     // A song menu's Go to album and Go to artist open the library's pages.
     connect(&m_actions, &core::TrackActions::albumRequested, this, [this](const core::Track& track) {
-        // An account song's album opens from the catalogue (CompositionRoot).
-        if (track.origin == QLatin1StringView("account")) {
+        // Online albums open from the catalogue or the provider (CompositionRoot).
+        if (m_actions.albumPageSource(track) != core::TrackActions::PageSource::Library) {
             return;
         }
         const QString album = track.album.isEmpty() ? tr("Unknown Album") : track.album;
@@ -86,8 +86,8 @@ LibraryViewModel::LibraryViewModel(Parts parts, QObject* parent)
                                                          {QStringLiteral("title"), album}}));
     });
     connect(&m_actions, &core::TrackActions::artistRequested, this, [this](const core::Track& track) {
-        // An account song's artist opens from the catalogue (CompositionRoot).
-        if (track.origin == QLatin1StringView("account")) {
+        // Online artists open from the catalogue or the provider (CompositionRoot).
+        if (m_actions.artistPageSource(track) != core::TrackActions::PageSource::Library) {
             return;
         }
         const QString artist = track.artist.isEmpty() ? tr("Unknown Artist") : track.artist;

@@ -8,6 +8,10 @@ namespace lmp::core {
 class CollectionActions;
 }
 
+namespace lmp::core {
+class LinkImportService;
+}
+
 namespace lmp::ui {
 
 class Navigator;
@@ -36,6 +40,8 @@ class CollectionEditor : public QObject {
     Q_PROPERTY(QString confirmText READ confirmText NOTIFY confirmChanged FINAL)
     Q_PROPERTY(QString confirmLabel READ confirmLabel NOTIFY confirmChanged FINAL)
     Q_PROPERTY(int maximumNameLength READ maximumNameLength CONSTANT FINAL)
+    // The longest answer the open prompt takes (a name, or a link).
+    Q_PROPERTY(int promptMaximumLength READ promptMaximumLength NOTIFY promptChanged FINAL)
 
 public:
     // All three outlive this object.
@@ -51,6 +57,13 @@ public:
     [[nodiscard]] QString confirmText() const { return m_confirmText; }
     [[nodiscard]] QString confirmLabel() const { return m_confirmLabel; }
     [[nodiscard]] static int maximumNameLength();
+    [[nodiscard]] int promptMaximumLength() const;
+    static constexpr int MaximumLinkLength = 2048;
+
+    // Importing an album or playlist from a link (API key mode); without an
+    // importer nothing is offered.
+    void setLinkImporter(core::LinkImportService* importer) { m_importer = importer; }
+    Q_INVOKABLE void requestImportLink();
 
     Q_INVOKABLE void requestCreatePlaylist();
     Q_INVOKABLE void requestCreateAlbum();
@@ -70,13 +83,14 @@ signals:
     void confirmRequested();
 
 private:
-    enum class Pending { None, CreatePlaylist, CreateAlbum, Rename, Delete };
+    enum class Pending { None, CreatePlaylist, CreateAlbum, Rename, Delete, ImportLink };
 
     void leaveDeleted(const QString& kind, const QString& key);
 
     core::CollectionActions& m_actions;
     Navigator& m_navigator;
     ToastQueue& m_toasts;
+    core::LinkImportService* m_importer = nullptr;
 
     Pending m_pending = Pending::None;
     QString m_kind;

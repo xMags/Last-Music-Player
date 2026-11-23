@@ -541,3 +541,7 @@ lmp_add_test(tst_stream_cache
 lmp_add_test(tst_provider_playback
     SOURCES core/tst_provider_playback.cpp core/ModeServiceFixture.h
     LIBS lmp_core)
+
+lmp_add_test(tst_api_key_mode
+    SOURCES core/tst_api_key_mode.cpp core/ModeServiceFixture.h core/CatalogFixtures.h
+    LIBS lmp_core)

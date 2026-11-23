@@ -12,6 +12,7 @@
 #include "ui/navigation/Route.h"
 #include "ui/player/CoverSource.h"
 #include "ui/share/ShareController.h"
+#include "core/library/ArtistFollowService.h"
 #include "ui/tracks/TrackMenuController.h"
 
 #include <QJsonArray>
@@ -35,9 +36,15 @@ CatalogArtistViewModel::CatalogArtistViewModel(Parts parts, QObject* parent)
     , m_trackMenu(parts.trackMenu)
     , m_navigator(parts.navigator)
     , m_share(parts.share)
+    , m_providerPages(std::move(parts.providerPages))
+    , m_providerArtist(std::move(parts.providerArtist))
+    , m_follows(parts.follows)
     , m_loader(parts.catalog)
 {
     connect(&m_navigator, &Navigator::currentChanged, this, &CatalogArtistViewModel::followNavigator);
+    if (m_follows != nullptr) {
+        connect(m_follows, &core::ArtistFollowService::followChanged, this, &CatalogArtistViewModel::changed);
+    }
     connect(&m_actions, &core::TrackActions::likedChanged, this, [this](const QString& sourceKey, bool liked) {
         m_topSongs.setLiked(sourceKey, liked);
     });
@@ -89,6 +96,23 @@ void CatalogArtistViewModel::load(const Route& route, bool force)
         model->setItems({});
     }
     emit changed();
+    m_fromProvider = m_providerPages && m_providerPages() && m_providerArtist;
+    if (m_fromProvider) {
+        m_providerArtist(target.identity)
+            .then(this, [this, request, target](const core::Result<catalog::Detail>& detail) {
+                if (request != m_request) {
+                    return;
+                }
+                m_loading = false;
+                if (!detail) {
+                    m_error = tr("This artist could not be loaded. Try again.");
+                    emit changed();
+                    return;
+                }
+                show({detail.value(), target});
+            });
+        return;
+    }
     m_loader.load(target, force).then(this, [this, request](const core::Result<catalog::ArtistPageResult>& result) {
         if (request != m_request) {
             return;
@@ -271,8 +295,33 @@ void CatalogArtistViewModel::prepareSongMenu(int row)
     }
 }
 
+namespace {
+
+[[nodiscard]] core::FollowableArtist followable(const core::account::LibraryArtistIdentity& identity,
+                                                const QString& fallbackName, const QString& artworkUrl)
+{
+    return {{}, {identity.catalogId, identity.sourceUrl, identity.name.isEmpty() ? fallbackName : identity.name,
+                 identity.provider},
+            artworkUrl};
+}
+
+} // namespace
+
+bool CatalogArtistViewModel::followed() const
+{
+    if (m_fromProvider) {
+        return m_follows != nullptr && m_detail.has_value()
+            && m_follows->isFollowed(followable(m_target.identity, name(), m_detail->item.artworkUrl));
+    }
+    return !m_followedId.isEmpty();
+}
+
 bool CatalogArtistViewModel::canFollow() const
 {
+    if (m_fromProvider) {
+        return m_follows != nullptr && m_detail.has_value()
+            && m_follows->canFollow(followable(m_target.identity, name(), m_detail->item.artworkUrl));
+    }
     const core::account::LibraryArtistIdentity& identity = m_target.identity;
     return m_detail.has_value() && !identity.provider.isEmpty()
         && (!identity.catalogId.isEmpty() || !identity.sourceUrl.isEmpty());
@@ -280,6 +329,9 @@ bool CatalogArtistViewModel::canFollow() const
 
 void CatalogArtistViewModel::readFollow()
 {
+    if (m_fromProvider) {
+        return;
+    }
     const std::optional<core::account::AccountOperationContext> context = m_session.captureOperation();
     if (!context || !canFollow()) {
         return;
@@ -300,6 +352,22 @@ void CatalogArtistViewModel::readFollow()
 
 void CatalogArtistViewModel::toggleFollow()
 {
+    if (m_fromProvider) {
+        if (!canFollow() || m_followBusy) {
+            return;
+        }
+        m_followBusy = true;
+        emit changed();
+        const std::uint64_t request = m_request;
+        m_follows->setFollowed(followable(m_target.identity, name(), m_detail->item.artworkUrl), !followed())
+            .then(this, [this, request](const core::Result<bool>&) {
+                if (request == m_request) {
+                    m_followBusy = false;
+                    emit changed();
+                }
+            });
+        return;
+    }
     const std::optional<core::account::AccountOperationContext> context = m_session.captureOperation();
     if (!context || !canFollow() || m_followBusy) {
         return;

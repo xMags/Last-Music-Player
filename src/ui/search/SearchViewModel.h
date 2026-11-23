@@ -14,6 +14,7 @@
 #include "core/catalog/CatalogParser.h"
 #include "core/home/HomeModel.h"
 
+#include <QFuture>
 #include <QHash>
 
 #include <optional>
@@ -104,6 +105,10 @@ public:
         // The code of a pasted share link, which opens its item instead of
         // a search.
         std::function<std::optional<QString>(const QString&)> shareCode = {};
+        // Songs the provider finds (API key mode), joined after the local
+        // results once they come; nothing elsewhere. A failure keeps the
+        // local results as they are.
+        std::function<QFuture<core::Result<QList<core::Track>>>(const QString&)> remoteSongs = {};
     };
 
     // The pause after typing (views/search.ts and the current app: 350 ms)
@@ -167,6 +172,8 @@ signals:
 private:
     void refreshAccountLanding(const core::home::HomeLibrary& library);
     void applyOnline(quint64 generation, const QString& query, const core::catalog::SearchAll& found);
+    // Local hits first, then the provider's songs they do not already hold.
+    void joinRemote(quint64 generation, const QString& query, const SearchHits& local);
     void run();
     void apply(quint64 generation, const QString& query, SearchHits hits);
     void showSongs();
@@ -196,6 +203,7 @@ private:
     core::catalog::CatalogService* m_catalog = nullptr;
     std::function<bool()> m_online;
     std::function<std::optional<QString>(const QString&)> m_shareCode;
+    std::function<QFuture<core::Result<QList<core::Track>>>(const QString&)> m_remoteSongs;
     // The cards of an online search, by group, and its top card.
     QHash<QString, QList<core::catalog::CatalogItem>> m_onlineCards;
     std::optional<core::catalog::CatalogItem> m_onlineTop;

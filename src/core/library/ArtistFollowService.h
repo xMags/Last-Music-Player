@@ -34,8 +34,9 @@ struct FollowableArtist {
 
 // Which artists the user follows, kept where earlier versions kept them: on
 // the account service in Account mode (by the artist's public id), in the
-// list on this PC otherwise (scope "local"). API key mode keeps its own list
-// once API key mode arrives; until then following is not offered there.
+// list on this PC otherwise: scope "local" in Local mode, and in API key
+// mode "api-key|" and the provider's cache partition (one list per provider
+// address and key), as the earlier versions keyed them.
 //
 // The service's follow state is learnt from the artist lists it sends
 // (rememberAccountArtist) and from changes made here.
@@ -76,6 +77,9 @@ signals:
 
 private:
     [[nodiscard]] bool accountMode() const;
+    // The scope of the list on this PC for the current mode; empty when
+    // there is none (API key mode without a readable key).
+    [[nodiscard]] QString listScope() const;
 
     Dependencies m_deps;
     QHash<QString, bool> m_accountFollowed;

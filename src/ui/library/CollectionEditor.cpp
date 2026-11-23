@@ -1,5 +1,7 @@
 #include "ui/library/CollectionEditor.h"
 
+#include "core/library/LinkImportService.h"
+
 #include <utility>
 
 #include "core/library/CollectionActions.h"
@@ -45,6 +47,27 @@ void CollectionEditor::requestCreateAlbum()
     m_promptLabel = tr("Album name");
     m_promptPlaceholder = tr("New album");
     m_promptSubmit = tr("Create");
+    m_promptValue.clear();
+    emit promptChanged();
+    emit promptRequested();
+}
+
+int CollectionEditor::promptMaximumLength() const
+{
+    return m_pending == Pending::ImportLink ? MaximumLinkLength : maximumNameLength();
+}
+
+void CollectionEditor::requestImportLink()
+{
+    if (m_importer == nullptr) {
+        return;
+    }
+    m_pending = Pending::ImportLink;
+    // The current app's (LibraryImportAlbum_Click).
+    m_promptTitle = tr("Import album");
+    m_promptLabel = tr("Music API album link");
+    m_promptPlaceholder = tr("Paste album link");
+    m_promptSubmit = tr("Import");
     m_promptValue.clear();
     emit promptChanged();
     emit promptRequested();
@@ -118,6 +141,28 @@ bool CollectionEditor::submitPrompt(const QString& value)
         m_navigator.push(Route(Route::Kind::Collection, {{QStringLiteral("kind"), QStringLiteral("playlist")},
                                                          {QStringLiteral("key"), key.value()},
                                                          {QStringLiteral("title"), title}}));
+        return true;
+    }
+    case Pending::ImportLink: {
+        if (m_importer == nullptr || value.trimmed().isEmpty()) {
+            return true;
+        }
+        m_toasts.show(tr("Importing album..."));
+        m_importer->importLink(value).then(this, [this](const core::Result<core::ImportOutcome>& outcome) {
+            if (!outcome) {
+                m_toasts.show(outcome.failure().kind == core::FailureKind::NotAvailable
+                                  ? tr("Importing needs a connected provider.")
+                                  : tr("Import failed: %1").arg(outcome.failure().detail),
+                              true);
+                return;
+            }
+            m_toasts.show(outcome.value().kind == QLatin1StringView("playlist")
+                              ? tr("Imported playlist with %n songs", nullptr, outcome.value().songCount)
+                              : tr("Imported %n songs", nullptr, outcome.value().songCount));
+            m_navigator.push(Route(Route::Kind::Collection, {{QStringLiteral("kind"), outcome.value().kind},
+                                                             {QStringLiteral("key"), outcome.value().key},
+                                                             {QStringLiteral("title"), outcome.value().title}}));
+        });
         return true;
     }
     case Pending::CreateAlbum: {

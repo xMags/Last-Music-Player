@@ -86,6 +86,7 @@ private slots:
     void recentSearchesUseTheLegacySetting();
     void categoriesOpenGenresOrSearch();
     void cardsOpenTheirPages();
+    void providerSongsJoinLocalResults();
 
 private:
     void addSong(const QString& title, const QString& artist, const QString& album, const QString& genre);
@@ -314,6 +315,33 @@ void SearchViewModelTest::cardsOpenTheirPages()
     QCOMPARE(m_navigator->current().param(QStringLiteral("title")), QStringLiteral("Valleys"));
     // Opening a result counts as a search worth remembering.
     QCOMPARE(m_search->recentSearches().constFirst(), QStringLiteral("valleys"));
+}
+
+void SearchViewModelTest::providerSongsJoinLocalResults()
+{
+    Track remote = m_player->song(QStringLiteral("Night Remote"));
+    remote.filePath.clear();
+    remote.sourceKind = QStringLiteral("remote");
+    remote.remoteId = QStringLiteral("tag-b:r1");
+    remote.sourceUrl = QStringLiteral("https://music.example.test/r1");
+    // A local song the provider also returns is listed once.
+    const Track duplicate = m_player->song(QStringLiteral("Night Drive"));
+    QList<QString> asked;
+    SearchViewModel joined(SearchViewModel::Parts{
+        *m_source, *m_queries, *m_groups, *m_actions, *m_controller, m_player->settings, *m_menu, *m_navigator,
+        {}, nullptr, {}, {},
+        [&asked, remote, duplicate](const QString& query) {
+            asked.append(query);
+            return QtFuture::makeReadyValueFuture(lmp::core::Result<QList<Track>>(QList<Track>{remote, duplicate}));
+        }});
+    joined.setQuery(QStringLiteral("night"));
+    QTRY_COMPARE_WITH_TIMEOUT(joined.songs()->count(), 3, 2000);
+    QCOMPARE(asked, QList<QString>{QStringLiteral("night")});
+    bool foundRemote = false;
+    for (int row = 0; row < joined.songs()->count(); ++row) {
+        foundRemote = foundRemote || joined.songs()->trackAt(row).title == QStringLiteral("Night Remote");
+    }
+    QVERIFY(foundRemote);
 }
 
 QTEST_MAIN(SearchViewModelTest)

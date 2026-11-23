@@ -70,6 +70,12 @@ public:
     // Whether a link to the song can be made: Account mode, a song the
     // account can hold.
     [[nodiscard]] bool canShare(const Track& track) const;
+    // Where Go to artist and Go to album lead: an online page (the
+    // catalogue for an account song; the provider's pages for a remote song
+    // in API key mode when it offers them) or the library's own page.
+    enum class PageSource { Library, Catalogue, Provider };
+    [[nodiscard]] PageSource artistPageSource(const Track& track) const;
+    [[nodiscard]] PageSource albumPageSource(const Track& track) const;
 
     // Plays the song with `context` as the list around it (the song alone
     // when the context is empty).

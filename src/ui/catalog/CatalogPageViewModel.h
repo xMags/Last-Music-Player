@@ -1,5 +1,10 @@
 #pragma once
 
+#include <QFuture>
+#include <functional>
+
+#include "core/async/Result.h"
+
 #include <QObject>
 #include <QString>
 #include <QUrl>
@@ -83,6 +88,12 @@ public:
         Navigator& navigator;
         // Makes share links; none in tests.
         ShareController* share = nullptr;
+        // API key mode: while `providerPages` says so, an album known by its
+        // source identity comes from the provider's album detail.
+        std::function<bool()> providerPages = {};
+        std::function<QFuture<core::Result<core::catalog::Detail>>(const core::account::LibraryArtistIdentity&,
+                                                                    const QString& artist)>
+            providerAlbum = {};
     };
 
     // Everything in `parts` outlives this object.
@@ -124,6 +135,8 @@ public:
 
     // A song's album: opens the finding page (Account mode songs).
     void openAlbumOf(const core::Track& track);
+    // A remote song's album in API key mode, by the identity the song names.
+    void openProviderAlbumOf(const core::Track& track);
 
 signals:
     void changed();
@@ -157,6 +170,10 @@ private:
     // The picture's own link, for a share link.
     QString m_shareArtwork;
     ShareController* m_share = nullptr;
+    std::function<bool()> m_providerPages;
+    std::function<QFuture<core::Result<core::catalog::Detail>>(const core::account::LibraryArtistIdentity&,
+                                                                const QString& artist)>
+        m_providerAlbum;
     QString m_sourceUrl;
     bool m_showsCards = false;
     bool m_saving = false;
