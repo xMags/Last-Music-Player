@@ -100,12 +100,41 @@ Column {
         width: parent.width
         height: Math.max(artSize, copy.implicitHeight) + 2 * 24
 
-        // The tint: the cover's colours only, stretched over the card.
+        // The tint: the cover's colours only, stretched over the card. It
+        // fades in when it appears or changes (wash-in, views.css 402-403).
         Item {
+            id: tint
+
             anchors.fill: parent
             anchors.margins: 1
             clip: true
             opacity: 0.55
+
+            function washIn() {
+                if (!Motion.reduced)
+                    washAnimation.restart()
+            }
+
+            Component.onCompleted: washIn()
+
+            NumberAnimation {
+                id: washAnimation
+
+                target: tint
+                property: "opacity"
+                from: 0
+                to: 0.55
+                duration: 400
+                easing: Motion.ease
+            }
+
+            Connections {
+                target: header
+
+                function onArtworkUrlChanged() {
+                    tint.washIn()
+                }
+            }
 
             Image {
                 anchors.fill: parent

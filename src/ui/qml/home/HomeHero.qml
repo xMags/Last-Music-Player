@@ -24,8 +24,28 @@ Column {
         height: Math.max(232, content.implicitHeight + 2 * 24)
         visible: App.home.hasHero
 
+        // A different hero: the backdrop, cover and words fade in, 450 ms.
+        readonly property string heroKey: App.home.heroTitle + "\n" + App.home.heroArtworkUrl
+        property string shownKey: ""
+
+        onHeroKeyChanged: {
+            const first = card.shownKey === ""
+            card.shownKey = card.heroKey
+            if (!first && !Motion.reduced && card.visible)
+                swap.restart()
+        }
+
+        ParallelAnimation {
+            id: swap
+
+            NumberAnimation { target: heroBackdrop; property: "opacity"; from: 0; to: 0.55; duration: 450; easing: Motion.ease }
+            NumberAnimation { target: content; property: "opacity"; from: 0; to: 1; duration: 450; easing: Motion.ease }
+        }
+
         // The cover's colours, stretched, quiet under the field lines.
         Item {
+            id: heroBackdrop
+
             anchors.fill: parent
             anchors.margins: 1
             clip: true
@@ -134,6 +154,9 @@ Column {
                     spacing: 10
 
                     PlayPill {
+                        id: heroPlay
+
+                        scale: heroPlay.down && !Motion.reduced ? 0.97 : 1
                         onClicked: App.home.playHero()
                     }
 

@@ -72,10 +72,44 @@ T.AbstractButton {
         cursorShape: row.unavailable ? Qt.ForbiddenCursor : Qt.PointingHandCursor
     }
 
+    // A song starting on screen: one band of light sweeps across its row
+    // (motion.css 140-158), 760 ms.
+    onPlayingChanged: {
+        if (row.playing && !Motion.reduced && row.visible)
+            sweep.restart()
+    }
+
     background: Rectangle {
+        clip: true
         color: row.selected ? Theme.accentSoft2
              : row.playing ? Theme.accentSel
              : (row.hovered && !row.unavailable ? Theme.rowHover : "transparent")
+
+        Rectangle {
+            id: band
+
+            width: parent.width
+            height: parent.height
+            x: -width
+            visible: sweep.running
+            // linear-gradient(100deg, transparent 20%, accent 22% at 50%, transparent 80%)
+            gradient: Gradient {
+                orientation: Gradient.Horizontal
+                GradientStop { position: 0.2; color: "transparent" }
+                GradientStop { position: 0.5; color: Theme.mixSrgb(Theme.accentColor, "transparent", 0.22) }
+                GradientStop { position: 0.8; color: "transparent" }
+            }
+
+            NumberAnimation on x {
+                id: sweep
+
+                running: false
+                from: -band.width
+                to: band.width
+                duration: 760
+                easing: Motion.water
+            }
+        }
 
         // border-bottom: 1px solid divider
         Rectangle {
@@ -121,6 +155,7 @@ T.AbstractButton {
             EqBars {
                 anchors.centerIn: parent
                 visible: row.playing
+                running: App.playerBar.playing
             }
         }
 

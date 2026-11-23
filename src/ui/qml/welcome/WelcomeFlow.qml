@@ -1,3 +1,5 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Layouts
 import LastMusicPlayer
@@ -10,6 +12,54 @@ Rectangle {
 
     color: Theme.bg
 
+    // When the step on screen arrived (ms), so artists made later pop in.
+    property double stepShownAt: 0
+
+    // The parts of the column rise in: the first at once, the second after
+    // 60 ms, the rest after 120 ms; 14px up, 500 ms.
+    function riseIn() {
+        flow.stepShownAt = Date.now()
+        if (Motion.reduced)
+            return
+        const parts = column.children
+        for (let index = 0; index < parts.length; ++index) {
+            const part = parts[index]
+            if (!part.visible)
+                continue
+            riseComponent.createObject(flow, { target: part, delay: index === 0 ? 0 : index === 1 ? 60 : 120 })
+        }
+    }
+
+    // A new step rises in (the first one too, when the flow opens).
+    readonly property string shownStep: App.welcome.step
+    onShownStepChanged: riseIn()
+    Component.onCompleted: riseIn()
+
+    Component {
+        id: riseComponent
+
+        SequentialAnimation {
+            id: rising
+
+            property Item target
+            property int delay: 0
+            readonly property Translate shift: Translate { y: 14 }
+
+            running: true
+            onStarted: {
+                rising.target.transform = rising.shift
+                rising.target.opacity = 0
+            }
+            onFinished: rising.destroy()
+
+            PauseAnimation { duration: rising.delay }
+            ParallelAnimation {
+                NumberAnimation { target: rising.target; property: "opacity"; from: 0; to: 1; duration: 500; easing: Motion.ease }
+                NumberAnimation { target: rising.shift; property: "y"; from: 14; to: 0; duration: 500; easing: Motion.ease }
+            }
+        }
+    }
+
     // Swallows clicks so nothing behind the flow reacts.
     MouseArea {
         anchors.fill: parent
@@ -17,6 +67,8 @@ Rectangle {
     }
 
     ColumnLayout {
+        id: column
+
         anchors.fill: parent
         anchors.topMargin: 56
         anchors.bottomMargin: 32
@@ -104,6 +156,20 @@ Rectangle {
 
                 width: GridView.view.cellWidth
                 height: GridView.view.cellHeight
+
+                // An artist added while the step shows pops in: from 78%,
+                // 460 ms, with a little overshoot.
+                Component.onCompleted: {
+                    if (!Motion.reduced && Date.now() - flow.stepShownAt > 600)
+                        pop.start()
+                }
+
+                ParallelAnimation {
+                    id: pop
+
+                    NumberAnimation { target: cell; property: "opacity"; from: 0; to: 1; duration: 460; easing: Motion.artistPop }
+                    NumberAnimation { target: cell; property: "scale"; from: 0.78; to: 1; duration: 460; easing: Motion.artistPop }
+                }
 
                 ArtTile {
                     id: picture

@@ -6,7 +6,9 @@ import LastMusicPlayer
 // The playing indicator of a track row (.eq-anim, views.css 213-228): three
 // 2px accent bars, 8, 14 and 10px tall, each growing and shrinking between
 // 40% and full height over 0.9s, a fifth of a second apart. The reference's
-// fallback without audio levels (D12). Still under reduced motion.
+// fallback without audio levels (D12). While playback is paused (`running`
+// false) they sink to 30% in 320 ms instead of bouncing on (motion.css
+// 105-109); with reduced motion they stand still at 60%.
 Row {
     id: bars
 
@@ -32,6 +34,13 @@ Row {
             radius: 1
             color: Theme.accentColor
             transformOrigin: Item.Bottom
+            scale: Motion.reduced ? 0.6 : 0.3
+
+            // Paused: sink to rest.
+            Behavior on scale {
+                enabled: !Motion.reduced && !bars.running
+                NumberAnimation { duration: 320; easing: Motion.water }
+            }
 
             SequentialAnimation on scale {
                 running: bars.running && bars.visible && !Motion.reduced
