@@ -6,6 +6,7 @@
 
 #include <QChar>
 #include <QLatin1StringView>
+#include <QString>
 
 #include <algorithm>
 #include <string>
@@ -16,6 +17,12 @@ namespace lmp::core::db {
 namespace {
 
 namespace grouping = library_grouping_sql;
+
+// "1 song", "2 songs".
+[[nodiscard]] QString counted(int count, QLatin1StringView singular, QLatin1StringView plural)
+{
+    return QString::number(count) + QLatin1Char(' ') + (count == 1 ? singular : plural);
+}
 
 constexpr QLatin1StringView kAccount{"account"};
 
@@ -282,8 +289,8 @@ QList<Track> GroupQueries::loadArtists(const QString& followedScopeKey)
         const int albums = columnInt(statement, 2);
         const int remoteCount = columnInt(statement, 4);
         group.title = statement.columnText(0);
-        group.artist = QString::number(count) + QStringLiteral(" songs - ") + QString::number(albums)
-            + QStringLiteral(" albums");
+        group.artist = counted(count, QLatin1StringView("song"), QLatin1StringView("songs")) + QStringLiteral(" - ")
+            + counted(albums, QLatin1StringView("album"), QLatin1StringView("albums"));
         group.artworkUrl = statement.columnText(3);
         group.trackCount = count;
         group.inLibrary = true;

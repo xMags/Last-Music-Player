@@ -204,7 +204,7 @@ void FollowedArtistsTest::artistCardsShowFollowedArtists()
     const Track* local = findCard(cards, QStringLiteral("Local Band"));
     QVERIFY(local != nullptr);
     QVERIFY(local->followed);
-    QCOMPARE(local->artist, QStringLiteral("1 songs - 1 albums  ") + QChar(char16_t{0x00B7}) + QStringLiteral("  Following"));
+    QCOMPARE(local->artist, QStringLiteral("1 song - 1 album  ") + QChar(char16_t{0x00B7}) + QStringLiteral("  Following"));
     QCOMPARE(local->dateAdded, QStringLiteral("2026-03-01T00:00:00Z"));
     QCOMPARE(local->dateAddedSortKey, 1772323200.0);
     QVERIFY(!findCard(cards, QStringLiteral("Other Band"))->followed);
