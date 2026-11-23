@@ -11,6 +11,8 @@ qt_add_library(lmp_platform_windows STATIC
     WindowsCredentialStore.h
     WindowsExternalLinks.cpp
     WindowsExternalLinks.h
+    WindowsFolderPicker.cpp
+    WindowsFolderPicker.h
     WindowsMediaControls.cpp
     WindowsMediaControls.h
     WindowsReducedMotion.cpp

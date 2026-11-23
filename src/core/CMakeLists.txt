@@ -207,6 +207,7 @@ qt_add_library(lmp_core STATIC
     ../platform/IAudioPlayer.h
     ../platform/ICredentialStore.h
     ../platform/IExternalLinks.h
+    ../platform/IFolderPicker.h
     ../platform/IMediaControls.h
     ../platform/IReducedMotion.h
     ../platform/IShellThumbnail.h

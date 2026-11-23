@@ -62,6 +62,10 @@ Item {
             visible: App.settings.displayNameShown
         }
 
+        SettingsLibraryCard {
+            width: column.width
+        }
+
         SettingsSection {
             width: column.width
             iconName: "play"

@@ -379,5 +379,9 @@ lmp_add_test(tst_profile_view_model
     LIBS lmp_ui)
 
 lmp_add_test(tst_library_scanner
-    SOURCES core/tst_library_scanner.cpp core/TempLibrary.h
+    SOURCES core/tst_library_scanner.cpp core/FakeTagReader.h core/TempLibrary.h
     LIBS lmp_core)
+
+lmp_add_test(tst_library_settings_view_model
+    SOURCES ui/tst_library_settings_view_model.cpp core/FakeTagReader.h core/TempLibrary.h
+    LIBS lmp_ui)

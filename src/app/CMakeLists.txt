@@ -1,7 +1,5 @@
 qt_add_executable(lmp_app WIN32
     CompositionRoot.cpp
-    DeveloperPlayFolder.cpp
-    DeveloperPlayFolder.h
     CompositionRoot.h
     main.cpp
     AppIcon.rc

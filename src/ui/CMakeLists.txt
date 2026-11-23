@@ -82,6 +82,7 @@ set(LMP_UI_QML_FILES
     qml/settings/SettingsAppearanceCard.qml
     qml/settings/SettingsCard.qml
     qml/settings/SettingsDivider.qml
+    qml/settings/SettingsLibraryCard.qml
     qml/settings/SettingsPage.qml
     qml/settings/SettingsProfileCard.qml
     qml/settings/SettingsRow.qml
@@ -153,6 +154,8 @@ qt_add_qml_module(lmp_ui
         player/QueueRowDrag.h
         settings/FirstRunViewModel.cpp
         settings/FirstRunViewModel.h
+        settings/LibrarySettingsViewModel.cpp
+        settings/LibrarySettingsViewModel.h
         settings/SettingsAboutViewModel.cpp
         settings/SettingsAboutViewModel.h
         settings/SettingsViewModel.cpp

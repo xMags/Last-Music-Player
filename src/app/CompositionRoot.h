@@ -30,6 +30,7 @@
 #include "platform/windows/WindowsAudioPlayer.h"
 #include "platform/windows/WindowsCredentialStore.h"
 #include "platform/windows/WindowsExternalLinks.h"
+#include "platform/windows/WindowsFolderPicker.h"
 #include "platform/windows/WindowsMediaControls.h"
 #include "platform/windows/WindowsReducedMotion.h"
 #include "platform/windows/WindowsTagReader.h"
@@ -40,6 +41,7 @@
 #include "ui/player/PlayerBarViewModel.h"
 #include "ui/player/QueueRailViewModel.h"
 #include "ui/settings/FirstRunViewModel.h"
+#include "ui/settings/LibrarySettingsViewModel.h"
 #include "ui/settings/SettingsAboutViewModel.h"
 #include "ui/settings/SettingsViewModel.h"
 #include "ui/settings/SourceModeViewModel.h"
@@ -129,6 +131,7 @@ private:
     core::db::AccountRepository m_accounts;
     core::mode::ModeService m_mode;
     core::account::LocalAccountSignOut m_signOut;
+    platform::windows::WindowsFolderPicker m_folderPicker;
 
     ui::WindowChromeViewModel m_windowChromeViewModel;
     ui::Navigator m_navigator;
@@ -145,6 +148,7 @@ private:
     ui::SourceModeViewModel m_source;
     ui::FirstRunViewModel m_firstRun;
     ui::ProfileViewModel m_profile;
+    ui::LibrarySettingsViewModel m_librarySettings;
     ui::AppRoot m_appRoot;
     QPointer<ui::Theme> m_theme; // owned by the QML engine
 };

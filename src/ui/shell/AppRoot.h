@@ -13,6 +13,7 @@
 #include "ui/player/PlayerBarViewModel.h"
 #include "ui/player/QueueRailViewModel.h"
 #include "ui/settings/FirstRunViewModel.h"
+#include "ui/settings/LibrarySettingsViewModel.h"
 #include "ui/settings/SettingsAboutViewModel.h"
 #include "ui/settings/SettingsViewModel.h"
 #include "ui/settings/SourceModeViewModel.h"
@@ -64,6 +65,8 @@ class AppRoot : public QObject {
     Q_PROPERTY(lmp::ui::FirstRunViewModel* firstRun READ firstRun CONSTANT FINAL)
     // Who the app presents: the sidebar's profile card and its menu.
     Q_PROPERTY(lmp::ui::ProfileViewModel* profile READ profile CONSTANT FINAL)
+    // The Library card of Settings: music folder, scan and formats.
+    Q_PROPERTY(lmp::ui::LibrarySettingsViewModel* librarySettings READ librarySettings CONSTANT FINAL)
     // The current music source: "LocalOnly", "ApiKey" or "Account".
     Q_PROPERTY(QString sourceMode READ sourceMode NOTIFY sourceChanged FINAL)
     // What the current source lets the user do (core::mode::Capabilities).
@@ -87,6 +90,7 @@ public:
         SourceModeViewModel* source = nullptr;
         FirstRunViewModel* firstRun = nullptr;
         ProfileViewModel* profile = nullptr;
+        LibrarySettingsViewModel* librarySettings = nullptr;
         core::mode::ModeService* mode = nullptr;
         bool showGallery = false;
     };
@@ -111,6 +115,7 @@ public:
     [[nodiscard]] SourceModeViewModel* source() const { return m_parts.source; }
     [[nodiscard]] FirstRunViewModel* firstRun() const { return m_parts.firstRun; }
     [[nodiscard]] ProfileViewModel* profile() const { return m_parts.profile; }
+    [[nodiscard]] LibrarySettingsViewModel* librarySettings() const { return m_parts.librarySettings; }
     [[nodiscard]] QString sourceMode() const;
     [[nodiscard]] core::mode::Capabilities capabilities() const;
     [[nodiscard]] bool showGallery() const { return m_parts.showGallery; }

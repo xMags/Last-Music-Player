@@ -13,7 +13,6 @@
 #include <memory>
 #include <optional>
 
-#include "app/DeveloperPlayFolder.h"
 #include "core/app/AppIdentity.h"
 #include "core/async/Result.h"
 #include "core/mode/SourceChoice.h"
@@ -124,6 +123,11 @@ CompositionRoot::CompositionRoot()
                  .session = m_session,
                  .signOut = m_signOut,
                  .navigator = m_navigator})
+    , m_librarySettings({.settings = m_settings,
+                         .scanner = m_scanner,
+                         .gate = m_userDataGate,
+                         .picker = m_folderPicker,
+                         .links = m_externalLinks})
     , m_appRoot({
           .windowChrome = &m_windowChromeViewModel,
           .navigator = &m_navigator,
@@ -138,6 +142,7 @@ CompositionRoot::CompositionRoot()
           .source = &m_source,
           .firstRun = &m_firstRun,
           .profile = &m_profile,
+          .librarySettings = &m_librarySettings,
           .mode = &m_mode,
           .showGallery = QCoreApplication::arguments().contains(QStringLiteral("--gallery")),
       })
@@ -177,18 +182,6 @@ CompositionRoot::CompositionRoot()
     // The last song comes back into the player bar once the state file is
     // read (on the file's worker); the first Play opens it.
     m_persistence.restoreAtLaunch();
-
-    // DEVELOPER OPTION, removed in P06: "--play-folder <path>" plays the
-    // folder's audio files at once. The launch restore then finds a song
-    // already current and leaves it alone.
-    if (const std::optional<QString> folder = developerPlayFolder(QCoreApplication::arguments())) {
-        const QList<core::Track> tracks = developerPlayFolderTracks(*folder);
-        if (tracks.isEmpty()) {
-            qCWarning(lcComposition) << "--play-folder: no .mp3, .flac, .wav or .m4a files in" << *folder;
-        } else {
-            m_player.playInContext(tracks.first(), tracks);
-        }
-    }
 }
 
 CompositionRoot::~CompositionRoot()
@@ -225,6 +218,8 @@ bool CompositionRoot::showMainWindow(QQmlApplicationEngine& engine)
         qCWarning(lcComposition) << "Keeping the system window frame";
     }
     m_windowChromeViewModel.setAttached(custom);
+    // The folder picker is modal to the main window.
+    m_librarySettings.setOwnerWindow(static_cast<quintptr>(window->winId()));
     // The system routes the media keys to the session of this window.
     if (!m_mediaControls.attach(static_cast<quintptr>(window->winId()))) {
         qCWarning(lcComposition) << "The system media controls are not available";
