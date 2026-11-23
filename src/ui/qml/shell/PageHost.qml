@@ -11,7 +11,18 @@ Item {
     // Pages that scroll themselves (long lists) fill the panel; they keep
     // and restore their own position (ScrollMemory).
     function scrollsItself(kind: int): bool {
-        return kind === Route.Library || (kind === Route.Collection && !host.showsArtist())
+        return kind === Route.Library || (kind === Route.Collection && !host.showsArtist()) || host.showsCatalog()
+    }
+
+    // The catalogue's album, playlist, chart and shelf pages (App.catalogPage).
+    function showsCatalog(): bool {
+        const kind = App.navigator.currentKind
+        if (kind === Route.CatalogDetail) {
+            const type = App.navigator.current.param("type")
+            return type === "album" || type === "playlist"
+        }
+        return kind === Route.SourceAlbum || kind === Route.ExternalPlaylist || kind === Route.Chart
+            || kind === Route.Shelf
     }
 
     // A Collection route of an artist shows the artist page.
@@ -76,6 +87,7 @@ Item {
                     : App.navigator.currentKind === Route.Settings ? settingsPage
                     : App.navigator.currentKind === Route.Library ? libraryPage
                     : App.navigator.currentKind === Route.Collection ? (host.showsArtist() ? artistPage : collectionPage)
+                    : host.showsCatalog() ? catalogPage
                     : placeholderPage
             }
         }
@@ -109,6 +121,12 @@ Item {
         id: collectionPage
 
         CollectionPage {}
+    }
+
+    Component {
+        id: catalogPage
+
+        CatalogPage {}
     }
 
     Component {

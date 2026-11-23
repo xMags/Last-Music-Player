@@ -4,6 +4,7 @@
 #include "core/account/LibraryArtistContract.h"
 #include "core/async/Result.h"
 #include "core/catalog/CatalogClient.h"
+#include "core/catalog/CatalogDetailParser.h"
 #include "core/catalog/CatalogModels.h"
 
 #include <QByteArray>
@@ -120,6 +121,11 @@ public:
     // The catalogue artist a name stands for, or nothing. A miss is not
     // cached; it is only remembered for ArtistResolveMissMemory.
     [[nodiscard]] QFuture<Result<std::optional<CatalogItem>>> resolveArtist(const QString& name);
+
+    // The album a song belongs to, as the service finds it (kept like a
+    // page); nothing when it found none. Never fails: a failure reads as
+    // nothing found, so the caller can fall back.
+    [[nodiscard]] QFuture<std::optional<AlbumTarget>> songAlbum(const Track& track);
 
     // Forgets every copy and bumps the generation.
     void clear();

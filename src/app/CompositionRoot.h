@@ -69,6 +69,7 @@
 #include "ui/search/SearchSource.h"
 #include "ui/search/SearchViewModel.h"
 #include "ui/library/AccountArtistsViewModel.h"
+#include "ui/catalog/CatalogPageViewModel.h"
 #include "ui/settings/RegionLanguagesViewModel.h"
 #include "ui/shell/ConnectivityViewModel.h"
 #include "ui/welcome/WelcomeViewModel.h"
@@ -246,6 +247,8 @@ private:
     ui::ConnectivityViewModel m_connectivity;
     // Settings: the music region and recommendation languages.
     ui::RegionLanguagesViewModel m_regionLanguages;
+    // The catalogue's album, playlist, chart and shelf pages.
+    ui::CatalogPageViewModel m_catalogPage;
     ui::CollectionEditor m_collectionEditor;
     ui::HomeViewModel m_home;
     // Browse and search (the local library; remote sources join in P08 and P09).

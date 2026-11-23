@@ -509,3 +509,7 @@ lmp_add_test(tst_home_model
 lmp_add_test(tst_chart_art
     SOURCES ui/tst_chart_art.cpp
     LIBS lmp_ui Qt6::Svg)
+
+lmp_add_test(tst_catalog_routes
+    SOURCES ui/tst_catalog_routes.cpp
+    LIBS lmp_ui)

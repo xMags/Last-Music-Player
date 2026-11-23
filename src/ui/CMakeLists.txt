@@ -71,6 +71,7 @@ set(LMP_UI_QML_FILES
     qml/dev/GalleryTokens.qml
     qml/home/HeroField.qml
     qml/home/HomeHero.qml
+    qml/catalog/CatalogPage.qml
     qml/catalog/ChartCard.qml
     qml/home/HomePage.qml
     qml/home/MixCard.qml
@@ -172,6 +173,10 @@ qt_add_qml_module(lmp_ui
         icons/IconSet.cpp
         icons/IconSet.h
         catalog/CatalogCardModel.cpp
+        catalog/CatalogPageViewModel.cpp
+        catalog/CatalogPageViewModel.h
+        catalog/CatalogRoutes.cpp
+        catalog/CatalogRoutes.h
         catalog/CatalogCardModel.h
         home/HomeCatalogFeed.cpp
         home/HomeCatalogFeed.h

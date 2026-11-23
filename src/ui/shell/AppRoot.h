@@ -20,6 +20,7 @@
 #include "ui/library/LocalArtistViewModel.h"
 #include "ui/library/AccountArtistsViewModel.h"
 #include "ui/settings/DataSettingsViewModel.h"
+#include "ui/catalog/CatalogPageViewModel.h"
 #include "ui/settings/RegionLanguagesViewModel.h"
 #include "ui/shell/ConnectivityViewModel.h"
 #include "ui/welcome/WelcomeViewModel.h"
@@ -98,6 +99,7 @@ class AppRoot : public QObject {
     Q_PROPERTY(lmp::ui::WelcomeViewModel* welcome READ welcome CONSTANT FINAL)
     Q_PROPERTY(lmp::ui::ConnectivityViewModel* connectivity READ connectivity CONSTANT FINAL)
     Q_PROPERTY(lmp::ui::RegionLanguagesViewModel* regionLanguages READ regionLanguages CONSTANT FINAL)
+    Q_PROPERTY(lmp::ui::CatalogPageViewModel* catalogPage READ catalogPage CONSTANT FINAL)
     // The current music source: "LocalOnly", "ApiKey" or "Account".
     Q_PROPERTY(QString sourceMode READ sourceMode NOTIFY sourceChanged FINAL)
     // What the current source lets the user do (core::mode::Capabilities).
@@ -134,6 +136,7 @@ public:
         WelcomeViewModel* welcome = nullptr;
         ConnectivityViewModel* connectivity = nullptr;
         RegionLanguagesViewModel* regionLanguages = nullptr;
+        CatalogPageViewModel* catalogPage = nullptr;
         core::mode::ModeService* mode = nullptr;
         bool showGallery = false;
     };
@@ -171,6 +174,7 @@ public:
     [[nodiscard]] WelcomeViewModel* welcome() const { return m_parts.welcome; }
     [[nodiscard]] ConnectivityViewModel* connectivity() const { return m_parts.connectivity; }
     [[nodiscard]] RegionLanguagesViewModel* regionLanguages() const { return m_parts.regionLanguages; }
+    [[nodiscard]] CatalogPageViewModel* catalogPage() const { return m_parts.catalogPage; }
     [[nodiscard]] QString sourceMode() const;
     [[nodiscard]] core::mode::Capabilities capabilities() const;
     [[nodiscard]] bool showGallery() const { return m_parts.showGallery; }

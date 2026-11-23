@@ -85,6 +85,15 @@ public:
     [[nodiscard]] QFuture<Result<void>> deletePlaylist(const QString& playlistKey);
     [[nodiscard]] QFuture<Result<void>> addToPlaylist(const QString& playlistKey, const Track& track);
     [[nodiscard]] QFuture<Result<void>> removeFromPlaylist(const QString& playlistKey, const QList<Track>& tracks);
+    // Save to library for an album or playlist from the catalogue: a playlist
+    // of the listener's own, filed under the collection's link (the service
+    // tops up an existing copy of the same link). The saved copy's key, if
+    // there is one; removing deletes that copy.
+    [[nodiscard]] QFuture<Result<QString>> saveCollection(const QString& title, const QString& description,
+                                                          const QList<Track>& tracks, const QString& sourceUrl);
+    [[nodiscard]] std::optional<QString> savedCollectionKey(const QString& sourceUrl) const;
+    [[nodiscard]] QFuture<Result<void>> removeSavedCollection(const QString& sourceUrl);
+
     // `tracks` is the playlist's whole new order.
     [[nodiscard]] QFuture<Result<void>> replacePlaylist(const QString& playlistKey, const QList<Track>& tracks);
 

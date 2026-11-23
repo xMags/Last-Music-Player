@@ -240,6 +240,11 @@ CompositionRoot::CompositionRoot()
                          .settings = m_settings,
                          .clock = m_clock,
                          .toasts = m_toasts})
+    , m_catalogPage({.catalog = m_catalog,
+                     .editor = m_accountEditor,
+                     .actions = m_trackActions,
+                     .trackMenu = m_trackMenu,
+                     .navigator = m_navigator})
     , m_collectionEditor(m_collectionActions, m_navigator, m_toasts)
     , m_home({.library = m_library,
               .actions = m_trackActions,
@@ -303,6 +308,7 @@ CompositionRoot::CompositionRoot()
           .welcome = &m_welcome,
           .connectivity = &m_connectivity,
           .regionLanguages = &m_regionLanguages,
+          .catalogPage = &m_catalogPage,
           .mode = &m_mode,
           .showGallery = QCoreApplication::arguments().contains(QStringLiteral("--gallery")),
       })
@@ -316,6 +322,13 @@ CompositionRoot::CompositionRoot()
     // In Account mode the mixes come from the account library, read as the
     // reference client's home model reads it.
     m_homeMixes.setAccountSource([this]() { return accountHomeLibrary(); });
+    // A song menu's Go to album: an account song's album comes from the
+    // catalogue (the library's own albums open in the library otherwise).
+    QObject::connect(&m_trackActions, &core::TrackActions::albumRequested, &m_catalogPage, [this](const core::Track& track) {
+        if (track.origin == QLatin1StringView("account")) {
+            m_catalogPage.openAlbumOf(track);
+        }
+    });
 
     // Whether this is a first run, read before the mode service stores its
     // first-run default.

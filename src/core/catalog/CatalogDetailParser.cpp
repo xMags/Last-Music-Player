@@ -339,4 +339,28 @@ Result<Detail> parseExternalPlaylistDetail(const QByteArray& payload, const QStr
     return detail;
 }
 
+std::optional<AlbumTarget> parseSongAlbum(const QByteArray& payload, const SourceTags& tags)
+{
+    const QJsonObject album = QJsonDocument::fromJson(payload).object().value(QLatin1StringView("album")).toObject();
+    const QString provider = values::text(album, "provider");
+    const QString catalogId = values::text(album, "catalogId");
+    if (provider.isEmpty() || catalogId.isEmpty() || catalogId.size() > 512) {
+        return std::nullopt;
+    }
+    AlbumTarget target;
+    if (tags.isCatalogTag(provider)) {
+        const bool numeric = std::all_of(catalogId.cbegin(), catalogId.cend(), [](QChar character) {
+            return character >= QLatin1Char('0') && character <= QLatin1Char('9');
+        });
+        if (!numeric) {
+            return std::nullopt;
+        }
+        target.catalogAlbumId = catalogId;
+        return target;
+    }
+    target.identity = account::LibraryArtistIdentity{catalogId, {}, values::text(album, "name").left(240), provider.left(64)};
+    target.artist = values::text(album, "artistName").left(240);
+    return target;
+}
+
 } // namespace lmp::core::catalog

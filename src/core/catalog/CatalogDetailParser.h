@@ -60,4 +60,19 @@ inline constexpr QLatin1StringView AlbumDetailCapability{"album-detail-v1"};
 [[nodiscard]] Result<Detail> parseExternalPlaylistDetail(const QByteArray& payload, const QString& id,
                                                          const SourceTags& tags);
 
+// The album a song belongs to, as the service picks it: the catalogue's own
+// album (by its numeric id) or a provider release (by its identity, with
+// its artist to narrow a name lookup).
+struct AlbumTarget {
+    // Set for the catalogue's own album.
+    QString catalogAlbumId;
+    account::LibraryArtistIdentity identity;
+    QString artist;
+};
+
+// The /v1/music/catalog/songs/album answer; nothing when it names no usable
+// album (a catalogue album needs a numeric id; names are cut to 240
+// characters, the source tag to 64).
+[[nodiscard]] std::optional<AlbumTarget> parseSongAlbum(const QByteArray& payload, const SourceTags& tags);
+
 } // namespace lmp::core::catalog

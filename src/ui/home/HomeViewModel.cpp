@@ -17,6 +17,7 @@
 #include "core/model/DisplayTitle.h"
 #include "core/playback/PlayerController.h"
 #include "ui/library/SystemPlaylists.h"
+#include "ui/catalog/CatalogRoutes.h"
 #include "ui/navigation/Navigator.h"
 #include "ui/navigation/Route.h"
 #include "ui/player/CoverSource.h"
@@ -269,10 +270,25 @@ void HomeViewModel::playCatalogCard(const QString& key, int row)
 {
     CatalogCardModel* shelf = catalogShelf(key);
     const core::catalog::CatalogItem* item = shelf != nullptr ? shelf->itemAt(row) : nullptr;
-    if (item == nullptr || !item->track) {
+    if (item == nullptr) {
         return;
     }
-    m_actions.play(*item->track, shelf->tracks());
+    if (item->track) {
+        m_actions.play(*item->track, shelf->tracks());
+        return;
+    }
+    if (const std::optional<Route> route = catalog_routes::routeForItem(*item)) {
+        m_navigator.push(*route);
+    }
+}
+
+void HomeViewModel::openChart(const QString& key, int row)
+{
+    ChartCardModel* charts = chartRow(key);
+    const core::catalog::ChartDescriptor* chart = charts != nullptr ? charts->chartAt(row) : nullptr;
+    if (chart != nullptr) {
+        m_navigator.push(catalog_routes::routeForChart(chart->ref));
+    }
 }
 
 void HomeViewModel::retryCatalog()
@@ -508,6 +524,12 @@ void HomeViewModel::seeAll(const QString& shelf)
         openCollection(QStringLiteral("system"), QStringLiteral("smart-most"), {});
     } else if (shelf == QLatin1StringView("recentlyAdded")) {
         openCollection(QStringLiteral("system"), QStringLiteral("smart-recent"), {});
+    } else if (shelf == QLatin1StringView("genreCharts") || shelf == QLatin1StringView("cityCharts")) {
+        // Every chart of the row: the Charts page lists them (P08 later
+        // parts); until then the first chart opens.
+        openChart(shelf, 0);
+    } else if (m_feed != nullptr) {
+        m_navigator.push(catalog_routes::routeForShelf(shelf));
     }
 }
 

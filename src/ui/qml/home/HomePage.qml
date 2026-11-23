@@ -150,6 +150,7 @@ Item {
                             title: section.title
                             linkText: section.link ? qsTr("See all") : ""
                             model: App.home.catalogShelf(section.key)
+                            onLinkClicked: App.home.seeAll(section.key)
 
                             delegate: Card {
                                 id: catalogCard
@@ -184,7 +185,12 @@ Item {
                             cardWidth: 184
                             cardHeight: 184
 
+                            onLinkClicked: App.home.seeAll(section.key)
+
                             delegate: ChartCard {
+                                id: chartCard
+
+                                required property int index
                                 required artSource
                                 required artworkUrl
                                 required name
@@ -192,6 +198,8 @@ Item {
                                 required kindLabel
                                 required kindColor
                                 required cardSubtitle
+
+                                onClicked: App.home.openChart(section.key, chartCard.index)
                             }
                         }
 

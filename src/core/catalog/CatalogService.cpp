@@ -453,6 +453,44 @@ QFuture<Result<ItemPage>> CatalogService::newReleasesPage(NewReleasesKind kind, 
         });
 }
 
+QFuture<std::optional<AlbumTarget>> CatalogService::songAlbum(const Track& track)
+{
+    QUrlQuery fields;
+    const auto add = [&fields](const char* key, const QString& value) {
+        if (!value.trimmed().isEmpty()) {
+            fields.addQueryItem(QString::fromLatin1(key), value.trimmed());
+        }
+    };
+    add("provider", track.sourceTag);
+    add("catalogId", track.catalogId);
+    add("sourceUrl", track.sourceUrl);
+    add("title", track.title);
+    add("artist", track.artist == QLatin1StringView("Unknown artist") ? QString() : track.artist);
+    add("album", track.album);
+    add("albumCatalogId", track.albumCatalogId);
+    add("durationMs", track.durationSeconds > 0 ? QString::number(qRound64(track.durationSeconds * 1000)) : QString());
+    if (!fields.hasQueryItem(QStringLiteral("title")) && !fields.hasQueryItem(QStringLiteral("catalogId"))
+        && !fields.hasQueryItem(QStringLiteral("sourceUrl"))) {
+        return QtFuture::makeReadyValueFuture(std::optional<AlbumTarget>());
+    }
+    const QString code = region();
+    // Bump the version when the service changes which album it picks.
+    const QString key = QStringLiteral("song-album:v2:") + code + QLatin1Char(':') + fields.toString(QUrl::FullyEncoded);
+    return cached<AlbumTarget>(
+               key, [this, code, fields](const QString& bearer) { return m_deps.client.songAlbum(bearer, code, fields); },
+               [this](const QByteArray& payload) -> Result<AlbumTarget> {
+                   std::optional<AlbumTarget> target = parseSongAlbum(payload, m_deps.tags);
+                   if (!target) {
+                       return Failure::of(FailureKind::NotFound, QStringLiteral("No album for that song."));
+                   }
+                   return std::move(*target);
+               },
+               false, CatalogFresh)
+        .then([](const Result<AlbumTarget>& result) {
+            return result ? std::optional<AlbumTarget>(result.value()) : std::nullopt;
+        });
+}
+
 QFuture<Result<std::optional<CatalogItem>>> CatalogService::resolveArtist(const QString& name)
 {
     using Answer = Result<std::optional<CatalogItem>>;

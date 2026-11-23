@@ -1,5 +1,11 @@
 #include "core/account/AccountLibraryEditor.h"
 
+#include "core/catalog/CollectionSourceKey.h"
+
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
+
 #include "core/account/AccountClient.h"
 #include "core/account/AccountLibrarySync.h"
 #include "core/account/AccountMusicContract.h"
@@ -231,6 +237,75 @@ QFuture<Result<void>> AccountLibraryEditor::renamePlaylist(const QString& playli
     }
     return afterEdit(m_deps.client.updatePlaylist(context->bearerSession, playlistIdOf(playlistKey), body), *context,
                      playlistKey, tr("Could not rename the playlist."));
+}
+
+QFuture<Result<QString>> AccountLibraryEditor::saveCollection(const QString& title, const QString& description,
+                                                              const QList<Track>& tracks, const QString& sourceUrl)
+{
+    const std::optional<AccountOperationContext> context = writableContext();
+    const QString name = title.trimmed();
+    if (!context || name.isEmpty() || catalog::canonicalSourceKey(sourceUrl).isEmpty()) {
+        return refused<QString>(QStringLiteral("this collection cannot be saved"));
+    }
+    QJsonArray songs;
+    for (const Track& track : tracks) {
+        if (!remote::track_json::isCompatibleAccountRemoteTrack(track)) {
+            continue;
+        }
+        const QJsonDocument song = QJsonDocument::fromJson(serializePortableTrack(portableFromTrack(track)));
+        if (song.isObject()) {
+            songs.append(song.object());
+        }
+    }
+    const QJsonObject body{{QStringLiteral("name"), name},
+                           {QStringLiteral("description"), description.trimmed()},
+                           {QStringLiteral("tracks"), songs},
+                           {QStringLiteral("sourceUrl"), sourceUrl.trimmed()}};
+    return m_deps.client.createPlaylist(context->bearerSession, QJsonDocument(body).toJson(QJsonDocument::Compact))
+        .then(this, [this, context = *context](const Result<AccountPlaylist>& created) -> Result<QString> {
+            if (!m_deps.session.isCurrent(context)) {
+                return Failure::of(FailureKind::Cancelled, QStringLiteral("account changed"));
+            }
+            if (!created) {
+                if (created.failure().kind == FailureKind::Unauthorized) {
+                    m_deps.session.handleUnauthorized(context);
+                }
+                emit failed(tr("Could not save to your library."));
+                return created.failure();
+            }
+            m_deps.sync.requestSync(MusicSyncService::Lane::Library).then(this, [this](bool) {
+                emit playlistsChanged();
+            });
+            return QString(PlaylistKeyPrefix) + created.value().id;
+        });
+}
+
+std::optional<QString> AccountLibraryEditor::savedCollectionKey(const QString& sourceUrl) const
+{
+    const QString wanted = catalog::canonicalSourceKey(sourceUrl);
+    const QString owner = m_deps.session.profile().id;
+    if (wanted.isEmpty() || owner.isEmpty()) {
+        return std::nullopt;
+    }
+    const std::optional<db::AccountLibrarySnapshot> library = m_deps.accounts.loadAccountLibrary(owner);
+    if (!library) {
+        return std::nullopt;
+    }
+    for (const db::AccountPlaylistSnapshot& playlist : library->playlists) {
+        if (catalog::canonicalSourceKey(playlist.sourceUrl) == wanted) {
+            return QString(PlaylistKeyPrefix) + playlist.playlistId;
+        }
+    }
+    return std::nullopt;
+}
+
+QFuture<Result<void>> AccountLibraryEditor::removeSavedCollection(const QString& sourceUrl)
+{
+    const std::optional<QString> key = savedCollectionKey(sourceUrl);
+    if (!key) {
+        return refused<void>(QStringLiteral("no saved copy"));
+    }
+    return deletePlaylist(*key);
 }
 
 QFuture<Result<void>> AccountLibraryEditor::deletePlaylist(const QString& playlistKey)

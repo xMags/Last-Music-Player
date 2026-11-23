@@ -1,0 +1,502 @@
+#include "ui/catalog/CatalogPageViewModel.h"
+
+#include "core/account/AccountLibraryEditor.h"
+#include "core/catalog/CatalogPresentation.h"
+#include "core/catalog/CatalogService.h"
+#include "core/catalog/ChartArt.h"
+#include "core/catalog/CollectionSourceKey.h"
+#include "core/library/TrackActions.h"
+#include "ui/catalog/CatalogRoutes.h"
+#include "ui/images/ChartArtImageProvider.h"
+#include "ui/navigation/Navigator.h"
+#include "ui/navigation/Route.h"
+#include "ui/player/CoverSource.h"
+#include "ui/tracks/TrackMenuController.h"
+
+#include <QLatin1StringView>
+
+#include <cmath>
+
+namespace lmp::ui {
+
+namespace catalog = core::catalog;
+namespace routes = catalog_routes;
+
+namespace {
+
+[[nodiscard]] QUrl coverUrl(const QString& artworkUrl)
+{
+    if (artworkUrl.isEmpty()) {
+        return {};
+    }
+    core::Track cover;
+    cover.artworkUrl = artworkUrl;
+    cover.sourceKind = QStringLiteral("remote");
+    return CoverSource::forTrack(cover).displayUrl();
+}
+
+[[nodiscard]] QString itemKey(const catalog::CatalogItem& item)
+{
+    return catalog::resourceTypeName(item.type) + QLatin1Char(':') + item.catalogId;
+}
+
+[[nodiscard]] QList<core::Track> songsOf(const QList<catalog::CatalogItem>& items)
+{
+    QList<core::Track> songs;
+    for (const catalog::CatalogItem& item : items) {
+        if (item.track) {
+            songs.append(*item.track);
+        }
+    }
+    return songs;
+}
+
+} // namespace
+
+CatalogPageViewModel::CatalogPageViewModel(Parts parts, QObject* parent)
+    : QObject(parent)
+    , m_catalog(parts.catalog)
+    , m_editor(parts.editor)
+    , m_actions(parts.actions)
+    , m_trackMenu(parts.trackMenu)
+    , m_navigator(parts.navigator)
+{
+    connect(&m_navigator, &Navigator::currentChanged, this, &CatalogPageViewModel::followNavigator);
+    // A saved copy made or removed elsewhere changes the Save button.
+    connect(&m_editor, &core::account::AccountLibraryEditor::playlistsChanged, this, &CatalogPageViewModel::changed);
+    connect(&m_actions, &core::TrackActions::likedChanged, this, [this](const QString& sourceKey, bool liked) {
+        m_tracks.setLiked(sourceKey, liked);
+    });
+}
+
+bool CatalogPageViewModel::handles(const Route& route)
+{
+    switch (route.kind()) {
+    case Route::Kind::CatalogDetail: {
+        const QString type = route.param(QStringLiteral("type"));
+        return type == QLatin1StringView("album") || type == QLatin1StringView("playlist");
+    }
+    case Route::Kind::SourceAlbum:
+    case Route::Kind::ExternalPlaylist:
+    case Route::Kind::Chart:
+    case Route::Kind::Shelf:
+        return true;
+    default:
+        return false;
+    }
+}
+
+void CatalogPageViewModel::followNavigator()
+{
+    const Route& current = m_navigator.current();
+    if (handles(current)) {
+        load(current, false);
+    }
+}
+
+void CatalogPageViewModel::retry()
+{
+    if (handles(m_navigator.current())) {
+        load(m_navigator.current(), true);
+    }
+}
+
+void CatalogPageViewModel::reset(const QString& kind)
+{
+    m_kind = kind;
+    m_loading = true;
+    m_finding = false;
+    m_error.clear();
+    m_eyebrow.clear();
+    m_title.clear();
+    m_byline.clear();
+    m_description.clear();
+    m_artworkUrl.clear();
+    m_sourceUrl.clear();
+    m_showsCards = false;
+    m_saving = false;
+    m_pager.reset();
+    m_chart.reset();
+    m_shelfKey.clear();
+    m_tracks.setTracks({});
+    m_cards.setItems({});
+}
+
+void CatalogPageViewModel::fail(const QString& message)
+{
+    m_loading = false;
+    m_finding = false;
+    m_error = message;
+    emit changed();
+}
+
+void CatalogPageViewModel::load(const Route& route, bool force)
+{
+    const std::uint64_t request = ++m_request;
+    const auto current = [this, request]() { return request == m_request; };
+    const QString title = route.param(QStringLiteral("title"));
+
+    if (route.kind() == Route::Kind::CatalogDetail) {
+        const QString type = route.param(QStringLiteral("type"));
+        reset(type);
+        m_title = title;
+        emit changed();
+        m_catalog.detail(catalog::parseResourceType(type), route.param(QStringLiteral("id")), force)
+            .then(this, [this, current, type](const core::Result<catalog::Detail>& result) {
+                if (!current()) {
+                    return;
+                }
+                if (!result) {
+                    fail(result.failure().kind == core::FailureKind::NotFound
+                             ? tr("This is not available in your music region.")
+                             : tr("This page could not be loaded. Try again."));
+                    return;
+                }
+                showDetail(result.value(), type);
+            });
+        return;
+    }
+
+    if (route.kind() == Route::Kind::SourceAlbum && route.param(QStringLiteral("finding")) == QLatin1StringView("1")) {
+        reset(QStringLiteral("album"));
+        m_finding = true;
+        m_title = route.param(QStringLiteral("album"));
+        emit changed();
+        core::Track song;
+        song.sourceTag = route.param(QStringLiteral("provider"));
+        song.catalogId = route.param(QStringLiteral("catalogId"));
+        song.sourceUrl = route.param(QStringLiteral("sourceUrl"));
+        song.title = route.param(QStringLiteral("title"));
+        song.artist = route.param(QStringLiteral("artist"));
+        song.album = route.param(QStringLiteral("album"));
+        song.albumCatalogId = route.param(QStringLiteral("albumCatalogId"));
+        song.durationSeconds = route.param(QStringLiteral("durationMs")).toDouble() / 1000.0;
+        m_catalog.songAlbum(song).then(this, [this, current](const std::optional<catalog::AlbumTarget>& target) {
+            if (!current()) {
+                return;
+            }
+            if (!target) {
+                fail(tr("This song's album could not be found."));
+                return;
+            }
+            // The pending page gives way to the album, so Back skips it.
+            if (!target->catalogAlbumId.isEmpty()) {
+                m_navigator.replace(Route(Route::Kind::CatalogDetail, {{QStringLiteral("type"), QStringLiteral("album")},
+                                                                       {QStringLiteral("id"), target->catalogAlbumId}}));
+            } else {
+                m_navigator.replace(routes::routeForAlbumIdentity(target->identity, target->artist));
+            }
+        });
+        return;
+    }
+
+    if (route.kind() == Route::Kind::SourceAlbum) {
+        reset(QStringLiteral("album"));
+        m_title = title;
+        emit changed();
+        m_catalog.providerAlbum(routes::identityFromRoute(route), route.param(QStringLiteral("artist")), force)
+            .then(this, [this, current](const core::Result<catalog::Detail>& result) {
+                if (!current()) {
+                    return;
+                }
+                if (!result) {
+                    fail(tr("This album could not be loaded. Try again."));
+                    return;
+                }
+                showDetail(result.value(), QStringLiteral("album"));
+            });
+        return;
+    }
+
+    if (route.kind() == Route::Kind::ExternalPlaylist) {
+        reset(QStringLiteral("playlist"));
+        m_title = title;
+        emit changed();
+        m_catalog.externalPlaylist(route.param(QStringLiteral("id")), force)
+            .then(this, [this, current](const core::Result<catalog::Detail>& result) {
+                if (!current()) {
+                    return;
+                }
+                if (!result) {
+                    fail(tr("This playlist could not be loaded. Try again."));
+                    return;
+                }
+                showDetail(result.value(), QStringLiteral("playlist"));
+            });
+        return;
+    }
+
+    if (route.kind() == Route::Kind::Chart) {
+        reset(QStringLiteral("chart"));
+        const std::optional<catalog::ChartRef> chart = routes::chartFromRoute(route);
+        if (!chart) {
+            fail(tr("This chart could not be loaded."));
+            return;
+        }
+        m_chart = chart;
+        emit changed();
+        m_catalog.chart(*chart, force).then(this, [this, current](const core::Result<catalog::Chart>& result) {
+            if (!current()) {
+                return;
+            }
+            if (!result) {
+                fail(tr("This chart could not be loaded. Try again."));
+                return;
+            }
+            const catalog::Chart& value = result.value();
+            m_loading = false;
+            m_eyebrow = tr("CHART");
+            m_title = value.descriptor.title.isEmpty() ? value.shelf.title : value.descriptor.title;
+            m_byline = value.descriptor.subtitle;
+            m_artworkUrl = value.descriptor.artworkUrl.isEmpty()
+                ? QUrl(ChartArtImageProvider::sourceFor(catalog::resolveChartVisual(value.descriptor)))
+                : coverUrl(value.descriptor.artworkUrl);
+            m_showsCards = value.shelf.type != catalog::ResourceType::Song;
+            startPager(value.shelf.items, value.shelf.nextOffset, false);
+        });
+        return;
+    }
+
+    // A Home shelf's "See all".
+    reset(QStringLiteral("shelf"));
+    m_shelfKey = route.param(QStringLiteral("key"));
+    emit changed();
+    m_catalog.discovery().then(this, [this, current](const core::Result<catalog::Discovery>& result) {
+        if (!current()) {
+            return;
+        }
+        if (!result) {
+            fail(tr("This list could not be loaded. Try again."));
+            return;
+        }
+        const catalog::Discovery& discovery = result.value();
+        std::optional<catalog::Shelf> shelf;
+        if (m_shelfKey == QLatin1StringView("newSongs")) {
+            shelf = discovery.newReleaseSongsShelf;
+        } else if (m_shelfKey == QLatin1StringView("newAlbums")) {
+            shelf = discovery.newReleasesShelf;
+        } else if (m_shelfKey == QLatin1StringView("biggestHits")) {
+            shelf = discovery.hitsShelf;
+        } else if (m_shelfKey == QLatin1StringView("popularArtists")) {
+            shelf = discovery.popularArtistsShelf;
+        } else if (m_shelfKey == QLatin1StringView("moods")) {
+            shelf = discovery.moodShelf;
+        } else if (m_shelfKey.startsWith(QLatin1StringView("catalog:"))) {
+            const QString id = m_shelfKey.mid(8);
+            for (const catalog::Shelf& candidate : discovery.shelves) {
+                if (candidate.id == id) {
+                    shelf = candidate;
+                }
+            }
+        }
+        if (!shelf) {
+            fail(tr("This list is not available right now."));
+            return;
+        }
+        // A shelf with a chart behind it opens the chart.
+        if (shelf->chart) {
+            m_navigator.replace(routes::routeForChart(*shelf->chart));
+            return;
+        }
+        m_loading = false;
+        m_title = shelf->title;
+        m_eyebrow = tr("BROWSE");
+        m_showsCards = shelf->type != catalog::ResourceType::Song;
+        // New Songs and New Albums page in full; Home's row shows at once
+        // while the first page loads.
+        const bool paged = m_shelfKey == QLatin1StringView("newSongs") || m_shelfKey == QLatin1StringView("newAlbums");
+        startPager(shelf->items, paged ? std::optional<int>(0) : std::nullopt, paged);
+        if (paged) {
+            loadMore();
+        }
+    });
+}
+
+void CatalogPageViewModel::showDetail(const catalog::Detail& detail, const QString& kind)
+{
+    catalog::Detail shown = detail;
+    catalog::applyAlbumArtworkToTracks(shown);
+    m_loading = false;
+    m_kind = kind;
+    m_eyebrow = kind == QLatin1StringView("album") ? tr("ALBUM") : tr("PLAYLIST");
+    m_title = shown.item.title;
+    m_byline = shown.item.subtitle;
+    m_description = shown.item.description;
+    m_artworkUrl = coverUrl(shown.item.artworkUrl);
+    m_sourceUrl = shown.item.sourceUrl;
+    m_showsCards = false;
+    m_tracks.setTracks(shown.tracks);
+    emit changed();
+}
+
+void CatalogPageViewModel::startPager(QList<catalog::CatalogItem> items, std::optional<int> nextOffset, bool seed)
+{
+    m_pager.emplace(std::move(items), nextOffset, &itemKey, seed);
+    applyPagerItems();
+}
+
+void CatalogPageViewModel::applyPagerItems()
+{
+    if (!m_pager) {
+        return;
+    }
+    if (m_showsCards) {
+        m_cards.setItems(m_pager->items());
+    } else {
+        m_tracks.setTracks(songsOf(m_pager->items()));
+    }
+    emit changed();
+}
+
+void CatalogPageViewModel::loadMore()
+{
+    if (!m_pager) {
+        return;
+    }
+    const std::optional<catalog::PageRequest> request = m_pager->begin();
+    if (!request) {
+        return;
+    }
+    emit changed();
+    QFuture<core::Result<catalog::ItemPage>> page;
+    if (m_chart) {
+        page = m_catalog.chartPage(*m_chart, request->offset);
+    } else if (m_shelfKey == QLatin1StringView("newSongs") || m_shelfKey == QLatin1StringView("newAlbums")) {
+        page = m_catalog.newReleasesPage(m_shelfKey == QLatin1StringView("newSongs") ? catalog::NewReleasesKind::Songs
+                                                                                     : catalog::NewReleasesKind::Albums,
+                                         request->offset);
+    } else {
+        m_pager->cancel();
+        return;
+    }
+    const std::uint64_t owner = m_request;
+    page.then(this, [this, owner, request = *request](const core::Result<catalog::ItemPage>& result) {
+        if (owner != m_request || !m_pager) {
+            return;
+        }
+        if (!result) {
+            (void)m_pager->fail(request);
+            emit changed();
+            return;
+        }
+        if (m_pager->complete(request, result.value())) {
+            applyPagerItems();
+        }
+    });
+}
+
+QString CatalogPageViewModel::pagingState() const
+{
+    if (!m_pager) {
+        return QStringLiteral("done");
+    }
+    switch (m_pager->status()) {
+    case catalog::PagerStatus::Idle:
+        return QStringLiteral("idle");
+    case catalog::PagerStatus::Loading:
+        return QStringLiteral("loading");
+    case catalog::PagerStatus::Failed:
+        return QStringLiteral("failed");
+    case catalog::PagerStatus::Done:
+        break;
+    }
+    return QStringLiteral("done");
+}
+
+QString CatalogPageViewModel::info() const
+{
+    const QList<core::Track>& songs = m_tracks.tracks();
+    if (m_showsCards || songs.isEmpty()) {
+        return {};
+    }
+    double seconds = 0;
+    for (const core::Track& song : songs) {
+        seconds += std::max(0.0, song.durationSeconds);
+    }
+    const qint64 minutes = std::llround(seconds / 60.0);
+    const QString length = minutes >= 60 ? tr("%1 hr %2 min").arg(minutes / 60).arg(minutes % 60)
+                                         : tr("%1 min").arg(minutes);
+    const QString count = songs.size() == 1 ? tr("1 song") : tr("%1 songs").arg(songs.size());
+    return minutes > 0 ? count + QStringLiteral(" · ") + length : count;
+}
+
+bool CatalogPageViewModel::canSave() const
+{
+    return (m_kind == QLatin1StringView("album") || m_kind == QLatin1StringView("playlist")) && !m_loading
+        && m_tracks.count() > 0 && !catalog::canonicalSourceKey(m_sourceUrl).isEmpty();
+}
+
+bool CatalogPageViewModel::saved() const
+{
+    return canSave() && m_editor.savedCollectionKey(m_sourceUrl).has_value();
+}
+
+void CatalogPageViewModel::toggleSave()
+{
+    if (!canSave() || m_saving) {
+        return;
+    }
+    m_saving = true;
+    emit changed();
+    const auto done = [this]() {
+        m_saving = false;
+        emit changed();
+    };
+    if (saved()) {
+        m_editor.removeSavedCollection(m_sourceUrl).then(this, [done](const core::Result<void>&) { done(); });
+        return;
+    }
+    m_editor.saveCollection(m_title, m_description, m_tracks.tracks(), m_sourceUrl)
+        .then(this, [done](const core::Result<QString>&) { done(); });
+}
+
+void CatalogPageViewModel::playRow(int row)
+{
+    if (row >= 0 && row < m_tracks.count()) {
+        m_actions.play(m_tracks.trackAt(row), m_tracks.tracks());
+    }
+}
+
+void CatalogPageViewModel::play()
+{
+    for (const core::Track& track : m_tracks.tracks()) {
+        if (m_actions.canPlay(track)) {
+            m_actions.play(track, m_tracks.tracks());
+            return;
+        }
+    }
+}
+
+void CatalogPageViewModel::shuffle()
+{
+    m_actions.shufflePlay(m_tracks.tracks());
+}
+
+void CatalogPageViewModel::prepareSongMenu(int row)
+{
+    if (row >= 0 && row < m_tracks.count()) {
+        m_trackMenu.prepare(m_tracks.trackAt(row), m_tracks.tracks());
+    }
+}
+
+void CatalogPageViewModel::openCard(int row)
+{
+    const catalog::CatalogItem* item = m_cards.itemAt(row);
+    if (item == nullptr) {
+        return;
+    }
+    if (item->track) {
+        m_actions.play(*item->track, m_cards.tracks());
+        return;
+    }
+    if (const std::optional<Route> route = routes::routeForItem(*item)) {
+        m_navigator.push(*route);
+    }
+}
+
+void CatalogPageViewModel::openAlbumOf(const core::Track& track)
+{
+    m_navigator.push(routes::routeFindingAlbum(track));
+}
+
+} // namespace lmp::ui

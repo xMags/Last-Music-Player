@@ -76,6 +76,10 @@ LibraryViewModel::LibraryViewModel(Parts parts, QObject* parent)
     connect(&m_navigator, &Navigator::currentChanged, this, &LibraryViewModel::followNavigator);
     // A song menu's Go to album and Go to artist open the library's pages.
     connect(&m_actions, &core::TrackActions::albumRequested, this, [this](const core::Track& track) {
+        // An account song's album opens from the catalogue (CompositionRoot).
+        if (track.origin == QLatin1StringView("account")) {
+            return;
+        }
         const QString album = track.album.isEmpty() ? tr("Unknown Album") : track.album;
         m_navigator.push(Route(Route::Kind::Collection, {{QStringLiteral("kind"), QStringLiteral("album")},
                                                          {QStringLiteral("key"), album},
