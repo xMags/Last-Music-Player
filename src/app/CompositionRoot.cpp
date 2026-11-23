@@ -116,6 +116,17 @@ CompositionRoot::CompositionRoot()
     , m_mediaBridge({.player = m_player, .controls = m_mediaControls, .settings = m_settings, .clock = m_clock})
     , m_signOut(m_session)
     , m_artwork({.client = m_accountClient, .session = m_session, .mode = m_mode, .http = m_http, .clock = m_clock})
+    , m_outbox(m_database)
+    , m_sync({.transport = m_accountClient,
+              .session = m_session,
+              .mode = m_mode,
+              .accounts = m_accounts,
+              .outbox = m_outbox,
+              .settings = m_settings,
+              .gate = m_userDataGate,
+              .clock = m_clock,
+              .nowUtc = {}})
+    , m_syncScheduler({.sync = m_sync, .session = m_session, .mode = m_mode, .network = m_network, .clock = m_clock})
     , m_trackActions({.player = m_player,
                       .tracks = m_tracks,
                       .collections = m_collections,
@@ -271,13 +282,21 @@ CompositionRoot::CompositionRoot()
 
     // After "Delete all data" every view reads its (now empty) data again.
     QObject::connect(&m_cleanup, &core::UserDataCleanup::cleared, &m_cleanup, [this]() {
-        m_homeMixes.refresh(true);
-        m_sidebar.refreshPlaylists();
-        m_libraryPage.refresh();
-        m_home.refresh();
+        refreshLibraryViews();
         m_settingsAbout.refresh();
         m_navigator.openView(static_cast<int>(ui::Route::Kind::Home));
     });
+    // A synced account library, or a change of music source, changes what
+    // the library holds.
+    QObject::connect(&m_sync, &core::account::MusicSyncService::libraryChanged, &m_sync,
+                     [this]() { refreshLibraryViews(); });
+    QObject::connect(&m_mode, &core::mode::ModeService::changed, &m_mode,
+                     [this, shown = m_mode.mode()]() mutable {
+                         if (m_mode.mode() != shown) {
+                             shown = m_mode.mode();
+                             refreshLibraryViews();
+                         }
+                     });
     // The window's frame is kept for the next run.
     QObject::connect(qApp, &QCoreApplication::aboutToQuit, &m_placementKeeper,
                      &WindowPlacementKeeper::save);
@@ -285,6 +304,14 @@ CompositionRoot::CompositionRoot()
     // The last song comes back into the player bar once the state file is
     // read (on the file's worker); the first Play opens it.
     m_persistence.restoreAtLaunch();
+}
+
+void CompositionRoot::refreshLibraryViews()
+{
+    m_homeMixes.refresh(true);
+    m_sidebar.refreshPlaylists();
+    m_libraryPage.refresh();
+    m_home.refresh();
 }
 
 CompositionRoot::~CompositionRoot()
@@ -340,6 +367,12 @@ bool CompositionRoot::showMainWindow(QQmlApplicationEngine& engine)
     // The size and place it had when it last closed, in physical pixels;
     // the place only while a monitor still shows it.
     m_placementKeeper.attach(*window);
+    // Coming back to the window may be a reason to check the account library.
+    QObject::connect(window, &QWindow::activeChanged, &m_syncScheduler, [this, window]() {
+        if (window->isActive()) {
+            m_syncScheduler.windowActivated();
+        }
+    });
     window->show();
     return true;
 }

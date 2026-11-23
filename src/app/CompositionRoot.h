@@ -7,10 +7,13 @@
 #include "core/account/AccountClient.h"
 #include "core/account/AccountSessionService.h"
 #include "core/account/AccountSignOutCoordinator.h"
+#include "core/account/AccountSyncScheduler.h"
+#include "core/account/MusicSyncService.h"
 #include "core/account/ScopedCredentialStore.h"
 #include "core/account/SecretStore.h"
 #include "core/app/AppPaths.h"
 #include "core/config/PrivateConfig.h"
+#include "core/db/AccountOutboxRepository.h"
 #include "core/db/AccountRepository.h"
 #include "core/db/CollectionRepository.h"
 #include "core/db/GroupQueries.h"
@@ -116,6 +119,9 @@ public:
     [[nodiscard]] bool showMainWindow(QQmlApplicationEngine& engine);
 
 private:
+    // Every view that shows the library reads it again.
+    void refreshLibraryViews();
+
     std::unique_ptr<platform::ISingleInstance> m_singleInstance;
     std::unique_ptr<platform::windows::WindowsReducedMotion> m_reducedMotion;
     platform::windows::WindowsWindowChrome m_windowChrome;
@@ -166,6 +172,11 @@ private:
     core::account::LocalAccountSignOut m_signOut;
     // Cover pictures from the network (the account relay in Account mode).
     core::remote::ArtworkService m_artwork;
+    // The account library on this PC: changes queued here, the sync that
+    // sends them and brings the library down, and when it runs.
+    core::db::AccountOutboxRepository m_outbox;
+    core::account::MusicSyncService m_sync;
+    core::account::AccountSyncScheduler m_syncScheduler;
     platform::windows::WindowsFolderPicker m_folderPicker;
     // What a song's menu and buttons do.
     core::TrackActions m_trackActions;
