@@ -324,7 +324,7 @@ siphash
 smooth-scaling-algorithm
   Used by:   Qt Gui
   Licence:   BSD-2-Clause AND Imlib2
-  Text:      full text in the Qt unknown source (qt-everywhere-src-6.10.3, src/3rdparty or the attribution file named in the SBOM)
+  Text:      licenses/Qt-LICENSE.QIMAGETRANSFORM.txt
   Copyright (C) 2004, 2005 Daniel M. Duley.
   (C) Carsten Haitzler and various contributors.
   (C) Willem Monsuwe <willem@stack.nl>
@@ -386,14 +386,14 @@ wintab
 xserverhelper
   Used by:   Qt Gui
   Licence:   X11 AND HPND
-  Text:      full text in the Qt unknown source (qt-everywhere-src-6.10.3, src/3rdparty or the attribution file named in the SBOM)
+  Text:      licenses/Qt-LICENSE.XCONSORTIUM.txt
   Copyright (c) 1987, 1988 X Consortium
   Copyright 1987, 1988 by Digital Equipment Corporation, Maynard, Massachusetts.
 
 xsvg
   Used by:   Qt Svg
   Licence:   HPND-sell-variant
-  Text:      full text in the Qt unknown source (qt-everywhere-src-6.10.3, src/3rdparty or the attribution file named in the SBOM)
+  Text:      licenses/Qt-LICENSE.XSVG.txt
   Copyright 2002 USC/Information Sciences Institute
 
 yoga 2.0.1
