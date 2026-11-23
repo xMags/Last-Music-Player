@@ -453,6 +453,19 @@ QFuture<Result<ItemPage>> CatalogService::newReleasesPage(NewReleasesKind kind, 
         });
 }
 
+QFuture<Result<SearchAll>> CatalogService::searchAll(const QString& query)
+{
+    const QString trimmed = query.trimmed();
+    return uncached<SearchAll>(
+        [this, trimmed](const QString& bearer) { return m_deps.client.searchAll(bearer, trimmed); },
+        [this](const QByteArray& payload) -> Result<SearchAll> {
+            if (!QJsonDocument::fromJson(payload).isObject()) {
+                return Failure::of(FailureKind::InvalidResponse, QStringLiteral("Search is unavailable right now."));
+            }
+            return parseSearchAll(payload, m_deps.tags);
+        });
+}
+
 QFuture<std::optional<AlbumTarget>> CatalogService::songAlbum(const Track& track)
 {
     QUrlQuery fields;

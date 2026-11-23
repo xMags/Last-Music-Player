@@ -275,7 +275,9 @@ CompositionRoot::CompositionRoot()
                 .settings = m_settings,
                 .trackMenu = m_trackMenu,
                 .navigator = m_navigator,
-                .accountLibrary = [this]() { return accountHomeLibrary(); }})
+                .accountLibrary = [this]() { return accountHomeLibrary(); },
+                .catalog = &m_catalog,
+                .online = [this]() { return m_mode.capabilities().browseCatalogue; }})
     , m_cleanup({.gate = m_userDataGate,
                  .scanner = m_scanner,
                  .player = m_player,
@@ -442,6 +444,12 @@ CompositionRoot::CompositionRoot()
 void CompositionRoot::showWelcomeForReview()
 {
     m_welcome.open(false);
+}
+
+void CompositionRoot::showSearchForReview(const QString& query)
+{
+    m_navigator.openView(static_cast<int>(ui::Route::Kind::Browse));
+    m_search.setQuery(query);
 }
 
 std::optional<core::home::HomeLibrary> CompositionRoot::accountHomeLibrary() const

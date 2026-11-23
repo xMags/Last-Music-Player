@@ -11,7 +11,10 @@
 #include <functional>
 #include <optional>
 
+#include "core/catalog/CatalogParser.h"
 #include "core/home/HomeModel.h"
+
+#include <QHash>
 
 #include <optional>
 
@@ -30,6 +33,10 @@ namespace lmp::core::db {
 class GroupQueries;
 class LibraryQueries;
 } // namespace lmp::core::db
+
+namespace lmp::core::catalog {
+class CatalogService;
+}
 
 namespace lmp::ui {
 
@@ -90,6 +97,10 @@ public:
         // The account library in Account mode, else nothing: Browse's tiles
         // then come from it as the reference client ranks them.
         std::function<std::optional<core::home::HomeLibrary>()> accountLibrary = {};
+        // The catalogue's search, used while `online` says so (Account mode):
+        // the songs and cards the service finds, a pasted link included.
+        core::catalog::CatalogService* catalog = nullptr;
+        std::function<bool()> online = {};
     };
 
     // The pause after typing (views/search.ts and the current app: 350 ms)
@@ -152,6 +163,7 @@ signals:
 
 private:
     void refreshAccountLanding(const core::home::HomeLibrary& library);
+    void applyOnline(quint64 generation, const QString& query, const core::catalog::SearchAll& found);
     void run();
     void apply(quint64 generation, const QString& query, SearchHits hits);
     void showSongs();
@@ -178,6 +190,11 @@ private:
     QStringList m_recent;
     CollectionCardModel m_categories;
     std::function<std::optional<core::home::HomeLibrary>()> m_accountLibrary;
+    core::catalog::CatalogService* m_catalog = nullptr;
+    std::function<bool()> m_online;
+    // The cards of an online search, by group, and its top card.
+    QHash<QString, QList<core::catalog::CatalogItem>> m_onlineCards;
+    std::optional<core::catalog::CatalogItem> m_onlineTop;
     QList<core::Track> m_hits;
     QString m_topKind;
     QString m_topTitle;

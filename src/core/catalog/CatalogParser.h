@@ -97,4 +97,23 @@ struct ChartRefOptions {
 [[nodiscard]] Result<ItemPage> parseChartPage(const QByteArray& payload, const ChartRef& requested,
                                               const SourceTags& tags);
 
+// What a search found besides its songs: the top result (one of its songs,
+// by index, or an artist, album or playlist card) and the artist, album and
+// playlist cards (/v1/music/search/all).
+struct SearchAll {
+    QList<Track> songs;
+    // "song", "artist", "album", "playlist"; empty without a top result.
+    QString topKind;
+    int topSongIndex = -1;
+    std::optional<CatalogItem> topItem;
+    QList<CatalogItem> artists;
+    QList<CatalogItem> albums;
+    QList<CatalogItem> playlists;
+};
+
+// Items the app cannot open are dropped; a top result that is not one of
+// them, or a song not among the songs, becomes none. Artist cards say
+// "Artist"; a single or EP says so.
+[[nodiscard]] SearchAll parseSearchAll(const QByteArray& payload, const SourceTags& tags);
+
 } // namespace lmp::core::catalog

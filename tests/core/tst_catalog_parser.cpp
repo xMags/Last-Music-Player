@@ -38,6 +38,7 @@ private slots:
     void singlesAndEpsAreMarked();
     void presentationRules();
     void badInputYieldsNothing();
+    void searchAllIsRead();
 };
 
 void CatalogParserTest::discoveryIsRead()
@@ -435,6 +436,40 @@ void CatalogParserTest::badInputYieldsNothing()
         const lmp::core::Result<catalog::ItemPage> page = catalog::parseChartPage(payload, topSongs, testTags());
         QVERIFY(!page.isOk() || (page.value().items.isEmpty() && !page.value().nextOffset));
     }
+}
+
+void CatalogParserTest::searchAllIsRead()
+{
+    const catalog::SearchAll found = catalog::parseSearchAll(
+        json("{'songs':[{'id':'tag-b:s1','provider':'tag-b','title':'One','artist':'A','sourceUrl':'https://music.example.test/s1'},"
+             "{'id':'tag-b:s2','provider':'tag-b','title':'Two','artist':'B','sourceUrl':'https://music.example.test/s2'}],"
+             "'top':{'kind':'song','item':{'id':'tag-b:s2','provider':'tag-b','title':'Two','sourceUrl':'https://music.example.test/s2'}},"
+             "'artists':[{'catalogId':'a1','name':'A','provider':'tag-b'},{'name':'No id'}],"
+             "'albums':[{'provider':'tag-a','resourceType':'album','catalogId':'77','name':'Cat Album','releaseType':'single'},"
+             "{'provider':'tag-a','resourceType':'album','catalogId':'x7','name':'Bad id'},"
+             "{'provider':'tag-b','catalogId':'r1','name':'Stream Album','releaseType':'album'}],"
+             "'playlists':[{'provider':'tag-a','resourceType':'playlist','catalogId':'pl.abc','name':'Editorial'},"
+             "{'provider':'tag-b','catalogId':'XPabcdefghij12','title':'External'}]}"),
+        testTags());
+    QCOMPARE(found.songs.size(), 2);
+    QCOMPARE(found.topKind, QStringLiteral("song"));
+    QCOMPARE(found.topSongIndex, 1);
+    QCOMPARE(found.artists.size(), 1);
+    QCOMPARE(found.artists.at(0).subtitle, QStringLiteral("Artist"));
+    QCOMPARE(found.albums.size(), 2);
+    QCOMPARE(found.albums.at(0).releaseKind, catalog::ReleaseKind::Single);
+    QVERIFY(found.albums.at(1).collectionTarget.has_value());
+    QCOMPARE(found.playlists.size(), 2);
+    QCOMPARE(found.playlists.at(1).externalPlaylistId, QStringLiteral("XPabcdefghij12"));
+    // A top song that is not among the songs, or an unusable top card, is none.
+    const catalog::SearchAll lost = catalog::parseSearchAll(
+        json("{'songs':[],'top':{'kind':'song','item':{'id':'tag-b:zz','provider':'tag-b','title':'Gone','sourceUrl':'https://music.example.test/z'}}}"),
+        testTags());
+    QVERIFY(lost.topKind.isEmpty());
+    const catalog::SearchAll artistTop =
+        catalog::parseSearchAll(json("{'top':{'kind':'artist','item':{'catalogId':'a1','name':'A','provider':'tag-b'}}}"), testTags());
+    QCOMPARE(artistTop.topKind, QStringLiteral("artist"));
+    QVERIFY(artistTop.topItem.has_value());
 }
 
 QTEST_GUILESS_MAIN(CatalogParserTest)

@@ -133,6 +133,8 @@ public:
 
     // Opens the welcome flow for review (the Debug build's --show-welcome).
     void showWelcomeForReview();
+    // Opens Browse and searches for `query` (the Debug build's --search).
+    void showSearchForReview(const QString& query);
 
 private:
     // The account library as the home model reads it, in Account mode only.

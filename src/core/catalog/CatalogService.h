@@ -6,6 +6,7 @@
 #include "core/catalog/CatalogClient.h"
 #include "core/catalog/CatalogDetailParser.h"
 #include "core/catalog/CatalogModels.h"
+#include "core/catalog/CatalogParser.h"
 
 #include <QByteArray>
 #include <QFuture>
@@ -121,6 +122,10 @@ public:
     // The catalogue artist a name stands for, or nothing. A miss is not
     // cached; it is only remembered for ArtistResolveMissMemory.
     [[nodiscard]] QFuture<Result<std::optional<CatalogItem>>> resolveArtist(const QString& name);
+
+    // The search page's search: songs and cards (not kept). A pasted link
+    // is searched like any query; the service answers with what it links to.
+    [[nodiscard]] QFuture<Result<SearchAll>> searchAll(const QString& query);
 
     // The album a song belongs to, as the service finds it (kept like a
     // page); nothing when it found none. Never fails: a failure reads as

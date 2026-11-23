@@ -40,6 +40,11 @@ int main(int argc, char* argv[])
     if (QCoreApplication::arguments().contains(QStringLiteral("--show-welcome"))) {
         root.showWelcomeForReview();
     }
+    // For reviewing a search: the search box has no accessible role yet.
+    if (const qsizetype at = QCoreApplication::arguments().indexOf(QStringLiteral("--search"));
+        at >= 0 && at + 1 < QCoreApplication::arguments().size()) {
+        root.showSearchForReview(QCoreApplication::arguments().at(at + 1));
+    }
 #endif
 
     // Used by automated checks: prove the window loads, then leave.

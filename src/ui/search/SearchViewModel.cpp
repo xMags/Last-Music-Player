@@ -19,6 +19,8 @@
 #include "core/model/DisplayTitle.h"
 #include "core/playback/PlayerController.h"
 #include "core/settings/SettingsStore.h"
+#include "core/catalog/CatalogService.h"
+#include "ui/catalog/CatalogRoutes.h"
 #include "ui/navigation/Navigator.h"
 #include "ui/navigation/Route.h"
 #include "ui/player/CoverSource.h"
@@ -50,6 +52,8 @@ SearchViewModel::SearchViewModel(Parts parts, QObject* parent)
     , m_trackMenu(parts.trackMenu)
     , m_navigator(parts.navigator)
     , m_accountLibrary(std::move(parts.accountLibrary))
+    , m_catalog(parts.catalog)
+    , m_online(std::move(parts.online))
 {
     m_typing.setSingleShot(true);
     m_typing.setInterval(TypingDelayMs);
@@ -111,6 +115,20 @@ void SearchViewModel::run()
     // The last results stay on screen until this search answers.
     if (m_state == QLatin1StringView("landing") || m_state == QLatin1StringView("empty")) {
         setState(QStringLiteral("searching"));
+    }
+    if (m_catalog != nullptr && m_online && m_online()) {
+        m_catalog->searchAll(query).then(this, [this, generation, query](const core::Result<core::catalog::SearchAll>& found) {
+            if (generation != m_generation) {
+                return;
+            }
+            if (!found) {
+                m_shownQuery = query;
+                setState(QStringLiteral("empty"));
+                return;
+            }
+            applyOnline(generation, query, found.value());
+        });
+        return;
     }
     QPointer<SearchViewModel> self(this);
     m_source.search(query, [self, generation, query](SearchHits hits) {
@@ -246,6 +264,72 @@ void SearchViewModel::apply(quint64 generation, const QString& query, SearchHits
     followPlayer();
     emit resultsChanged();
     const bool any = !m_hits.isEmpty() || m_playlists.count() > 0;
+    setState(any ? QStringLiteral("results") : QStringLiteral("empty"));
+}
+
+void SearchViewModel::applyOnline(quint64 generation, const QString& query, const core::catalog::SearchAll& found)
+{
+    if (generation != m_generation) {
+        return;
+    }
+    m_shownQuery = query;
+    m_dwell.start();
+    m_hits = found.songs;
+    m_onlineCards.clear();
+    const auto cards = [this](const QString& group, const QList<core::catalog::CatalogItem>& items) {
+        m_onlineCards.insert(group, items);
+        QList<CollectionCardModel::Card> list;
+        for (const core::catalog::CatalogItem& item : items) {
+            core::Track cover;
+            cover.artworkUrl = item.artworkUrl;
+            cover.sourceKind = QStringLiteral("remote");
+            list.append({.kind = QStringLiteral("catalog"),
+                         .key = item.catalogId,
+                         .title = item.title,
+                         .subtitle = item.subtitle,
+                         .artworkUrl = CoverSource::forTrack(cover).displayUrl()});
+        }
+        return list;
+    };
+    m_artists.setCards(cards(QStringLiteral("artists"), found.artists));
+    m_albums.setCards(cards(QStringLiteral("albums"), found.albums));
+    m_playlists.setCards(cards(QStringLiteral("playlists"), found.playlists));
+
+    // The service's own top result.
+    m_topKind.clear();
+    m_topSong.reset();
+    m_topKey.clear();
+    m_onlineTop.reset();
+    if (found.topKind == QLatin1StringView("song") && found.topSongIndex >= 0 && found.topSongIndex < m_hits.size()) {
+        const core::Track& song = m_hits.at(found.topSongIndex);
+        m_topKind = QStringLiteral("song");
+        m_topSong = song;
+        m_topTitle = core::displayTitle(song.title);
+        m_topDetail = QStringList{song.artist, song.durationText}.join(QStringLiteral(" · "));
+        m_topArtworkUrl = CoverSource::forTrack(song).displayUrl();
+        m_topArtworkId = CoverSource::placeholderIdFor(song);
+        m_topArtworkLabel = core::ArtworkPlaceholder::tileLabelFor(song.title);
+    } else if (found.topItem) {
+        const core::catalog::CatalogItem& item = *found.topItem;
+        core::Track cover;
+        cover.artworkUrl = item.artworkUrl;
+        cover.sourceKind = QStringLiteral("remote");
+        m_onlineTop = item;
+        m_topKind = found.topKind;
+        m_topKey = item.catalogId;
+        m_topTitle = item.title;
+        m_topDetail = found.topKind == QLatin1StringView("artist") ? tr("Artist")
+            : found.topKind == QLatin1StringView("album")         ? (item.subtitle.isEmpty() ? tr("Album") : item.subtitle)
+                                                                  : (item.subtitle.isEmpty() ? tr("Playlist") : item.subtitle);
+        m_topArtworkUrl = CoverSource::forTrack(cover).displayUrl();
+        m_topArtworkId = found.topKind + QLatin1Char(':') + item.title;
+        m_topArtworkLabel = core::ArtworkPlaceholder::tileLabelFor(item.title);
+    }
+    m_topSongs.setTracks(m_hits.mid(0, TopSongCount));
+    showSongs();
+    followPlayer();
+    emit resultsChanged();
+    const bool any = !m_hits.isEmpty() || m_artists.count() > 0 || m_albums.count() > 0 || m_playlists.count() > 0;
     setState(any ? QStringLiteral("results") : QStringLiteral("empty"));
 }
 
@@ -433,6 +517,12 @@ void SearchViewModel::openTop()
     if (m_topKind.isEmpty()) {
         return;
     }
+    if (m_onlineTop) {
+        if (const std::optional<Route> route = catalog_routes::routeForItem(*m_onlineTop)) {
+            m_navigator.push(*route);
+        }
+        return;
+    }
     m_navigator.push(Route(Route::Kind::Collection, {{QStringLiteral("kind"), m_topKind},
                                                      {QStringLiteral("key"), m_topKey},
                                                      {QStringLiteral("title"), m_topTitle}}));
@@ -450,6 +540,15 @@ void SearchViewModel::openCard(const QString& group, int row)
     // Opening a result means the search found what was wanted.
     record(m_shownQuery);
     const CollectionCardModel::Card card = model->cardAt(row);
+    if (card.kind == QLatin1StringView("catalog")) {
+        const QList<core::catalog::CatalogItem> items = m_onlineCards.value(group);
+        if (row < items.size()) {
+            if (const std::optional<Route> route = catalog_routes::routeForItem(items.at(row))) {
+                m_navigator.push(*route);
+            }
+        }
+        return;
+    }
     m_navigator.push(Route(Route::Kind::Collection, {{QStringLiteral("kind"), card.kind},
                                                      {QStringLiteral("key"), card.key},
                                                      {QStringLiteral("title"), card.title}}));

@@ -521,6 +521,123 @@ QList<CatalogItem> asSinglesAndEps(QList<CatalogItem> items)
     return items;
 }
 
+namespace {
+
+[[nodiscard]] std::optional<CatalogItem> searchArtist(const QJsonValue& value)
+{
+    std::optional<CatalogItem> item = parseProviderArtistItem(value);
+    if (item) {
+        item->subtitle = QStringLiteral("Artist");
+    }
+    return item;
+}
+
+// The catalogue's own album or editorial playlist from search: a numeric
+// album id, or a playlist id "pl." and 1 to 80 word characters or dashes.
+[[nodiscard]] std::optional<CatalogItem> searchCatalogueItem(const QJsonObject& raw, ResourceType type,
+                                                             const SourceTags& tags)
+{
+    const QString id = values::text(raw, "catalogId");
+    bool idOk = false;
+    if (type == ResourceType::Album) {
+        idOk = isCatalogNumericId(id);
+    } else if (id.startsWith(QLatin1StringView("pl.")) && id.size() > 3 && id.size() <= 83) {
+        idOk = std::all_of(id.cbegin() + 3, id.cend(), [](QChar character) {
+            return character.isLetterOrNumber() || character == QLatin1Char('_') || character == QLatin1Char('-');
+        });
+    }
+    if (values::itemType(raw) != type || !idOk) {
+        return std::nullopt;
+    }
+    std::optional<CatalogItem> item = parseCatalogItem(raw, tags);
+    if (!item) {
+        return std::nullopt;
+    }
+    const QString releaseType = foldCaseAscii(values::text(raw, "releaseType"));
+    if (type == ResourceType::Album
+        && (releaseType == QLatin1StringView("single") || releaseType == QLatin1StringView("ep"))) {
+        return withReleaseKind(std::move(*item),
+                               releaseType == QLatin1StringView("ep") ? ReleaseKind::Ep : ReleaseKind::Single);
+    }
+    return item;
+}
+
+[[nodiscard]] std::optional<CatalogItem> searchAlbum(const QJsonValue& value, const SourceTags& tags)
+{
+    const QJsonObject raw = value.toObject();
+    if (tags.isCatalogTag(values::text(raw, "provider"))) {
+        return searchCatalogueItem(raw, ResourceType::Album, tags);
+    }
+    const QString releaseType = foldCaseAscii(values::text(raw, "releaseType"));
+    return parseProviderReleaseItem(raw, releaseType == QLatin1StringView("single")
+                                             || releaseType == QLatin1StringView("ep"));
+}
+
+[[nodiscard]] std::optional<CatalogItem> searchPlaylist(const QJsonValue& value, const SourceTags& tags)
+{
+    const QJsonObject raw = value.toObject();
+    if (tags.isCatalogTag(values::text(raw, "provider"))) {
+        return searchCatalogueItem(raw, ResourceType::Playlist, tags);
+    }
+    return parseExternalPlaylistItem(raw, tags);
+}
+
+template <typename Read>
+[[nodiscard]] QList<CatalogItem> collectItems(const QJsonValue& list, Read read)
+{
+    QList<CatalogItem> items;
+    for (const QJsonValue& entry : list.toArray()) {
+        if (std::optional<CatalogItem> item = read(entry)) {
+            items.append(std::move(*item));
+        }
+    }
+    return items;
+}
+
+} // namespace
+
+SearchAll parseSearchAll(const QByteArray& payload, const SourceTags& tags)
+{
+    const QJsonObject root = QJsonDocument::fromJson(payload).object();
+    SearchAll result;
+    result.songs = parseProviderTracks(root.value(QLatin1StringView("songs")));
+    result.artists = collectItems(root.value(QLatin1StringView("artists")),
+                                  [](const QJsonValue& entry) { return searchArtist(entry); });
+    result.albums = collectItems(root.value(QLatin1StringView("albums")),
+                                 [&tags](const QJsonValue& entry) { return searchAlbum(entry, tags); });
+    result.playlists = collectItems(root.value(QLatin1StringView("playlists")),
+                                    [&tags](const QJsonValue& entry) { return searchPlaylist(entry, tags); });
+
+    const QJsonObject top = root.value(QLatin1StringView("top")).toObject();
+    const QString kind = values::text(top, "kind");
+    if (kind == QLatin1StringView("song")) {
+        // Matched to the listed song, so the top card plays and likes it.
+        const QList<Track> one = parseProviderTracks(QJsonArray{top.value(QLatin1StringView("item"))});
+        for (qsizetype index = 0; !one.isEmpty() && index < result.songs.size(); ++index) {
+            if (result.songs.at(index).remoteId == one.first().remoteId) {
+                result.topKind = kind;
+                result.topSongIndex = static_cast<int>(index);
+                break;
+            }
+        }
+        return result;
+    }
+    std::optional<CatalogItem> item;
+    const QJsonValue topItem = top.value(QLatin1StringView("item"));
+    if (kind == QLatin1StringView("artist")) {
+        item = searchArtist(topItem);
+    } else if (kind == QLatin1StringView("album")) {
+        item = searchAlbum(topItem, tags);
+    } else if (kind == QLatin1StringView("playlist")) {
+        item = searchPlaylist(topItem, tags);
+    }
+    if (item) {
+        result.topKind = kind;
+        result.topItem = std::move(item);
+    }
+    return result;
+}
+
 QList<Region> parseRegions(const QByteArray& payload)
 {
     QList<Region> regions;
