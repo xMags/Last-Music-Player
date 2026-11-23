@@ -156,6 +156,17 @@ qt_add_library(lmp_core STATIC
     cast/CastSession.h
     cast/CastTransport.cpp
     cast/CastTransport.h
+    connect/ConnectClient.cpp
+    connect/ConnectClient.h
+    connect/ConnectProtocol.cpp
+    connect/ConnectProtocol.h
+    connect/ConnectSync.cpp
+    connect/ConnectSync.h
+    connect/ConnectTracks.cpp
+    connect/ConnectTracks.h
+    connect/IConnectSocket.h
+    connect/WebSocketConnectSocket.cpp
+    connect/WebSocketConnectSocket.h
     downloads/HttpDownloadFetcher.cpp
     downloads/HttpDownloadFetcher.h
     library/ArtworkByteSource.cpp
@@ -358,7 +369,7 @@ target_include_directories(lmp_core
     PUBLIC "${CMAKE_SOURCE_DIR}/src"
     PRIVATE "${CMAKE_BINARY_DIR}/generated")
 
-target_link_libraries(lmp_core PUBLIC Qt6::Core Qt6::Concurrent Qt6::Network)
+target_link_libraries(lmp_core PUBLIC Qt6::Core Qt6::Concurrent Qt6::Network Qt6::WebSockets)
 target_link_libraries(lmp_core PRIVATE lmp_sqlite)
 
 target_compile_definitions(lmp_core PRIVATE

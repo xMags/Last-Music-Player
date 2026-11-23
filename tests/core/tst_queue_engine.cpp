@@ -9,6 +9,7 @@
 
 #include "core/model/Track.h"
 #include "core/playback/QueueEngine.h"
+#include "core/playback/QueueTrackIdentity.h"
 #include "core/playback/QueueShuffle.h"
 #include "core/playback/QueueSnapshot.h"
 #include "core/playback/QueueTrackIdentity.h"
@@ -136,6 +137,8 @@ private slots:
     void generatorOutsideItsRangeStillShufflesEveryIndex();
     void snapshotJsonRoundTrip();
     void malformedSnapshotJsonFallsBack();
+    void aRemoteListReplacesOnlyTheSongsItSaw();
+    void anEmptyRemoteListClearsEverything();
 };
 
 void QueueEngineTest::explicitQueuePlaysBeforePlaybackContextAndSurvivesContextChanges()
@@ -434,6 +437,26 @@ void QueueEngineTest::malformedSnapshotJsonFallsBack()
     saved.contextQueue = numberedTracks(3);
     saved.contextIndex = 2147483647;
     QCOMPARE(QueueEngine::restored(saved, Shuffle::Off, RepeatMode::Off).state().contextIndex, 2);
+}
+
+void QueueEngineTest::aRemoteListReplacesOnlyTheSongsItSaw()
+{
+    // The remote saw b, c and d; e joined later and f is beyond its window.
+    const QList<Track> visible{track("b"), track("c"), track("d"), track("e"), track("f")};
+    const QSet<QString> seen{lmp::core::queueTrackIdentity(track("b")), lmp::core::queueTrackIdentity(track("c")),
+                             lmp::core::queueTrackIdentity(track("d"))};
+    // It removed c and moved d first.
+    const QList<Track> merged = QueueEngine::mergeRemoteUpcoming(visible, {track("d"), track("b")}, seen);
+    QCOMPARE(ids(merged), (QStringList{"d", "b", "e", "f"}));
+    // A song it lists that it had not seen is placed where it lists it, once.
+    const QList<Track> moved = QueueEngine::mergeRemoteUpcoming(visible, {track("e"), track("b")}, seen);
+    QCOMPARE(ids(moved), (QStringList{"e", "b", "f"}));
+}
+
+void QueueEngineTest::anEmptyRemoteListClearsEverything()
+{
+    const QList<Track> visible{track("b"), track("c")};
+    QVERIFY(QueueEngine::mergeRemoteUpcoming(visible, {}, {}).isEmpty());
 }
 
 QTEST_GUILESS_MAIN(QueueEngineTest)

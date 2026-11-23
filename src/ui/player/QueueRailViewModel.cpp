@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include <utility>
 
+#include "core/connect/ConnectSync.h"
 #include "core/db/LibraryQueries.h"
 #include "core/playback/PlayerController.h"
 #include "core/playback/QueueTrackIdentity.h"
@@ -30,9 +31,10 @@ constexpr QLatin1StringView kUndoPrefix{"queue-undo-"};
 } // namespace
 
 QueueRailViewModel::QueueRailViewModel(core::PlayerController& player, core::db::LibraryQueries& library,
-                                       ToastQueue& toasts, QObject* parent)
+                                       ToastQueue& toasts, core::connect::ConnectSync* link, QObject* parent)
     : QObject(parent)
     , m_player(player)
+    , m_connect(link)
     , m_library(library)
     , m_toasts(toasts)
     , m_queue(this)
@@ -51,31 +53,59 @@ QueueRailViewModel::QueueRailViewModel(core::PlayerController& player, core::db:
     connect(&m_player, &core::PlayerController::repeatModeChanged, this,
             &QueueRailViewModel::autoplayStatusChanged);
     connect(&m_toasts, &ToastQueue::actionTriggered, this, &QueueRailViewModel::undo);
+    if (m_connect != nullptr) {
+        connect(m_connect, &core::connect::ConnectSync::remoteChanged, this, [this]() {
+            refreshQueue();
+            emit trackChanged();
+            emit autoplayStatusChanged();
+        });
+    }
     refreshQueue();
     if (!m_player.currentTrack()) {
         refreshRecent();
     }
 }
 
+bool QueueRailViewModel::remote() const
+{
+    return m_connect != nullptr && m_connect->isRemote();
+}
+
+qsizetype QueueRailViewModel::visibleCount() const
+{
+    return remote() ? m_connect->remote().upcoming.size() : m_player.visibleQueue().size();
+}
+
 bool QueueRailViewModel::hasTrack() const
 {
-    return m_player.currentTrack().has_value();
+    return remote() ? m_connect->remote().track.has_value() : m_player.currentTrack().has_value();
 }
 
 QString QueueRailViewModel::autoplayStatus() const
 {
+    if (remote()) {
+        return {};
+    }
     return m_player.autoplay() && m_player.repeatMode() == core::RepeatMode::Off ? QString() : tr("Autoplay off");
 }
 
 void QueueRailViewModel::playRow(int row, const QString& rowKey)
 {
-    if (rowStillMatches(row, rowKey)) {
-        m_player.playVisibleQueueEntry(row);
+    if (!rowStillMatches(row, rowKey)) {
+        return;
     }
+    if (remote()) {
+        m_connect->remotePlayUpcoming(row);
+        return;
+    }
+    m_player.playVisibleQueueEntry(row);
 }
 
 void QueueRailViewModel::moveRow(int from, int to, const QString& rowKey)
 {
+    if (remote()) {
+        return;
+    }
     QList<core::QueueEntry> entries = m_player.visibleQueue();
     if (!rowStillMatches(from, rowKey) || !inRange(to, entries.size()) || from == to) {
         return;
@@ -91,7 +121,7 @@ void QueueRailViewModel::moveRow(int from, int to, const QString& rowKey)
 
 bool QueueRailViewModel::prepareMenu(int row, const QString& rowKey)
 {
-    if (!rowStillMatches(row, rowKey)) {
+    if (remote() || !rowStillMatches(row, rowKey)) {
         return false;
     }
     const QList<core::QueueEntry> entries = m_player.visibleQueue();
@@ -137,6 +167,10 @@ void QueueRailViewModel::triggerMenu(const QString& itemId)
 
 void QueueRailViewModel::clearUpcoming()
 {
+    if (remote()) {
+        m_connect->remoteClearUpcoming();
+        return;
+    }
     m_player.clearUpcoming();
 }
 
@@ -152,7 +186,7 @@ void QueueRailViewModel::playRecent(int row)
 
 bool QueueRailViewModel::rowStillMatches(int row, const QString& rowKey) const
 {
-    return !rowKey.isEmpty() && m_queue.keyAt(row) == rowKey && inRange(row, m_player.visibleQueue().size());
+    return !rowKey.isEmpty() && m_queue.keyAt(row) == rowKey && inRange(row, visibleCount());
 }
 
 qsizetype QueueRailViewModel::livePosition(qsizetype position, const QString& identity) const
@@ -227,6 +261,16 @@ void QueueRailViewModel::undo(const QString& actionId)
 
 void QueueRailViewModel::refreshQueue()
 {
+    if (remote()) {
+        QList<core::QueueEntry> entries;
+        const QList<core::Track>& upcoming = m_connect->remote().upcoming;
+        entries.reserve(upcoming.size());
+        for (qsizetype index = 0; index < upcoming.size(); ++index) {
+            entries.append({.track = upcoming.at(index), .kind = core::QueueEntryKind::Context, .sourceIndex = index});
+        }
+        m_queue.setEntries(entries);
+        return;
+    }
     m_queue.setEntries(m_player.visibleQueue());
 }
 

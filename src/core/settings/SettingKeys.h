@@ -33,6 +33,9 @@ inline constexpr QLatin1StringView ShowAlbumArt{"ShowAlbumArt"};
 inline constexpr QLatin1StringView WindowsMediaControls{"WindowsMediaControls"};
 // bool, default false. Rich presence in the chat app.
 inline constexpr QLatin1StringView DiscordPresence{"DiscordPresence"};
+// string, made on first use: this PC's id on the account's device link
+// (8 to 64 of A-Z, a-z, 0-9, "_" and "-").
+inline constexpr QLatin1StringView ConnectDeviceId{"ConnectDeviceId"};
 // number, default 0: 0 minimises to the tray, 1 quits.
 inline constexpr QLatin1StringView CloseBehavior{"CloseBehavior"};
 // string, default "" (the system default output).

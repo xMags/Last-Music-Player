@@ -79,6 +79,7 @@ struct Capabilities {
     Q_PROPERTY(bool lookUpPresenceArtwork MEMBER lookUpPresenceArtwork FINAL)
     Q_PROPERTY(bool chooseLowQualityStreams MEMBER chooseLowQualityStreams FINAL)
     Q_PROPERTY(bool lowQualityOnThisConnection MEMBER lowQualityOnThisConnection FINAL)
+    Q_PROPERTY(bool controlOtherDevices MEMBER controlOtherDevices FINAL)
 
 public:
     // Search results from the provider or the account service, beside the
@@ -132,6 +133,10 @@ public:
     bool chooseLowQualityStreams = false;
     // Streams are asked for in low quality when that setting is on.
     bool lowQualityOnThisConnection = false;
+    // The live link to the account's other devices: see and control the one
+    // that plays, and move playback between them. Needs a confirmed session
+    // and a network.
+    bool controlOtherDevices = false;
 
     [[nodiscard]] static Capabilities compute(const CapabilityInputs& inputs);
 

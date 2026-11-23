@@ -1,6 +1,7 @@
 #include "ui/player/PlayerBarViewModel.h"
 
 #include "core/app/AppIdentity.h"
+#include "core/connect/ConnectSync.h"
 #include "core/model/ArtworkPlaceholder.h"
 #include "core/playback/PlayerController.h"
 #include "core/playback/QueueTrackIdentity.h"
@@ -19,9 +20,11 @@ using State = core::PlayerController::State;
 
 } // namespace
 
-PlayerBarViewModel::PlayerBarViewModel(core::PlayerController& player, QObject* parent)
+PlayerBarViewModel::PlayerBarViewModel(core::PlayerController& player, core::connect::ConnectSync* link,
+                                       QObject* parent)
     : QObject(parent)
     , m_player(player)
+    , m_connect(link)
 {
     connect(&m_player, &core::PlayerController::currentTrackChanged, this, &PlayerBarViewModel::onTrackChanged);
     connect(&m_player, &core::PlayerController::stateChanged, this, &PlayerBarViewModel::stateChanged);
@@ -31,8 +34,18 @@ PlayerBarViewModel::PlayerBarViewModel(core::PlayerController& player, QObject* 
     connect(&m_player, &core::PlayerController::durationChanged, this, &PlayerBarViewModel::positionChanged);
     connect(&m_player, &core::PlayerController::volumeChanged, this, &PlayerBarViewModel::volumeChanged);
     connect(&m_player, &core::PlayerController::mutedChanged, this, &PlayerBarViewModel::volumeChanged);
+    if (m_connect != nullptr) {
+        connect(m_connect, &core::connect::ConnectSync::remoteChanged, this, [this]() {
+            onTrackChanged();
+            emit stateChanged();
+            emit positionChanged();
+            emit volumeChanged();
+        });
+        connect(m_connect, &core::connect::ConnectSync::remotePositionChanged, this,
+                &PlayerBarViewModel::positionChanged);
+    }
 
-    if (const std::optional<core::Track>& track = m_player.currentTrack()) {
+    if (const core::Track* track = shownTrack()) {
         m_shownIdentity = core::queueTrackIdentity(*track);
         m_artworkUrl = CoverSource::forTrack(*track).displayUrl();
         m_artworkId = CoverSource::placeholderIdFor(*track);
@@ -49,12 +62,12 @@ void PlayerBarViewModel::onTrackChanged()
     const QString previousArtist = m_shownArtist;
     m_shownTitle = displayTitle();
     m_shownArtist = displayArtist();
-    const std::optional<core::Track>& track = m_player.currentTrack();
+    const core::Track* track = shownTrack();
     const QString identity = track ? core::queueTrackIdentity(*track) : QString();
     const bool liked = track && track->liked;
     // Only a new song moves; a redraw of the same one (or the launch
     // restore, which opens nothing) does not.
-    const bool newSong = track && identity != m_shownIdentity && m_player.state() != State::Idle;
+    const bool newSong = track && identity != m_shownIdentity && (remote() || m_player.state() != State::Idle);
 
     m_shownIdentity = identity;
     if (newSong) {
@@ -74,20 +87,40 @@ void PlayerBarViewModel::onTrackChanged()
     }
 }
 
+const core::Track* PlayerBarViewModel::shownTrack() const
+{
+    if (remote()) {
+        const std::optional<core::Track>& track = m_connect->remote().track;
+        return track ? &*track : nullptr;
+    }
+    const std::optional<core::Track>& track = m_player.currentTrack();
+    return track ? &*track : nullptr;
+}
+
+bool PlayerBarViewModel::remote() const
+{
+    return m_connect != nullptr && m_connect->isRemote();
+}
+
+QString PlayerBarViewModel::playingOn() const
+{
+    return remote() ? m_connect->remote().deviceLabel : QString();
+}
+
 bool PlayerBarViewModel::hasTrack() const
 {
-    return m_player.currentTrack().has_value();
+    return shownTrack() != nullptr;
 }
 
 QString PlayerBarViewModel::title() const
 {
-    const std::optional<core::Track>& track = m_player.currentTrack();
+    const core::Track* track = shownTrack();
     return track ? track->title : QString();
 }
 
 QString PlayerBarViewModel::artist() const
 {
-    const std::optional<core::Track>& track = m_player.currentTrack();
+    const core::Track* track = shownTrack();
     return track ? track->artist : QString();
 }
 
@@ -108,29 +141,38 @@ QString PlayerBarViewModel::artworkLabel() const
 
 bool PlayerBarViewModel::playing() const
 {
+    if (remote()) {
+        return m_connect->remote().playing;
+    }
     const State state = m_player.state();
     return state == State::Playing || state == State::Loading;
 }
 
 bool PlayerBarViewModel::shuffle() const
 {
+    if (remote()) {
+        return m_connect->remote().shuffle;
+    }
     return m_player.shuffle() == core::Shuffle::On;
 }
 
 int PlayerBarViewModel::repeatMode() const
 {
+    if (remote()) {
+        return m_connect->remote().repeatMode;
+    }
     return static_cast<int>(m_player.repeatMode());
 }
 
 qreal PlayerBarViewModel::elapsedSeconds() const
 {
-    const double seconds = m_player.positionSeconds();
+    const double seconds = remote() ? m_connect->remotePosition() : m_player.positionSeconds();
     return std::isfinite(seconds) ? std::max(0.0, seconds) : 0.0;
 }
 
 qreal PlayerBarViewModel::totalSeconds() const
 {
-    const double seconds = m_player.durationSeconds();
+    const double seconds = remote() ? m_connect->remote().durationSeconds : m_player.durationSeconds();
     return std::isfinite(seconds) ? std::max(0.0, seconds) : 0.0;
 }
 
@@ -142,12 +184,15 @@ qreal PlayerBarViewModel::progress() const
 
 int PlayerBarViewModel::volume() const
 {
+    if (remote()) {
+        return std::clamp(m_connect->remote().volume, 0, 100);
+    }
     return qRound(std::clamp(m_player.volume(), 0.0, 1.0) * 100);
 }
 
 bool PlayerBarViewModel::muted() const
 {
-    return m_player.muted();
+    return !remote() && m_player.muted();
 }
 
 qreal PlayerBarViewModel::volumeRatio() const
@@ -157,26 +202,46 @@ qreal PlayerBarViewModel::volumeRatio() const
 
 void PlayerBarViewModel::togglePlay()
 {
+    if (remote()) {
+        m_connect->remoteTogglePlay();
+        return;
+    }
     m_player.togglePlay();
 }
 
 void PlayerBarViewModel::previous()
 {
+    if (remote()) {
+        m_connect->remotePrevious();
+        return;
+    }
     m_player.previous();
 }
 
 void PlayerBarViewModel::next()
 {
+    if (remote()) {
+        m_connect->remoteNext();
+        return;
+    }
     m_player.next();
 }
 
 void PlayerBarViewModel::toggleShuffle()
 {
+    if (remote()) {
+        m_connect->remoteSetShuffle(!shuffle());
+        return;
+    }
     m_player.setShuffle(shuffle() ? core::Shuffle::Off : core::Shuffle::On);
 }
 
 void PlayerBarViewModel::cycleRepeat()
 {
+    if (remote()) {
+        m_connect->remoteSetRepeatMode((repeatMode() + 1) % 3);
+        return;
+    }
     m_player.setRepeatMode(static_cast<core::RepeatMode>((repeatMode() + 1) % 3));
 }
 
@@ -191,6 +256,11 @@ void PlayerBarViewModel::toggleLike()
 
 void PlayerBarViewModel::toggleMute()
 {
+    if (remote()) {
+        // The protocol has no mute: this sends silence, or a middle level back.
+        m_connect->remoteSetVolume(volume() > 0 ? 0 : 50);
+        return;
+    }
     m_player.setMuted(!m_player.muted());
 }
 
@@ -207,7 +277,12 @@ void PlayerBarViewModel::seekToRatio(qreal ratio)
     if (!std::isfinite(ratio) || total <= 0) {
         return;
     }
-    m_player.seek(std::clamp<qreal>(ratio, 0, 1) * total);
+    const qreal seconds = std::clamp<qreal>(ratio, 0, 1) * total;
+    if (remote()) {
+        m_connect->remoteSeek(seconds);
+        return;
+    }
+    m_player.seek(seconds);
 }
 
 void PlayerBarViewModel::setVolumeRatio(qreal ratio)
@@ -216,7 +291,12 @@ void PlayerBarViewModel::setVolumeRatio(qreal ratio)
         return;
     }
     // The slider steps in whole percent, as the design's 0 to 100 range does.
-    m_player.setVolume(qRound(std::clamp<qreal>(ratio, 0, 1) * 100) / 100.0);
+    const int percent = qRound(std::clamp<qreal>(ratio, 0, 1) * 100);
+    if (remote()) {
+        m_connect->remoteSetVolume(percent);
+        return;
+    }
+    m_player.setVolume(percent / 100.0);
 }
 
 QString PlayerBarViewModel::seekLabelAt(qreal ratio) const

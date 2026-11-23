@@ -17,6 +17,10 @@ class LibraryQueries;
 }
 } // namespace lmp::core
 
+namespace lmp::core::connect {
+class ConnectSync;
+} // namespace lmp::core::connect
+
 namespace lmp::ui {
 
 class ToastQueue;
@@ -51,7 +55,8 @@ public:
     static constexpr int RecentLimit = 6;
 
     // Every service must outlive the view model.
-    QueueRailViewModel(core::PlayerController& player, core::db::LibraryQueries& library, ToastQueue& toasts,
+    QueueRailViewModel(core::PlayerController& player, core::db::LibraryQueries& library,
+                       ToastQueue& toasts, core::connect::ConnectSync* link = nullptr,
                        QObject* parent = nullptr);
 
     [[nodiscard]] QueueListModel* queue() { return &m_queue; }
@@ -77,6 +82,8 @@ signals:
     void autoplayStatusChanged();
 
 private:
+    [[nodiscard]] bool remote() const;
+    [[nodiscard]] qsizetype visibleCount() const;
     struct PendingUndo {
         QString actionId;
         qsizetype position = 0;
@@ -95,6 +102,9 @@ private:
     void refreshRecent();
 
     core::PlayerController& m_player;
+    // While another device plays, Up Next is its list: a row plays there,
+    // Clear clears it there, and rows cannot be moved or removed from here.
+    core::connect::ConnectSync* m_connect = nullptr;
     core::db::LibraryQueries& m_library;
     ToastQueue& m_toasts;
     QueueListModel m_queue;

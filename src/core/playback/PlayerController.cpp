@@ -1,6 +1,7 @@
 #include "core/playback/PlayerController.h"
 
 #include "core/playback/QueueTrackIdentity.h"
+#include "core/playback/QueueSnapshot.h"
 #include "core/playback/QueueTrackLists.h"
 
 #include <algorithm>
@@ -308,6 +309,44 @@ void PlayerController::restore(const QueueEngine& queue, const Track& track, dou
     emit currentTrackChanged();
     setDuration(std::max(0.0, track.durationSeconds));
     setPosition(std::max(0.0, startAtSeconds));
+}
+
+void PlayerController::takeOver(const Track& track, const QList<Track>& upcoming, Shuffle shuffle,
+                                RepeatMode repeatMode, double startAtSeconds, bool play)
+{
+    if (track.unavailable || queueTrackIdentity(track).isEmpty()) {
+        emit trackUnavailable(track);
+        return;
+    }
+    m_backHistory.clear();
+    emit contextReplaced();
+
+    // The current song first, so it is index 0 of the de-duplicated list.
+    QueueSnapshot snapshot;
+    snapshot.contextQueue = uniqueQueueTracks(QList<Track>{track} + upcoming);
+    snapshot.contextIndex = 0;
+    const bool shuffleChangedNow = this->shuffle() != shuffle;
+    const bool repeatChangedNow = this->repeatMode() != repeatMode;
+    applyQueue(QueueEngine::restored(snapshot, shuffle, repeatMode));
+    if (shuffleChangedNow) {
+        m_preferences.setShuffle(shuffle);
+        emit shuffleChanged();
+    }
+    if (repeatChangedNow) {
+        m_preferences.setRepeatMode(repeatMode);
+        emit repeatModeChanged();
+    }
+    load(track, std::isfinite(startAtSeconds) ? std::max(0.0, startAtSeconds) : 0.0, play, QueueDirection::Next,
+         AdvanceTrigger::Automatic);
+}
+
+void PlayerController::pauseForOtherDevice()
+{
+    m_brokenSkipTimer->stop();
+    m_wantsPlay = false;
+    if (m_audioLoadId != 0) {
+        m_audio->pause();
+    }
 }
 
 void PlayerController::reset()

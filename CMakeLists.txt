@@ -11,7 +11,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
-find_package(Qt6 6.8 REQUIRED COMPONENTS Core Concurrent Gui Network Qml Quick QuickControls2 Svg Test)
+find_package(Qt6 6.8 REQUIRED COMPONENTS Core Concurrent Gui Network Qml Quick QuickControls2 Svg Test WebSockets)
 qt_standard_project_setup(REQUIRES 6.8)
 
 include(CompilerWarnings)

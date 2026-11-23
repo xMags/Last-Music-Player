@@ -56,6 +56,7 @@ const std::array kRows{
     Row{"chooseLowQualityStreams", &Capabilities::chooseLowQualityStreams, {false, false, true}},
     Row{"lowQualityOnThisConnection", &Capabilities::lowQualityOnThisConnection, {false, false, true}},
     Row{"createShareLinks", &Capabilities::createShareLinks, {false, false, true}},
+    Row{"controlOtherDevices", &Capabilities::controlOtherDevices, {false, false, true}},
 };
 
 constexpr std::array kModes{SourceMode::LocalOnly, SourceMode::ApiKey, SourceMode::Account};
@@ -196,7 +197,8 @@ void CapabilitiesTest::offlineSessionDoesNotSync()
     CapabilityInputs inputs = readyInputs(SourceMode::Account);
     inputs.conditions.sessionState = AccountSessionState::Offline;
     expectOnly(inputs, readyRowsExcept(SourceMode::Account,
-                                       {QStringLiteral("syncLibrary"), QStringLiteral("importLocalHistory")}));
+                                       {QStringLiteral("syncLibrary"), QStringLiteral("importLocalHistory"),
+                                        QStringLiteral("controlOtherDevices")}));
 }
 
 void CapabilitiesTest::accountWithoutSessionOffersNothing_data()
@@ -251,7 +253,8 @@ void CapabilitiesTest::noNetworkStopsStreaming()
     CapabilityInputs inputs = readyInputs(mode);
     inputs.connectivity.online = false;
     expectOnly(inputs, readyRowsExcept(mode, {QStringLiteral("playRadio"), QStringLiteral("streamRemoteSongs"),
-                                              QStringLiteral("prefetchUpcomingSongs")}));
+                                              QStringLiteral("prefetchUpcomingSongs"),
+                                              QStringLiteral("controlOtherDevices")}));
 }
 
 void CapabilitiesTest::lowQualityOnlyOnMeteredConnections()

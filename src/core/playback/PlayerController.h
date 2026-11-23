@@ -66,6 +66,11 @@ public:
 
     [[nodiscard]] const std::optional<Track>& currentTrack() const noexcept { return m_current; }
     [[nodiscard]] State state() const noexcept { return m_state; }
+    // Playing, or loading a song that starts once it opens.
+    [[nodiscard]] bool playingOrStarting() const noexcept
+    {
+        return m_state == State::Playing || (m_state == State::Loading && m_wantsPlay);
+    }
     [[nodiscard]] double positionSeconds() const noexcept { return m_position; }
     [[nodiscard]] double durationSeconds() const noexcept { return m_duration; }
     [[nodiscard]] double volume() const noexcept { return m_volume; } // kept while muted
@@ -111,6 +116,18 @@ public:
     // it at `startAtSeconds`. For the launch restore: ignored while a song
     // is current, and nothing is emitted for a song left.
     void restore(const QueueEngine& queue, const Track& track, double startAtSeconds);
+    // Plays the session another device handed over: `track` from
+    // `startAtSeconds`, with `upcoming` after it in the order given (a
+    // shuffled session stays shuffled without being shuffled again), playing
+    // or paused as `play` says. The shuffle and repeat preferences follow.
+    // Clears the way back. An unavailable song changes nothing
+    // (trackUnavailable).
+    void takeOver(const Track& track, const QList<Track>& upcoming, Shuffle shuffle, RepeatMode repeatMode,
+                  double startAtSeconds, bool play);
+    // Another device plays now: pauses at once, and a song still loading
+    // (or a broken one about to be skipped) does not start. The song stays
+    // current, so Play continues it here.
+    void pauseForOtherDevice();
     // Forgets everything ("Delete all data"): stops the song, empties the
     // queue and the way back, and shows no song. Shuffle, repeat and the
     // volume stay as they are.

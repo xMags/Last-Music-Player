@@ -1,5 +1,7 @@
 #include "app/CompositionRoot.h"
 #include "core/cast/CastTransport.h"
+#include "core/connect/ConnectProtocol.h"
+#include "core/connect/WebSocketConnectSocket.h"
 #include "core/model/DisplayTitle.h"
 
 #include "core/home/HomeModel.h"
@@ -16,6 +18,7 @@
 #include <QPointer>
 #include <QQmlApplicationEngine>
 #include <QQmlEngine>
+#include <QRandomGenerator>
 #include <QString>
 #include <QWindow>
 
@@ -62,6 +65,18 @@ bool storedSessionExists(core::account::SecretStore& secrets)
 {
     const core::Result<std::optional<QString>> session = secrets.readAccountSession();
     return !session || session.value().has_value();
+}
+
+// This PC's id on the device link: the saved one, or a new one saved now.
+QString connectDeviceId(core::SettingsStore& settings)
+{
+    const QString saved = settings.string(core::settings::keys::ConnectDeviceId);
+    if (core::connect::isValidDeviceId(saved)) {
+        return saved;
+    }
+    const QString created = core::connect::newDeviceId();
+    settings.setString(core::settings::keys::ConnectDeviceId, created);
+    return created;
 }
 
 } // namespace
@@ -199,14 +214,35 @@ CompositionRoot::CompositionRoot()
                       .account = &m_accountEditor})
     , m_collectionActions(m_collections, m_userDataGate)
     , m_homeMixes(m_library, m_groups, [] { return QDate::currentDate(); })
+    , m_connectClient({.requestTicket =
+                           [this]() {
+                               return sendAccount(core::net::HttpMethod::Post,
+                                                  QStringLiteral("/v1/music/connect/ticket"), QByteArrayLiteral("{}"));
+                           },
+                       .apiOrigin = [this]() { return m_accountClient.baseOrigin(); },
+                       .makeSocket = []() -> std::unique_ptr<core::connect::IConnectSocket> {
+                           return std::make_unique<core::connect::WebSocketConnectSocket>();
+                       },
+                       .clock = m_clock,
+                       .random = []() { return QRandomGenerator::global()->generateDouble(); },
+                       .deviceId = connectDeviceId(m_settings),
+                       .deviceName = QStringLiteral("Windows PC")})
+    , m_connectSync({.client = m_connectClient,
+                     .player = m_player,
+                     .clock = m_clock,
+                     .castDeviceName =
+                         [this]() {
+                             return m_cast.phase() == core::cast::CastController::Phase::Casting ? m_cast.deviceName()
+                                                                                                 : QString();
+                         }})
     , m_windowChromeViewModel(&m_windowChrome)
     , m_sidebar({.navigator = m_navigator,
                  .collections = m_collectionActions,
                  .actions = m_trackActions})
-    , m_playerBar(m_player)
+    , m_playerBar(m_player, &m_connectSync)
     , m_playbackNotices(m_player, m_toasts)
     , m_fullscreen(m_player, m_settings, m_layout, m_toasts)
-    , m_queueRail(m_player, m_library, m_toasts)
+    , m_queueRail(m_player, m_library, m_toasts, &m_connectSync)
     , m_ambient(m_player)
     , m_themeBinding(m_settings)
     , m_settingsViewModel(m_settings, m_player, m_mode)
@@ -436,7 +472,7 @@ CompositionRoot::CompositionRoot()
               .makeTransport = []() -> std::unique_ptr<core::cast::ICastTransport> {
                   return std::make_unique<core::cast::SslCastTransport>();
               }})
-    , m_castViewModel(m_cast)
+    , m_castViewModel(m_cast, &m_connectClient, &m_connectSync)
     , m_equalizer(m_settings)
     , m_historyImport({.gate = m_userDataGate,
                        .accountId = [this]() {
@@ -582,6 +618,25 @@ CompositionRoot::CompositionRoot()
     // A song sent to the queue from a press arcs into it.
     QObject::connect(&m_trackActions, &core::TrackActions::queued, &m_effects,
                      [this](const core::Track& track) { m_effects.trackQueued(track); });
+    // The device link runs while the mode allows it (a confirmed account
+    // session and a network); a casting change is reported to the others.
+    const auto updateConnect = [this]() {
+        if (m_mode.capabilities().controlOtherDevices) {
+            m_connectClient.start();
+        } else {
+            m_connectClient.stop();
+        }
+    };
+    QObject::connect(&m_mode, &core::mode::ModeService::changed, &m_connectClient, updateConnect);
+    // Another account signed in: the link is that account's from now on.
+    QObject::connect(&m_session, &core::account::AccountSessionService::ownerChanged, &m_connectClient,
+                     [this, updateConnect]() {
+                         m_connectClient.stop();
+                         updateConnect();
+                     });
+    QObject::connect(&m_connectSync, &core::connect::ConnectSync::notice, &m_toasts,
+                     [this](const QString& text) { m_toasts.show(text, true); });
+    updateConnect();
     // Discord presence follows its setting and the player.
     m_presence.setEnabled(m_settings.boolean(core::settings::keys::DiscordPresence, false));
     QObject::connect(&m_settings, &core::SettingsStore::changed, &m_presence, [this](const QString& key) {
@@ -845,7 +900,9 @@ CompositionRoot::~CompositionRoot()
     ui::AppRoot::registerInstance(nullptr);
     // QML is gone by now (the engine is destroyed first). Stop the sampling
     // worker, then save where playback stood and wait for the file, then
-    // the pending volume, while every service still exists.
+    // the pending volume, while every service still exists. The device link
+    // goes first, so nothing is reported while the rest stops.
+    m_connectClient.stop();
     m_cast.shutdown();
     m_ambient.shutdown();
     m_persistence.shutdown();

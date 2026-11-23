@@ -6,6 +6,8 @@
 #include "core/playback/QueueTypes.h"
 
 #include <QList>
+#include <QSet>
+#include <QString>
 #include <QtGlobal>
 
 #include <optional>
@@ -87,6 +89,15 @@ public:
     // current song. Played songs stay before it unless repeat-all is on or
     // they were moved. A shuffled queue keeps the new order as its play order.
     [[nodiscard]] QueueEngine commitVisibleOrder(const QList<Track>& visibleTracks) const;
+
+    // Up Next after another device's "set upcoming", for a queue that device
+    // saw only part of. `seenIdentities` (queueTrackIdentity) are the songs of
+    // the last report, all it can know; `desired` replaces those, and the
+    // songs it never saw stay after them, since leaving out a song it could
+    // not see is not asking to remove it. An empty `desired` is Clear, which
+    // does mean everything. Feed the result to commitVisibleOrder.
+    [[nodiscard]] static QList<Track> mergeRemoteUpcoming(const QList<Track>& visible, const QList<Track>& desired,
+                                                          const QSet<QString>& seenIdentities);
 
     // The queue in play order within `limits`, for saving.
     [[nodiscard]] QueueSnapshot snapshot(const QueueSnapshotLimits& limits) const;

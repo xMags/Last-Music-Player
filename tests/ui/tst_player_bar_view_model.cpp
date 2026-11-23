@@ -5,7 +5,13 @@
 #include <limits>
 #include <memory>
 
+#include <QJsonArray>
+#include <QJsonObject>
+
+#include "../core/FakeConnectSocket.h"
 #include "../core/PlayerFixture.h"
+#include "core/connect/ConnectSync.h"
+#include "core/connect/ConnectTracks.h"
 #include "core/playback/QueueEngine.h"
 #include "ui/player/PlayerBarViewModel.h"
 
@@ -33,6 +39,7 @@ private slots:
     void seekBubbleNeedsASongWithALength();
     void aNewSongAnimatesButTheLaunchRestoreDoesNot();
     void aLocalSongWithoutArtworkShowsItsEmbeddedCover();
+    void anotherDevicesSongIsShownAndControlled();
 
 private:
     void playSongs(const QStringList& names);
@@ -237,6 +244,61 @@ void PlayerBarViewModelTest::aLocalSongWithoutArtworkShowsItsEmbeddedCover()
     const QUrl url = m_bar->artworkUrl();
     QCOMPARE(url.scheme(), QStringLiteral("image"));
     QCOMPARE(url.host(), QStringLiteral("embedded-cover"));
+}
+
+void PlayerBarViewModelTest::anotherDevicesSongIsShownAndControlled()
+{
+    ConnectHarness harness(m_fixture->clock);
+    lmp::core::connect::ConnectSync sync(
+        {.client = *harness.client, .player = *m_player, .clock = m_fixture->clock, .castDeviceName = {}});
+    PlayerBarViewModel bar(*m_player, &sync);
+    playSongs({QStringLiteral("Local")});
+    QCOMPARE(bar.title(), QStringLiteral("Local"));
+    QVERIFY(!bar.remote());
+
+    harness.client->start();
+    settle();
+    harness.socket().serverOpen();
+    Track song;
+    song.title = QStringLiteral("On The Phone");
+    song.artist = QStringLiteral("Someone");
+    song.sourceKind = QStringLiteral("remote");
+    song.remoteId = QStringLiteral("p1");
+    song.sourceUrl = QStringLiteral("https://music.example.test/t/p1");
+    const QJsonObject state{{"track", lmp::core::connect::connectTrackJson(song)},
+                            {"playing", true},
+                            {"positionSec", 30},
+                            {"durationSec", 120},
+                            {"volume", 40},
+                            {"repeatMode", 1}};
+    QSignalSpy tracks(&bar, &PlayerBarViewModel::trackChanged);
+    harness.socket().serverSend(
+        {{"type", "welcome"},
+         {"epoch", 2},
+         {"devices", QJsonArray{QJsonObject{{"deviceId", "phone-0001"}, {"name", "Phone"}, {"kind", "android"}}}},
+         {"session", QJsonObject{{"activeDeviceId", "phone-0001"}, {"state", state}}}});
+    QVERIFY(bar.remote());
+    QVERIFY(tracks.count() >= 1);
+    QCOMPARE(bar.title(), QStringLiteral("On The Phone"));
+    QCOMPARE(bar.playingOn(), QStringLiteral("Phone"));
+    QVERIFY(bar.playing());
+    QCOMPARE(bar.volume(), 40);
+    QCOMPARE(bar.repeatMode(), 1);
+    QCOMPARE(bar.elapsedSeconds(), 30.0);
+    QCOMPARE(bar.totalText(), QStringLiteral("2:00"));
+
+    // The controls go to the phone; nothing changes here.
+    const int pauses = m_fixture->audio.pauseCalls;
+    const double localVolume = m_player->volume();
+    bar.togglePlay();
+    QCOMPARE(harness.lastSent().value("command").toObject().value("type").toString(), QStringLiteral("pause"));
+    QVERIFY(!bar.playing());
+    QCOMPARE(m_fixture->audio.pauseCalls, pauses);
+    bar.setVolumeRatio(0.25);
+    m_fixture->clock.advance(200);
+    QCOMPARE(harness.lastSent().value("command").toObject().value("value").toInt(), 25);
+    QCOMPARE(bar.volume(), 25);
+    QCOMPARE(m_player->volume(), localVolume);
 }
 
 QTEST_GUILESS_MAIN(PlayerBarViewModelTest)

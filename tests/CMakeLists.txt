@@ -59,7 +59,7 @@ lmp_add_test(tst_shell_layout
     LIBS lmp_ui)
 
 lmp_add_test(tst_player_bar_view_model
-    SOURCES ui/tst_player_bar_view_model.cpp core/PlayerFixture.h core/FakeAudioPlayer.h core/FakePlaybackClock.h core/TempLibrary.h
+    SOURCES ui/tst_player_bar_view_model.cpp core/FakeConnectSocket.h core/PlayerFixture.h core/FakeAudioPlayer.h core/FakePlaybackClock.h core/TempLibrary.h
     LIBS lmp_ui)
 
 lmp_add_test(tst_fullscreen_player_view_model
@@ -556,6 +556,18 @@ lmp_add_test(tst_audio_output_view_model
 
 lmp_add_test(tst_presence_protocol
     SOURCES core/tst_presence_protocol.cpp
+    LIBS lmp_core)
+
+lmp_add_test(tst_connect_protocol
+    SOURCES core/tst_connect_protocol.cpp
+    LIBS lmp_core)
+
+lmp_add_test(tst_connect_client
+    SOURCES core/tst_connect_client.cpp core/FakeConnectSocket.h core/FakePlaybackClock.h
+    LIBS lmp_core)
+
+lmp_add_test(tst_connect_sync
+    SOURCES core/tst_connect_sync.cpp core/FakeConnectSocket.h core/PlayerFixture.h core/FakeAudioPlayer.h core/FakePlaybackClock.h core/TempLibrary.h
     LIBS lmp_core)
 
 lmp_add_test(tst_cast

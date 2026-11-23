@@ -57,6 +57,8 @@
 #include "core/playback/PlayerController.h"
 #include "core/presence/PresenceService.h"
 #include "core/cast/CastController.h"
+#include "core/connect/ConnectClient.h"
+#include "core/connect/ConnectSync.h"
 #include "core/account/HistoryImportService.h"
 #include "ui/settings/EqualizerViewModel.h"
 #include "ui/settings/HistoryImportViewModel.h"
@@ -269,6 +271,10 @@ private:
     core::CollectionActions m_collectionActions;
     // Today's generated mixes (Home, Library, mix pages).
     core::HomeMixService m_homeMixes;
+    // The live link to the account's other devices (Account mode), and the
+    // player's side of it: reports, remote commands, remote mode.
+    core::connect::ConnectClient m_connectClient;
+    core::connect::ConnectSync m_connectSync;
 
     ui::WindowChromeViewModel m_windowChromeViewModel;
     ui::Navigator m_navigator;

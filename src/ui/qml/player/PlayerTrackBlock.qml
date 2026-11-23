@@ -100,6 +100,17 @@ RowLayout {
                 color: Theme.fgSecondary
                 elide: Text.ElideRight
             }
+
+            // While another of the account's devices plays.
+            Text {
+                width: parent.width
+                visible: App.playerBar.remote
+                topPadding: 2
+                text: qsTr("Playing on %1").arg(App.playerBar.playingOn)
+                font: Theme.trackArtist
+                color: Theme.accentColor
+                elide: Text.ElideRight
+            }
         }
 
         // The previous song's text, only while it slides away.
@@ -138,8 +149,9 @@ RowLayout {
         Accessible.name: App.playerBar.liked ? qsTr("Remove from Liked Songs") : qsTr("Add to Liked Songs")
         id: likeButton
 
-        opacity: block.idle ? 0 : 1
-        enabled: !block.idle
+        // The song of another device is not this PC's to like, keep or share.
+        opacity: block.idle || App.playerBar.remote ? 0 : 1
+        enabled: !block.idle && !App.playerBar.remote
         iconName: App.playerBar.liked ? "heart-fill" : "heart"
         active: App.playerBar.liked
         onClicked: {
@@ -151,8 +163,8 @@ RowLayout {
 
     IconButton {
         visible: App.capabilities.downloadSongs
-        opacity: block.idle ? 0 : 1
-        enabled: !block.idle
+        opacity: block.idle || App.playerBar.remote ? 0 : 1
+        enabled: !block.idle && !App.playerBar.remote
         iconName: "download"
         Accessible.name: qsTr("Download")
         onClicked: App.offline.downloadPlaying()
@@ -160,8 +172,8 @@ RowLayout {
 
     IconButton {
         visible: App.share.available
-        opacity: block.idle ? 0 : 1
-        enabled: !block.idle
+        opacity: block.idle || App.playerBar.remote ? 0 : 1
+        enabled: !block.idle && !App.playerBar.remote
         iconName: "share"
         Accessible.name: qsTr("Share")
         onClicked: App.playerBar.share()

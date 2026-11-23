@@ -96,4 +96,24 @@ QueueEngine QueueEngine::commitVisibleOrder(const QList<Track>& visibleTracks) c
     return rebuilt;
 }
 
+QList<Track> QueueEngine::mergeRemoteUpcoming(const QList<Track>& visible, const QList<Track>& desired,
+                                              const QSet<QString>& seenIdentities)
+{
+    if (desired.isEmpty()) {
+        return {};
+    }
+    QSet<QString> listed;
+    for (const Track& track : desired) {
+        listed.insert(queueTrackIdentity(track));
+    }
+    QList<Track> merged = desired;
+    for (const Track& track : visible) {
+        const QString identity = queueTrackIdentity(track);
+        if (!seenIdentities.contains(identity) && !listed.contains(identity)) {
+            merged.append(track);
+        }
+    }
+    return merged;
+}
+
 } // namespace lmp::core

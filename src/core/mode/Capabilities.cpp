@@ -82,6 +82,7 @@ Capabilities Capabilities::compute(const CapabilityInputs& inputs)
     result.lookUpPresenceArtwork = provider;
     result.chooseLowQualityStreams = account;
     result.lowQualityOnThisConnection = account && inputs.connectivity.metered;
+    result.controlOtherDevices = accountValidated && online;
     return result;
 }
 

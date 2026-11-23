@@ -7,6 +7,11 @@
 
 namespace lmp::core {
 class PlayerController;
+struct Track;
+}
+
+namespace lmp::core::connect {
+class ConnectSync;
 }
 
 namespace lmp::ui {
@@ -19,6 +24,10 @@ namespace lmp::ui {
 // The seek bar keeps its own value while it is held (AppSlider shows
 // `progress` only while not pressed), so position updates never move it
 // under the pointer; seekToRatio() follows the drag, as the design does.
+//
+// While another of the account's devices plays (`remote`), everything shown
+// is that device's song and state, and every control goes to it instead;
+// `playingOn` names it.
 class PlayerBarViewModel : public QObject {
     Q_OBJECT
     QML_ELEMENT
@@ -53,10 +62,13 @@ class PlayerBarViewModel : public QObject {
     Q_PROPERTY(bool muted READ muted NOTIFY volumeChanged FINAL)
     // What the volume slider shows: 0 while muted, otherwise the level (0 to 1).
     Q_PROPERTY(qreal volumeRatio READ volumeRatio NOTIFY volumeChanged FINAL)
+    Q_PROPERTY(bool remote READ remote NOTIFY trackChanged FINAL)
+    Q_PROPERTY(QString playingOn READ playingOn NOTIFY trackChanged FINAL)
 
 public:
-    // `player` must outlive this view model.
-    explicit PlayerBarViewModel(core::PlayerController& player, QObject* parent = nullptr);
+    // `player`, and `link` when given, must outlive this view model.
+    explicit PlayerBarViewModel(core::PlayerController& player, core::connect::ConnectSync* link = nullptr,
+                                QObject* parent = nullptr);
 
     [[nodiscard]] bool hasTrack() const;
     [[nodiscard]] QString title() const;
@@ -80,6 +92,8 @@ public:
     [[nodiscard]] int volume() const;
     [[nodiscard]] bool muted() const;
     [[nodiscard]] qreal volumeRatio() const;
+    [[nodiscard]] bool remote() const;
+    [[nodiscard]] QString playingOn() const;
 
     Q_INVOKABLE void togglePlay();
     Q_INVOKABLE void previous();
@@ -117,8 +131,11 @@ signals:
 
 private:
     void onTrackChanged();
+    // The song shown: the other device's while remote, else the player's.
+    [[nodiscard]] const core::Track* shownTrack() const;
 
     core::PlayerController& m_player;
+    core::connect::ConnectSync* m_connect = nullptr;
     // The identity of the song shown; empty while idle.
     QString m_shownIdentity;
     QString m_shownTitle;

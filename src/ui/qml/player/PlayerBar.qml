@@ -57,10 +57,12 @@ Rectangle {
         IconButton {
             id: castButton
 
-            iconName: "cast"
-            active: App.cast.active
-            enabled: !bar.idle || App.cast.active
-            Accessible.name: App.cast.active ? qsTr("Casting to %1").arg(App.cast.deviceName) : qsTr("Cast to a device")
+            iconName: App.cast.otherDevices ? "devices" : "cast"
+            active: App.cast.active || App.playerBar.remote
+            enabled: !bar.idle || App.cast.active || App.cast.otherDevices
+            Accessible.name: App.playerBar.remote ? qsTr("Playing on %1").arg(App.playerBar.playingOn)
+                           : App.cast.active ? qsTr("Casting to %1").arg(App.cast.deviceName)
+                           : App.cast.otherDevices ? qsTr("Connect to a device") : qsTr("Cast to a device")
             onClicked: {
                 App.cast.openMenu()
                 castMenu.openAbove(castButton)
