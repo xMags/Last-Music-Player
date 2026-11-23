@@ -2,6 +2,7 @@
 #include <QGuiApplication>
 #include <QObject>
 #include <QQmlApplicationEngine>
+#include <QQuickWindow>
 #include <QString>
 #include <QTimer>
 #include <QtQml/qqmlextensionplugin.h>
@@ -22,6 +23,12 @@ int main(int argc, char* argv[])
         // Another copy is running and has been brought to the front.
         return 0;
     }
+
+    // Text drawn by the system's font rasteriser, hinted to the pixel grid,
+    // as in other Windows apps. Qt Quick's default (distance fields) looks
+    // soft at normal sizes, more so at fractional display scaling. Must be
+    // set before any window or text item exists.
+    QQuickWindow::setTextRenderType(QQuickWindow::NativeTextRendering);
 
     // Declared after the root so it is destroyed first: QML never outlives
     // the services behind it.
