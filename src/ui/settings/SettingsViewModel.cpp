@@ -114,6 +114,19 @@ void SettingsViewModel::setGapless(bool gapless)
     m_settings.setBoolean(keys::Gapless, gapless);
 }
 
+bool SettingsViewModel::discordPresence() const
+{
+    return m_settings.boolean(keys::DiscordPresence, false);
+}
+
+void SettingsViewModel::setDiscordPresence(bool enabled)
+{
+    if (discordPresence() == enabled && m_settings.contains(keys::DiscordPresence)) {
+        return;
+    }
+    m_settings.setBoolean(keys::DiscordPresence, enabled);
+}
+
 bool SettingsViewModel::showAlbumArt() const
 {
     return m_settings.boolean(keys::ShowAlbumArt, ShowAlbumArtByDefault);

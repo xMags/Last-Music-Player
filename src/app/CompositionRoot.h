@@ -55,6 +55,7 @@
 #include "core/playback/PlayerAutoplayQueue.h"
 #include "core/playback/PlaybackSourceRouter.h"
 #include "core/playback/PlayerController.h"
+#include "core/presence/PresenceService.h"
 #include "core/playback/TrackSourceResolver.h"
 #include "core/provider/ProviderClient.h"
 #include "core/remote/ArtworkService.h"
@@ -320,6 +321,14 @@ private:
     // Closing the window to the tray, and the tray icon's menu.
     platform::windows::WindowsTray m_tray;
     CloseToTrayController m_closeToTray;
+    // Discord rich presence (off unless the build has a client id and the
+    // listener turned it on).
+    core::presence::PresenceService m_presence;
+    // Updates the presence from the player.
+    void updatePresence();
+    // The song the presence's provider picture lookup was asked for.
+    QString m_presenceArtworkFor;
+    QString m_presenceArtwork;
     ui::AppRoot m_appRoot;
     QPointer<ui::Theme> m_theme; // owned by the QML engine
 };

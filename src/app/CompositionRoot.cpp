@@ -1,9 +1,12 @@
 #include "app/CompositionRoot.h"
+#include "core/model/DisplayTitle.h"
 
 #include "core/home/HomeModel.h"
 #include "ui/images/ChartArtImageProvider.h"
 
 #include <QCoreApplication>
+#include <QJsonObject>
+#include <QJsonDocument>
 #include <QDate>
 #include <QDateTime>
 #include <QList>
@@ -423,6 +426,7 @@ CompositionRoot::CompositionRoot()
                     {.togglePlay = [this]() { m_player.togglePlay(); },
                      .next = [this]() { m_player.next(); },
                      .previous = [this]() { m_player.previous(); }})
+    , m_presence(m_privateConfig.discordClientId)
     , m_appRoot({
           .windowChrome = &m_windowChromeViewModel,
           .navigator = &m_navigator,
@@ -455,6 +459,7 @@ CompositionRoot::CompositionRoot()
           .lyrics = &m_lyrics,
           .offline = &m_offline,
           .audioOutput = &m_audioOutput,
+          .presenceAvailable = m_presence.available(),
           .share = &m_share,
           .mode = &m_mode,
           .showGallery = QCoreApplication::arguments().contains(QStringLiteral("--gallery")),
@@ -521,6 +526,17 @@ CompositionRoot::CompositionRoot()
     m_downloadRules.setInterval(3000);
     QObject::connect(&m_downloadRules, &QTimer::timeout, &m_downloads, [this]() { m_downloads.refreshScheduling(); });
     m_downloadRules.start();
+    // Discord presence follows its setting and the player.
+    m_presence.setEnabled(m_settings.boolean(core::settings::keys::DiscordPresence, false));
+    QObject::connect(&m_settings, &core::SettingsStore::changed, &m_presence, [this](const QString& key) {
+        if (key == core::settings::keys::DiscordPresence) {
+            m_presence.setEnabled(m_settings.boolean(core::settings::keys::DiscordPresence, false));
+            updatePresence();
+        }
+    });
+    QObject::connect(&m_player, &core::PlayerController::currentTrackChanged, &m_presence, [this]() { updatePresence(); });
+    QObject::connect(&m_player, &core::PlayerController::stateChanged, &m_presence, [this]() { updatePresence(); });
+    QObject::connect(&m_player, &core::PlayerController::durationChanged, &m_presence, [this]() { updatePresence(); });
     // API key mode: the local mixes are filled from provider searches.
     m_homeMixes.setRemoteFill(
         [this](const QString& query) { return m_remote.search(query).then(&core::catalog::parseProviderTrackListResult); },
@@ -699,6 +715,53 @@ QFuture<core::Result<QByteArray>> CompositionRoot::sendAccount(core::net::HttpMe
                 return response.failure();
             }
             return response.value().body;
+        });
+}
+
+void CompositionRoot::updatePresence()
+{
+    const std::optional<core::Track>& track = m_player.currentTrack();
+    if (!track || m_player.state() == core::PlayerController::State::Idle) {
+        m_presence.clear();
+        return;
+    }
+    core::presence::PresencePayload payload;
+    payload.title = core::displayTitle(track->title);
+    payload.artist = track->artist;
+    payload.durationSeconds = m_player.durationSeconds() > 0 ? m_player.durationSeconds() : track->durationSeconds;
+    payload.positionSeconds = m_player.positionSeconds();
+    payload.isPlaying = m_player.state() == core::PlayerController::State::Playing;
+    payload.isLocal = !track->isRemote();
+    // A public https picture as it is; API key mode asks the provider for one
+    // Discord can show, as the earlier versions did.
+    payload.artworkUrl = track->artworkUrl.startsWith(QLatin1StringView("https://")) ? track->artworkUrl : QString();
+    const QString songKey = track->title + QLatin1Char('\n') + track->artist;
+    if (m_presenceArtworkFor == songKey && !m_presenceArtwork.isEmpty()) {
+        payload.artworkUrl = m_presenceArtwork;
+    }
+    m_presence.show(payload);
+    if (m_presenceArtworkFor == songKey || !m_mode.capabilities().lookUpPresenceArtwork
+        || !m_settings.boolean(core::settings::keys::DiscordPresence, false)) {
+        return;
+    }
+    m_presenceArtworkFor = songKey;
+    m_presenceArtwork.clear();
+    const std::optional<core::provider::ProviderConnection> connection = m_mode.providerConnection();
+    if (!connection) {
+        return;
+    }
+    m_providerClient.presenceArtwork(*connection, track->title, track->artist)
+        .then(&m_presence, [this, songKey](const core::Result<QByteArray>& answer) {
+            if (!answer || m_presenceArtworkFor != songKey) {
+                return;
+            }
+            const QString url =
+                QJsonDocument::fromJson(answer.value()).object().value(QLatin1StringView("url")).toString();
+            if (url.isEmpty()) {
+                return;
+            }
+            m_presenceArtwork = url;
+            updatePresence();
         });
 }
 

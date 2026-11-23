@@ -295,6 +295,10 @@ qt_add_library(lmp_core STATIC
     playback/ResumePositionTracker.cpp
     playback/ResumePositionTracker.h
     playback/TrackSourceResolver.h
+    presence/PresenceProtocol.cpp
+    presence/PresenceProtocol.h
+    presence/PresenceService.cpp
+    presence/PresenceService.h
     provider/ProviderClient.cpp
     provider/ProviderClient.h
     remote/ArtworkService.cpp

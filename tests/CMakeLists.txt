@@ -553,3 +553,7 @@ lmp_add_test(tst_download_manager
 lmp_add_test(tst_audio_output_view_model
     SOURCES ui/tst_audio_output_view_model.cpp core/FakeAudioPlayer.h
     LIBS lmp_ui)
+
+lmp_add_test(tst_presence_protocol
+    SOURCES core/tst_presence_protocol.cpp
+    LIBS lmp_core)

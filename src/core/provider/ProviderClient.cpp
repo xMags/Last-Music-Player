@@ -294,6 +294,17 @@ QFuture<Result<QByteArray>> ProviderClient::lyrics(const ProviderConnection& con
     return body(connection, call);
 }
 
+QFuture<Result<QByteArray>> ProviderClient::presenceArtwork(const ProviderConnection& connection, const QString& title,
+                                                            const QString& artist)
+{
+    ProviderCall call;
+    call.method = net::HttpMethod::Post;
+    call.pathAndQuery = QStringLiteral("/v1/discord/artwork-url");
+    call.jsonBody = QJsonDocument(QJsonObject{{QStringLiteral("title"), title}, {QStringLiteral("artist"), artist}})
+                        .toJson(QJsonDocument::Compact);
+    return body(connection, call);
+}
+
 QFuture<Result<QByteArray>> ProviderClient::importAlbum(const ProviderConnection& connection, const QString& url)
 {
     ProviderCall call;

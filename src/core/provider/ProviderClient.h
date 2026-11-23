@@ -129,6 +129,10 @@ public:
     // GET /v1/lyrics.
     [[nodiscard]] QFuture<Result<QByteArray>> lyrics(const ProviderConnection& connection,
                                                      const ProviderLyricsQuery& query);
+    // POST /v1/discord/artwork-url {"title", "artist"}: a picture address
+    // Discord can show ({"url"}).
+    [[nodiscard]] QFuture<Result<QByteArray>> presenceArtwork(const ProviderConnection& connection, const QString& title,
+                                                              const QString& artist);
     // POST /v1/import-album {"url"}: an album or playlist link to its songs.
     [[nodiscard]] QFuture<Result<QByteArray>> importAlbum(const ProviderConnection& connection, const QString& url);
 

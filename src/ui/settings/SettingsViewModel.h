@@ -41,6 +41,8 @@ class SettingsViewModel : public QObject {
     // Kept and saved like every other choice; the audio side has no gap
     // removal yet, as in earlier versions.
     Q_PROPERTY(bool gapless READ gapless WRITE setGapless NOTIFY preferencesChanged FINAL)
+    // Show what plays in Discord (the DiscordPresence setting).
+    Q_PROPERTY(bool discordPresence READ discordPresence WRITE setDiscordPresence NOTIFY preferencesChanged FINAL)
     Q_PROPERTY(bool showAlbumArt READ showAlbumArt WRITE setShowAlbumArt NOTIFY preferencesChanged FINAL)
     Q_PROPERTY(bool mediaControls READ mediaControls WRITE setMediaControls NOTIFY preferencesChanged FINAL)
     // 0 minimise to the tray, 1 quit, in the order of closeChoices.
@@ -69,6 +71,8 @@ public:
     void setAutoplay(bool autoplay);
     [[nodiscard]] bool gapless() const;
     void setGapless(bool gapless);
+    [[nodiscard]] bool discordPresence() const;
+    void setDiscordPresence(bool enabled);
     [[nodiscard]] bool showAlbumArt() const;
     void setShowAlbumArt(bool show);
     [[nodiscard]] bool mediaControls() const;

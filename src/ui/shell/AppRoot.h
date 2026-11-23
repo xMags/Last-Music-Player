@@ -109,6 +109,8 @@ class AppRoot : public QObject {
     Q_PROPERTY(lmp::ui::LyricsViewModel* lyrics READ lyrics CONSTANT FINAL)
     Q_PROPERTY(lmp::ui::OfflineViewModel* offline READ offline CONSTANT FINAL)
     Q_PROPERTY(lmp::ui::AudioOutputViewModel* audioOutput READ audioOutput CONSTANT FINAL)
+    // The build has a Discord client id, so presence can be offered.
+    Q_PROPERTY(bool presenceAvailable READ presenceAvailable CONSTANT FINAL)
     Q_PROPERTY(lmp::ui::ShareController* share READ share CONSTANT FINAL)
     // The current music source: "LocalOnly", "ApiKey" or "Account".
     Q_PROPERTY(QString sourceMode READ sourceMode NOTIFY sourceChanged FINAL)
@@ -151,6 +153,7 @@ public:
         LyricsViewModel* lyrics = nullptr;
         OfflineViewModel* offline = nullptr;
         AudioOutputViewModel* audioOutput = nullptr;
+        bool presenceAvailable = false;
         ShareController* share = nullptr;
         core::mode::ModeService* mode = nullptr;
         bool showGallery = false;
@@ -194,6 +197,7 @@ public:
     [[nodiscard]] LyricsViewModel* lyrics() const { return m_parts.lyrics; }
     [[nodiscard]] OfflineViewModel* offline() const { return m_parts.offline; }
     [[nodiscard]] AudioOutputViewModel* audioOutput() const { return m_parts.audioOutput; }
+    [[nodiscard]] bool presenceAvailable() const { return m_parts.presenceAvailable; }
     [[nodiscard]] ShareController* share() const { return m_parts.share; }
     [[nodiscard]] QString sourceMode() const;
     [[nodiscard]] core::mode::Capabilities capabilities() const;

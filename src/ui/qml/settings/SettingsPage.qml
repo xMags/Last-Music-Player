@@ -108,6 +108,18 @@ Item {
 
             SettingsDivider {}
 
+            SettingsSwitchRow {
+                visible: App.presenceAvailable
+                title: qsTr("Show in Discord")
+                description: qsTr("Let your Discord friends see what you are listening to.")
+                checked: App.settings.discordPresence
+                onChangeRequested: value => App.settings.discordPresence = value
+            }
+
+            SettingsDivider {
+                visible: App.presenceAvailable
+            }
+
             SettingsSelectRow {
                 title: qsTr("Output device")
                 description: qsTr("Where the sound plays.")
