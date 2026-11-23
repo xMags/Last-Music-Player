@@ -8,6 +8,7 @@
 #include <functional>
 #include <optional>
 
+#include "core/home/HomeModel.h"
 #include "core/library/HomeMixBuilder.h"
 
 namespace lmp::core::db {
@@ -32,8 +33,14 @@ public:
     // Both queries outlive this object.
     HomeMixService(db::LibraryQueries& library, db::GroupQueries& groups, Clock today, QObject* parent = nullptr);
 
-    // Makes the mixes again when their day is over (or `force`), reading the
-    // library; emits mixesChanged when it did.
+    // Where Account mode's mixes come from: the account library as the
+    // reference client's home model reads it, or nothing outside Account
+    // mode (then the mixes come from the library queries).
+    using AccountSource = std::function<std::optional<home::HomeLibrary>()>;
+    void setAccountSource(AccountSource source);
+
+    // Makes the mixes again when their day is over, their source changed (or
+    // `force`), reading the library; emits mixesChanged when it did.
     void refresh(bool force = false);
 
     [[nodiscard]] const QList<HomeMix>& mixes() const { return m_mixes; }
@@ -48,6 +55,7 @@ private:
     db::LibraryQueries& m_library;
     db::GroupQueries& m_groups;
     Clock m_today;
+    AccountSource m_accountSource;
     QString m_key;
     QList<HomeMix> m_mixes;
 };

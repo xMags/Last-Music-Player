@@ -10,6 +10,7 @@
 
 #include <QFuture>
 #include <QList>
+#include <QJsonValue>
 #include <QObject>
 #include <QPromise>
 #include <QString>
@@ -117,6 +118,12 @@ public:
     [[nodiscard]] db::AccountPendingCounts pendingCounts() const;
     // Raised each time the library lane stored a new copy.
     [[nodiscard]] quint64 libraryRevision() const { return m_libraryRevision; }
+    // Home's layout from the last library the service sent for `ownerId`
+    // (Undefined for another owner or before the first library sync).
+    [[nodiscard]] QJsonValue homeLayout(const QString& ownerId) const
+    {
+        return ownerId == m_homeLayoutOwner ? m_homeLayout : QJsonValue(QJsonValue::Undefined);
+    }
     [[nodiscard]] quint64 preferenceRevision() const { return m_preferenceRevision; }
 
 signals:
@@ -168,6 +175,8 @@ private:
     std::optional<UserDataOperationGate::Lease> m_lease;
     std::vector<std::shared_ptr<QPromise<bool>>> m_waiters;
     quint64 m_libraryRevision = 0;
+    QJsonValue m_homeLayout = QJsonValue(QJsonValue::Undefined);
+    QString m_homeLayoutOwner;
     quint64 m_preferenceRevision = 0;
     QString m_lastSafeError;
     // Set while preferences from the service are written to the settings, so

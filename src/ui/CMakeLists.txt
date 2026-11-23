@@ -170,6 +170,10 @@ qt_add_qml_module(lmp_ui
         icons/IconPart.h
         icons/IconSet.cpp
         icons/IconSet.h
+        catalog/CatalogCardModel.cpp
+        catalog/CatalogCardModel.h
+        home/HomeCatalogFeed.cpp
+        home/HomeCatalogFeed.h
         home/HomeListModels.cpp
         home/HomeListModels.h
         home/HomeViewModel.cpp

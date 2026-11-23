@@ -395,6 +395,7 @@ ParsedAccountLibrary parseAccountLibrary(const QByteArray& payload)
 
     ParsedAccountLibrary parsed;
     parsed.valid = true;
+    parsed.homeLayout = root.value(QLatin1StringView("homeLayout"));
     QHash<QString, qsizetype> indexes;
 
     if (std::optional<QJsonArray> tracks = arrayValue(root, {QLatin1StringView("tracks"), QLatin1StringView("songs")})) {

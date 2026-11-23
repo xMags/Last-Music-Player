@@ -3,11 +3,12 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import LastMusicPlayer
 
-// Home (views/home.ts renderFeed, built-in layout, offline sections): the
-// greeting (the part of the day over the name), the hero, then each section
-// App.home lists, a tier label leading the first section of its tier. An
-// empty library shows an empty state with "Choose music folder". The page
-// scrolls in the content panel.
+// Home (views/home.ts renderFeed): the greeting (the part of the day over the
+// name), the hero, then each section App.home lists, a tier label leading
+// the first section of its tier. In Account mode the tiers follow the
+// service's layout and hold the catalogue's shelves and chart rows. An empty
+// library shows an empty state with "Choose music folder". The page scrolls
+// in the content panel.
 Item {
     id: page
 
@@ -19,6 +20,7 @@ Item {
         App.home.refreshGreeting()
         App.home.refresh()
     }
+    Component.onDestruction: App.home.leave()
 
     Column {
         id: content
@@ -84,6 +86,8 @@ Item {
                 required property string key
                 required property string title
                 required property string tier
+                required property string kind
+                required property bool link
                 readonly property TrackListModel shelfModel: key === "listenAgain" ? App.home.listenAgain
                     : key === "mostPlayed" ? App.home.mostPlayed
                     : key === "liked" ? App.home.liked
@@ -95,8 +99,11 @@ Item {
 
                 Loader {
                     width: parent.width
-                    sourceComponent: section.key === "hero" ? heroSection
-                        : section.key === "mixes" ? mixesSection
+                    sourceComponent: section.kind === "hero" ? heroSection
+                        : section.kind === "mixes" ? mixesSection
+                        : section.kind === "catalog" ? catalogSection
+                        : section.kind === "charts" ? chartsSection
+                        : section.kind === "status" ? statusSection
                         : songsSection
                 }
 
@@ -131,6 +138,114 @@ Item {
                         }
 
                         Item { width: 1; height: 32 }
+                    }
+                }
+
+                Component {
+                    id: catalogSection
+
+                    Column {
+                        Shelf {
+                            width: section.width
+                            title: section.title
+                            linkText: section.link ? qsTr("See all") : ""
+                            model: App.home.catalogShelf(section.key)
+
+                            delegate: Card {
+                                id: catalogCard
+
+                                required property int index
+                                required title
+                                required subtitle
+                                required artworkUrl
+                                required artworkId
+                                required artworkLabel
+                                required round
+
+                                width: 156
+                                hasMenu: false
+                                onClicked: App.home.playCatalogCard(section.key, catalogCard.index)
+                            }
+                        }
+
+                        Item { width: 1; height: 32 }
+                    }
+                }
+
+                Component {
+                    id: chartsSection
+
+                    Column {
+                        Shelf {
+                            width: section.width
+                            title: section.title
+                            linkText: section.link ? qsTr("See all") : ""
+                            model: App.home.chartRow(section.key)
+
+                            delegate: Card {
+                                id: chartCard
+
+                                required property string name
+                                required property string subtitle
+                                required artworkUrl
+
+                                width: 156
+                                hasMenu: false
+                                title: chartCard.name
+                                artworkId: "chart:" + chartCard.name
+                                artworkLabel: chartCard.name
+                            }
+                        }
+
+                        Item { width: 1; height: 32 }
+                    }
+                }
+
+                Component {
+                    id: statusSection
+
+                    Column {
+                        width: section.width
+                        spacing: 12
+                        bottomPadding: 32
+
+                        // Nothing to show yet: three shelves of placeholders.
+                        Repeater {
+                            model: App.home.catalogSkeleton ? 3 : 0
+
+                            Column {
+                                width: section.width
+                                spacing: 14
+
+                                Skeleton {
+                                    width: 180
+                                    height: 20
+                                }
+
+                                SkeletonGrid {
+                                    width: section.width
+                                    count: 6
+                                }
+                            }
+                        }
+
+                        Row {
+                            visible: !App.home.catalogSkeleton
+                            spacing: 12
+
+                            Text {
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: App.home.catalogError !== "" ? App.home.catalogError
+                                                                    : qsTr("Showing cached charts.")
+                                font: Theme.stateText
+                                color: Theme.fgSecondary
+                            }
+
+                            AppButton {
+                                text: App.home.catalogError !== "" ? qsTr("Try again") : qsTr("Refresh")
+                                onClicked: App.home.retryCatalog()
+                            }
+                        }
                     }
                 }
 

@@ -39,14 +39,29 @@ HomeMixInputs HomeMixService::readInputs()
     return inputs;
 }
 
+void HomeMixService::setAccountSource(AccountSource source)
+{
+    m_accountSource = std::move(source);
+}
+
 void HomeMixService::refresh(bool force)
 {
+    if (const std::optional<home::HomeLibrary> account = m_accountSource ? m_accountSource() : std::nullopt) {
+        const QString key = QStringLiteral("account:") + home::homeMixKey(*account, m_today());
+        if (!force && key == m_key) {
+            return;
+        }
+        m_key = key;
+        m_mixes = home::deriveHomeModel(*account).mixes;
+        emit mixesChanged();
+        return;
+    }
     // "Music" is any song in the library, as the current app's mixes come
     // from the whole catalogue (not only history and likes).
     db::TrackQuery probe;
     probe.limit = 1;
     const bool hasMusic = m_library.loadTrackPage(probe).totalCount > 0;
-    const QString key = HomeMixBuilder::refreshKey(m_today(), hasMusic);
+    const QString key = QStringLiteral("local:") + HomeMixBuilder::refreshKey(m_today(), hasMusic);
     if (!force && key == m_key) {
         return;
     }

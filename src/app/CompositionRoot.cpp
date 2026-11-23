@@ -1,5 +1,7 @@
 #include "app/CompositionRoot.h"
 
+#include "core/home/HomeModel.h"
+
 #include <QCoreApplication>
 #include <QDate>
 #include <QDateTime>
@@ -246,7 +248,11 @@ CompositionRoot::CompositionRoot()
               .mixes = m_homeMixes,
               .trackMenu = m_trackMenu,
               .navigator = m_navigator,
-              .now = [] { return QDateTime::currentDateTime(); }})
+              .now = [] { return QDateTime::currentDateTime(); },
+              .catalog = &m_catalog,
+              .mode = &m_mode,
+              .sync = &m_sync,
+              .session = &m_session})
     , m_localSearch(m_library, m_groups)
     , m_search({.source = m_localSearch,
                 .library = m_library,
@@ -304,6 +310,18 @@ CompositionRoot::CompositionRoot()
     [[maybe_unused]] const bool identitySet =
         platform::windows::WindowsAppIdentity::apply(core::AppIdentity::appUserModelId());
     ui::AppRoot::registerInstance(&m_appRoot);
+
+    // In Account mode the mixes come from the account library, read as the
+    // reference client's home model reads it.
+    m_homeMixes.setAccountSource([this]() -> std::optional<core::home::HomeLibrary> {
+        if (m_mode.mode() != core::mode::SourceMode::Account) {
+            return std::nullopt;
+        }
+        const QString owner = m_session.profile().id;
+        const std::optional<core::db::AccountLibrarySnapshot> snapshot =
+            owner.isEmpty() ? std::nullopt : m_accounts.loadAccountLibrary(owner);
+        return snapshot ? std::optional(core::home::homeLibraryFromSnapshot(*snapshot)) : std::nullopt;
+    });
 
     // Whether this is a first run, read before the mode service stores its
     // first-run default.

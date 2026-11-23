@@ -497,6 +497,8 @@ QFuture<MusicSyncService::Outcome> MusicSyncService::pullLibrary()
                 return Outcome::Failed;
             }
             resetLaneFailure(Lane::Library);
+            m_homeLayout = result.value().homeLayout;
+            m_homeLayoutOwner = owner;
             ++m_libraryRevision;
             emit libraryChanged();
             return Outcome::Succeeded;

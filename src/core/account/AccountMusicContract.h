@@ -2,6 +2,7 @@
 
 #include <QByteArray>
 #include <QHash>
+#include <QJsonValue>
 #include <QList>
 #include <QString>
 #include <QStringList>
@@ -67,6 +68,9 @@ struct ParsedAccountLibrary {
     bool valid = false;
     QList<AccountLibraryTrack> tracks;
     QList<AccountPlaylist> playlists;
+    // Home's layout as the service sent it ("homeLayout"), unread; Undefined
+    // when absent. core::home::listedHomeLayout reads it.
+    QJsonValue homeLayout = QJsonValue(QJsonValue::Undefined);
 };
 
 enum class PortablePreferenceKey {

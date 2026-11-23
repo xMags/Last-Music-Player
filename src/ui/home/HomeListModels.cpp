@@ -29,6 +29,10 @@ QVariant HomeSectionListModel::data(const QModelIndex& index, int role) const
         return section.tier;
     case CapabilityRole:
         return section.capability;
+    case KindRole:
+        return section.kind;
+    case LinkRole:
+        return section.link;
     default:
         return {};
     }
@@ -36,7 +40,12 @@ QVariant HomeSectionListModel::data(const QModelIndex& index, int role) const
 
 QHash<int, QByteArray> HomeSectionListModel::roleNames() const
 {
-    return {{KeyRole, "key"}, {TitleRole, "title"}, {TierRole, "tier"}, {CapabilityRole, "capability"}};
+    return {{KeyRole, "key"},
+            {TitleRole, "title"},
+            {TierRole, "tier"},
+            {CapabilityRole, "capability"},
+            {KindRole, "kind"},
+            {LinkRole, "link"}};
 }
 
 void HomeSectionListModel::setSections(QList<Section> sections)

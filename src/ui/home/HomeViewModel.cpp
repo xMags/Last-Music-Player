@@ -3,7 +3,11 @@
 #include <QColor>
 #include <chrono>
 
+#include "core/account/AccountSessionService.h"
+#include "core/account/MusicSyncService.h"
 #include "core/db/LibraryQueries.h"
+#include "core/home/HomeLayout.h"
+#include "core/mode/ModeService.h"
 #include "core/library/CollectionActions.h"
 #include "core/library/HomeMixService.h"
 #include "core/library/LibraryScanner.h"
@@ -35,7 +39,25 @@ HomeViewModel::HomeViewModel(Parts parts, QObject* parent)
     , m_trackMenu(parts.trackMenu)
     , m_navigator(parts.navigator)
     , m_now(std::move(parts.now))
+    , m_mode(parts.mode)
+    , m_sync(parts.sync)
+    , m_session(parts.session)
 {
+    if (parts.catalog != nullptr && m_mode != nullptr && m_sync != nullptr && m_session != nullptr) {
+        m_feed = new HomeCatalogFeed(*parts.catalog, this);
+        connect(m_feed, &HomeCatalogFeed::changed, this, [this]() {
+            readSections();
+            emit catalogChanged();
+        });
+        connect(m_mode, &core::mode::ModeService::changed, this, [this]() {
+            if (!accountHome()) {
+                m_feed->reset();
+            }
+            refresh();
+        });
+        // A new library may bring a new layout, mixes and shelves.
+        connect(m_sync, &core::account::MusicSyncService::libraryChanged, this, &HomeViewModel::readSections);
+    }
     connect(&m_mixService, &core::HomeMixService::mixesChanged, this, &HomeViewModel::readMixes);
     connect(&parts.scanner, &core::LibraryScanner::finished, this, &HomeViewModel::refresh);
     connect(&parts.scanner, &core::LibraryScanner::pruned, this, &HomeViewModel::refresh);
@@ -131,6 +153,9 @@ void HomeViewModel::refresh()
 
     m_mixService.refresh();
     readMixes();
+    if (accountHome()) {
+        m_feed->load();
+    }
     readQuickTiles();
     followPlayer();
     readSections();
@@ -200,9 +225,169 @@ void HomeViewModel::readQuickTiles()
     m_quickTiles.setCards(tiles.mid(0, whole));
 }
 
+bool HomeViewModel::accountHome() const
+{
+    return m_feed != nullptr && m_mode->capabilities().showCatalogueHome;
+}
+
+bool HomeViewModel::catalogLoading() const
+{
+    return m_feed != nullptr && m_feed->loading();
+}
+
+QString HomeViewModel::catalogError() const
+{
+    return m_feed != nullptr ? m_feed->error() : QString();
+}
+
+bool HomeViewModel::catalogSkeleton() const
+{
+    return accountHome() && m_feed->showSkeleton();
+}
+
+bool HomeViewModel::catalogCached() const
+{
+    return m_feed != nullptr && m_feed->showingCached();
+}
+
+QString HomeViewModel::regionName() const
+{
+    return m_feed != nullptr ? m_feed->regionName() : QString();
+}
+
+CatalogCardModel* HomeViewModel::catalogShelf(const QString& key)
+{
+    return m_feed != nullptr ? m_feed->shelf(key) : nullptr;
+}
+
+ChartCardModel* HomeViewModel::chartRow(const QString& key)
+{
+    return m_feed != nullptr ? m_feed->charts(key) : nullptr;
+}
+
+void HomeViewModel::playCatalogCard(const QString& key, int row)
+{
+    CatalogCardModel* shelf = catalogShelf(key);
+    const core::catalog::CatalogItem* item = shelf != nullptr ? shelf->itemAt(row) : nullptr;
+    if (item == nullptr || !item->track) {
+        return;
+    }
+    m_actions.play(*item->track, shelf->tracks());
+}
+
+void HomeViewModel::retryCatalog()
+{
+    if (accountHome()) {
+        m_feed->load(true);
+    }
+}
+
+void HomeViewModel::leave()
+{
+    if (m_feed != nullptr) {
+        m_feed->pause();
+    }
+}
+
+void HomeViewModel::readAccountSections()
+{
+    using Section = HomeSectionListModel::Section;
+    const QString local = QStringLiteral("local");
+    const QString catalogue = QStringLiteral("catalogue");
+    const std::optional<core::account::AccountOperationContext> context = m_session->captureOperation();
+    // The service's layout for this account, else the built-in one.
+    const core::home::HomeLayoutView layout(
+        core::home::normalizeHomeLayout(m_sync->homeLayout(context ? context->ownerId : QString())));
+    static const QHash<QString, QString> tierLabels{{QStringLiteral("you"), tr("For you")},
+                                                    {QStringLiteral("new"), tr("New and trending")},
+                                                    {QStringLiteral("library"), tr("From your library")},
+                                                    {QStringLiteral("explore"), tr("Explore")}};
+    QList<Section> sections;
+    if (m_hero || m_quickTiles.count() > 0) {
+        sections.append({.key = QStringLiteral("hero"), .title = {}, .tier = {}, .capability = local, .kind = QStringLiteral("hero")});
+    }
+    const QStringList topKeys{QStringLiteral("topSongs"), QStringLiteral("topAlbums"), QStringLiteral("topPlaylists")};
+    const QHash<QString, QString> topShelfIds{{QStringLiteral("topSongs"), QStringLiteral("catalog:top-songs")},
+                                              {QStringLiteral("topAlbums"), QStringLiteral("catalog:top-albums")},
+                                              {QStringLiteral("topPlaylists"), QStringLiteral("catalog:top-playlists")}};
+    for (const core::home::HomeLayoutTier& tier : layout.tiers()) {
+        QString label = layout.tierTitle(tier.key, tierLabels.value(tier.key));
+        const auto add = [&sections, &label](Section section) {
+            section.tier = label;
+            label.clear();
+            sections.append(std::move(section));
+        };
+        QStringList tierTops;
+        for (const core::home::HomeLayoutShelf& shelf : tier.shelves) {
+            if (topKeys.contains(shelf.key)) {
+                tierTops.append(shelf.key);
+            }
+        }
+        for (const core::home::HomeLayoutShelf& shelf : tier.shelves) {
+            const QString& key = shelf.key;
+            // The catalogue's status stands where the first Top shelf does,
+            // shown or hidden, so it never goes away with a hidden shelf.
+            if (!tierTops.isEmpty() && key == tierTops.first()
+                && (m_feed->showSkeleton() || !m_feed->error().isEmpty() || m_feed->showingCached())) {
+                add({.key = QStringLiteral("catalogStatus"), .title = {}, .tier = {}, .capability = catalogue,
+                     .kind = QStringLiteral("status")});
+            }
+            if (shelf.enabled) {
+                if (key == QLatin1StringView("mixes") && m_mixCards.count() > 0) {
+                    add({.key = key, .title = layout.shelfTitle(key, tr("Your mixes")), .tier = {}, .capability = local,
+                         .kind = QStringLiteral("mixes"), .link = true});
+                } else if (key == QLatin1StringView("listenAgain") && m_listenAgain.count() > 0) {
+                    add({.key = key, .title = layout.shelfTitle(key, tr("Listen Again")), .tier = {}, .capability = local,
+                         .kind = QStringLiteral("songs"), .link = true});
+                } else if (key == QLatin1StringView("mostPlayed") && m_mostPlayed.count() >= MostPlayedMinimum) {
+                    add({.key = key, .title = layout.shelfTitle(key, tr("Most Played")), .tier = {}, .capability = local,
+                         .kind = QStringLiteral("songs"), .link = true});
+                } else if (key == QLatin1StringView("liked") && m_liked.count() > 0) {
+                    add({.key = key, .title = layout.shelfTitle(key, tr("Your Liked Songs")), .tier = {},
+                         .capability = local, .kind = QStringLiteral("songs"), .link = true});
+                } else if (key == QLatin1StringView("recentlyAdded") && m_recentlyAdded.count() > 0) {
+                    add({.key = key, .title = layout.shelfTitle(key, tr("Recently Added")), .tier = {},
+                         .capability = local, .kind = QStringLiteral("songs"), .link = true});
+                } else if (topShelfIds.contains(key)) {
+                    const QString id = topShelfIds.value(key);
+                    if (m_feed->shelf(id)->count() > 0) {
+                        add({.key = id, .title = layout.shelfTitleOverride(key).value_or(m_feed->shelfTitle(id)),
+                             .tier = {}, .capability = catalogue, .kind = QStringLiteral("catalog"),
+                             .link = m_feed->shelfHasChart(id)});
+                    }
+                } else if (key == QLatin1StringView("genreCharts") || key == QLatin1StringView("cityCharts")) {
+                    if (m_feed->charts(key)->count() > 0) {
+                        add({.key = key, .title = layout.shelfTitleOverride(key).value_or(m_feed->chartsTitle(key)),
+                             .tier = {}, .capability = catalogue, .kind = QStringLiteral("charts"), .link = true});
+                    }
+                } else if (m_feed->shelf(key)->count() > 0) {
+                    // newSongs, newAlbums, biggestHits, popularArtists, moods.
+                    add({.key = key, .title = layout.shelfTitle(key, m_feed->shelfTitle(key)), .tier = {},
+                         .capability = catalogue, .kind = QStringLiteral("catalog"), .link = true});
+                }
+            }
+            // Any other shelf the service sends follows the last Top shelf.
+            if (!tierTops.isEmpty() && key == tierTops.last()) {
+                for (const QString& id : m_feed->discoveryShelfKeys()) {
+                    if (topShelfIds.values().contains(id) || m_feed->shelf(id)->count() == 0) {
+                        continue;
+                    }
+                    add({.key = id, .title = m_feed->shelfTitle(id), .tier = {}, .capability = catalogue,
+                         .kind = QStringLiteral("catalog"), .link = m_feed->shelfHasChart(id)});
+                }
+            }
+        }
+    }
+    m_sections.setSections(std::move(sections));
+}
+
 void HomeViewModel::readSections()
 {
     using Section = HomeSectionListModel::Section;
+    if (accountHome()) {
+        readAccountSections();
+        return;
+    }
     QList<Section> sections;
     const QString local = QStringLiteral("local");
     if (m_empty) {
@@ -210,33 +395,38 @@ void HomeViewModel::readSections()
         return;
     }
     if (m_hero || m_quickTiles.count() > 0) {
-        sections.append({.key = QStringLiteral("hero"), .title = {}, .tier = {}, .capability = local});
+        sections.append({.key = QStringLiteral("hero"), .title = {}, .tier = {}, .capability = local, .kind = QStringLiteral("hero")});
     }
     // For you: the mixes and the rest of the history.
     QString tier = tr("For you");
     if (m_mixCards.count() > 0) {
-        sections.append({.key = QStringLiteral("mixes"), .title = tr("Your mixes"), .tier = tier, .capability = local});
+        sections.append({.key = QStringLiteral("mixes"), .title = tr("Your mixes"), .tier = tier, .capability = local,
+                         .kind = QStringLiteral("mixes"), .link = true});
         tier.clear();
     }
     if (m_listenAgain.count() > 0) {
         sections.append(
-            {.key = QStringLiteral("listenAgain"), .title = tr("Listen Again"), .tier = tier, .capability = local});
+            {.key = QStringLiteral("listenAgain"), .title = tr("Listen Again"), .tier = tier, .capability = local,
+             .kind = QStringLiteral("songs"), .link = true});
     }
     // From your library.
     tier = tr("From your library");
     if (m_mostPlayed.count() >= MostPlayedMinimum) {
         sections.append(
-            {.key = QStringLiteral("mostPlayed"), .title = tr("Most Played"), .tier = tier, .capability = local});
+            {.key = QStringLiteral("mostPlayed"), .title = tr("Most Played"), .tier = tier, .capability = local,
+             .kind = QStringLiteral("songs"), .link = true});
         tier.clear();
     }
     if (m_liked.count() > 0) {
         sections.append(
-            {.key = QStringLiteral("liked"), .title = tr("Your Liked Songs"), .tier = tier, .capability = local});
+            {.key = QStringLiteral("liked"), .title = tr("Your Liked Songs"), .tier = tier, .capability = local,
+             .kind = QStringLiteral("songs"), .link = true});
         tier.clear();
     }
     if (m_recentlyAdded.count() > 0) {
         sections.append(
-            {.key = QStringLiteral("recentlyAdded"), .title = tr("Recently Added"), .tier = tier, .capability = local});
+            {.key = QStringLiteral("recentlyAdded"), .title = tr("Recently Added"), .tier = tier, .capability = local,
+             .kind = QStringLiteral("songs"), .link = true});
     }
     m_sections.setSections(std::move(sections));
 }

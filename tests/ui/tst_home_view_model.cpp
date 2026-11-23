@@ -18,6 +18,7 @@
 #include "core/library/TrackActions.h"
 #include "core/library/UserDataOperationGate.h"
 #include "core/model/CatalogSourceKey.h"
+#include "ui/home/HomeCatalogFeed.h"
 #include "ui/home/HomeViewModel.h"
 #include "ui/library/CollectionViewModel.h"
 #include "ui/navigation/Navigator.h"
@@ -38,6 +39,7 @@ private slots:
     void init();
     void cleanup();
     void greetingFollowsTheHour();
+    void catalogRetriesBackOffToFiveMinutes();
     void emptyLibraryHasNoSections();
     void sectionsFollowTheLibrary();
     void heroIsTheLastPlay();
@@ -305,6 +307,15 @@ void HomeViewModelTest::cardsPlayAndOpen()
     QCOMPARE(m_navigator->current().param(QStringLiteral("key")), QStringLiteral("smart-recent"));
     m_home->seeAll(QStringLiteral("mixes"));
     QCOMPARE(m_navigator->current().kind(), Route::Kind::Library);
+}
+
+void HomeViewModelTest::catalogRetriesBackOffToFiveMinutes()
+{
+    using std::chrono::milliseconds;
+    QCOMPARE(lmp::ui::nextCatalogRetryDelay(milliseconds(0)), milliseconds(30'000));
+    QCOMPARE(lmp::ui::nextCatalogRetryDelay(milliseconds(30'000)), milliseconds(60'000));
+    QCOMPARE(lmp::ui::nextCatalogRetryDelay(milliseconds(240'000)), milliseconds(300'000));
+    QCOMPARE(lmp::ui::nextCatalogRetryDelay(milliseconds(300'000)), milliseconds(300'000));
 }
 
 QTEST_MAIN(HomeViewModelTest)

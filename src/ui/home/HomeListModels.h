@@ -20,7 +20,7 @@ class HomeSectionListModel : public QAbstractListModel {
     Q_PROPERTY(int count READ count NOTIFY countChanged FINAL)
 
 public:
-    enum Role { KeyRole = Qt::UserRole + 1, TitleRole, TierRole, CapabilityRole };
+    enum Role { KeyRole = Qt::UserRole + 1, TitleRole, TierRole, CapabilityRole, KindRole, LinkRole };
     Q_ENUM(Role)
 
     struct Section {
@@ -29,8 +29,15 @@ public:
         QString title;
         // The tier label shown before the section when it starts a tier, else empty.
         QString tier;
-        // "local": the songs on this PC, which every mode has.
+        // "local": the songs on this PC, which every mode has; "catalogue":
+        // the account service's catalogue.
         QString capability;
+        // How the section is drawn: "hero", "mixes", "songs" (a song shelf),
+        // "catalog" (a shelf of catalogue cards), "charts" (chart cards) or
+        // "status" (the catalogue's loading, error or cached notice).
+        QString kind;
+        // The section offers "See all".
+        bool link = false;
         friend bool operator==(const Section&, const Section&) = default;
     };
 

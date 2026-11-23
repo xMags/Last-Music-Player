@@ -81,6 +81,10 @@ qt_add_library(lmp_core STATIC
     catalog/ContentLanguages.h
     catalog/MusicGenres.cpp
     catalog/MusicGenres.h
+    home/HomeLayout.cpp
+    home/HomeLayout.h
+    home/HomeModel.cpp
+    home/HomeModel.h
     config/PrivateConfig.cpp
     config/PrivateConfig.h
     db/AccountOutboxRecords.h
