@@ -21,6 +21,8 @@ public:
 
     // LMP_DATA_ROOT: the data folder for a developer run (Debug builds only).
     static constexpr const char* DataRootVariable = "LMP_DATA_ROOT";
+    // Whether forCurrentUser() uses DataRootVariable (a Debug developer run).
+    [[nodiscard]] static bool developerDataRoot();
 
     [[nodiscard]] QString root() const { return m_root; }
 

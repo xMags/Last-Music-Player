@@ -242,6 +242,23 @@ void PlayerController::restore(const QueueEngine& queue, const Track& track, dou
     setPosition(std::max(0.0, startAtSeconds));
 }
 
+void PlayerController::reset()
+{
+    // A load still on its way must not bring a song back.
+    m_loads.invalidate();
+    m_audio.stop();
+    m_history.clear();
+    m_backHistory.clear();
+    applyQueue(QueueEngine().withShuffle(shuffle(), m_random).withRepeatMode(repeatMode()));
+    if (m_current) {
+        m_current.reset();
+        emit currentTrackChanged();
+    }
+    setDuration(0.0);
+    setPosition(0.0);
+    setState(State::Idle);
+}
+
 void PlayerController::setShuffle(Shuffle shuffle)
 {
     if (this->shuffle() == shuffle) {

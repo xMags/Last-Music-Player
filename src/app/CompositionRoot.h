@@ -7,6 +7,7 @@
 #include "core/account/AccountClient.h"
 #include "core/account/AccountSessionService.h"
 #include "core/account/AccountSignOutCoordinator.h"
+#include "core/account/ScopedCredentialStore.h"
 #include "core/account/SecretStore.h"
 #include "core/app/AppPaths.h"
 #include "core/config/PrivateConfig.h"
@@ -17,6 +18,8 @@
 #include "core/db/LibraryQueries.h"
 #include "core/db/TrackRepository.h"
 #include "core/library/ArtworkCache.h"
+#include "app/WindowPlacementKeeper.h"
+#include "core/app/UserDataCleanup.h"
 #include "core/library/CollectionActions.h"
 #include "core/library/HomeMixService.h"
 #include "core/library/LibraryScanner.h"
@@ -47,12 +50,14 @@
 #include "ui/player/QueueRailViewModel.h"
 #include "ui/settings/FirstRunViewModel.h"
 #include "ui/home/HomeViewModel.h"
+#include "platform/windows/WindowsWindowPlacement.h"
 #include "ui/search/SearchSource.h"
 #include "ui/search/SearchViewModel.h"
 #include "ui/library/CollectionEditor.h"
 #include "ui/library/CollectionViewModel.h"
 #include "ui/library/LibraryViewModel.h"
 #include "ui/library/LocalArtistViewModel.h"
+#include "ui/settings/DataSettingsViewModel.h"
 #include "ui/settings/LibrarySettingsViewModel.h"
 #include "ui/tracks/TrackMenuController.h"
 #include "ui/settings/SettingsAboutViewModel.h"
@@ -137,6 +142,9 @@ private:
     // key provider and the mode that chooses between them.
     platform::windows::WindowsExternalLinks m_externalLinks;
     platform::windows::WindowsCredentialStore m_credentials;
+    // The credentials as the app uses them: under their own names in a
+    // developer run on another data folder, so it never touches the real ones.
+    core::account::ScopedCredentialStore m_scopedCredentials;
     core::account::SecretStore m_secrets;
     core::net::HttpClient m_http;
     core::PrivateConfig m_privateConfig;
@@ -179,6 +187,12 @@ private:
     // Browse and search (the local library; remote sources join in P08 and P09).
     ui::LocalSearchSource m_localSearch;
     ui::SearchViewModel m_search;
+    // "Delete all data" and the Data card.
+    core::UserDataCleanup m_cleanup;
+    ui::DataSettingsViewModel m_dataSettings;
+    // The main window's size and place between runs.
+    platform::windows::WindowsWindowPlacement m_windowPlacement;
+    WindowPlacementKeeper m_placementKeeper;
     ui::AppRoot m_appRoot;
     QPointer<ui::Theme> m_theme; // owned by the QML engine
 };

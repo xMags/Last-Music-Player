@@ -22,7 +22,9 @@ qt_add_library(lmp_platform_windows STATIC
     WindowsTagReader.cpp
     WindowsTagReader.h
     WindowsWindowChrome.cpp
-    WindowsWindowChrome.h)
+    WindowsWindowChrome.h
+    WindowsWindowPlacement.cpp
+    WindowsWindowPlacement.h)
 
 target_link_libraries(lmp_platform_windows
     PUBLIC lmp_core Qt6::Core

@@ -22,6 +22,8 @@ qt_add_library(lmp_core STATIC
     account/LoopbackRequest.h
     account/Pkce.cpp
     account/Pkce.h
+    account/ScopedCredentialStore.cpp
+    account/ScopedCredentialStore.h
     account/SecretStore.cpp
     account/SecretStore.h
     app/AppIdentity.cpp
@@ -29,6 +31,10 @@ qt_add_library(lmp_core STATIC
     app/AppPaths.cpp
     app/ExternalLinkPolicy.cpp
     app/ExternalLinkPolicy.h
+    app/UserDataCleanup.cpp
+    app/UserDataCleanup.h
+    app/WindowPlacement.cpp
+    app/WindowPlacement.h
     app/AppPaths.h
     async/RequestScope.cpp
     async/RequestScope.h
@@ -224,6 +230,7 @@ qt_add_library(lmp_core STATIC
     ../platform/ICredentialStore.h
     ../platform/IExternalLinks.h
     ../platform/IFolderPicker.h
+    ../platform/IWindowPlacement.h
     ../platform/IMediaControls.h
     ../platform/IReducedMotion.h
     ../platform/IShellThumbnail.h

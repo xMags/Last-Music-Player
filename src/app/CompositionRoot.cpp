@@ -87,7 +87,10 @@ CompositionRoot::CompositionRoot()
                     m_paths)
     , m_mediaBridge({.player = m_player, .controls = m_mediaControls, .settings = m_settings, .clock = m_clock})
     , m_externalLinks(m_paths.root())
-    , m_secrets(m_credentials, m_settings)
+    , m_scopedCredentials(m_credentials,
+                          core::account::ScopedCredentialStore::suffixForDataRoot(
+                              m_paths.root(), core::AppPaths::developerDataRoot()))
+    , m_secrets(m_scopedCredentials, m_settings)
     , m_privateConfig(core::PrivateConfig::fromBuild())
     , m_accountClient(m_http, m_privateConfig)
     , m_session({.client = m_accountClient,
@@ -184,6 +187,18 @@ CompositionRoot::CompositionRoot()
                 .settings = m_settings,
                 .trackMenu = m_trackMenu,
                 .navigator = m_navigator})
+    , m_cleanup({.gate = m_userDataGate,
+                 .scanner = m_scanner,
+                 .player = m_player,
+                 .tracks = m_tracks,
+                 .settings = m_settings,
+                 .secrets = m_secrets,
+                 .session = m_session,
+                 .mode = m_mode,
+                 .stateFile = m_paths.stateFile(),
+                 .coverFolder = m_paths.thumbsFolder()})
+    , m_dataSettings(m_cleanup, m_toasts)
+    , m_placementKeeper(m_windowPlacement, m_settings)
     , m_appRoot({
           .windowChrome = &m_windowChromeViewModel,
           .navigator = &m_navigator,
@@ -206,6 +221,7 @@ CompositionRoot::CompositionRoot()
           .collections = &m_collectionEditor,
           .home = &m_home,
           .search = &m_search,
+          .dataSettings = &m_dataSettings,
           .mode = &m_mode,
           .showGallery = QCoreApplication::arguments().contains(QStringLiteral("--gallery")),
       })
@@ -242,6 +258,19 @@ CompositionRoot::CompositionRoot()
         [[maybe_unused]] const bool pruning = m_scanner.pruneMissingTracks();
         m_sidebar.refreshPlaylists();
     }
+
+    // After "Delete all data" every view reads its (now empty) data again.
+    QObject::connect(&m_cleanup, &core::UserDataCleanup::cleared, &m_cleanup, [this]() {
+        m_homeMixes.refresh(true);
+        m_sidebar.refreshPlaylists();
+        m_libraryPage.refresh();
+        m_home.refresh();
+        m_settingsAbout.refresh();
+        m_navigator.openView(static_cast<int>(ui::Route::Kind::Home));
+    });
+    // The window's frame is kept for the next run.
+    QObject::connect(qApp, &QCoreApplication::aboutToQuit, &m_placementKeeper,
+                     &WindowPlacementKeeper::save);
 
     // The last song comes back into the player bar once the state file is
     // read (on the file's worker); the first Play opens it.
@@ -298,6 +327,9 @@ bool CompositionRoot::showMainWindow(QQmlApplicationEngine& engine)
                              }
                          });
     }
+    // The size and place it had when it last closed, in physical pixels;
+    // the place only while a monitor still shows it.
+    m_placementKeeper.attach(*window);
     window->show();
     return true;
 }

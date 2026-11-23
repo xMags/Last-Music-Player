@@ -90,6 +90,10 @@ public:
     // it at `startAtSeconds`. For the launch restore: ignored while a song
     // is current, and nothing is emitted for a song left.
     void restore(const QueueEngine& queue, const Track& track, double startAtSeconds);
+    // Forgets everything ("Delete all data"): stops the song, empties the
+    // queue and the way back, and shows no song. Shuffle, repeat and the
+    // volume stay as they are.
+    void reset();
 
     void setShuffle(Shuffle shuffle);
     void setRepeatMode(RepeatMode repeatMode);

@@ -14,6 +14,15 @@ AppPaths::AppPaths(QString root)
 {
 }
 
+bool AppPaths::developerDataRoot()
+{
+#ifndef QT_NO_DEBUG
+    return !qEnvironmentVariable(DataRootVariable).isEmpty();
+#else
+    return false;
+#endif
+}
+
 AppPaths AppPaths::forCurrentUser()
 {
 #ifndef QT_NO_DEBUG

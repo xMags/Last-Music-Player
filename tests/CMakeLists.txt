@@ -429,3 +429,7 @@ lmp_add_test(tst_home_view_model
 lmp_add_test(tst_search_view_model
     SOURCES ui/tst_search_view_model.cpp core/PlayerFixture.h core/FakeAudioPlayer.h core/FakePlaybackClock.h core/ModeServiceFixture.h core/AccountSessionFixture.h core/FakeCredentialStore.h core/FakeHttpTransport.h core/TempLibrary.h
     LIBS lmp_ui)
+
+lmp_add_test(tst_user_data_cleanup
+    SOURCES core/tst_user_data_cleanup.cpp core/PlayerFixture.h core/FakeAudioPlayer.h core/FakePlaybackClock.h core/ModeServiceFixture.h core/AccountSessionFixture.h core/FakeCredentialStore.h core/FakeHttpTransport.h core/TempLibrary.h core/FakeTagReader.h
+    LIBS lmp_core)

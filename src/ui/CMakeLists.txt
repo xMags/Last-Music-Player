@@ -215,6 +215,8 @@ qt_add_qml_module(lmp_ui
         search/SearchSource.h
         search/SearchViewModel.cpp
         search/SearchViewModel.h
+        settings/DataSettingsViewModel.cpp
+        settings/DataSettingsViewModel.h
         settings/FirstRunViewModel.cpp
         settings/FirstRunViewModel.h
         settings/LibrarySettingsViewModel.cpp
