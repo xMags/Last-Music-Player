@@ -1,7 +1,6 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
-import QtQuick.Effects
 import LastMusicPlayer
 
 // A CSS box-shadow: one RectangularShadow per layer of a Theme shadow token,
@@ -17,7 +16,7 @@ Item {
     Repeater {
         model: root.layers
 
-        RectangularShadow {
+        AppRectangularShadow {
             required property shadowLayer modelData
 
             anchors.fill: parent

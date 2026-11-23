@@ -36,6 +36,7 @@ set(LMP_UI_QML_FILES
     qml/controls/ActionMenu.qml
     qml/controls/ActionMenuItem.qml
     qml/controls/AppButton.qml
+    qml/controls/AppRectangularShadow.qml
     qml/controls/AppScrollBar.qml
     qml/controls/AppSelect.qml
     qml/controls/AppSlider.qml
@@ -215,6 +216,8 @@ qt_add_qml_module(lmp_ui
         menus/MenuItemListModel.cpp
         motion/CoverFlight.cpp
         motion/CoverFlight.h
+        effects/EffectOwnership.cpp
+        effects/EffectOwnership.h
         motion/MotionEffects.cpp
         motion/MotionEffects.h
         motion/PageCascade.cpp
@@ -350,6 +353,7 @@ qt_add_qml_module(lmp_ui
 set(LMP_UI_TYPE_FOLDERS
     app
     dev
+    effects
     home
     icons
     library

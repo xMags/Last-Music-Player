@@ -1,7 +1,6 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
-import QtQuick.Effects
 import LastMusicPlayer
 
 // The application frame (index.html 47-142; styles.css 241-248, 1175-1191,
@@ -168,7 +167,7 @@ Item {
             visible: !App.layout.railDocked && App.layout.railOpen
             z: 80
 
-            RectangularShadow {
+            AppRectangularShadow {
                 anchors.fill: parent
                 offset.x: -12
                 blur: 36
