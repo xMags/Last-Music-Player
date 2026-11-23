@@ -4,6 +4,7 @@
 #include "core/async/Result.h"
 #include "core/model/Track.h"
 #include "core/playback/BrokenTrackGuard.h"
+#include "core/playback/IPlaybackSink.h"
 #include "core/playback/PlaybackBackHistory.h"
 #include "core/playback/PlaybackHistoryRecorder.h"
 #include "core/playback/PlaybackPreferences.h"
@@ -124,6 +125,17 @@ public:
     // Saves what is still pending (the volume); called by the composition root.
     void shutdown();
 
+    // What happens to the song that plays when the sink changes.
+    // Stop leaves it closed and paused where it stood (the next Play opens
+    // it on the new sink).
+    enum class SinkHandover { KeepPlaying, Pause, Stop };
+    // Sends playback to `sink` (a cast device), or back to this PC for
+    // nullptr. The current song is opened again on the new sink where it
+    // stood; it keeps playing or pauses as `handover` says. The sink must
+    // outlive its use here (until the next setSink).
+    void setSink(IPlaybackSink* sink, SinkHandover handover);
+    [[nodiscard]] bool usesExternalSink() const noexcept { return m_sink != nullptr; }
+
     // Where plays of account songs go in Account mode instead of the local
     // history (nothing by default). Must outlive the controller.
     void setAccountPlaybackSink(AccountPlaybackSink* sink);
@@ -152,6 +164,9 @@ signals:
     void autoplayExtensionWanted(bool queueEnded);
     // A new queue replaced the old one (a new list, or everything forgotten).
     void contextReplaced();
+    // The external sink refused the next song, so playback came back to this
+    // PC before it was loaded (the sink is no longer used).
+    void sinkRefused(const lmp::core::Track& track);
 
 private:
     enum class StepReason { User, TrackEnded, BrokenTrack };
@@ -160,6 +175,9 @@ private:
               AdvanceTrigger skipTrigger);
     void advance(QueueDirection direction, AdvanceTrigger trigger, StepReason reason);
     void replayCurrent();
+    // Resolves and opens the current song again where it stood, without
+    // treating it as a new play.
+    void reopenCurrent(bool play);
     void applyQueue(const QueueEngine& queue);
     void handleResolved(RequestScope::Token token, const Result<QUrl>& source);
     void handleTrackFailure();
@@ -181,8 +199,16 @@ private:
     void setDuration(double seconds);
     void setStoppedAfterBrokenTracks(bool stopped);
 
-    platform::IAudioPlayer& m_audio;
-    TrackSourceResolver& m_resolver;
+    void connectAudio();
+    void disconnectAudio();
+
+    // This PC's own player and resolver, and the ones in use (the external
+    // sink's while one is set).
+    platform::IAudioPlayer& m_localAudio;
+    TrackSourceResolver& m_localResolver;
+    IPlaybackSink* m_sink = nullptr;
+    platform::IAudioPlayer* m_audio = nullptr;
+    TrackSourceResolver* m_resolver = nullptr;
     PlaybackClock& m_clock;
     QueueRandom m_random;
     PlaybackPreferences m_preferences;

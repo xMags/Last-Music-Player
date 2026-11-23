@@ -56,6 +56,9 @@
 #include "core/playback/PlaybackSourceRouter.h"
 #include "core/playback/PlayerController.h"
 #include "core/presence/PresenceService.h"
+#include "core/cast/CastController.h"
+#include "platform/windows/WindowsDnsServiceBrowser.h"
+#include "ui/cast/CastViewModel.h"
 #include "core/playback/TrackSourceResolver.h"
 #include "core/provider/ProviderClient.h"
 #include "core/remote/ArtworkService.h"
@@ -324,6 +327,10 @@ private:
     // Discord rich presence (off unless the build has a client id and the
     // listener turned it on).
     core::presence::PresenceService m_presence;
+    // Casting to devices on the network, and the player bar's devices menu.
+    platform::windows::WindowsDnsServiceBrowser m_dnsBrowser;
+    core::cast::CastController m_cast;
+    ui::CastViewModel m_castViewModel;
     // Updates the presence from the player.
     void updatePresence();
     // The song the presence's provider picture lookup was asked for.

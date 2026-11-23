@@ -12,8 +12,10 @@ namespace lmp::core {
 PlayerController::PlayerController(PlayerControllerServices services, QueueEngine queue, QueueRandom random,
                                    QObject* parent)
     : QObject(parent)
-    , m_audio(services.audio)
-    , m_resolver(services.resolver)
+    , m_localAudio(services.audio)
+    , m_localResolver(services.resolver)
+    , m_audio(&services.audio)
+    , m_resolver(&services.resolver)
     , m_clock(services.clock)
     , m_random(std::move(random))
     , m_preferences(services.settings, services.clock)
@@ -30,10 +32,57 @@ PlayerController::PlayerController(PlayerControllerServices services, QueueEngin
     m_volume = m_preferences.volume();
     applyVolume();
 
-    connect(&m_audio, &platform::IAudioPlayer::stateChanged, this, &PlayerController::onAudioState);
-    connect(&m_audio, &platform::IAudioPlayer::positionChanged, this, &PlayerController::onAudioPosition);
-    connect(&m_audio, &platform::IAudioPlayer::durationChanged, this, &PlayerController::onAudioDuration);
-    connect(&m_audio, &platform::IAudioPlayer::errorOccurred, this, &PlayerController::onAudioError);
+    connectAudio();
+}
+
+void PlayerController::connectAudio()
+{
+    connect(m_audio, &platform::IAudioPlayer::stateChanged, this, &PlayerController::onAudioState);
+    connect(m_audio, &platform::IAudioPlayer::positionChanged, this, &PlayerController::onAudioPosition);
+    connect(m_audio, &platform::IAudioPlayer::durationChanged, this, &PlayerController::onAudioDuration);
+    connect(m_audio, &platform::IAudioPlayer::errorOccurred, this, &PlayerController::onAudioError);
+}
+
+void PlayerController::disconnectAudio()
+{
+    disconnect(m_audio, nullptr, this, nullptr);
+}
+
+void PlayerController::setSink(IPlaybackSink* sink, SinkHandover handover)
+{
+    if (sink == m_sink) {
+        return;
+    }
+    // Whatever was open on the old sink is closed first, unheard: its id is
+    // forgotten and its signals no longer reach this controller.
+    const bool wasPlaying = m_state == State::Playing || (m_state == State::Loading && m_wantsPlay);
+    const bool hadSource = m_audioLoadId != 0 || m_state == State::Loading;
+    m_loads.invalidate();
+    disconnectAudio();
+    if (m_audioLoadId != 0) {
+        m_audioLoadId = 0;
+        m_audio->stop();
+    }
+    m_sink = sink;
+    m_audio = sink != nullptr ? &sink->audio() : &m_localAudio;
+    m_resolver = sink != nullptr ? &sink->resolver() : &m_localResolver;
+    connectAudio();
+    applyVolume();
+    if (!m_current || !hadSource) {
+        return;
+    }
+    if (handover == SinkHandover::Stop) {
+        m_wantsPlay = false;
+        setState(State::Paused);
+        return;
+    }
+    if (m_sink != nullptr && !m_sink->accepts(*m_current)) {
+        const Track refused = *m_current;
+        setSink(nullptr, handover);
+        emit sinkRefused(refused);
+        return;
+    }
+    reopenCurrent(handover == SinkHandover::KeepPlaying && wasPlaying);
 }
 
 PlayerController::~PlayerController() = default;
@@ -181,9 +230,9 @@ void PlayerController::togglePlay()
         return; // applied when the source opens
     }
     if (m_wantsPlay) {
-        m_audio.play();
+        m_audio->play();
     } else {
-        m_audio.pause();
+        m_audio->pause();
     }
 }
 
@@ -218,7 +267,7 @@ void PlayerController::seek(double seconds)
     // While resolving there is nothing open yet: the position becomes the
     // start position of the open.
     if (m_audioLoadId != 0 && m_state != State::Error) {
-        m_audio.seek(target);
+        m_audio->seek(target);
     }
 }
 
@@ -265,7 +314,7 @@ void PlayerController::reset()
 {
     // A load still on its way must not bring a song back.
     m_loads.invalidate();
-    m_audio.stop();
+    m_audio->stop();
     m_history.clear();
     m_backHistory.clear();
     applyQueue(QueueEngine().withShuffle(shuffle(), m_random).withRepeatMode(repeatMode()));
@@ -351,7 +400,7 @@ void PlayerController::shutdown()
 
 void PlayerController::applyVolume()
 {
-    m_audio.setVolume(m_muted ? 0.0 : m_volume);
+    m_audio->setVolume(m_muted ? 0.0 : m_volume);
 }
 
 void PlayerController::applyQueue(const QueueEngine& queue)

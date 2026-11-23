@@ -55,6 +55,19 @@ Rectangle {
         Item { Layout.fillWidth: true }
 
         IconButton {
+            id: castButton
+
+            iconName: "cast"
+            active: App.cast.active
+            enabled: !bar.idle || App.cast.active
+            Accessible.name: App.cast.active ? qsTr("Casting to %1").arg(App.cast.deviceName) : qsTr("Cast to a device")
+            onClicked: {
+                App.cast.openMenu()
+                castMenu.openAbove(castButton)
+            }
+        }
+
+        IconButton {
             iconName: "queue"
             active: App.layout.railOpen
             onClicked: App.layout.toggleRail()
@@ -80,5 +93,12 @@ Rectangle {
             bubbleText: App.playerBar.volumeLabelAt(volume.hoverRatio)
             onMoved: App.playerBar.setVolumeRatio(volume.value)
         }
+    }
+
+    ActionMenu {
+        id: castMenu
+
+        items: App.cast.menu
+        onTriggered: itemId => App.cast.choose(itemId)
     }
 }

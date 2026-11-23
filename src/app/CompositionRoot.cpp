@@ -1,4 +1,5 @@
 #include "app/CompositionRoot.h"
+#include "core/cast/CastTransport.h"
 #include "core/model/DisplayTitle.h"
 
 #include "core/home/HomeModel.h"
@@ -427,6 +428,15 @@ CompositionRoot::CompositionRoot()
                      .next = [this]() { m_player.next(); },
                      .previous = [this]() { m_player.previous(); }})
     , m_presence(m_privateConfig.discordClientId)
+    , m_cast({.browser = m_dnsBrowser,
+              .player = m_player,
+              .accountResolver = m_accountResolver,
+              .castAllowed = [this]() { return m_mode.capabilities().castToDevices; },
+              .apiKeyMode = [this]() { return m_mode.apiKeySelected(); },
+              .makeTransport = []() -> std::unique_ptr<core::cast::ICastTransport> {
+                  return std::make_unique<core::cast::SslCastTransport>();
+              }})
+    , m_castViewModel(m_cast)
     , m_appRoot({
           .windowChrome = &m_windowChromeViewModel,
           .navigator = &m_navigator,
@@ -460,6 +470,7 @@ CompositionRoot::CompositionRoot()
           .offline = &m_offline,
           .audioOutput = &m_audioOutput,
           .presenceAvailable = m_presence.available(),
+          .cast = &m_castViewModel,
           .share = &m_share,
           .mode = &m_mode,
           .showGallery = QCoreApplication::arguments().contains(QStringLiteral("--gallery")),
@@ -526,6 +537,10 @@ CompositionRoot::CompositionRoot()
     m_downloadRules.setInterval(3000);
     QObject::connect(&m_downloadRules, &QTimer::timeout, &m_downloads, [this]() { m_downloads.refreshScheduling(); });
     m_downloadRules.start();
+    // Casting ends when the mode no longer allows it; its messages are toasts.
+    QObject::connect(&m_mode, &core::mode::ModeService::changed, &m_cast, [this]() { m_cast.refreshAllowed(); });
+    QObject::connect(&m_cast, &core::cast::CastController::notice, &m_toasts,
+                     [this](const QString& text) { m_toasts.show(text); });
     // Discord presence follows its setting and the player.
     m_presence.setEnabled(m_settings.boolean(core::settings::keys::DiscordPresence, false));
     QObject::connect(&m_settings, &core::SettingsStore::changed, &m_presence, [this](const QString& key) {
@@ -790,6 +805,7 @@ CompositionRoot::~CompositionRoot()
     // QML is gone by now (the engine is destroyed first). Stop the sampling
     // worker, then save where playback stood and wait for the file, then
     // the pending volume, while every service still exists.
+    m_cast.shutdown();
     m_ambient.shutdown();
     m_persistence.shutdown();
     m_player.shutdown();

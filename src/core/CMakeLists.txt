@@ -140,6 +140,18 @@ qt_add_library(lmp_core STATIC
     downloads/DownloadManager.h
     downloads/DownloadPolicy.cpp
     downloads/DownloadPolicy.h
+    cast/CastAudioPlayer.cpp
+    cast/CastAudioPlayer.h
+    cast/CastController.cpp
+    cast/CastController.h
+    cast/CastDiscovery.cpp
+    cast/CastDiscovery.h
+    cast/CastMessage.cpp
+    cast/CastMessage.h
+    cast/CastSession.cpp
+    cast/CastSession.h
+    cast/CastTransport.cpp
+    cast/CastTransport.h
     downloads/HttpDownloadFetcher.cpp
     downloads/HttpDownloadFetcher.h
     library/ArtworkByteSource.cpp
@@ -267,6 +279,7 @@ qt_add_library(lmp_core STATIC
     playback/PlayerAutoplayQueue.cpp
     playback/PlayerAutoplayQueue.h
     playback/HttpStreamDownloader.cpp
+    playback/IPlaybackSink.h
     playback/HttpStreamDownloader.h
     playback/ProviderTrackSourceResolver.cpp
     playback/ProviderTrackSourceResolver.h
@@ -329,6 +342,7 @@ qt_add_library(lmp_core STATIC
     ../platform/IMediaControls.h
     ../platform/INetworkStatus.h
     ../platform/ITray.h
+    ../platform/IDnsServiceBrowser.h
     ../platform/IPowerStatus.h
     ../platform/IReducedMotion.h
     ../platform/IShellThumbnail.h

@@ -15,11 +15,16 @@ T.Popup {
     property int currentIndex: -1
     // The keyboard is driving the menu: show the focus ring on the current item.
     property bool keyboardActive: false
+    // Set by openAbove: the top of the item the menu stays above, in the
+    // parent's coordinates (NaN otherwise). The menu's height is known only
+    // after it lays out, and changes when its items change while it is open.
+    property real aboveTop: NaN
 
     signal triggered(string itemId)
 
     // Opens with the top-left corner at (x, y) in the menu's parent.
     function openAt(px, py) {
+        aboveTop = NaN
         keyboardActive = false
         x = px
         y = py
@@ -29,6 +34,7 @@ T.Popup {
     // Opens over `item`, as the keyboard's menu key does.
     function openBelow(item) {
         const point = item.mapToItem(parent, 12, 12)
+        aboveTop = NaN
         x = point.x
         y = point.y
         keyboardActive = true
@@ -36,15 +42,15 @@ T.Popup {
     }
 
     // Opens with its bottom 8px above `item`'s top, left edges aligned (a
-    // bar's button near the bottom of the window). The height is known only
-    // once the menu has laid out its items, so the place is set after opening.
+    // bar's button near the bottom of the window). It stays there as its height
+    // changes (see aboveTop).
     function openAbove(item) {
         const point = item.mapToItem(parent, 0, 0)
         keyboardActive = false
+        aboveTop = point.y
         x = point.x
-        y = point.y
+        y = point.y - height - 8
         open()
-        Qt.callLater(() => { y = point.y - height - 8 })
     }
 
     function pick(row) {
@@ -63,6 +69,10 @@ T.Popup {
     implicitHeight: column.implicitHeight + topPadding + bottomPadding
 
     onOpened: currentIndex = items.firstEnabled()
+    onHeightChanged: {
+        if (!isNaN(aboveTop))
+            y = aboveTop - height - 8
+    }
 
     enter: Transition {
         enabled: !Motion.reduced

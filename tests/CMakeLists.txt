@@ -557,3 +557,11 @@ lmp_add_test(tst_audio_output_view_model
 lmp_add_test(tst_presence_protocol
     SOURCES core/tst_presence_protocol.cpp
     LIBS lmp_core)
+
+lmp_add_test(tst_cast
+    SOURCES core/tst_cast.cpp
+    LIBS lmp_core)
+
+lmp_add_test(tst_player_sink
+    SOURCES core/tst_player_sink.cpp core/PlayerFixture.h core/FakeAudioPlayer.h core/FakePlaybackClock.h core/TempLibrary.h
+    LIBS lmp_core)

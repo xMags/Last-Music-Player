@@ -28,6 +28,20 @@ void PlayerController::load(const Track& track, double startAtSeconds, bool auto
     if (m_current && !m_endedThisLoad) {
         emit trackLeft(*m_current, m_position, m_duration);
     }
+    // A song the external sink cannot take plays here instead.
+    if (m_sink != nullptr && !m_sink->accepts(track)) {
+        const bool somethingOpen = m_audioLoadId != 0;
+        m_audioLoadId = 0;
+        if (somethingOpen) {
+            m_audio->stop();
+        }
+        disconnectAudio();
+        m_sink = nullptr;
+        m_audio = &m_localAudio;
+        m_resolver = &m_localResolver;
+        connectAudio();
+        emit sinkRefused(track);
+    }
     m_brokenSkipTimer->stop();
     setStoppedAfterBrokenTracks(false);
 
@@ -36,7 +50,7 @@ void PlayerController::load(const Track& track, double startAtSeconds, bool auto
     const bool somethingOpen = m_audioLoadId != 0;
     m_audioLoadId = 0;
     if (somethingOpen) {
-        m_audio.stop();
+        m_audio->stop();
     }
 
     const RequestScope::Token token = m_loads.next();
@@ -54,7 +68,19 @@ void PlayerController::load(const Track& track, double startAtSeconds, bool auto
 
     // May run at once when the answer is ready; everything above is in
     // place by then. A cancelled resolve counts as a failed one.
-    m_resolver.resolve(track)
+    m_resolver->resolve(track)
+        .then(this, [this, token](Result<QUrl> source) { handleResolved(token, source); })
+        .onCanceled(this, [this, token]() {
+            handleResolved(token, Failure::of(FailureKind::Cancelled, QStringLiteral("The resolve was cancelled.")));
+        });
+}
+
+void PlayerController::reopenCurrent(bool play)
+{
+    const RequestScope::Token token = m_loads.next();
+    m_wantsPlay = play;
+    setState(State::Loading);
+    m_resolver->resolve(*m_current)
         .then(this, [this, token](Result<QUrl> source) { handleResolved(token, source); })
         .onCanceled(this, [this, token]() {
             handleResolved(token, Failure::of(FailureKind::Cancelled, QStringLiteral("The resolve was cancelled.")));
@@ -75,7 +101,7 @@ void PlayerController::handleResolved(RequestScope::Token token, const Result<QU
         handleTrackFailure();
         return;
     }
-    m_audioLoadId = m_audio.open(source.value(), m_wantsPlay, m_position);
+    m_audioLoadId = m_audio->open(source.value(), m_wantsPlay, m_position);
     // Re-applied for every song, as before, in case the player reset it.
     applyVolume();
 }
@@ -117,8 +143,8 @@ void PlayerController::advance(QueueDirection direction, AdvanceTrigger trigger,
     // The queue ran out: the last song stays shown, stopped where it ended.
     m_wantsPlay = false;
     observeHistory(false);
-    if (m_audioLoadId != 0 && m_audio.state() == platform::IAudioPlayer::State::Playing) {
-        m_audio.pause();
+    if (m_audioLoadId != 0 && m_audio->state() == platform::IAudioPlayer::State::Playing) {
+        m_audio->pause();
     }
     if (m_state != State::Error) {
         setState(m_current ? State::Paused : State::Idle);
@@ -139,7 +165,7 @@ void PlayerController::replayCurrent()
     m_wantsPlay = true;
     m_endedThisLoad = false;
     setPosition(0.0);
-    m_audio.play(); // after the end, play starts from the beginning
+    m_audio->play(); // after the end, play starts from the beginning
 }
 
 void PlayerController::handleTrackFailure()

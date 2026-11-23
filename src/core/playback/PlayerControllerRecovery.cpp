@@ -61,7 +61,7 @@ void PlayerController::recoverStream()
     setState(State::Loading);
     const double resumeAt = resumeTarget(m_position, m_duration);
     const RequestScope::Token token = m_loads.next();
-    m_resolver.refresh(*m_current)
+    m_resolver->refresh(*m_current)
         .then(this, [this, token, resumeAt](Result<QUrl> source) { handleRecovered(token, source, resumeAt); })
         .onCanceled(this, [this, token, resumeAt]() {
             handleRecovered(token, Failure::of(FailureKind::Cancelled, QStringLiteral("The resolve was cancelled.")),
@@ -82,7 +82,7 @@ void PlayerController::handleRecovered(RequestScope::Token token, const Result<Q
         return;
     }
     setPosition(resumeAt);
-    m_audioLoadId = m_audio.open(source.value(), m_wantsPlay, resumeAt);
+    m_audioLoadId = m_audio->open(source.value(), m_wantsPlay, resumeAt);
     applyVolume();
 }
 
