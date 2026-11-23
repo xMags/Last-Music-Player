@@ -1,5 +1,7 @@
 #include "core/library/CollectionActions.h"
 
+#include "core/account/AccountLibraryEditor.h"
+
 #include <optional>
 
 #include "core/db/CollectionRepository.h"
@@ -48,10 +50,41 @@ Result<QString> CollectionActions::createPlaylist(const QString& name)
     return key;
 }
 
+void CollectionActions::setAccountEditor(account::AccountLibraryEditor* editor)
+{
+    m_account = editor;
+    if (m_account != nullptr) {
+        connect(m_account, &account::AccountLibraryEditor::playlistsChanged, this, &CollectionActions::playlistsChanged);
+    }
+}
+
+bool CollectionActions::createsOnAccount() const
+{
+    return m_account != nullptr && m_account->isActive();
+}
+
+QFuture<Result<QString>> CollectionActions::createAccountPlaylist(const QString& name)
+{
+    if (!createsOnAccount()) {
+        return QtFuture::makeReadyValueFuture(Result<QString>(Failure::of(FailureKind::NotAvailable)));
+    }
+    return m_account->createPlaylist(cleanName(name, QStringLiteral("Untitled Playlist")));
+}
+
 Result<void> CollectionActions::renamePlaylist(const QString& playlistKey, const QString& name)
 {
     if (playlistKey.isEmpty()) {
         return Failure::of(FailureKind::NotAvailable);
+    }
+    if (account::AccountLibraryEditor::isAccountPlaylistKey(playlistKey)) {
+        if (m_account == nullptr || !m_account->isActive()) {
+            return Failure::of(FailureKind::NotAvailable);
+        }
+        // Shown at once; the editor reports a refusal.
+        const QString title = cleanName(name, QStringLiteral("Untitled Playlist"));
+        (void)m_account->renamePlaylist(playlistKey, title);
+        emit playlistRenamed(playlistKey, title);
+        return Result<void>::success();
     }
     const std::optional<UserDataOperationGate::Lease> lease = m_gate.tryEnter();
     if (!lease) {
@@ -70,6 +103,14 @@ Result<void> CollectionActions::deletePlaylist(const QString& playlistKey)
 {
     if (playlistKey.isEmpty()) {
         return Failure::of(FailureKind::NotAvailable);
+    }
+    if (account::AccountLibraryEditor::isAccountPlaylistKey(playlistKey)) {
+        if (m_account == nullptr || !m_account->isActive()) {
+            return Failure::of(FailureKind::NotAvailable);
+        }
+        (void)m_account->deletePlaylist(playlistKey);
+        emit collectionDeleted(QStringLiteral("playlist"), playlistKey);
+        return Result<void>::success();
     }
     const std::optional<UserDataOperationGate::Lease> lease = m_gate.tryEnter();
     if (!lease) {

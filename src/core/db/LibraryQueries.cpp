@@ -157,6 +157,16 @@ QList<HistoryImportCandidate> LibraryQueries::loadLegacyRemoteHistoryImportCandi
     return candidates;
 }
 
+QString LibraryQueries::activeAccountOwner() const
+{
+    auto prepared = m_connection.prepare(
+        "SELECT AccountId FROM ActiveAccountContext WHERE SingletonId=1 AND RemoteMode='Account';");
+    if (!prepared || !prepared.value().step().valueOr(false)) {
+        return {};
+    }
+    return prepared.value().columnText(0);
+}
+
 TrackPage LibraryQueries::loadTrackPage(const TrackQuery& query)
 {
     const QString groupKind = query.groupKind.toLower();
@@ -164,12 +174,13 @@ TrackPage LibraryQueries::loadTrackPage(const TrackQuery& query)
         return loadCollectionPage(query, CollectionTable::Albums);
     }
     if (groupKind == QLatin1StringView("playlist") && query.groupKey.startsWith(kAccountPlaylistPrefix)) {
-        if (query.accountOwnerId.isEmpty() || m_accountPlaylists == nullptr) {
+        // The account whose library is in use, unless the query names one.
+        const QString owner = query.accountOwnerId.isEmpty() ? activeAccountOwner() : query.accountOwnerId;
+        if (owner.isEmpty() || m_accountPlaylists == nullptr) {
             return {};
         }
         const QString playlistId = query.groupKey.mid(kAccountPlaylistPrefix.size());
-        return pageAccountPlaylistTracks(m_accountPlaylists->loadAccountPlaylistTracks(query.accountOwnerId, playlistId),
-                                         query);
+        return pageAccountPlaylistTracks(m_accountPlaylists->loadAccountPlaylistTracks(owner, playlistId), query);
     }
     if (groupKind == QLatin1StringView("playlist")) {
         return loadCollectionPage(query, CollectionTable::Playlists);

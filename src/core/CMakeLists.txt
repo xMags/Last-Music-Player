@@ -3,6 +3,8 @@ qt_add_library(lmp_core STATIC
     account/AccountClient.h
     account/AccountClientMusic.cpp
     account/AccountDataLifecycleStorage.h
+    account/AccountLibraryEditor.cpp
+    account/AccountLibraryEditor.h
     account/AccountLibrarySync.cpp
     account/AccountLibrarySync.h
     account/AccountMusicContract.cpp
@@ -180,6 +182,7 @@ qt_add_library(lmp_core STATIC
     net/RetryAfter.h
     net/UserMessages.cpp
     net/UserMessages.h
+    playback/AccountPlaybackSink.h
     playback/AccountTrackSourceResolver.cpp
     playback/AccountTrackSourceResolver.h
     playback/ArtworkAccent.cpp

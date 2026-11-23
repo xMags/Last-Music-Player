@@ -144,6 +144,11 @@ void PlayerController::playVisibleQueueEntry(qsizetype visibleIndex)
     emit autoplayExtensionWanted(false);
 }
 
+void PlayerController::setAccountPlaybackSink(AccountPlaybackSink* sink)
+{
+    m_history.setAccountSink(sink);
+}
+
 void PlayerController::togglePlay()
 {
     if (!m_current) {

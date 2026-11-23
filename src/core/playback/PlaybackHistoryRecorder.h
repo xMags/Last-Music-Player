@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/model/Track.h"
+#include "core/playback/AccountPlaybackSink.h"
 #include "core/playback/PlaybackHistoryQualifier.h"
 
 #include <QString>
@@ -36,12 +37,18 @@ public:
     void clear();
     // One sample: `playing` is whether the song is playing at `nowMilliseconds`
     // (a monotonic clock). True when this sample wrote the play.
-    [[nodiscard]] bool observe(bool playing, std::uint64_t nowMilliseconds);
+    // `positionSeconds` is where the song stands when the play qualifies.
+    [[nodiscard]] bool observe(bool playing, std::uint64_t nowMilliseconds, double positionSeconds = 0.0);
+    // Where plays of account songs go in Account mode instead of the local
+    // history; none by default. Must outlive this object.
+    void setAccountSink(AccountPlaybackSink* sink) { m_accountSink = sink; }
 
 private:
     void record();
 
     db::TrackRepository& m_tracks;
+    AccountPlaybackSink* m_accountSink = nullptr;
+    double m_position = 0.0;
     PlaybackHistoryQualifier m_qualifier;
     Track m_track;
     QString m_sourceKey;

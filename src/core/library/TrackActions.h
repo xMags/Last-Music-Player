@@ -22,6 +22,10 @@ namespace lmp::core::mode {
 class ModeService;
 }
 
+namespace lmp::core::account {
+class AccountLibraryEditor;
+}
+
 namespace lmp::core {
 
 // What a song's menu, row buttons and keys can do with it: play it (in its
@@ -30,9 +34,11 @@ namespace lmp::core {
 // mode's Capabilities whether it applies to this song (a song with no file
 // on this PC plays only where remote songs can stream), as the menu does.
 //
-// Likes and playlists are the local library's in this version (the
-// account's arrive with account sync). Opening a page is reported through
-// signals for the navigation to follow.
+// Likes and playlists of songs on this PC are the local library's. In
+// Account mode an account song's like goes to the account (through the
+// outbox), and account playlists ("account-playlist|<id>") are edited on the
+// service; those edits finish later and their own change signals follow.
+// Opening a page is reported through signals for the navigation to follow.
 //
 // GUI thread only (the database's owner).
 class TrackActions : public QObject {
@@ -46,6 +52,9 @@ public:
         db::GroupQueries& groups;
         const mode::ModeService& mode;
         UserDataOperationGate& gate;
+        // Account songs and playlists in Account mode; without it they
+        // cannot be kept here.
+        account::AccountLibraryEditor* account = nullptr;
     };
 
     // Every dependency must outlive this object.
@@ -105,6 +114,7 @@ private:
     db::GroupQueries& m_groups;
     const mode::ModeService& m_mode;
     UserDataOperationGate& m_gate;
+    account::AccountLibraryEditor* m_account = nullptr;
 };
 
 } // namespace lmp::core

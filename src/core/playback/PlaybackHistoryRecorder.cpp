@@ -44,11 +44,12 @@ void PlaybackHistoryRecorder::clear()
     m_identity.clear();
 }
 
-bool PlaybackHistoryRecorder::observe(bool playing, std::uint64_t nowMilliseconds)
+bool PlaybackHistoryRecorder::observe(bool playing, std::uint64_t nowMilliseconds, double positionSeconds)
 {
     if (m_identity.isEmpty() || !m_qualifier.observe(m_identity, playing, nowMilliseconds)) {
         return false;
     }
+    m_position = positionSeconds;
     record();
     // Marked even when a write failed, as before: one play, one attempt.
     m_qualifier.markCompleted();
@@ -57,6 +58,10 @@ bool PlaybackHistoryRecorder::observe(bool playing, std::uint64_t nowMillisecond
 
 void PlaybackHistoryRecorder::record()
 {
+    // In Account mode a play of an account song belongs to the account.
+    if (m_accountSink != nullptr && m_accountSink->recordAccountPlay(m_track, m_position)) {
+        return;
+    }
     const bool remote = m_track.isRemote() || net::isHttpUrl(m_track.filePath);
     if (remote) {
         const Result<qint64> upserted = m_tracks.upsertRemoteTrack(m_track, m_sourceKey);

@@ -1,5 +1,7 @@
 #include "core/library/TrackActions.h"
 
+#include "core/account/AccountLibraryEditor.h"
+
 #include <optional>
 
 #include "core/db/CollectionRepository.h"
@@ -22,7 +24,13 @@ TrackActions::TrackActions(const Dependencies& dependencies, QObject* parent)
     , m_groups(dependencies.groups)
     , m_mode(dependencies.mode)
     , m_gate(dependencies.gate)
+    , m_account(dependencies.account)
 {
+    if (m_account != nullptr) {
+        // Account edits finish later; the views follow their results.
+        connect(m_account, &account::AccountLibraryEditor::playlistsChanged, this, &TrackActions::playlistsChanged);
+        connect(m_account, &account::AccountLibraryEditor::playlistChanged, this, &TrackActions::playlistChanged);
+    }
 }
 
 bool TrackActions::canPlay(const Track& track) const
@@ -38,9 +46,11 @@ bool TrackActions::canKeep(const Track& track) const
     if (catalogSourceKey(track).isEmpty()) {
         return false;
     }
-    // An account song's likes and playlists live on the service; they are
-    // saved there once account sync exists.
-    return !(track.isRemote() && m_mode.mode() == mode::SourceMode::Account);
+    // An account song's likes and playlists live on the service.
+    if (track.isRemote() && m_mode.mode() == mode::SourceMode::Account) {
+        return m_account != nullptr && m_account->handles(track);
+    }
+    return true;
 }
 
 bool TrackActions::play(const Track& track, const QList<Track>& context)
@@ -121,6 +131,13 @@ QList<qint64> TrackActions::rowIds(const QList<Track>& tracks)
 
 Result<void> TrackActions::removeAllFromPlaylist(const QList<Track>& tracks, const QString& playlistKey)
 {
+    if (account::AccountLibraryEditor::isAccountPlaylistKey(playlistKey)) {
+        if (m_account == nullptr || !m_account->isActive() || tracks.isEmpty()) {
+            return Failure::of(FailureKind::NotAvailable);
+        }
+        (void)m_account->removeFromPlaylist(playlistKey, tracks);
+        return Result<void>::success();
+    }
     const QList<qint64> ids = rowIds(tracks);
     if (playlistKey.isEmpty() || ids.isEmpty()) {
         return Failure::of(FailureKind::NotAvailable);
@@ -138,6 +155,12 @@ Result<void> TrackActions::removeAllFromPlaylist(const QList<Track>& tracks, con
 
 Result<void> TrackActions::moveToPlaylist(const QList<Track>& tracks, const QString& fromKey, const QString& toKey)
 {
+    // Between the service and this PC a move would be two edits in two
+    // places that cannot fail together; it is not offered.
+    if (account::AccountLibraryEditor::isAccountPlaylistKey(fromKey)
+        || account::AccountLibraryEditor::isAccountPlaylistKey(toKey)) {
+        return Failure::of(FailureKind::NotAvailable, QStringLiteral("account playlists do not move songs"));
+    }
     const QList<qint64> ids = rowIds(tracks);
     if (fromKey.isEmpty() || toKey.isEmpty() || fromKey == toKey || ids.isEmpty()) {
         return Failure::of(FailureKind::NotAvailable);
@@ -156,6 +179,13 @@ Result<void> TrackActions::moveToPlaylist(const QList<Track>& tracks, const QStr
 
 Result<void> TrackActions::reorderPlaylist(const QString& playlistKey, const QList<Track>& tracks)
 {
+    if (account::AccountLibraryEditor::isAccountPlaylistKey(playlistKey)) {
+        if (m_account == nullptr || !m_account->isActive() || tracks.isEmpty()) {
+            return Failure::of(FailureKind::NotAvailable);
+        }
+        (void)m_account->replacePlaylist(playlistKey, tracks);
+        return Result<void>::success();
+    }
     const QList<qint64> ids = rowIds(tracks);
     if (playlistKey.isEmpty() || ids.isEmpty()) {
         return Failure::of(FailureKind::NotAvailable);
@@ -192,6 +222,13 @@ std::optional<bool> TrackActions::toggleLike(const Track& track)
     if (!lease) {
         return std::nullopt;
     }
+    if (m_account != nullptr && m_account->handles(track)) {
+        const std::optional<bool> liked = m_account->setLiked(track, !m_account->isLiked(track));
+        if (liked) {
+            emit likedChanged(catalogSourceKey(track), *liked);
+        }
+        return liked;
+    }
     const QString key = catalogSourceKey(track);
     // The song needs its row before the flag can be set on it.
     if (!persist(track)) {
@@ -207,10 +244,12 @@ std::optional<bool> TrackActions::toggleLike(const Track& track)
 
 QList<Track> TrackActions::playlists()
 {
+    // The account's playlists while its account is in use, then the ones
+    // kept on this PC.
+    const bool accountPlaylists = m_account != nullptr && m_account->isActive();
     QList<Track> mine;
     for (const Track& playlist : m_groups.loadPlaylists()) {
-        // The account's playlists come with account sync.
-        if (playlist.origin != QLatin1StringView("account")) {
+        if (playlist.origin != QLatin1StringView("account") || accountPlaylists) {
             mine.append(playlist);
         }
     }
@@ -221,6 +260,13 @@ Result<void> TrackActions::addToPlaylist(const Track& track, const QString& play
 {
     if (!canKeep(track) || playlistKey.isEmpty()) {
         return Failure::of(FailureKind::NotAvailable);
+    }
+    if (account::AccountLibraryEditor::isAccountPlaylistKey(playlistKey)) {
+        if (m_account == nullptr || !m_account->handles(track)) {
+            return Failure::of(FailureKind::NotAvailable, QStringLiteral("only account songs go in account playlists"));
+        }
+        (void)m_account->addToPlaylist(playlistKey, track);
+        return Result<void>::success();
     }
     const std::optional<UserDataOperationGate::Lease> lease = m_gate.tryEnter();
     if (!lease) {
@@ -242,6 +288,11 @@ Result<QString> TrackActions::addToNewPlaylist(const Track& track, const QString
     const QString title = name.trimmed();
     if (title.isEmpty() || !canKeep(track)) {
         return Failure::of(FailureKind::NotAvailable);
+    }
+    if (m_account != nullptr && m_account->handles(track)) {
+        // Made on the service with the song in it; its key arrives later.
+        (void)m_account->createPlaylist(title, {track});
+        return QString();
     }
     qint64 createdId = 0;
     {
@@ -275,6 +326,9 @@ Result<QString> TrackActions::addToNewPlaylist(const Track& track, const QString
 
 Result<void> TrackActions::removeFromPlaylist(const Track& track, const QString& playlistKey)
 {
+    if (account::AccountLibraryEditor::isAccountPlaylistKey(playlistKey)) {
+        return removeAllFromPlaylist({track}, playlistKey);
+    }
     if (playlistKey.isEmpty() || track.rowId <= 0) {
         return Failure::of(FailureKind::NotAvailable);
     }

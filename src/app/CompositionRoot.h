@@ -5,6 +5,7 @@
 #include <memory>
 
 #include "core/account/AccountClient.h"
+#include "core/account/AccountLibraryEditor.h"
 #include "core/account/AccountSessionService.h"
 #include "core/account/AccountSignOutCoordinator.h"
 #include "core/account/AccountSyncScheduler.h"
@@ -133,6 +134,8 @@ private:
     // app runs on and plays, but nothing reaches the history.
     bool m_databaseOpen = false;
     core::db::TrackRepository m_tracks;
+    // The cached account library (songs, playlists, sync bookkeeping).
+    core::db::AccountRepository m_accounts;
     core::db::LibraryQueries m_library;
     core::db::CollectionRepository m_collections;
     core::db::GroupQueries m_groups;
@@ -154,7 +157,6 @@ private:
     core::account::AccountClient m_accountClient;
     core::account::AccountSessionService m_session;
     core::provider::ProviderClient m_providerClient;
-    core::db::AccountRepository m_accounts;
     core::mode::ModeService m_mode;
     platform::windows::WindowsAudioPlayer m_audio;
     // Bound to the main window once it exists (showMainWindow).
@@ -177,6 +179,8 @@ private:
     core::db::AccountOutboxRepository m_outbox;
     core::account::MusicSyncService m_sync;
     core::account::AccountSyncScheduler m_syncScheduler;
+    // What the user changes in the account library from this PC.
+    core::account::AccountLibraryEditor m_accountEditor;
     platform::windows::WindowsFolderPicker m_folderPicker;
     // What a song's menu and buttons do.
     core::TrackActions m_trackActions;

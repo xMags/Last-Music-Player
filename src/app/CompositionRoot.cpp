@@ -67,7 +67,8 @@ CompositionRoot::CompositionRoot()
     , m_database(m_paths)
     , m_databaseOpen(openDatabase(m_database))
     , m_tracks(m_database)
-    , m_library(m_database)
+    , m_accounts(m_database)
+    , m_library(m_database, &m_accounts)
     , m_collections(m_database)
     , m_groups(m_database)
     , m_artworkCache(m_paths.thumbsFolder(), &m_tagReader)
@@ -90,7 +91,6 @@ CompositionRoot::CompositionRoot()
                  .links = m_externalLinks,
                  .operationGate = m_userDataGate})
     , m_providerClient(m_http)
-    , m_accounts(m_database)
     , m_mode({.settings = m_settings,
               .secrets = m_secrets,
               .session = m_session,
@@ -127,12 +127,22 @@ CompositionRoot::CompositionRoot()
               .clock = m_clock,
               .nowUtc = {}})
     , m_syncScheduler({.sync = m_sync, .session = m_session, .mode = m_mode, .network = m_network, .clock = m_clock})
+    , m_accountEditor({.client = m_accountClient,
+                       .session = m_session,
+                       .mode = m_mode,
+                       .accounts = m_accounts,
+                       .outbox = m_outbox,
+                       .sync = m_sync,
+                       .gate = m_userDataGate,
+                       .nowUtc = {},
+                       .newEventId = {}})
     , m_trackActions({.player = m_player,
                       .tracks = m_tracks,
                       .collections = m_collections,
                       .groups = m_groups,
                       .mode = m_mode,
-                      .gate = m_userDataGate})
+                      .gate = m_userDataGate,
+                      .account = &m_accountEditor})
     , m_collectionActions(m_collections, m_userDataGate)
     , m_homeMixes(m_library, m_groups, [] { return QDate::currentDate(); })
     , m_windowChromeViewModel(&m_windowChrome)
@@ -279,6 +289,12 @@ CompositionRoot::CompositionRoot()
         [[maybe_unused]] const bool pruning = m_scanner.pruneMissingTracks();
         m_sidebar.refreshPlaylists();
     }
+
+    // Account songs and playlists are kept on the account in Account mode.
+    m_collectionActions.setAccountEditor(&m_accountEditor);
+    m_player.setAccountPlaybackSink(&m_accountEditor);
+    QObject::connect(&m_accountEditor, &core::account::AccountLibraryEditor::failed, &m_toasts,
+                     [this](const QString& message) { m_toasts.show(message, true); });
 
     // After "Delete all data" every view reads its (now empty) data again.
     QObject::connect(&m_cleanup, &core::UserDataCleanup::cleared, &m_cleanup, [this]() {

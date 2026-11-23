@@ -91,6 +91,20 @@ bool CollectionEditor::submitPrompt(const QString& value)
     const Pending pending = std::exchange(m_pending, Pending::None);
     switch (pending) {
     case Pending::CreatePlaylist: {
+        if (m_actions.createsOnAccount()) {
+            // Made on the account; the page opens once the service made it.
+            const QString title = core::CollectionActions::cleanName(value, tr("Untitled Playlist"));
+            m_actions.createAccountPlaylist(value).then(this, [this, title](const core::Result<QString>& key) {
+                if (!key) {
+                    return; // the account editor reported it
+                }
+                m_toasts.show(tr("Created “%1”").arg(title));
+                m_navigator.push(Route(Route::Kind::Collection, {{QStringLiteral("kind"), QStringLiteral("playlist")},
+                                                                 {QStringLiteral("key"), key.value()},
+                                                                 {QStringLiteral("title"), title}}));
+            });
+            return true;
+        }
         const core::Result<QString> key = m_actions.createPlaylist(value);
         if (!key) {
             m_toasts.show(tr("Could not create the playlist."), true);

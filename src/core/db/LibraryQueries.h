@@ -60,6 +60,10 @@ private:
     [[nodiscard]] TrackPage loadFlatPage(const TrackQuery& query);
 
     SqliteConnection& m_connection;
+    // The account of the active library context in Account mode; empty
+    // otherwise.
+    [[nodiscard]] QString activeAccountOwner() const;
+
     const AccountPlaylistTrackSource* m_accountPlaylists;
 };
 

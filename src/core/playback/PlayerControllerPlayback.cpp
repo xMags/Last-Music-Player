@@ -260,7 +260,7 @@ void PlayerController::onAudioError(quint64 loadId)
 
 void PlayerController::observeHistory(bool playing)
 {
-    if (m_history.observe(playing, m_clock.nowMilliseconds()) && m_current) {
+    if (m_history.observe(playing, m_clock.nowMilliseconds(), m_position) && m_current) {
         emit playRecorded(*m_current);
     }
 }

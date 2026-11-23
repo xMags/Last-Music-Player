@@ -92,6 +92,46 @@ Result<void> AccountRepository::updateAccountTrackLike(const QString& accountId,
     return prepared.value().run();
 }
 
+std::optional<bool> AccountRepository::isAccountTrackLiked(const QString& accountId, const QString& remoteTrackId) const
+{
+    if (accountId.isEmpty() || remoteTrackId.isEmpty()) {
+        return std::nullopt;
+    }
+    auto prepared = m_connection.prepare("SELECT IsLiked FROM AccountTracks WHERE AccountId=? AND RemoteId=?;");
+    if (!prepared) {
+        return std::nullopt;
+    }
+    prepared.value().bindText(1, accountId);
+    prepared.value().bindText(2, remoteTrackId);
+    if (!prepared.value().step().valueOr(false)) {
+        return std::nullopt;
+    }
+    return account_rows::columnInt(prepared.value(), 0) != 0;
+}
+
+QList<Track> AccountRepository::loadAccountLikedTracks(const QString& accountId) const
+{
+    QList<Track> liked;
+    if (accountId.isEmpty()) {
+        return liked;
+    }
+    auto prepared = m_connection.prepare(
+        "SELECT RemoteId, Title, Artist FROM AccountTracks WHERE AccountId=? AND IsLiked=1 ORDER BY rowid;");
+    if (!prepared) {
+        return liked;
+    }
+    prepared.value().bindText(1, accountId);
+    while (prepared.value().step().valueOr(false)) {
+        Track track;
+        track.remoteId = prepared.value().columnText(0);
+        track.title = prepared.value().columnText(1);
+        track.artist = prepared.value().columnText(2);
+        track.liked = true;
+        liked.append(std::move(track));
+    }
+    return liked;
+}
+
 AccountSyncState AccountRepository::loadAccountSyncState(const QString& accountId) const
 {
     AccountSyncState state;

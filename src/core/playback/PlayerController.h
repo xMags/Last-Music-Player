@@ -120,6 +120,10 @@ public:
     // Saves what is still pending (the volume); called by the composition root.
     void shutdown();
 
+    // Where plays of account songs go in Account mode instead of the local
+    // history (nothing by default). Must outlive the controller.
+    void setAccountPlaybackSink(AccountPlaybackSink* sink);
+
 signals:
     void currentTrackChanged();
     void stateChanged();
