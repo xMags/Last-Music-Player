@@ -53,12 +53,32 @@ Item {
             }
 
             AppButton {
+                id: saveButton
+
+                // Set by a press that saves, until the page shows it saved.
+                property bool celebrating: false
+
                 visible: page.model.canSave
                 enabled: !page.model.saving
                 iconName: page.model.saved ? "check" : "playlist-add"
                 text: page.model.saving ? qsTr("Saving…")
                     : page.model.saved ? qsTr("Saved to library") : qsTr("Save to library")
-                onClicked: page.model.toggleSave()
+                onClicked: {
+                    saveButton.celebrating = !page.model.saved
+                    page.model.toggleSave()
+                }
+
+                Connections {
+                    target: page.model
+
+                    function onChanged() {
+                        if (!saveButton.celebrating || page.model.saving)
+                            return
+                        if (page.model.saved)
+                            App.effects.collectionSaved(saveButton)
+                        saveButton.celebrating = false
+                    }
+                }
             }
 
             Text {

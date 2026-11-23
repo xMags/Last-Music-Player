@@ -253,6 +253,12 @@ Item {
     // The one-time history import question after signing in.
     HistoryImportDialog {}
 
+    // The queue arc, heart burst and save motion, over everything.
+    MotionLayer {
+        anchors.fill: parent
+        z: 150
+    }
+
     // Toasts stack upwards from 104px above the window's bottom.
     ToastStack {
         anchors.horizontalCenter: parent.horizontalCenter

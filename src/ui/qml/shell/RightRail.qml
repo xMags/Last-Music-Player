@@ -20,6 +20,8 @@ Rectangle {
         y: 8
         width: rail.width - 2 * 24
         choices: [qsTr("Up Next"), qsTr("Lyrics")]
+        // A song sent to the queue lands on the Up Next half.
+        Component.onCompleted: App.effects.addQueueTarget(tabs, 0.25, 1)
         currentIndex: rail.tab
         onActivated: index => rail.tab = index
     }

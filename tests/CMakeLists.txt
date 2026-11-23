@@ -581,3 +581,7 @@ lmp_add_test(tst_cover_flight
 lmp_add_test(tst_page_cascade
     SOURCES ui/tst_page_cascade.cpp
     LIBS lmp_ui)
+
+lmp_add_test(tst_motion_effects
+    SOURCES ui/tst_motion_effects.cpp
+    LIBS lmp_ui)

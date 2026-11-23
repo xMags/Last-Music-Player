@@ -121,6 +121,7 @@ bool TrackActions::playNext(const Track& track)
         return false;
     }
     m_player.playNext({track});
+    emit queued(track);
     return true;
 }
 
@@ -130,6 +131,7 @@ bool TrackActions::addToQueue(const Track& track)
         return false;
     }
     m_player.addToQueue({track});
+    emit queued(track);
     return true;
 }
 

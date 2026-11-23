@@ -135,11 +135,17 @@ RowLayout {
 
     // Kept in place but hidden while idle, so nothing moves when a song loads.
     IconButton {
+        id: likeButton
+
         opacity: block.idle ? 0 : 1
         enabled: !block.idle
         iconName: App.playerBar.liked ? "heart-fill" : "heart"
         active: App.playerBar.liked
-        onClicked: App.playerBar.toggleLike()
+        onClicked: {
+            if (!App.playerBar.liked)
+                App.effects.heartLiked(likeButton)
+            App.playerBar.toggleLike()
+        }
     }
 
     IconButton {

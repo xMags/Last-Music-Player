@@ -18,6 +18,8 @@ class Motion : public QObject {
     // The cover flight between a card and a page header (flight.ts).
     Q_PROPERTY(QEasingCurve flight READ flight CONSTANT FINAL)
     Q_PROPERTY(int coverFlight READ coverFlight CONSTANT FINAL)
+    // The queue arc (queue-fly.ts).
+    Q_PROPERTY(QEasingCurve queueArc READ queueArc CONSTANT FINAL)
     Q_PROPERTY(QEasingCurve water READ water CONSTANT FINAL)
     Q_PROPERTY(QEasingCurve toastSpring READ toastSpring CONSTANT FINAL)
     Q_PROPERTY(QEasingCurve menu READ menu CONSTANT FINAL)
@@ -109,6 +111,7 @@ public:
     [[nodiscard]] QEasingCurve standard() const { return m_standard; }
     [[nodiscard]] QEasingCurve flight() const { return m_flight; }
     [[nodiscard]] int coverFlight() const { return 420; }
+    [[nodiscard]] QEasingCurve queueArc() const { return m_queueArc; }
     [[nodiscard]] QEasingCurve water() const { return m_water; }
     [[nodiscard]] QEasingCurve toastSpring() const { return m_toastSpring; }
     [[nodiscard]] QEasingCurve menu() const { return m_menu; }
@@ -205,6 +208,7 @@ private:
 
     QEasingCurve m_standard = cubicBezier(0.2, 0, 0, 1);
     QEasingCurve m_flight = cubicBezier(0.2, 0.75, 0.25, 1);
+    QEasingCurve m_queueArc = cubicBezier(0.45, 0, 0.35, 1);
     QEasingCurve m_water = cubicBezier(0.22, 0.61, 0.36, 1);
     QEasingCurve m_toastSpring = cubicBezier(0.34, 1.45, 0.5, 1);
     QEasingCurve m_menu = cubicBezier(0.1, 0.9, 0.2, 1);

@@ -495,6 +495,7 @@ CompositionRoot::CompositionRoot()
           .cast = &m_castViewModel,
           .coverFlight = &m_coverFlight,
           .cascade = &m_pageCascade,
+          .effects = &m_effects,
           .equalizer = &m_equalizer,
           .historyImport = &m_historyImportViewModel,
           .share = &m_share,
@@ -577,6 +578,9 @@ CompositionRoot::CompositionRoot()
                      [this](const QString& text) { m_toasts.show(text); });
     // Each page opened starts the cascade of its cards and rows.
     QObject::connect(&m_navigator, &ui::Navigator::currentChanged, &m_pageCascade, [this]() { m_pageCascade.restart(); });
+    // A song sent to the queue from a press arcs into it.
+    QObject::connect(&m_trackActions, &core::TrackActions::queued, &m_effects,
+                     [this](const core::Track& track) { m_effects.trackQueued(track); });
     // Discord presence follows its setting and the player.
     m_presence.setEnabled(m_settings.boolean(core::settings::keys::DiscordPresence, false));
     QObject::connect(&m_settings, &core::SettingsStore::changed, &m_presence, [this](const QString& key) {
@@ -875,6 +879,8 @@ bool CompositionRoot::showMainWindow(QQmlApplicationEngine& engine)
     m_librarySettings.setOwnerWindow(static_cast<quintptr>(window->winId()));
     m_offline.setOwnerWindow(static_cast<quintptr>(window->winId()));
     m_closeToTray.attach(window);
+    // Presses, for where the queue arc starts.
+    window->installEventFilter(&m_effects);
     // The system routes the media keys to the session of this window.
     if (!m_mediaControls.attach(static_cast<quintptr>(window->winId()))) {
         qCWarning(lcComposition) << "The system media controls are not available";

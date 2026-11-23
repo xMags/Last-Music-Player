@@ -22,6 +22,7 @@ set(LMP_UI_QML_FILES
     qml/Main.qml
     qml/cards/Card.qml
     qml/motion/CascadeIn.qml
+    qml/motion/MotionLayer.qml
     qml/motion/SharedCover.qml
     qml/cards/CountPill.qml
     qml/cards/CardGrid.qml
@@ -213,6 +214,8 @@ qt_add_qml_module(lmp_ui
         menus/MenuItemListModel.cpp
         motion/CoverFlight.cpp
         motion/CoverFlight.h
+        motion/MotionEffects.cpp
+        motion/MotionEffects.h
         motion/PageCascade.cpp
         motion/PageCascade.h
         menus/MenuItemListModel.h

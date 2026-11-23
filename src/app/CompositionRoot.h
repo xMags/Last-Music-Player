@@ -64,6 +64,7 @@
 #include "ui/cast/CastViewModel.h"
 #include "ui/motion/CoverFlight.h"
 #include "ui/motion/PageCascade.h"
+#include "ui/motion/MotionEffects.h"
 #include "core/playback/TrackSourceResolver.h"
 #include "core/provider/ProviderClient.h"
 #include "core/remote/ArtworkService.h"
@@ -340,6 +341,8 @@ private:
     ui::CoverFlight m_coverFlight;
     // Cards and rows arriving one after another when a page opens.
     ui::PageCascade m_pageCascade;
+    // The queue arc, heart burst and save motion.
+    ui::MotionEffects m_effects;
     // Settings > Sound (shown, inert) and the one-time history import offer.
     ui::EqualizerViewModel m_equalizer;
     core::account::HistoryImportService m_historyImport;

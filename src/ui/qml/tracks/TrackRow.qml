@@ -182,6 +182,8 @@ T.AbstractButton {
             spacing: 2
 
             IconButton {
+                id: likeButton
+
                 iconName: row.liked ? "heart-fill" : "heart"
                 active: row.liked
                 shape: IconButton.Square
@@ -189,7 +191,11 @@ T.AbstractButton {
                 implicitWidth: 28
                 implicitHeight: 28
                 Accessible.name: row.liked ? qsTr("Remove from Liked Songs") : qsTr("Add to Liked Songs")
-                onClicked: row.likeRequested()
+                onClicked: {
+                    if (!row.liked)
+                        App.effects.heartLiked(likeButton)
+                    row.likeRequested()
+                }
             }
 
             IconButton {

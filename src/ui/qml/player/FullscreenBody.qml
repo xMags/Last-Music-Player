@@ -111,12 +111,18 @@ Item {
             implicitHeight: transport.implicitHeight
 
             FullscreenButton {
+                id: fullscreenLike
+
                 anchors.left: parent.left
                 anchors.verticalCenter: parent.verticalCenter
                 iconName: App.playerBar.liked ? "heart-fill" : "heart"
                 iconSize: 22
                 active: App.playerBar.liked
-                onClicked: App.playerBar.toggleLike()
+                onClicked: {
+                    if (!App.playerBar.liked)
+                        App.effects.heartLiked(fullscreenLike)
+                    App.playerBar.toggleLike()
+                }
             }
 
             // .fs-transport: 16px apart.

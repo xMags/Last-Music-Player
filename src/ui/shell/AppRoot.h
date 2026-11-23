@@ -25,6 +25,7 @@
 #include "ui/settings/AudioOutputViewModel.h"
 #include "ui/cast/CastViewModel.h"
 #include "ui/motion/CoverFlight.h"
+#include "ui/motion/MotionEffects.h"
 #include "ui/motion/PageCascade.h"
 #include "ui/settings/EqualizerViewModel.h"
 #include "ui/settings/HistoryImportViewModel.h"
@@ -119,6 +120,7 @@ class AppRoot : public QObject {
     Q_PROPERTY(lmp::ui::CastViewModel* cast READ cast CONSTANT FINAL)
     Q_PROPERTY(lmp::ui::CoverFlight* coverFlight READ coverFlight CONSTANT FINAL)
     Q_PROPERTY(lmp::ui::PageCascade* cascade READ cascade CONSTANT FINAL)
+    Q_PROPERTY(lmp::ui::MotionEffects* effects READ effects CONSTANT FINAL)
     Q_PROPERTY(lmp::ui::EqualizerViewModel* equalizer READ equalizer CONSTANT FINAL)
     Q_PROPERTY(lmp::ui::HistoryImportViewModel* historyImport READ historyImport CONSTANT FINAL)
     Q_PROPERTY(lmp::ui::ShareController* share READ share CONSTANT FINAL)
@@ -167,6 +169,7 @@ public:
         CastViewModel* cast = nullptr;
         CoverFlight* coverFlight = nullptr;
         PageCascade* cascade = nullptr;
+        MotionEffects* effects = nullptr;
         EqualizerViewModel* equalizer = nullptr;
         HistoryImportViewModel* historyImport = nullptr;
         ShareController* share = nullptr;
@@ -216,6 +219,7 @@ public:
     [[nodiscard]] CastViewModel* cast() const { return m_parts.cast; }
     [[nodiscard]] CoverFlight* coverFlight() const { return m_parts.coverFlight; }
     [[nodiscard]] PageCascade* cascade() const { return m_parts.cascade; }
+    [[nodiscard]] MotionEffects* effects() const { return m_parts.effects; }
     [[nodiscard]] EqualizerViewModel* equalizer() const { return m_parts.equalizer; }
     [[nodiscard]] HistoryImportViewModel* historyImport() const { return m_parts.historyImport; }
     [[nodiscard]] ShareController* share() const { return m_parts.share; }

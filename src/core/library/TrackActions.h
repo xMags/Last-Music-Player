@@ -113,6 +113,8 @@ public:
 
 signals:
     void likedChanged(const QString& sourceKey, bool liked);
+    // A song went to the queue by playNext or addToQueue.
+    void queued(const lmp::core::Track& track);
     // A song was just liked (for the automatic downloads).
     void songLiked(const lmp::core::Track& track);
     void playlistsChanged();

@@ -68,9 +68,13 @@ Rectangle {
         }
 
         IconButton {
+            id: queueButton
+
             iconName: "queue"
             active: App.layout.railOpen
             onClicked: App.layout.toggleRail()
+            // Where a song sent to the queue lands while the side panel is shut.
+            Component.onCompleted: App.effects.addQueueTarget(queueButton, 0.5, 0)
         }
 
         IconButton {
