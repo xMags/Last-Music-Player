@@ -147,6 +147,13 @@ CompositionRoot::CompositionRoot()
                        .mode = m_mode,
                        .followed = m_followedArtists,
                        .gate = m_userDataGate})
+    , m_catalogClient(m_accountClient)
+    , m_catalog({.client = m_catalogClient,
+                 .session = m_session,
+                 .accounts = m_accounts,
+                 .settings = m_settings,
+                 .clock = m_clock,
+                 .tags = core::catalog::SourceTags::fromConfig(m_privateConfig)})
     , m_trackActions({.player = m_player,
                       .tracks = m_tracks,
                       .collections = m_collections,
@@ -223,6 +230,13 @@ CompositionRoot::CompositionRoot()
                  .accounts = m_accounts,
                  .settings = m_settings})
     , m_connectivity(m_session, m_mode)
+    , m_regionLanguages({.catalog = m_catalog,
+                         .client = m_catalogClient,
+                         .accountClient = m_accountClient,
+                         .session = m_session,
+                         .settings = m_settings,
+                         .clock = m_clock,
+                         .toasts = m_toasts})
     , m_collectionEditor(m_collectionActions, m_navigator, m_toasts)
     , m_home({.library = m_library,
               .actions = m_trackActions,
@@ -280,6 +294,7 @@ CompositionRoot::CompositionRoot()
           .accountArtists = &m_accountArtists,
           .welcome = &m_welcome,
           .connectivity = &m_connectivity,
+          .regionLanguages = &m_regionLanguages,
           .mode = &m_mode,
           .showGallery = QCoreApplication::arguments().contains(QStringLiteral("--gallery")),
       })

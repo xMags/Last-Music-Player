@@ -7,6 +7,7 @@
 #include <QByteArray>
 #include <QFuture>
 #include <QString>
+#include <QJsonObject>
 #include <QUrlQuery>
 
 namespace lmp::core::account {
@@ -78,6 +79,12 @@ public:
     // song belongs to. `fields` holds the song's non-empty fields.
     [[nodiscard]] QFuture<Result<QByteArray>> songAlbum(const QString& bearer, const QString& region,
                                                         const QUrlQuery& fields);
+    // POST /v1/music/preferences/languages/infer: detects the account's
+    // languages from its listening (rate limited; can take seconds).
+    [[nodiscard]] QFuture<Result<QByteArray>> inferLanguages(const QString& bearer);
+    // PUT /v1/music/preferences {"contentLanguages": <setting>}: the answer
+    // is the stored preferences.
+    [[nodiscard]] QFuture<Result<QByteArray>> saveLanguages(const QString& bearer, const QJsonObject& setting);
     // GET /v1/music/search?q=
     [[nodiscard]] QFuture<Result<QByteArray>> search(const QString& bearer, const QString& query);
     // GET /v1/music/search/all?q=

@@ -9,7 +9,23 @@ Item {
 
     implicitHeight: column.implicitHeight + 32 + 56
 
-    Component.onCompleted: App.settingsAbout.refresh()
+    Component.onCompleted: {
+        App.settingsAbout.refresh()
+        if (App.capabilities.chooseRegion) {
+            App.regionLanguages.refresh()
+        }
+    }
+
+    Connections {
+        target: App
+
+        // Signing in while Settings is open loads the account's choices.
+        function onSourceChanged() {
+            if (App.capabilities.chooseRegion) {
+                App.regionLanguages.refresh()
+            }
+        }
+    }
 
     Connections {
         target: App.source
@@ -60,6 +76,11 @@ Item {
         SettingsProfileCard {
             width: column.width
             visible: App.settings.displayNameShown
+        }
+
+        SettingsLanguagesSection {
+            width: column.width
+            visible: App.capabilities.chooseRegion
         }
 
         SettingsLibraryCard {

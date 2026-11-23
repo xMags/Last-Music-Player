@@ -75,6 +75,10 @@ qt_add_library(lmp_core STATIC
     catalog/CatalogService.h
     catalog/CatalogValues.cpp
     catalog/CatalogValues.h
+    catalog/ContentLanguageController.cpp
+    catalog/ContentLanguageController.h
+    catalog/ContentLanguages.cpp
+    catalog/ContentLanguages.h
     catalog/MusicGenres.cpp
     catalog/MusicGenres.h
     config/PrivateConfig.cpp

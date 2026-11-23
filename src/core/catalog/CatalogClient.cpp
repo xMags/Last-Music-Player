@@ -3,7 +3,10 @@
 #include "core/account/AccountClient.h"
 #include "core/catalog/CatalogDetailParser.h"
 
+#include <QJsonDocument>
 #include <QUrl>
+
+#include <chrono>
 
 #include <algorithm>
 #include <optional>
@@ -220,6 +223,36 @@ QFuture<Result<QByteArray>> CatalogClient::songAlbum(const QString& bearer, cons
         items.append({key, value});
     }
     return get(bearer, QStringLiteral("/v1/music/catalog/songs/album?") + queryText(items));
+}
+
+QFuture<Result<QByteArray>> CatalogClient::inferLanguages(const QString& bearer)
+{
+    account::AccountCall call;
+    call.method = net::HttpMethod::Post;
+    call.pathAndQuery = QStringLiteral("/v1/music/preferences/languages/infer");
+    call.bearerSession = bearer;
+    call.timeout = std::chrono::seconds(30);
+    return m_client.send(call).then([](const Result<net::HttpResponse>& response) -> Result<QByteArray> {
+        if (!response) {
+            return response.failure();
+        }
+        return response.value().body;
+    });
+}
+
+QFuture<Result<QByteArray>> CatalogClient::saveLanguages(const QString& bearer, const QJsonObject& setting)
+{
+    account::AccountCall call;
+    call.method = net::HttpMethod::Put;
+    call.pathAndQuery = QStringLiteral("/v1/music/preferences");
+    call.bearerSession = bearer;
+    call.jsonBody = QJsonDocument(QJsonObject{{QStringLiteral("contentLanguages"), setting}}).toJson(QJsonDocument::Compact);
+    return m_client.send(call).then([](const Result<net::HttpResponse>& response) -> Result<QByteArray> {
+        if (!response) {
+            return response.failure();
+        }
+        return response.value().body;
+    });
 }
 
 QFuture<Result<QByteArray>> CatalogClient::search(const QString& bearer, const QString& query)

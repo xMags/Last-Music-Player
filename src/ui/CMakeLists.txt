@@ -117,6 +117,8 @@ set(LMP_UI_QML_FILES
     qml/settings/SettingsCard.qml
     qml/settings/SettingsDivider.qml
     qml/settings/SettingsLibraryCard.qml
+    qml/settings/LanguagePills.qml
+    qml/settings/SettingsLanguagesSection.qml
     qml/settings/SettingsPage.qml
     qml/settings/SettingsProfileCard.qml
     qml/settings/SettingsRow.qml
@@ -227,6 +229,8 @@ qt_add_qml_module(lmp_ui
         welcome/WelcomeViewModel.cpp
         welcome/WelcomeViewModel.h
         settings/DataSettingsViewModel.cpp
+        settings/RegionLanguagesViewModel.cpp
+        settings/RegionLanguagesViewModel.h
         settings/DataSettingsViewModel.h
         settings/FirstRunViewModel.cpp
         settings/FirstRunViewModel.h

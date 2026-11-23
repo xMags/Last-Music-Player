@@ -497,3 +497,7 @@ lmp_add_test(tst_catalog_paging
 lmp_add_test(tst_catalog_service
     SOURCES core/tst_catalog_service.cpp core/CatalogFixtures.h
     LIBS lmp_core)
+
+lmp_add_test(tst_content_languages
+    SOURCES core/tst_content_languages.cpp core/CatalogFixtures.h
+    LIBS lmp_core)

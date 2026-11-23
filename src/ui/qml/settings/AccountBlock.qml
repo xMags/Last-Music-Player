@@ -116,6 +116,22 @@ SettingsSection {
         }
     }
 
+    SettingsDivider {
+        visible: App.capabilities.chooseRegion
+    }
+
+    SettingsSelectRow {
+        visible: App.capabilities.chooseRegion
+        title: qsTr("Music region")
+        description: App.regionLanguages.regionError !== "" ? App.regionLanguages.regionError
+                                                            : qsTr("Charts, new releases and catalog in Browse")
+        descriptionError: App.regionLanguages.regionError !== ""
+        choices: App.regionLanguages.regionNames
+        currentIndex: App.regionLanguages.regionIndex >= 0 ? App.regionLanguages.regionIndex
+                                                           : App.regionLanguages.regionNames.length - 1
+        onActivated: index => App.regionLanguages.chooseRegion(index)
+    }
+
     ConfirmDialog {
         id: signOutDialog
 

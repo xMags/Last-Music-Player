@@ -14,6 +14,8 @@
 #include "core/account/ScopedCredentialStore.h"
 #include "core/account/SecretStore.h"
 #include "core/app/AppPaths.h"
+#include "core/catalog/CatalogClient.h"
+#include "core/catalog/CatalogService.h"
 #include "core/config/PrivateConfig.h"
 #include "core/db/AccountOutboxRepository.h"
 #include "core/db/AccountRepository.h"
@@ -66,6 +68,7 @@
 #include "ui/search/SearchSource.h"
 #include "ui/search/SearchViewModel.h"
 #include "ui/library/AccountArtistsViewModel.h"
+#include "ui/settings/RegionLanguagesViewModel.h"
 #include "ui/shell/ConnectivityViewModel.h"
 #include "ui/welcome/WelcomeViewModel.h"
 #include "ui/library/CollectionEditor.h"
@@ -195,6 +198,9 @@ private:
     // Followed artists: on the account in Account mode, on this PC otherwise.
     core::db::FollowedArtistRepository m_followedArtists;
     core::ArtistFollowService m_artistFollows;
+    // The account service's catalogue: its calls and the cache over them.
+    core::catalog::CatalogClient m_catalogClient;
+    core::catalog::CatalogService m_catalog;
     platform::windows::WindowsFolderPicker m_folderPicker;
     // What a song's menu and buttons do.
     core::TrackActions m_trackActions;
@@ -231,6 +237,8 @@ private:
     ui::WelcomeViewModel m_welcome;
     // The offline banner.
     ui::ConnectivityViewModel m_connectivity;
+    // Settings: the music region and recommendation languages.
+    ui::RegionLanguagesViewModel m_regionLanguages;
     ui::CollectionEditor m_collectionEditor;
     ui::HomeViewModel m_home;
     // Browse and search (the local library; remote sources join in P08 and P09).
