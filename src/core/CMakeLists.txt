@@ -109,6 +109,12 @@ qt_add_library(lmp_core STATIC
     library/ArtworkCache.h
     library/LibraryScanner.cpp
     library/LibraryScanner.h
+    library/LikedIndex.cpp
+    library/LikedIndex.h
+    library/SameSong.cpp
+    library/SameSong.h
+    library/TrackActions.cpp
+    library/TrackActions.h
     mode/Capabilities.cpp
     mode/Capabilities.h
     mode/ModeService.cpp
@@ -124,6 +130,8 @@ qt_add_library(lmp_core STATIC
     model/CatalogSourceKey.h
     model/DisplayTitle.cpp
     model/DisplayTitle.h
+    model/SingleRelease.cpp
+    model/SingleRelease.h
     model/Track.cpp
     model/Track.h
     net/ArtworkUrl.cpp

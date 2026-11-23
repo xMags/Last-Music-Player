@@ -393,3 +393,15 @@ lmp_add_test(tst_display_title
 lmp_add_test(tst_track_list_model
     SOURCES ui/tst_track_list_model.cpp
     LIBS lmp_ui)
+
+lmp_add_test(tst_same_song
+    SOURCES core/tst_same_song.cpp
+    LIBS lmp_core)
+
+lmp_add_test(tst_track_actions
+    SOURCES core/tst_track_actions.cpp core/PlayerFixture.h core/FakeAudioPlayer.h core/FakePlaybackClock.h core/ModeServiceFixture.h core/AccountSessionFixture.h core/FakeCredentialStore.h core/FakeHttpTransport.h core/TempLibrary.h
+    LIBS lmp_core)
+
+lmp_add_test(tst_track_menu_builder
+    SOURCES ui/tst_track_menu_builder.cpp
+    LIBS lmp_ui)

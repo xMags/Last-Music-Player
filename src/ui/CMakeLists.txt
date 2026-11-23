@@ -218,6 +218,8 @@ qt_add_qml_module(lmp_ui
         toasts/ToastQueue.h
         tracks/TrackListModel.cpp
         tracks/TrackListModel.h
+        tracks/TrackMenuBuilder.cpp
+        tracks/TrackMenuBuilder.h
     QML_FILES ${LMP_UI_QML_FILES}
     RESOURCES
         "${CMAKE_SOURCE_DIR}/Assets/fonts/MrDeHaviland-Regular.ttf"
