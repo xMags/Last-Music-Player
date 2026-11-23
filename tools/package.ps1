@@ -6,9 +6,9 @@
 .DESCRIPTION
     Copies Last_Music_Player.exe and Assets, runs windeployqt (release, QML
     imports found from src\ui\qml, no translations, no software OpenGL, no
-    compiler runtime installer), and copies the MSVC runtime DLLs next to the
-    exe so the folder also runs where the Visual C++ redistributable is not
-    installed. Then starts the packaged exe with --smoke-test from an
+    compiler runtime installer, no QML debugging plugins), and copies the
+    MSVC runtime DLLs next to the exe so the folder also runs where the Visual
+    C++ redistributable is not installed. Then starts the packaged exe with --smoke-test from an
     environment whose PATH has no Qt folder, and prints the folder size.
 .PARAMETER SkipBuild
     Packages the Release build that is already there.
@@ -45,6 +45,7 @@ Invoke-Checked (Join-Path $qtRoot 'bin\windeployqt.exe') `
     --no-opengl-sw `
     --no-compiler-runtime `
     --no-system-d3d-compiler `
+    --skip-plugin-types qmltooling `
     $packagedExe
 
 # The MSVC runtime, app-local (Microsoft's redistributable DLLs).
