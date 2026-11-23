@@ -3,6 +3,7 @@
 #include <QAbstractListModel>
 #include <QHash>
 #include <QList>
+#include <QSet>
 #include <QString>
 #include <QtQml/qqmlregistration.h>
 
@@ -62,6 +63,8 @@ public:
         // The row's number in the list, from 1.
         NumberRole,
         SourceKeyRole,
+        // Part of the page's multi-selection.
+        SelectedRole,
     };
     Q_ENUM(Role)
 
@@ -92,6 +95,11 @@ public:
     void setPlayingKey(const QString& sourceKey);
     // A song was liked or unliked elsewhere.
     void setLiked(const QString& sourceKey, bool liked);
+    // The rows of the page's multi-selection (cleared when the list is replaced).
+    void setSelectedRows(const QList<int>& rows);
+    // Moves a loaded row (a playlist reordered by dragging); false when a
+    // row is out of range or the list still has pages to load.
+    bool moveRow(int from, int to);
 
 signals:
     void countChanged();
@@ -107,6 +115,7 @@ private:
     std::shared_ptr<TrackPageSource> m_source;
     int m_total = 0;
     QString m_playingKey;
+    QSet<int> m_selected;
 };
 
 } // namespace lmp::ui

@@ -44,7 +44,9 @@
 #include "ui/player/PlayerBarViewModel.h"
 #include "ui/player/QueueRailViewModel.h"
 #include "ui/settings/FirstRunViewModel.h"
+#include "ui/library/CollectionViewModel.h"
 #include "ui/library/LibraryViewModel.h"
+#include "ui/library/LocalArtistViewModel.h"
 #include "ui/settings/LibrarySettingsViewModel.h"
 #include "ui/tracks/TrackMenuController.h"
 #include "ui/settings/SettingsAboutViewModel.h"
@@ -160,6 +162,8 @@ private:
     ui::LibrarySettingsViewModel m_librarySettings;
     ui::TrackMenuController m_trackMenu;
     ui::LibraryViewModel m_libraryPage;
+    ui::CollectionViewModel m_collectionPage;
+    ui::LocalArtistViewModel m_artistPage;
     ui::AppRoot m_appRoot;
     QPointer<ui::Theme> m_theme; // owned by the QML engine
 };

@@ -22,13 +22,32 @@ Item {
     property real bottomMargin: 32
     // Space at each side of the rows; the scroll bar sits in the right one.
     property real sidePadding: 0
+    // A collection page's extras (List only): Ctrl and Shift clicks select
+    // instead of playing, the compact density, and dragging rows into a new
+    // order. While a row is dragged the rows it passes make room for it.
+    property bool selectable: false
+    property bool compact: false
+    property bool reorderable: false
+    property int dragFrom: -1
+    property real dragOffset: 0
+    // The pointer's own movement and the list's scroll when the drag began;
+    // the dragged row follows both (the list may scroll under it).
+    property real dragPointerShift: 0
+    property real dragStartContentY: 0
+    readonly property int dragTarget: dragFrom < 0 ? -1
+        : Math.max(0, Math.min(model.count - 1, Math.round(dragFrom + dragOffset / rowHeight)))
 
     signal activated(int row)
+    // A Ctrl click (toggle) or a Shift click (extend) on a selectable list.
+    signal selectRequested(int row, bool extend)
+    // A drag is about to start (the page loads every row first).
+    signal dragStarted()
+    signal moveRequested(int from, int to)
     signal likeRequested(int row)
     // `at` is in this item's coordinates.
     signal menuRequested(int row, point at, bool fromKeyboard)
 
-    readonly property int rowHeight: 36 + 2 * 8 + 1
+    readonly property int rowHeight: compact ? 28 + 2 * 6 + 1 : 36 + 2 * 8 + 1
     readonly property int headHeight: 41
     // The list or grid that scrolls, for keeping its position.
     readonly property Flickable view: form.item as Flickable
@@ -64,8 +83,21 @@ Item {
                 height: root.height
             }
 
+            // Until the list is scrolled, it stays at its top while the
+            // header above grows (a page fills its header after the list
+            // exists; a ListView would otherwise keep its old offset and
+            // hide the header's top).
+            property bool keepTop: true
+            onMovementStarted: keepTop = false
+
             header: Column {
                 width: list.rowWidth
+                // Deferred: the header can grow while the list is still
+                // creating items, and repositioning then would re-enter it.
+                onHeightChanged: {
+                    if (list.keepTop)
+                        Qt.callLater(list.positionViewAtBeginning)
+                }
 
                 Loader {
                     width: parent.width
@@ -144,13 +176,97 @@ Item {
                 id: row
 
                 required property int index
+                required selected
+                // Where this row sits while another is dragged past it.
+                readonly property real dragShift: {
+                    const from = root.dragFrom
+                    const to = root.dragTarget
+                    if (from < 0 || row.index === from)
+                        return 0
+                    if (from < to && row.index > from && row.index <= to)
+                        return -root.rowHeight
+                    if (to < from && row.index >= to && row.index < from)
+                        return root.rowHeight
+                    return 0
+                }
 
                 width: list.rowWidth
-                onClicked: root.activated(row.index)
+                compact: root.compact
+                z: row.index === root.dragFrom ? 10 : 0
+                transform: Translate {
+                    y: row.index === root.dragFrom ? root.dragOffset : row.dragShift
+
+                    Behavior on y {
+                        enabled: row.index !== root.dragFrom && !Motion.reduced
+                        NumberAnimation { duration: Motion.controlFade; easing.type: Easing.OutCubic }
+                    }
+                }
+                onClicked: {
+                    const toggle = (row.pressModifiers & Qt.ControlModifier) !== 0
+                    const extend = (row.pressModifiers & Qt.ShiftModifier) !== 0
+                    if (root.selectable && (toggle || extend))
+                        root.selectRequested(row.index, extend)
+                    else
+                        root.activated(row.index)
+                }
                 onLikeRequested: root.likeRequested(row.index)
                 onMenuRequested: (at, fromKeyboard) => root.menuRequested(row.index, row.mapToItem(root, at), fromKeyboard)
                 Keys.onReturnPressed: root.activated(row.index)
                 Keys.onEnterPressed: root.activated(row.index)
+
+                DragHandler {
+                    id: drag
+
+                    enabled: root.reorderable
+                    target: null
+                    xAxis.enabled: false
+                    onActiveChanged: {
+                        if (drag.active) {
+                            root.dragStarted()
+                            root.dragPointerShift = 0
+                            root.dragStartContentY = list.contentY
+                            root.dragOffset = 0
+                            root.dragFrom = row.index
+                        } else if (root.dragFrom >= 0) {
+                            const from = root.dragFrom
+                            const to = root.dragTarget
+                            root.dragFrom = -1
+                            root.dragOffset = 0
+                            if (to >= 0 && to !== from)
+                                root.moveRequested(from, to)
+                        }
+                    }
+                    onTranslationChanged: {
+                        if (!drag.active)
+                            return
+                        root.dragPointerShift = drag.translation.y
+                        root.dragOffset = root.dragPointerShift + list.contentY - root.dragStartContentY
+                    }
+                    onCentroidChanged: {
+                        if (drag.active)
+                            edgeScroll.pointerY = drag.centroid.scenePosition.y - list.mapToItem(null, 0, 0).y
+                    }
+                }
+            }
+
+            // Scrolls while a dragged row is held near the top or bottom edge.
+            Timer {
+                id: edgeScroll
+
+                property real pointerY: 0
+                readonly property real edge: 48
+
+                interval: 16
+                repeat: true
+                running: root.dragFrom >= 0 && (pointerY < edge || pointerY > list.height - edge)
+                onTriggered: {
+                    const step = pointerY < edge ? -8 : 8
+                    const top = list.originY - list.topMargin
+                    const bottom = Math.max(top, list.contentHeight + list.originY + list.bottomMargin - list.height)
+                    const next = Math.max(top, Math.min(bottom, list.contentY + step))
+                    list.contentY = next
+                    root.dragOffset = root.dragPointerShift + list.contentY - root.dragStartContentY
+                }
             }
         }
     }
@@ -167,9 +283,16 @@ Item {
             keyNavigationEnabled: true
             currentIndex: -1
 
+            property bool keepTop: true
+            onMovementStarted: keepTop = false
+
             header: Loader {
                 width: cards.width
                 sourceComponent: root.header
+                onHeightChanged: {
+                    if (cards.keepTop)
+                        Qt.callLater(cards.positionViewAtBeginning)
+                }
             }
 
             delegate: Item {

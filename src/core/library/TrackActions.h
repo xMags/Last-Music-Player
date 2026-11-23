@@ -62,6 +62,10 @@ public:
     bool play(const Track& track, const QList<Track>& context = {});
     bool playNext(const Track& track);
     bool addToQueue(const Track& track);
+    // A whole list (a collection page's Shuffle and selection bar). Songs
+    // that cannot play here are left out; false when none can.
+    bool shufflePlay(const QList<Track>& tracks);
+    bool addAllToQueue(const QList<Track>& tracks);
 
     // Likes or unlikes the song; the new state, or nothing when refused.
     std::optional<bool> toggleLike(const Track& track);
@@ -72,6 +76,11 @@ public:
     // A new playlist with the song in it; its key.
     Result<QString> addToNewPlaylist(const Track& track, const QString& name);
     Result<void> removeFromPlaylist(const Track& track, const QString& playlistKey);
+    // Several songs of a playlist page at once; all or nothing.
+    Result<void> removeAllFromPlaylist(const QList<Track>& tracks, const QString& playlistKey);
+    Result<void> moveToPlaylist(const QList<Track>& tracks, const QString& fromKey, const QString& toKey);
+    // `tracks` is the playlist's whole new order.
+    Result<void> reorderPlaylist(const QString& playlistKey, const QList<Track>& tracks);
 
     void openAlbum(const Track& track);
     void openArtist(const Track& track);
@@ -86,6 +95,9 @@ signals:
 private:
     // The song's library row, written first when it has none.
     [[nodiscard]] Result<qint64> persist(const Track& track);
+    // The rows of songs read from the library (rowId set); empty when any lacks one.
+    [[nodiscard]] static QList<qint64> rowIds(const QList<Track>& tracks);
+    [[nodiscard]] QList<Track> playable(const QList<Track>& tracks) const;
 
     PlayerController& m_player;
     db::TrackRepository& m_tracks;

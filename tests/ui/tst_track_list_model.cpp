@@ -8,6 +8,7 @@
 #include <memory>
 
 #include "core/model/Track.h"
+#include "core/model/CatalogSourceKey.h"
 #include "ui/tracks/TrackListModel.h"
 
 using lmp::core::Track;
@@ -66,6 +67,8 @@ private slots:
     void fetchAllLoadsEverything();
     void shrunkenSourceStopsAsking();
     void playingAndLikedChangeOnlyTheirRows();
+    void selectionMarksRowsAndClearsOnReplace();
+    void rowsMoveOnlyWhenFullyLoaded();
 };
 
 void TrackListModelTest::shortListShowsDisplayText()
@@ -149,6 +152,48 @@ void TrackListModelTest::playingAndLikedChangeOnlyTheirRows()
     QCOMPARE(changed.count(), 1);
     model.setLiked(QStringLiteral("local|nowhere"), true);
     QCOMPARE(changed.count(), 1);
+}
+
+void TrackListModelTest::selectionMarksRowsAndClearsOnReplace()
+{
+    TrackListModel model;
+    model.setTracks({song(1), song(2), song(3)});
+    QSignalSpy changed(&model, &QAbstractItemModel::dataChanged);
+    model.setSelectedRows({0, 2, 7, -1});
+    QCOMPARE(changed.count(), 2);
+    QVERIFY(model.data(model.index(0), TrackListModel::SelectedRole).toBool());
+    QVERIFY(!model.data(model.index(1), TrackListModel::SelectedRole).toBool());
+    // Only rows whose state changes are reported.
+    model.setSelectedRows({2});
+    QCOMPARE(changed.count(), 3);
+    model.setTracks({song(4)});
+    QVERIFY(!model.data(model.index(0), TrackListModel::SelectedRole).toBool());
+}
+
+void TrackListModelTest::rowsMoveOnlyWhenFullyLoaded()
+{
+    TrackListModel model;
+    model.setTracks({song(1), song(2), song(3)});
+    QSignalSpy moved(&model, &QAbstractItemModel::rowsMoved);
+    QVERIFY(model.moveRow(0, 2));
+    QCOMPARE(moved.count(), 1);
+    QCOMPARE(model.trackAt(2).filePath, song(1).filePath);
+    QCOMPARE(model.data(model.index(2), TrackListModel::NumberRole).toInt(), 3);
+    QVERIFY(model.moveRow(2, 0));
+    QCOMPARE(model.trackAt(0).filePath, song(1).filePath);
+    QVERIFY(!model.moveRow(0, 3));
+    QVERIFY(model.moveRow(1, 1));
+
+    // A playing song keeps its mark through the move.
+    model.setPlayingKey(lmp::core::catalogSourceKey(song(2)));
+    QVERIFY(model.moveRow(1, 0));
+    QVERIFY(model.data(model.index(0), TrackListModel::PlayingRole).toBool());
+
+    auto pages = std::make_shared<FakePages>(250);
+    model.setSource(pages);
+    QVERIFY(!model.moveRow(0, 1));
+    model.fetchAll();
+    QVERIFY(model.moveRow(0, 1));
 }
 
 QTEST_GUILESS_MAIN(TrackListModelTest)

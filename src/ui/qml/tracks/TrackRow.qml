@@ -9,6 +9,10 @@ import LastMusicPlayer
 // the "..." button. The playing row is tinted and its title takes the
 // accent; an unavailable row is faded, says why, and does not play.
 // Right click, the "..." button, the Menu key and Shift+F10 ask for the menu.
+// A collection page adds a compact density (46 rather than 58px in the
+// current app; here 41 rather than 53, the reference row less 12) and a
+// selected look; `pressModifiers` says which of Ctrl and Shift were held
+// when the click began.
 T.AbstractButton {
     id: row
 
@@ -26,11 +30,15 @@ T.AbstractButton {
     required property string unavailableReason
     // The album column shows only when the row is wide enough for it.
     readonly property bool albumShown: width >= 560
+    property bool selected: false
+    property bool compact: false
+    readonly property int artSize: compact ? 28 : 36
+    property int pressModifiers: Qt.NoModifier
 
     signal likeRequested()
     signal menuRequested(point at, bool fromKeyboard)
 
-    implicitHeight: 36 + 2 * 8 + 1
+    implicitHeight: artSize + 2 * (compact ? 6 : 8) + 1
     hoverEnabled: true
     focusPolicy: Qt.StrongFocus
     Accessible.name: qsTr("Play %1 by %2").arg(title).arg(artist)
@@ -48,12 +56,26 @@ T.AbstractButton {
         onTapped: eventPoint => row.menuRequested(eventPoint.position, false)
     }
 
+    // Sees the press before the button does, only to note the modifiers.
+    TapHandler {
+        id: leftPress
+
+        acceptedButtons: Qt.LeftButton
+        gesturePolicy: TapHandler.DragThreshold
+        onPressedChanged: {
+            if (pressed)
+                row.pressModifiers = leftPress.point.modifiers
+        }
+    }
+
     HoverHandler {
         cursorShape: row.unavailable ? Qt.ForbiddenCursor : Qt.PointingHandCursor
     }
 
     background: Rectangle {
-        color: row.playing ? Theme.accentSel : (row.hovered && !row.unavailable ? Theme.rowHover : "transparent")
+        color: row.selected ? Theme.accentSoft2
+             : row.playing ? Theme.accentSel
+             : (row.hovered && !row.unavailable ? Theme.rowHover : "transparent")
 
         // border-bottom: 1px solid divider
         Rectangle {
@@ -108,8 +130,8 @@ T.AbstractButton {
             spacing: 12
 
             ArtTile {
-                Layout.preferredWidth: 36
-                Layout.preferredHeight: 36
+                Layout.preferredWidth: row.artSize
+                Layout.preferredHeight: row.artSize
                 radius: 6
                 source: row.artworkUrl
                 artworkId: row.artworkId

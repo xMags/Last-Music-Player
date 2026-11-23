@@ -144,6 +144,17 @@ CompositionRoot::CompositionRoot()
                      .scanner = m_scanner,
                      .trackMenu = m_trackMenu,
                      .navigator = m_navigator})
+    , m_collectionPage({.library = m_library,
+                        .actions = m_trackActions,
+                        .player = m_player,
+                        .settings = m_settings,
+                        .trackMenu = m_trackMenu,
+                        .navigator = m_navigator})
+    , m_artistPage({.library = m_library,
+                    .actions = m_trackActions,
+                    .player = m_player,
+                    .trackMenu = m_trackMenu,
+                    .navigator = m_navigator})
     , m_appRoot({
           .windowChrome = &m_windowChromeViewModel,
           .navigator = &m_navigator,
@@ -161,6 +172,8 @@ CompositionRoot::CompositionRoot()
           .librarySettings = &m_librarySettings,
           .library = &m_libraryPage,
           .trackMenu = &m_trackMenu,
+          .collection = &m_collectionPage,
+          .localArtist = &m_artistPage,
           .mode = &m_mode,
           .showGallery = QCoreApplication::arguments().contains(QStringLiteral("--gallery")),
       })

@@ -79,6 +79,13 @@ struct TextStyles {
     TextStyle eyebrow;
     TextStyle pill;
     TextStyle genreLabel;
+    TextStyle collectionBack;
+    TextStyle collectionEyebrow;
+    TextStyle collectionTitle;
+    TextStyle collectionInfo;
+    TextStyle collectionInfoStrong;
+    TextStyle collectionDescription;
+    TextStyle collectionPlay;
     TextStyle nowPlayingTitle;
     TextStyle fullScreenTitle;
     TextStyle homeGreeting;

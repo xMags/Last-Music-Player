@@ -11,7 +11,12 @@ Item {
     // Pages that scroll themselves (long lists) fill the panel; they keep
     // and restore their own position (ScrollMemory).
     function scrollsItself(kind: int): bool {
-        return kind === Route.Library
+        return kind === Route.Library || (kind === Route.Collection && !host.showsArtist())
+    }
+
+    // A Collection route of an artist shows the artist page.
+    function showsArtist(): bool {
+        return App.navigator.currentKind === Route.Collection && App.navigator.current.param("kind") === "artist"
     }
 
     function showCurrent() {
@@ -68,6 +73,7 @@ Item {
                 height: scroller.pageScrollsItself ? parent.height : implicitHeight
                 sourceComponent: App.navigator.currentKind === Route.Settings ? settingsPage
                     : App.navigator.currentKind === Route.Library ? libraryPage
+                    : App.navigator.currentKind === Route.Collection ? (host.showsArtist() ? artistPage : collectionPage)
                     : placeholderPage
             }
         }
@@ -83,6 +89,18 @@ Item {
         id: libraryPage
 
         LibraryPage {}
+    }
+
+    Component {
+        id: collectionPage
+
+        CollectionPage {}
+    }
+
+    Component {
+        id: artistPage
+
+        ArtistPage {}
     }
 
     Component {

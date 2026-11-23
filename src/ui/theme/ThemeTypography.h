@@ -47,6 +47,15 @@ class ThemeTypography : public QObject {
     Q_PROPERTY(QFont eyebrow READ eyebrow CONSTANT FINAL)
     Q_PROPERTY(QFont pill READ pill CONSTANT FINAL)
     Q_PROPERTY(QFont genreLabel READ genreLabel CONSTANT FINAL)
+    Q_PROPERTY(QFont collectionBack READ collectionBack CONSTANT FINAL)
+    Q_PROPERTY(QFont collectionEyebrow READ collectionEyebrow CONSTANT FINAL)
+    Q_PROPERTY(QFont collectionTitle READ collectionTitle CONSTANT FINAL)
+    Q_PROPERTY(QFont collectionInfo READ collectionInfo CONSTANT FINAL)
+    Q_PROPERTY(QFont collectionInfoStrong READ collectionInfoStrong CONSTANT FINAL)
+    Q_PROPERTY(QFont collectionDescription READ collectionDescription CONSTANT FINAL)
+    Q_PROPERTY(QFont collectionPlay READ collectionPlay CONSTANT FINAL)
+    Q_PROPERTY(qreal lineHeightCollectionTitle READ lineHeightCollectionTitle CONSTANT FINAL)
+    Q_PROPERTY(qreal lineHeightCollectionDescription READ lineHeightCollectionDescription CONSTANT FINAL)
     Q_PROPERTY(QFont nowPlayingTitle READ nowPlayingTitle CONSTANT FINAL)
     Q_PROPERTY(QFont fullScreenTitle READ fullScreenTitle CONSTANT FINAL)
     Q_PROPERTY(QFont homeGreeting READ homeGreeting CONSTANT FINAL)
@@ -143,6 +152,15 @@ public:
     [[nodiscard]] QFont eyebrow() const { return m_text.eyebrow.font; }
     [[nodiscard]] QFont pill() const { return m_text.pill.font; }
     [[nodiscard]] QFont genreLabel() const { return m_text.genreLabel.font; }
+    [[nodiscard]] QFont collectionBack() const { return m_text.collectionBack.font; }
+    [[nodiscard]] QFont collectionEyebrow() const { return m_text.collectionEyebrow.font; }
+    [[nodiscard]] QFont collectionTitle() const { return m_text.collectionTitle.font; }
+    [[nodiscard]] QFont collectionInfo() const { return m_text.collectionInfo.font; }
+    [[nodiscard]] QFont collectionInfoStrong() const { return m_text.collectionInfoStrong.font; }
+    [[nodiscard]] QFont collectionDescription() const { return m_text.collectionDescription.font; }
+    [[nodiscard]] QFont collectionPlay() const { return m_text.collectionPlay.font; }
+    [[nodiscard]] qreal lineHeightCollectionTitle() const { return m_text.collectionTitle.lineHeight; }
+    [[nodiscard]] qreal lineHeightCollectionDescription() const { return m_text.collectionDescription.lineHeight; }
     [[nodiscard]] QFont nowPlayingTitle() const { return m_text.nowPlayingTitle.font; }
     [[nodiscard]] QFont fullScreenTitle() const { return m_text.fullScreenTitle.font; }
     [[nodiscard]] QFont homeGreeting() const { return m_text.homeGreeting.font; }

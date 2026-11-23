@@ -53,6 +53,8 @@ QVariant TrackListModel::data(const QModelIndex& index, int role) const
         return index.row() + 1;
     case SourceKeyRole:
         return m_keys.at(index.row());
+    case SelectedRole:
+        return m_selected.contains(index.row());
     default:
         return {};
     }
@@ -74,6 +76,7 @@ QHash<int, QByteArray> TrackListModel::roleNames() const
         {UnavailableReasonRole, "unavailableReason"},
         {NumberRole, "number"},
         {SourceKeyRole, "sourceKey"},
+        {SelectedRole, "selected"},
     };
 }
 
@@ -93,6 +96,7 @@ void TrackListModel::setTracks(QList<core::Track> tracks)
 {
     beginResetModel();
     m_source.reset();
+    m_selected.clear();
     m_tracks = std::move(tracks);
     m_total = count();
     reindex();
@@ -104,6 +108,7 @@ void TrackListModel::setSource(std::shared_ptr<TrackPageSource> source)
 {
     beginResetModel();
     m_source = std::move(source);
+    m_selected.clear();
     m_tracks.clear();
     m_total = m_source ? std::max(0, m_source->count()) : 0;
     reindex();
@@ -186,6 +191,44 @@ void TrackListModel::setLiked(const QString& sourceKey, bool liked)
             emit dataChanged(index(row), index(row), {LikedRole});
         }
     }
+}
+
+void TrackListModel::setSelectedRows(const QList<int>& rows)
+{
+    QSet<int> next;
+    for (const int row : rows) {
+        if (row >= 0 && row < count()) {
+            next.insert(row);
+        }
+    }
+    const QSet<int> changed = (next - m_selected) + (m_selected - next);
+    m_selected = std::move(next);
+    for (const int row : changed) {
+        emit dataChanged(index(row), index(row), {SelectedRole});
+    }
+}
+
+bool TrackListModel::moveRow(int from, int to)
+{
+    if (from < 0 || from >= count() || to < 0 || to >= count() || canFetchMore({})) {
+        return false;
+    }
+    if (from == to) {
+        return true;
+    }
+    // Qt's destination is the row the moved one lands before, counted
+    // before the move.
+    if (!beginMoveRows({}, from, from, {}, to > from ? to + 1 : to)) {
+        return false;
+    }
+    m_tracks.move(from, to);
+    m_selected.clear();
+    reindex();
+    endMoveRows();
+    const int first = std::min(from, to);
+    const int last = std::max(from, to);
+    emit dataChanged(index(first), index(last), {NumberRole, SelectedRole});
+    return true;
 }
 
 } // namespace lmp::ui

@@ -195,7 +195,8 @@ void LibraryViewModel::readGroups()
 {
     QList<CollectionCardModel::Card> albums;
     for (const core::Track& album : m_groups.loadAlbums()) {
-        albums.append({.kind = QStringLiteral("album"),
+        // An album the user made opens as one ("album-collection"), with its own order.
+        albums.append({.kind = album.sourceKind.isEmpty() ? QStringLiteral("album") : album.sourceKind,
                        .key = album.sourceUrl.isEmpty() ? album.title : album.sourceUrl,
                        .title = album.title,
                        .subtitle = album.artist.isEmpty() ? countLabel(album.trackCount) : album.artist,

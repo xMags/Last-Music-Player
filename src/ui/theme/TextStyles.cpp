@@ -137,6 +137,17 @@ TextStyles TextStyles::build(const FontFamilies& families)
             {.family = text, .pixelSize = 10, .weight = kSemiBold, .letterSpacingEm = 0.04, .uppercase = true}),
         .genreLabel = makeTextStyle(
             {.family = families.mono, .pixelSize = 11.5, .weight = kRegular, .letterSpacingEm = 0.14}),
+        // The collection header (views.css 361-503): the back link, eyebrow,
+        // title (26 to 44px with the card's width; pages scale this 44px
+        // face down), info line, description and the Play pill.
+        .collectionBack = makeTextStyle({.family = text, .pixelSize = 12.5, .weight = kBubble}),
+        .collectionEyebrow = makeTextStyle({.family = text, .pixelSize = 11, .weight = kBold, .letterSpacingEm = 0.12}),
+        .collectionTitle = makeTextStyle(
+            {.family = display, .pixelSize = 44, .weight = kExtraBold, .lineHeight = 44 * 1.08, .letterSpacingEm = -0.02}),
+        .collectionInfo = makeTextStyle({.family = text, .pixelSize = 13, .weight = kRegular}),
+        .collectionInfoStrong = makeTextStyle({.family = text, .pixelSize = 13, .weight = kSemiBold}),
+        .collectionDescription = makeTextStyle({.family = text, .pixelSize = 13.5, .weight = kRegular, .lineHeight = 13.5 * 1.5}),
+        .collectionPlay = makeTextStyle({.family = text, .pixelSize = 14, .weight = kBold}),
         .nowPlayingTitle = makeTextStyle(
             {.family = display, .pixelSize = 20, .weight = kBold, .lineHeight = 26}),
         // line-height: 1.2 of 30px.

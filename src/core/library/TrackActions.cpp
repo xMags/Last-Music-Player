@@ -74,6 +74,103 @@ bool TrackActions::addToQueue(const Track& track)
     return true;
 }
 
+QList<Track> TrackActions::playable(const QList<Track>& tracks) const
+{
+    QList<Track> list;
+    list.reserve(tracks.size());
+    for (const Track& track : tracks) {
+        if (canPlay(track)) {
+            list.append(track);
+        }
+    }
+    return list;
+}
+
+bool TrackActions::shufflePlay(const QList<Track>& tracks)
+{
+    const QList<Track> list = playable(tracks);
+    if (list.isEmpty()) {
+        return false;
+    }
+    m_player.shuffleAndPlay(list);
+    return true;
+}
+
+bool TrackActions::addAllToQueue(const QList<Track>& tracks)
+{
+    const QList<Track> list = playable(tracks);
+    if (list.isEmpty()) {
+        return false;
+    }
+    m_player.addToQueue(list);
+    return true;
+}
+
+QList<qint64> TrackActions::rowIds(const QList<Track>& tracks)
+{
+    QList<qint64> ids;
+    ids.reserve(tracks.size());
+    for (const Track& track : tracks) {
+        if (track.rowId <= 0) {
+            return {};
+        }
+        ids.append(track.rowId);
+    }
+    return ids;
+}
+
+Result<void> TrackActions::removeAllFromPlaylist(const QList<Track>& tracks, const QString& playlistKey)
+{
+    const QList<qint64> ids = rowIds(tracks);
+    if (playlistKey.isEmpty() || ids.isEmpty()) {
+        return Failure::of(FailureKind::NotAvailable);
+    }
+    const std::optional<UserDataOperationGate::Lease> lease = m_gate.tryEnter();
+    if (!lease) {
+        return Failure::of(FailureKind::Cancelled, QStringLiteral("User data is being cleaned up"));
+    }
+    const Result<void> removed = m_collections.removeTracksFromPlaylist(playlistKey, ids);
+    if (removed) {
+        emit playlistChanged(playlistKey);
+    }
+    return removed;
+}
+
+Result<void> TrackActions::moveToPlaylist(const QList<Track>& tracks, const QString& fromKey, const QString& toKey)
+{
+    const QList<qint64> ids = rowIds(tracks);
+    if (fromKey.isEmpty() || toKey.isEmpty() || fromKey == toKey || ids.isEmpty()) {
+        return Failure::of(FailureKind::NotAvailable);
+    }
+    const std::optional<UserDataOperationGate::Lease> lease = m_gate.tryEnter();
+    if (!lease) {
+        return Failure::of(FailureKind::Cancelled, QStringLiteral("User data is being cleaned up"));
+    }
+    const Result<void> moved = m_collections.moveTracksBetweenPlaylists(fromKey, toKey, ids);
+    if (moved) {
+        emit playlistChanged(fromKey);
+        emit playlistChanged(toKey);
+    }
+    return moved;
+}
+
+Result<void> TrackActions::reorderPlaylist(const QString& playlistKey, const QList<Track>& tracks)
+{
+    const QList<qint64> ids = rowIds(tracks);
+    if (playlistKey.isEmpty() || ids.isEmpty()) {
+        return Failure::of(FailureKind::NotAvailable);
+    }
+    const std::optional<UserDataOperationGate::Lease> lease = m_gate.tryEnter();
+    if (!lease) {
+        return Failure::of(FailureKind::Cancelled, QStringLiteral("User data is being cleaned up"));
+    }
+    const Result<void> stored = m_collections.reorderPlaylistTracks(playlistKey, ids);
+    if (stored) {
+        emit playlistChanged(playlistKey);
+    }
+    return stored;
+}
+
 Result<qint64> TrackActions::persist(const Track& track)
 {
     if (track.rowId > 0) {

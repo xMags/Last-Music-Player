@@ -69,10 +69,17 @@ set(LMP_UI_QML_FILES
     qml/dev/GalleryPanels.qml
     qml/dev/GallerySection.qml
     qml/dev/GalleryTokens.qml
+    qml/library/ArtistPage.qml
     qml/library/CollectionCard.qml
+    qml/library/CollectionCover.qml
+    qml/library/CollectionHeader.qml
+    qml/library/CollectionPage.qml
     qml/library/GenreMark.qml
     qml/library/GenreTile.qml
     qml/library/LibraryPage.qml
+    qml/library/PlayPill.qml
+    qml/library/RoundAction.qml
+    qml/library/ViewSwitch.qml
     qml/player/FullscreenBackdrop.qml
     qml/player/FullscreenBody.qml
     qml/player/FullscreenButton.qml
@@ -152,10 +159,14 @@ qt_add_qml_module(lmp_ui
         icons/IconSet.h
         library/CollectionCardModel.cpp
         library/CollectionCardModel.h
+        library/CollectionViewModel.cpp
+        library/CollectionViewModel.h
         library/GenreArtwork.cpp
         library/GenreArtwork.h
         library/LibraryViewModel.cpp
         library/LibraryViewModel.h
+        library/LocalArtistViewModel.cpp
+        library/LocalArtistViewModel.h
         library/SystemPlaylists.cpp
         library/SystemPlaylists.h
         menus/MenuItemListModel.cpp

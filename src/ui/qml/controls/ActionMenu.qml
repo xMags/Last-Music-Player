@@ -35,6 +35,18 @@ T.Popup {
         open()
     }
 
+    // Opens with its bottom 8px above `item`'s top, left edges aligned (a
+    // bar's button near the bottom of the window). The height is known only
+    // once the menu has laid out its items, so the place is set after opening.
+    function openAbove(item) {
+        const point = item.mapToItem(parent, 0, 0)
+        keyboardActive = false
+        x = point.x
+        y = point.y
+        open()
+        Qt.callLater(() => { y = point.y - height - 8 })
+    }
+
     function pick(row) {
         const id = items.idAt(row)
         close()
