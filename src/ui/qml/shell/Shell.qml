@@ -134,6 +134,12 @@ Item {
             PageHost {
                 anchors.fill: parent
             }
+
+            // A card's cover flying into the page it opened.
+            SharedCover {
+                anchors.fill: parent
+                z: 10
+            }
         }
 
         // The rail as a column of the layout.

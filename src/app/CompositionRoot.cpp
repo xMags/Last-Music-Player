@@ -493,6 +493,7 @@ CompositionRoot::CompositionRoot()
           .audioOutput = &m_audioOutput,
           .presenceAvailable = m_presence.available(),
           .cast = &m_castViewModel,
+          .coverFlight = &m_coverFlight,
           .equalizer = &m_equalizer,
           .historyImport = &m_historyImportViewModel,
           .share = &m_share,

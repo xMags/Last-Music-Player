@@ -62,6 +62,7 @@
 #include "ui/settings/HistoryImportViewModel.h"
 #include "platform/windows/WindowsDnsServiceBrowser.h"
 #include "ui/cast/CastViewModel.h"
+#include "ui/motion/CoverFlight.h"
 #include "core/playback/TrackSourceResolver.h"
 #include "core/provider/ProviderClient.h"
 #include "core/remote/ArtworkService.h"
@@ -334,6 +335,8 @@ private:
     platform::windows::WindowsDnsServiceBrowser m_dnsBrowser;
     core::cast::CastController m_cast;
     ui::CastViewModel m_castViewModel;
+    // The cover flight from a card to the page it opens.
+    ui::CoverFlight m_coverFlight;
     // Settings > Sound (shown, inert) and the one-time history import offer.
     ui::EqualizerViewModel m_equalizer;
     core::account::HistoryImportService m_historyImport;

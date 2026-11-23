@@ -573,3 +573,7 @@ lmp_add_test(tst_history_import
 lmp_add_test(tst_equalizer_view_model
     SOURCES ui/tst_equalizer_view_model.cpp
     LIBS lmp_ui)
+
+lmp_add_test(tst_cover_flight
+    SOURCES ui/tst_cover_flight.cpp
+    LIBS lmp_ui)

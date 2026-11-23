@@ -158,10 +158,16 @@ Column {
                 anchors.fill: parent
                 layers: Theme.shadowArt
                 radius: header.roundCover ? width / 2 : 12
+                opacity: App.coverFlight.landing === headerCover ? 0 : 1
             }
 
             CollectionCover {
+                id: headerCover
+
                 anchors.fill: parent
+                // Hidden while a card's cover flies into its place.
+                opacity: App.coverFlight.landing === headerCover ? 0 : 1
+                Component.onCompleted: App.coverFlight.headerShown(headerCover)
                 coverStyle: header.coverStyle
                 source: header.artworkUrl
                 artworkId: header.artworkId

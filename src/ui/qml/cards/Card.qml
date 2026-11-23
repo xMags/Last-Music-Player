@@ -47,6 +47,15 @@ T.AbstractButton {
         cursorShape: Qt.PointingHandCursor
     }
 
+    // Where the cover was, in case this opens a page whose header shows it
+    // (the cover flight). Noted before the owner's handler navigates.
+    onClicked: {
+        if (card.art === null && card.artworkUrl.toString() !== "")
+            App.coverFlight.notePress(cover.mapToItem(null, 0, 0, cover.width, cover.height), card.artworkUrl,
+                                      card.artworkId !== "" ? card.artworkId : card.title, card.artworkLabel,
+                                      card.round)
+    }
+
     contentItem: Item {
         Item {
             id: cover

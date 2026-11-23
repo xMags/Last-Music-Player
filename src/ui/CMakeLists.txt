@@ -21,6 +21,7 @@ set_source_files_properties("${CMAKE_SOURCE_DIR}/Assets/LibraryStripeOverlay.svg
 set(LMP_UI_QML_FILES
     qml/Main.qml
     qml/cards/Card.qml
+    qml/motion/SharedCover.qml
     qml/cards/CountPill.qml
     qml/cards/CardGrid.qml
     qml/cards/EmptyState.qml
@@ -209,6 +210,8 @@ qt_add_qml_module(lmp_ui
         library/SystemPlaylists.cpp
         library/SystemPlaylists.h
         menus/MenuItemListModel.cpp
+        motion/CoverFlight.cpp
+        motion/CoverFlight.h
         menus/MenuItemListModel.h
         navigation/Navigator.cpp
         navigation/Navigator.h
