@@ -71,6 +71,9 @@ public:
     virtual void stop() = 0;
     // 0 is silent, 1 is full volume; values outside are clamped.
     virtual void setVolume(double volume) = 0;
+    // Sends the sound to the output with this system id; empty, or an id the
+    // system no longer knows, is the system default.
+    virtual void setOutputDevice(const QString& deviceId) = 0;
 
     [[nodiscard]] virtual quint64 currentLoadId() const = 0;
     [[nodiscard]] virtual State state() const = 0;

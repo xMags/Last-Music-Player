@@ -32,6 +32,7 @@ public:
         m_state = State::Idle;
     }
     void setVolume(double volume) override { volumes.append(volume); }
+    void setOutputDevice(const QString& deviceId) override { outputDevices.append(deviceId); }
     [[nodiscard]] quint64 currentLoadId() const override { return m_loadId; }
     [[nodiscard]] State state() const override { return m_state; }
 
@@ -72,6 +73,7 @@ public:
     QList<Open> opens;
     QList<double> seeks;
     QList<double> volumes;
+    QList<QString> outputDevices;
     int playCalls = 0;
     int pauseCalls = 0;
     int stopCalls = 0;

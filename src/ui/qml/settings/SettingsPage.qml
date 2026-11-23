@@ -108,6 +108,16 @@ Item {
 
             SettingsDivider {}
 
+            SettingsSelectRow {
+                title: qsTr("Output device")
+                description: qsTr("Where the sound plays.")
+                choices: App.audioOutput.choices
+                currentIndex: App.audioOutput.currentIndex
+                onActivated: index => App.audioOutput.choose(index)
+            }
+
+            SettingsDivider {}
+
             SettingsSwitchRow {
                 title: qsTr("Gapless playback")
                 description: qsTr("Remove silence between consecutive tracks.")

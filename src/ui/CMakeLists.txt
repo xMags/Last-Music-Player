@@ -235,6 +235,8 @@ qt_add_qml_module(lmp_ui
         player/QueueListModel.cpp
         player/QueueListModel.h
         downloads/OfflineViewModel.cpp
+        settings/AudioOutputViewModel.cpp
+        settings/AudioOutputViewModel.h
         downloads/OfflineViewModel.h
         player/LyricsViewModel.cpp
         share/ShareController.cpp

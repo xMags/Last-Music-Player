@@ -304,6 +304,7 @@ CompositionRoot::CompositionRoot()
                      [this](const core::Track& track) {
                          return core::track_keys::downloadStableKey(m_remote.scopeKeyParts(), track);
                      }})
+    , m_audioOutput(m_audioOutputs, m_audio, m_settings)
     , m_share([this](const QByteArray& body) { return sendAccount(core::net::HttpMethod::Post, QStringLiteral("/v1/music/shares"), body); },
               [this]() {
                   return m_mode.capabilities().createShareLinks && m_session.captureOperation().has_value();
@@ -448,6 +449,7 @@ CompositionRoot::CompositionRoot()
           .catalogArtist = &m_catalogArtist,
           .lyrics = &m_lyrics,
           .offline = &m_offline,
+          .audioOutput = &m_audioOutput,
           .share = &m_share,
           .mode = &m_mode,
           .showGallery = QCoreApplication::arguments().contains(QStringLiteral("--gallery")),

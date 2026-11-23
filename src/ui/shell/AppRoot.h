@@ -22,6 +22,7 @@
 #include "ui/settings/DataSettingsViewModel.h"
 #include "ui/catalog/CatalogArtistViewModel.h"
 #include "ui/downloads/OfflineViewModel.h"
+#include "ui/settings/AudioOutputViewModel.h"
 #include "ui/player/LyricsViewModel.h"
 #include "ui/share/ShareController.h"
 #include "ui/catalog/CatalogPageViewModel.h"
@@ -107,6 +108,7 @@ class AppRoot : public QObject {
     Q_PROPERTY(lmp::ui::CatalogArtistViewModel* catalogArtist READ catalogArtist CONSTANT FINAL)
     Q_PROPERTY(lmp::ui::LyricsViewModel* lyrics READ lyrics CONSTANT FINAL)
     Q_PROPERTY(lmp::ui::OfflineViewModel* offline READ offline CONSTANT FINAL)
+    Q_PROPERTY(lmp::ui::AudioOutputViewModel* audioOutput READ audioOutput CONSTANT FINAL)
     Q_PROPERTY(lmp::ui::ShareController* share READ share CONSTANT FINAL)
     // The current music source: "LocalOnly", "ApiKey" or "Account".
     Q_PROPERTY(QString sourceMode READ sourceMode NOTIFY sourceChanged FINAL)
@@ -148,6 +150,7 @@ public:
         CatalogArtistViewModel* catalogArtist = nullptr;
         LyricsViewModel* lyrics = nullptr;
         OfflineViewModel* offline = nullptr;
+        AudioOutputViewModel* audioOutput = nullptr;
         ShareController* share = nullptr;
         core::mode::ModeService* mode = nullptr;
         bool showGallery = false;
@@ -190,6 +193,7 @@ public:
     [[nodiscard]] CatalogArtistViewModel* catalogArtist() const { return m_parts.catalogArtist; }
     [[nodiscard]] LyricsViewModel* lyrics() const { return m_parts.lyrics; }
     [[nodiscard]] OfflineViewModel* offline() const { return m_parts.offline; }
+    [[nodiscard]] AudioOutputViewModel* audioOutput() const { return m_parts.audioOutput; }
     [[nodiscard]] ShareController* share() const { return m_parts.share; }
     [[nodiscard]] QString sourceMode() const;
     [[nodiscard]] core::mode::Capabilities capabilities() const;

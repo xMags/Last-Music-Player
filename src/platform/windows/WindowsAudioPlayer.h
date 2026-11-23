@@ -42,6 +42,7 @@ public:
     void seek(double seconds) override;
     void stop() override;
     void setVolume(double volume) override;
+    void setOutputDevice(const QString& deviceId) override;
 
     [[nodiscard]] quint64 currentLoadId() const override { return m_loadId; }
     [[nodiscard]] State state() const override { return m_state; }
@@ -80,6 +81,8 @@ private:
     QTimer m_positionTimer;
 
     quint64 m_loadId = 0;
+    // Bumped by every device choice, so a late lookup of an older one is dropped.
+    quint64 m_deviceRequest = 0;
     State m_state = State::Idle;
     // The source has reported that it is open (metadata loaded).
     bool m_opened = false;

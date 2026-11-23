@@ -67,6 +67,7 @@
 #include "platform/windows/WindowsFolderPicker.h"
 #include "platform/windows/WindowsMediaControls.h"
 #include "platform/windows/WindowsNetworkStatus.h"
+#include "platform/windows/WindowsAudioOutputs.h"
 #include "platform/windows/WindowsPowerStatus.h"
 #include "platform/windows/WindowsReducedMotion.h"
 #include "platform/windows/WindowsTagReader.h"
@@ -85,6 +86,7 @@
 #include "ui/library/AccountArtistsViewModel.h"
 #include "ui/catalog/CatalogArtistViewModel.h"
 #include "ui/downloads/OfflineViewModel.h"
+#include "ui/settings/AudioOutputViewModel.h"
 #include "ui/player/LyricsViewModel.h"
 #include "ui/share/ShareController.h"
 #include "ui/catalog/CatalogPageViewModel.h"
@@ -297,6 +299,9 @@ private:
     ui::LyricsViewModel m_lyrics;
     // The Offline page and the download controls.
     ui::OfflineViewModel m_offline;
+    // The output device choice.
+    platform::windows::WindowsAudioOutputs m_audioOutputs;
+    ui::AudioOutputViewModel m_audioOutput;
     // Share links for songs, lists and artists (Account mode).
     ui::ShareController m_share;
     ui::CollectionEditor m_collectionEditor;

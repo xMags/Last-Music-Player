@@ -3,8 +3,11 @@
 qt_add_library(lmp_platform_windows STATIC
     WindowsAppIdentity.cpp
     WindowsAppIdentity.h
+    WindowsAudioOutputs.cpp
+    WindowsAudioOutputs.h
     WindowsAudioPlayer.cpp
     WindowsAudioPlayer.h
+    WindowsAudioPlayerDevice.cpp
     WindowsAudioPlayerEvents.cpp
     WindowsAudioPlayerNative.h
     WindowsCredentialStore.cpp
