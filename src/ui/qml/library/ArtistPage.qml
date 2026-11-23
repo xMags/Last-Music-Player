@@ -84,31 +84,27 @@ Item {
             border.width: 1
             border.color: Theme.stroke
 
-            // The first and last rows' hover fill reaches the corners.
-            RoundedClip {
-                anchors.fill: parent
-                radius: 12
+            // The first and last rows round their own corners (TrackRow).
+            Column {
+                id: songs
 
-                Column {
-                    id: songs
+                objectName: "roundedTrackRows"
+                width: parent.width
 
-                    width: parent.width
+                Repeater {
+                    model: page.model.topSongs
 
-                    Repeater {
-                        model: page.model.topSongs
+                    TrackRow {
+                        id: row
 
-                        TrackRow {
-                            id: row
+                        required property int index
 
-                            required property int index
-
-                            width: songs.width
-                            onClicked: page.model.playSong(row.index)
-                            onLikeRequested: page.model.likeSong(row.index)
-                            onMenuRequested: (at, fromKeyboard) => {
-                                page.model.prepareSongMenu(row.index)
-                                menus.open(row, at.x, at.y, fromKeyboard)
-                            }
+                        width: songs.width
+                        onClicked: page.model.playSong(row.index)
+                        onLikeRequested: page.model.likeSong(row.index)
+                        onMenuRequested: (at, fromKeyboard) => {
+                            page.model.prepareSongMenu(row.index)
+                            menus.open(row, at.x, at.y, fromKeyboard)
                         }
                     }
                 }

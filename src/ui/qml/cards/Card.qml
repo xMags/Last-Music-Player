@@ -72,12 +72,16 @@ T.AbstractButton {
                 layers: card.hovered ? Theme.shadowCardHover : Theme.shadowCard
             }
 
-            // The picture zooms inside a frame cut to the card's corners.
+            // The picture zooms inside a frame cut to the card's corners. The
+            // clip is a layer only while zoomed, so the art (which may carry
+            // a label) is drawn directly, and sharp, the rest of the time.
             RoundedClip {
                 anchors.fill: parent
-                radius: card.round ? width / 2 : Theme.radiusXl
+                radius: zoom.scale > 1 ? (card.round ? width / 2 : Theme.radiusXl) : 0
 
                 Item {
+                    id: zoom
+
                     anchors.fill: parent
                     scale: card.hovered && !Motion.reduced ? 1.045 : 1
                     transformOrigin: Item.Center

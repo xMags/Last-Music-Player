@@ -10,106 +10,110 @@ import LastMusicPlayer
 // in the lower right, the mark itself in the middle, a thin light edge and
 // the "genre" label with its dot in the lower left. The marks come from the
 // genre's recipe (core GenreArtworkRecipe), drawn in a 96-unit box. The
-// stripe overlay and the enlarged mark reach the corners, so the tile is a
-// RoundedClip cut to `radius`.
-RoundedClip {
+// stripe overlay and the enlarged mark reach the corners, so the drawing is
+// cut to `radius`; the label stays outside that layer, where text is sharp.
+Item {
     id: tile
 
     property string genre: ""
+    property real radius: 16
     readonly property var recipe: GenreArtwork.recipe(genre)
     readonly property color ink: Qt.rgba(1, 1, 1, 0xEB / 255)
 
-    radius: 16
-
-    Shape {
-        anchors.fill: parent
-        preferredRendererType: Shape.CurveRenderer
-
-        ShapePath {
-            strokeColor: "transparent"
-            fillGradient: LinearGradient {
-                x1: 0
-                y1: 0
-                x2: tile.width
-                y2: tile.height
-                GradientStop { position: 0; color: tile.recipe.start }
-                GradientStop { position: 1; color: tile.recipe.end }
-            }
-            PathRectangle {
-                width: tile.width
-                height: tile.height
-                radius: tile.radius
-            }
-        }
-    }
-
-    // The highlight in the top-left corner.
-    Shape {
-        anchors.fill: parent
-        preferredRendererType: Shape.CurveRenderer
-
-        ShapePath {
-            strokeColor: "transparent"
-            fillGradient: RadialGradient {
-                centerX: tile.width * 0.12
-                centerY: tile.height * 0.06
-                centerRadius: tile.width * 1.05
-                focalX: centerX
-                focalY: centerY
-                GradientStop { position: 0; color: Qt.rgba(1, 1, 1, 0x57 / 255) }
-                GradientStop { position: 0.62; color: Qt.rgba(1, 1, 1, 0) }
-            }
-            PathRectangle {
-                width: tile.width
-                height: tile.height
-                radius: tile.radius
-            }
-        }
-    }
-
-    Image {
-        anchors.fill: parent
-        source: "qrc:/qt/qml/LastMusicPlayer/library/LibraryStripeOverlay.svg"
-        fillMode: Image.Stretch
-        sourceSize.width: 256
-        sourceSize.height: 256
-    }
-
-    // The shade along the bottom.
-    Rectangle {
+    RoundedClip {
         anchors.fill: parent
         radius: tile.radius
-        gradient: Gradient {
-            GradientStop { position: 0.54; color: Qt.rgba(0, 0, 0, 0) }
-            GradientStop { position: 1; color: Qt.rgba(0, 0, 0, 0x33 / 255) }
+
+        Shape {
+            anchors.fill: parent
+            preferredRendererType: Shape.CurveRenderer
+
+            ShapePath {
+                strokeColor: "transparent"
+                fillGradient: LinearGradient {
+                    x1: 0
+                    y1: 0
+                    x2: tile.width
+                    y2: tile.height
+                    GradientStop { position: 0; color: tile.recipe.start }
+                    GradientStop { position: 1; color: tile.recipe.end }
+                }
+                PathRectangle {
+                    width: tile.width
+                    height: tile.height
+                    radius: tile.radius
+                }
+            }
         }
-    }
 
-    // A faint copy of the mark, twice as large, in the lower right.
-    GenreMark {
-        x: tile.width - 96 + 52
-        y: tile.height - 96 + 46
-        marks: tile.recipe.marks
-        ink: tile.ink
-        opacity: 0.16
-        scale: 2.1
-        transformOrigin: Item.BottomRight
-    }
+        // The highlight in the top-left corner.
+        Shape {
+            anchors.fill: parent
+            preferredRendererType: Shape.CurveRenderer
 
-    GenreMark {
-        anchors.centerIn: parent
-        anchors.verticalCenterOffset: -8 * tile.width / 160
-        marks: tile.recipe.marks
-        ink: tile.ink
-        scale: tile.width / 160
-    }
+            ShapePath {
+                strokeColor: "transparent"
+                fillGradient: RadialGradient {
+                    centerX: tile.width * 0.12
+                    centerY: tile.height * 0.06
+                    centerRadius: tile.width * 1.05
+                    focalX: centerX
+                    focalY: centerY
+                    GradientStop { position: 0; color: Qt.rgba(1, 1, 1, 0x57 / 255) }
+                    GradientStop { position: 0.62; color: Qt.rgba(1, 1, 1, 0) }
+                }
+                PathRectangle {
+                    width: tile.width
+                    height: tile.height
+                    radius: tile.radius
+                }
+            }
+        }
 
-    Rectangle {
-        anchors.fill: parent
-        radius: tile.radius
-        color: "transparent"
-        border.width: 1
-        border.color: Qt.rgba(1, 1, 1, 0x38 / 255)
+        Image {
+            anchors.fill: parent
+            source: "qrc:/qt/qml/LastMusicPlayer/library/LibraryStripeOverlay.svg"
+            fillMode: Image.Stretch
+            sourceSize.width: 256
+            sourceSize.height: 256
+        }
+
+        // The shade along the bottom.
+        Rectangle {
+            anchors.fill: parent
+            radius: tile.radius
+            gradient: Gradient {
+                GradientStop { position: 0.54; color: Qt.rgba(0, 0, 0, 0) }
+                GradientStop { position: 1; color: Qt.rgba(0, 0, 0, 0x33 / 255) }
+            }
+        }
+
+        // A faint copy of the mark, twice as large, in the lower right.
+        GenreMark {
+            x: tile.width - 96 + 52
+            y: tile.height - 96 + 46
+            marks: tile.recipe.marks
+            ink: tile.ink
+            opacity: 0.16
+            scale: 2.1
+            transformOrigin: Item.BottomRight
+        }
+
+        GenreMark {
+            anchors.centerIn: parent
+            anchors.verticalCenterOffset: -8 * tile.width / 160
+            marks: tile.recipe.marks
+            ink: tile.ink
+            scale: tile.width / 160
+        }
+
+        Rectangle {
+            anchors.fill: parent
+            radius: tile.radius
+            color: "transparent"
+            border.width: 1
+            border.color: Qt.rgba(1, 1, 1, 0x38 / 255)
+        }
     }
 
     Row {

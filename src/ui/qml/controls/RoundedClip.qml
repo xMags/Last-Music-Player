@@ -1,3 +1,5 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Effects
 import LastMusicPlayer
@@ -6,7 +8,10 @@ import LastMusicPlayer
 // with border-radius). An item's own `clip` cuts to its bounding rectangle
 // only, so anything filling a rounded surface shows square corners through
 // it; put that content in here instead, with the surface's radius (less its
-// border width when it sits inside a border).
+// border width when it sits inside a border). The content is drawn through a
+// layer, so never put text in here: text in a layer loses its pixel-grid
+// hinting and looks blurred. Clip the pictures and fills, and lay the text
+// over them as a sibling.
 Item {
     id: root
 

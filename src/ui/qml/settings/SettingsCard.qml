@@ -1,7 +1,6 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
-import QtQuick.Effects
 import LastMusicPlayer
 
 // One card of Settings (.settings-card, views.css 1138-1147): a rounded
@@ -30,32 +29,17 @@ Item {
         border.color: Theme.stroke
     }
 
-    // The rows are clipped to the card's corners (overflow: hidden), so a
-    // hovered first or last row keeps the rounded edge. Half coverage of the
-    // mask's soft edge is the edge (see ArtTile).
+    // The rows draw straight into the window, never through a layer: text
+    // in a layer loses its pixel-grid hinting and looks blurred. A row that
+    // fills its background (SettingsSwitchRow) rounds its own corners when it
+    // is the first or last one here, which is what overflow: hidden gave.
     Column {
         id: column
 
+        objectName: "settingsCardRows"
         // Inside the 1px border, as a box's content is.
         x: 1
         y: 1
         width: parent.width - 2
-        layer.enabled: true
-        layer.effect: MultiEffect {
-            maskEnabled: true
-            maskSource: mask
-            maskThresholdMin: 0.5
-            maskSpreadAtMin: 1.0
-        }
-    }
-
-    Rectangle {
-        id: mask
-
-        width: column.width
-        height: column.height
-        radius: surface.radius - 1
-        visible: false
-        layer.enabled: true
     }
 }

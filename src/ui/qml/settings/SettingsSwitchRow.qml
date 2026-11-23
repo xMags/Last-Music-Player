@@ -28,6 +28,18 @@ T.AbstractButton {
     }
 
     background: Rectangle {
+        // The first or last row of a Settings card follows the card's corners
+        // (inside its 1px border).
+        readonly property var rows: row.parent && row.parent.objectName === "settingsCardRows"
+                                    ? row.parent.visibleChildren.filter(item => item.height > 0) : []
+        readonly property real edgeRadius: Theme.radiusLg - 1
+        readonly property bool first: rows.length > 0 && rows[0] === row
+        readonly property bool last: rows.length > 0 && rows[rows.length - 1] === row
+
+        topLeftRadius: first ? edgeRadius : 0
+        topRightRadius: first ? edgeRadius : 0
+        bottomLeftRadius: last ? edgeRadius : 0
+        bottomRightRadius: last ? edgeRadius : 0
         color: row.down ? Theme.hover : (row.hovered ? Theme.rowHover : "transparent")
 
         Behavior on color {

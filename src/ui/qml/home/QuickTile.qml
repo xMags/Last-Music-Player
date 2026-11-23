@@ -84,40 +84,44 @@ T.AbstractButton {
         }
     }
 
-    // Cut to the tile's corners: the cover square runs to its left edge.
-    contentItem: RoundedClip {
-        radius: 8
+    contentItem: Item {
+        // The cover square runs to the tile's left edge: cut to its corners.
+        // The title stays outside, as text in a clipping layer blurs.
+        RoundedClip {
+            anchors.fill: parent
+            radius: 8
 
-        Item {
-            id: art
+            Item {
+                id: art
 
-            width: 64
-            height: parent.height
+                width: 64
+                height: parent.height
 
-            Rectangle {
-                anchors.fill: parent
-                visible: tile.kind === "system"
-                gradient: Gradient {
-                    orientation: Gradient.Horizontal
-                    GradientStop { position: 0; color: tile.gradientStart }
-                    GradientStop { position: 1; color: tile.gradientEnd }
+                Rectangle {
+                    anchors.fill: parent
+                    visible: tile.kind === "system"
+                    gradient: Gradient {
+                        orientation: Gradient.Horizontal
+                        GradientStop { position: 0; color: tile.gradientStart }
+                        GradientStop { position: 1; color: tile.gradientEnd }
+                    }
+
+                    Icon {
+                        anchors.centerIn: parent
+                        name: tile.iconName
+                        size: 24
+                        color: "white"
+                    }
                 }
 
-                Icon {
-                    anchors.centerIn: parent
-                    name: tile.iconName
-                    size: 24
-                    color: "white"
+                ArtTile {
+                    anchors.fill: parent
+                    visible: tile.kind !== "system"
+                    radius: 0
+                    source: tile.artworkUrl
+                    artworkId: tile.artworkId
+                    label: tile.artworkLabel
                 }
-            }
-
-            ArtTile {
-                anchors.fill: parent
-                visible: tile.kind !== "system"
-                radius: 0
-                source: tile.artworkUrl
-                artworkId: tile.artworkId
-                label: tile.artworkLabel
             }
         }
 
