@@ -25,6 +25,13 @@ AccountSyncScheduler::AccountSyncScheduler(const Dependencies& dependencies, QOb
         recoverConnection();
     });
     m_poll->start(AutoSyncPollInterval);
+    m_offlineRecheck = m_deps.clock.createTimer([this]() {
+        if (m_deps.mode.mode() == mode::SourceMode::Account
+            && m_deps.session.state() == AccountSessionState::Offline) {
+            m_deps.session.restore();
+            m_offlineRecheck->start(OfflineRecheckInterval);
+        }
+    });
 
     connect(&m_deps.session, &AccountSessionService::stateChanged, this, &AccountSyncScheduler::onSessionOrModeChanged);
     connect(&m_deps.mode, &mode::ModeService::changed, this, &AccountSyncScheduler::onSessionOrModeChanged);
@@ -42,6 +49,14 @@ AccountSyncScheduler::~AccountSyncScheduler()
 
 void AccountSyncScheduler::onSessionOrModeChanged()
 {
+    const bool offline = m_deps.mode.mode() == mode::SourceMode::Account
+        && m_deps.session.state() == AccountSessionState::Offline;
+    if (offline && !m_offlineRecheck->isActive()) {
+        m_offlineRecheck->start(OfflineRecheckInterval);
+    } else if (!offline) {
+        m_offlineRecheck->stop();
+    }
+
     const bool ready = m_deps.mode.mode() == mode::SourceMode::Account
         && m_deps.session.state() == AccountSessionState::Validated;
     const bool becameReady = ready && !m_wasReady;

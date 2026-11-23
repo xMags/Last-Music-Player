@@ -222,6 +222,7 @@ CompositionRoot::CompositionRoot()
                  .sync = m_sync,
                  .accounts = m_accounts,
                  .settings = m_settings})
+    , m_connectivity(m_session, m_mode)
     , m_collectionEditor(m_collectionActions, m_navigator, m_toasts)
     , m_home({.library = m_library,
               .actions = m_trackActions,
@@ -278,6 +279,7 @@ CompositionRoot::CompositionRoot()
           .dataSettings = &m_dataSettings,
           .accountArtists = &m_accountArtists,
           .welcome = &m_welcome,
+          .connectivity = &m_connectivity,
           .mode = &m_mode,
           .showGallery = QCoreApplication::arguments().contains(QStringLiteral("--gallery")),
       })

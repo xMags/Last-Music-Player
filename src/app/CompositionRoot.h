@@ -66,6 +66,7 @@
 #include "ui/search/SearchSource.h"
 #include "ui/search/SearchViewModel.h"
 #include "ui/library/AccountArtistsViewModel.h"
+#include "ui/shell/ConnectivityViewModel.h"
 #include "ui/welcome/WelcomeViewModel.h"
 #include "ui/library/CollectionEditor.h"
 #include "ui/library/CollectionViewModel.h"
@@ -228,6 +229,8 @@ private:
     ui::AccountArtistsViewModel m_accountArtists;
     // The welcome flow a new account sees once.
     ui::WelcomeViewModel m_welcome;
+    // The offline banner.
+    ui::ConnectivityViewModel m_connectivity;
     ui::CollectionEditor m_collectionEditor;
     ui::HomeViewModel m_home;
     // Browse and search (the local library; remote sources join in P08 and P09).

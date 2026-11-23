@@ -206,6 +206,32 @@ Item {
         z: 95
     }
 
+    // Offline in Account mode: the saved library shows until the service
+    // answers again.
+    Rectangle {
+        id: offlineBanner
+
+        visible: App.connectivity.offline && !App.fullscreen.open
+        z: 80
+        anchors.horizontalCenter: parent.horizontalCenter
+        y: shell.titleHeight + 8
+        width: offlineText.implicitWidth + 40
+        height: 36
+        radius: 18
+        color: Theme.surface
+        border.width: 1
+        border.color: Theme.stroke
+
+        Text {
+            id: offlineText
+
+            anchors.centerIn: parent
+            text: qsTr("You're offline. Your library is shown as it was at the last sync.")
+            font: Theme.stateText
+            color: Theme.fgSecondary
+        }
+    }
+
     // A new account's welcome flow, over everything but the title strip.
     Loader {
         anchors.fill: parent

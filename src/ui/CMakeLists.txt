@@ -222,6 +222,8 @@ qt_add_qml_module(lmp_ui
         search/SearchSource.h
         search/SearchViewModel.cpp
         search/SearchViewModel.h
+        shell/ConnectivityViewModel.cpp
+        shell/ConnectivityViewModel.h
         welcome/WelcomeViewModel.cpp
         welcome/WelcomeViewModel.h
         settings/DataSettingsViewModel.cpp

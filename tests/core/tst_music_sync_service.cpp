@@ -9,6 +9,7 @@
 #include <QString>
 #include <QTest>
 
+#include <algorithm>
 #include <functional>
 #include <memory>
 
@@ -235,6 +236,7 @@ private slots:
     void requestsShareTheRunningSync();
     void needsAValidatedSession();
     void schedulerRunsAtSignInAndOnItsTriggers();
+    void offlineSessionIsCheckedAgainUntilItAnswers();
 };
 
 void MusicSyncServiceTest::snapshotLaysUnsentChangesOverTheLibrary()
@@ -584,6 +586,48 @@ void MusicSyncServiceTest::schedulerRunsAtSignInAndOnItsTriggers()
     network.handler(false, false);
     settle();
     QCOMPARE(fixture.transport.count(QStringLiteral("library")), 4);
+}
+
+void MusicSyncServiceTest::offlineSessionIsCheckedAgainUntilItAnswers()
+{
+    SyncFixture fixture;
+    FakeNetwork network;
+    account::AccountSyncScheduler scheduler({.sync = fixture.sync,
+                                             .session = fixture.modes.session.service,
+                                             .mode = fixture.modes.modes,
+                                             .network = network,
+                                             .clock = fixture.clock});
+    (void)fixture.modes.modes.start();
+    QVERIFY(fixture.modes.restoreOffline(kOwner));
+    QVERIFY(fixture.modes.modes.setMode(lmp::core::mode::SourceMode::Account));
+    const auto profileChecks = [&fixture]() {
+        return std::count_if(fixture.modes.session.transport.requests.cbegin(),
+                             fixture.modes.session.transport.requests.cend(),
+                             [](const lmp::core::net::HttpRequest& request) { return request.url.path() == lmp::test::kProfilePath; });
+    };
+    const auto before = profileChecks();
+
+    // Still unreachable after 15 s: checked once, still offline.
+    fixture.modes.session.transport.script(lmp::test::kProfilePath, lmp::test::FakeHttpTransport::failed(lmp::core::FailureKind::Network));
+    fixture.clock.advance(14000);
+    settle();
+    QCOMPARE(profileChecks(), before);
+    fixture.clock.advance(1000);
+    QTRY_COMPARE(profileChecks(), before + 1);
+    QVERIFY(fixture.modes.waitForSession(account::AccountSessionState::Offline));
+
+    // The service answers on the next check: the session is confirmed and
+    // the library syncs.
+    fixture.modes.session.transport.script(lmp::test::kProfilePath, lmp::test::AccountSessionFixture::profileAnswer(kOwner));
+    fixture.clock.advance(15000);
+    QVERIFY(fixture.modes.waitForSession(account::AccountSessionState::Validated));
+    QTRY_COMPARE(fixture.transport.count(QStringLiteral("library")), 1);
+
+    // Once confirmed it is not checked every 15 s any more.
+    const auto confirmed = profileChecks();
+    fixture.clock.advance(15000);
+    settle();
+    QCOMPARE(profileChecks(), confirmed);
 }
 
 QTEST_GUILESS_MAIN(MusicSyncServiceTest)
