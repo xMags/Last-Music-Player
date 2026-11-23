@@ -175,6 +175,15 @@ CompositionRoot::CompositionRoot()
               .trackMenu = m_trackMenu,
               .navigator = m_navigator,
               .now = [] { return QDateTime::currentDateTime(); }})
+    , m_localSearch(m_library, m_groups)
+    , m_search({.source = m_localSearch,
+                .library = m_library,
+                .groups = m_groups,
+                .actions = m_trackActions,
+                .player = m_player,
+                .settings = m_settings,
+                .trackMenu = m_trackMenu,
+                .navigator = m_navigator})
     , m_appRoot({
           .windowChrome = &m_windowChromeViewModel,
           .navigator = &m_navigator,
@@ -196,6 +205,7 @@ CompositionRoot::CompositionRoot()
           .localArtist = &m_artistPage,
           .collections = &m_collectionEditor,
           .home = &m_home,
+          .search = &m_search,
           .mode = &m_mode,
           .showGallery = QCoreApplication::arguments().contains(QStringLiteral("--gallery")),
       })

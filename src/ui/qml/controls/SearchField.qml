@@ -7,8 +7,8 @@ import LastMusicPlayer
 // once there is text. The border turns accent while the field has focus.
 //
 // `queryEdited` fires on every change. `queryCommitted` fires once typing has
-// paused for Motion.searchCommitDelay, or at once on Enter. Deciding what a
-// query is worth searching for is the caller's job.
+// paused for Motion.searchCommitDelay, or at once on Enter; `submitted` only
+// on Enter. Deciding what a query is worth searching for is the caller's job.
 FocusScope {
     id: root
 
@@ -18,10 +18,17 @@ FocusScope {
 
     signal queryEdited(string text)
     signal queryCommitted(string text)
+    signal submitted(string text)
 
     function clear() {
         input.clear()
         input.forceActiveFocus()
+    }
+
+    // Puts the caret in the field (Ctrl+K), with the text selected.
+    function focusField() {
+        input.forceActiveFocus(Qt.ShortcutFocusReason)
+        input.selectAll()
     }
 
     implicitWidth: 784
@@ -87,6 +94,7 @@ FocusScope {
             onAccepted: {
                 commitTimer.stop()
                 root.queryCommitted(text)
+                root.submitted(text)
             }
 
             Text {

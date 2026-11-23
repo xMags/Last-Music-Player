@@ -60,6 +60,11 @@ class ThemeTypography : public QObject {
     Q_PROPERTY(QFont quickTitle READ quickTitle CONSTANT FINAL)
     Q_PROPERTY(QFont mixBadge READ mixBadge CONSTANT FINAL)
     Q_PROPERTY(QFont mixBlurb READ mixBlurb CONSTANT FINAL)
+    Q_PROPERTY(QFont searchCategory READ searchCategory CONSTANT FINAL)
+    Q_PROPERTY(QFont searchTopTitle READ searchTopTitle CONSTANT FINAL)
+    Q_PROPERTY(QFont searchTopKind READ searchTopKind CONSTANT FINAL)
+    Q_PROPERTY(qreal lineHeightSearchCategory READ lineHeightSearchCategory CONSTANT FINAL)
+    Q_PROPERTY(qreal lineHeightSearchTopTitle READ lineHeightSearchTopTitle CONSTANT FINAL)
     Q_PROPERTY(qreal lineHeightHeroTitle READ lineHeightHeroTitle CONSTANT FINAL)
     Q_PROPERTY(qreal lineHeightMixBlurb READ lineHeightMixBlurb CONSTANT FINAL)
     Q_PROPERTY(qreal lineHeightCollectionTitle READ lineHeightCollectionTitle CONSTANT FINAL)
@@ -173,6 +178,11 @@ public:
     [[nodiscard]] QFont quickTitle() const { return m_text.quickTitle.font; }
     [[nodiscard]] QFont mixBadge() const { return m_text.mixBadge.font; }
     [[nodiscard]] QFont mixBlurb() const { return m_text.mixBlurb.font; }
+    [[nodiscard]] QFont searchCategory() const { return m_text.searchCategory.font; }
+    [[nodiscard]] QFont searchTopTitle() const { return m_text.searchTopTitle.font; }
+    [[nodiscard]] QFont searchTopKind() const { return m_text.searchTopKind.font; }
+    [[nodiscard]] qreal lineHeightSearchCategory() const { return m_text.searchCategory.lineHeight; }
+    [[nodiscard]] qreal lineHeightSearchTopTitle() const { return m_text.searchTopTitle.lineHeight; }
     [[nodiscard]] qreal lineHeightHeroTitle() const { return m_text.heroTitle.lineHeight; }
     [[nodiscard]] qreal lineHeightMixBlurb() const { return m_text.mixBlurb.lineHeight; }
     [[nodiscard]] qreal lineHeightCollectionTitle() const { return m_text.collectionTitle.lineHeight; }

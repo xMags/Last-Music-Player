@@ -160,6 +160,12 @@ TextStyles TextStyles::build(const FontFamilies& families)
         .mixBadge = makeTextStyle(
             {.family = text, .pixelSize = 10.5, .weight = kExtraBold, .letterSpacingEm = 0.18, .uppercase = true}),
         .mixBlurb = makeTextStyle({.family = text, .pixelSize = 12.5, .weight = kMedium, .lineHeight = 12.5 * 1.4}),
+        // Browse (views.css 1855-2030): a category tile's name, the top
+        // result's title and the small pill naming what it is.
+        .searchCategory = makeTextStyle({.family = text, .pixelSize = 16, .weight = kBold, .lineHeight = 16 * 1.25}),
+        .searchTopTitle = makeTextStyle(
+            {.family = display, .pixelSize = 28, .weight = kBold, .lineHeight = 28 * 1.12, .letterSpacingEm = -0.01}),
+        .searchTopKind = makeTextStyle({.family = text, .pixelSize = 12, .weight = kSemiBold, .letterSpacingEm = 0.02}),
         .nowPlayingTitle = makeTextStyle(
             {.family = display, .pixelSize = 20, .weight = kBold, .lineHeight = 26}),
         // line-height: 1.2 of 30px.

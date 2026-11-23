@@ -47,6 +47,8 @@
 #include "ui/player/QueueRailViewModel.h"
 #include "ui/settings/FirstRunViewModel.h"
 #include "ui/home/HomeViewModel.h"
+#include "ui/search/SearchSource.h"
+#include "ui/search/SearchViewModel.h"
 #include "ui/library/CollectionEditor.h"
 #include "ui/library/CollectionViewModel.h"
 #include "ui/library/LibraryViewModel.h"
@@ -174,6 +176,9 @@ private:
     ui::LocalArtistViewModel m_artistPage;
     ui::CollectionEditor m_collectionEditor;
     ui::HomeViewModel m_home;
+    // Browse and search (the local library; remote sources join in P08 and P09).
+    ui::LocalSearchSource m_localSearch;
+    ui::SearchViewModel m_search;
     ui::AppRoot m_appRoot;
     QPointer<ui::Theme> m_theme; // owned by the QML engine
 };

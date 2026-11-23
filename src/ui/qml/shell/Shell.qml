@@ -16,6 +16,7 @@ import LastMusicPlayer
 // player, Escape closes it; neither acts while a text field has the keys.
 // Space plays and pauses, Ctrl+Right and Ctrl+Left skip; these three leave
 // the keys to a focused text field, button, slider, drop-down or popup.
+// Ctrl+K opens Browse with the caret in its search field.
 // Alt+Left and the mouse's back button go back a page (the browser Back the
 // reference relies on), except while the full-screen player is open.
 Item {
@@ -78,6 +79,17 @@ Item {
         sequence: "Ctrl+Left"
         enabled: !playbackKeys.blocked
         onActivated: App.playerBar.previous()
+    }
+
+    // Ctrl+K: Browse, with the caret in its search field.
+    Shortcut {
+        sequence: "Ctrl+K"
+        enabled: !App.fullscreen.open
+        onActivated: {
+            if (App.navigator.currentKind !== Route.Browse)
+                App.navigator.openView(Route.Browse)
+            Qt.callLater(() => App.search.requestFocus())
+        }
     }
 
     Shortcut {

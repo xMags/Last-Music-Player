@@ -106,6 +106,10 @@ set(LMP_UI_QML_FILES
     qml/player/QueueSectionHeader.qml
     qml/player/RailSectionLabel.qml
     qml/account/SignInDialog.qml
+    qml/search/BrowsePage.qml
+    qml/search/CategoryTile.qml
+    qml/search/SearchSectionHead.qml
+    qml/search/SearchTopCard.qml
     qml/settings/AccountBlock.qml
     qml/settings/ApiKeyForm.qml
     qml/settings/SettingsAboutCard.qml
@@ -207,6 +211,10 @@ qt_add_qml_module(lmp_ui
         player/QueueRailViewModel.h
         player/QueueRowDrag.cpp
         player/QueueRowDrag.h
+        search/SearchSource.cpp
+        search/SearchSource.h
+        search/SearchViewModel.cpp
+        search/SearchViewModel.h
         settings/FirstRunViewModel.cpp
         settings/FirstRunViewModel.h
         settings/LibrarySettingsViewModel.cpp
@@ -283,6 +291,7 @@ set(LMP_UI_TYPE_FOLDERS
     icons
     library
     menus
+    search
     navigation
     player
     settings

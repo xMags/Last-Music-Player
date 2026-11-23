@@ -22,8 +22,10 @@ Column {
 
     spacing: 16
 
+    // A shelf under a heading of its own (search results) has no header.
     SectionHeader {
         width: shelf.width
+        visible: shelf.title !== "" || shelf.linkText !== ""
         title: shelf.title
         linkText: shelf.linkText
         onLinkClicked: shelf.linkClicked()

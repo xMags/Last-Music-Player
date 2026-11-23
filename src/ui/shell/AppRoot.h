@@ -13,6 +13,7 @@
 #include "ui/player/PlayerBarViewModel.h"
 #include "ui/player/QueueRailViewModel.h"
 #include "ui/home/HomeViewModel.h"
+#include "ui/search/SearchViewModel.h"
 #include "ui/library/CollectionEditor.h"
 #include "ui/library/CollectionViewModel.h"
 #include "ui/library/LibraryViewModel.h"
@@ -84,6 +85,8 @@ class AppRoot : public QObject {
     Q_PROPERTY(lmp::ui::CollectionEditor* collections READ collections CONSTANT FINAL)
     // Home in its offline form.
     Q_PROPERTY(lmp::ui::HomeViewModel* home READ home CONSTANT FINAL)
+    // Browse and search.
+    Q_PROPERTY(lmp::ui::SearchViewModel* search READ search CONSTANT FINAL)
     // The current music source: "LocalOnly", "ApiKey" or "Account".
     Q_PROPERTY(QString sourceMode READ sourceMode NOTIFY sourceChanged FINAL)
     // What the current source lets the user do (core::mode::Capabilities).
@@ -114,6 +117,7 @@ public:
         LocalArtistViewModel* localArtist = nullptr;
         CollectionEditor* collections = nullptr;
         HomeViewModel* home = nullptr;
+        SearchViewModel* search = nullptr;
         core::mode::ModeService* mode = nullptr;
         bool showGallery = false;
     };
@@ -145,6 +149,7 @@ public:
     [[nodiscard]] LocalArtistViewModel* localArtist() const { return m_parts.localArtist; }
     [[nodiscard]] CollectionEditor* collections() const { return m_parts.collections; }
     [[nodiscard]] HomeViewModel* home() const { return m_parts.home; }
+    [[nodiscard]] SearchViewModel* search() const { return m_parts.search; }
     [[nodiscard]] QString sourceMode() const;
     [[nodiscard]] core::mode::Capabilities capabilities() const;
     [[nodiscard]] bool showGallery() const { return m_parts.showGallery; }

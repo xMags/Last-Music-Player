@@ -92,6 +92,9 @@ struct TextStyles {
     TextStyle quickTitle;
     TextStyle mixBadge;
     TextStyle mixBlurb;
+    TextStyle searchCategory;
+    TextStyle searchTopTitle;
+    TextStyle searchTopKind;
     TextStyle nowPlayingTitle;
     TextStyle fullScreenTitle;
     TextStyle homeGreeting;
