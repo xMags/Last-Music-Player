@@ -14,6 +14,7 @@
 #include "core/library/ArtworkCache.h"
 #include "core/library/LibraryScanner.h"
 #include "core/library/CollectionActions.h"
+#include "core/library/HomeMixService.h"
 #include "core/library/TrackActions.h"
 #include "core/library/UserDataOperationGate.h"
 #include "core/model/CatalogSourceKey.h"
@@ -60,6 +61,7 @@ private:
     std::unique_ptr<lmp::core::UserDataOperationGate> m_gate;
     std::unique_ptr<lmp::core::TrackActions> m_actions;
     std::unique_ptr<lmp::core::CollectionActions> m_collectionActions;
+    std::unique_ptr<lmp::core::HomeMixService> m_mixes;
     std::unique_ptr<lmp::test::FakeTagReader> m_tags;
     std::unique_ptr<QTemporaryDir> m_thumbs;
     std::unique_ptr<lmp::core::ArtworkCache> m_artwork;
@@ -85,6 +87,7 @@ void LibraryViewModelTest::init()
     m_actions = std::make_unique<lmp::core::TrackActions>(lmp::core::TrackActions::Dependencies{
         *m_controller, m_player->tracks, *m_collections, *m_groups, m_modes->modes, *m_gate});
     m_collectionActions = std::make_unique<lmp::core::CollectionActions>(*m_collections, *m_gate);
+    m_mixes = std::make_unique<lmp::core::HomeMixService>(*m_queries, *m_groups, [] { return QDate(2026, 11, 23); });
     m_tags = std::make_unique<lmp::test::FakeTagReader>();
     m_thumbs = std::make_unique<QTemporaryDir>();
     m_artwork = std::make_unique<lmp::core::ArtworkCache>(m_thumbs->path(), nullptr);
@@ -93,7 +96,7 @@ void LibraryViewModelTest::init()
     m_menu = std::make_unique<lmp::ui::TrackMenuController>(*m_actions);
     m_navigator = std::make_unique<Navigator>();
     m_model = std::make_unique<LibraryViewModel>(LibraryViewModel::Parts{
-        *m_queries, *m_groups, *m_actions, *m_collectionActions, *m_controller, *m_scanner, *m_menu, *m_navigator});
+        *m_queries, *m_groups, *m_actions, *m_collectionActions, *m_mixes, *m_controller, *m_scanner, *m_menu, *m_navigator});
     m_songs.clear();
 }
 
@@ -106,6 +109,7 @@ void LibraryViewModelTest::cleanup()
     m_artwork.reset();
     m_thumbs.reset();
     m_tags.reset();
+    m_mixes.reset();
     m_collectionActions.reset();
     m_actions.reset();
     m_gate.reset();
@@ -163,8 +167,12 @@ void LibraryViewModelTest::tabsReadTheLibrary()
     QCOMPARE(content.count(), 1);
     QVERIFY(!m_model->empty());
 
-    QCOMPARE(titles(*m_model->playlists()),
-             (QStringList{QStringLiteral("Favourites"), QStringLiteral("Recently Added")}));
+    // The system playlists with songs, then today's mixes.
+    const QStringList playlists = titles(*m_model->playlists());
+    QCOMPARE(playlists.mid(0, 2), (QStringList{QStringLiteral("Favourites"), QStringLiteral("Recently Added")}));
+    QCOMPARE(playlists.size(), 2 + 9);
+    QCOMPARE(m_model->playlists()->cardAt(2).kind, QStringLiteral("mix"));
+    QCOMPARE(m_model->playlists()->cardAt(2).title, QStringLiteral("Daily Mix 1"));
     QCOMPARE(m_model->playlists()->cardAt(1).subtitle, QStringLiteral("3 songs"));
     QCOMPARE(m_model->playlists()->cardAt(0).kind, QStringLiteral("system"));
     QCOMPARE(m_model->playlists()->cardAt(0).key, QStringLiteral("smart-liked"));

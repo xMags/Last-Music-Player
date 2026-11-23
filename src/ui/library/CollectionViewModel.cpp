@@ -9,6 +9,7 @@
 
 #include "core/db/LibraryQueries.h"
 #include "core/library/CollectionActions.h"
+#include "core/library/HomeMixService.h"
 #include "core/library/TrackActions.h"
 #include "core/model/ArtworkPlaceholder.h"
 #include "core/model/CatalogSourceKey.h"
@@ -28,8 +29,8 @@ namespace keys = core::settings::keys;
 
 namespace {
 
-const QStringList kKinds{QStringLiteral("album"), QStringLiteral("album-collection"), QStringLiteral("genre"),
-                         QStringLiteral("playlist"), QStringLiteral("system")};
+const QStringList kKinds{QStringLiteral("album"),    QStringLiteral("album-collection"), QStringLiteral("genre"),
+                         QStringLiteral("playlist"), QStringLiteral("system"),           QStringLiteral("mix")};
 
 QString countText(int count)
 {
@@ -80,7 +81,13 @@ CollectionViewModel::CollectionViewModel(Parts parts, QObject* parent)
     , m_settings(parts.settings)
     , m_trackMenu(parts.trackMenu)
     , m_navigator(parts.navigator)
+    , m_mixService(parts.mixes)
 {
+    connect(&m_mixService, &core::HomeMixService::mixesChanged, this, [this] {
+        if (m_kind == QLatin1StringView("mix")) {
+            reload();
+        }
+    });
     connect(&m_navigator, &Navigator::currentChanged, this, &CollectionViewModel::followNavigator);
     connect(&parts.collections, &core::CollectionActions::playlistRenamed, this,
             [this](const QString& playlistKey, const QString& name) {
@@ -152,6 +159,15 @@ void CollectionViewModel::open(const QString& kind, const QString& key, const QS
             m_gradientEnd = system->gradientEnd;
             m_systemQuery = system->query;
         }
+    } else if (kind == QLatin1StringView("mix")) {
+        // The reference's mix page (library.ts): its gradient and sparkle,
+        // and its line under the title.
+        const core::HomeMix mix = m_mixService.mix(key).value_or(core::HomeMixBuilder::blank(key));
+        m_title = mix.title;
+        m_description = mix.description;
+        m_iconName = QStringLiteral("sparkle");
+        m_gradientStart = QColor::fromRgba(mix.colorStart);
+        m_gradientEnd = QColor::fromRgba(mix.colorEnd);
     }
     m_findText.clear();
     m_sort = sortsFor(kind).constFirst();
@@ -168,6 +184,10 @@ QList<core::DetailSort> CollectionViewModel::sortsFor(const QString& kind)
     using core::DetailSort;
     // A system playlist's own order is its query's (newest like, most
     // played, newest added); albums from tags and genres have no stored one.
+    if (kind == QLatin1StringView("mix")) {
+        // A mix's own order, or by title, artist or length.
+        return {DetailSort::Curated, DetailSort::Title, DetailSort::Artist, DetailSort::Duration};
+    }
     if (core::kindSupportsCuratedOrder(kind) || kind == QLatin1StringView("system")) {
         return {DetailSort::Curated, DetailSort::DateAdded, DetailSort::Title, DetailSort::Artist,
                 DetailSort::Duration};
@@ -198,6 +218,10 @@ void CollectionViewModel::reload()
         return;
     }
     setSelection({});
+    if (m_kind == QLatin1StringView("mix")) {
+        reloadMix();
+        return;
+    }
     const core::db::TrackQuery listQuery = query();
     // The whole collection's count and length, for the header.
     core::db::TrackQuery whole = listQuery;
@@ -223,11 +247,34 @@ void CollectionViewModel::reload()
     emit contentChanged();
 }
 
+void CollectionViewModel::reloadMix()
+{
+    const QList<core::Track> all = m_mixService.mix(m_key).value_or(core::HomeMix{}).tracks;
+    m_totalCount = static_cast<int>(all.size());
+    m_totalSeconds = 0.0;
+    QList<core::DetailTrackSortKey> keys;
+    keys.reserve(all.size());
+    for (const core::Track& track : all) {
+        m_totalSeconds += std::max(0.0, track.durationSeconds);
+        keys.append({.title = track.title, .artist = track.artist, .album = track.album,
+                     .durationSeconds = track.durationSeconds});
+    }
+    QList<core::Track> shown;
+    for (const qsizetype index : core::detailTrackOrder(keys, m_findText.trimmed(), m_sort)) {
+        shown.append(all.at(index));
+    }
+    m_tracks.setTracks(std::move(shown));
+    m_byline.clear();
+    readCover();
+    followPlayer();
+    emit contentChanged();
+}
+
 void CollectionViewModel::readCover()
 {
     m_artworkUrl.clear();
     m_collage.clear();
-    if (m_kind == QLatin1StringView("system")) {
+    if (m_kind == QLatin1StringView("system") || m_kind == QLatin1StringView("mix")) {
         m_coverStyle = QStringLiteral("system");
         return;
     }
@@ -269,6 +316,9 @@ void CollectionViewModel::readCover()
 
 QString CollectionViewModel::eyebrow() const
 {
+    if (m_kind == QLatin1StringView("mix")) {
+        return tr("AUTO PLAYLIST");
+    }
     if (m_kind == QLatin1StringView("genre")) {
         return tr("GENRE");
     }
@@ -280,6 +330,9 @@ QString CollectionViewModel::eyebrow() const
 
 QString CollectionViewModel::backLabel() const
 {
+    if (m_kind == QLatin1StringView("mix")) {
+        return tr("All mixes");
+    }
     if (m_kind == QLatin1StringView("genre")) {
         return tr("All genres");
     }
@@ -296,6 +349,9 @@ QString CollectionViewModel::info() const
     const QString duration = durationText(m_totalSeconds);
     if (!duration.isEmpty()) {
         parts.append(duration);
+    }
+    if (m_kind == QLatin1StringView("mix")) {
+        parts.append(tr("Auto mix"));
     }
     return parts.join(QStringLiteral(" · "));
 }
@@ -314,6 +370,9 @@ QString CollectionViewModel::emptyText() const
 {
     if (!m_findText.trimmed().isEmpty()) {
         return tr("No songs match “%1”").arg(m_findText.trimmed());
+    }
+    if (m_kind == QLatin1StringView("mix")) {
+        return tr("This mix fills in as you play and like music.");
     }
     if (m_kind == QLatin1StringView("system")) {
         if (m_key == QLatin1StringView("smart-liked")) {

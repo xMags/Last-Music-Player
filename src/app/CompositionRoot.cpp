@@ -1,6 +1,8 @@
 #include "app/CompositionRoot.h"
 
 #include <QCoreApplication>
+#include <QDate>
+#include <QDateTime>
 #include <QList>
 #include <QLoggingCategory>
 #include <QObject>
@@ -109,6 +111,7 @@ CompositionRoot::CompositionRoot()
                       .mode = m_mode,
                       .gate = m_userDataGate})
     , m_collectionActions(m_collections, m_userDataGate)
+    , m_homeMixes(m_library, m_groups, [] { return QDate::currentDate(); })
     , m_windowChromeViewModel(&m_windowChrome)
     , m_sidebar({.navigator = m_navigator,
                  .collections = m_collectionActions,
@@ -144,6 +147,7 @@ CompositionRoot::CompositionRoot()
                      .groups = m_groups,
                      .actions = m_trackActions,
                      .collections = m_collectionActions,
+                     .mixes = m_homeMixes,
                      .player = m_player,
                      .scanner = m_scanner,
                      .trackMenu = m_trackMenu,
@@ -151,6 +155,7 @@ CompositionRoot::CompositionRoot()
     , m_collectionPage({.library = m_library,
                         .actions = m_trackActions,
                         .collections = m_collectionActions,
+                        .mixes = m_homeMixes,
                         .player = m_player,
                         .settings = m_settings,
                         .trackMenu = m_trackMenu,
@@ -161,6 +166,15 @@ CompositionRoot::CompositionRoot()
                     .trackMenu = m_trackMenu,
                     .navigator = m_navigator})
     , m_collectionEditor(m_collectionActions, m_navigator, m_toasts)
+    , m_home({.library = m_library,
+              .actions = m_trackActions,
+              .collections = m_collectionActions,
+              .player = m_player,
+              .scanner = m_scanner,
+              .mixes = m_homeMixes,
+              .trackMenu = m_trackMenu,
+              .navigator = m_navigator,
+              .now = [] { return QDateTime::currentDateTime(); }})
     , m_appRoot({
           .windowChrome = &m_windowChromeViewModel,
           .navigator = &m_navigator,
@@ -181,6 +195,7 @@ CompositionRoot::CompositionRoot()
           .collection = &m_collectionPage,
           .localArtist = &m_artistPage,
           .collections = &m_collectionEditor,
+          .home = &m_home,
           .mode = &m_mode,
           .showGallery = QCoreApplication::arguments().contains(QStringLiteral("--gallery")),
       })

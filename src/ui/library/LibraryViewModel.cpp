@@ -1,5 +1,6 @@
 #include "ui/library/LibraryViewModel.h"
 
+#include <QColor>
 #include <QCollator>
 #include <QUrl>
 #include <QVariantMap>
@@ -10,6 +11,7 @@
 #include "core/db/GroupQueries.h"
 #include "core/db/LibraryQueries.h"
 #include "core/library/CollectionActions.h"
+#include "core/library/HomeMixService.h"
 #include "core/library/LibraryScanner.h"
 #include "core/library/TrackActions.h"
 #include "core/model/CatalogSourceKey.h"
@@ -48,6 +50,7 @@ LibraryViewModel::LibraryViewModel(Parts parts, QObject* parent)
     , m_library(parts.library)
     , m_groups(parts.groups)
     , m_actions(parts.actions)
+    , m_mixes(parts.mixes)
     , m_player(parts.player)
     , m_trackMenu(parts.trackMenu)
     , m_navigator(parts.navigator)
@@ -57,6 +60,7 @@ LibraryViewModel::LibraryViewModel(Parts parts, QObject* parent)
     connect(&m_actions, &core::TrackActions::playlistsChanged, this, &LibraryViewModel::readPlaylists);
     connect(&m_actions, &core::TrackActions::playlistChanged, this, &LibraryViewModel::readPlaylists);
     connect(&parts.collections, &core::CollectionActions::playlistsChanged, this, &LibraryViewModel::readPlaylists);
+    connect(&m_mixes, &core::HomeMixService::mixesChanged, this, &LibraryViewModel::readPlaylists);
     connect(&parts.collections, &core::CollectionActions::albumsChanged, this, &LibraryViewModel::readGroups);
     connect(&parts.scanner, &core::LibraryScanner::finished, this, &LibraryViewModel::refresh);
     connect(&parts.scanner, &core::LibraryScanner::pruned, this, &LibraryViewModel::refresh);
@@ -153,6 +157,8 @@ void LibraryViewModel::setSongsFilter(const QString& filter)
 
 void LibraryViewModel::refresh()
 {
+    // Today's mixes (made again once a day).
+    m_mixes.refresh();
     readPlaylists();
     readGroups();
     readHistory();
@@ -190,6 +196,18 @@ void LibraryViewModel::readPlaylists()
                       .title = playlist.title,
                       .subtitle = countLabel(playlist.trackCount),
                       .artworkUrl = coverFor(playlist.artworkUrl)});
+    }
+    for (const core::HomeMix& mix : m_mixes.mixes()) {
+        if (mix.tracks.isEmpty()) {
+            continue;
+        }
+        cards.append({.kind = QStringLiteral("mix"),
+                      .key = mix.id,
+                      .title = mix.title,
+                      .subtitle = countLabel(static_cast<int>(mix.tracks.size())),
+                      .gradientStart = QColor::fromRgba(mix.colorStart),
+                      .gradientEnd = QColor::fromRgba(mix.colorEnd),
+                      .iconName = QStringLiteral("sparkle")});
     }
     m_playlists.setCards(std::move(cards));
 }

@@ -148,6 +148,18 @@ TextStyles TextStyles::build(const FontFamilies& families)
         .collectionInfoStrong = makeTextStyle({.family = text, .pixelSize = 13, .weight = kSemiBold}),
         .collectionDescription = makeTextStyle({.family = text, .pixelSize = 13.5, .weight = kRegular, .lineHeight = 13.5 * 1.5}),
         .collectionPlay = makeTextStyle({.family = text, .pixelSize = 14, .weight = kBold}),
+        // Home (styles.css 522-552, 818-842, 2432-2460, 2575-2600): the salute
+        // over the name and the tier labels, the "Jump back in" title and
+        // artist, a shortcut's name, and a mix card's badge and line.
+        .homeLabel = makeTextStyle(
+            {.family = text, .pixelSize = 12, .weight = kBold, .letterSpacingEm = 0.14, .uppercase = true}),
+        .heroTitle = makeTextStyle(
+            {.family = display, .pixelSize = 34, .weight = kGreeting, .lineHeight = 34 * 1.15, .letterSpacingEm = -0.01}),
+        .heroSub = makeTextStyle({.family = text, .pixelSize = 15, .weight = kRegular}),
+        .quickTitle = makeTextStyle({.family = text, .pixelSize = 14, .weight = kBubble}),
+        .mixBadge = makeTextStyle(
+            {.family = text, .pixelSize = 10.5, .weight = kExtraBold, .letterSpacingEm = 0.18, .uppercase = true}),
+        .mixBlurb = makeTextStyle({.family = text, .pixelSize = 12.5, .weight = kMedium, .lineHeight = 12.5 * 1.4}),
         .nowPlayingTitle = makeTextStyle(
             {.family = display, .pixelSize = 20, .weight = kBold, .lineHeight = 26}),
         // line-height: 1.2 of 30px.

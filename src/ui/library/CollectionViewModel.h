@@ -15,6 +15,7 @@
 
 namespace lmp::core {
 class CollectionActions;
+class HomeMixService;
 class PlayerController;
 class SettingsStore;
 class TrackActions;
@@ -49,7 +50,8 @@ class CollectionViewModel : public QObject {
     QML_ELEMENT
     QML_UNCREATABLE("Provided by App.collection")
 
-    // "album", "album-collection", "genre", "playlist" or "system".
+    // "album", "album-collection", "genre", "playlist", "system" or "mix"
+    // (a generated mix, read from the mix service and ordered in memory).
     Q_PROPERTY(QString kind READ kind NOTIFY opened FINAL)
     Q_PROPERTY(QString key READ key NOTIFY opened FINAL)
     Q_PROPERTY(QString title READ title NOTIFY opened FINAL)
@@ -92,6 +94,7 @@ public:
         core::db::LibraryQueries& library;
         core::TrackActions& actions;
         core::CollectionActions& collections;
+        core::HomeMixService& mixes;
         core::PlayerController& player;
         core::SettingsStore& settings;
         TrackMenuController& trackMenu;
@@ -171,6 +174,8 @@ signals:
 private:
     void followNavigator();
     void reload();
+    // A mix's songs, found and sorted in memory (DetailSortPolicy).
+    void reloadMix();
     void readCover();
     void followPlayer();
     void setSelection(QList<int> rows);
@@ -184,6 +189,7 @@ private:
     core::SettingsStore& m_settings;
     TrackMenuController& m_trackMenu;
     Navigator& m_navigator;
+    core::HomeMixService& m_mixService;
 
     QString m_kind;
     QString m_key;

@@ -109,6 +109,10 @@ qt_add_library(lmp_core STATIC
     library/UserDataOperationGate.h
     library/ArtworkCache.cpp
     library/ArtworkCache.h
+    library/HomeMixBuilder.cpp
+    library/HomeMixBuilder.h
+    library/HomeMixService.cpp
+    library/HomeMixService.h
     library/LibraryScanner.cpp
     library/LibraryScanner.h
     library/LikedIndex.cpp

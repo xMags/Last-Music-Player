@@ -86,6 +86,12 @@ struct TextStyles {
     TextStyle collectionInfoStrong;
     TextStyle collectionDescription;
     TextStyle collectionPlay;
+    TextStyle homeLabel;
+    TextStyle heroTitle;
+    TextStyle heroSub;
+    TextStyle quickTitle;
+    TextStyle mixBadge;
+    TextStyle mixBlurb;
     TextStyle nowPlayingTitle;
     TextStyle fullScreenTitle;
     TextStyle homeGreeting;

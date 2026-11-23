@@ -69,6 +69,11 @@ set(LMP_UI_QML_FILES
     qml/dev/GalleryPanels.qml
     qml/dev/GallerySection.qml
     qml/dev/GalleryTokens.qml
+    qml/home/HeroField.qml
+    qml/home/HomeHero.qml
+    qml/home/HomePage.qml
+    qml/home/MixCard.qml
+    qml/home/QuickTile.qml
     qml/library/ArtistPage.qml
     qml/library/CollectionCard.qml
     qml/library/CollectionCover.qml
@@ -158,6 +163,10 @@ qt_add_qml_module(lmp_ui
         icons/IconPart.h
         icons/IconSet.cpp
         icons/IconSet.h
+        home/HomeListModels.cpp
+        home/HomeListModels.h
+        home/HomeViewModel.cpp
+        home/HomeViewModel.h
         library/CollectionCardModel.cpp
         library/CollectionCardModel.h
         library/CollectionEditor.cpp
@@ -270,6 +279,7 @@ qt_add_qml_module(lmp_ui
 set(LMP_UI_TYPE_FOLDERS
     app
     dev
+    home
     icons
     library
     menus

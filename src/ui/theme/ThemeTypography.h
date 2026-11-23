@@ -54,6 +54,14 @@ class ThemeTypography : public QObject {
     Q_PROPERTY(QFont collectionInfoStrong READ collectionInfoStrong CONSTANT FINAL)
     Q_PROPERTY(QFont collectionDescription READ collectionDescription CONSTANT FINAL)
     Q_PROPERTY(QFont collectionPlay READ collectionPlay CONSTANT FINAL)
+    Q_PROPERTY(QFont homeLabel READ homeLabel CONSTANT FINAL)
+    Q_PROPERTY(QFont heroTitle READ heroTitle CONSTANT FINAL)
+    Q_PROPERTY(QFont heroSub READ heroSub CONSTANT FINAL)
+    Q_PROPERTY(QFont quickTitle READ quickTitle CONSTANT FINAL)
+    Q_PROPERTY(QFont mixBadge READ mixBadge CONSTANT FINAL)
+    Q_PROPERTY(QFont mixBlurb READ mixBlurb CONSTANT FINAL)
+    Q_PROPERTY(qreal lineHeightHeroTitle READ lineHeightHeroTitle CONSTANT FINAL)
+    Q_PROPERTY(qreal lineHeightMixBlurb READ lineHeightMixBlurb CONSTANT FINAL)
     Q_PROPERTY(qreal lineHeightCollectionTitle READ lineHeightCollectionTitle CONSTANT FINAL)
     Q_PROPERTY(qreal lineHeightCollectionDescription READ lineHeightCollectionDescription CONSTANT FINAL)
     Q_PROPERTY(QFont nowPlayingTitle READ nowPlayingTitle CONSTANT FINAL)
@@ -159,6 +167,14 @@ public:
     [[nodiscard]] QFont collectionInfoStrong() const { return m_text.collectionInfoStrong.font; }
     [[nodiscard]] QFont collectionDescription() const { return m_text.collectionDescription.font; }
     [[nodiscard]] QFont collectionPlay() const { return m_text.collectionPlay.font; }
+    [[nodiscard]] QFont homeLabel() const { return m_text.homeLabel.font; }
+    [[nodiscard]] QFont heroTitle() const { return m_text.heroTitle.font; }
+    [[nodiscard]] QFont heroSub() const { return m_text.heroSub.font; }
+    [[nodiscard]] QFont quickTitle() const { return m_text.quickTitle.font; }
+    [[nodiscard]] QFont mixBadge() const { return m_text.mixBadge.font; }
+    [[nodiscard]] QFont mixBlurb() const { return m_text.mixBlurb.font; }
+    [[nodiscard]] qreal lineHeightHeroTitle() const { return m_text.heroTitle.lineHeight; }
+    [[nodiscard]] qreal lineHeightMixBlurb() const { return m_text.mixBlurb.lineHeight; }
     [[nodiscard]] qreal lineHeightCollectionTitle() const { return m_text.collectionTitle.lineHeight; }
     [[nodiscard]] qreal lineHeightCollectionDescription() const { return m_text.collectionDescription.lineHeight; }
     [[nodiscard]] QFont nowPlayingTitle() const { return m_text.nowPlayingTitle.font; }

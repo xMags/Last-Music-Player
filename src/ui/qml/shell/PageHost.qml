@@ -71,7 +71,8 @@ Item {
 
                 width: parent.width
                 height: scroller.pageScrollsItself ? parent.height : implicitHeight
-                sourceComponent: App.navigator.currentKind === Route.Settings ? settingsPage
+                sourceComponent: App.navigator.currentKind === Route.Home ? homePage
+                    : App.navigator.currentKind === Route.Settings ? settingsPage
                     : App.navigator.currentKind === Route.Library ? libraryPage
                     : App.navigator.currentKind === Route.Collection ? (host.showsArtist() ? artistPage : collectionPage)
                     : placeholderPage
@@ -83,6 +84,12 @@ Item {
         id: settingsPage
 
         SettingsPage {}
+    }
+
+    Component {
+        id: homePage
+
+        HomePage {}
     }
 
     Component {

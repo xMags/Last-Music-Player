@@ -11,6 +11,7 @@
 
 namespace lmp::core {
 class CollectionActions;
+class HomeMixService;
 class LibraryScanner;
 class PlayerController;
 class TrackActions;
@@ -27,7 +28,8 @@ class Navigator;
 class TrackMenuController;
 
 // The Library page (`App.library`): the reference's tabs (Playlists, History,
-// Albums, Artists, Genres) and, kept from the current app, Songs. Each tab's
+// Albums, Artists, Genres) and, kept from the current app, Songs. Playlists
+// lists the system playlists, the user's playlists, then the generated mixes. Each tab's
 // data is the local library's, read from the legacy queries: the system
 // playlists Favourites, Most Played and Recently Added before the user's
 // own; albums, artists and genres as the library groups them; History in
@@ -69,6 +71,7 @@ public:
         core::db::GroupQueries& groups;
         core::TrackActions& actions;
         core::CollectionActions& collections;
+        core::HomeMixService& mixes;
         core::PlayerController& player;
         core::LibraryScanner& scanner;
         TrackMenuController& trackMenu;
@@ -131,6 +134,7 @@ private:
     core::db::LibraryQueries& m_library;
     core::db::GroupQueries& m_groups;
     core::TrackActions& m_actions;
+    core::HomeMixService& m_mixes;
     core::PlayerController& m_player;
     TrackMenuController& m_trackMenu;
     Navigator& m_navigator;

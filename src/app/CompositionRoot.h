@@ -18,6 +18,7 @@
 #include "core/db/TrackRepository.h"
 #include "core/library/ArtworkCache.h"
 #include "core/library/CollectionActions.h"
+#include "core/library/HomeMixService.h"
 #include "core/library/LibraryScanner.h"
 #include "core/library/TrackActions.h"
 #include "core/library/UserDataOperationGate.h"
@@ -45,6 +46,7 @@
 #include "ui/player/PlayerBarViewModel.h"
 #include "ui/player/QueueRailViewModel.h"
 #include "ui/settings/FirstRunViewModel.h"
+#include "ui/home/HomeViewModel.h"
 #include "ui/library/CollectionEditor.h"
 #include "ui/library/CollectionViewModel.h"
 #include "ui/library/LibraryViewModel.h"
@@ -147,6 +149,8 @@ private:
     core::TrackActions m_trackActions;
     // Making, renaming and deleting the user's playlists and albums.
     core::CollectionActions m_collectionActions;
+    // Today's generated mixes (Home, Library, mix pages).
+    core::HomeMixService m_homeMixes;
 
     ui::WindowChromeViewModel m_windowChromeViewModel;
     ui::Navigator m_navigator;
@@ -169,6 +173,7 @@ private:
     ui::CollectionViewModel m_collectionPage;
     ui::LocalArtistViewModel m_artistPage;
     ui::CollectionEditor m_collectionEditor;
+    ui::HomeViewModel m_home;
     ui::AppRoot m_appRoot;
     QPointer<ui::Theme> m_theme; // owned by the QML engine
 };
