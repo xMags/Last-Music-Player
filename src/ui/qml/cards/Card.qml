@@ -31,10 +31,15 @@ T.AbstractButton {
     focusPolicy: Qt.StrongFocus
     Accessible.name: subtitle !== "" ? qsTr("%1, %2").arg(title).arg(subtitle) : title
 
-    Keys.onMenuPressed: card.menuRequested(Qt.point(width / 2, width / 2), true)
+    // A card without a menu ignores the right button and the Menu key too.
+    Keys.onMenuPressed: {
+        if (card.hasMenu)
+            card.menuRequested(Qt.point(width / 2, width / 2), true)
+    }
 
     TapHandler {
         acceptedButtons: Qt.RightButton
+        enabled: card.hasMenu
         onTapped: eventPoint => card.menuRequested(eventPoint.position, false)
     }
 
