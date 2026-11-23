@@ -260,6 +260,12 @@ qt_add_library(lmp_core STATIC
     playback/AutoplayService.h
     playback/PlayerAutoplayQueue.cpp
     playback/PlayerAutoplayQueue.h
+    playback/HttpStreamDownloader.cpp
+    playback/HttpStreamDownloader.h
+    playback/ProviderTrackSourceResolver.cpp
+    playback/ProviderTrackSourceResolver.h
+    playback/StreamCache.cpp
+    playback/StreamCache.h
     playback/PlayerController.cpp
     playback/PlayerController.h
     playback/PlayerControllerPlayback.cpp

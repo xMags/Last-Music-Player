@@ -282,7 +282,8 @@ void AccountPlaybackTest::routerSendsSongsByModeAndKind()
     (void)modes.modes.start();
     FakeSourceResolver local;
     FakeSourceResolver account;
-    lmp::core::PlaybackSourceRouter router(local, account, modes.modes);
+    FakeSourceResolver provider;
+    lmp::core::PlaybackSourceRouter router(local, account, provider, modes.modes);
     QVERIFY(lmp::core::PlaybackSourceRouter::isRemote(remoteSong()));
     Track httpPath;
     httpPath.filePath = QStringLiteral("https://media.example.test/x");

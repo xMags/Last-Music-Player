@@ -8,9 +8,10 @@
 namespace lmp::core {
 
 PlaybackSourceRouter::PlaybackSourceRouter(TrackSourceResolver& local, TrackSourceResolver& account,
-                                           const mode::ModeService& mode)
+                                           TrackSourceResolver& provider, const mode::ModeService& mode)
     : m_local(local)
     , m_account(account)
+    , m_provider(provider)
     , m_mode(mode)
 {
 }
@@ -25,11 +26,10 @@ TrackSourceResolver* PlaybackSourceRouter::remoteResolver(Result<QUrl>& refusal)
     if (m_mode.accountSelected()) {
         return &m_account;
     }
-    if (!m_mode.apiKeySelected()) {
-        refusal = Failure::of(FailureKind::NotAvailable, QStringLiteral("remote songs need a music source"));
-        return nullptr;
+    if (m_mode.apiKeySelected()) {
+        return &m_provider;
     }
-    refusal = Failure::of(FailureKind::NotFound, QStringLiteral("no resolver for this source"));
+    refusal = Failure::of(FailureKind::NotAvailable, QStringLiteral("remote songs need a music source"));
     return nullptr;
 }
 

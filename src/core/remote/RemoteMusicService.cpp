@@ -6,6 +6,8 @@
 #include "core/mode/ModeService.h"
 #include "core/provider/ProviderClient.h"
 
+#include <QCryptographicHash>
+
 
 namespace lmp::core::remote {
 
@@ -21,6 +23,35 @@ namespace {
 RemoteMusicService::RemoteMusicService(Deps deps)
     : m_deps(deps)
 {
+}
+
+QString apiKeyCachePartition(const QString& baseUrl, const QString& apiKey)
+{
+    if (baseUrl.isEmpty() || apiKey.isEmpty()) {
+        return {};
+    }
+    const QString input = provider::normalizeProviderBaseUrl(baseUrl) + QLatin1Char('\n') + apiKey;
+    QByteArray bytes;
+    bytes.reserve(input.size() * 2);
+    for (const QChar character : input) {
+        const char16_t unit = character.unicode();
+        bytes.append(static_cast<char>(unit & 0xFF));
+        bytes.append(static_cast<char>((unit >> 8) & 0xFF));
+    }
+    return QString::fromLatin1(QCryptographicHash::hash(bytes, QCryptographicHash::Sha256).toHex());
+}
+
+track_keys::RemoteScopeKeyParts RemoteMusicService::scopeKeyParts() const
+{
+    const mode::RemoteScope scope = m_deps.mode.captureScope();
+    track_keys::RemoteScopeKeyParts parts;
+    parts.mode = scope.mode;
+    parts.generation = scope.generation;
+    parts.accountGeneration = m_deps.session.generation();
+    if (const std::optional<provider::ProviderConnection> connection = m_deps.mode.providerConnection()) {
+        parts.cachePartition = apiKeyCachePartition(connection->baseUrl, connection->apiKey);
+    }
+    return parts;
 }
 
 QString RemoteMusicService::scopeKey() const

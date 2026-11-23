@@ -42,7 +42,10 @@
 #include "core/playback/AutoplayService.h"
 #include "core/playback/MediaControlsBridge.h"
 #include "core/playback/PlaybackClock.h"
+#include "core/playback/HttpStreamDownloader.h"
 #include "core/playback/PlaybackStatePersistence.h"
+#include "core/playback/ProviderTrackSourceResolver.h"
+#include "core/playback/StreamCache.h"
 #include "core/playback/PlayerAutoplayQueue.h"
 #include "core/playback/PlaybackSourceRouter.h"
 #include "core/playback/PlayerController.h"
@@ -203,10 +206,15 @@ private:
     platform::windows::WindowsNetworkStatus m_network;
     core::LocalFileSourceResolver m_localResolver;
     core::AccountTrackSourceResolver m_accountResolver;
+    // API key mode: songs fetched ahead to disk, and the provider resolver.
+    core::HttpStreamDownloader m_streamDownloader;
+    core::StreamCache m_streamCache;
+    core::ProviderTrackSourceResolver m_providerResolver;
     core::PlaybackSourceRouter m_resolver;
     core::SystemPlaybackClock m_clock;
     core::PlayerController m_player;
     core::PlaybackStatePersistence m_persistence;
+    core::ProviderStreamPrefetcher m_prefetcher;
     core::MediaControlsBridge m_mediaBridge;
     // Cover pictures from the network (the account relay in Account mode).
     core::remote::ArtworkService m_artwork;

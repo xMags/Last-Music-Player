@@ -111,7 +111,9 @@ CompositionRoot::CompositionRoot()
                          .network = m_network,
                          .mediaOrigin = m_privateConfig.accountMediaOrigin,
                          .now = {}})
-    , m_resolver(m_localResolver, m_accountResolver, m_mode)
+    , m_streamCache(m_paths.streamCacheFolder(), m_userDataGate, m_streamDownloader)
+    , m_providerResolver({.remote = m_remote, .mode = m_mode, .cache = m_streamCache, .tracks = m_tracks})
+    , m_resolver(m_localResolver, m_accountResolver, m_providerResolver, m_mode)
     , m_player({.audio = m_audio, .settings = m_settings, .tracks = m_tracks, .resolver = m_resolver, .clock = m_clock},
                core::QueueEngine())
     , m_persistence({.player = m_player,
@@ -121,6 +123,7 @@ CompositionRoot::CompositionRoot()
                      .userDataGate = m_userDataGate,
                      .clock = m_clock},
                     m_paths)
+    , m_prefetcher({.player = m_player, .remote = m_remote, .mode = m_mode, .cache = m_streamCache})
     , m_mediaBridge({.player = m_player, .controls = m_mediaControls, .settings = m_settings, .clock = m_clock})
     , m_artwork({.client = m_accountClient, .session = m_session, .mode = m_mode, .http = m_http, .clock = m_clock})
     , m_outbox(m_database)
@@ -447,6 +450,13 @@ CompositionRoot::CompositionRoot()
     // sets the library's active context. A plaintext key left by an earlier
     // version moves into the credential store here.
     [[maybe_unused]] const core::account::LegacyKeyMigration migration = m_mode.start();
+    // As before, leftovers are pruned only when the app starts in API key mode.
+    if (m_mode.apiKeySelected()) {
+        m_streamCache.pruneOnStartup();
+    }
+    // A new source never reuses transfers started for the old one.
+    QObject::connect(&m_mode, &core::mode::ModeService::changed, &m_streamCache,
+                     [this]() { m_streamCache.invalidateInFlight(); });
     sourceChoice.mode = m_mode.mode();
     m_firstRun.decide(sourceChoice);
     // Checks a stored account session with the service (or falls back to

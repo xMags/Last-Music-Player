@@ -4,6 +4,7 @@
 #include "core/async/Result.h"
 #include "core/lyrics/LyricsService.h"
 #include "core/model/Track.h"
+#include "core/model/TrackKeys.h"
 
 #include <QByteArray>
 #include <QFuture>
@@ -73,6 +74,10 @@ public:
     // A key naming the current scope ("<mode>:<generation>"), for caches
     // that must not mix answers from different sources; empty in Local mode.
     [[nodiscard]] QString scopeKey() const;
+    // The parts of the current scope that song keys are built from
+    // (track_keys): the mode, its generation, the account session's
+    // generation, and in API key mode the provider's cache partition.
+    [[nodiscard]] track_keys::RemoteScopeKeyParts scopeKeyParts() const;
 
 private:
     // Which way a call goes, decided once when it starts.
@@ -84,5 +89,10 @@ private:
 
     Deps m_deps;
 };
+
+// The earlier versions' cache partition of an API key provider: SHA-256 of
+// the normalised base address, a line break and the key, taken over their
+// UTF-16 text (little-endian), in lower-case hex. Empty when either is empty.
+[[nodiscard]] QString apiKeyCachePartition(const QString& baseUrl, const QString& apiKey);
 
 } // namespace lmp::core::remote
