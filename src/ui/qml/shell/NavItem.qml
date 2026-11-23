@@ -32,8 +32,11 @@ T.AbstractButton {
 
     contentItem: Item {
         Row {
+            // Placed, not anchored: an anchor set to undefined leaves the row
+            // where the centring put it, so rows laid out while the sidebar
+            // was collapsed kept an offset.
+            x: control.collapsed ? (parent.width - width) / 2 : 0
             anchors.verticalCenter: parent.verticalCenter
-            anchors.horizontalCenter: control.collapsed ? parent.horizontalCenter : undefined
             spacing: control.collapsed ? 0 : control.gap
 
             Loader {
