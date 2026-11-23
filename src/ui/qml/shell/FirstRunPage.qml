@@ -23,6 +23,8 @@ Item {
     }
 
     Flickable {
+        id: pageScroll
+
         anchors.fill: parent
         anchors.topMargin: strip.visible ? strip.height : 0
         contentWidth: width
@@ -30,6 +32,8 @@ Item {
         boundsBehavior: Flickable.StopAtBounds
 
         AppScrollBar.vertical: AppScrollBar {}
+
+        WheelScroll { flickable: pageScroll }
 
         ColumnLayout {
             id: column

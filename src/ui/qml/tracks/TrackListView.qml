@@ -151,6 +151,8 @@ Item {
                 }
             }
 
+            WheelScroll { flickable: list }
+
             // The table's body behind the rows, with its bottom corners.
             Rectangle {
                 parent: list.contentItem

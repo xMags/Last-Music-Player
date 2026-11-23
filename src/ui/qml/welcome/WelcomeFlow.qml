@@ -108,11 +108,15 @@ Rectangle {
 
         // Languages: one chip each.
         Flickable {
+            id: languageScroll
+
             Layout.fillWidth: true
             Layout.fillHeight: true
             visible: App.welcome.step === "languages"
             clip: true
             contentHeight: chips.implicitHeight
+
+            WheelScroll { flickable: languageScroll }
 
             Flow {
                 id: chips
@@ -216,6 +220,8 @@ Rectangle {
                     color: Theme.fg
                 }
             }
+
+            WheelScroll { flickable: grid }
         }
 
         Text {

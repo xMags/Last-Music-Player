@@ -35,4 +35,6 @@ GridView {
         y: grid.scrollBarHost !== null ? grid.mapToItem(grid.scrollBarHost, 0, 0).y : 0
         height: grid.height
     }
+
+    WheelScroll { flickable: grid }
 }

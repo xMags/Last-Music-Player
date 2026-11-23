@@ -102,6 +102,8 @@ Item {
             positionViewAtBeginning()
         }
 
+        WheelScroll { flickable: lines }
+
         NumberAnimation {
             id: scroll
 
@@ -167,11 +169,15 @@ Item {
 
     // Plain lyrics.
     Flickable {
+        id: plainScroll
+
         anchors.fill: parent
         visible: panel.state === "plain"
         clip: true
         contentHeight: plainText.implicitHeight + 28
         boundsBehavior: Flickable.StopAtBounds
+
+        WheelScroll { flickable: plainScroll }
 
         Text {
             id: plainText

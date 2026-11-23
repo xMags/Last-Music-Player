@@ -134,6 +134,8 @@ Item {
             onActivated: App.queueRail.playRow(row.index, row.rowKey)
             onMenuRequested: (at, fromKeyboard) => root.openMenu(row, at, fromKeyboard)
         }
+
+        WheelScroll { flickable: list }
     }
 
     QueueRowDrag {

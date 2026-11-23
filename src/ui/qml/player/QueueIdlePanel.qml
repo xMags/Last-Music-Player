@@ -48,5 +48,7 @@ Item {
             onClicked: App.queueRail.playRecent(row.index)
             onActivated: App.queueRail.playRecent(row.index)
         }
+
+        WheelScroll { flickable: list }
     }
 }

@@ -133,11 +133,15 @@ T.ComboBox {
         }
 
         contentItem: ListView {
+            id: optionList
+
             implicitHeight: contentHeight
             clip: true
             model: control.delegateModel
             currentIndex: control.highlightedIndex
             T.ScrollBar.vertical: AppScrollBar {}
+
+            WheelScroll { flickable: optionList }
         }
 
         background: Item {

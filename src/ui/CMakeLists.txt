@@ -66,6 +66,7 @@ set(LMP_UI_QML_FILES
     qml/controls/TextPromptDialog.qml
     qml/controls/Toast.qml
     qml/controls/ToastStack.qml
+    qml/controls/WheelScroll.qml
     qml/dev/Gallery.qml
     qml/dev/GalleryArtwork.qml
     qml/dev/GalleryControls.qml

@@ -315,6 +315,8 @@ Item {
             width: cardsView.cellWidth - 16
             onClicked: App.offline.openCard(index)
         }
+
+        WheelScroll { flickable: cardsView }
     }
 
     TrackMenus {

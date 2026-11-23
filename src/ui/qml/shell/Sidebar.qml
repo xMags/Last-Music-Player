@@ -59,6 +59,8 @@ Rectangle {
         clip: true
         boundsBehavior: Flickable.StopAtBounds
 
+        WheelScroll { flickable: scroller }
+
         Column {
             id: column
 

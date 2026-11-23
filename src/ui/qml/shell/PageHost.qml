@@ -106,6 +106,8 @@ Item {
             visible: !scroller.pageScrollsItself && size < 1
         }
 
+        WheelScroll { flickable: scroller }
+
         Item {
             id: page
 

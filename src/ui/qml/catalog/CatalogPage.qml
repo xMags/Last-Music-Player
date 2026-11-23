@@ -191,6 +191,8 @@ Item {
                 color: Theme.fgSecondary
             }
         }
+
+        WheelScroll { flickable: cardsView }
     }
 
     TrackMenus {
