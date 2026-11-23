@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 184 184" width="184" height="184"><defs><linearGradient id="bg" x1="0.281" y1="-0.102" x2="0.719" y2="1.102"><stop offset="0" stop-color="{bg1}" stop-opacity="1"/><stop offset="0.78" stop-color="{bg2}" stop-opacity="1"/><stop offset="1" stop-color="{bg2}" stop-opacity="1"/></linearGradient><radialGradient id="key" gradientUnits="userSpaceOnUse" cx="150.88" cy="22.08" r="109.29042410019278"><stop offset="0" stop-color="{accent}" stop-opacity="0.42"/><stop offset="1" stop-color="{accent}" stop-opacity="0"/></radialGradient><radialGradient id="bloom" gradientUnits="userSpaceOnUse" cx="0" cy="184" r="143.11841251215722"><stop offset="0" stop-color="{accent2}" stop-opacity="0.22"/><stop offset="1" stop-color="{accent2}" stop-opacity="0"/></radialGradient><linearGradient id="fade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="{bg2}" stop-opacity="0"/><stop offset="0.42" stop-color="{bg2}" stop-opacity="0.72"/><stop offset="1" stop-color="{bg2dark}" stop-opacity="1"/></linearGradient><filter id="blur16" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="16"/></filter></defs><rect width="184" height="184" fill="url(#bg)"/><rect width="184" height="184" fill="url(#key)"/><rect width="184" height="184" fill="url(#bloom)"/><circle fill="{accent2}" opacity=".4" filter="url(#blur16)" cx="150" cy="30" r="34"/>
+      <g transform="rotate(-14 92 68)">
+        <rect fill="{accent}" x="34" y="34" width="116" height="66" rx="16"/>
+        <path fill="none" stroke="#ffffff" stroke-opacity="0.85" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M42 40L52 94L62 40L72 94L82 40L92 94L102 40L112 94L122 40L132 94L142 40"/>
+        <rect fill="#040a18" fill-opacity="0.38" x="34" y="34" width="116" height="7" rx="3"/>
+        <rect fill="#040a18" fill-opacity="0.38" x="34" y="93" width="116" height="7" rx="3"/>
+        <ellipse fill="#ffffff" fill-opacity="0.2" cx="150" cy="67" rx="11" ry="33"/>
+        <ellipse fill="#ffffff" fill-opacity="0.94" cx="34" cy="67" rx="12" ry="34"/>
+        <ellipse fill="none" stroke="#040a18" stroke-opacity="0.3" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" cx="34" cy="67" rx="7" ry="22"/>
+      </g>
+      <path fill="none" stroke="#ffffff" stroke-opacity="0.94" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" d="M132 4c14 20 12 36-6 50"/>
+      <circle fill="#ffffff" fill-opacity="0.94" cx="126" cy="55" r="5"/>
+      <path fill="none" stroke="#ffffff" stroke-opacity="0.7" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M168 12L144 62"/>
+      <path fill="none" stroke="{accent2}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M150 44l10-4M154 54l12-1M20 18l8 6M12 32l9 3"/>
+      <path fill="#ffffff" fill-opacity="0.94" d="M24 107L25 111L29 112L25 113L24 117L23 113L19 112L23 111Z"/><rect y="88.32" width="184" height="95.68" fill="url(#fade)"/></svg>

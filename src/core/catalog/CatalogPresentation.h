@@ -15,7 +15,7 @@ struct ChartSection {
     bool partial = false;
 };
 
-// "Explore charts" (every chart that is not a city chart) and "City Charts"
+// "Top charts" (every chart that is not a city chart) and "Top 25 by city"
 // (the city charts, or the two city groups in order when discovery has
 // them), each only when it has charts.
 [[nodiscard]] QList<ChartSection> buildChartSections(const Discovery& discovery);

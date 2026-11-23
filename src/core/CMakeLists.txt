@@ -75,6 +75,8 @@ qt_add_library(lmp_core STATIC
     catalog/CatalogService.h
     catalog/CatalogValues.cpp
     catalog/CatalogValues.h
+    catalog/ChartArt.cpp
+    catalog/ChartArt.h
     catalog/ContentLanguageController.cpp
     catalog/ContentLanguageController.h
     catalog/ContentLanguages.cpp

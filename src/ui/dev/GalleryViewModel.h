@@ -4,6 +4,7 @@
 #include <QStringList>
 #include <QtQml/qqmlregistration.h>
 
+#include "ui/catalog/CatalogCardModel.h"
 #include "ui/menus/MenuItemListModel.h"
 #include "ui/toasts/ToastQueue.h"
 #include "ui/tracks/TrackListModel.h"
@@ -22,6 +23,9 @@ class GalleryViewModel : public QObject {
     Q_PROPERTY(QString lastAction READ lastAction NOTIFY lastActionChanged FINAL)
     // Sample songs for the track rows, tiles, cards and shelves.
     Q_PROPERTY(lmp::ui::TrackListModel* sampleTracks READ sampleTracks CONSTANT FINAL)
+    // Chart cards of each kind: the region's chart, recognised and unknown
+    // genres, a landmark city and another city.
+    Q_PROPERTY(lmp::ui::ChartCardModel* sampleCharts READ sampleCharts CONSTANT FINAL)
 
 public:
     explicit GalleryViewModel(QObject* parent = nullptr);
@@ -31,6 +35,7 @@ public:
     [[nodiscard]] QStringList selectChoices() const;
     [[nodiscard]] QString lastAction() const { return m_lastAction; }
     [[nodiscard]] TrackListModel* sampleTracks() { return &m_sampleTracks; }
+    [[nodiscard]] ChartCardModel* sampleCharts() { return &m_sampleCharts; }
 
     // Shows the next of three sample toasts: plain, with an action, an error.
     Q_INVOKABLE void showSampleToast();
@@ -44,6 +49,7 @@ private:
     MenuItemListModel m_menuItems;
     ToastQueue m_toasts;
     TrackListModel m_sampleTracks;
+    ChartCardModel m_sampleCharts;
     int m_nextSample = 0;
     QString m_lastAction;
 };

@@ -5,6 +5,22 @@ namespace lmp::ui {
 GalleryViewModel::GalleryViewModel(QObject* parent)
     : QObject(parent)
 {
+    namespace catalog = core::catalog;
+    const auto chart = [](catalog::ChartKind kind, const char* id, const char* name, const char* subtitle) {
+        catalog::ChartDescriptor descriptor;
+        descriptor.ref = {QStringLiteral("in"), kind, QString::fromLatin1(id), catalog::ResourceType::Song};
+        descriptor.name = QString::fromLatin1(name);
+        descriptor.title = QStringLiteral("Top Songs in ") + descriptor.name;
+        descriptor.subtitle = QString::fromLatin1(subtitle);
+        return descriptor;
+    };
+    m_sampleCharts.setCharts({chart(catalog::ChartKind::Global, "top-songs", "India", "Your music region"),
+                              chart(catalog::ChartKind::Genre, "20", "Bollywood", ""),
+                              chart(catalog::ChartKind::Genre, "21", "Devotional & Spiritual", ""),
+                              chart(catalog::ChartKind::Genre, "22", "Hip-Hop/Rap", ""),
+                              chart(catalog::ChartKind::Genre, "23", "Fjordcore", ""),
+                              chart(catalog::ChartKind::City, "city-mumbai", "Mumbai", "Top 25 in Mumbai"),
+                              chart(catalog::ChartKind::City, "city-pune", "Pune", "Top 25 in Pune")});
     m_menuItems.addItem(QStringLiteral("play-next"), tr("Play next"), QStringLiteral("play-next"));
     m_menuItems.addItem(QStringLiteral("queue"), tr("Add to queue"), QStringLiteral("queue-add"));
     m_menuItems.addItem(QStringLiteral("playlist"), tr("Add to playlist"),

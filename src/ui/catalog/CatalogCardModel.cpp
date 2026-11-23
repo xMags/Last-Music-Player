@@ -1,6 +1,10 @@
 #include "ui/catalog/CatalogCardModel.h"
 
+#include "core/catalog/ChartArt.h"
 #include "core/model/ArtworkPlaceholder.h"
+#include "ui/images/ChartArtImageProvider.h"
+
+#include <QColor>
 #include "ui/player/CoverSource.h"
 
 namespace lmp::ui {
@@ -125,6 +129,24 @@ QVariant ChartCardModel::data(const QModelIndex& index, int role) const
         return chart->ref.region;
     case ChartIdRole:
         return chart->ref.id;
+    case ArtSourceRole:
+        return ChartArtImageProvider::sourceFor(core::catalog::resolveChartVisual(*chart));
+    case FamilyRole: {
+        const core::catalog::ChartFamily family = core::catalog::resolveChartVisual(*chart).family;
+        return family == core::catalog::ChartFamily::City  ? QStringLiteral("city")
+            : family == core::catalog::ChartFamily::Genre ? QStringLiteral("genre")
+                                                          : QStringLiteral("global");
+    }
+    case KindLabelRole:
+        return core::catalog::resolveChartVisual(*chart).kindLabel;
+    case KindColorRole: {
+        // The accent mixed 70 percent with white.
+        const QColor accent(core::catalog::chartPalette(core::catalog::resolveChartVisual(*chart)).accent);
+        return QColor::fromRgbF(accent.redF() * 0.7F + 0.3F, accent.greenF() * 0.7F + 0.3F,
+                                accent.blueF() * 0.7F + 0.3F);
+    }
+    case CardSubtitleRole:
+        return core::catalog::chartCardSubtitle(*chart, core::catalog::resolveChartVisual(*chart));
     default:
         return {};
     }
@@ -132,8 +154,18 @@ QVariant ChartCardModel::data(const QModelIndex& index, int role) const
 
 QHash<int, QByteArray> ChartCardModel::roleNames() const
 {
-    return {{NameRole, "name"},       {TitleRole, "title"},   {SubtitleRole, "subtitle"}, {ArtworkUrlRole, "artworkUrl"},
-            {KindRole, "chartKind"},  {RegionRole, "region"}, {ChartIdRole, "chartId"}};
+    return {{NameRole, "name"},
+            {TitleRole, "title"},
+            {SubtitleRole, "subtitle"},
+            {ArtworkUrlRole, "artworkUrl"},
+            {KindRole, "chartKind"},
+            {RegionRole, "region"},
+            {ChartIdRole, "chartId"},
+            {ArtSourceRole, "artSource"},
+            {FamilyRole, "family"},
+            {KindLabelRole, "kindLabel"},
+            {KindColorRole, "kindColor"},
+            {CardSubtitleRole, "cardSubtitle"}};
 }
 
 const core::catalog::ChartDescriptor* ChartCardModel::chartAt(int row) const

@@ -71,6 +71,7 @@ set(LMP_UI_QML_FILES
     qml/dev/GalleryTokens.qml
     qml/home/HeroField.qml
     qml/home/HomeHero.qml
+    qml/catalog/ChartCard.qml
     qml/home/HomePage.qml
     qml/home/MixCard.qml
     qml/home/QuickTile.qml
@@ -211,6 +212,8 @@ qt_add_qml_module(lmp_ui
         player/FullscreenPlayerViewModel.cpp
         player/FullscreenPlayerViewModel.h
         images/ArtworkImageProvider.cpp
+        images/ChartArtImageProvider.cpp
+        images/ChartArtImageProvider.h
         images/ArtworkImageProvider.h
         player/PlaybackNoticeToasts.cpp
         player/PlaybackNoticeToasts.h
@@ -326,7 +329,49 @@ target_include_directories(lmp_ui
     PRIVATE ${LMP_UI_TYPE_FOLDERS})
 
 target_link_libraries(lmp_ui
-    PUBLIC lmp_core Qt6::Concurrent Qt6::Gui Qt6::Qml Qt6::Quick Qt6::QuickControls2)
+    PUBLIC lmp_core Qt6::Concurrent Qt6::Gui Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::Svg)
+
+# Drawn chart covers (ChartArtImageProvider), generated from the reference
+# recipe with their colours as placeholders.
+qt_add_resources(lmp_ui "chartart"
+    PREFIX "/chartart"
+    BASE catalog/chartart
+    FILES
+        catalog/chartart/city-bengaluru.svg
+        catalog/chartart/city-delhi.svg
+        catalog/chartart/city-generic.svg
+        catalog/chartart/city-london.svg
+        catalog/chartart/city-los-angeles.svg
+        catalog/chartart/city-mumbai.svg
+        catalog/chartart/city-new-york.svg
+        catalog/chartart/genre-0.svg
+        catalog/chartart/genre-1.svg
+        catalog/chartart/genre-2.svg
+        catalog/chartart/genre-amp.svg
+        catalog/chartart/genre-bauble.svg
+        catalog/chartart/genre-bubbles.svg
+        catalog/chartart/genre-cassette.svg
+        catalog/chartart/genre-cymbal.svg
+        catalog/chartart/genre-dhol.svg
+        catalog/chartart/genre-guitar.svg
+        catalog/chartart/genre-harp.svg
+        catalog/chartart/genre-hills.svg
+        catalog/chartart/genre-horizon.svg
+        catalog/chartart/genre-lotus.svg
+        catalog/chartart/genre-marquee.svg
+        catalog/chartart/genre-paisley.svg
+        catalog/chartart/genre-piano.svg
+        catalog/chartart/genre-pick.svg
+        catalog/chartart/genre-pin.svg
+        catalog/chartart/genre-podium.svg
+        catalog/chartart/genre-ribbon.svg
+        catalog/chartart/genre-sitar.svg
+        catalog/chartart/genre-spotlights.svg
+        catalog/chartart/genre-staff.svg
+        catalog/chartart/genre-trophy.svg
+        catalog/chartart/genre-vinyl.svg
+        catalog/chartart/genre-violin.svg
+        catalog/chartart/region.svg)
 
 lmp_enable_warnings(lmp_ui)
 

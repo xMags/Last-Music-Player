@@ -76,7 +76,7 @@ Rectangle {
             GalleryIcons { width: column.width }
             GalleryControls { width: column.width; model: gallery }
             GalleryOverlays { width: column.width; model: gallery }
-            GalleryArtwork { width: column.width }
+            GalleryArtwork { width: column.width; model: gallery }
             GalleryLists { width: column.width; model: gallery }
         }
     }

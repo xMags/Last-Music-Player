@@ -505,3 +505,7 @@ lmp_add_test(tst_content_languages
 lmp_add_test(tst_home_model
     SOURCES core/tst_home_model.cpp core/CatalogFixtures.h
     LIBS lmp_core)
+
+lmp_add_test(tst_chart_art
+    SOURCES ui/tst_chart_art.cpp
+    LIBS lmp_ui Qt6::Svg)

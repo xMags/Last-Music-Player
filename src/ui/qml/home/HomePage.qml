@@ -181,19 +181,17 @@ Item {
                             title: section.title
                             linkText: section.link ? qsTr("See all") : ""
                             model: App.home.chartRow(section.key)
+                            cardWidth: 184
+                            cardHeight: 184
 
-                            delegate: Card {
-                                id: chartCard
-
-                                required property string name
-                                required property string subtitle
+                            delegate: ChartCard {
+                                required artSource
                                 required artworkUrl
-
-                                width: 156
-                                hasMenu: false
-                                title: chartCard.name
-                                artworkId: "chart:" + chartCard.name
-                                artworkLabel: chartCard.name
+                                required name
+                                required family
+                                required kindLabel
+                                required kindColor
+                                required cardSubtitle
                             }
                         }
 

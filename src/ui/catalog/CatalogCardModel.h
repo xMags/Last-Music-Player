@@ -69,6 +69,14 @@ public:
         KindRole,
         RegionRole,
         ChartIdRole,
+        // The drawn cover ("image://chartart/..."), shown under any picture.
+        ArtSourceRole,
+        // "city", "genre" or "global"; the label line ("Top songs", "City
+        // chart"), its colour, and the card's second line.
+        FamilyRole,
+        KindLabelRole,
+        KindColorRole,
+        CardSubtitleRole,
     };
     Q_ENUM(Role)
 

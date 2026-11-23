@@ -6,8 +6,8 @@ namespace lmp::core::catalog {
 
 QList<ChartSection> buildChartSections(const Discovery& discovery)
 {
-    ChartSection explore{QStringLiteral("explore"), QStringLiteral("Explore charts"), {}, false};
-    ChartSection cities{QStringLiteral("cities"), QStringLiteral("City Charts"), {}, false};
+    ChartSection explore{QStringLiteral("explore"), QStringLiteral("Top charts"), {}, false};
+    ChartSection cities{QStringLiteral("cities"), QStringLiteral("Top 25 by city"), {}, false};
     for (const ChartDescriptor& chart : discovery.charts) {
         (chart.ref.kind == ChartKind::City ? cities : explore).charts.append(chart);
     }

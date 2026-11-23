@@ -5,6 +5,9 @@ import LastMusicPlayer
 Column {
     id: root
 
+    // The gallery's view model, for the sample chart cards.
+    property var model: null
+
     spacing: 32
 
     GallerySection {
@@ -56,6 +59,30 @@ Column {
                 big: true
                 radius: Theme.radius2xl
                 shadow: true
+            }
+        }
+    }
+
+    GallerySection {
+        width: root.width
+        title: qsTr("Chart cards")
+
+        Flow {
+            width: parent.width
+            spacing: 20
+
+            Repeater {
+                model: root.model ? root.model.sampleCharts : null
+
+                ChartCard {
+                    required artSource
+                    required artworkUrl
+                    required name
+                    required family
+                    required kindLabel
+                    required kindColor
+                    required cardSubtitle
+                }
             }
         }
     }

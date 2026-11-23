@@ -1,6 +1,7 @@
 #include "app/CompositionRoot.h"
 
 #include "core/home/HomeModel.h"
+#include "ui/images/ChartArtImageProvider.h"
 
 #include <QCoreApplication>
 #include <QDate>
@@ -508,6 +509,7 @@ void CompositionRoot::attachEngine(QQmlEngine& engine)
                             std::make_unique<ui::EmbeddedCoverImageProvider>().release());
     engine.addImageProvider(QString(ui::CoverSource::RemoteProviderId),
                             std::make_unique<ui::ArtworkImageProvider>(m_artwork).release());
+    engine.addImageProvider(QStringLiteral("chartart"), std::make_unique<ui::ChartArtImageProvider>().release());
 
     m_reducedMotion = std::make_unique<platform::windows::WindowsReducedMotion>();
     QPointer<ui::Motion> motion =
