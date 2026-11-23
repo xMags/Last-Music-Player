@@ -601,3 +601,9 @@ lmp_add_test(tst_motion_effects
 lmp_add_test(tst_focus_place
     SOURCES ui/tst_focus_place.cpp
     LIBS lmp_ui)
+
+# A manual check, built but not registered with CTest: see tests/manual/userdata_probe.cpp.
+qt_add_executable(userdata_probe manual/userdata_probe.cpp)
+target_link_libraries(userdata_probe PRIVATE lmp_core)
+set_target_properties(userdata_probe PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests")
+lmp_enable_strict_warnings(userdata_probe)
