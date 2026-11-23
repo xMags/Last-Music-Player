@@ -86,6 +86,7 @@ private slots:
     void songsWithoutAPictureAreResolvedFirst();
     void outsideAccountModeTheAddressIsFetched();
     void cacheStartsOverPastItsBudget();
+    void coverLinksLoadFromTheAccountService();
 };
 
 void ArtworkServiceTest::visibleRequestsUseSixSlots()
@@ -305,6 +306,26 @@ void ArtworkServiceTest::cacheStartsOverPastItsBudget()
     QVERIFY(!fixture.service.isCached(picture(1)));
     QVERIFY(fixture.service.isCached(picture(2)));
     QCOMPARE(fixture.service.cachedBytes(), static_cast<std::size_t>(big.size()));
+}
+
+void ArtworkServiceTest::coverLinksLoadFromTheAccountService()
+{
+    ArtworkFixture fixture;
+    const QString link = QStringLiteral("/v1/music/art/AbCdEfGhIjKlMnOpQrSt_-");
+    (void)fixture.modes.modes.start();
+    // Outside Account mode a cover link cannot load.
+    QCOMPARE(fixture.service.fetch(link).result().failure().kind, FailureKind::NotFound);
+    QVERIFY(fixture.modes.validate(QStringLiteral("owner-a")));
+    QVERIFY(fixture.modes.modes.setMode(lmp::core::mode::SourceMode::Account));
+    settle();
+    fixture.modes.session.transport.script(link, FakeHttpTransport::ok("cover"));
+    const QFuture<Result<QByteArray>> future = fixture.service.fetch(link);
+    settle();
+    QCOMPARE(future.result().value(), QByteArray("cover"));
+    const lmp::core::net::HttpRequest& request = fixture.modes.session.transport.requests.last();
+    QCOMPARE(request.url.path(), link);
+    QCOMPARE(request.header("Authorization"), QByteArray("Bearer bearer-owner-a"));
+    QVERIFY(fixture.service.isCached(QStringLiteral("https://api.example.test") + link));
 }
 
 QTEST_GUILESS_MAIN(ArtworkServiceTest)

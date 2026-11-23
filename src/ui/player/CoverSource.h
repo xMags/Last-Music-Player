@@ -14,8 +14,9 @@
 namespace lmp::ui {
 
 // Where a song's cover picture comes from, and how to show and decode it:
-// - Remote: an http(s) address, shown through the ArtworkImageProvider
-//   ("image://artwork/...", which fetches it the way the mode needs);
+// - Remote: an http(s) address or an account cover link, shown through the
+//   ArtworkImageProvider ("image://artwork/...", which fetches it the way
+//   the mode needs);
 // - ImageFile: a picture file on this machine;
 // - Embedded: the picture stored inside a local audio file, shown through
 //   the EmbeddedCoverImageProvider ("image://embedded-cover/...");
@@ -46,7 +47,8 @@ struct CoverSource {
     [[nodiscard]] static QString placeholderIdFor(const core::Track& track);
     // The audio file path an "image://embedded-cover/<id>" request names.
     [[nodiscard]] static std::optional<QString> embeddedPathFromProviderId(QStringView id);
-    // The http(s) address an "image://artwork/<id>" request names.
+    // The http(s) address or account cover link an "image://artwork/<id>"
+    // request names.
     [[nodiscard]] static std::optional<QString> remoteUrlFromProviderId(QStringView id);
 
     // What an Image item shows; empty for None.

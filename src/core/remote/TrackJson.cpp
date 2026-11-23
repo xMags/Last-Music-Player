@@ -43,7 +43,7 @@ std::optional<account::PortableAccountTrack> portableTrack(const Track& track)
     value.artist = track.artist;
     value.album = track.album;
     value.genre = track.genre;
-    value.artworkUrl = net::durableArtworkUrl(track.artworkUrl);
+    value.artworkUrl = net::durableAccountArtworkUrl(track.artworkUrl);
     value.sourceKind = track.sourceKind;
     if (!track.sourceTag.isEmpty()) {
         value.provider = track.sourceTag;

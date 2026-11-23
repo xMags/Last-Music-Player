@@ -47,7 +47,7 @@ QString sanitizeAccountUrl(const QString& value)
 
 QString sanitizeAccountArtworkUrl(const QString& value)
 {
-    return net::durableArtworkUrl(net::removeLegacyProviderUrlCredential(value));
+    return net::durableAccountArtworkUrl(net::removeLegacyProviderUrlCredential(value));
 }
 
 QString sanitizeAccountAvatar(const QString& value)

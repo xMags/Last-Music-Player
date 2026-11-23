@@ -15,7 +15,8 @@ namespace lmp::core::db::account_rows {
 // A durable address with any obsolete server credential removed, or empty
 // when it is not safe to keep.
 [[nodiscard]] QString sanitizeAccountUrl(const QString& value);
-// durableArtworkUrl of the address with any obsolete credential removed.
+// durableAccountArtworkUrl of the address with any obsolete credential
+// removed: an account cover link, or a durable artwork address.
 [[nodiscard]] QString sanitizeAccountArtworkUrl(const QString& value);
 // A safe inline picture is kept verbatim (it has no origin to check and lets
 // the cached account keep a picture offline); anything else is an address.

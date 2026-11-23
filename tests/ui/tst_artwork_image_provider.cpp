@@ -60,6 +60,15 @@ void ArtworkImageProviderTest::remoteCoversUseTheProvider()
     const QString fileId = QString::fromLatin1(QByteArray("file:///C:/a.jpg").toBase64(
         QByteArray::Base64UrlEncoding | QByteArray::OmitTrailingEquals));
     QVERIFY(!CoverSource::remoteUrlFromProviderId(fileId).has_value());
+
+    // An account cover link is a remote cover too.
+    lmp::core::Track account;
+    account.artworkUrl = QStringLiteral("/v1/music/art/AbCdEfGhIjKlMnOpQrSt_-");
+    account.sourceKind = QStringLiteral("remote");
+    const CoverSource cover = CoverSource::forTrack(account);
+    QCOMPARE(cover.kind, CoverSource::Kind::Remote);
+    QCOMPARE(CoverSource::remoteUrlFromProviderId(cover.displayUrl().path().mid(1)),
+             std::optional<QString>(account.artworkUrl));
 }
 
 void ArtworkImageProviderTest::decodeScalesDownOnly()

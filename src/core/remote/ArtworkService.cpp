@@ -78,6 +78,14 @@ template <typename T>
     return picture(result.toObject());
 }
 
+// The form a picture address is keyed and fetched by: a cover link's path,
+// or the address asked for at display size.
+[[nodiscard]] QString pictureAddress(const QString& artworkUrl)
+{
+    const QString coverLink = net::accountCoverLinkPath(artworkUrl);
+    return coverLink.isEmpty() ? net::normalizeArtworkUrlForDisplay(artworkUrl) : coverLink;
+}
+
 } // namespace
 
 ArtworkService::ArtworkService(const Dependencies& dependencies, QObject* parent)
@@ -116,16 +124,18 @@ QString ArtworkService::keyFor(const QString& artworkUrl, const QString& sourceU
 
 bool ArtworkService::isCached(const QString& artworkUrl, const QString& sourceUrl) const
 {
-    return m_cache.contains(keyFor(net::normalizeArtworkUrlForDisplay(artworkUrl), sourceUrl));
+    return m_cache.contains(keyFor(pictureAddress(artworkUrl), sourceUrl));
 }
 
 QFuture<Result<QByteArray>> ArtworkService::fetch(const QString& artworkUrl, const QString& sourceUrl,
                                                  Priority priority)
 {
-    const QString normalized = net::normalizeArtworkUrlForDisplay(artworkUrl);
-    const bool hasArtwork = !normalized.isEmpty() && net::isHttpUrl(normalized);
-    const bool canResolve = normalized.isEmpty() && net::isHttpUrl(sourceUrl)
-        && m_deps.mode.mode() == mode::SourceMode::Account;
+    const bool accountMode = m_deps.mode.mode() == mode::SourceMode::Account;
+    const QString coverLink = net::accountCoverLinkPath(artworkUrl);
+    const QString normalized = pictureAddress(artworkUrl);
+    // A cover link loads from the account service only.
+    const bool hasArtwork = coverLink.isEmpty() ? !normalized.isEmpty() && net::isHttpUrl(normalized) : accountMode;
+    const bool canResolve = normalized.isEmpty() && net::isHttpUrl(sourceUrl) && accountMode;
     if (!hasArtwork && !canResolve) {
         return ready(Result<QByteArray>(Failure::of(FailureKind::NotFound, QStringLiteral("no picture address"))));
     }
@@ -161,7 +171,7 @@ QFuture<Result<QByteArray>> ArtworkService::fetch(const QString& artworkUrl, con
 
 void ArtworkService::promote(const QString& artworkUrl, const QString& sourceUrl)
 {
-    const QString key = keyFor(artworkUrl.isEmpty() ? QString() : net::normalizeArtworkUrlForDisplay(artworkUrl),
+    const QString key = keyFor(artworkUrl.isEmpty() ? QString() : pictureAddress(artworkUrl),
                                artworkUrl.isEmpty() ? sourceUrl : QString());
     const auto pending = m_requests.find(key);
     if (pending == m_requests.end() || pending->priority == Priority::Visible) {
@@ -418,7 +428,11 @@ QFuture<Result<QByteArray>> ArtworkService::download(const QString& url)
             return ready(Result<QByteArray>(Failure::of(FailureKind::NotAvailable, QStringLiteral("no account session"))));
         }
         account::AccountSessionService* session = &m_deps.session;
-        return m_deps.client.artwork(context->bearerSession, url)
+        const QString coverLink = net::accountCoverLinkPath(url);
+        QFuture<Result<QByteArray>> request = coverLink.isEmpty()
+            ? m_deps.client.artwork(context->bearerSession, url)
+            : m_deps.client.coverArt(context->bearerSession, coverLink);
+        return request
             .then(this, [session, context = *context](const Result<QByteArray>& bytes) {
                 if (!bytes && bytes.failure().kind == FailureKind::Unauthorized) {
                     session->handleUnauthorized(context);

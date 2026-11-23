@@ -5,6 +5,8 @@
 #include <QByteArray>
 #include <QChar>
 #include <QLatin1StringView>
+#include <QRegularExpression>
+#include <QRegularExpressionMatch>
 #include <QStringView>
 #include <QUrl>
 
@@ -187,6 +189,20 @@ QString durableArtworkUrl(const QString& artworkUrl)
     }
     const QString target = normalizeArtworkUrlForDisplay(QUrl::fromPercentEncoding(encodedTarget.toUtf8()));
     return isSafeRemoteUrl(target, RemoteUrlUse::Durable) ? target : QString();
+}
+
+QString accountCoverLinkPath(const QString& url)
+{
+    static const QRegularExpression coverLink(
+        QStringLiteral("^(?:https?://[^/?#]+)?(/v1/music/art/[A-Za-z0-9_-]{22})$"));
+    const QRegularExpressionMatch match = coverLink.match(url.trimmed());
+    return match.hasMatch() ? match.captured(1) : QString();
+}
+
+QString durableAccountArtworkUrl(const QString& artworkUrl)
+{
+    const QString coverLink = accountCoverLinkPath(artworkUrl);
+    return coverLink.isEmpty() ? durableArtworkUrl(artworkUrl) : coverLink;
 }
 
 } // namespace lmp::core::net

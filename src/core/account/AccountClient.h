@@ -134,6 +134,10 @@ public:
     // GET /v1/music/artwork?url=<address>: the image bytes, at most
     // MaxArtworkBytes (InvalidResponse beyond).
     [[nodiscard]] QFuture<Result<QByteArray>> artwork(const QString& bearerSession, const QString& artworkUrl);
+    // GET <cover link path> (net::accountCoverLinkPath): the image bytes, at
+    // most MaxArtworkBytes. Anything that is not a cover link sends nothing
+    // (Unknown).
+    [[nodiscard]] QFuture<Result<QByteArray>> coverArt(const QString& bearerSession, const QString& coverLinkPath);
     // GET /v1/music/stream?url=<address>, headers only: the status of a
     // stream that answers 2xx; the audio is never downloaded.
     [[nodiscard]] QFuture<Result<int>> probeStream(const QString& bearerSession, const QString& streamUrl);

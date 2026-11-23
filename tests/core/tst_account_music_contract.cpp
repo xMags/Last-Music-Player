@@ -53,6 +53,7 @@ private slots:
     void libraryAliasesAndMerging();
     void notALibrary();
     void unsafeArtworkIsDropped();
+    void coverLinksTravelUnchanged();
     void trackAliases();
     void acknowledgedEvents();
     void preferencesAreNormalized();
@@ -251,6 +252,17 @@ void AccountMusicContractTest::unsafeArtworkIsDropped()
     })json");
     QVERIFY(track.has_value());
     QVERIFY(track->artworkUrl.isEmpty());
+}
+
+void AccountMusicContractTest::coverLinksTravelUnchanged()
+{
+    const QByteArray body = "{\"id\":\"t\",\"title\":\"T\",\"sourceUrl\":\"https://music.example.test/t\","
+                            "\"artworkUrl\":\"/v1/music/art/AbCdEfGhIjKlMnOpQrSt_-\"}";
+    const std::optional<account::PortableAccountTrack> track = account::parsePortableTrack(body);
+    QVERIFY(track.has_value());
+    QCOMPARE(track->artworkUrl, QStringLiteral("/v1/music/art/AbCdEfGhIjKlMnOpQrSt_-"));
+    QCOMPARE(object(account::serializePortableTrack(*track)).value(QLatin1StringView("artworkUrl")).toString(),
+             QStringLiteral("/v1/music/art/AbCdEfGhIjKlMnOpQrSt_-"));
 }
 
 void AccountMusicContractTest::trackAliases()

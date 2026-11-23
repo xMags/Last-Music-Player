@@ -1,6 +1,8 @@
 // AccountClient's music calls: library sync, playlists, songs and media.
 #include "core/account/AccountClient.h"
 
+#include "core/net/ArtworkUrl.h"
+
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QLatin1StringView>
@@ -217,6 +219,16 @@ QFuture<Result<QByteArray>> AccountClient::artwork(const QString& bearerSession,
 {
     AccountCall call =
         makeCall(net::HttpMethod::Get, QStringLiteral("/v1/music/artwork?url=") + encoded(artworkUrl), bearerSession);
+    call.maxResponseBytes = MaxArtworkBytes;
+    return send(call).then(toBody);
+}
+
+QFuture<Result<QByteArray>> AccountClient::coverArt(const QString& bearerSession, const QString& coverLinkPath)
+{
+    if (net::accountCoverLinkPath(coverLinkPath) != coverLinkPath || coverLinkPath.isEmpty()) {
+        return refused<QByteArray>(QStringLiteral("not a cover link"));
+    }
+    AccountCall call = makeCall(net::HttpMethod::Get, coverLinkPath, bearerSession);
     call.maxResponseBytes = MaxArtworkBytes;
     return send(call).then(toBody);
 }

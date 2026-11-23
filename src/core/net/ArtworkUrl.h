@@ -17,4 +17,15 @@ namespace lmp::core::net {
 // check of RemoteUrlPolicy.
 [[nodiscard]] QString durableArtworkUrl(const QString& artworkUrl);
 
+// The path of an account cover link, "/v1/music/art/<id>" where the id is 22
+// characters of A-Z, a-z, 0-9, "_" and "-", given alone or after an http(s)
+// origin (surrounding white space ignored); empty for anything else. Such a
+// link is opaque and permanent, and loads from the account service's API with
+// the session.
+[[nodiscard]] QString accountCoverLinkPath(const QString& url);
+
+// A cover the account service sends, as it is kept and synced: its cover
+// link path when it is one, else durableArtworkUrl.
+[[nodiscard]] QString durableAccountArtworkUrl(const QString& artworkUrl);
+
 } // namespace lmp::core::net

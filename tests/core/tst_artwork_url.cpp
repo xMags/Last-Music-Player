@@ -14,6 +14,7 @@ private slots:
     void displaySizeIsRaised();
     void durableAddressesAreKeptOrReduced();
     void unsafeAddressesAreRefused();
+    void accountCoverLinksAreKept();
 };
 
 void ArtworkUrlTest::displaySizeIsRaised()
@@ -73,6 +74,24 @@ void ArtworkUrlTest::unsafeAddressesAreRefused()
              QString());
     QCOMPARE(durableArtworkUrl(QStringLiteral("https://images.example.test/cover.jpg?signature=x")), QString());
     QCOMPARE(durableArtworkUrl(QString()), QString());
+}
+
+void ArtworkUrlTest::accountCoverLinksAreKept()
+{
+    using lmp::core::net::accountCoverLinkPath;
+    using lmp::core::net::durableAccountArtworkUrl;
+    const QString link = QStringLiteral("/v1/music/art/AbCdEfGhIjKlMnOpQrSt_-");
+    QCOMPARE(accountCoverLinkPath(link), link);
+    QCOMPARE(accountCoverLinkPath(QStringLiteral(" https://api.example.test") + link + QStringLiteral(" ")), link);
+    QVERIFY(accountCoverLinkPath(link + QStringLiteral("x")).isEmpty());          // 23 characters
+    QVERIFY(accountCoverLinkPath(QStringLiteral("/v1/music/art/short")).isEmpty());
+    QVERIFY(accountCoverLinkPath(link + QStringLiteral("?size=1")).isEmpty());
+    QVERIFY(accountCoverLinkPath(QStringLiteral("ftp://host") + link).isEmpty());
+    QVERIFY(accountCoverLinkPath(QStringLiteral("/v1/music/art/AbCdEfGhIjKlMnOpQrSt.-")).isEmpty());
+    QCOMPARE(durableAccountArtworkUrl(link), link);
+    QCOMPARE(durableAccountArtworkUrl(QStringLiteral("https://images.example.test/a.jpg")),
+             QStringLiteral("https://images.example.test/a.jpg"));
+    QVERIFY(durableAccountArtworkUrl(QStringLiteral("/v1/music/other/x")).isEmpty());
 }
 
 QTEST_GUILESS_MAIN(ArtworkUrlTest)

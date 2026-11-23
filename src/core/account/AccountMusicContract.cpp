@@ -113,7 +113,7 @@ QJsonObject portableTrackObject(const PortableAccountTrack& track)
     object.insert(QLatin1StringView("artist"), track.artist);
     object.insert(QLatin1StringView("album"), track.album);
     object.insert(QLatin1StringView("genre"), track.genre);
-    object.insert(QLatin1StringView("artworkUrl"), net::durableArtworkUrl(track.artworkUrl));
+    object.insert(QLatin1StringView("artworkUrl"), net::durableAccountArtworkUrl(track.artworkUrl));
     object.insert(QLatin1StringView("sourceKind"), track.sourceKind);
     object.insert(QLatin1StringView("provider"), track.provider);
     object.insert(QLatin1StringView("sourceUrl"), track.sourceUrl);
@@ -142,7 +142,7 @@ std::optional<PortableAccountTrack> parsePortableTrackObject(const QJsonObject& 
     if (track.artworkUrl.isEmpty() && nested) {
         track.artworkUrl = firstString(wrapper, {QLatin1StringView("artworkUrl"), QLatin1StringView("imageUrl")});
     }
-    track.artworkUrl = net::durableArtworkUrl(track.artworkUrl);
+    track.artworkUrl = net::durableAccountArtworkUrl(track.artworkUrl);
     track.sourceKind = stringValue(object, QLatin1StringView("sourceKind"));
     track.provider = stringValue(object, QLatin1StringView("provider"));
     track.sourceUrl = firstString(object, {QLatin1StringView("sourceUrl"), QLatin1StringView("url")});

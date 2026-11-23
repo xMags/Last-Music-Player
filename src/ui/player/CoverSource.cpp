@@ -6,6 +6,7 @@
 #include <QImageReader>
 
 #include "core/library/EmbeddedArtwork.h"
+#include "core/net/ArtworkUrl.h"
 #include "core/playback/QueueTrackIdentity.h"
 
 namespace lmp::ui {
@@ -32,6 +33,11 @@ constexpr QByteArray::Base64Options kIdEncoding =
 CoverSource CoverSource::forTrack(const core::Track& track)
 {
     const QString artwork = track.artworkUrl.trimmed();
+    // An account cover link loads from the account service, like any other
+    // remote picture.
+    if (const QString coverLink = core::net::accountCoverLinkPath(artwork); !coverLink.isEmpty()) {
+        return CoverSource{.kind = Kind::Remote, .path = {}, .url = QUrl(coverLink)};
+    }
     if (!artwork.isEmpty()) {
         const QUrl url(artwork);
         const QString scheme = url.scheme().toLower();
@@ -89,7 +95,8 @@ std::optional<QString> CoverSource::remoteUrlFromProviderId(QStringView id)
         return std::nullopt;
     }
     QString url = QString::fromUtf8(*decoded);
-    if (!url.startsWith(QLatin1StringView("http://")) && !url.startsWith(QLatin1StringView("https://"))) {
+    if (!url.startsWith(QLatin1StringView("http://")) && !url.startsWith(QLatin1StringView("https://"))
+        && core::net::accountCoverLinkPath(url) != url) {
         return std::nullopt;
     }
     return url;
