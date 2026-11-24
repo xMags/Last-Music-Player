@@ -35,13 +35,16 @@ T.AbstractButton {
         BoxShadow {
             anchors.fill: parent
             radius: width / 2
-            layers: Theme.shadowFlyout
+            // 0 2px 12px rgba(0, 0, 0, .22)
+            layers: Theme.shadowShelfArrow
         }
 
         Rectangle {
             anchors.fill: parent
             radius: width / 2
-            color: arrow.hovered ? Theme.surfaceAlt : Theme.surface
+            // :hover asks for --surface-hover, which the theme does not
+            // define, so it stays the surface.
+            color: Theme.surface
         }
     }
 
@@ -49,7 +52,7 @@ T.AbstractButton {
         Icon {
             anchors.centerIn: parent
             name: arrow.iconName
-            size: 16
+            size: 18
             color: Theme.fg
             rotation: arrow.pointsBack ? 180 : 0
         }

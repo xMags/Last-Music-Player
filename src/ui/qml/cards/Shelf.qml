@@ -61,7 +61,8 @@ Column {
             }
 
             function scrollPage(direction) {
-                const page = Math.max(shelf.cardWidth, Math.floor(width / (shelf.cardWidth + shelf.cardSpacing)) * (shelf.cardWidth + shelf.cardSpacing))
+                // scrollBy(clientWidth * 0.85), as carousel.ts steps.
+                const page = width * 0.85
                 const target = Math.max(originX, Math.min(contentX + direction * page, originX + contentWidth - width))
                 glide.enabled = !Motion.reduced
                 contentX = target
@@ -70,7 +71,7 @@ Column {
         }
 
         ShelfArrow {
-            Accessible.name: qsTr("Scroll back")
+            Accessible.name: qsTr("Scroll left")
             x: -10
             y: shelf.cardWidth / 2 - height / 2
             iconName: "chevron"
@@ -80,7 +81,7 @@ Column {
         }
 
         ShelfArrow {
-            Accessible.name: qsTr("Scroll forward")
+            Accessible.name: qsTr("Scroll right")
             x: viewport.width - width + 10
             y: shelf.cardWidth / 2 - height / 2
             iconName: "chevron"

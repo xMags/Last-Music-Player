@@ -89,6 +89,11 @@ QVariantList Theme::shadowArt() const
                          {0, 24, 48, 0, black(0.10f)}});
 }
 
+QVariantList Theme::shadowShelfArrow() const
+{
+    return shadowLayers({{0, 2, 12, 0, black(0.22f)}});
+}
+
 QVariantList Theme::shadowSearchTopArt() const
 {
     return shadowLayers({{0, 10, 28, 0, black(0.35f)}});
