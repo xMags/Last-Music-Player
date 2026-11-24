@@ -121,6 +121,7 @@ struct TextStyles {
     TextStyle signInRecordVol;
     TextStyle signInPlatform;
     TextStyle signInHelp;
+    TextStyle welcomeRegionButton;
     TextStyle settingsSection;
     TextStyle settingsRowTitle;
     TextStyle settingsRowDescription;

@@ -215,6 +215,7 @@ Item {
         width: shell.width - x
         visible: App.windowChrome.custom
         overPlayer: App.fullscreen.open
+        overWelcome: App.welcome.visible
         z: 95
     }
 

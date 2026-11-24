@@ -201,6 +201,8 @@ TextStyles TextStyles::build(const FontFamilies& families)
         .signInRecordVol = makeTextStyle({.family = families.sleeveMono, .pixelSize = 9, .weight = kMedium, .letterSpacingEm = 0.16}),
         .signInPlatform = makeTextStyle({.family = text, .pixelSize = 13, .weight = kSemiBold}),
         .signInHelp = makeTextStyle({.family = text, .pixelSize = 14, .weight = kRegular, .lineHeight = 14 * 1.55}),
+        // .welcome-region-button: 14px 600.
+        .welcomeRegionButton = makeTextStyle({.family = text, .pixelSize = 14, .weight = kSemiBold}),
         // .settings-section-head h2, .settings-row-title, .settings-row-desc
         // and .settings-theme-tile (views.css 1128-1165, 1293-1303).
         .settingsSection = makeTextStyle({.family = display, .pixelSize = 16, .weight = kBold, .lineHeight = 22}),

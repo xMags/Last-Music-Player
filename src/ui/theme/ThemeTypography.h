@@ -85,6 +85,7 @@ class ThemeTypography : public QObject {
     Q_PROPERTY(QFont signInRecordVol READ signInRecordVol CONSTANT FINAL)
     Q_PROPERTY(QFont signInPlatform READ signInPlatform CONSTANT FINAL)
     Q_PROPERTY(QFont signInHelp READ signInHelp CONSTANT FINAL)
+    Q_PROPERTY(QFont welcomeRegionButton READ welcomeRegionButton CONSTANT FINAL)
     Q_PROPERTY(qreal lineHeightWelcomeTitle READ lineHeightWelcomeTitle CONSTANT FINAL)
     Q_PROPERTY(qreal lineHeightWelcomeText READ lineHeightWelcomeText CONSTANT FINAL)
     Q_PROPERTY(qreal lineHeightSectionPill READ lineHeightSectionPill CONSTANT FINAL)
@@ -282,6 +283,7 @@ public:
     [[nodiscard]] QFont signInRecordVol() const { return m_text.signInRecordVol.font; }
     [[nodiscard]] QFont signInPlatform() const { return m_text.signInPlatform.font; }
     [[nodiscard]] QFont signInHelp() const { return m_text.signInHelp.font; }
+    [[nodiscard]] QFont welcomeRegionButton() const { return m_text.welcomeRegionButton.font; }
     [[nodiscard]] qreal lineHeightWelcomeTitle() const { return m_text.welcomeTitle.lineHeight; }
     [[nodiscard]] qreal lineHeightWelcomeText() const { return m_text.welcomeText.lineHeight; }
     [[nodiscard]] qreal lineHeightSectionPill() const { return m_text.sectionPill.lineHeight; }

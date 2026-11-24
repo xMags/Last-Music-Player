@@ -10,9 +10,11 @@ Rectangle {
 
     // Over the full-screen player the strip is see-through and its buttons light.
     property bool overPlayer: false
+    // Over the welcome flow, which draws its own page behind the strip.
+    property bool overWelcome: false
 
     implicitHeight: Theme.titleBarHeight
-    color: App.windowChrome.backdropActive || overPlayer ? "transparent" : Theme.surface
+    color: App.windowChrome.backdropActive || overPlayer || overWelcome ? "transparent" : Theme.surface
 
     function reportButtons() {
         App.windowChrome.setCaptionButtons(minimize.mapToItem(null, 0, 0, minimize.width, minimize.height),

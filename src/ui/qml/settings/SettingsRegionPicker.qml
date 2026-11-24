@@ -18,11 +18,16 @@ T.Button {
     readonly property int flyoutEdge: 12
     readonly property int flyoutMinViewport: 560
 
-    implicitHeight: 32
+    // .welcome-region-button: no frame of its own, 14px 600, the accent
+    // on hover (inside the welcome flow's "Music region" pill).
+    property bool bare: false
+
+    implicitHeight: bare ? 42 : 32
     // min-width: 180px; padding: 0 11px 0 12px.
-    implicitWidth: Math.max(180, implicitContentWidth + leftPadding + rightPadding)
-    leftPadding: 12
-    rightPadding: 11
+    implicitWidth: bare ? implicitContentWidth + leftPadding + rightPadding
+                        : Math.max(180, implicitContentWidth + leftPadding + rightPadding)
+    leftPadding: bare ? 6 : 12
+    rightPadding: bare ? 14 : 11
     hoverEnabled: true
     focusPolicy: Qt.StrongFocus
     font: Theme.settingsComboLabel
@@ -48,8 +53,8 @@ T.Button {
             anchors.rightMargin: 8
             anchors.verticalCenter: parent.verticalCenter
             text: control.text
-            font: control.font
-            color: Theme.fg
+            font: control.bare ? Theme.welcomeRegionButton : control.font
+            color: control.bare && control.hovered ? Theme.accentColor : Theme.fg
             elide: Text.ElideRight
         }
 
@@ -67,10 +72,10 @@ T.Button {
 
     background: ButtonSurface {
         implicitHeight: 32
-        radius: Theme.radiusSm
-        border.width: 1
+        radius: control.bare ? height / 2 : Theme.radiusSm
+        border.width: control.bare ? 0 : 1
         border.color: Theme.strokeStrong
-        color: control.down ? Theme.rowHover : control.hovered ? Theme.hover : Theme.surfaceAlt
+        color: control.bare ? "transparent" : control.down ? Theme.rowHover : control.hovered ? Theme.hover : Theme.surfaceAlt
         fadeDuration: Motion.settingsFade
         fadeEasing: Motion.ease
         rippleEnabled: true

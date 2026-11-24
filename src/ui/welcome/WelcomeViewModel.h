@@ -142,6 +142,8 @@ public:
     Q_INVOKABLE void close();
     // The languages again, after they failed or the region changed.
     Q_INVOKABLE void reloadLanguages();
+    // The groups again, the choices kept (the region list arrived or changed).
+    Q_INVOKABLE void regroup() { emit changed(); }
     Q_INVOKABLE void reloadArtists() { loadArtists(); }
 
 signals:

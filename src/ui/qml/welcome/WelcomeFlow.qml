@@ -39,7 +39,11 @@ Rectangle {
 
     readonly property string shownStep: App.welcome.step
     onShownStepChanged: riseIn()
-    Component.onCompleted: riseIn()
+    Component.onCompleted: {
+        // The region's name and the suggested group need the region list.
+        App.regionLanguages.refresh()
+        riseIn()
+    }
 
     Component {
         id: riseComponent
@@ -71,7 +75,7 @@ Rectangle {
         target: App.regionLanguages
 
         function onRegionsChanged() {
-            App.welcome.reloadLanguages()
+            App.welcome.regroup()
         }
     }
 
@@ -86,7 +90,7 @@ Rectangle {
         id: head
 
         x: 28
-        y: 18
+        y: (App.windowChrome.custom ? Theme.titleBarHeight : 0) + 18
         width: parent.width - 56
         height: 44
 
@@ -335,11 +339,10 @@ Rectangle {
 
             // .welcome-tools: the region and the search, centred, 12px
             // apart, 28px above what they lead to.
-            Flow {
+            Row {
                 id: tools
 
                 anchors.horizontalCenter: parent.horizontalCenter
-                width: Math.min(parent.width, childrenRect.width)
                 spacing: 12
 
                 // .welcome-region: "Music region" and the country.
@@ -368,6 +371,7 @@ Rectangle {
 
                         SettingsRegionPicker {
                             anchors.verticalCenter: parent.verticalCenter
+                            bare: true
                         }
                     }
                 }
@@ -815,6 +819,14 @@ Rectangle {
             selectedTextColor: Theme.fg
             onTextEdited: search.edited(text)
             background: Item {}
+
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                visible: field.text === "" && !field.preeditText
+                text: search.placeholder
+                font: field.font
+                color: Theme.fgTertiary
+            }
         }
     }
 
