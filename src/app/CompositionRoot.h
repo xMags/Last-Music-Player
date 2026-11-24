@@ -172,6 +172,9 @@ public:
     void showWelcomeForReview();
     // Opens Browse and searches for `query` (the Debug build's --search).
     void showSearchForReview(const QString& query);
+    // For reviewing a page: "library", "settings" or "offline" (others are
+    // ignored).
+    void showViewForReview(const QString& view);
 
 private:
     // The account library as the home model reads it, in Account mode only.

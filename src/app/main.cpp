@@ -47,6 +47,11 @@ int main(int argc, char* argv[])
     if (QCoreApplication::arguments().contains(QStringLiteral("--show-welcome"))) {
         root.showWelcomeForReview();
     }
+    // For reviewing a page without clicking to it.
+    if (const qsizetype at = QCoreApplication::arguments().indexOf(QStringLiteral("--open-view"));
+        at >= 0 && at + 1 < QCoreApplication::arguments().size()) {
+        root.showViewForReview(QCoreApplication::arguments().at(at + 1));
+    }
     // For reviewing a search: the search box has no accessible role yet.
     if (const qsizetype at = QCoreApplication::arguments().indexOf(QStringLiteral("--search"));
         at >= 0 && at + 1 < QCoreApplication::arguments().size()) {
