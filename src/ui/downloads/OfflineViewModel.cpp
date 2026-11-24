@@ -319,6 +319,7 @@ void OfflineViewModel::reload()
                                      {QStringLiteral("error"), summary.error}});
     }
     m_pendingActive = waiting > 0;
+    m_waitingCount = waiting;
     const bool allPaused = snapshot.allPaused;
     m_pendingTitle = waiting > 0 ? (allPaused ? tr("Paused: %1 left").arg(songCount(waiting)) : tr("Downloading %1").arg(songCount(waiting)))
         : failed == 1             ? tr("1 download failed")

@@ -33,6 +33,7 @@ class ThemeTypography : public QObject {
     Q_PROPERTY(QFont mixCoverBadge READ mixCoverBadge CONSTANT FINAL)
     Q_PROPERTY(QFont sectionPill READ sectionPill CONSTANT FINAL)
     Q_PROPERTY(QFont refreshStatus READ refreshStatus CONSTANT FINAL)
+    Q_PROPERTY(QFont navCount READ navCount CONSTANT FINAL)
     Q_PROPERTY(qreal lineHeightSectionPill READ lineHeightSectionPill CONSTANT FINAL)
     Q_PROPERTY(QFont settingsSection READ settingsSection CONSTANT FINAL)
     Q_PROPERTY(QFont settingsRowTitle READ settingsRowTitle CONSTANT FINAL)
@@ -176,6 +177,7 @@ public:
     [[nodiscard]] QFont mixCoverBadge() const { return m_text.mixCoverBadge.font; }
     [[nodiscard]] QFont sectionPill() const { return m_text.sectionPill.font; }
     [[nodiscard]] QFont refreshStatus() const { return m_text.refreshStatus.font; }
+    [[nodiscard]] QFont navCount() const { return m_text.navCount.font; }
     [[nodiscard]] qreal lineHeightSectionPill() const { return m_text.sectionPill.lineHeight; }
     [[nodiscard]] QFont settingsSection() const { return m_text.settingsSection.font; }
     [[nodiscard]] QFont settingsRowTitle() const { return m_text.settingsRowTitle.font; }

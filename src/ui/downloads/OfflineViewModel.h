@@ -88,6 +88,8 @@ class OfflineViewModel : public QObject {
     Q_PROPERTY(int pendingPercent READ pendingPercent NOTIFY changed FINAL)
     Q_PROPERTY(bool pendingActive READ pendingActive NOTIFY changed FINAL)
     Q_PROPERTY(bool paused READ paused NOTIFY changed FINAL)
+    // Songs still on their way (not failed), for the sidebar's count.
+    Q_PROPERTY(int waitingCount READ waitingCount NOTIFY changed FINAL)
     // One map per job not finished: id, title, subtitle, state ("Queued",
     // "Paused", "Failed", "Downloading"), percent, failed, error.
     Q_PROPERTY(QVariantList pending READ pending NOTIFY changed FINAL)
@@ -147,6 +149,7 @@ public:
     [[nodiscard]] int pendingPercent() const { return m_pendingPercent; }
     [[nodiscard]] bool pendingActive() const { return m_pendingActive; }
     [[nodiscard]] bool paused() const;
+    [[nodiscard]] int waitingCount() const { return m_waitingCount; }
     [[nodiscard]] QVariantList pending() const { return m_pending; }
     [[nodiscard]] bool avoidMetered() const;
     void setAvoidMetered(bool value);
@@ -230,6 +233,7 @@ private:
     QString m_pendingDetail;
     int m_pendingPercent = 0;
     bool m_pendingActive = false;
+    int m_waitingCount = 0;
     std::uint64_t m_revision = 0;
 };
 

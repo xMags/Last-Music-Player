@@ -136,6 +136,8 @@ TextStyles TextStyles::build(const FontFamilies& families)
         .sectionPill = makeTextStyle({.family = text, .pixelSize = 10, .weight = kSemiBold, .lineHeight = 10, .letterSpacingEm = 0.04}),
         // .home-refresh-status: 11px.
         .refreshStatus = makeTextStyle({.family = text, .pixelSize = 11, .weight = kRegular}),
+        // .nav-count: 12px 600.
+        .navCount = makeTextStyle({.family = text, .pixelSize = 12, .weight = kSemiBold}),
         // .settings-section-head h2, .settings-row-title, .settings-row-desc
         // and .settings-theme-tile (views.css 1128-1165, 1293-1303).
         .settingsSection = makeTextStyle({.family = display, .pixelSize = 16, .weight = kBold, .lineHeight = 22}),

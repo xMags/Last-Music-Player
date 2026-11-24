@@ -86,6 +86,8 @@ Rectangle {
                     text: label
                     active: kind === App.sidebar.activeKind
                     collapsed: sidebar.collapsed
+                    count: kind === Route.Offline ? App.offline.waitingCount : 0
+                    countLabel: qsTr("%1 downloading").arg(count)
                     leading: Icon {
                         // Offline uses the plain download glyph; the others have nav icons.
                         name: navRow.iconName === "download" ? "download"

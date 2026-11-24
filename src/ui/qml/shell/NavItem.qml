@@ -15,6 +15,10 @@ T.AbstractButton {
     // The icon on the left; any item can replace it (playlist swatches).
     property Component leading: null
     property int gap: 20
+    // .nav-count: a small accent pill at the row's end ("3" songs on their
+    // way); hidden at 0 and in the collapsed sidebar.
+    property int count: 0
+    property string countLabel: ""
 
     implicitHeight: 42
     leftPadding: collapsed ? 0 : 12
@@ -46,13 +50,39 @@ T.AbstractButton {
 
             Text {
                 anchors.verticalCenter: parent.verticalCenter
-                width: Math.min(implicitWidth, control.availableWidth - 20 - control.gap)
+                width: Math.min(implicitWidth, control.availableWidth - 20 - control.gap
+                                - (countPill.visible ? countPill.width + 8 : 0))
                 visible: !control.collapsed
                 text: control.text
                 font: control.active ? Theme.navLabelActive : Theme.navLabel
                 color: control.active ? Theme.accentColor : Theme.fg
                 elide: Text.ElideRight
             }
+        }
+    }
+
+    // min-width 20px, 20px high, padded 0 6px, 12px 600 in the accent on
+    // the stronger accent tint, fully round.
+    Rectangle {
+        id: countPill
+
+        parent: control.contentItem
+        anchors.right: parent.right
+        anchors.verticalCenter: parent.verticalCenter
+        visible: control.count > 0 && !control.collapsed
+        width: Math.max(20, countText.implicitWidth + 2 * 6)
+        height: 20
+        radius: 10
+        color: Theme.accentSoft2
+        Accessible.name: control.countLabel
+
+        Text {
+            id: countText
+
+            anchors.centerIn: parent
+            text: control.count
+            font: Theme.navCount
+            color: Theme.accentColor
         }
     }
 

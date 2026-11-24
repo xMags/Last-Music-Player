@@ -69,6 +69,7 @@ struct TextStyles {
     TextStyle mixCoverBadge;
     TextStyle sectionPill;
     TextStyle refreshStatus;
+    TextStyle navCount;
     TextStyle settingsSection;
     TextStyle settingsRowTitle;
     TextStyle settingsRowDescription;
