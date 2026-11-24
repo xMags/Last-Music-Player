@@ -6,6 +6,7 @@
 #include <QString>
 #include <QHash>
 #include <QStringList>
+#include <QJsonObject>
 #include <QTimer>
 #include <QVariantList>
 #include <QtQml/qqmlregistration.h>
@@ -157,6 +158,10 @@ private:
     void runSearch();
     // A follow or unfollow came back.
     void settleFollow(const QString& key, bool pick, const core::Result<void>& result);
+    // addSimilar: a few artists like the picked one join the grid after it.
+    void addSimilar(const QString& key);
+    // The step's preferences went to the service; `done` runs once they did.
+    void saveThen(const QJsonObject& body, const QString& failure, const std::function<void()>& done);
     [[nodiscard]] QVariantMap artistMap(const core::account::WelcomeArtist& artist) const;
 
     core::account::AccountClient& m_client;

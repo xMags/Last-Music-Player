@@ -8,6 +8,7 @@
 #include "core/catalog/ContentLanguages.h"
 #include "core/db/AccountRepository.h"
 #include "core/model/Track.h"
+#include "core/net/UserMessages.h"
 #include "core/settings/SettingKeys.h"
 #include "core/settings/SettingsStore.h"
 #include "ui/player/CoverSource.h"
@@ -481,7 +482,7 @@ QVariantList WelcomeViewModel::artists() const
 
 bool WelcomeViewModel::canContinue() const
 {
-    if (m_busy) {
+    if (m_busy || m_saving) {
         return false;
     }
     if (m_step == QLatin1StringView("languages")) {
@@ -561,6 +562,9 @@ void WelcomeViewModel::settleFollow(const QString& key, bool pick, const core::R
     if (!pick && result) {
         m_followIds.remove(key);
     }
+    if (pick && result) {
+        addSimilar(key);
+    }
     if (!result) {
         if (pick) {
             m_picked.remove(key);
@@ -586,23 +590,85 @@ void WelcomeViewModel::next()
     }
     const std::optional<account::AccountOperationContext> context = m_session.captureOperation();
     if (m_step == QLatin1StringView("languages")) {
-        if (context) {
-            // The region and languages are the account's from now on.
-            const QJsonObject body{{QStringLiteral("storefront"), region()},
-                                   {QStringLiteral("contentLanguages"),
-                                    QJsonObject{{QStringLiteral("mode"), QStringLiteral("custom")},
-                                                {QStringLiteral("languages"),
-                                                 QJsonArray::fromStringList(m_selectedLanguages)}}}};
-            (void)m_client.savePreferencesDocument(context->bearerSession,
-                                                   QJsonDocument(body).toJson(QJsonDocument::Compact));
-        }
-        m_step = QStringLiteral("artists");
-        m_status.clear();
-        emit changed();
-        loadArtists();
+        // continueFromLanguages: the region and languages are the account's
+        // from now on; the step changes once they are saved.
+        const QJsonObject body{{QStringLiteral("storefront"), region()},
+                               {QStringLiteral("contentLanguages"),
+                                QJsonObject{{QStringLiteral("mode"), QStringLiteral("custom")},
+                                            {QStringLiteral("languages"), QJsonArray::fromStringList(m_selectedLanguages)}}}};
+        saveThen(body, tr("Could not save your languages. Try again."), [this]() {
+            m_step = QStringLiteral("artists");
+            emit changed();
+            loadArtists();
+        });
         return;
     }
     finish();
+}
+
+void WelcomeViewModel::saveThen(const QJsonObject& body, const QString& failure, const std::function<void()>& done)
+{
+    const std::optional<account::AccountOperationContext> context = m_session.captureOperation();
+    if (!context) {
+        setStatus(tr("Sign in to choose your languages."));
+        return;
+    }
+    m_saving = true;
+    m_status.clear();
+    emit changed();
+    const core::RequestScope::Token token = m_loads.next();
+    m_client.savePreferencesDocument(context->bearerSession, QJsonDocument(body).toJson(QJsonDocument::Compact))
+        .then(this, [this, token, failure, done](const core::Result<void>& saved) {
+            if (!m_loads.isCurrent(token)) {
+                return;
+            }
+            m_saving = false;
+            if (!saved) {
+                m_status = core::net::userMessageOr(saved.failure(), failure);
+                emit changed();
+                return;
+            }
+            m_status.clear();
+            done();
+            emit changed();
+        });
+}
+
+void WelcomeViewModel::addSimilar(const QString& key)
+{
+    if (m_catalogService == nullptr) {
+        return;
+    }
+    const auto found = std::find_if(m_grid.cbegin(), m_grid.cend(),
+                                    [&key](const account::WelcomeArtist& artist) { return account::artistItemKey(artist) == key; });
+    if (found == m_grid.cend() || !found->identity) {
+        return;
+    }
+    m_catalogService
+        ->providerArtistSection(*found->identity, core::catalog::ArtistSection::SimilarArtists, tr("Similar artists"))
+        .then(this, [this, key](const core::Result<core::catalog::Shelf>& shelf) {
+            // Suggestions already fill the grid; similar artists are a bonus.
+            if (!shelf || !m_visible || !m_picked.contains(key)) {
+                return;
+            }
+            QList<account::WelcomeArtist> similar;
+            for (const core::catalog::CatalogItem& item : shelf.value().items) {
+                if (!item.artistTarget) {
+                    continue;
+                }
+                account::WelcomeArtist artist;
+                artist.title = item.title;
+                artist.artworkUrl = item.artworkUrl;
+                artist.identity = item.artistTarget->identity;
+                similar.append(artist);
+            }
+            const QList<account::WelcomeArtist> next = account::insertSimilarArtists(m_grid, key, similar);
+            if (next.size() == m_grid.size()) {
+                return;
+            }
+            m_grid = next;
+            emit changed();
+        });
 }
 
 void WelcomeViewModel::back()
@@ -615,18 +681,21 @@ void WelcomeViewModel::back()
 
 void WelcomeViewModel::finish()
 {
-    const std::optional<account::AccountOperationContext> context = m_session.captureOperation();
-    if (context && m_mode == account::WelcomeMode::FirstRun) {
-        const QJsonObject body{{QStringLiteral("onboarding"),
-                                QJsonObject{{QStringLiteral("completedAt"),
-                                             QDateTime::currentDateTimeUtc().toString(Qt::ISODateWithMs)}}}};
-        (void)m_client.savePreferencesDocument(context->bearerSession, QJsonDocument(body).toJson(QJsonDocument::Compact));
+    const auto done = [this]() {
+        m_loads.invalidate();
+        m_visible = false;
+        emit visibleChanged();
+        // Follows and languages shape what the library and Home show.
+        (void)m_sync.requestSync(account::MusicSyncService::Lane::All);
+    };
+    if (m_mode != account::WelcomeMode::FirstRun) {
+        done();
+        return;
     }
-    m_loads.invalidate();
-    m_visible = false;
-    emit visibleChanged();
-    // Follows and languages shape what the library and Home show.
-    (void)m_sync.requestSync(account::MusicSyncService::Lane::All);
+    const QJsonObject body{{QStringLiteral("onboarding"),
+                            QJsonObject{{QStringLiteral("completedAt"),
+                                         QDateTime::currentDateTimeUtc().toString(Qt::ISODateWithMs)}}}};
+    saveThen(body, tr("Could not finish setting up. Try again."), done);
 }
 
 void WelcomeViewModel::close()
