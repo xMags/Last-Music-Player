@@ -337,13 +337,10 @@ Column {
                     onClicked: header.menuClicked(menuButton.mapToItem(header, menuButton.width / 2, menuButton.height))
                 }
 
-                AppButton {
+                FollowButton {
                     visible: header.showFollow
-                    enabled: !header.followBusy
-                    variant: header.followed ? AppButton.Subtle : AppButton.Standard
-                    text: header.followed ? qsTr("Following") : qsTr("Follow")
-                    iconName: header.followed ? "check" : "plus"
-                    iconSize: 14
+                    followed: header.followed
+                    busy: header.followBusy
                     onClicked: header.followClicked()
                 }
 

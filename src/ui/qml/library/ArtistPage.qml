@@ -129,7 +129,7 @@ Item {
                 Shelf {
                     width: parent.width
                     title: section.modelData.title
-                    linkText: section.modelData.link ? qsTr("See all") : ""
+                    linkText: section.modelData.link ? qsTr("View more ›") : ""
                     model: App.catalogArtist.sectionCards(section.modelData.key)
                     onLinkClicked: App.catalogArtist.seeAllSection(section.modelData.key)
 

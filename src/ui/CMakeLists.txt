@@ -97,6 +97,7 @@ set(LMP_UI_QML_FILES
     qml/library/LibraryPage.qml
     qml/library/PlayPill.qml
     qml/library/RoundAction.qml
+    qml/library/FollowButton.qml
     qml/library/ViewSwitch.qml
     qml/player/FullscreenBackdrop.qml
     qml/player/FullscreenBody.qml
