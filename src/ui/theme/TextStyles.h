@@ -68,6 +68,7 @@ struct TextStyles {
     TextStyle emptyTitle;
     TextStyle mixCoverBadge;
     TextStyle sectionPill;
+    TextStyle refreshStatus;
     TextStyle settingsSection;
     TextStyle settingsRowTitle;
     TextStyle settingsRowDescription;

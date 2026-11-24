@@ -7,6 +7,10 @@ import LastMusicPlayer
 T.AbstractButton {
     id: link
 
+    // An inline .button-link takes the text around it instead.
+    property font labelFont: Theme.sectionLink
+    property color labelColor: Theme.accentColor
+
     implicitWidth: label.implicitWidth
     implicitHeight: label.implicitHeight
     hoverEnabled: true
@@ -20,9 +24,8 @@ T.AbstractButton {
         id: label
 
         text: link.text
-        font: Theme.sectionLink
-        color: Theme.accentColor
-        opacity: link.hovered ? 0.8 : 1
+        font: link.labelFont
+        color: link.labelColor
     }
 
     background: FocusRing {

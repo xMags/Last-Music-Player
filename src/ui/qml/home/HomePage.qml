@@ -1,6 +1,8 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import QtQuick.Layouts
+import QtQuick.Templates as T
 import LastMusicPlayer
 
 // Home (views/home.ts renderFeed): the greeting (the part of the day over the
@@ -275,20 +277,63 @@ Item {
                             }
                         }
 
+                        // homeNotice: a quiet card with an alert, the message
+                        // and a "Try again" pill (styles.css 2925-2953).
+                        Rectangle {
+                            visible: !App.home.catalogSkeleton && App.home.catalogError !== ""
+                            width: Math.min(640, section.width)
+                            implicitHeight: noticeRow.implicitHeight + 2 * 14
+                            radius: 12
+                            color: Theme.surface
+                            border.width: 1
+                            border.color: Theme.stroke
+
+                            RowLayout {
+                                id: noticeRow
+
+                                x: 16
+                                anchors.verticalCenter: parent.verticalCenter
+                                width: parent.width - 2 * 16
+                                spacing: 12
+
+                                Icon {
+                                    name: "alert"
+                                    size: 16
+                                    color: Theme.fgTertiary
+                                }
+
+                                Text {
+                                    Layout.fillWidth: true
+                                    text: App.home.catalogError
+                                    font: Theme.viewSubtitle
+                                    color: Theme.fgSecondary
+                                    wrapMode: Text.Wrap
+                                }
+
+                                NoticeButton {
+                                    text: qsTr("Try again")
+                                    onClicked: App.home.retryCatalog()
+                                }
+                            }
+                        }
+
+                        // .home-refresh-status: cached charts, 11px tertiary,
+                        // with an inline Refresh.
                         Row {
-                            visible: !App.home.catalogSkeleton
-                            spacing: 12
+                            visible: !App.home.catalogSkeleton && App.home.catalogError === "" && App.home.catalogCached
+                            topPadding: 7
+                            spacing: 0
 
                             Text {
-                                anchors.verticalCenter: parent.verticalCenter
-                                text: App.home.catalogError !== "" ? App.home.catalogError
-                                                                    : qsTr("Showing cached charts.")
-                                font: Theme.stateText
-                                color: Theme.fgSecondary
+                                text: qsTr("Showing cached charts. ")
+                                font: Theme.refreshStatus
+                                color: Theme.fgTertiary
                             }
 
-                            AppButton {
-                                text: App.home.catalogError !== "" ? qsTr("Try again") : qsTr("Refresh")
+                            LinkButton {
+                                text: qsTr("Refresh")
+                                labelFont: Theme.refreshStatus
+                                labelColor: Theme.fg
                                 onClicked: App.home.retryCatalog()
                             }
                         }
@@ -325,6 +370,39 @@ Item {
                     }
                 }
             }
+        }
+    }
+
+    // .home-notice-button: a 32px outlined pill, padded 0 14px, 13px 600;
+    // the hover colour on hover.
+    component NoticeButton: T.Button {
+        id: noticeButton
+
+        implicitHeight: 32
+        implicitWidth: implicitContentWidth + leftPadding + rightPadding
+        leftPadding: 14
+        rightPadding: 14
+        hoverEnabled: true
+        focusPolicy: Qt.StrongFocus
+        font: Theme.settingsButtonLabel
+
+        HoverHandler {
+            cursorShape: Qt.PointingHandCursor
+        }
+
+        contentItem: Text {
+            text: noticeButton.text
+            font: noticeButton.font
+            color: Theme.fg
+            verticalAlignment: Text.AlignVCenter
+        }
+
+        background: ButtonSurface {
+            radius: height / 2
+            border.width: 1
+            border.color: Theme.stroke
+            color: noticeButton.hovered ? Theme.hover : "transparent"
+            focusShown: noticeButton.visualFocus
         }
     }
 

@@ -134,6 +134,8 @@ TextStyles TextStyles::build(const FontFamilies& families)
         .mixCoverBadge = makeTextStyle({.family = text, .pixelSize = 10, .weight = kExtraBold, .letterSpacingEm = 0.08}),
         // .section-pill: 10px 600, line-height 1, 0.04em.
         .sectionPill = makeTextStyle({.family = text, .pixelSize = 10, .weight = kSemiBold, .lineHeight = 10, .letterSpacingEm = 0.04}),
+        // .home-refresh-status: 11px.
+        .refreshStatus = makeTextStyle({.family = text, .pixelSize = 11, .weight = kRegular}),
         // .settings-section-head h2, .settings-row-title, .settings-row-desc
         // and .settings-theme-tile (views.css 1128-1165, 1293-1303).
         .settingsSection = makeTextStyle({.family = display, .pixelSize = 16, .weight = kBold, .lineHeight = 22}),
