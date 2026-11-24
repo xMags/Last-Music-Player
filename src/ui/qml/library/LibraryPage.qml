@@ -72,7 +72,7 @@ Item {
                         iconName: "link"
                         iconSize: 14
                         onClicked: App.collections.requestImportLink(
-                            App.library.tab === "albums" && !App.capabilities.browseCatalogue ? "album" : "playlist")
+                            App.capabilities.browseCatalogue ? "link" : App.library.tab === "albums" ? "album" : "playlist")
                     }
 
                     // The current app's local albums; the account's albums come

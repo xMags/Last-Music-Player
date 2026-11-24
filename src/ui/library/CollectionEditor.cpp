@@ -5,6 +5,7 @@
 #include <utility>
 
 #include "core/library/CollectionActions.h"
+#include "core/net/UserMessages.h"
 #include "ui/navigation/Navigator.h"
 #include "ui/navigation/Route.h"
 #include "ui/toasts/ToastQueue.h"
@@ -28,6 +29,9 @@ int CollectionEditor::maximumNameLength()
 
 void CollectionEditor::requestCreatePlaylist()
 {
+    if (m_promptBusy) {
+        return;
+    }
     m_pending = Pending::CreatePlaylist;
     // The reference's prompt (playlist-menu.ts promptCreatePlaylist).
     m_promptTitle = tr("Create playlist");
@@ -35,12 +39,18 @@ void CollectionEditor::requestCreatePlaylist()
     m_promptPlaceholder = tr("Road trip, night drive, work focus...");
     m_promptSubmit = tr("Create");
     m_promptValue.clear();
+    m_promptDescription.clear();
+    m_promptBusyLabel.clear();
+    m_promptError.clear();
     emit promptChanged();
     emit promptRequested();
 }
 
 void CollectionEditor::requestCreateAlbum()
 {
+    if (m_promptBusy) {
+        return;
+    }
     m_pending = Pending::CreateAlbum;
     // The current app's (LibraryCreateAlbum_Click).
     m_promptTitle = tr("Create album");
@@ -48,6 +58,9 @@ void CollectionEditor::requestCreateAlbum()
     m_promptPlaceholder = tr("New album");
     m_promptSubmit = tr("Create");
     m_promptValue.clear();
+    m_promptDescription.clear();
+    m_promptBusyLabel.clear();
+    m_promptError.clear();
     emit promptChanged();
     emit promptRequested();
 }
@@ -62,14 +75,28 @@ void CollectionEditor::requestImportLink(const QString& kind)
     if (m_importer == nullptr) {
         return;
     }
+    if (m_promptBusy) {
+        return;
+    }
     m_pending = Pending::ImportLink;
-    // The current app's (LibraryImportAlbum_Click, LibraryImportPlaylist_Click).
-    const bool playlist = kind == QLatin1StringView("playlist");
-    m_promptTitle = playlist ? tr("Import playlist") : tr("Import album");
-    m_promptLabel = playlist ? tr("Playlist link") : tr("Music API album link");
-    m_promptPlaceholder = playlist ? tr("Paste playlist link") : tr("Paste album link");
     m_promptSubmit = tr("Import");
+    m_promptBusyLabel = tr("Importing...");
+    m_promptError.clear();
     m_promptValue.clear();
+    if (kind == QLatin1StringView("link")) {
+        // promptImportLink (views/library.ts).
+        m_promptTitle = tr("Import album or playlist");
+        m_promptDescription = tr("Paste an album or playlist link to add it to your Library.");
+        m_promptLabel = tr("Album or playlist link");
+        m_promptPlaceholder = QStringLiteral("https://...");
+    } else {
+        // The current app's (LibraryImportAlbum_Click, LibraryImportPlaylist_Click).
+        const bool playlist = kind == QLatin1StringView("playlist");
+        m_promptTitle = playlist ? tr("Import playlist") : tr("Import album");
+        m_promptDescription.clear();
+        m_promptLabel = playlist ? tr("Playlist link") : tr("Music API album link");
+        m_promptPlaceholder = playlist ? tr("Paste playlist link") : tr("Paste album link");
+    }
     emit promptChanged();
     emit promptRequested();
 }
@@ -87,6 +114,9 @@ void CollectionEditor::requestRename(const QString& playlistKey, const QString& 
     m_promptPlaceholder.clear();
     m_promptSubmit = tr("Rename");
     m_promptValue = title;
+    m_promptDescription.clear();
+    m_promptBusyLabel.clear();
+    m_promptError.clear();
     emit promptChanged();
     emit promptRequested();
 }
@@ -145,21 +175,38 @@ bool CollectionEditor::submitPrompt(const QString& value)
         return true;
     }
     case Pending::ImportLink: {
-        if (m_importer == nullptr || value.trimmed().isEmpty()) {
+        if (m_importer == nullptr) {
             return true;
         }
-        m_toasts.show(tr("Importing..."));
+        // The prompt stays open, saying why, until the link is in.
+        m_pending = pending;
+        if (value.trimmed().isEmpty()) {
+            m_promptError = tr("Paste a link to import.");
+            emit promptChanged();
+            return false;
+        }
+        if (m_promptBusy) {
+            return false;
+        }
+        m_promptBusy = true;
+        m_promptError.clear();
+        emit promptChanged();
         m_importer->importLink(value).then(this, [this](const core::Result<core::ImportOutcome>& outcome) {
+            m_promptBusy = false;
             if (!outcome) {
-                m_toasts.show(outcome.failure().kind == core::FailureKind::NotAvailable
-                                  ? tr("Importing needs a connected music source.")
-                                  : tr("Import failed: %1").arg(outcome.failure().detail),
-                              true);
+                m_promptError = outcome.failure().kind == core::FailureKind::NotAvailable
+                    ? tr("Importing needs a connected music source.")
+                    : core::net::userMessageOr(outcome.failure(), tr("That link could not be imported."));
+                emit promptChanged();
+                emit promptSettled(m_promptError);
                 return;
             }
-            m_toasts.show(outcome.value().kind == QLatin1StringView("playlist")
-                              ? tr("Imported playlist with %n songs", nullptr, outcome.value().songCount)
-                              : tr("Imported %n songs", nullptr, outcome.value().songCount));
+            m_pending = Pending::None;
+            emit promptChanged();
+            emit promptSettled(QString());
+            const int count = outcome.value().songCount;
+            m_toasts.show(tr("Imported \"%1\" with %2")
+                              .arg(outcome.value().title, count == 1 ? tr("1 song") : tr("%1 songs").arg(count)));
             m_navigator.push(Route(Route::Kind::Collection, {{QStringLiteral("kind"), outcome.value().kind},
                                                              {QStringLiteral("key"), outcome.value().key},
                                                              {QStringLiteral("title"), outcome.value().title}}));

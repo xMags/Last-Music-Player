@@ -28,13 +28,32 @@ Item {
         title: App.collections.promptTitle
         fieldLabel: App.collections.promptLabel
         placeholderText: App.collections.promptPlaceholder
+        description: App.collections.promptDescription
         submitLabel: App.collections.promptSubmit
+        busyLabel: App.collections.promptBusyLabel
         maximumLength: App.collections.promptMaximumLength
         onSubmitted: value => {
             if (App.collections.submitPrompt(value))
                 namePrompt.finish()
+            else if (App.collections.promptBusy)
+                namePrompt.busy = true
             else
-                namePrompt.errorText = qsTr("That did not work. Try again in a moment.")
+                namePrompt.errorText = App.collections.promptError !== "" ? App.collections.promptError
+                                                                          : qsTr("That did not work. Try again in a moment.")
+        }
+
+        Connections {
+            target: App.collections
+
+            // An import came back: close on success, else say why.
+            function onPromptSettled(error: string) {
+                if (error === "") {
+                    namePrompt.finish()
+                    return
+                }
+                namePrompt.busy = false
+                namePrompt.errorText = error
+            }
         }
     }
 
