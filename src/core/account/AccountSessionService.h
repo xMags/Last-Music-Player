@@ -73,6 +73,10 @@ public:
     // SignedOut, removing the credential, when the service answered 401 or
     // 403.
     void restore();
+    // Whether restore() is still waiting for the service to check the stored
+    // session. Until it answers the state stays SignedOut, so requests that
+    // need the session can wait for restoreFinished instead of failing.
+    [[nodiscard]] bool isRestoring() const { return m_restoreLease.has_value(); }
 
     // Opens the browser sign-in and waits for it: listener, browser, code
     // exchange, profile, then the session is stored and read back before it
@@ -102,6 +106,10 @@ signals:
     void stateChanged();
     // The signed-in owner changed (empty when signed out).
     void ownerChanged(const QString& ownerId);
+    // A restore() that waited for the service has ended, whatever it led to
+    // (also when a newer sign-in made its answer stale). Emitted after any
+    // stateChanged and ownerChanged it caused.
+    void restoreFinished();
 
 private:
     using Token = RequestScope::Token;
@@ -121,6 +129,7 @@ private:
     void onCallbackFinished(Token token, const Result<QString>& code);
     void onCodeExchanged(Token token, const Result<QString>& bearer);
     void onSignInProfile(Token token, const QString& bearer, const Result<AccountProfile>& profile);
+    void applyRestoreProfile(Token token, const QString& bearer, const Result<AccountProfile>& profile);
     void failSignIn(Token token, const Failure& failure);
     void finishSignIn(Token token, Result<void> result);
     void onRestoreProfile(Token token, const QString& bearer, const Result<AccountProfile>& profile);

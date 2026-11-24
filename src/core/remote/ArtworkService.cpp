@@ -112,11 +112,17 @@ ArtworkService::ArtworkService(const Dependencies& dependencies, QObject* parent
         m_lastMode = m_deps.mode.mode();
     });
     m_lastMode = m_deps.mode.mode();
+    connect(&m_deps.session, &account::AccountSessionService::restoreFinished, this,
+            &ArtworkService::resumeAwaitingSession);
 }
 
 ArtworkService::~ArtworkService()
 {
     m_timer->stop();
+    for (AwaitingSession& waiting : m_awaitingSession) {
+        std::vector<Promise> waiters{std::move(waiting.promise)};
+        settle(waiters, Failure::of(FailureKind::Cancelled, QStringLiteral("artwork service closed")));
+    }
     for (auto it = m_requests.begin(); it != m_requests.end(); ++it) {
         settle(it->waiters, Failure::of(FailureKind::Cancelled, QStringLiteral("artwork service closed")));
     }
@@ -154,6 +160,14 @@ QFuture<Result<QByteArray>> ArtworkService::fetch(const QString& artworkUrl, con
     auto promise = std::make_shared<QPromise<Result<QByteArray>>>();
     promise->start();
     QFuture<Result<QByteArray>> future = promise->future();
+
+    // Every Account mode fetch needs the session; while the stored one is
+    // still being checked it would fail for good, so it waits instead.
+    if (accountMode && m_deps.session.isRestoring() && !m_deps.session.captureOperation()) {
+        m_awaitingSession.push_back(AwaitingSession{
+            .artworkUrl = artworkUrl, .sourceUrl = sourceUrl, .priority = priority, .promise = std::move(promise)});
+        return future;
+    }
 
     if (auto pending = m_requests.find(key); pending != m_requests.end()) {
         pending->waiters.push_back(std::move(promise));
@@ -196,6 +210,19 @@ void ArtworkService::promote(const QString& artworkUrl, const QString& sourceUrl
     m_backfillQueue.erase(queued);
     m_visibleQueue.push_back(key);
     startRequests();
+}
+
+void ArtworkService::resumeAwaitingSession()
+{
+    std::vector<AwaitingSession> waiting = std::exchange(m_awaitingSession, {});
+    for (AwaitingSession& entry : waiting) {
+        Promise promise = std::move(entry.promise);
+        fetch(entry.artworkUrl, entry.sourceUrl, entry.priority)
+            .then(this, [promise](const Result<QByteArray>& result) {
+                std::vector<Promise> waiters{promise};
+                settle(waiters, result);
+            });
+    }
 }
 
 void ArtworkService::clear()

@@ -74,9 +74,19 @@ void AccountSessionService::restore()
 
 void AccountSessionService::onRestoreProfile(Token token, const QString& bearer, const Result<AccountProfile>& profile)
 {
+    const bool wasRestoring = m_restoreToken == token && m_restoreLease.has_value();
     if (m_restoreToken == token) {
         m_restoreLease.reset();
     }
+    applyRestoreProfile(token, bearer, profile);
+    if (wasRestoring) {
+        emit restoreFinished();
+    }
+}
+
+void AccountSessionService::applyRestoreProfile(Token token, const QString& bearer,
+                                                const Result<AccountProfile>& profile)
+{
     if (!m_intents.isCurrent(token)) {
         return;
     }

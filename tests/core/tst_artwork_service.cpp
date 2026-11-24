@@ -88,6 +88,7 @@ private slots:
     void outsideAccountModeTheAddressIsFetched();
     void cacheStartsOverPastItsBudget();
     void coverLinksLoadFromTheAccountService();
+    void coversWaitForTheStoredSessionCheck();
 };
 
 void ArtworkServiceTest::visibleRequestsUseSixSlots()
@@ -351,6 +352,55 @@ void ArtworkServiceTest::coverLinksLoadFromTheAccountService()
     QCOMPARE(request.url.path(), link);
     QCOMPARE(request.header("Authorization"), QByteArray("Bearer bearer-owner-a"));
     QVERIFY(fixture.service.isCached(QStringLiteral("https://api.example.test") + link));
+}
+
+void ArtworkServiceTest::coversWaitForTheStoredSessionCheck()
+{
+    const QString link = QStringLiteral("/v1/music/art/AbCdEfGhIjKlMnOpQrSt_-");
+    const QString other = QStringLiteral("/v1/music/art/ZyXwVuTsRqPoNmLkJiHg_-");
+    // A launch in Account mode: the stored session is still being checked.
+    ArtworkFixture fixture;
+    fixture.modes.session.settings.setString(
+        lmp::core::settings::keys::RemoteAccessMode,
+        QString(lmp::core::mode::sourceModeName(lmp::core::mode::SourceMode::Account)));
+    (void)fixture.modes.modes.start();
+    fixture.modes.session.storeSession(QStringLiteral("bearer-owner-a"));
+    fixture.modes.session.service.restore();
+    QVERIFY(fixture.modes.session.service.isRestoring());
+
+    // A cover asked for now waits instead of failing, and sends nothing yet.
+    const QFuture<Result<QByteArray>> future = fixture.service.fetch(link);
+    settle();
+    QVERIFY(!future.isFinished());
+    QCOMPARE(fixture.modes.session.transport.requestCount(link), 0);
+
+    // Once the service confirms the session the cover loads under it.
+    fixture.modes.session.transport.script(link, FakeHttpTransport::ok("cover"));
+    QVERIFY(fixture.modes.session.transport.answer(lmp::test::kProfilePath,
+                                                   lmp::test::AccountSessionFixture::profileAnswer(
+                                                       QStringLiteral("owner-a"))));
+    QVERIFY(QTest::qWaitFor([&future]() { return future.isFinished(); }, 2000));
+    QCOMPARE(future.result().value(), QByteArray("cover"));
+    QCOMPARE(fixture.modes.session.transport.requests.last().header("Authorization"),
+             QByteArray("Bearer bearer-owner-a"));
+    QVERIFY(!fixture.modes.session.service.isRestoring());
+
+    // A check that ends signed out fails the waiting cover instead.
+    ArtworkFixture rejected;
+    rejected.modes.session.settings.setString(
+        lmp::core::settings::keys::RemoteAccessMode,
+        QString(lmp::core::mode::sourceModeName(lmp::core::mode::SourceMode::Account)));
+    (void)rejected.modes.modes.start();
+    rejected.modes.session.storeSession(QStringLiteral("bearer-owner-a"));
+    rejected.modes.session.service.restore();
+    const QFuture<Result<QByteArray>> refused = rejected.service.fetch(other);
+    settle();
+    QVERIFY(!refused.isFinished());
+    QVERIFY(rejected.modes.session.transport.answer(lmp::test::kProfilePath,
+                                                    FakeHttpTransport::failed(FailureKind::Unauthorized, 401)));
+    QVERIFY(QTest::qWaitFor([&refused]() { return refused.isFinished(); }, 2000));
+    QVERIFY(!refused.result());
+    QCOMPARE(rejected.modes.session.transport.requestCount(other), 0);
 }
 
 QTEST_GUILESS_MAIN(ArtworkServiceTest)

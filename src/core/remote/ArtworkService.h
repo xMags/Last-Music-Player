@@ -50,6 +50,11 @@ namespace lmp::core::remote {
 // whole cache is dropped and starts over. A change of account or mode drops
 // the cache and every request (their futures finish as Cancelled).
 //
+// At launch the stored account session is checked with the service before
+// it can be used. A picture asked for in Account mode during that check waits
+// for it, then is fetched under the session it produced (or fails as any
+// request without a session does).
+//
 // Threading: GUI thread only; futures finish there.
 class ArtworkService final : public QObject {
     Q_OBJECT
@@ -107,6 +112,15 @@ public:
 private:
     using Promise = std::shared_ptr<QPromise<Result<QByteArray>>>;
 
+    // A fetch asked for while the stored account session was still being
+    // checked; it is asked for again once that check ends.
+    struct AwaitingSession {
+        QString artworkUrl;
+        QString sourceUrl;
+        Priority priority = Priority::Visible;
+        Promise promise;
+    };
+
     struct Request {
         quint64 id = 0;
         QString artworkUrl;
@@ -147,6 +161,7 @@ private:
     void armTimer();
     [[nodiscard]] QFuture<Result<QString>> artworkFor(const QString& artworkUrl, const QString& sourceUrl);
     [[nodiscard]] QFuture<Result<QByteArray>> download(const QString& url);
+    void resumeAwaitingSession();
     void store(const QString& key, const QByteArray& bytes);
     static void settle(std::vector<Promise>& waiters, const Result<QByteArray>& result);
 
@@ -157,6 +172,9 @@ private:
     std::deque<QString> m_visibleQueue;
     std::deque<QString> m_backfillQueue;
     std::vector<DueStep> m_due;
+    // Not dropped by clear(): the owner change at the end of the check is
+    // what they wait for.
+    std::vector<AwaitingSession> m_awaitingSession;
     std::unique_ptr<PlaybackTimer> m_timer;
     quint64 m_nextId = 0;
     int m_active = 0;
