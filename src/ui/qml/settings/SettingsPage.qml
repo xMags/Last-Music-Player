@@ -7,7 +7,8 @@ import LastMusicPlayer
 Item {
     id: page
 
-    implicitHeight: column.implicitHeight + 32 + 56
+    // padding: 8px 0 56px (.settings-page).
+    implicitHeight: column.implicitHeight + 8 + 56
 
     Component.onCompleted: {
         App.settingsAbout.refresh()
@@ -42,10 +43,11 @@ Item {
     Column {
         id: column
 
-        // 32px from the panel's edges, as the other pages.
-        width: Math.min(page.width - 2 * 32, 720)
+        // .settings-page inside .content: the panel's 24px gutter at the
+        // sides, and only the page's own 8px above (.content has none).
+        width: Math.min(page.width - 2 * 24, 720)
         anchors.horizontalCenter: parent.horizontalCenter
-        y: 32
+        y: 8
         spacing: 30
 
         Text {
