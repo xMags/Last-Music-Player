@@ -170,7 +170,10 @@ QString CatalogArtistViewModel::info() const
     if (!m_detail) {
         return {};
     }
-    return m_detail->item.genreNames.mid(0, 3).join(QStringLiteral(" · "));
+    const core::catalog::CatalogItem& item = m_detail->item;
+    QStringList parts{item.releaseDate.left(4), item.genreNames.value(0), item.recordLabel, item.contentRating};
+    parts.removeAll(QString());
+    return parts.join(QStringLiteral(" · "));
 }
 
 QUrl CatalogArtistViewModel::artworkUrl() const

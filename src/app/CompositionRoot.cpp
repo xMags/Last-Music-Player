@@ -849,6 +849,12 @@ void CompositionRoot::showWelcomeForReview()
 
 void CompositionRoot::showViewForReview(const QString& view)
 {
+    if (view == QLatin1StringView("artist")) {
+        m_navigator.push(ui::Route(ui::Route::Kind::CatalogDetail, {{QStringLiteral("type"), QStringLiteral("artist")},
+                                                                   {QStringLiteral("id"), QStringLiteral("1")},
+                                                                   {QStringLiteral("title"), QStringLiteral("Artist")}}));
+        return;
+    }
     if (view == QLatin1StringView("shelf")) {
         m_navigator.push(ui::Route(ui::Route::Kind::Shelf, {{QStringLiteral("key"), QStringLiteral("newAlbums")}}));
         return;

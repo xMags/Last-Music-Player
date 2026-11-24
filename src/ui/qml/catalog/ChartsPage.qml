@@ -29,34 +29,8 @@ Column {
     // .catalog-back: margin 16px 0 22px, 12.5px 650 in the accent.
     Item { width: 1; height: 16 }
 
-    Item {
-        implicitWidth: backRow.implicitWidth
-        implicitHeight: backRow.implicitHeight
-
-        Row {
-            id: backRow
-
-            spacing: 6
-
-            Icon {
-                anchors.verticalCenter: parent.verticalCenter
-                name: "chevron"
-                size: 14
-                rotation: 180
-                color: Theme.accentColor
-            }
-
-            Text {
-                text: qsTr("Back")
-                font: Theme.collectionBack
-                color: Theme.accentColor
-            }
-        }
-
-        HoverHandler { cursorShape: Qt.PointingHandCursor }
-        TapHandler { onTapped: App.navigator.back() }
-        Accessible.role: Accessible.Link
-        Accessible.name: qsTr("Back")
+    BackLink {
+        onClicked: App.navigator.back()
     }
 
     Item { width: 1; height: 22 }

@@ -86,6 +86,10 @@ struct TextStyles {
     TextStyle welcomeText;
     TextStyle welcomeButton;
     TextStyle artistFollowLink;
+    TextStyle catalogHeroTitle;
+    TextStyle catalogHeroSubtitle;
+    TextStyle catalogHeroMeta;
+    TextStyle catalogDescToggle;
     TextStyle settingsSection;
     TextStyle settingsRowTitle;
     TextStyle settingsRowDescription;

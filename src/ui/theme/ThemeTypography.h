@@ -50,6 +50,10 @@ class ThemeTypography : public QObject {
     Q_PROPERTY(QFont welcomeText READ welcomeText CONSTANT FINAL)
     Q_PROPERTY(QFont welcomeButton READ welcomeButton CONSTANT FINAL)
     Q_PROPERTY(QFont artistFollowLink READ artistFollowLink CONSTANT FINAL)
+    Q_PROPERTY(QFont catalogHeroTitle READ catalogHeroTitle CONSTANT FINAL)
+    Q_PROPERTY(QFont catalogHeroSubtitle READ catalogHeroSubtitle CONSTANT FINAL)
+    Q_PROPERTY(QFont catalogHeroMeta READ catalogHeroMeta CONSTANT FINAL)
+    Q_PROPERTY(QFont catalogDescToggle READ catalogDescToggle CONSTANT FINAL)
     Q_PROPERTY(qreal lineHeightWelcomeTitle READ lineHeightWelcomeTitle CONSTANT FINAL)
     Q_PROPERTY(qreal lineHeightWelcomeText READ lineHeightWelcomeText CONSTANT FINAL)
     Q_PROPERTY(qreal lineHeightSectionPill READ lineHeightSectionPill CONSTANT FINAL)
@@ -212,6 +216,10 @@ public:
     [[nodiscard]] QFont welcomeText() const { return m_text.welcomeText.font; }
     [[nodiscard]] QFont welcomeButton() const { return m_text.welcomeButton.font; }
     [[nodiscard]] QFont artistFollowLink() const { return m_text.artistFollowLink.font; }
+    [[nodiscard]] QFont catalogHeroTitle() const { return m_text.catalogHeroTitle.font; }
+    [[nodiscard]] QFont catalogHeroSubtitle() const { return m_text.catalogHeroSubtitle.font; }
+    [[nodiscard]] QFont catalogHeroMeta() const { return m_text.catalogHeroMeta.font; }
+    [[nodiscard]] QFont catalogDescToggle() const { return m_text.catalogDescToggle.font; }
     [[nodiscard]] qreal lineHeightWelcomeTitle() const { return m_text.welcomeTitle.lineHeight; }
     [[nodiscard]] qreal lineHeightWelcomeText() const { return m_text.welcomeText.lineHeight; }
     [[nodiscard]] qreal lineHeightSectionPill() const { return m_text.sectionPill.lineHeight; }

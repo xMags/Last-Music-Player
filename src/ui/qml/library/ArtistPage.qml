@@ -29,8 +29,16 @@ Item {
         bottomPadding: 40
         spacing: 0
 
+        CatalogArtistHero {
+            width: parent.width
+            visible: page.catalogue
+            model: page.catalogue ? page.model : App.catalogArtist
+            onBackClicked: App.navigator.back()
+        }
+
         CollectionHeader {
             width: parent.width
+            visible: !page.catalogue
             backLabel: page.catalogue ? qsTr("Back") : qsTr("All artists")
             eyebrow: qsTr("ARTIST")
             title: page.model.name

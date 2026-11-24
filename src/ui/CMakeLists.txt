@@ -43,6 +43,7 @@ set(LMP_UI_QML_FILES
     qml/controls/AppSwitch.qml
     qml/controls/ArtTile.qml
     qml/controls/BackdropBlur.qml
+    qml/controls/BackLink.qml
     qml/controls/BoxShadow.qml
     qml/controls/ButtonSurface.qml
     qml/controls/Chip.qml
@@ -100,6 +101,7 @@ set(LMP_UI_QML_FILES
     qml/library/LibraryPage.qml
     qml/library/PlayPill.qml
     qml/library/RoundAction.qml
+    qml/library/CatalogArtistHero.qml
     qml/library/FollowButton.qml
     qml/library/ViewSwitch.qml
     qml/player/FullscreenBackdrop.qml

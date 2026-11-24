@@ -33,6 +33,8 @@ class Theme : public ThemeColors {
     Q_PROPERTY(QVariantList shadowSearchTopArt READ shadowSearchTopArt CONSTANT FINAL)
     // A shelf's scroll arrow (0 2px 12px rgba(0,0,0,.22)).
     Q_PROPERTY(QVariantList shadowShelfArrow READ shadowShelfArrow CONSTANT FINAL)
+    // A catalogue hero's art (0 12px 32px rgba(0,0,0,.16)).
+    Q_PROPERTY(QVariantList shadowCatalogHeroArt READ shadowCatalogHeroArt CONSTANT FINAL)
     Q_PROPERTY(QVariantList shadowButton READ shadowButton NOTIFY changed FINAL)
     Q_PROPERTY(QVariantList shadowButtonHover READ shadowButtonHover NOTIFY changed FINAL)
     Q_PROPERTY(QVariantList shadowSliderThumb READ shadowSliderThumb NOTIFY changed FINAL)
@@ -66,6 +68,7 @@ public:
     [[nodiscard]] QVariantList shadowSearchTopPlay() const;
     [[nodiscard]] QVariantList shadowSearchTopArt() const;
     [[nodiscard]] QVariantList shadowShelfArrow() const;
+    [[nodiscard]] QVariantList shadowCatalogHeroArt() const;
     [[nodiscard]] QVariantList shadowButton() const;
     [[nodiscard]] QVariantList shadowButtonHover() const;
     [[nodiscard]] QVariantList shadowSliderThumb() const;

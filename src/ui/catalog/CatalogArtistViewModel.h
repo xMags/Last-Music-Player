@@ -63,7 +63,10 @@ class CatalogArtistViewModel final : public QObject {
     Q_PROPERTY(bool loading READ loading NOTIFY changed FINAL)
     Q_PROPERTY(QString error READ error NOTIFY changed FINAL)
     Q_PROPERTY(QString name READ name NOTIFY changed FINAL)
+    // The hero's details (renderDetail's metadata): year, first genre,
+    // label and rating, as the service gives them.
     Q_PROPERTY(QString info READ info NOTIFY changed FINAL)
+    Q_PROPERTY(QString subtitle READ subtitle NOTIFY changed FINAL)
     Q_PROPERTY(QString description READ description NOTIFY changed FINAL)
     Q_PROPERTY(QUrl artworkUrl READ artworkUrl NOTIFY changed FINAL)
     Q_PROPERTY(QString artworkId READ artworkId NOTIFY changed FINAL)
@@ -109,6 +112,7 @@ public:
     [[nodiscard]] bool loading() const { return m_loading; }
     [[nodiscard]] QString error() const { return m_error; }
     [[nodiscard]] QString name() const { return m_detail ? m_detail->item.title : m_pendingName; }
+    [[nodiscard]] QString subtitle() const { return m_detail ? m_detail->item.subtitle : QString(); }
     [[nodiscard]] QString info() const;
     [[nodiscard]] QString description() const { return m_detail ? m_detail->item.description : QString(); }
     [[nodiscard]] QUrl artworkUrl() const;
