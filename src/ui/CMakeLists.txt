@@ -13,6 +13,10 @@ set_source_files_properties("${CMAKE_SOURCE_DIR}/Assets/fonts/JetBrainsMono-Medi
 # The design gallery's sample cover: the application logo.
 set_source_files_properties("${CMAKE_SOURCE_DIR}/Assets/Square44x44Logo.targetsize-256.png"
     PROPERTIES QT_RESOURCE_ALIAS "dev/sample-cover.png")
+# The account service's mark on the sign-in button (the reference's
+# magneto-mark.png).
+set_source_files_properties("${CMAKE_SOURCE_DIR}/Assets/SignInServiceMark.png"
+    PROPERTIES QT_RESOURCE_ALIAS "account/SignInServiceMark.png")
 # The stripes over a genre tile, from the current app.
 set_source_files_properties("${CMAKE_SOURCE_DIR}/Assets/LibraryStripeOverlay.svg"
     PROPERTIES QT_RESOURCE_ALIAS "library/LibraryStripeOverlay.svg")
@@ -370,7 +374,8 @@ qt_add_qml_module(lmp_ui
         "${CMAKE_SOURCE_DIR}/Assets/fonts/ArchivoExpanded-Black.ttf"
         "${CMAKE_SOURCE_DIR}/Assets/fonts/JetBrainsMono-Medium.ttf"
         "${CMAKE_SOURCE_DIR}/Assets/Square44x44Logo.targetsize-256.png"
-        "${CMAKE_SOURCE_DIR}/Assets/LibraryStripeOverlay.svg")
+        "${CMAKE_SOURCE_DIR}/Assets/LibraryStripeOverlay.svg"
+        "${CMAKE_SOURCE_DIR}/Assets/SignInServiceMark.png")
 
 # Every folder that holds a header with a QML-registered type. The generated
 # registration code includes those headers by file name only, so each folder

@@ -30,8 +30,11 @@ T.Popup {
     readonly property color accent: "#F0806A"
 
     readonly property bool waiting: App.source.signingIn
-    // The deck is 800px wide; a narrower window shows it smaller.
-    readonly property real deckScale: Math.min(1, (width - 48) / 800, (height - 96) / 640)
+    // At 860px or less the record rises above a full-width sleeve (auth.css
+    // 589-683); wider, the 800px deck shows smaller in a short window.
+    readonly property bool compact: width <= 860
+    readonly property real deckWidth: compact ? Math.min(342, width - 48) : 800
+    readonly property real deckScale: compact ? 1 : Math.min(1, (width - 48) / 800, (height - 96) / 640)
 
     parent: T.Overlay.overlay
     x: 0
@@ -136,19 +139,19 @@ T.Popup {
         // The deck (36px above the help line), centred.
         Column {
             anchors.centerIn: parent
-            spacing: 36 * dialog.deckScale
+            spacing: (dialog.compact ? 28 : 36) * dialog.deckScale
 
             Item {
                 id: deck
 
-                width: 800 * dialog.deckScale
-                height: (sleeveBox.height + 40) * dialog.deckScale
+                width: dialog.deckWidth * dialog.deckScale
+                height: deckContent.height * dialog.deckScale
 
                 Item {
                     id: deckContent
 
-                    width: 800
-                    height: sleeveBox.height + 40
+                    width: dialog.deckWidth
+                    height: dialog.compact ? sleeveBox.y + sleeveBox.height : sleeveBox.height + 40
                     transform: Scale { xScale: dialog.deckScale; yScale: dialog.deckScale }
 
                     HoverHandler {
@@ -161,14 +164,17 @@ T.Popup {
                     Item {
                         id: recordSlot
 
-                        x: 250
-                        y: 25
+                        readonly property real size: dialog.compact ? 300 : 470
+
+                        x: dialog.compact ? dialog.deckWidth / 2 - 150 : 250
+                        y: dialog.compact ? 0 : 25
                         width: 470
                         height: 470
 
                         transform: [
                             Rotation { id: slideTurn; origin.x: 235; origin.y: 235; angle: 0 },
-                            Translate { id: slideShift; x: 0 }
+                            Translate { id: slideShift; x: 0; y: 0 },
+                            Scale { xScale: recordSlot.size / 470; yScale: recordSlot.size / 470 }
                         ]
 
                         Component.onCompleted: {
@@ -179,18 +185,21 @@ T.Popup {
                         SequentialAnimation {
                             id: slideIn
 
-                            PropertyAction { target: slideShift; property: "x"; value: -200 }
+                            // auth-record-slide from the left, or auth-record-rise from below.
+                            PropertyAction { target: slideShift; property: "x"; value: dialog.compact ? 0 : -200 }
+                            PropertyAction { target: slideShift; property: "y"; value: dialog.compact ? 160 * 470 / 300 : 0 }
                             PropertyAction { target: slideTurn; property: "angle"; value: -60 }
                             PauseAnimation { duration: 350 }
                             ParallelAnimation {
                                 NumberAnimation { target: slideShift; property: "x"; to: 0; duration: 1200; easing.type: Easing.Bezier; easing.bezierCurve: [0.2, 0.8, 0.2, 1, 1, 1] }
+                                NumberAnimation { target: slideShift; property: "y"; to: 0; duration: 1200; easing.type: Easing.Bezier; easing.bezierCurve: [0.2, 0.8, 0.2, 1, 1, 1] }
                                 NumberAnimation { target: slideTurn; property: "angle"; to: 0; duration: 1200; easing.type: Easing.Bezier; easing.bezierCurve: [0.2, 0.8, 0.2, 1, 1, 1] }
                             }
                         }
 
                         Item {
                             anchors.fill: parent
-                            x: deckHover.hovered && !Motion.reduced ? 18 : 0
+                            x: deckHover.hovered && !Motion.reduced && !dialog.compact ? 18 : 0
 
                             Behavior on x {
                                 enabled: !Motion.reduced
@@ -331,14 +340,17 @@ T.Popup {
                     Item {
                         id: arm
 
-                        x: 767
-                        y: 22
+                        x: dialog.compact ? dialog.deckWidth - 12 - 4 : 767
+                        y: dialog.compact ? -30 - 40 : 22
                         z: 3
                         width: 8
                         height: 300
                         opacity: Motion.reduced ? 1 : 0
 
-                        transform: Rotation { id: armTurn; origin.x: 4; origin.y: 40; angle: 17 }
+                        transform: [
+                            Scale { origin.x: 4; origin.y: 40; xScale: dialog.compact ? 0.45 : 1; yScale: dialog.compact ? 0.45 : 1 },
+                            Rotation { id: armTurn; origin.x: 4; origin.y: 40; angle: dialog.compact ? 35 : 17 }
+                        ]
 
                         Component.onCompleted: {
                             if (!Motion.reduced)
@@ -348,12 +360,12 @@ T.Popup {
                         SequentialAnimation {
                             id: armIn
 
-                            PropertyAction { target: armTurn; property: "angle"; value: -4 }
+                            PropertyAction { target: armTurn; property: "angle"; value: dialog.compact ? -6 : -4 }
                             PauseAnimation { duration: 300 }
                             NumberAnimation { target: arm; property: "opacity"; to: 1; duration: 500 }
                             PauseAnimation { duration: 800 + 440 }
                             ParallelAnimation {
-                                NumberAnimation { target: armTurn; property: "angle"; to: 17; duration: 1120; easing.type: Easing.Bezier; easing.bezierCurve: [0.45, 0, 0.25, 1, 1, 1] }
+                                NumberAnimation { target: armTurn; property: "angle"; to: dialog.compact ? 35 : 17; duration: 1120; easing.type: Easing.Bezier; easing.bezierCurve: [0.45, 0, 0.25, 1, 1, 1] }
                                 SequentialAnimation {
                                     NumberAnimation { target: armBody; property: "scale"; to: 1.025; duration: 200 }
                                     PauseAnimation { duration: 720 }
@@ -427,12 +439,12 @@ T.Popup {
 
                     // The arm's base: a 56px metal disc with a dark cap.
                     Rectangle {
-                        x: 743
-                        y: 34
+                        x: dialog.compact ? dialog.deckWidth - 27 : 743
+                        y: dialog.compact ? -45 : 34
                         z: 4
-                        width: 56
-                        height: 56
-                        radius: 28
+                        width: dialog.compact ? 30 : 56
+                        height: width
+                        radius: width / 2
                         opacity: arm.opacity
                         gradient: Gradient {
                             GradientStop { position: 0; color: "#DEE4E6" }
@@ -443,9 +455,9 @@ T.Popup {
 
                         Rectangle {
                             anchors.centerIn: parent
-                            width: 20
-                            height: 20
-                            radius: 10
+                            width: dialog.compact ? 11 : 20
+                            height: width
+                            radius: width / 2
                             color: "#3F484B"
                         }
                     }
@@ -454,10 +466,13 @@ T.Popup {
                     Item {
                         id: sleeveBox
 
-                        y: 20
+                        readonly property real padTop: dialog.compact ? 26 : 36
+                        readonly property real padSide: dialog.compact ? 24 : 36
+
+                        y: dialog.compact ? 150 : 20
                         z: 2
-                        width: 500
-                        height: Math.max(500, sleeveColumn.implicitHeight + 72)
+                        width: dialog.compact ? dialog.deckWidth : 500
+                        height: Math.max(dialog.compact ? 0 : 500, sleeveColumn.implicitHeight + padTop + padSide)
                         opacity: Motion.reduced ? 1 : 0
 
                         transform: Translate { id: rise; y: Motion.reduced ? 0 : 18 }
@@ -494,10 +509,10 @@ T.Popup {
                         ColumnLayout {
                             id: sleeveColumn
 
-                            x: 36
-                            y: 36
-                            width: parent.width - 72
-                            height: parent.height - 72
+                            x: sleeveBox.padSide
+                            y: sleeveBox.padTop
+                            width: parent.width - 2 * sleeveBox.padSide
+                            height: parent.height - sleeveBox.padTop - sleeveBox.padSide
                             spacing: 0
 
                             // .auth-meta: VOL. 01 and LOSSLESS.
@@ -520,7 +535,7 @@ T.Popup {
 
                             Text {
                                 Layout.fillWidth: true
-                                Layout.topMargin: 40
+                                Layout.topMargin: dialog.compact ? 26 : 40
                                 text: "LAST <font color=\"" + dialog.accent + "\">MUSIC</font>"
                                 textFormat: Text.StyledText
                                 font: Theme.signInTitle
@@ -533,9 +548,11 @@ T.Popup {
 
                             Text {
                                 Layout.fillWidth: true
-                                Layout.topMargin: 14
+                                Layout.topMargin: dialog.compact ? 12 : 14
                                 text: qsTr("Your library, synced across every platform.")
-                                font: Theme.signInTagline
+                                font.family: Theme.signInTagline.family
+                                font.weight: Theme.signInTagline.weight
+                                font.pixelSize: dialog.compact ? 14 : 15
                                 lineHeight: Theme.lineHeightSignInTagline
                                 lineHeightMode: Text.FixedHeight
                                 color: dialog.inkSoft
@@ -545,9 +562,9 @@ T.Popup {
                             // .auth-platforms: four 38px outlined tiles.
                             GridLayout {
                                 Layout.fillWidth: true
-                                Layout.topMargin: 14
+                                Layout.topMargin: dialog.compact ? 12 : 14
                                 columns: 4
-                                columnSpacing: 8
+                                columnSpacing: dialog.compact ? 6 : 8
 
                                 Repeater {
                                     model: [
@@ -563,18 +580,21 @@ T.Popup {
                                         required property var modelData
 
                                         Layout.fillWidth: true
-                                        implicitHeight: 38
+                                        implicitHeight: dialog.compact ? 56 : 38
                                         radius: 6
                                         color: "transparent"
                                         border.width: 1
                                         border.color: Qt.rgba(244 / 255, 241 / 255, 234 / 255, 0.22)
 
-                                        Row {
+                                        // Compact: the mark above the name, 11px.
+                                        Grid {
                                             anchors.centerIn: parent
-                                            spacing: 8
+                                            columns: dialog.compact ? 1 : 2
+                                            spacing: dialog.compact ? 5 : 8
+                                            horizontalItemAlignment: Grid.AlignHCenter
+                                            verticalItemAlignment: Grid.AlignVCenter
 
                                             Shape {
-                                                anchors.verticalCenter: parent.verticalCenter
                                                 width: 16
                                                 height: 16
                                                 preferredRendererType: Shape.CurveRenderer
@@ -592,9 +612,10 @@ T.Popup {
                                             }
 
                                             Text {
-                                                anchors.verticalCenter: parent.verticalCenter
                                                 text: platform.modelData.name
-                                                font: Theme.signInPlatform
+                                                font.family: Theme.signInPlatform.family
+                                                font.weight: Theme.signInPlatform.weight
+                                                font.pixelSize: dialog.compact ? 11 : 13
                                                 color: dialog.ink
                                             }
                                         }
@@ -608,8 +629,8 @@ T.Popup {
                                 id: wave
 
                                 Layout.fillWidth: true
-                                Layout.topMargin: 30
-                                implicitHeight: 56
+                                Layout.topMargin: dialog.compact ? 22 : 30
+                                implicitHeight: dialog.compact ? 44 : 56
 
                                 readonly property var bars: [14, 29, 21, 50, 25, 71, 39, 18, 46, 86, 32, 21, 61, 39, 25, 79, 46, 18, 29, 57, 96, 36, 18, 54,
                                     82, 29, 43, 21, 68, 32, 50, 18, 39, 89, 57, 25, 36, 75, 21, 46, 64, 29, 18, 43, 32, 54, 21, 14]
@@ -619,7 +640,11 @@ T.Popup {
                                     anchors.centerIn: parent
                                     width: parent.width
                                     height: parent.height
-                                    spacing: (width - 4 * 48) / 47
+                                    id: barRow
+
+                                    readonly property real barWidth: dialog.compact ? 3 : 4
+
+                                    spacing: (width - barWidth * 48) / 47
                                     z: 1
 
                                     Repeater {
@@ -631,8 +656,8 @@ T.Popup {
                                             required property int index
 
                                             anchors.verticalCenter: parent.verticalCenter
-                                            width: 4
-                                            height: 56 * wave.bars[bar.index] / 100
+                                            width: barRow.barWidth
+                                            height: wave.height * wave.bars[bar.index] / 100
                                             radius: 2
                                             color: bar.index < 17 ? dialog.accent : Qt.rgba(244 / 255, 241 / 255, 234 / 255, 0.42)
                                             transform: Scale { id: pulse; origin.y: bar.height / 2; yScale: 1 }
@@ -665,20 +690,20 @@ T.Popup {
                                         dashPattern: [3, 3]
                                         fillColor: "transparent"
                                         startX: 0
-                                        startY: 28
-                                        PathLine { x: wave.width; y: 28 }
+                                        startY: wave.height / 2
+                                        PathLine { x: wave.width; y: wave.height / 2 }
                                     }
                                 }
 
                                 Rectangle {
                                     z: 2
-                                    x: parent.width * (17 - 0.5) / 48 - 6
-                                    y: 28 - 6
-                                    width: 12
-                                    height: 12
-                                    radius: 6
+                                    x: parent.width * (17 - 0.5) / 48 - width / 2
+                                    y: wave.height / 2 - height / 2
+                                    width: dialog.compact ? 10 : 12
+                                    height: width
+                                    radius: width / 2
                                     color: dialog.ink
-                                    border.width: 4
+                                    border.width: dialog.compact ? 3 : 4
                                     border.color: Qt.rgba(244 / 255, 241 / 255, 234 / 255, 0.18)
                                 }
                             }
@@ -725,11 +750,13 @@ T.Popup {
                                 id: submit
 
                                 Layout.fillWidth: true
-                                Layout.topMargin: 30
-                                implicitHeight: 56
+                                Layout.topMargin: dialog.compact ? 22 : 30
+                                implicitHeight: dialog.compact ? 54 : 56
                                 hoverEnabled: true
                                 focusPolicy: Qt.StrongFocus
-                                text: dialog.waiting ? qsTr("Open the browser again") : qsTr("Sign in")
+                                // BUTTON_TEXT.magneto: idle, then "Open Magneto again"
+                                // while the browser is open.
+                                text: dialog.waiting ? qsTr("Open Magneto again") : qsTr("Sign in with Magneto")
 
                                 onClicked: App.source.beginSignIn()
 
@@ -761,11 +788,27 @@ T.Popup {
                                 }
 
                                 contentItem: Item {
-                                    Text {
+                                    // The service's mark 12px before the words, the pair centred.
+                                    Row {
                                         anchors.centerIn: parent
-                                        text: submit.text
-                                        font: Theme.signInButton
-                                        color: dialog.ground
+                                        spacing: 12
+
+                                        Image {
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            width: 24
+                                            height: 22
+                                            source: "qrc:/qt/qml/LastMusicPlayer/account/SignInServiceMark.png"
+                                            sourceSize: Qt.size(48, 44)
+                                            fillMode: Image.PreserveAspectFit
+                                            smooth: true
+                                        }
+
+                                        Text {
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            text: submit.text
+                                            font: Theme.signInButton
+                                            color: dialog.ground
+                                        }
                                     }
 
                                     Icon {
@@ -789,15 +832,15 @@ T.Popup {
                             // in) and the copyright, 20px above, 11px.
                             RowLayout {
                                 Layout.fillWidth: true
-                                Layout.topMargin: 20
-                                spacing: 8
+                                Layout.topMargin: dialog.compact ? 16 : 20
+                                spacing: dialog.compact ? 6 : 8
 
                                 Rectangle {
                                     id: statusDot
 
-                                    Layout.preferredWidth: 7
-                                    Layout.preferredHeight: 7
-                                    radius: 3.5
+                                    Layout.preferredWidth: dialog.compact ? 6 : 7
+                                    Layout.preferredHeight: Layout.preferredWidth
+                                    radius: Layout.preferredWidth / 2
                                     color: dialog.waiting ? dialog.accent : dialog.label
 
                                     SequentialAnimation on opacity {
@@ -835,7 +878,8 @@ T.Popup {
                 text: qsTr("Need help signing in? <a href=\"https://magnetofx.com/\">Contact Last Music Support</a>")
                 textFormat: Text.StyledText
                 linkColor: dialog.link
-                font: Theme.signInHelp
+                font.family: Theme.signInHelp.family
+                font.pixelSize: dialog.compact ? 13 : 14
                 color: dialog.muted
                 wrapMode: Text.Wrap
                 onLinkActivated: link => Qt.openUrlExternally(link)
