@@ -160,6 +160,12 @@ T.AbstractButton {
             // with a right-click or the Menu key (.card-menu-button is
             // display: none, views.css 2085).
 
+            // A cover is a picture or a gradient: light water on it.
+            PressRipple {
+                radius: card.round ? width / 2 : Theme.radiusXl
+                surfaceColor: "black"
+            }
+
             FocusRing {
                 shown: card.visualFocus
                 controlRadius: card.round ? width / 2 : Theme.radiusXl

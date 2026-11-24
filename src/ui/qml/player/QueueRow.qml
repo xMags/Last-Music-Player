@@ -92,6 +92,10 @@ Item {
         color: row.lifted ? Theme.surfaceAlt : hover.hovered ? row.hoverColor : "transparent"
     }
 
+    PressRipple {
+        radius: Theme.radiusMd
+    }
+
     // box-shadow: inset 0 2px 0 accent (before) or inset 0 -2px 0 (after).
     Rectangle {
         y: row.dropEdge < 0 ? 0 : row.height - height

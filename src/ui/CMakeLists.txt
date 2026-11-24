@@ -57,6 +57,7 @@ set(LMP_UI_QML_FILES
     qml/controls/IconButton.qml
     qml/controls/IconShapePath.qml
     qml/controls/PlayButton.qml
+    qml/controls/PressRipple.qml
     qml/controls/PromptTextField.qml
     qml/controls/Ripple.qml
     qml/controls/RoundedClip.qml

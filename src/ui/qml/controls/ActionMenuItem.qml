@@ -81,6 +81,10 @@ Column {
             radius: 5
             color: "transparent"
 
+            PressRipple {
+                radius: 5
+            }
+
             Behavior on color {
                 enabled: !Motion.reduced
                 ColorAnimation { duration: Motion.menuItemFade; easing: Motion.linear }

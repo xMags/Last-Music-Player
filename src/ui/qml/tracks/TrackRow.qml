@@ -104,6 +104,10 @@ T.AbstractButton {
              : row.playing ? Theme.accentSel
              : (row.hovered && !row.unavailable ? Theme.rowHover : "transparent")
 
+        PressRipple {
+            enabled: !row.unavailable
+        }
+
         Rectangle {
             id: band
 

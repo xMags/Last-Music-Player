@@ -95,6 +95,11 @@ T.AbstractButton {
             ColorAnimation { duration: Motion.navItemFade; easing: Motion.ease }
         }
 
+        PressRipple {
+            radius: parent.radius
+            surfaceColor: Theme.bg
+        }
+
         FocusRing {
             shown: control.visualFocus
             controlRadius: parent.radius
