@@ -615,7 +615,8 @@ T.Popup {
                                                 ShapePath {
                                                     scale: Qt.size(16 / 24, 16 / 24)
                                                     strokeColor: platform.modelData.stroke ? dialog.ink : "transparent"
-                                                    strokeWidth: platform.modelData.stroke ? 2 : 0
+                                                    // The 24px icon's 2px stroke at 16px (scale moves points only).
+                                                    strokeWidth: platform.modelData.stroke ? 2 * 16 / 24 : 0
                                                     fillColor: platform.modelData.stroke ? "transparent" : dialog.ink
                                                     fillRule: ShapePath.OddEvenFill
                                                     capStyle: ShapePath.RoundCap
@@ -708,16 +709,30 @@ T.Popup {
                                     }
                                 }
 
+                                // .auth-wave-head: a 12px dot with a 4px halo
+                                // around it (box-shadow 0 0 0 4px), drawn as a
+                                // larger disc because a border falls inside.
                                 Rectangle {
+                                    id: waveHead
+
+                                    readonly property real dot: dialog.compact ? 10 : 12
+                                    readonly property real halo: dialog.compact ? 3 : 4
+
                                     z: 2
                                     x: parent.width * (17 - 0.5) / 48 - width / 2
                                     y: wave.height / 2 - height / 2
-                                    width: dialog.compact ? 10 : 12
+                                    width: dot + 2 * halo
                                     height: width
                                     radius: width / 2
-                                    color: dialog.ink
-                                    border.width: dialog.compact ? 3 : 4
-                                    border.color: Qt.rgba(244 / 255, 241 / 255, 234 / 255, 0.18)
+                                    color: Qt.rgba(244 / 255, 241 / 255, 234 / 255, 0.18)
+
+                                    Rectangle {
+                                        anchors.centerIn: parent
+                                        width: waveHead.dot
+                                        height: width
+                                        radius: width / 2
+                                        color: dialog.ink
+                                    }
                                 }
                             }
 
@@ -824,16 +839,28 @@ T.Popup {
                                         }
                                     }
 
-                                    Icon {
+                                    // .auth-btn-arrow: an arrow up and to the
+                                    // right (M7 17 17 7, M8 7h9v9 on 24), 18px.
+                                    Shape {
                                         anchors.right: parent.right
-                                        anchors.rightMargin: 18
+                                        anchors.rightMargin: dialog.compact ? 16 : 18
                                         anchors.verticalCenter: parent.verticalCenter
-                                        name: "open"
-                                        size: 18
-                                        color: dialog.ground
+                                        width: 18
+                                        height: 18
+                                        preferredRendererType: Shape.CurveRenderer
                                         transform: Translate {
                                             x: submit.hovered ? 2 : 0
                                             y: submit.hovered ? -2 : 0
+                                        }
+
+                                        ShapePath {
+                                            strokeColor: dialog.ground
+                                            strokeWidth: 2 * 18 / 24
+                                            fillColor: "transparent"
+                                            capStyle: ShapePath.RoundCap
+                                            joinStyle: ShapePath.RoundJoin
+                                            scale: Qt.size(18 / 24, 18 / 24)
+                                            PathSvg { path: "M7 17 17 7M8 7h9v9" }
                                         }
                                     }
                                 }
