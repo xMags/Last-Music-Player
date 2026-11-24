@@ -46,15 +46,10 @@ public:
     static constexpr QLatin1StringView Album{"album"};
     static constexpr QLatin1StringView Mix{"mix"};
     static constexpr QLatin1StringView Share{"share"};
-    static constexpr QLatin1StringView NewPlaylist{"new-playlist"};
-    // A playlist item's id is this prefix and the playlist's key.
-    static constexpr QLatin1StringView PlaylistPrefix{"to-playlist:"};
 
     // `playlistKey` is the playlist whose page the song is on, or empty.
     [[nodiscard]] static QList<MenuItemListModel::Item> songMenu(const core::Track& track, const Abilities& abilities,
                                                                  const QString& playlistKey = {});
-    // New playlist, then one item per playlist (title; key in sourceUrl).
-    [[nodiscard]] static QList<MenuItemListModel::Item> playlistMenu(const QList<core::Track>& playlists);
 };
 
 } // namespace lmp::ui

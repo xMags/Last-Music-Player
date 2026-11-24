@@ -2,6 +2,7 @@
 
 #include <QObject>
 #include <QString>
+#include <QVariantList>
 #include <QtQml/qqmlregistration.h>
 
 #include "core/model/Track.h"
@@ -13,10 +14,13 @@ class TrackActions;
 
 namespace lmp::ui {
 
+class ToastQueue;
+
 // The song menu every page shares (`App.trackMenu`): prepare() fills the menu
 // for a song (TrackMenuBuilder, with what TrackActions allows), trigger()
-// runs the chosen item. "Add to playlist" fills the playlist menu and asks
-// the page to open it; "New playlist" asks for a name.
+// runs the chosen item. "Add to playlist" lists the playlists the song can
+// join (playlist-menu.ts openPlaylistMenu) and asks the page to open its
+// popup, where a new playlist can also be named.
 //
 // GUI thread only.
 class TrackMenuController : public QObject {
@@ -25,14 +29,16 @@ class TrackMenuController : public QObject {
     QML_UNCREATABLE("Provided by App.trackMenu")
 
     Q_PROPERTY(lmp::ui::MenuItemListModel* menu READ menu CONSTANT FINAL)
-    Q_PROPERTY(lmp::ui::MenuItemListModel* playlistMenu READ playlistMenu CONSTANT FINAL)
+    // The popup's playlists, newest first, at most 8: {key, title, count}.
+    Q_PROPERTY(QVariantList playlistChoices READ playlistChoices NOTIFY playlistChoicesChanged FINAL)
 
 public:
-    // The actions are owned by the composition root and outlive this.
-    explicit TrackMenuController(core::TrackActions& actions, QObject* parent = nullptr);
+    // Both are owned by the composition root and outlive this; without
+    // toasts, adding to a playlist says nothing.
+    explicit TrackMenuController(core::TrackActions& actions, ToastQueue* toasts = nullptr, QObject* parent = nullptr);
 
     [[nodiscard]] MenuItemListModel* menu() { return &m_menu; }
-    [[nodiscard]] MenuItemListModel* playlistMenu() { return &m_playlistMenu; }
+    [[nodiscard]] QVariantList playlistChoices() const { return m_playlistChoices; }
 
     // The song and where its menu opened: the list it was in (for Play now)
     // and the playlist whose page shows it, if any.
@@ -45,21 +51,23 @@ public:
     };
     void prepareInPlaylist(const core::Track& track, const QList<core::Track>& context, const PlaylistPlace& place);
     Q_INVOKABLE void trigger(const QString& itemId);
-    // Adds the prepared song to a new playlist of this name.
+    // Adds the prepared song to a new playlist of this name (blank names are
+    // ignored), or to the playlist with this key; a toast says how it went.
     Q_INVOKABLE void createPlaylist(const QString& name);
+    Q_INVOKABLE void addToPlaylist(const QString& playlistKey);
 
 signals:
-    // Open the playlist menu where the song menu was.
+    // Open the playlist popup where the song menu was.
     void playlistMenuRequested();
-    // Ask for a new playlist's name.
-    void newPlaylistRequested();
+    void playlistChoicesChanged();
     // Move up (-1) or Move down (+1) was chosen; the page moves the song.
     void moveRequested(int step);
 
 private:
     core::TrackActions& m_actions;
+    ToastQueue* m_toasts = nullptr;
     MenuItemListModel m_menu;
-    MenuItemListModel m_playlistMenu;
+    QVariantList m_playlistChoices;
     core::Track m_track;
     QList<core::Track> m_context;
     QString m_playlistKey;

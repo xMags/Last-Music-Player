@@ -1,13 +1,16 @@
 #include "ui/tracks/TrackMenuController.h"
 
 #include "core/library/TrackActions.h"
+#include "core/net/UserMessages.h"
+#include "ui/toasts/ToastQueue.h"
 #include "ui/tracks/TrackMenuBuilder.h"
 
 namespace lmp::ui {
 
-TrackMenuController::TrackMenuController(core::TrackActions& actions, QObject* parent)
+TrackMenuController::TrackMenuController(core::TrackActions& actions, ToastQueue* toasts, QObject* parent)
     : QObject(parent)
     , m_actions(actions)
+    , m_toasts(toasts)
 {
 }
 
@@ -55,13 +58,19 @@ void TrackMenuController::trigger(const QString& itemId)
             m_track.liked = *liked;
         }
     } else if (itemId == TrackMenuBuilder::AddToPlaylist) {
-        m_playlistMenu.setItems(TrackMenuBuilder::playlistMenu(m_actions.playlists()));
+        // The newest eight, with how many songs each holds.
+        constexpr qsizetype MaxChoices = 8;
+        m_playlistChoices.clear();
+        for (const core::Track& playlist : m_actions.playlists()) {
+            if (m_playlistChoices.size() == MaxChoices) {
+                break;
+            }
+            m_playlistChoices.append(QVariantMap{{QStringLiteral("key"), playlist.sourceUrl},
+                                                 {QStringLiteral("title"), playlist.title},
+                                                 {QStringLiteral("count"), playlist.trackCount}});
+        }
+        emit playlistChoicesChanged();
         emit playlistMenuRequested();
-    } else if (itemId == TrackMenuBuilder::NewPlaylist) {
-        emit newPlaylistRequested();
-    } else if (itemId.startsWith(TrackMenuBuilder::PlaylistPrefix)) {
-        [[maybe_unused]] const core::Result<void> added =
-            m_actions.addToPlaylist(m_track, itemId.mid(TrackMenuBuilder::PlaylistPrefix.size()));
     } else if (itemId == TrackMenuBuilder::RemoveFromPlaylist) {
         [[maybe_unused]] const core::Result<void> removed = m_actions.removeFromPlaylist(m_track, m_playlistKey);
     } else if (itemId == TrackMenuBuilder::MoveUp) {
@@ -81,7 +90,44 @@ void TrackMenuController::trigger(const QString& itemId)
 
 void TrackMenuController::createPlaylist(const QString& name)
 {
-    [[maybe_unused]] const core::Result<QString> created = m_actions.addToNewPlaylist(m_track, name);
+    const QString title = name.trimmed();
+    if (title.isEmpty()) {
+        return;
+    }
+    const core::Result<QString> created = m_actions.addToNewPlaylist(m_track, title);
+    if (m_toasts == nullptr) {
+        return;
+    }
+    if (!created) {
+        (void)m_toasts->show(core::net::userMessageOr(created.failure(), tr("Could not create the playlist.")), true);
+        return;
+    }
+    (void)m_toasts->show(tr("Added to new playlist \"%1\"").arg(title));
+}
+
+void TrackMenuController::addToPlaylist(const QString& playlistKey)
+{
+    QString title;
+    for (const QVariant& choice : std::as_const(m_playlistChoices)) {
+        const QVariantMap fields = choice.toMap();
+        if (fields.value(QStringLiteral("key")).toString() == playlistKey) {
+            title = fields.value(QStringLiteral("title")).toString();
+            break;
+        }
+    }
+    // Only a playlist the popup offered.
+    if (title.isEmpty()) {
+        return;
+    }
+    const core::Result<void> added = m_actions.addToPlaylist(m_track, playlistKey);
+    if (m_toasts == nullptr) {
+        return;
+    }
+    if (!added) {
+        (void)m_toasts->show(core::net::userMessageOr(added.failure(), tr("Could not add to the playlist.")), true);
+        return;
+    }
+    (void)m_toasts->show(tr("Added to \"%1\"").arg(title));
 }
 
 } // namespace lmp::ui

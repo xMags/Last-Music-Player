@@ -270,7 +270,7 @@ CompositionRoot::CompositionRoot()
                          .gate = m_userDataGate,
                          .picker = m_folderPicker,
                          .links = m_externalLinks})
-    , m_trackMenu(m_trackActions)
+    , m_trackMenu(m_trackActions, &m_toasts)
     , m_libraryPage({.library = m_library,
                      .groups = m_groups,
                      .actions = m_trackActions,

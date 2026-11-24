@@ -147,6 +147,11 @@ TextStyles TextStyles::build(const FontFamilies& families)
         .stripSpeed = makeTextStyle({.family = text, .pixelSize = 12, .weight = kSemiBold, .tabularNumbers = true}),
         .stripAction = makeTextStyle({.family = text, .pixelSize = 12, .weight = kSemiBold}),
         .stripToggle = makeTextStyle({.family = text, .pixelSize = 12.5, .weight = kSemiBold}),
+        // The "Add to playlist" popup (.playlist-menu-*).
+        .playlistMenuLabel = makeTextStyle({.family = text, .pixelSize = 10, .weight = kBold, .letterSpacingEm = 0.08}),
+        .playlistMenuField = makeTextStyle({.family = text, .pixelSize = 12, .weight = kRegular}),
+        .playlistMenuCreate = makeTextStyle({.family = text, .pixelSize = 12, .weight = kSemiBold}),
+        .playlistMenuCount = makeTextStyle({.family = text, .pixelSize = 11, .weight = kRegular}),
         // .settings-section-head h2, .settings-row-title, .settings-row-desc
         // and .settings-theme-tile (views.css 1128-1165, 1293-1303).
         .settingsSection = makeTextStyle({.family = display, .pixelSize = 16, .weight = kBold, .lineHeight = 22}),

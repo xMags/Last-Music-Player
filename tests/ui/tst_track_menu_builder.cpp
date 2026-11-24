@@ -21,7 +21,6 @@ private slots:
     void onAPlaylistPageOffersRemoving();
     void songsThatCannotPlayOrBeKeptLoseThoseItems();
     void singlesHaveNoAlbumItem();
-    void playlistMenuStartsWithNewPlaylist();
     void mixSitsBeforeGoToArtist();
     void shareFollowsMix();
 };
@@ -121,22 +120,6 @@ void TrackMenuBuilderTest::singlesHaveNoAlbumItem()
                  .contains(QStringLiteral("album")));
     QVERIFY(ids(TrackMenuBuilder::songMenu(song(QStringLiteral("Title Track"), QStringLiteral("The Album")), {}))
                 .contains(QStringLiteral("album")));
-}
-
-void TrackMenuBuilderTest::playlistMenuStartsWithNewPlaylist()
-{
-    Track first;
-    first.title = QStringLiteral("Road Trip");
-    first.sourceUrl = QStringLiteral("playlist:1");
-    Track second;
-    second.title = QStringLiteral("Calm");
-    second.sourceUrl = QStringLiteral("playlist:2");
-    const auto items = TrackMenuBuilder::playlistMenu({first, second});
-    QCOMPARE(ids(items), (QStringList{QStringLiteral("new-playlist"), QStringLiteral("to-playlist:playlist:1"),
-                                      QStringLiteral("to-playlist:playlist:2")}));
-    QVERIFY(items.at(1).separatorBefore);
-    QVERIFY(!items.at(2).separatorBefore);
-    QCOMPARE(TrackMenuBuilder::playlistMenu({}).size(), 1);
 }
 
 QTEST_GUILESS_MAIN(TrackMenuBuilderTest)

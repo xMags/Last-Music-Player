@@ -40,6 +40,10 @@ class ThemeTypography : public QObject {
     Q_PROPERTY(QFont stripSpeed READ stripSpeed CONSTANT FINAL)
     Q_PROPERTY(QFont stripAction READ stripAction CONSTANT FINAL)
     Q_PROPERTY(QFont stripToggle READ stripToggle CONSTANT FINAL)
+    Q_PROPERTY(QFont playlistMenuLabel READ playlistMenuLabel CONSTANT FINAL)
+    Q_PROPERTY(QFont playlistMenuField READ playlistMenuField CONSTANT FINAL)
+    Q_PROPERTY(QFont playlistMenuCreate READ playlistMenuCreate CONSTANT FINAL)
+    Q_PROPERTY(QFont playlistMenuCount READ playlistMenuCount CONSTANT FINAL)
     Q_PROPERTY(qreal lineHeightSectionPill READ lineHeightSectionPill CONSTANT FINAL)
     Q_PROPERTY(QFont settingsSection READ settingsSection CONSTANT FINAL)
     Q_PROPERTY(QFont settingsRowTitle READ settingsRowTitle CONSTANT FINAL)
@@ -190,6 +194,10 @@ public:
     [[nodiscard]] QFont stripSpeed() const { return m_text.stripSpeed.font; }
     [[nodiscard]] QFont stripAction() const { return m_text.stripAction.font; }
     [[nodiscard]] QFont stripToggle() const { return m_text.stripToggle.font; }
+    [[nodiscard]] QFont playlistMenuLabel() const { return m_text.playlistMenuLabel.font; }
+    [[nodiscard]] QFont playlistMenuField() const { return m_text.playlistMenuField.font; }
+    [[nodiscard]] QFont playlistMenuCreate() const { return m_text.playlistMenuCreate.font; }
+    [[nodiscard]] QFont playlistMenuCount() const { return m_text.playlistMenuCount.font; }
     [[nodiscard]] qreal lineHeightSectionPill() const { return m_text.sectionPill.lineHeight; }
     [[nodiscard]] QFont settingsSection() const { return m_text.settingsSection.font; }
     [[nodiscard]] QFont settingsRowTitle() const { return m_text.settingsRowTitle.font; }

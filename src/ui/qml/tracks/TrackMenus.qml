@@ -1,9 +1,8 @@
 import QtQuick
 import LastMusicPlayer
 
-// The song menu of a page (App.trackMenu), with the playlist menu that
-// "Add to playlist" opens in its place and the name prompt "New playlist"
-// opens. A page calls open() after preparing the song.
+// The song menu of a page (App.trackMenu), with the popup that "Add to
+// playlist" opens in its place. A page calls open() after preparing the song.
 Item {
     id: menus
 
@@ -15,7 +14,7 @@ Item {
     }
 
     // For a host that opens its own menu with the song items in it (the
-    // queue's): the playlist menu and name prompt open here, at `x`, `y`.
+    // queue's): the playlist popup opens here, at `x`, `y`.
     function arm(item: Item, x: real, y: real) {
         lastPlace = place(item, x, y)
         armed = true
@@ -25,7 +24,7 @@ Item {
     // menus answer the next song menu.
     function disarmSoon() {
         Qt.callLater(() => {
-            if (!songMenu.opened && !playlistMenu.opened && !namePrompt.opened)
+            if (!songMenu.opened && !playlistPopup.opened)
                 menus.armed = false
         })
     }
@@ -48,14 +47,7 @@ Item {
         function onPlaylistMenuRequested() {
             if (!menus.armed)
                 return
-            playlistMenu.openAt(menus.lastPlace.x, menus.lastPlace.y)
-        }
-
-        function onNewPlaylistRequested() {
-            if (!menus.armed)
-                return
-            namePrompt.text = ""
-            namePrompt.open()
+            playlistPopup.openAt(menus.lastPlace.x, menus.lastPlace.y)
         }
     }
 
@@ -67,26 +59,12 @@ Item {
         onClosed: menus.disarmSoon()
     }
 
-    ActionMenu {
-        id: playlistMenu
+    PlaylistPopup {
+        id: playlistPopup
 
-        items: App.trackMenu.playlistMenu
-        onTriggered: itemId => App.trackMenu.trigger(itemId)
-        onClosed: menus.disarmSoon()
-    }
-
-    TextPromptDialog {
-        id: namePrompt
-
-        title: qsTr("New playlist")
-        fieldLabel: qsTr("Name")
-        placeholderText: qsTr("My playlist")
-        submitLabel: qsTr("Create")
-        maximumLength: 100
-        onSubmitted: value => {
-            App.trackMenu.createPlaylist(value)
-            namePrompt.finish()
-        }
+        choices: App.trackMenu.playlistChoices
+        onPicked: key => App.trackMenu.addToPlaylist(key)
+        onCreated: name => App.trackMenu.createPlaylist(name)
         onClosed: menus.disarmSoon()
     }
 }

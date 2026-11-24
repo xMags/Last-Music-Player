@@ -172,6 +172,7 @@ set(LMP_UI_QML_FILES
     qml/shell/TitleStrip.qml
     qml/tracks/EqBars.qml
     qml/tracks/TableHeading.qml
+    qml/tracks/PlaylistPopup.qml
     qml/tracks/TrackMenus.qml
     qml/tracks/TrackListView.qml
     qml/tracks/TrackRow.qml

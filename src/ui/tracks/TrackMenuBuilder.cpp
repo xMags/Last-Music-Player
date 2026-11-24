@@ -67,20 +67,4 @@ QList<MenuItemListModel::Item> TrackMenuBuilder::songMenu(const core::Track& tra
     return items;
 }
 
-QList<MenuItemListModel::Item> TrackMenuBuilder::playlistMenu(const QList<core::Track>& playlists)
-{
-    QList<MenuItemListModel::Item> items{
-        {.id = QString(NewPlaylist), .label = text("New playlist"), .iconName = QStringLiteral("plus")},
-    };
-    bool first = true;
-    for (const core::Track& playlist : playlists) {
-        items.append({.id = QString(PlaylistPrefix) + playlist.sourceUrl,
-                      .label = playlist.title,
-                      .iconName = QStringLiteral("list"),
-                      .separatorBefore = first});
-        first = false;
-    }
-    return items;
-}
-
 } // namespace lmp::ui

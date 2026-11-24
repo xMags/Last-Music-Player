@@ -76,6 +76,10 @@ struct TextStyles {
     TextStyle stripSpeed;
     TextStyle stripAction;
     TextStyle stripToggle;
+    TextStyle playlistMenuLabel;
+    TextStyle playlistMenuField;
+    TextStyle playlistMenuCreate;
+    TextStyle playlistMenuCount;
     TextStyle settingsSection;
     TextStyle settingsRowTitle;
     TextStyle settingsRowDescription;
