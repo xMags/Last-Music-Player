@@ -86,6 +86,7 @@ private slots:
     void anExpiredCopyIsShownOnlyWhenLoadingFails();
     void forceSkipsTheCopy();
     void requestsShareOneLoad();
+    void everyCallerOfASharedLoadHearsBack();
     void aRegionChangeClearsTheCache();
     void discoveryIsKeptForTheNextLaunch();
     void aGlobalChartUsesTheDescriptorDiscoveryHolds();
@@ -211,6 +212,25 @@ void CatalogServiceTest::forceSkipsTheCopy()
     fixture.transport().script(kDiscoveryPath, FakeHttpTransport::ok(discoveryAnswer("Forced")));
     QCOMPARE(fixture.outcome(fixture.service.discovery(true))->value().shelves.at(0).title, QStringLiteral("Forced"));
     QCOMPARE(fixture.transport().requestCount(kDiscoveryPath), 2);
+}
+
+void CatalogServiceTest::everyCallerOfASharedLoadHearsBack()
+{
+    // A QFuture keeps one continuation: two pages asking at once must both
+    // hear the answer, not only the last to ask.
+    ServiceFixture fixture;
+    QVERIFY(fixture.modes.validate(kOwner));
+    int heard = 0;
+    QObject context;
+    (void)fixture.service.discovery().then(&context, [&heard](const Result<catalog::Discovery>& answer) {
+        heard += answer ? 1 : 0;
+    });
+    (void)fixture.service.discovery().then(&context, [&heard](const Result<catalog::Discovery>& answer) {
+        heard += answer ? 1 : 0;
+    });
+    QCOMPARE(fixture.transport().requestCount(kDiscoveryPath), 1);
+    QVERIFY(fixture.transport().answer(kDiscoveryPath, FakeHttpTransport::ok(discoveryAnswer("Shared"))));
+    QTRY_COMPARE(heard, 2);
 }
 
 void CatalogServiceTest::requestsShareOneLoad()

@@ -14,7 +14,9 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QLatin1StringView>
+#include <QPromise>
 
+#include <memory>
 #include <utility>
 
 namespace lmp::core::catalog {
@@ -158,18 +160,29 @@ QFuture<Result<T>> CatalogService::cached(const QString& key, Loader load, Parse
         // Too old to show, unless the network fails.
         fallback = std::any_cast<T>(found->value);
     }
+    // A QFuture holds one continuation: callers that join a load under way
+    // each get a future of their own, all answered when the load ends.
+    using Waiters = QList<std::shared_ptr<QPromise<Result<T>>>>;
+    const auto join = [](const std::shared_ptr<Waiters>& waiters) {
+        auto promise = std::make_shared<QPromise<Result<T>>>();
+        promise->start();
+        waiters->append(promise);
+        return promise->future();
+    };
     const auto loading = m_loading.constFind(key);
     if (loading != m_loading.cend() && loading->second.has_value()) {
-        return std::any_cast<QFuture<Result<T>>>(loading->second);
+        return join(std::any_cast<std::shared_ptr<Waiters>>(loading->second));
     }
     const std::uint64_t generation = m_generation;
     const std::uint64_t token = ++m_loadToken;
+    auto waiters = std::make_shared<Waiters>();
+    QFuture<Result<T>> mine = join(waiters);
     // Registered before the load starts: an answer can arrive (and its
-    // continuation run) before the future below is stored.
-    m_loading.insert(key, {token, std::any()});
-    QFuture<Result<T>> future =
-        uncached<T>(std::move(load), std::move(parse))
-            .then(this, [this, key, generation, token, fallback](const Result<T>& result) -> Result<T> {
+    // continuation run) at once, and callers that ask meanwhile join it.
+    m_loading.insert(key, {token, std::any(waiters)});
+    (void)uncached<T>(std::move(load), std::move(parse))
+        .then(this, [this, key, generation, token, fallback, waiters](const Result<T>& loaded) {
+            const Result<T> result = [&]() -> Result<T> {
                 if (generation != m_generation) {
                     return cancelled();
                 }
@@ -178,23 +191,24 @@ QFuture<Result<T>> CatalogService::cached(const QString& key, Loader load, Parse
                 if (newest) {
                     m_loading.remove(key);
                 }
-                if (!result) {
+                if (!loaded) {
                     // Offline or failing: an old page beats an error.
-                    if (fallback && result.failure().kind != FailureKind::Cancelled) {
+                    if (fallback && loaded.failure().kind != FailureKind::Cancelled) {
                         return *fallback;
                     }
-                    return result;
+                    return loaded;
                 }
                 if (newest) {
-                    m_entries.insert(key, Entry{result.value(), m_deps.clock.nowMilliseconds()});
+                    m_entries.insert(key, Entry{loaded.value(), m_deps.clock.nowMilliseconds()});
                 }
-                return result;
-            });
-    const auto registered = m_loading.find(key);
-    if (registered != m_loading.end() && registered->first == token) {
-        registered->second = future;
-    }
-    return future;
+                return loaded;
+            }();
+            for (const std::shared_ptr<QPromise<Result<T>>>& waiter : std::as_const(*waiters)) {
+                waiter->addResult(result);
+                waiter->finish();
+            }
+        });
+    return mine;
 }
 
 template <typename T>
