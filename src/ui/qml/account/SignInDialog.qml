@@ -46,7 +46,35 @@ T.Popup {
     focus: true
     closePolicy: T.Popup.CloseOnEscape
 
-    onAboutToShow: App.source.clearSignInError()
+    onAboutToShow: {
+        App.source.clearSignInError()
+        dialog.playEntrance()
+    }
+
+    // The record slides out, the sleeve rises and the tonearm swings onto
+    // the grooves each time the screen opens; with motion off every part
+    // simply rests in its place.
+    function playEntrance() {
+        slideIn.stop()
+        armIn.stop()
+        riseIn.stop()
+        if (Motion.reduced) {
+            slideShift.x = 0
+            slideShift.y = 0
+            slideTurn.angle = 0
+            arm.opacity = 1
+            armTurn.angle = dialog.compact ? 35 : 17
+            sleeveBox.opacity = 1
+            rise.y = 0
+            return
+        }
+        arm.opacity = 0
+        sleeveBox.opacity = 0
+        rise.y = 18
+        slideIn.start()
+        armIn.start()
+        riseIn.start()
+    }
     // Closing while the browser is open stops waiting for it.
     onClosed: {
         if (App.source.signingIn)
@@ -176,11 +204,6 @@ T.Popup {
                             Translate { id: slideShift; x: 0; y: 0 },
                             Scale { xScale: recordSlot.size / 470; yScale: recordSlot.size / 470 }
                         ]
-
-                        Component.onCompleted: {
-                            if (!Motion.reduced)
-                                slideIn.start()
-                        }
 
                         SequentialAnimation {
                             id: slideIn
@@ -352,11 +375,6 @@ T.Popup {
                             Rotation { id: armTurn; origin.x: 4; origin.y: 40; angle: dialog.compact ? 35 : 17 }
                         ]
 
-                        Component.onCompleted: {
-                            if (!Motion.reduced)
-                                armIn.start()
-                        }
-
                         SequentialAnimation {
                             id: armIn
 
@@ -476,11 +494,6 @@ T.Popup {
                         opacity: Motion.reduced ? 1 : 0
 
                         transform: Translate { id: rise; y: Motion.reduced ? 0 : 18 }
-
-                        Component.onCompleted: {
-                            if (!Motion.reduced)
-                                riseIn.start()
-                        }
 
                         ParallelAnimation {
                             id: riseIn
