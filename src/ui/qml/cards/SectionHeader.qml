@@ -9,6 +9,8 @@ RowLayout {
     id: header
 
     property string title: ""
+    // .section-pill: a small label right after the title (catalogue pages).
+    property string pill: ""
     property string linkText: ""
     default property alias trailing: trailingSlot.data
 
@@ -17,14 +19,44 @@ RowLayout {
     spacing: 14
 
     Text {
-        Layout.fillWidth: true
         Layout.minimumWidth: 0
+        Layout.maximumWidth: implicitWidth
+        Layout.fillWidth: true
         text: header.title
         font: Theme.sectionTitle
         lineHeight: Theme.lineHeightSectionTitle
         lineHeightMode: Text.FixedHeight
         color: Theme.fg
         elide: Text.ElideRight
+    }
+
+    // .section-pill: 10px 600, 0.04em, upper case, the secondary colour on
+    // the neutral fill with a hairline, padded 3px 9px, fully round.
+    Rectangle {
+        Layout.alignment: Qt.AlignVCenter
+        visible: header.pill !== ""
+        implicitWidth: pillText.implicitWidth + 2 * 9
+        implicitHeight: pillText.implicitHeight + 2 * 3
+        radius: height / 2
+        color: Theme.neutral
+        border.width: 1
+        border.color: Theme.stroke
+
+        Text {
+            id: pillText
+
+            anchors.centerIn: parent
+            text: header.pill.toUpperCase()
+            font: Theme.sectionPill
+            lineHeight: Theme.lineHeightSectionPill
+            lineHeightMode: Text.FixedHeight
+            color: Theme.fgSecondary
+        }
+    }
+
+    // margin-left: auto on the link: everything else stays by the title.
+    Item {
+        Layout.fillWidth: true
     }
 
     Row {

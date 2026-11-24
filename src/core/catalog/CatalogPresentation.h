@@ -26,6 +26,11 @@ struct ChartSection {
 // A chart section offers "See all" when it holds more than four charts.
 [[nodiscard]] bool chartSectionShowsSeeAll(qsizetype total);
 
+// The small label beside a catalogue shelf's title on artist and album
+// pages (catalogShelfPill): by the shelf's id ("top-songs" is "Trending",
+// "albums" "Discography", ...), else by what it lists; empty for neither.
+[[nodiscard]] QString shelfPillLabel(const QString& shelfId, ResourceType type);
+
 // An album page has one cover: every song shows it, since a song's own
 // picture can be an unrelated thumbnail. Playlists and albums without a
 // cover are left as they are.

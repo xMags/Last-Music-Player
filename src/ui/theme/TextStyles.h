@@ -67,6 +67,7 @@ struct TextStyles {
     TextStyle viewSubtitle;
     TextStyle emptyTitle;
     TextStyle mixCoverBadge;
+    TextStyle sectionPill;
     TextStyle settingsSection;
     TextStyle settingsRowTitle;
     TextStyle settingsRowDescription;

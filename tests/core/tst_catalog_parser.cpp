@@ -23,6 +23,7 @@ class CatalogParserTest : public QObject {
     Q_OBJECT
 
 private slots:
+    void shelfPillsFollowTheIdThenTheType();
     void discoveryIsRead();
     void songsCarryTheirTrack();
     void sourceLabelsAreNeverBylines();
@@ -470,6 +471,18 @@ void CatalogParserTest::searchAllIsRead()
         catalog::parseSearchAll(json("{'top':{'kind':'artist','item':{'catalogId':'a1','name':'A','provider':'tag-b'}}}"), testTags());
     QCOMPARE(artistTop.topKind, QStringLiteral("artist"));
     QVERIFY(artistTop.topItem.has_value());
+}
+
+void CatalogParserTest::shelfPillsFollowTheIdThenTheType()
+{
+    using lmp::core::catalog::ResourceType;
+    using lmp::core::catalog::shelfPillLabel;
+    QCOMPARE(shelfPillLabel(QStringLiteral("top-songs"), ResourceType::Song), QStringLiteral("Trending"));
+    QCOMPARE(shelfPillLabel(QStringLiteral("ALBUMS"), ResourceType::Album), QStringLiteral("Discography"));
+    QCOMPARE(shelfPillLabel(QStringLiteral("similar-artists"), ResourceType::Artist), QStringLiteral("Discover"));
+    QCOMPARE(shelfPillLabel(QStringLiteral("something-else"), ResourceType::Playlist), QStringLiteral("Collections"));
+    QCOMPARE(shelfPillLabel(QStringLiteral("something-else"), ResourceType::Song), QStringLiteral("Music"));
+    QVERIFY(shelfPillLabel(QStringLiteral("something-else"), ResourceType::Unknown).isEmpty());
 }
 
 QTEST_GUILESS_MAIN(CatalogParserTest)

@@ -72,6 +72,7 @@ Item {
             width: parent.width
             visible: page.model.topSongs.count > 0
             title: qsTr("Top songs")
+            pill: page.catalogue ? qsTr("Trending") : ""
             linkText: page.model.hasMore ? (page.model.showingAll ? qsTr("Show less") : qsTr("Show all")) : ""
             onLinkClicked: page.model.showingAll = !page.model.showingAll
         }
@@ -129,6 +130,7 @@ Item {
                 Shelf {
                     width: parent.width
                     title: section.modelData.title
+                    pill: section.modelData.pill
                     linkText: section.modelData.link ? qsTr("View more ›") : ""
                     model: App.catalogArtist.sectionCards(section.modelData.key)
                     onLinkClicked: App.catalogArtist.seeAllSection(section.modelData.key)

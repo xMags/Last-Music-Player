@@ -1,5 +1,7 @@
 #include "core/catalog/CatalogPresentation.h"
 
+#include <QHash>
+
 #include <algorithm>
 
 namespace lmp::core::catalog {
@@ -49,6 +51,42 @@ void applyAlbumArtworkToTracks(Detail& detail)
     for (Track& track : detail.tracks) {
         track.artworkUrl = detail.item.artworkUrl;
     }
+}
+
+QString shelfPillLabel(const QString& shelfId, ResourceType type)
+{
+    static const QHash<QString, QString> labels{
+        {QStringLiteral("top-songs"), QStringLiteral("Trending")},
+        {QStringLiteral("top-albums"), QStringLiteral("Popular")},
+        {QStringLiteral("top-playlists"), QStringLiteral("Curated")},
+        {QStringLiteral("moods-activities"), QStringLiteral("For the moment")},
+        {QStringLiteral("top-music-videos"), QStringLiteral("Watch")},
+        {QStringLiteral("top-videos"), QStringLiteral("Watch")},
+        {QStringLiteral("latest-release"), QStringLiteral("New")},
+        {QStringLiteral("new-releases"), QStringLiteral("Albums")},
+        {QStringLiteral("new-release-songs"), QStringLiteral("Songs")},
+        {QStringLiteral("biggest-hits"), QStringLiteral("Hits")},
+        {QStringLiteral("albums"), QStringLiteral("Discography")},
+        {QStringLiteral("singles"), QStringLiteral("Releases")},
+        {QStringLiteral("similar-artists"), QStringLiteral("Discover")},
+        {QStringLiteral("popular-artists"), QStringLiteral("Artists")},
+    };
+    if (const auto found = labels.constFind(shelfId.toLower()); found != labels.constEnd()) {
+        return found.value();
+    }
+    switch (type) {
+    case ResourceType::Song:
+        return QStringLiteral("Music");
+    case ResourceType::Album:
+        return QStringLiteral("Albums");
+    case ResourceType::Playlist:
+        return QStringLiteral("Collections");
+    case ResourceType::Artist:
+        return QStringLiteral("Artists");
+    case ResourceType::Unknown:
+        break;
+    }
+    return {};
 }
 
 } // namespace lmp::core::catalog

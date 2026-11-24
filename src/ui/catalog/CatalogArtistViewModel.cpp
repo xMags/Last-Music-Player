@@ -1,5 +1,7 @@
 #include "ui/catalog/CatalogArtistViewModel.h"
 
+#include "core/catalog/CatalogPresentation.h"
+
 #include "core/account/AccountClient.h"
 #include "core/account/AccountSessionService.h"
 #include "core/account/LibraryArtistContract.h"
@@ -200,6 +202,7 @@ QVariantList CatalogArtistViewModel::sections() const
         // The latest release is a single card; every other section opens in full.
         list.append(QVariantMap{{QStringLiteral("key"), section.id},
                                 {QStringLiteral("title"), section.title},
+                                {QStringLiteral("pill"), catalog::shelfPillLabel(section.id, section.type)},
                                 {QStringLiteral("link"), section.id != QLatin1StringView("latest-release")
                                                              && catalog::parseArtistSectionId(section.id).has_value()}});
     }

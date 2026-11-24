@@ -10,6 +10,7 @@ Column {
     id: shelf
 
     property string title: ""
+    property string pill: ""
     property string linkText: ""
     property alias model: row.model
     property alias delegate: row.delegate
@@ -24,6 +25,7 @@ Column {
 
     // A shelf under a heading of its own (search results) has no header.
     SectionHeader {
+        pill: shelf.pill
         width: shelf.width
         visible: shelf.title !== "" || shelf.linkText !== ""
         title: shelf.title
