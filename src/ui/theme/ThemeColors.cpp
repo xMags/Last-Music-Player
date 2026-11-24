@@ -117,10 +117,15 @@ QColor ThemeColors::accentFill2() const
 
 QColor ThemeColors::dangerConfirmHover() const
 {
-    // filter: brightness(1.06): each channel times 1.06, clipped at full.
-    const QColor base = danger();
-    const auto brighter = [](float channel) { return std::min(1.0f, channel * 1.06f); };
-    return QColor::fromRgbF(brighter(base.redF()), brighter(base.greenF()), brighter(base.blueF()), base.alphaF());
+    return brightness(danger(), 1.06);
+}
+
+QColor ThemeColors::brightness(const QColor& color, qreal factor) const
+{
+    const auto scaled = [factor](float channel) {
+        return static_cast<float>(std::clamp(static_cast<qreal>(channel) * factor, 0.0, 1.0));
+    };
+    return QColor::fromRgbF(scaled(color.redF()), scaled(color.greenF()), scaled(color.blueF()), color.alphaF());
 }
 
 QColor ThemeColors::dangerConfirmInk() const

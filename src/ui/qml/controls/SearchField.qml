@@ -3,8 +3,9 @@ import QtQuick.Layouts
 import LastMusicPlayer
 
 // The search box (.search-bar, styles.css 431-473): a 44px rounded field with
-// a search icon, the keyboard shortcut hint while empty, and a clear button
-// once there is text. The border turns accent while the field has focus.
+// a search icon, the field and the keyboard shortcut chip. The border turns
+// accent while the field has focus. (The reference's clear button is a phone
+// control.)
 //
 // `queryEdited` fires on every change. `queryCommitted` fires once typing has
 // paused for Motion.searchCommitDelay, or at once on Enter; `submitted` only
@@ -29,6 +30,12 @@ FocusScope {
     function focusField() {
         input.forceActiveFocus(Qt.ShortcutFocusReason)
         input.selectAll()
+    }
+
+    // Puts the caret after the text (typing handed over from Home's box).
+    function focusAtEnd() {
+        input.forceActiveFocus(Qt.OtherFocusReason)
+        input.cursorPosition = input.text.length
     }
 
     implicitWidth: 784
@@ -110,7 +117,7 @@ FocusScope {
 
         // .kbd-chip: 24px high, padding 0 8px.
         Rectangle {
-            visible: root.shortcutHint !== "" && input.text.length === 0
+            visible: root.shortcutHint !== ""
             implicitWidth: hint.implicitWidth + 16
             implicitHeight: 24
             radius: Theme.radiusSm
@@ -125,19 +132,6 @@ FocusScope {
                 text: root.shortcutHint
                 font: Theme.shortcutLabel
                 color: Theme.fgTertiary
-            }
-        }
-
-        IconButton {
-            Accessible.name: qsTr("Clear search")
-            visible: input.text.length > 0
-            iconName: "close"
-            shape: IconButton.Square
-            focusPolicy: Qt.NoFocus
-            onClicked: {
-                root.clear()
-                root.queryEdited("")
-                commitTimer.restart()
             }
         }
     }

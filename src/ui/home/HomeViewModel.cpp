@@ -27,6 +27,9 @@ namespace lmp::ui {
 
 namespace {
 
+// A chart row offers "See all" only past this many charts (CHART_SEE_ALL_MIN).
+constexpr int ChartSeeAllMin = 4;
+
 constexpr auto kGreetingCheck = std::chrono::minutes(1);
 
 } // namespace
@@ -374,7 +377,9 @@ void HomeViewModel::readAccountSections()
                 } else if (key == QLatin1StringView("genreCharts") || key == QLatin1StringView("cityCharts")) {
                     if (m_feed->charts(key)->count() > 0) {
                         add({.key = key, .title = layout.shelfTitleOverride(key).value_or(m_feed->chartsTitle(key)),
-                             .tier = {}, .capability = catalogue, .kind = QStringLiteral("charts"), .link = true});
+                             .tier = {}, .capability = catalogue, .kind = QStringLiteral("charts"),
+                             // CHART_SEE_ALL_MIN: "See all" once a row holds more than 4.
+                             .link = m_feed->charts(key)->count() > ChartSeeAllMin});
                     }
                 } else if (m_feed->shelf(key)->count() > 0) {
                     // newSongs, newAlbums, biggestHits, popularArtists, moods.
@@ -478,6 +483,13 @@ void HomeViewModel::playHero()
     if (m_hero) {
         // The whole history is the context, as Listen Again plays.
         m_actions.play(*m_hero, m_history);
+    }
+}
+
+void HomeViewModel::startHeroRadio()
+{
+    if (m_hero) {
+        m_actions.startMix(*m_hero);
     }
 }
 

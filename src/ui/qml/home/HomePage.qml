@@ -16,7 +16,14 @@ Item {
     // The right side also keeps the scrollbar lane (scrollbar-gutter: stable).
     readonly property real rightGutter: Theme.contentGutter + Theme.contentScrollLane
 
-    implicitHeight: content.implicitHeight + 40
+    implicitHeight: content.implicitHeight + 24
+
+    // Browse with `typed` in its search field and the caret after it.
+    function openBrowse(typed) {
+        App.search.query = typed
+        App.navigator.openView(Route.Browse)
+        Qt.callLater(() => App.search.requestFocus(true))
+    }
 
     Component.onCompleted: {
         App.home.refreshGreeting()
@@ -28,9 +35,33 @@ Item {
         id: content
 
         x: page.gutter
-        y: 24
         width: page.width - (page.gutter + page.rightGutter)
         spacing: 0
+
+        // The search box leads (views/home.ts render), 16px above and 28px
+        // below. Searching happens on Browse: a click or typing goes there,
+        // carrying the typed text; tabbing through the box does not.
+        Item { width: 1; height: 16 }
+
+        SearchField {
+            id: homeSearch
+
+            width: Math.min(implicitWidth, parent.width)
+            anchors.horizontalCenter: parent.horizontalCenter
+            placeholderText: qsTr("Search songs, artists, albums, links…")
+            shortcutHint: qsTr("Ctrl + K")
+            onQueryEdited: query => {
+                if (query !== "")
+                    page.openBrowse(query)
+            }
+            onSubmitted: query => page.openBrowse(query)
+
+            TapHandler {
+                onTapped: page.openBrowse(homeSearch.text)
+            }
+        }
+
+        Item { width: 1; height: 28 }
 
         // The greeting: the salute with its time-of-day mark, then the name.
         Column {
@@ -97,7 +128,12 @@ Item {
 
                 width: content.width
 
-                TierLabel { text: section.tier }
+                // .home-tier's 18px under the label collapses with a
+                // catalogue shelf's 28px top margin and a chart row's 30px.
+                TierLabel {
+                    text: section.tier
+                    below: section.kind === "catalog" ? 28 : section.kind === "charts" ? 30 : 18
+                }
 
                 Loader {
                     width: parent.width
@@ -116,7 +152,7 @@ Item {
                         Shelf {
                             width: section.width
                             title: section.title
-                            linkText: qsTr("See all")
+                            linkText: qsTr("See all ›")
                             model: App.home.mixes
                             cardWidth: 184
                             cardHeight: 184
@@ -150,8 +186,10 @@ Item {
                         Shelf {
                             width: section.width
                             title: section.title
-                            linkText: section.link ? qsTr("See all") : ""
+                            linkText: section.link ? qsTr("See all ›") : ""
                             model: App.home.catalogShelf(section.key)
+                            // Every Home card below the hero is 184px (views.css 2779-2786).
+                            cardWidth: 184
                             onLinkClicked: App.home.seeAll(section.key)
 
                             delegate: Card {
@@ -165,7 +203,7 @@ Item {
                                 required artworkLabel
                                 required round
 
-                                width: 156
+                                width: 184
                                 hasMenu: false
                                 onClicked: App.home.playCatalogCard(section.key, catalogCard.index)
                             }
@@ -182,7 +220,7 @@ Item {
                         Shelf {
                             width: section.width
                             title: section.title
-                            linkText: section.link ? qsTr("See all") : ""
+                            linkText: section.link ? qsTr("See all ›") : ""
                             model: App.home.chartRow(section.key)
                             cardWidth: 184
                             cardHeight: 184
@@ -264,8 +302,9 @@ Item {
                         Shelf {
                             width: section.width
                             title: section.title
-                            linkText: qsTr("See all")
+                            linkText: qsTr("See all ›")
                             model: section.shelfModel
+                            cardWidth: 184
                             onLinkClicked: App.home.seeAll(section.key)
 
                             delegate: TrackTile {
@@ -273,7 +312,7 @@ Item {
 
                                 required property int index
 
-                                width: 156
+                                width: 184
                                 onClicked: App.home.playSong(section.key, card.index)
                                 onMenuRequested: (at, fromKeyboard) => {
                                     App.home.prepareSongMenu(section.key, card.index)
@@ -289,20 +328,23 @@ Item {
         }
     }
 
-    // A tier's label: small capitals with a line to the right; 52px above.
+    // A tier's label: small capitals with a line to the right. .home-tier's
+    // 52px top margin collapses with the 32px every section ends with, so
+    // 20px more here; the hero ends with its own 44px (see heroSection).
     component TierLabel: Item {
         id: label
 
         property string text: ""
+        property real below: 18
 
         width: parent ? parent.width : 0
-        height: text === "" ? 0 : 52 + 16 + 18
+        height: text === "" ? 0 : 20 + tierText.implicitHeight + below
         visible: text !== ""
 
         Text {
             id: tierText
 
-            y: 52
+            y: 20
             text: label.text
             font: Theme.homeLabel
             color: Theme.fgSecondary
@@ -322,7 +364,9 @@ Item {
 
         HomeHero {
             width: parent ? parent.width : 0
-            bottomPadding: 44 - 12
+            // .home-hero margin-bottom 44px: 24px here and the next tier
+            // label's 20px.
+            bottomPadding: 44 - 20
             onMenuRequested: (item, at) => menus.open(item, at.x, at.y, false)
             onTileMenuRequested: (row, item, at) => {
                 App.home.prepareQuickTileMenu(row)

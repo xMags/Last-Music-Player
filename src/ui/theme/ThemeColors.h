@@ -124,6 +124,8 @@ public:
 
     Q_INVOKABLE QColor mixSrgb(const QColor& a, const QColor& b, qreal amountOfA) const;
     Q_INVOKABLE QColor mixOklab(const QColor& a, const QColor& b, qreal amountOfA) const;
+    // CSS filter: brightness(`factor`): each channel times it, clipped.
+    Q_INVOKABLE QColor brightness(const QColor& color, qreal factor) const;
 
 signals:
     void changed();

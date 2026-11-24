@@ -89,6 +89,11 @@ QVariantList Theme::shadowArt() const
                          {0, 24, 48, 0, black(0.10f)}});
 }
 
+QVariantList Theme::shadowHeroArt() const
+{
+    return shadowLayers({{0, 18, 40, 0, black(0.35f)}});
+}
+
 // The accent button glow follows the accent's seed colour.
 QVariantList Theme::shadowButton() const
 {

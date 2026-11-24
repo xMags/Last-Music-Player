@@ -146,7 +146,9 @@ public:
     // Enter: search now, and remember the query.
     Q_INVOKABLE void searchNow();
     // Ctrl+K: the page puts the caret in its search field.
-    Q_INVOKABLE void requestFocus() { emit focusRequested(); }
+    // Puts the caret in Browse's search field: with the text selected (Ctrl+K),
+    // or after it (`atEnd`, typing handed over from Home's box).
+    Q_INVOKABLE void requestFocus(bool atEnd = false) { emit focusRequested(atEnd); }
     Q_INVOKABLE void useRecent(int row);
     Q_INVOKABLE void removeRecent(int row);
     Q_INVOKABLE void clearRecents();
@@ -167,7 +169,7 @@ signals:
     void stateChanged();
     void recentSearchesChanged();
     void resultsChanged();
-    void focusRequested();
+    void focusRequested(bool atEnd);
 
 private:
     void refreshAccountLanding(const core::home::HomeLibrary& library);

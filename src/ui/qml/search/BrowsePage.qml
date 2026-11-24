@@ -18,15 +18,18 @@ Item {
     // The right side also keeps the scrollbar lane (scrollbar-gutter: stable).
     readonly property real rightGutter: Theme.contentGutter + Theme.contentScrollLane
 
-    implicitHeight: content.implicitHeight + 48
+    implicitHeight: content.implicitHeight + 24
 
     Component.onCompleted: App.search.refreshLanding()
 
     Connections {
         target: App.search
 
-        function onFocusRequested() {
-            search.focusField()
+        function onFocusRequested(atEnd) {
+            if (atEnd)
+                search.focusAtEnd()
+            else
+                search.focusField()
         }
     }
 
@@ -34,15 +37,18 @@ Item {
         id: content
 
         x: page.gutter
-        y: 24
         width: page.width - (page.gutter + page.rightGutter)
         spacing: 0
+
+        // .search-bar: margin 16px auto 28px, at most 784px wide.
+        Item { width: 1; height: 16 }
 
         SearchField {
             id: search
 
-            width: parent.width
-            placeholderText: qsTr("Search songs, artists, albums…")
+            width: Math.min(implicitWidth, parent.width)
+            anchors.horizontalCenter: parent.horizontalCenter
+            placeholderText: qsTr("Search songs, artists, albums, links…")
             shortcutHint: qsTr("Ctrl + K")
             text: App.search.query
             onQueryEdited: query => App.search.query = query

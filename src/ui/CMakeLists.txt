@@ -78,6 +78,7 @@ set(LMP_UI_QML_FILES
     qml/dev/GalleryTokens.qml
     qml/home/HeroField.qml
     qml/home/HomeHero.qml
+    qml/home/HeroButton.qml
     qml/catalog/CatalogPage.qml
     qml/catalog/ChartCard.qml
     qml/home/HomePage.qml

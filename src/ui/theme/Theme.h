@@ -23,6 +23,8 @@ class Theme : public ThemeColors {
     Q_PROPERTY(QVariantList shadowCardHover READ shadowCardHover NOTIFY changed FINAL)
     Q_PROPERTY(QVariantList shadowFlyout READ shadowFlyout NOTIFY changed FINAL)
     Q_PROPERTY(QVariantList shadowArt READ shadowArt NOTIFY changed FINAL)
+    // Home's hero cover (.home-hero-art: 0 18px 40px rgba(0,0,0,.35)).
+    Q_PROPERTY(QVariantList shadowHeroArt READ shadowHeroArt CONSTANT FINAL)
     Q_PROPERTY(QVariantList shadowButton READ shadowButton NOTIFY changed FINAL)
     Q_PROPERTY(QVariantList shadowButtonHover READ shadowButtonHover NOTIFY changed FINAL)
     Q_PROPERTY(QVariantList shadowSliderThumb READ shadowSliderThumb NOTIFY changed FINAL)
@@ -51,6 +53,7 @@ public:
     [[nodiscard]] QVariantList shadowCardHover() const;
     [[nodiscard]] QVariantList shadowFlyout() const;
     [[nodiscard]] QVariantList shadowArt() const;
+    [[nodiscard]] QVariantList shadowHeroArt() const;
     [[nodiscard]] QVariantList shadowButton() const;
     [[nodiscard]] QVariantList shadowButtonHover() const;
     [[nodiscard]] QVariantList shadowSliderThumb() const;

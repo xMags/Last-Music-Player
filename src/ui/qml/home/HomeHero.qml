@@ -113,6 +113,7 @@ Column {
                     radius: 10
                     big: true
                     shadow: true
+                    shadowLayers: Theme.shadowHeroArt
                     source: App.home.heroArtworkUrl
                     artworkId: App.home.heroArtworkId
                     label: App.home.heroArtworkLabel
@@ -158,17 +159,29 @@ Column {
                     Layout.topMargin: 20
                     spacing: 10
 
-                    PlayPill {
-                        id: heroPlay
-
-                        scale: heroPlay.down && !Motion.reduced ? 0.97 : 1
+                    HeroButton {
+                        kind: HeroButton.Play
+                        iconName: "play"
+                        text: qsTr("Play")
+                        Accessible.name: qsTr("Play %1 by %2").arg(App.home.heroTitle).arg(App.home.heroArtist)
                         onClicked: App.home.playHero()
                     }
 
-                    RoundAction {
+                    HeroButton {
+                        kind: HeroButton.Radio
+                        iconName: "radio"
+                        text: qsTr("Radio")
+                        toolTip: qsTr("Start a radio from this song")
+                        Accessible.name: qsTr("Start a radio from %1").arg(App.home.heroTitle)
+                        onClicked: App.home.startHeroRadio()
+                    }
+
+                    HeroButton {
                         id: more
 
+                        kind: HeroButton.More
                         iconName: "more"
+                        toolTip: qsTr("More")
                         Accessible.name: qsTr("More options for %1").arg(App.home.heroTitle)
                         onClicked: {
                             App.home.prepareHeroMenu()

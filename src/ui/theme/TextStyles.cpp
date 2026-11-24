@@ -199,8 +199,9 @@ TextStyles TextStyles::build(const FontFamilies& families)
         // artist, a shortcut's name, and a mix card's badge and line.
         .homeLabel = makeTextStyle(
             {.family = text, .pixelSize = 12, .weight = kBold, .letterSpacingEm = 0.14, .uppercase = true}),
+        // .home-hero-title is a div: the text cut, not the display one.
         .heroTitle = makeTextStyle(
-            {.family = display, .pixelSize = 34, .weight = kGreeting, .lineHeight = 34 * 1.15, .letterSpacingEm = -0.01}),
+            {.family = text, .pixelSize = 34, .weight = kGreeting, .lineHeight = 34 * 1.15, .letterSpacingEm = -0.01}),
         .heroSub = makeTextStyle({.family = text, .pixelSize = 15, .weight = kRegular}),
         .quickTitle = makeTextStyle({.family = text, .pixelSize = 14, .weight = kBubble}),
         .mixBadge = makeTextStyle(

@@ -150,6 +150,8 @@ public:
     Q_INVOKABLE void refreshGreeting();
 
     Q_INVOKABLE void playHero();
+    // The hero's Radio: a mix started from its song.
+    Q_INVOKABLE void startHeroRadio();
     Q_INVOKABLE void prepareHeroMenu();
     // A song of a shelf ("listenAgain", "mostPlayed", "liked", "recentlyAdded").
     Q_INVOKABLE void playSong(const QString& shelf, int row);
