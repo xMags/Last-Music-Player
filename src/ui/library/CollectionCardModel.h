@@ -36,6 +36,8 @@ public:
         QColor gradientStart;
         QColor gradientEnd;
         QString iconName;
+        // A round cover for another kind of card (a catalogue artist).
+        bool round = false;
     };
 
     enum Role {

@@ -1,5 +1,7 @@
 #include "ui/search/SearchViewModel.h"
 
+#include "core/net/UserMessages.h"
+
 #include <QCollator>
 #include <QColor>
 #include <QPointer>
@@ -115,7 +117,8 @@ void SearchViewModel::run()
     }
     const quint64 generation = ++m_generation;
     // The last results stay on screen until this search answers.
-    if (m_state == QLatin1StringView("landing") || m_state == QLatin1StringView("empty")) {
+    if (m_state == QLatin1StringView("landing") || m_state == QLatin1StringView("empty")
+        || m_state == QLatin1StringView("error")) {
         setState(QStringLiteral("searching"));
     }
     if (m_catalog != nullptr && m_online && m_online() && m_shareCode) {
@@ -131,8 +134,10 @@ void SearchViewModel::run()
                 return;
             }
             if (!found) {
+                // "Search unavailable" with why and Retry, not "No results".
                 m_shownQuery = query;
-                setState(QStringLiteral("empty"));
+                m_errorText = core::net::userMessageOr(found.failure(), tr("Search is unavailable right now. Try again."));
+                setState(QStringLiteral("error"));
                 return;
             }
             applyOnline(generation, query, found.value());
@@ -322,7 +327,9 @@ void SearchViewModel::applyOnline(quint64 generation, const QString& query, cons
                          .key = item.catalogId,
                          .title = item.title,
                          .subtitle = item.subtitle,
-                         .artworkUrl = CoverSource::forTrack(cover).displayUrl()});
+                         .artworkUrl = CoverSource::forTrack(cover).displayUrl(),
+                         // .catalog-card.artist .art is round.
+                         .round = group == QLatin1StringView("artists")});
         }
         return list;
     };
@@ -604,7 +611,9 @@ void SearchViewModel::playSong(const QString& list, int row)
         return;
     }
     record(m_shownQuery);
-    m_actions.play(model->trackAt(row), model->tracks());
+    // Just the clicked song: results are not a playlist, so autoplay fills
+    // Up Next after it (the reference's play: "single").
+    m_actions.play(model->trackAt(row));
 }
 
 void SearchViewModel::likeSong(const QString& list, int row)

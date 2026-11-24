@@ -97,9 +97,18 @@ Item {
                 }
             }
 
-            SearchSectionHead {
-                width: parent.width
-                text: qsTr("BROWSE")
+            // .search-browse-landing: padding 10px 0 24px; no heading.
+            Item { width: 1; height: 10 }
+
+            // .search-minimum-hint: one character typed. 14px, the secondary
+            // colour, margin 0 4px 14px.
+            Text {
+                x: 4
+                visible: App.search.query.trim().length === 1
+                bottomPadding: 14
+                text: qsTr("Type at least 2 characters to search.")
+                font: Theme.body
+                color: Theme.fgSecondary
             }
 
             Grid {
@@ -125,36 +134,67 @@ Item {
         }
 
         // Waiting for the first answer, or nothing found.
+        // Searching with nothing on screen yet: rows of placeholders.
+        SkeletonRows {
+            width: parent.width
+            visible: App.search.state === "searching"
+            rows: 8
+        }
+
+        // .search-desktop-status (views.css 123-134): no results, or the
+        // search failed. Padded 72px 20px; a 40px accent icon, the title
+        // 16px below it at 17px, the text 6px below (14px/1.4, at most
+        // 360px), Retry 16px below.
         Column {
             width: parent.width
-            visible: App.search.state === "searching" || App.search.state === "empty"
-            topPadding: 48
-            spacing: 10
+            visible: App.search.state === "empty" || App.search.state === "error"
+            topPadding: 72
+            bottomPadding: 72
+
+            readonly property bool failed: App.search.state === "error"
 
             Icon {
                 anchors.horizontalCenter: parent.horizontalCenter
-                name: "browse"
+                name: parent.failed ? "alert" : "browse"
                 size: 40
-                color: Theme.fgTertiary
-                visible: App.search.state === "empty"
+                color: Theme.accentColor
             }
 
             Text {
                 width: parent.width
+                topPadding: 16
                 horizontalAlignment: Text.AlignHCenter
-                text: App.search.state === "searching" ? qsTr("Searching…")
-                    : qsTr("No results for “%1”").arg(App.search.query.trim())
+                text: parent.failed ? qsTr("Search unavailable")
+                                    : qsTr("No results for \"%1\"").arg(App.search.query.trim())
                 font: Theme.stateTitle
                 color: Theme.fg
+                wrapMode: Text.Wrap
             }
 
             Text {
-                width: parent.width
-                visible: App.search.state === "empty"
+                width: Math.min(360, parent.width - 40)
+                anchors.horizontalCenter: parent.horizontalCenter
+                topPadding: 6
                 horizontalAlignment: Text.AlignHCenter
-                text: qsTr("Try another song, artist or album.")
+                text: parent.failed ? App.search.errorText
+                                    : qsTr("Try another song, artist, album, or music link.")
                 font: Theme.stateText
                 color: Theme.fgSecondary
+                wrapMode: Text.Wrap
+            }
+
+            Item {
+                width: 1
+                height: 16
+                visible: parent.failed
+            }
+
+            AppButton {
+                anchors.horizontalCenter: parent.horizontalCenter
+                visible: parent.failed
+                variant: AppButton.Accent
+                text: qsTr("Retry")
+                onClicked: App.search.searchNow()
             }
         }
 
@@ -234,13 +274,15 @@ Item {
                     Shelf {
                         width: parent.width
                         model: row.modelData.cards
+                        cardWidth: 168
 
                         delegate: CollectionCard {
                             id: card
 
                             required property int index
 
-                            width: 156
+                            // Search's card rows: 168px (views.css 2081-2082).
+                            width: 168
                             onClicked: App.search.openCard(row.modelData.key, card.index)
                         }
                     }

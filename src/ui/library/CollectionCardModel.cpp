@@ -38,7 +38,7 @@ QVariant CollectionCardModel::data(const QModelIndex& index, int role) const
     case ArtworkLabelRole:
         return core::ArtworkPlaceholder::tileLabelFor(card.title);
     case RoundRole:
-        return card.kind == QLatin1StringView("artist");
+        return card.round || card.kind == QLatin1StringView("artist");
     case GradientStartRole:
         return card.gradientStart;
     case GradientEndRole:

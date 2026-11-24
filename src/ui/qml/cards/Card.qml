@@ -19,6 +19,9 @@ T.AbstractButton {
     property string artworkLabel: ""
     // An artist: the cover is a circle and the text is centred.
     property bool round: false
+    // Library's artist cards centre their text (.library-artist-card); a
+    // catalogue artist card only rounds its cover.
+    property bool centred: round
     // Shows the "..." button on hover.
     property bool hasMenu: true
     // Replaces the cover picture when set.
@@ -164,7 +167,7 @@ T.AbstractButton {
 
             y: cover.height + 12
             width: card.width
-            horizontalAlignment: card.round ? Text.AlignHCenter : Text.AlignLeft
+            horizontalAlignment: card.centred ? Text.AlignHCenter : Text.AlignLeft
             text: card.title
             font: Theme.cardTitle
             lineHeight: Theme.lineHeightCardTitle
@@ -179,7 +182,7 @@ T.AbstractButton {
             y: nameText.y + nameText.height
             width: card.width
             visible: card.subtitle !== ""
-            horizontalAlignment: card.round ? Text.AlignHCenter : Text.AlignLeft
+            horizontalAlignment: card.centred ? Text.AlignHCenter : Text.AlignLeft
             text: card.subtitle
             font: Theme.cardSubtitle
             lineHeight: Theme.lineHeightCardSubtitle

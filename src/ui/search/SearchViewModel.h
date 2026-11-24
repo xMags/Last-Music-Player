@@ -67,6 +67,8 @@ class SearchViewModel : public QObject {
     Q_PROPERTY(QString query READ query WRITE setQuery NOTIFY queryChanged FINAL)
     // "landing", "searching" (no answer yet), "results" or "empty".
     Q_PROPERTY(QString state READ state NOTIFY stateChanged FINAL)
+    // Why the last search failed ("error" state); empty otherwise.
+    Q_PROPERTY(QString errorText READ errorText NOTIFY stateChanged FINAL)
     Q_PROPERTY(QStringList recentSearches READ recentSearches NOTIFY recentSearchesChanged FINAL)
     Q_PROPERTY(lmp::ui::CollectionCardModel* categories READ categories CONSTANT FINAL)
     // The top result: "song", "artist", "album" or "" (none).
@@ -124,6 +126,7 @@ public:
     [[nodiscard]] QString query() const { return m_query; }
     void setQuery(const QString& query);
     [[nodiscard]] QString state() const { return m_state; }
+    [[nodiscard]] QString errorText() const { return m_errorText; }
     [[nodiscard]] QStringList recentSearches() const { return m_recent; }
     [[nodiscard]] CollectionCardModel* categories() { return &m_categories; }
     [[nodiscard]] QString topKind() const { return m_topKind; }
@@ -197,6 +200,7 @@ private:
     QTimer m_dwell;
     QString m_query;
     QString m_state = QStringLiteral("landing");
+    QString m_errorText;
     quint64 m_generation = 0;
     QString m_shownQuery;
     QStringList m_recent;
