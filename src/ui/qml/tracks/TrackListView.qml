@@ -22,6 +22,8 @@ Item {
     property string albumHeading: qsTr("ALBUM")
     property string timeHeading: qsTr("TIME")
     property bool likes: true
+    // Release rows: a "More" button in the heart's place.
+    property bool moreButtons: false
 
     // Switching between List and Grid: the new form's rows or cards fade in
     // one after another (the plan's fade in place of the cover glide).
@@ -226,6 +228,7 @@ Item {
                 width: list.rowWidth
                 compact: root.compact
                 showLike: root.likes
+                showMore: root.moreButtons
                 z: row.index === root.dragFrom ? 10 : 0
                 transform: Translate {
                     y: row.index === root.dragFrom ? root.dragOffset : row.dragShift

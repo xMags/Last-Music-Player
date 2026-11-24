@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Templates as T
 import LastMusicPlayer
@@ -39,6 +40,8 @@ T.AbstractButton {
     property bool compact: false
     // A release row has no heart.
     property bool showLike: true
+    // A release row puts "More" where the heart goes (releaseRow).
+    property bool showMore: false
     readonly property int artSize: compact ? 28 : 36
     property int pressModifiers: Qt.NoModifier
 
@@ -254,6 +257,21 @@ T.AbstractButton {
         Item {
             Layout.preferredWidth: 40
             implicitHeight: likeButton.implicitHeight
+
+            IconButton {
+                anchors.verticalCenter: parent.verticalCenter
+                visible: row.showMore
+                iconName: "more"
+                shape: IconButton.Square
+                iconSize: 14
+                implicitWidth: 28
+                implicitHeight: 28
+                Accessible.name: qsTr("More options for %1").arg(row.title)
+                ToolTip.visible: hovered
+                ToolTip.text: qsTr("More")
+                ToolTip.delay: 500
+                onClicked: row.menuRequested(mapToItem(row, width / 2, height), false)
+            }
 
             IconButton {
                 id: likeButton

@@ -150,6 +150,7 @@ Item {
         model: page.model.releases
         grid: false
         likes: false
+        moreButtons: true
         albumHeading: qsTr("RELEASED")
         timeHeading: qsTr("SONGS")
         sidePadding: page.gutter
