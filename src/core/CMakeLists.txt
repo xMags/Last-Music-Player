@@ -97,6 +97,8 @@ qt_add_library(lmp_core STATIC
     home/HomeLayout.h
     home/HomeModel.cpp
     home/HomeModel.h
+    home/PlayedWhen.cpp
+    home/PlayedWhen.h
     config/PrivateConfig.cpp
     config/PrivateConfig.h
     db/AccountOutboxRecords.h

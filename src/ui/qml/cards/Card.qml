@@ -14,6 +14,8 @@ T.AbstractButton {
 
     property string title: ""
     property string subtitle: ""
+    // .album-date: a third line, 2px under, 11px tertiary (Listen Again).
+    property string dateText: ""
     property url artworkUrl
     property string artworkId: ""
     property string artworkLabel: ""
@@ -188,6 +190,17 @@ T.AbstractButton {
             lineHeight: Theme.lineHeightCardSubtitle
             lineHeightMode: Text.FixedHeight
             color: Theme.fgSecondary
+            elide: Text.ElideRight
+        }
+
+        Text {
+            y: metaText.y + metaText.height + 2
+            width: card.width
+            visible: card.dateText !== ""
+            horizontalAlignment: card.centred ? Text.AlignHCenter : Text.AlignLeft
+            text: card.dateText
+            font: Theme.cardDate
+            color: Theme.fgTertiary
             elide: Text.ElideRight
         }
     }

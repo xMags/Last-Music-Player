@@ -65,6 +65,8 @@ public:
         SourceKeyRole,
         // Part of the page's multi-selection.
         SelectedRole,
+        // Listen Again's "12 min ago" (when last played, else added).
+        PlayedWhenRole,
     };
     Q_ENUM(Role)
 

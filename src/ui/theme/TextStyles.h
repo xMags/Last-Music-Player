@@ -80,6 +80,7 @@ struct TextStyles {
     TextStyle playlistMenuField;
     TextStyle playlistMenuCreate;
     TextStyle playlistMenuCount;
+    TextStyle cardDate;
     TextStyle settingsSection;
     TextStyle settingsRowTitle;
     TextStyle settingsRowDescription;

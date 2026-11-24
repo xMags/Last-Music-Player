@@ -44,6 +44,7 @@ class ThemeTypography : public QObject {
     Q_PROPERTY(QFont playlistMenuField READ playlistMenuField CONSTANT FINAL)
     Q_PROPERTY(QFont playlistMenuCreate READ playlistMenuCreate CONSTANT FINAL)
     Q_PROPERTY(QFont playlistMenuCount READ playlistMenuCount CONSTANT FINAL)
+    Q_PROPERTY(QFont cardDate READ cardDate CONSTANT FINAL)
     Q_PROPERTY(qreal lineHeightSectionPill READ lineHeightSectionPill CONSTANT FINAL)
     Q_PROPERTY(QFont settingsSection READ settingsSection CONSTANT FINAL)
     Q_PROPERTY(QFont settingsRowTitle READ settingsRowTitle CONSTANT FINAL)
@@ -198,6 +199,7 @@ public:
     [[nodiscard]] QFont playlistMenuField() const { return m_text.playlistMenuField.font; }
     [[nodiscard]] QFont playlistMenuCreate() const { return m_text.playlistMenuCreate.font; }
     [[nodiscard]] QFont playlistMenuCount() const { return m_text.playlistMenuCount.font; }
+    [[nodiscard]] QFont cardDate() const { return m_text.cardDate.font; }
     [[nodiscard]] qreal lineHeightSectionPill() const { return m_text.sectionPill.lineHeight; }
     [[nodiscard]] QFont settingsSection() const { return m_text.settingsSection.font; }
     [[nodiscard]] QFont settingsRowTitle() const { return m_text.settingsRowTitle.font; }

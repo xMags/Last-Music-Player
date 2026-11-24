@@ -1,5 +1,9 @@
 #include "ui/tracks/TrackListModel.h"
 
+#include "core/home/PlayedWhen.h"
+
+#include <QDateTime>
+
 #include <algorithm>
 #include <utility>
 
@@ -53,6 +57,9 @@ QVariant TrackListModel::data(const QModelIndex& index, int role) const
         return index.row() + 1;
     case SourceKeyRole:
         return m_keys.at(index.row());
+    case PlayedWhenRole:
+        return core::home::relativePlayedText(track.lastPlayedAt.isEmpty() ? track.addedAt : track.lastPlayedAt,
+                                              QDateTime::currentDateTimeUtc());
     case SelectedRole:
         return m_selected.contains(index.row());
     default:
@@ -77,6 +84,7 @@ QHash<int, QByteArray> TrackListModel::roleNames() const
         {NumberRole, "number"},
         {SourceKeyRole, "sourceKey"},
         {SelectedRole, "selected"},
+        {PlayedWhenRole, "playedWhen"},
     };
 }
 

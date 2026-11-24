@@ -152,6 +152,8 @@ TextStyles TextStyles::build(const FontFamilies& families)
         .playlistMenuField = makeTextStyle({.family = text, .pixelSize = 12, .weight = kRegular}),
         .playlistMenuCreate = makeTextStyle({.family = text, .pixelSize = 12, .weight = kSemiBold}),
         .playlistMenuCount = makeTextStyle({.family = text, .pixelSize = 11, .weight = kRegular}),
+        // .album-date: 11px.
+        .cardDate = makeTextStyle({.family = text, .pixelSize = 11, .weight = kRegular, .lineHeight = 16}),
         // .settings-section-head h2, .settings-row-title, .settings-row-desc
         // and .settings-theme-tile (views.css 1128-1165, 1293-1303).
         .settingsSection = makeTextStyle({.family = display, .pixelSize = 16, .weight = kBold, .lineHeight = 22}),

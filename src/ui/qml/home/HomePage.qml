@@ -350,12 +350,17 @@ Item {
                             linkText: qsTr("See all ›")
                             model: section.shelfModel
                             cardWidth: 184
+                            // Listen Again's cards carry when each song was played.
+                            cardHeight: cardWidth + 12 + 22 + 18 + (section.key === "listenAgain" ? 2 + 16 : 0)
                             onLinkClicked: App.home.seeAll(section.key)
 
                             delegate: TrackTile {
                                 id: card
 
                                 required property int index
+                                required property string playedWhen
+
+                                dateText: section.key === "listenAgain" ? playedWhen : ""
 
                                 width: 184
                                 onClicked: App.home.playSong(section.key, card.index)

@@ -242,6 +242,10 @@ lmp_add_test(tst_download_policy
     SOURCES core/tst_download_policy.cpp
     LIBS lmp_core)
 
+lmp_add_test(tst_played_when
+    SOURCES core/tst_played_when.cpp
+    LIBS lmp_core)
+
 lmp_add_test(tst_offline_collections
     SOURCES core/tst_offline_collections.cpp
     LIBS lmp_core)
