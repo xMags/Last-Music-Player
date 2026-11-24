@@ -14,6 +14,8 @@ import LastMusicPlayer
 Item {
     id: page
 
+    // The account artist whose card menu is open (-1 for any other card).
+    property int menuArtistRow: -1
     readonly property real gutter: Theme.contentGutter
     // The right side also keeps the scrollbar lane (scrollbar-gutter: stable).
     readonly property real rightGutter: Theme.contentGutter + Theme.contentScrollLane
@@ -397,6 +399,8 @@ Item {
                         gradientEnd: cell.gradientEnd
                         iconName: cell.iconName
                         badge: cell.badge
+                        // Account artists have a menu of their own; this PC's do not.
+                        hasMenu: cardTab.serverArtists || (cell.kind !== "artist" && cell.kind !== "catalog")
 
                         // .library-artist-followed: a 30px accent circle
                         // with a 13px heart, ringed 3px in the surface, on the
@@ -445,7 +449,10 @@ Item {
                         onClicked: cardTab.serverArtists ? App.accountArtists.openCard(cell.index)
                                                          : App.library.openCard(App.library.tab, cell.index)
                         onMenuRequested: (at, fromKeyboard) => {
-                            if (cardTab.serverArtists || !App.library.prepareCardMenu(App.library.tab, cell.index))
+                            page.menuArtistRow = cardTab.serverArtists ? cell.index : -1
+                            const ready = cardTab.serverArtists ? App.library.prepareArtistMenu(cell.title, cell.followed)
+                                                                : App.library.prepareCardMenu(App.library.tab, cell.index)
+                            if (!ready)
                                 return
                             const place = mapToItem(page, at.x, at.y)
                             cardMenu.openAt(place.x, place.y)
@@ -483,7 +490,15 @@ Item {
         id: cardMenu
 
         items: App.library.cardMenu
-        onTriggered: itemId => App.library.triggerCardMenu(itemId)
+        onTriggered: itemId => {
+            // An account artist's Follow and View artist run here.
+            if (itemId === "follow" && page.menuArtistRow >= 0)
+                App.accountArtists.toggleFollow(page.menuArtistRow)
+            else if (itemId === "details" && page.menuArtistRow >= 0)
+                App.accountArtists.openCard(page.menuArtistRow)
+            else
+                App.library.triggerCardMenu(itemId)
+        }
     }
 
     TrackMenus {

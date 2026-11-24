@@ -129,6 +129,11 @@ public:
     [[nodiscard]] MenuItemListModel* cardMenu() { return &m_cardMenu; }
     // Fills cardMenu for the card at `row` of `tab`; false when it has none.
     Q_INVOKABLE bool prepareCardMenu(const QString& tab, int row);
+    // An account artist's card menu (openArtistActionsMenu): the saved
+    // songs' Play, Play next, Add to queue, Shuffle and Download, then Follow
+    // or Unfollow and View artist, which the page runs itself ("follow",
+    // "details"). False for no name.
+    Q_INVOKABLE bool prepareArtistMenu(const QString& name, bool followed);
     Q_INVOKABLE void triggerCardMenu(const QString& itemId);
     // A song of History or Songs was chosen: it plays in its list.
     Q_INVOKABLE void playSong(const QString& list, int row);

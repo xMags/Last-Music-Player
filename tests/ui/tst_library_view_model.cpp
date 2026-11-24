@@ -190,6 +190,17 @@ void LibraryViewModelTest::tabsReadTheLibrary()
     QCOMPARE(m_model->cardMenu()->idAt(3), QStringLiteral("shuffle"));
     QVERIFY(m_model->prepareCardMenu(QStringLiteral("albums"), 0));
     QVERIFY(!m_model->prepareCardMenu(QStringLiteral("artists"), 0));
+    // An account artist's menu: the saved songs, then Follow and View artist.
+    QVERIFY(m_model->prepareArtistMenu(QStringLiteral("Night Owls"), true));
+    QCOMPARE(m_model->cardMenu()->idAt(0), QStringLiteral("play"));
+    QVERIFY(m_model->cardMenu()->index(0).data(lmp::ui::MenuItemListModel::EnabledRole).toBool());
+    const int follow = m_model->cardMenu()->count() - 2;
+    QCOMPARE(m_model->cardMenu()->idAt(follow), QStringLiteral("follow"));
+    QVERIFY(m_model->cardMenu()->index(follow).data(lmp::ui::MenuItemListModel::DangerRole).toBool());
+    QCOMPARE(m_model->cardMenu()->idAt(follow + 1), QStringLiteral("details"));
+    QVERIFY(m_model->prepareArtistMenu(QStringLiteral("Nobody Here"), false));
+    QVERIFY(!m_model->cardMenu()->index(0).data(lmp::ui::MenuItemListModel::EnabledRole).toBool());
+    QVERIFY(!m_model->prepareArtistMenu(QStringLiteral("  "), false));
 
     QStringList albums = titles(*m_model->albums());
     albums.sort();

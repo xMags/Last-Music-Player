@@ -377,6 +377,41 @@ bool LibraryViewModel::prepareCardMenu(const QString& tab, int row)
     return true;
 }
 
+bool LibraryViewModel::prepareArtistMenu(const QString& name, bool followed)
+{
+    if (name.trimmed().isEmpty()) {
+        return false;
+    }
+    m_menuKind = QStringLiteral("artist");
+    m_menuKey = name;
+    m_menuTitle = name;
+    const bool songs = !tracksOf(m_menuKind, m_menuKey).isEmpty();
+    QList<MenuItemListModel::Item> items{
+        {.id = QStringLiteral("play"), .label = tr("Play saved tracks"), .iconName = QStringLiteral("play"), .enabled = songs},
+        {.id = QStringLiteral("next"), .label = tr("Play saved tracks next"), .iconName = QStringLiteral("play-next"),
+         .enabled = songs},
+        {.id = QStringLiteral("queue"), .label = tr("Add saved tracks to queue"), .iconName = QStringLiteral("queue-add"),
+         .enabled = songs},
+        {.id = QStringLiteral("shuffle"), .label = tr("Shuffle saved tracks"), .iconName = QStringLiteral("shuffle"),
+         .enabled = songs}};
+    if (m_download && songs && m_mode != nullptr && m_mode->capabilities().downloadSongs) {
+        items.append({.id = QStringLiteral("download"), .label = tr("Download saved tracks"),
+                      .iconName = QStringLiteral("download")});
+    }
+    items.append(followed ? MenuItemListModel::Item{.id = QStringLiteral("follow"),
+                                                    .label = tr("Unfollow artist"),
+                                                    .iconName = QStringLiteral("person-minus"),
+                                                    .danger = true,
+                                                    .separatorBefore = true}
+                          : MenuItemListModel::Item{.id = QStringLiteral("follow"),
+                                                    .label = tr("Follow artist"),
+                                                    .iconName = QStringLiteral("person-plus"),
+                                                    .separatorBefore = true});
+    items.append({.id = QStringLiteral("details"), .label = tr("View artist"), .iconName = QStringLiteral("person")});
+    m_cardMenu.setItems(std::move(items));
+    return true;
+}
+
 void LibraryViewModel::triggerCardMenu(const QString& itemId)
 {
     if (m_menuKey.isEmpty()) {
@@ -422,6 +457,9 @@ QList<core::Track> LibraryViewModel::tracksOf(const QString& kind, const QString
     if (kind == QLatin1StringView("system")) {
         const std::optional<SystemPlaylist> system = systemPlaylist(key);
         return system ? m_library.loadTracksForQuery(system->query) : QList<core::Track>{};
+    }
+    if (kind == QLatin1StringView("artist")) {
+        return m_library.loadTracksForGroup(kind, key);
     }
     // Playlists, albums and genres: the songs their page lists, in its order.
     core::db::TrackQuery query;
