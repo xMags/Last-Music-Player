@@ -158,14 +158,19 @@ Item {
 
         // The rail over the content in narrower windows: from the top of the
         // window down to the player bar, with a soft shadow to its left.
+        // Fixed over everything, the title strip and its caption buttons
+        // included (.sidebar-right: position fixed, top 0, z-index 80 over
+        // the titlebar's 2), so its tabs are never cut.
         Item {
             id: overlayRail
 
+            parent: shell
             x: shell.width - width
+            y: 0
             width: App.layout.railOverlayWidth
             height: shell.bodyHeight
-            visible: !App.layout.railDocked && App.layout.railOpen
-            z: 80
+            visible: !App.layout.railDocked && App.layout.railOpen && !App.fullscreen.open
+            z: 96
 
             AppRectangularShadow {
                 anchors.fill: parent
