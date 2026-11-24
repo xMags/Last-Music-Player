@@ -19,8 +19,11 @@ RowLayout {
     spacing: 14
 
     Text {
+        // Whole pixels, rounded up: the layout snaps widths down, and a title
+        // a fraction of a pixel short of its text would elide ("Your mix…").
         Layout.minimumWidth: 0
-        Layout.maximumWidth: implicitWidth
+        Layout.preferredWidth: Math.ceil(implicitWidth)
+        Layout.maximumWidth: Math.ceil(implicitWidth)
         Layout.fillWidth: true
         text: header.title
         font: Theme.sectionTitle

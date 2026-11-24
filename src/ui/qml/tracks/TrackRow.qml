@@ -210,8 +210,9 @@ T.AbstractButton {
                     spacing: 6
 
                     Text {
+                        // Rounded up: a width snapped down would elide a title that fits.
                         Layout.fillWidth: true
-                        Layout.maximumWidth: implicitWidth
+                        Layout.maximumWidth: Math.ceil(implicitWidth)
                         text: row.title
                         font: Theme.trackTitle
                         color: row.playing ? Theme.accentColor : Theme.fg
