@@ -82,14 +82,23 @@ Rectangle {
             // this PC is always possible).
             iconName: "devices"
             iconSize: 18
-            active: App.cast.active || App.playerBar.remote || castMenu.opened
+            active: App.cast.active || App.playerBar.remote || App.layout.connectOpen
             Accessible.name: label
             ToolTip.visible: hovered
             ToolTip.text: label
             ToolTip.delay: 500
-            onClicked: {
-                App.cast.openMenu()
-                castMenu.openAbove(castButton)
+            onClicked: App.layout.toggleConnect()
+
+            // The open panel is marked with a 4px accent dot under the button.
+            Rectangle {
+                visible: App.layout.connectOpen
+                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: 1
+                width: 4
+                height: 4
+                radius: 2
+                color: Theme.accentColor
             }
         }
 
@@ -123,10 +132,4 @@ Rectangle {
         }
     }
 
-    ActionMenu {
-        id: castMenu
-
-        items: App.cast.menu
-        onTriggered: itemId => App.cast.choose(itemId)
-    }
 }

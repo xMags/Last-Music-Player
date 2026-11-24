@@ -167,6 +167,14 @@ TextStyles TextStyles::build(const FontFamilies& families)
         .catalogHeroSubtitle = makeTextStyle({.family = text, .pixelSize = 14, .weight = kSemiBold}),
         .catalogHeroMeta = makeTextStyle({.family = text, .pixelSize = 12, .weight = kRegular}),
         .catalogDescToggle = makeTextStyle({.family = text, .pixelSize = 13, .weight = kRegular}),
+        // The Connect panel (.connect-panel-*).
+        .connectTitle = makeTextStyle({.family = text, .pixelSize = 17, .weight = kBold}),
+        .connectCurrentName = makeTextStyle({.family = text, .pixelSize = 15, .weight = kBubble}),
+        .connectRowName = makeTextStyle({.family = text, .pixelSize = 14.5, .weight = 550}),
+        .connectDetail = makeTextStyle({.family = text, .pixelSize = 12, .weight = kRegular}),
+        .connectStop = makeTextStyle({.family = text, .pixelSize = 12, .weight = kBubble}),
+        .connectSection = makeTextStyle({.family = text, .pixelSize = 11, .weight = kBubble, .letterSpacingEm = 0.06}),
+        .connectNote = makeTextStyle({.family = text, .pixelSize = 12.5, .weight = kRegular}),
         // .settings-section-head h2, .settings-row-title, .settings-row-desc
         // and .settings-theme-tile (views.css 1128-1165, 1293-1303).
         .settingsSection = makeTextStyle({.family = display, .pixelSize = 16, .weight = kBold, .lineHeight = 22}),

@@ -90,6 +90,13 @@ struct TextStyles {
     TextStyle catalogHeroSubtitle;
     TextStyle catalogHeroMeta;
     TextStyle catalogDescToggle;
+    TextStyle connectTitle;
+    TextStyle connectCurrentName;
+    TextStyle connectRowName;
+    TextStyle connectDetail;
+    TextStyle connectStop;
+    TextStyle connectSection;
+    TextStyle connectNote;
     TextStyle settingsSection;
     TextStyle settingsRowTitle;
     TextStyle settingsRowDescription;

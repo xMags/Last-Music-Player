@@ -849,6 +849,10 @@ void CompositionRoot::showWelcomeForReview()
 
 void CompositionRoot::showViewForReview(const QString& view)
 {
+    if (view == QLatin1StringView("connect")) {
+        m_layout.toggleConnect();
+        return;
+    }
     if (view == QLatin1StringView("artist")) {
         m_navigator.push(ui::Route(ui::Route::Kind::CatalogDetail, {{QStringLiteral("type"), QStringLiteral("artist")},
                                                                    {QStringLiteral("id"), QStringLiteral("1")},

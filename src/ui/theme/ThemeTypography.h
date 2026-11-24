@@ -54,6 +54,13 @@ class ThemeTypography : public QObject {
     Q_PROPERTY(QFont catalogHeroSubtitle READ catalogHeroSubtitle CONSTANT FINAL)
     Q_PROPERTY(QFont catalogHeroMeta READ catalogHeroMeta CONSTANT FINAL)
     Q_PROPERTY(QFont catalogDescToggle READ catalogDescToggle CONSTANT FINAL)
+    Q_PROPERTY(QFont connectTitle READ connectTitle CONSTANT FINAL)
+    Q_PROPERTY(QFont connectCurrentName READ connectCurrentName CONSTANT FINAL)
+    Q_PROPERTY(QFont connectRowName READ connectRowName CONSTANT FINAL)
+    Q_PROPERTY(QFont connectDetail READ connectDetail CONSTANT FINAL)
+    Q_PROPERTY(QFont connectStop READ connectStop CONSTANT FINAL)
+    Q_PROPERTY(QFont connectSection READ connectSection CONSTANT FINAL)
+    Q_PROPERTY(QFont connectNote READ connectNote CONSTANT FINAL)
     Q_PROPERTY(qreal lineHeightWelcomeTitle READ lineHeightWelcomeTitle CONSTANT FINAL)
     Q_PROPERTY(qreal lineHeightWelcomeText READ lineHeightWelcomeText CONSTANT FINAL)
     Q_PROPERTY(qreal lineHeightSectionPill READ lineHeightSectionPill CONSTANT FINAL)
@@ -220,6 +227,13 @@ public:
     [[nodiscard]] QFont catalogHeroSubtitle() const { return m_text.catalogHeroSubtitle.font; }
     [[nodiscard]] QFont catalogHeroMeta() const { return m_text.catalogHeroMeta.font; }
     [[nodiscard]] QFont catalogDescToggle() const { return m_text.catalogDescToggle.font; }
+    [[nodiscard]] QFont connectTitle() const { return m_text.connectTitle.font; }
+    [[nodiscard]] QFont connectCurrentName() const { return m_text.connectCurrentName.font; }
+    [[nodiscard]] QFont connectRowName() const { return m_text.connectRowName.font; }
+    [[nodiscard]] QFont connectDetail() const { return m_text.connectDetail.font; }
+    [[nodiscard]] QFont connectStop() const { return m_text.connectStop.font; }
+    [[nodiscard]] QFont connectSection() const { return m_text.connectSection.font; }
+    [[nodiscard]] QFont connectNote() const { return m_text.connectNote.font; }
     [[nodiscard]] qreal lineHeightWelcomeTitle() const { return m_text.welcomeTitle.lineHeight; }
     [[nodiscard]] qreal lineHeightWelcomeText() const { return m_text.welcomeText.lineHeight; }
     [[nodiscard]] qreal lineHeightSectionPill() const { return m_text.sectionPill.lineHeight; }

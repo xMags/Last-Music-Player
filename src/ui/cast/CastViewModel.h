@@ -4,6 +4,8 @@
 
 #include <QObject>
 #include <QString>
+#include <QVariantList>
+#include <QVariantMap>
 #include <QtQml/qqmlregistration.h>
 
 namespace lmp::core::cast {
@@ -38,6 +40,16 @@ class CastViewModel : public QObject {
     // The account has other devices this PC can reach.
     Q_PROPERTY(bool otherDevices READ otherDevices NOTIFY stateChanged FINAL)
     Q_PROPERTY(lmp::ui::MenuItemListModel* menu READ menu CONSTANT FINAL)
+    // The Connect panel (connect-ui.ts renderPanel): where music plays now
+    // ({kind: "self" | "device" | "cast", name, detail, icon}), the other
+    // places it can play ({id, icon, name, detail}; choose(id) moves it
+    // there), the Cast receivers, and notes on what is still being looked
+    // for or cannot be reached.
+    Q_PROPERTY(QVariantMap current READ current NOTIFY panelChanged FINAL)
+    Q_PROPERTY(QVariantList deviceRows READ deviceRows NOTIFY panelChanged FINAL)
+    Q_PROPERTY(QVariantList castRows READ castRows NOTIFY panelChanged FINAL)
+    Q_PROPERTY(QString castNote READ castNote NOTIFY panelChanged FINAL)
+    Q_PROPERTY(QString connectNote READ connectNote NOTIFY panelChanged FINAL)
 
 public:
     // `controller`, and the link's `client` and `sync` when given, outlive this object.
@@ -49,6 +61,13 @@ public:
     [[nodiscard]] QString deviceName() const;
     [[nodiscard]] bool otherDevices() const;
     [[nodiscard]] MenuItemListModel* menu() { return &m_menu; }
+    [[nodiscard]] QVariantMap current() const { return m_current; }
+    [[nodiscard]] QVariantList deviceRows() const { return m_deviceRows; }
+    [[nodiscard]] QVariantList castRows() const { return m_castRows; }
+    [[nodiscard]] QString castNote() const { return m_castNote; }
+    [[nodiscard]] QString connectNote() const { return m_connectNote; }
+    // The open panel looks for receivers again (every 15 s while open).
+    Q_INVOKABLE void scan();
 
     // Fills the menu and starts a scan when casting is possible.
     Q_INVOKABLE void openMenu();
@@ -56,15 +75,22 @@ public:
 
 signals:
     void stateChanged();
+    void panelChanged();
 
 private:
     void rebuild();
+    void rebuildPanel();
     // The account's devices; true when any were listed.
     bool appendLinkedDevices(QList<MenuItemListModel::Item>& items) const;
     core::cast::CastController& m_controller;
     core::connect::ConnectClient* m_client = nullptr;
     core::connect::ConnectSync* m_sync = nullptr;
     MenuItemListModel m_menu;
+    QVariantMap m_current;
+    QVariantList m_deviceRows;
+    QVariantList m_castRows;
+    QString m_castNote;
+    QString m_connectNote;
 };
 
 } // namespace lmp::ui

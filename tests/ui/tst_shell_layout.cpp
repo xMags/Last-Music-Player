@@ -11,6 +11,7 @@ class ShellLayoutTest : public QObject {
     Q_OBJECT
 
 private slots:
+    void connectTakesTheRailAndGivesItBack();
     void sidebarWidthSteps();
     void railWidthAndDocking();
     void overlayWidthIsCappedAt88Percent();
@@ -95,6 +96,31 @@ void ShellLayoutTest::toggleIsRemembered()
     layout.setWindowWidth(1450);
     QVERIFY(!layout.railOpen());
     QCOMPARE(changed.count(), 3);
+}
+
+void ShellLayoutTest::connectTakesTheRailAndGivesItBack()
+{
+    lmp::ui::ShellLayoutViewModel layout;
+    layout.setWindowWidth(1300);
+    QVERIFY(layout.railOpen());
+    layout.toggleConnect();
+    QVERIFY(layout.connectOpen());
+    // Queue gives the column back to the queue.
+    layout.toggleRail();
+    QVERIFY(!layout.connectOpen());
+    QVERIFY(layout.railOpen());
+
+    // Opened with the rail closed, closing Connect closes the rail again.
+    layout.setRailOpen(false);
+    layout.toggleConnect();
+    QVERIFY(layout.railOpen());
+    layout.toggleConnect();
+    QVERIFY(!layout.connectOpen());
+    QVERIFY(!layout.railOpen());
+    // Closing the rail closes the panel.
+    layout.toggleConnect();
+    layout.setRailOpen(false);
+    QVERIFY(!layout.connectOpen());
 }
 
 QTEST_GUILESS_MAIN(ShellLayoutTest)

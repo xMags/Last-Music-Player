@@ -50,12 +50,50 @@ void ShellLayoutViewModel::setRailOpen(bool open)
         return;
     }
     m_railOpen = open;
+    // A closed rail takes the panel with it.
+    if (!open) {
+        m_connectOpen = false;
+        m_railOpenedForConnect = false;
+    }
     emit changed();
 }
 
 void ShellLayoutViewModel::toggleRail()
 {
+    // With Connect in the rail, the Queue button gives the queue back.
+    if (m_connectOpen) {
+        m_connectOpen = false;
+        m_railOpenedForConnect = false;
+        m_railOpen = true;
+        emit changed();
+        return;
+    }
     setRailOpen(!m_railOpen);
+}
+
+void ShellLayoutViewModel::toggleConnect()
+{
+    if (m_connectOpen) {
+        closeConnect();
+        return;
+    }
+    m_connectOpen = true;
+    m_railOpenedForConnect = !m_railOpen;
+    m_railOpen = true;
+    emit changed();
+}
+
+void ShellLayoutViewModel::closeConnect()
+{
+    if (!m_connectOpen) {
+        return;
+    }
+    m_connectOpen = false;
+    if (m_railOpenedForConnect) {
+        m_railOpen = false;
+    }
+    m_railOpenedForConnect = false;
+    emit changed();
 }
 
 } // namespace lmp::ui

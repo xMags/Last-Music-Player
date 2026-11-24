@@ -13,8 +13,17 @@ Rectangle {
     color: Theme.surface
 
     // padding: 8px 0 16px; the tab strip has margin 0 24px 24px.
+    // Connect holds the column in place of the tabs while it is open.
+    ConnectPanel {
+        anchors.fill: parent
+        visible: App.layout.connectOpen
+        onCloseRequested: App.layout.closeConnect()
+    }
+
     SegmentedControl {
         id: tabs
+
+        visible: !App.layout.connectOpen
 
         x: 24
         y: 8
@@ -30,6 +39,8 @@ Rectangle {
     // shows the queue; Lyrics shows the playing song above its lyrics.
     Item {
         id: body
+
+        visible: !App.layout.connectOpen
 
         x: 24
         y: tabs.y + tabs.height + 24

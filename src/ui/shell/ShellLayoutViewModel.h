@@ -28,6 +28,8 @@ class ShellLayoutViewModel : public QObject {
     Q_PROPERTY(qreal railOverlayWidth READ railOverlayWidth NOTIFY changed FINAL)
     Q_PROPERTY(bool railDocked READ railDocked NOTIFY changed FINAL)
     Q_PROPERTY(bool railOpen READ railOpen WRITE setRailOpen NOTIFY changed FINAL)
+    // The Connect panel (connect-ui.ts) holds the rail in place of its tabs.
+    Q_PROPERTY(bool connectOpen READ connectOpen NOTIFY changed FINAL)
 
 public:
     static constexpr int kWideMinWidth = 1500;
@@ -49,6 +51,13 @@ public:
 
     Q_INVOKABLE void toggleRail();
 
+    [[nodiscard]] bool connectOpen() const { return m_connectOpen; }
+    // The Devices button: opens the panel in the rail (opening the rail
+    // too), or closes it. Closing gives the rail back, or closes it again
+    // when the panel opened it.
+    Q_INVOKABLE void toggleConnect();
+    Q_INVOKABLE void closeConnect();
+
 signals:
     void changed();
 
@@ -56,6 +65,9 @@ private:
     qreal m_width = 0;
     bool m_widthKnown = false;
     bool m_railOpen = true;
+    bool m_connectOpen = false;
+    // The rail was closed when Connect opened in it.
+    bool m_railOpenedForConnect = false;
 };
 
 } // namespace lmp::ui
