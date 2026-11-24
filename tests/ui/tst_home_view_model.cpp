@@ -44,6 +44,7 @@ private slots:
     void sectionsFollowTheLibrary();
     void heroIsTheLastPlay();
     void shortcutsAreWholeRows();
+    void playlistPopupOffersTheNewestEight();
     void mixesAreRemadeOnlyOnANewDay();
     void cardsPlayAndOpen();
 
@@ -262,6 +263,29 @@ void HomeViewModelTest::shortcutsAreWholeRows()
     m_home->playQuickTile(1);
     settle();
     QCOMPARE(lastOpenedTitle(m_player->audio), QStringLiteral("One"));
+}
+
+void HomeViewModelTest::playlistPopupOffersTheNewestEight()
+{
+    addSong(QStringLiteral("One"), QStringLiteral("A"), {});
+    addSong(QStringLiteral("Two"), QStringLiteral("A"), {});
+    for (int index = 0; index < 9; ++index) {
+        QVERIFY(m_actions->addToNewPlaylist(stored(QStringLiteral("One")), QStringLiteral("P%1").arg(index)));
+    }
+    m_menu->prepare(stored(QStringLiteral("Two")), {});
+    m_menu->trigger(QStringLiteral("playlist"));
+    const QVariantList choices = m_menu->playlistChoices();
+    QCOMPARE(choices.size(), 8);
+    QCOMPARE(choices.first().toMap().value(QStringLiteral("count")).toInt(), 1);
+    // Only an offered playlist takes the song.
+    const QString key = choices.first().toMap().value(QStringLiteral("key")).toString();
+    m_menu->addToPlaylist(QStringLiteral("playlist:unknown"));
+    m_menu->addToPlaylist(key);
+    m_menu->trigger(QStringLiteral("playlist"));
+    QCOMPARE(m_menu->playlistChoices().first().toMap().value(QStringLiteral("count")).toInt(), 2);
+    // A blank name makes nothing.
+    m_menu->createPlaylist(QStringLiteral("   "));
+    QCOMPARE(m_actions->playlists().size(), 9);
 }
 
 void HomeViewModelTest::mixesAreRemadeOnlyOnANewDay()
