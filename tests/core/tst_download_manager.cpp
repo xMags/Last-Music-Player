@@ -4,6 +4,7 @@
 
 #include <QDir>
 #include <QFile>
+#include <QFileInfo>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -136,6 +137,7 @@ private slots:
     void earlierStateFileIsRead();
     void removeAllDeletesFilesAndDropsTransfers();
     void oneSongOfAJobCanBeCancelled();
+    void oneSongIsRemovedEverywhere();
 };
 
 void DownloadManagerTest::removeAllDeletesFilesAndDropsTransfers()
@@ -373,6 +375,27 @@ void DownloadManagerTest::oneSongOfAJobCanBeCancelled()
     const auto solo = fixture.manager.snapshot().jobs.last().job;
     fixture.manager.cancelItem(solo.id, solo.items.first().id);
     QCOMPARE(fixture.manager.snapshot().jobs.size(), 1);
+}
+
+void DownloadManagerTest::oneSongIsRemovedEverywhere()
+{
+    Fixture fixture;
+    fixture.manager.initialize();
+    QVERIFY(fixture.manager.enqueue(QStringLiteral("Job"), {}, {},
+                                    {fixture.song(QStringLiteral("One")), fixture.song(QStringLiteral("Two"))}));
+    fixture.fetcher.finish("one");
+    QTRY_COMPARE(fixture.stateOf(QStringLiteral("One")), DownloadItemState::Completed);
+    const QString file = fixture.manager.readyPath(fixture.scope + QStringLiteral("One"));
+    QVERIFY(QFileInfo::exists(file));
+
+    QVERIFY(fixture.manager.removeSong(fixture.scope + QStringLiteral("One")));
+    QVERIFY(!QFileInfo::exists(file));
+    QVERIFY(fixture.manager.readyPath(fixture.scope + QStringLiteral("One")).isEmpty());
+    QCOMPARE(fixture.manager.snapshot().jobs.first().job.items.size(), 1);
+    // The last song gone, its job goes too; an unknown song changes nothing.
+    QVERIFY(fixture.manager.removeSong(fixture.scope + QStringLiteral("Two")));
+    QVERIFY(fixture.manager.snapshot().jobs.isEmpty());
+    QVERIFY(fixture.manager.removeSong(fixture.scope + QStringLiteral("Nobody")));
 }
 
 QTEST_GUILESS_MAIN(DownloadManagerTest)

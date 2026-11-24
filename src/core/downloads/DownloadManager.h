@@ -181,6 +181,13 @@ public:
     // changes then).
     [[nodiscard]] bool removeAllDownloads();
     void dismissFailed(const QString& jobId);
+    // One song, wherever it is listed: its finished file is deleted (or its
+    // transfer dropped and partial file removed) and it leaves the list; a
+    // job left with no songs goes too. False when its file could not be
+    // deleted (it stays listed), or while "Delete all data" runs.
+    [[nodiscard]] bool removeSong(const QString& stableKey);
+    // Queues the song again wherever it failed.
+    void retrySong(const QString& stableKey);
     // Starts what the rules now allow (after a connection or power change).
     void refreshScheduling();
     // False while a transfer runs or when the folder cannot be made.

@@ -440,6 +440,71 @@ bool DownloadManager::removeAllDownloads()
     return allRemoved;
 }
 
+bool DownloadManager::removeSong(const QString& stableKey)
+{
+    if (stableKey.isEmpty()) {
+        return true;
+    }
+    const std::optional<UserDataOperationGate::Lease> lease = m_deps.gate.tryEnter();
+    if (!lease) {
+        return false;
+    }
+    bool removed = true;
+    bool changed = false;
+    for (DownloadJob& job : m_jobs) {
+        QList<DownloadItem> stay;
+        for (const DownloadItem& item : std::as_const(job.items)) {
+            if (item.stableKey != stableKey) {
+                stay.append(item);
+                continue;
+            }
+            changed = true;
+            // A transfer still running for it is dropped when it returns.
+            m_runtime.remove(item.id);
+            if (item.state != DownloadItemState::Completed || item.filePath.isEmpty()) {
+                QFile::remove(partPathFor(m_root, item.id));
+                continue;
+            }
+            if (QFileInfo::exists(item.filePath) && !QFile::remove(item.filePath)) {
+                // Playing, say: it stays listed.
+                stay.append(item);
+                removed = false;
+            }
+        }
+        job.items = stay;
+    }
+    if (!changed) {
+        return true;
+    }
+    m_jobs.removeIf([](const DownloadJob& job) { return job.items.isEmpty(); });
+    refreshUsage();
+    save();
+    touch();
+    pump();
+    return removed;
+}
+
+void DownloadManager::retrySong(const QString& stableKey)
+{
+    bool changed = false;
+    for (DownloadJob& job : m_jobs) {
+        for (DownloadItem& item : job.items) {
+            if (item.stableKey == stableKey && item.state == DownloadItemState::Failed) {
+                item.state = DownloadItemState::Queued;
+                item.error.clear();
+                m_runtime[item.id].pauseRequested = false;
+                changed = true;
+            }
+        }
+    }
+    if (!changed) {
+        return;
+    }
+    save();
+    touch();
+    pump();
+}
+
 void DownloadManager::dismissFailed(const QString& jobId)
 {
     const auto failed = [&jobId](const DownloadJob& job) {
