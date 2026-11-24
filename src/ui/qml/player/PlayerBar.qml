@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Controls
 import QtQuick.Layouts
 import LastMusicPlayer
 
@@ -54,15 +55,38 @@ Rectangle {
 
         Item { Layout.fillWidth: true }
 
+        // The reference's order (index.html 135-141): Queue, Devices, Full
+        // screen, Mute; each with its title as a tooltip.
+        IconButton {
+            Accessible.name: qsTr("Queue")
+            id: queueButton
+
+            iconName: "queue"
+            active: App.layout.railOpen
+            ToolTip.visible: hovered
+            ToolTip.text: qsTr("Queue")
+            ToolTip.delay: 500
+            onClicked: App.layout.toggleRail()
+            // Where a song sent to the queue lands while the side panel is shut.
+            Component.onCompleted: App.effects.addQueueTarget(queueButton, 0.5, 0)
+        }
+
         IconButton {
             id: castButton
 
-            iconName: App.cast.otherDevices ? "devices" : "cast"
-            active: App.cast.active || App.playerBar.remote
-            enabled: !bar.idle || App.cast.active || App.cast.otherDevices
-            Accessible.name: App.playerBar.remote ? qsTr("Playing on %1").arg(App.playerBar.playingOn)
-                           : App.cast.active ? qsTr("Casting to %1").arg(App.cast.deviceName)
-                           : App.cast.otherDevices ? qsTr("Connect to a device") : qsTr("Cast to a device")
+            readonly property string label: App.playerBar.remote ? qsTr("Playing on %1").arg(App.playerBar.playingOn)
+                : App.cast.active ? qsTr("Casting to %1").arg(App.cast.deviceName)
+                : qsTr("Connect to a device")
+
+            // Always the 18px devices glyph, always offered (casting from
+            // this PC is always possible).
+            iconName: "devices"
+            iconSize: 18
+            active: App.cast.active || App.playerBar.remote || castMenu.opened
+            Accessible.name: label
+            ToolTip.visible: hovered
+            ToolTip.text: label
+            ToolTip.delay: 500
             onClicked: {
                 App.cast.openMenu()
                 castMenu.openAbove(castButton)
@@ -70,24 +94,19 @@ Rectangle {
         }
 
         IconButton {
-            Accessible.name: qsTr("Queue")
-            id: queueButton
-
-            iconName: "queue"
-            active: App.layout.railOpen
-            onClicked: App.layout.toggleRail()
-            // Where a song sent to the queue lands while the side panel is shut.
-            Component.onCompleted: App.effects.addQueueTarget(queueButton, 0.5, 0)
-        }
-
-        IconButton {
             Accessible.name: qsTr("Full screen")
             iconName: "fullscreen"
+            ToolTip.visible: hovered
+            ToolTip.text: qsTr("Full screen")
+            ToolTip.delay: 500
             onClicked: App.fullscreen.openPlayer()
         }
 
         IconButton {
             Accessible.name: App.playerBar.muted ? qsTr("Unmute") : qsTr("Mute")
+            ToolTip.visible: hovered
+            ToolTip.text: App.playerBar.muted ? qsTr("Unmute") : qsTr("Mute")
+            ToolTip.delay: 500
             Layout.leftMargin: 4
             iconName: App.playerBar.muted ? "volume-mute" : "volume"
             onClicked: App.playerBar.toggleMute()

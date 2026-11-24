@@ -36,6 +36,8 @@ Rectangle {
         BrandMark {
             anchors.verticalCenter: parent.verticalCenter
             size: 26
+            // The bars ripple while music plays (motion.css 186-202).
+            playing: App.playerBar.playing
         }
 
         Text {

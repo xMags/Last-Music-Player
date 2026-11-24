@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Controls
 import QtQuick.Layouts
 import LastMusicPlayer
 
@@ -150,10 +151,13 @@ RowLayout {
         id: likeButton
 
         // The song of another device is not this PC's to like, keep or share.
-        opacity: block.idle || App.playerBar.remote ? 0 : 1
+        opacity: block.idle ? 0 : 1
         enabled: !block.idle && !App.playerBar.remote
         iconName: App.playerBar.liked ? "heart-fill" : "heart"
         active: App.playerBar.liked
+        ToolTip.visible: hovered
+        ToolTip.text: App.playerBar.liked ? qsTr("Remove from Liked Songs") : qsTr("Add to Liked Songs")
+        ToolTip.delay: 500
         onClicked: {
             if (!App.playerBar.liked)
                 App.effects.heartLiked(likeButton)
@@ -162,20 +166,26 @@ RowLayout {
     }
 
     IconButton {
-        visible: App.capabilities.downloadSongs
-        opacity: block.idle || App.playerBar.remote ? 0 : 1
-        enabled: !block.idle && !App.playerBar.remote
-        iconName: "download"
-        Accessible.name: qsTr("Download")
-        onClicked: App.offline.downloadPlaying()
-    }
-
-    IconButton {
         visible: App.share.available
-        opacity: block.idle || App.playerBar.remote ? 0 : 1
+        opacity: block.idle ? 0 : 1
         enabled: !block.idle && !App.playerBar.remote
         iconName: "share"
         Accessible.name: qsTr("Share")
+        ToolTip.visible: hovered
+        ToolTip.text: qsTr("Share")
+        ToolTip.delay: 500
         onClicked: App.playerBar.share()
+    }
+
+    IconButton {
+        visible: App.capabilities.downloadSongs
+        opacity: block.idle ? 0 : 1
+        enabled: !block.idle && !App.playerBar.remote
+        iconName: "download"
+        Accessible.name: qsTr("Download this song")
+        ToolTip.visible: hovered
+        ToolTip.text: qsTr("Download this song")
+        ToolTip.delay: 500
+        onClicked: App.offline.downloadPlaying()
     }
 }

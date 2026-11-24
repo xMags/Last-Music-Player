@@ -1,5 +1,7 @@
 #include "ui/player/QueueListModel.h"
 
+#include "core/model/DisplayTitle.h"
+
 #include <QHash>
 
 #include "core/model/ArtworkPlaceholder.h"
@@ -120,7 +122,7 @@ QList<QueueListModel::Row> QueueListModel::rowsOf(const QList<core::QueueEntry>&
         }
         rows.append(Row{
             .key = keys.at(index),
-            .title = track.title,
+            .title = core::displayTitle(track.title),
             .artistLine = artistLine,
             .artworkUrl = CoverSource::forTrack(track).displayUrl(),
             .artworkId = CoverSource::placeholderIdFor(track),

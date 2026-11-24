@@ -44,7 +44,8 @@ RowLayout {
         hoverEnabled: true
         focusPolicy: Qt.StrongFocus
         Accessible.name: qsTr("Clear the queue")
-        onClicked: confirm.open()
+        // Clears at once, as the reference does (only its phone sheet asks).
+        onClicked: App.queueRail.clearUpcoming()
 
         contentItem: Text {
             id: clearLabel
@@ -71,14 +72,5 @@ RowLayout {
             shown: clear.visualFocus
             controlRadius: 2
         }
-    }
-
-    ConfirmDialog {
-        id: confirm
-
-        title: qsTr("Clear upcoming?")
-        description: qsTr("The current song will keep playing. Related tracks can refill the queue after it ends.")
-        confirmLabel: qsTr("Clear")
-        onConfirmed: App.queueRail.clearUpcoming()
     }
 }

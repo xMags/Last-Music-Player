@@ -7,8 +7,10 @@ import LastMusicPlayer
 ApplicationWindow {
     id: window
 
-    width: 1280
-    height: 800
+    // The reference window's first size (1346 by 874 device-independent
+    // pixels), kept inside the work area; later runs restore the last one.
+    width: Math.min(1346, Screen.desktopAvailableWidth)
+    height: Math.min(874, Screen.desktopAvailableHeight)
     minimumWidth: 768
     minimumHeight: 560
     visible: false

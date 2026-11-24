@@ -1,5 +1,7 @@
 #include "ui/player/PlayerBarViewModel.h"
 
+#include "core/model/DisplayTitle.h"
+
 #include "core/app/AppIdentity.h"
 #include "core/connect/ConnectSync.h"
 #include "core/model/ArtworkPlaceholder.h"
@@ -114,8 +116,9 @@ bool PlayerBarViewModel::hasTrack() const
 
 QString PlayerBarViewModel::title() const
 {
+    // Cleaned for display (core::displayTitle), as every surface shows it.
     const core::Track* track = shownTrack();
-    return track ? track->title : QString();
+    return track ? core::displayTitle(track->title) : QString();
 }
 
 QString PlayerBarViewModel::artist() const
