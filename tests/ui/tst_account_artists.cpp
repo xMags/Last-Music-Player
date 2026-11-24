@@ -59,6 +59,7 @@ private slots:
     void followGoesToTheService();
     void tabListsPagesAndLoadsMore();
     void viewsAreAskedForAndCounted();
+    void followAnswerNamesTheArtist();
     void searchWaitsForTypingToStop();
 };
 
@@ -251,6 +252,16 @@ void AccountArtistsTest::viewsAreAskedForAndCounted()
     QTRY_COMPARE(tab.artists()->count(), 0);
     const QUrlQuery again(modes.session.transport.requests.constLast().url);
     QCOMPARE(again.queryItemValue(QStringLiteral("view")), QStringLiteral("default"));
+}
+
+void AccountArtistsTest::followAnswerNamesTheArtist()
+{
+    using lmp::core::account::parseFollowedArtistId;
+    const QByteArray artist = artistJson(QStringLiteral("a9"), QStringLiteral("Mira Sol"), true);
+    QCOMPARE(parseFollowedArtistId("{\"artist\":" + artist + "}"), std::optional<QString>(QStringLiteral("a9")));
+    QCOMPARE(parseFollowedArtistId("{\"data\":{\"artist\":" + artist + "}}"), std::optional<QString>(QStringLiteral("a9")));
+    QVERIFY(!parseFollowedArtistId("{\"artist\":{}}"));
+    QVERIFY(!parseFollowedArtistId("not json"));
 }
 
 QTEST_MAIN(AccountArtistsTest)
