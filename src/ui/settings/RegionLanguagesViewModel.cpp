@@ -222,7 +222,9 @@ void RegionLanguagesViewModel::retryCatalog()
 QString RegionLanguagesViewModel::regionLabel() const
 {
     const int index = regionIndex();
-    return index >= 0 ? m_regions.at(index).name : m_catalogService.region().toUpper();
+    // Before the service's list arrives, the country's own name ("India"),
+    // as regionName gives it, rather than its code.
+    return index >= 0 ? m_regions.at(index).name : catalog::regionDisplayName(m_catalogService.region());
 }
 
 void RegionLanguagesViewModel::setRegionSearch(const QString& search)
