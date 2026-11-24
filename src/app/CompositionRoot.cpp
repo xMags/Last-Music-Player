@@ -279,7 +279,14 @@ CompositionRoot::CompositionRoot()
                      .player = m_player,
                      .scanner = m_scanner,
                      .trackMenu = m_trackMenu,
-                     .navigator = m_navigator})
+                     .navigator = m_navigator,
+                     .mode = &m_mode,
+                     .share = &m_share,
+                     .download =
+                         [this](const QString& title, const QString& subtitle, const QString& artwork,
+                                const QList<core::Track>& tracks) {
+                             return m_offline.downloadTracks(title, subtitle, artwork, tracks);
+                         }})
     , m_catalogArtist({.catalog = m_catalog,
                        .client = m_catalogClient,
                        .accountClient = m_accountClient,

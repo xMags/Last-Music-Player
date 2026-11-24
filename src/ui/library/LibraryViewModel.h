@@ -6,7 +6,10 @@
 #include <QVariantList>
 #include <QtQml/qqmlregistration.h>
 
+#include <functional>
+
 #include "ui/library/CollectionCardModel.h"
+#include "ui/menus/MenuItemListModel.h"
 #include "ui/tracks/TrackListModel.h"
 
 namespace lmp::core {
@@ -17,6 +20,10 @@ class PlayerController;
 class TrackActions;
 } // namespace lmp::core
 
+namespace lmp::core::mode {
+class ModeService;
+}
+
 namespace lmp::core::db {
 class GroupQueries;
 class LibraryQueries;
@@ -25,6 +32,7 @@ class LibraryQueries;
 namespace lmp::ui {
 
 class Navigator;
+class ShareController;
 class TrackMenuController;
 
 // The Library page (`App.library`): the reference's tabs (Playlists, History,
@@ -67,6 +75,10 @@ class LibraryViewModel : public QObject {
     Q_PROPERTY(QString songsFilter READ songsFilter WRITE setSongsFilter NOTIFY songsChanged FINAL)
     // The library has no songs at all (the empty state with a folder button).
     Q_PROPERTY(bool empty READ empty NOTIFY contentChanged FINAL)
+    // A playlist, mix, album or genre card's menu (library.ts
+    // openCardActionsMenu): Play now, Play next, Add to queue, Shuffle,
+    // Download, then Share.
+    Q_PROPERTY(lmp::ui::MenuItemListModel* cardMenu READ cardMenu CONSTANT FINAL)
 
 public:
     struct Parts {
@@ -79,6 +91,11 @@ public:
         core::LibraryScanner& scanner;
         TrackMenuController& trackMenu;
         Navigator& navigator;
+        // A card menu's Download (where songs can be kept) and Share; any
+        // may be missing, and its item is left out then.
+        const core::mode::ModeService* mode = nullptr;
+        ShareController* share = nullptr;
+        std::function<bool(const QString&, const QString&, const QString&, const QList<core::Track>&)> download = {};
     };
 
     // Everything in `parts` is owned by the composition root and outlives this.
@@ -109,6 +126,10 @@ public:
     Q_INVOKABLE void refresh();
     // A card of the given tab's model was chosen.
     Q_INVOKABLE void openCard(const QString& tab, int row);
+    [[nodiscard]] MenuItemListModel* cardMenu() { return &m_cardMenu; }
+    // Fills cardMenu for the card at `row` of `tab`; false when it has none.
+    Q_INVOKABLE bool prepareCardMenu(const QString& tab, int row);
+    Q_INVOKABLE void triggerCardMenu(const QString& itemId);
     // A song of History or Songs was chosen: it plays in its list.
     Q_INVOKABLE void playSong(const QString& list, int row);
     Q_INVOKABLE void likeSong(const QString& list, int row);
@@ -128,6 +149,8 @@ signals:
     void contentChanged();
 
 private:
+    // Every song of a card, as its page lists them.
+    [[nodiscard]] QList<core::Track> tracksOf(const QString& kind, const QString& key);
     [[nodiscard]] TrackListModel* listNamed(const QString& list);
     void readPlaylists();
     void readGroups();
@@ -148,6 +171,13 @@ private:
     QString m_tab = QStringLiteral("playlists");
     QString m_playlistFilter = QStringLiteral("manual");
     CollectionCardModel m_playlists;
+    MenuItemListModel m_cardMenu;
+    QString m_menuKind;
+    QString m_menuKey;
+    QString m_menuTitle;
+    const core::mode::ModeService* m_mode = nullptr;
+    ShareController* m_share = nullptr;
+    std::function<bool(const QString&, const QString&, const QString&, const QList<core::Track>&)> m_download;
     CollectionCardModel m_albums;
     CollectionCardModel m_artists;
     CollectionCardModel m_genres;

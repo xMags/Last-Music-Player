@@ -352,18 +352,8 @@ Item {
                         onClicked: cardTab.serverArtists ? App.accountArtists.openCard(cell.index)
                                                          : App.library.openCard(App.library.tab, cell.index)
                         onMenuRequested: (at, fromKeyboard) => {
-                            if (cell.kind !== "playlist" && cell.kind !== "album-collection")
+                            if (cardTab.serverArtists || !App.library.prepareCardMenu(App.library.tab, cell.index))
                                 return
-                            page.menuKind = cell.kind
-                            page.menuKey = cell.key
-                            page.menuTitle = cell.title
-                            cardMenuItems.clear()
-                            if (cell.kind === "playlist") {
-                                cardMenuItems.addItem("rename", qsTr("Rename playlist"))
-                                cardMenuItems.addItem("delete", qsTr("Delete playlist"), "trash", true)
-                            } else {
-                                cardMenuItems.addItem("delete", qsTr("Delete album"), "trash", true)
-                            }
                             const place = mapToItem(page, at.x, at.y)
                             cardMenu.openAt(place.x, place.y)
                             cardMenu.keyboardActive = fromKeyboard
@@ -395,25 +385,12 @@ Item {
         }
     }
 
-    // The menu of a user playlist's or album's card.
-    property string menuKind: ""
-    property string menuKey: ""
-    property string menuTitle: ""
-
-    MenuItemListModel {
-        id: cardMenuItems
-    }
-
+    // A collection card's menu (library.ts openCardActionsMenu).
     ActionMenu {
         id: cardMenu
 
-        items: cardMenuItems
-        onTriggered: itemId => {
-            if (itemId === "rename")
-                App.collections.requestRename(page.menuKey, page.menuTitle)
-            else if (itemId === "delete")
-                App.collections.requestDelete(page.menuKind, page.menuKey, page.menuTitle)
-        }
+        items: App.library.cardMenu
+        onTriggered: itemId => App.library.triggerCardMenu(itemId)
     }
 
     TrackMenus {

@@ -182,6 +182,15 @@ void LibraryViewModelTest::tabsReadTheLibrary()
     QVERIFY(m_model->playlists()->cardAt(0).subtitle.endsWith(QStringLiteral(" · Auto mix")));
     m_model->setPlaylistFilter(QStringLiteral("manual"));
 
+    // Every collection card has the collection menu; its items play the
+    // card's songs (Download and Share join where they exist).
+    QVERIFY(m_model->prepareCardMenu(QStringLiteral("playlists"), 1));
+    QCOMPARE(m_model->cardMenu()->count(), 4);
+    QCOMPARE(m_model->cardMenu()->idAt(0), QStringLiteral("play"));
+    QCOMPARE(m_model->cardMenu()->idAt(3), QStringLiteral("shuffle"));
+    QVERIFY(m_model->prepareCardMenu(QStringLiteral("albums"), 0));
+    QVERIFY(!m_model->prepareCardMenu(QStringLiteral("artists"), 0));
+
     QStringList albums = titles(*m_model->albums());
     albums.sort();
     QCOMPARE(albums, (QStringList{QStringLiteral("Late Hours"), QStringLiteral("Valleys")}));

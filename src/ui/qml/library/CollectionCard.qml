@@ -22,8 +22,9 @@ Card {
 
     // Only the Library's own artist cards centre their text.
     centred: kind === "artist"
-    // Only the user's own playlists and albums have something to offer here.
-    hasMenu: kind === "playlist" || kind === "album-collection"
+    // Every playlist, mix, album and genre card has the collection menu;
+    // artists have their own.
+    hasMenu: kind !== "artist" && kind !== "catalog"
     art: kind === "system" || kind === "mix" ? systemArt : (kind === "genre" ? genreArt : null)
 
     Component {

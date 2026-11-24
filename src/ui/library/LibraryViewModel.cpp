@@ -1,5 +1,9 @@
 #include "ui/library/LibraryViewModel.h"
 
+#include "ui/share/ShareController.h"
+
+#include "core/mode/ModeService.h"
+
 #include <QColor>
 #include <QCollator>
 #include <QUrl>
@@ -63,6 +67,9 @@ LibraryViewModel::LibraryViewModel(Parts parts, QObject* parent)
     , m_player(parts.player)
     , m_trackMenu(parts.trackMenu)
     , m_navigator(parts.navigator)
+    , m_mode(parts.mode)
+    , m_share(parts.share)
+    , m_download(std::move(parts.download))
 {
     connect(&m_player, &core::PlayerController::currentTrackChanged, this, &LibraryViewModel::followPlayer);
     connect(&m_actions, &core::TrackActions::likedChanged, this, &LibraryViewModel::onLiked);
@@ -334,6 +341,92 @@ void LibraryViewModel::openCard(const QString& tab, int row)
     m_navigator.push(Route(Route::Kind::Collection, {{QStringLiteral("kind"), card.kind},
                                                      {QStringLiteral("key"), card.key},
                                                      {QStringLiteral("title"), card.title}}));
+}
+
+bool LibraryViewModel::prepareCardMenu(const QString& tab, int row)
+{
+    CollectionCardModel* model = tab == QLatin1StringView("playlists") ? &m_playlists
+        : tab == QLatin1StringView("albums")                         ? &m_albums
+        : tab == QLatin1StringView("genres")                         ? &m_genres
+                                                                     : nullptr;
+    if (model == nullptr || row < 0 || row >= model->count()) {
+        return false;
+    }
+    const CollectionCardModel::Card card = model->cardAt(row);
+    m_menuKind = card.kind;
+    m_menuKey = card.key;
+    m_menuTitle = card.title;
+    const bool songs = !tracksOf(card.kind, card.key).isEmpty();
+    QList<MenuItemListModel::Item> items{
+        {.id = QStringLiteral("play"), .label = tr("Play now"), .iconName = QStringLiteral("play"), .enabled = songs},
+        {.id = QStringLiteral("next"), .label = tr("Play next"), .iconName = QStringLiteral("play-next"), .enabled = songs},
+        {.id = QStringLiteral("queue"), .label = tr("Add to queue"), .iconName = QStringLiteral("queue-add"), .enabled = songs},
+        {.id = QStringLiteral("shuffle"), .label = tr("Shuffle"), .iconName = QStringLiteral("shuffle"), .enabled = songs}};
+    // collectionDownloadAction: Download in its own group where songs can
+    // be kept on this PC; then Share in a group of its own.
+    if (m_download && songs && m_mode != nullptr && m_mode->capabilities().downloadSongs) {
+        items.append({.id = QStringLiteral("download"), .label = tr("Download"), .iconName = QStringLiteral("download"),
+                      .separatorBefore = true});
+    }
+    if (m_share != nullptr && m_share->available()) {
+        items.append({.id = QStringLiteral("share"), .label = tr("Share"), .iconName = QStringLiteral("share"),
+                      .enabled = songs, .separatorBefore = true});
+    }
+    m_cardMenu.setItems(std::move(items));
+    return true;
+}
+
+void LibraryViewModel::triggerCardMenu(const QString& itemId)
+{
+    if (m_menuKey.isEmpty()) {
+        return;
+    }
+    const QList<core::Track> tracks = tracksOf(m_menuKind, m_menuKey);
+    if (tracks.isEmpty()) {
+        return;
+    }
+    if (itemId == QLatin1StringView("play")) {
+        for (const core::Track& track : tracks) {
+            if (m_actions.canPlay(track)) {
+                m_actions.play(track, tracks);
+                break;
+            }
+        }
+    } else if (itemId == QLatin1StringView("next")) {
+        // Each goes right after the current song, so the list goes in backwards.
+        for (auto it = tracks.crbegin(); it != tracks.crend(); ++it) {
+            m_actions.playNext(*it);
+        }
+    } else if (itemId == QLatin1StringView("queue")) {
+        m_actions.addAllToQueue(tracks);
+    } else if (itemId == QLatin1StringView("shuffle")) {
+        m_actions.shufflePlay(tracks);
+    } else if (itemId == QLatin1StringView("download") && m_download) {
+        (void)m_download(m_menuTitle, {}, tracks.first().artworkUrl, tracks);
+    } else if (itemId == QLatin1StringView("share") && m_share != nullptr) {
+        m_share->share({.kind = core::share::ShareKind::List,
+                        .title = m_menuTitle,
+                        .artworkUrl = tracks.first().artworkUrl,
+                        .tracks = tracks},
+                       tr("Could not share this playlist."));
+    }
+}
+
+QList<core::Track> LibraryViewModel::tracksOf(const QString& kind, const QString& key)
+{
+    if (kind == QLatin1StringView("mix")) {
+        const std::optional<core::HomeMix> mix = m_mixes.mix(key);
+        return mix ? mix->tracks : QList<core::Track>{};
+    }
+    if (kind == QLatin1StringView("system")) {
+        const std::optional<SystemPlaylist> system = systemPlaylist(key);
+        return system ? m_library.loadTracksForQuery(system->query) : QList<core::Track>{};
+    }
+    // Playlists, albums and genres: the songs their page lists, in its order.
+    core::db::TrackQuery query;
+    query.groupKind = kind;
+    query.groupKey = key;
+    return m_library.loadTracksForQuery(query);
 }
 
 void LibraryViewModel::playSong(const QString& list, int row)
