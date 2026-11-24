@@ -850,7 +850,7 @@ void CompositionRoot::showWelcomeForReview()
 void CompositionRoot::showViewForReview(const QString& view)
 {
     if (view == QLatin1StringView("shelf")) {
-        m_navigator.push(ui::Route(ui::Route::Kind::Shelf, {{QStringLiteral("shelfId"), QStringLiteral("new-releases")}}));
+        m_navigator.push(ui::Route(ui::Route::Kind::Shelf, {{QStringLiteral("key"), QStringLiteral("newAlbums")}}));
         return;
     }
     if (view == QLatin1StringView("charts")) {
