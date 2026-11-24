@@ -849,6 +849,13 @@ CompositionRoot::CompositionRoot()
         m_settingsAbout.refresh();
         m_navigator.openView(static_cast<int>(ui::Route::Kind::Home));
     });
+    // The sidebar first reads its playlists before the stored session is
+    // confirmed, when an account's playlists cannot be read yet; it reads
+    // them again once the session is known, or changes hands.
+    QObject::connect(&m_session, &core::account::AccountSessionService::restoreFinished, &m_sidebar,
+                     [this]() { m_sidebar.refreshPlaylists(); });
+    QObject::connect(&m_session, &core::account::AccountSessionService::ownerChanged, &m_sidebar,
+                     [this]() { m_sidebar.refreshPlaylists(); });
     // A synced account library, or a change of music source, changes what
     // the library holds.
     QObject::connect(&m_sync, &core::account::MusicSyncService::libraryChanged, &m_sync,
