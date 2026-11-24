@@ -909,6 +909,7 @@ void CompositionRoot::showViewForReview(const QString& view)
     const std::optional<ui::Route::Kind> kind = view == QLatin1StringView("library") ? std::optional(ui::Route::Kind::Library)
         : view == QLatin1StringView("settings")                                     ? std::optional(ui::Route::Kind::Settings)
         : view == QLatin1StringView("offline")                                      ? std::optional(ui::Route::Kind::Offline)
+        : view == QLatin1StringView("browse")                                       ? std::optional(ui::Route::Kind::Browse)
                                                                                     : std::nullopt;
     if (kind) {
         m_navigator.openView(static_cast<int>(*kind));
