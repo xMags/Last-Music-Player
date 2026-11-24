@@ -182,7 +182,7 @@ void RegionLanguagesViewModel::loadCatalog()
             }
             m_catalogLoading = false;
             if (!answer) {
-                m_catalogError = tr("Languages could not be loaded.");
+                m_catalogError = core::net::userMessageOr(answer.failure(), tr("Could not load the languages."));
                 emit languagesChanged();
                 return;
             }

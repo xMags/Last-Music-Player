@@ -71,10 +71,14 @@ SettingsSection {
             visible: section.model.mode === "auto"
             spacing: 12
 
-            AppButton {
-                enabled: !section.model.detecting
+            SettingsButton {
+                small: true
+                working: section.model.detecting
                 text: section.model.detecting ? qsTr("Detecting…") : qsTr("Detect again")
-                onClicked: section.model.detect()
+                onClicked: {
+                    if (!section.model.detecting)
+                        section.model.detect()
+                }
             }
 
             Text {
@@ -108,7 +112,8 @@ SettingsSection {
                 color: Theme.danger
             }
 
-            AppButton {
+            SettingsButton {
+                small: true
                 text: qsTr("Retry")
                 onClicked: section.model.retryCatalog()
             }
@@ -125,8 +130,9 @@ SettingsSection {
                 languages: section.model.chosen
             }
 
-            AppButton {
+            SettingsButton {
                 Layout.alignment: Qt.AlignTop
+                small: true
                 text: section.model.editorOpen ? qsTr("Done") : qsTr("Edit")
                 onClicked: section.model.toggleEditor()
             }
@@ -135,7 +141,8 @@ SettingsSection {
         Text {
             Layout.leftMargin: 20
             visible: section.model.mode === "custom" && section.model.chosen.length === 0
-                && !section.model.catalogLoading
+                && !section.model.catalogLoading && section.model.catalogError === ""
+                && !section.model.catalogEmpty
             text: qsTr("No languages chosen yet.")
             font: Theme.settingsRowDescription
             color: Theme.fgSecondary
@@ -228,6 +235,17 @@ SettingsSection {
             }
         }
 
+        Text {
+            Layout.fillWidth: true
+            Layout.leftMargin: 20
+            Layout.rightMargin: 20
+            visible: section.model.mode === "custom" && section.model.catalogEmpty
+            text: qsTr("No languages are available right now.")
+            font: Theme.settingsRowDescription
+            color: Theme.fgSecondary
+            wrapMode: Text.Wrap
+        }
+
         // Off.
         Text {
             Layout.fillWidth: true
@@ -241,5 +259,26 @@ SettingsSection {
         }
 
         Item { Layout.preferredHeight: 10 }
+    }
+
+    SettingsRow {
+        title: qsTr("Tune your recommendations")
+        description: qsTr("Pick your languages and the artists you like in one go")
+
+        SettingsButton {
+            text: qsTr("Start")
+            onClicked: App.welcome.openTune()
+        }
+    }
+
+    // The flow saves on its own; once it closes the section shows what was
+    // picked there.
+    Connections {
+        target: App.welcome
+
+        function onVisibleChanged() {
+            if (!App.welcome.visible)
+                section.model.refresh()
+        }
     }
 }

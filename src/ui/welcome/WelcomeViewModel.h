@@ -79,6 +79,8 @@ public:
     // Opens the flow at its first step. `firstRun` gates the app with the
     // minimums; otherwise it can be closed.
     void open(bool firstRun);
+    // Settings' "Tune your recommendations": the flow, closable.
+    Q_INVOKABLE void openTune() { open(false); }
     Q_INVOKABLE void toggleLanguage(const QString& code);
     Q_INVOKABLE void toggleArtist(const QString& key);
     // The next step, or finishing on the last.
