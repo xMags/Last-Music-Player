@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import QtQuick.Controls
 import QtQuick.Layouts
 import LastMusicPlayer
 
@@ -246,7 +247,16 @@ Column {
                 maximumLineCount: 1
             }
 
+            // mountCollectionNotes: two lines; only when that hides text do
+            // they take a click ("Read more"), opening the full notes in
+            // place and closing them again ("Show less"). The text colour
+            // on hover then.
             Text {
+                id: notes
+
+                property bool expanded: false
+                readonly property bool hasMore: expanded || truncated
+
                 Layout.fillWidth: true
                 Layout.maximumWidth: 680
                 visible: header.description !== ""
@@ -254,10 +264,36 @@ Column {
                 font: Theme.collectionDescription
                 lineHeight: Theme.lineHeightCollectionDescription
                 lineHeightMode: Text.FixedHeight
-                color: Theme.fgSecondary
+                color: notes.hasMore && notesHover.hovered ? Theme.fg : Theme.fgSecondary
                 wrapMode: Text.Wrap
-                maximumLineCount: 2
+                maximumLineCount: expanded ? 10000 : 2
                 elide: Text.ElideRight
+                Accessible.role: notes.hasMore ? Accessible.Button : Accessible.StaticText
+                Accessible.name: text
+
+                ToolTip.visible: notesHover.hovered && notes.hasMore
+                ToolTip.text: notes.expanded ? qsTr("Show less") : qsTr("Read more")
+                ToolTip.delay: 500
+
+                HoverHandler {
+                    id: notesHover
+
+                    cursorShape: notes.hasMore ? Qt.PointingHandCursor : Qt.ArrowCursor
+                }
+
+                TapHandler {
+                    enabled: notes.hasMore
+                    onTapped: notes.expanded = !notes.expanded
+                }
+
+                Connections {
+                    target: header
+
+                    // Another collection's notes start closed.
+                    function onDescriptionChanged() {
+                        notes.expanded = false
+                    }
+                }
             }
 
             Row {
