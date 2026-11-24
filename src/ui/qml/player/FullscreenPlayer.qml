@@ -64,7 +64,7 @@ Rectangle {
         }
 
         FullscreenButton {
-            Accessible.name: qsTr("Close player")
+            Accessible.name: qsTr("Exit full screen")
             anchors.verticalCenter: parent.verticalCenter
             iconName: "fullscreen-exit"
             onClicked: App.fullscreen.close()

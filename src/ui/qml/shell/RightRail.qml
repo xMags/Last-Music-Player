@@ -34,7 +34,9 @@ Rectangle {
         x: 24
         y: tabs.y + tabs.height + 24
         width: rail.width - 2 * 24
-        height: rail.height - y
+        // .sidebar-right's own 16px padding below (the list keeps its 16px
+        // inside the scroll).
+        height: rail.height - y - 16
 
         QueueRail {
             anchors.fill: parent

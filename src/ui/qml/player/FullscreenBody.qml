@@ -90,10 +90,12 @@ Item {
                 Layout.fillWidth: true
                 fillColor: Theme.fullscreenSeekFill
                 trackColor: Theme.fullscreenSeekTrack
+                // The handle only for keyboard focus (styles.css 1501-1502)
+                // and no time bubble (seek-bubble.ts is the bar's only).
+                playerStyle: true
                 trackThickness: 5
                 engagedTrackThickness: 7
                 sourceValue: App.playerBar.progress
-                bubbleText: App.playerBar.seekLabelAt(seek.hoverRatio)
                 onMoved: App.playerBar.seekToRatio(seek.value)
             }
 

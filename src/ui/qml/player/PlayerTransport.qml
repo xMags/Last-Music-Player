@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Controls
 import QtQuick.Layouts
 import LastMusicPlayer
 
@@ -18,6 +19,9 @@ ColumnLayout {
 
         IconButton {
             Accessible.name: qsTr("Shuffle")
+            ToolTip.visible: hovered
+            ToolTip.text: qsTr("Shuffle")
+            ToolTip.delay: 500
             iconName: "shuffle"
             active: App.playerBar.shuffle
             onClicked: App.playerBar.toggleShuffle()
@@ -26,6 +30,9 @@ ColumnLayout {
         // Skipping is greyed out while nothing is loaded.
         IconButton {
             Accessible.name: qsTr("Previous")
+            ToolTip.visible: hovered
+            ToolTip.text: qsTr("Previous")
+            ToolTip.delay: 500
             iconName: "skip-back"
             iconSize: 20
             enabled: !transport.idle
@@ -35,11 +42,17 @@ ColumnLayout {
 
         PlayButton {
             playing: App.playerBar.playing
+            ToolTip.visible: hovered
+            ToolTip.text: App.playerBar.playing ? qsTr("Pause") : qsTr("Play")
+            ToolTip.delay: 500
             onClicked: App.playerBar.togglePlay()
         }
 
         IconButton {
             Accessible.name: qsTr("Next")
+            ToolTip.visible: hovered
+            ToolTip.text: qsTr("Next")
+            ToolTip.delay: 500
             iconName: "skip-fwd"
             iconSize: 20
             enabled: !transport.idle
@@ -48,7 +61,14 @@ ColumnLayout {
         }
 
         IconButton {
-            Accessible.name: qsTr("Repeat")
+            // The title says the mode (player.ts 2309).
+            readonly property string label: App.playerBar.repeatMode === 2 ? qsTr("Repeat one")
+                : App.playerBar.repeatMode === 1 ? qsTr("Repeat all") : qsTr("Repeat off")
+
+            Accessible.name: label
+            ToolTip.visible: hovered
+            ToolTip.text: label
+            ToolTip.delay: 500
             iconName: "repeat"
             active: App.playerBar.repeatMode !== 0
             onClicked: App.playerBar.cycleRepeat()
