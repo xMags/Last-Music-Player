@@ -74,6 +74,7 @@ T.AbstractButton {
                     radius: App.search.topKind === "artist" ? width / 2 : 10
                     big: true
                     shadow: true
+                    shadowLayers: Theme.shadowSearchTopArt
                     source: App.search.topArtworkUrl
                     artworkId: App.search.topArtworkId
                     label: App.search.topArtworkLabel
@@ -99,6 +100,8 @@ T.AbstractButton {
                     elide: Text.ElideRight
                 }
 
+                // .search-top-meta: the kind pill, then who (14px, the
+                // secondary colour).
                 RowLayout {
                     Layout.fillWidth: true
                     spacing: 10
@@ -113,8 +116,7 @@ T.AbstractButton {
                             id: kind
 
                             anchors.centerIn: parent
-                            text: App.search.topKind === "song" ? qsTr("Song")
-                                : App.search.topKind === "artist" ? qsTr("Artist") : qsTr("Album")
+                            text: App.search.topPill
                             font: Theme.searchTopKind
                             color: Theme.fg
                         }
@@ -122,9 +124,9 @@ T.AbstractButton {
 
                     Text {
                         Layout.fillWidth: true
-                        visible: App.search.topKind !== "artist"
-                        text: App.search.topKind === "song" ? App.search.topDetail : ""
-                        font: Theme.trackArtist
+                        visible: App.search.topDetail !== ""
+                        text: App.search.topDetail
+                        font: Theme.body
                         color: Theme.fgSecondary
                         elide: Text.ElideRight
                     }
@@ -132,17 +134,54 @@ T.AbstractButton {
 
                 Item { Layout.fillHeight: true }
 
-                Rectangle {
-                    implicitWidth: 44
-                    implicitHeight: 44
-                    radius: 22
-                    color: Theme.accentFill
+                // .search-top-actions: a song's Play (48px accent with the
+                // accent ink, a 22px icon 3px right of centre, a deep shadow)
+                // and its like; anything else's Open (44px, a dark veil, a
+                // 20px chevron). Both grow to 106% while the card is hovered.
+                RowLayout {
+                    spacing: 12
 
-                    Icon {
-                        anchors.centerIn: parent
-                        name: App.search.topKind === "song" ? "play" : "chevron"
-                        size: App.search.topKind === "song" ? 18 : 16
-                        color: "white"
+                    Item {
+                        implicitWidth: App.search.topKind === "song" ? 48 : 44
+                        implicitHeight: implicitWidth
+                        scale: card.hovered && !Motion.reduced ? 1.06 : 1
+
+                        Behavior on scale {
+                            enabled: !Motion.reduced
+                            NumberAnimation { duration: Motion.searchTopAction; easing: Motion.ease }
+                        }
+
+                        BoxShadow {
+                            anchors.fill: parent
+                            visible: App.search.topKind === "song"
+                            layers: Theme.shadowSearchTopPlay
+                            radius: width / 2
+                        }
+
+                        Rectangle {
+                            anchors.fill: parent
+                            radius: width / 2
+                            color: App.search.topKind === "song" ? Theme.accentColor : Qt.rgba(0, 0, 0, 0.32)
+
+                            Icon {
+                                anchors.centerIn: parent
+                                anchors.horizontalCenterOffset: App.search.topKind === "song" ? 3 / 2 : 0
+                                name: App.search.topKind === "song" ? "play" : "chevron"
+                                size: App.search.topKind === "song" ? 22 : 20
+                                color: App.search.topKind === "song" ? Theme.accentInk : Theme.fg
+                            }
+                        }
+                    }
+
+                    IconButton {
+                        visible: App.search.topKind === "song"
+                        implicitWidth: 40
+                        implicitHeight: 40
+                        iconName: App.search.topLiked ? "heart-fill" : "heart"
+                        iconSize: 20
+                        active: App.search.topLiked
+                        Accessible.name: App.search.topLiked ? qsTr("Remove from liked songs") : qsTr("Add to liked songs")
+                        onClicked: App.search.likeTop()
                     }
                 }
             }

@@ -74,7 +74,12 @@ class SearchViewModel : public QObject {
     // The top result: "song", "artist", "album" or "" (none).
     Q_PROPERTY(QString topKind READ topKind NOTIFY resultsChanged FINAL)
     Q_PROPERTY(QString topTitle READ topTitle NOTIFY resultsChanged FINAL)
+    // The top result's kind pill ("Song", "Artist", "Album", "Single", ...)
+    // and what follows it ("Pritam · 3:45").
+    Q_PROPERTY(QString topPill READ topPill NOTIFY resultsChanged FINAL)
     Q_PROPERTY(QString topDetail READ topDetail NOTIFY resultsChanged FINAL)
+    // A song top result's like button.
+    Q_PROPERTY(bool topLiked READ topLiked NOTIFY resultsChanged FINAL)
     Q_PROPERTY(QUrl topArtworkUrl READ topArtworkUrl NOTIFY resultsChanged FINAL)
     Q_PROPERTY(QString topArtworkId READ topArtworkId NOTIFY resultsChanged FINAL)
     Q_PROPERTY(QString topArtworkLabel READ topArtworkLabel NOTIFY resultsChanged FINAL)
@@ -131,7 +136,9 @@ public:
     [[nodiscard]] CollectionCardModel* categories() { return &m_categories; }
     [[nodiscard]] QString topKind() const { return m_topKind; }
     [[nodiscard]] QString topTitle() const { return m_topTitle; }
+    [[nodiscard]] QString topPill() const { return m_topPill; }
     [[nodiscard]] QString topDetail() const { return m_topDetail; }
+    [[nodiscard]] bool topLiked() const { return m_topSong && m_topSong->liked; }
     [[nodiscard]] QUrl topArtworkUrl() const { return m_topArtworkUrl; }
     [[nodiscard]] QString topArtworkId() const { return m_topArtworkId; }
     [[nodiscard]] QString topArtworkLabel() const { return m_topArtworkLabel; }
@@ -160,6 +167,8 @@ public:
     // A category tile: a genre of the library opens its page; a shortcut searches.
     Q_INVOKABLE void openCategory(int row);
     Q_INVOKABLE void openTop();
+    // Likes or unlikes a song top result.
+    Q_INVOKABLE void likeTop();
     // A card of "artists", "albums" or "playlists".
     Q_INVOKABLE void openCard(const QString& group, int row);
     // A song of "top" (the first four) or "all".
@@ -216,6 +225,7 @@ private:
     QList<core::Track> m_hits;
     QString m_topKind;
     QString m_topTitle;
+    QString m_topPill;
     QString m_topDetail;
     QUrl m_topArtworkUrl;
     QString m_topArtworkId;

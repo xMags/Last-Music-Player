@@ -89,6 +89,21 @@ QVariantList Theme::shadowArt() const
                          {0, 24, 48, 0, black(0.10f)}});
 }
 
+QVariantList Theme::shadowSearchTopArt() const
+{
+    return shadowLayers({{0, 10, 28, 0, black(0.35f)}});
+}
+
+QVariantList Theme::shadowSearchTopPlay() const
+{
+    return shadowLayers({{0, 8, 22, 0, black(0.40f)}});
+}
+
+QVariantList Theme::shadowCategoryCover() const
+{
+    return shadowLayers({{0, 6, 18, 0, black(0.28f)}});
+}
+
 QVariantList Theme::shadowHeroArt() const
 {
     return shadowLayers({{0, 18, 40, 0, black(0.35f)}});

@@ -40,7 +40,8 @@ T.AbstractButton {
                 BoxShadow {
                     anchors.fill: parent
                     visible: tile.artworkUrl.toString() !== ""
-                    layers: Theme.shadowArt
+                    // i.has-cover: 0 6px 18px rgba(0, 0, 0, .28).
+                    layers: Theme.shadowCategoryCover
                     radius: 12
                 }
 
@@ -60,14 +61,6 @@ T.AbstractButton {
                     label: ""
                 }
             }
-        }
-
-        // A light veil on hover.
-        Rectangle {
-            anchors.fill: parent
-            radius: 16
-            color: "white"
-            opacity: tile.hovered ? 0.08 : 0
         }
 
         FocusRing {

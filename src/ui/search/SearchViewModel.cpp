@@ -75,6 +75,10 @@ SearchViewModel::SearchViewModel(Parts parts, QObject* parent)
     connect(&m_actions, &core::TrackActions::likedChanged, this, [this](const QString& sourceKey, bool liked) {
         m_topSongs.setLiked(sourceKey, liked);
         m_songs.setLiked(sourceKey, liked);
+        if (m_topSong && core::catalogSourceKey(*m_topSong) == sourceKey && m_topSong->liked != liked) {
+            m_topSong->liked = liked;
+            emit resultsChanged();
+        }
     });
     m_recent = core::RecentSearchStore::load(m_settings);
 }
@@ -275,7 +279,8 @@ void SearchViewModel::apply(quint64 generation, const QString& query, SearchHits
                 m_topKind = kind;
                 m_topKey = card.key;
                 m_topTitle = card.title;
-                m_topDetail = label;
+                m_topPill = label;
+                m_topDetail = kind == QLatin1StringView("album") ? card.subtitle : QString();
                 m_topArtworkUrl = card.artworkUrl;
                 m_topArtworkId = kind + QLatin1Char(':') + card.key;
                 m_topArtworkLabel = core::ArtworkPlaceholder::tileLabelFor(card.title);
@@ -290,6 +295,7 @@ void SearchViewModel::apply(quint64 generation, const QString& query, SearchHits
         m_topKind = QStringLiteral("song");
         m_topSong = song;
         m_topTitle = core::displayTitle(song.title);
+        m_topPill = tr("Song");
         m_topDetail = QStringList{song.artist, song.durationText}.join(QStringLiteral(" · "));
         m_topArtworkUrl = CoverSource::forLibraryTrack(song).displayUrl();
         m_topArtworkId = CoverSource::placeholderIdFor(song);
@@ -347,6 +353,7 @@ void SearchViewModel::applyOnline(quint64 generation, const QString& query, cons
         m_topKind = QStringLiteral("song");
         m_topSong = song;
         m_topTitle = core::displayTitle(song.title);
+        m_topPill = tr("Song");
         m_topDetail = QStringList{song.artist, song.durationText}.join(QStringLiteral(" · "));
         m_topArtworkUrl = CoverSource::forTrack(song).displayUrl();
         m_topArtworkId = CoverSource::placeholderIdFor(song);
@@ -360,9 +367,19 @@ void SearchViewModel::applyOnline(quint64 generation, const QString& query, cons
         m_topKind = found.topKind;
         m_topKey = item.catalogId;
         m_topTitle = item.title;
-        m_topDetail = found.topKind == QLatin1StringView("artist") ? tr("Artist")
-            : found.topKind == QLatin1StringView("album")         ? (item.subtitle.isEmpty() ? tr("Album") : item.subtitle)
-                                                                  : (item.subtitle.isEmpty() ? tr("Playlist") : item.subtitle);
+        // topDetail: "Artist"; a single or EP names its own kind first
+        // ("Single · Artist"); otherwise "Album" or "Playlist", then who.
+        if (found.topKind == QLatin1StringView("artist")) {
+            m_topPill = tr("Artist");
+            m_topDetail.clear();
+        } else if (item.releaseKind != core::catalog::ReleaseKind::None && !item.subtitle.isEmpty()) {
+            QStringList parts = item.subtitle.split(QStringLiteral(" · "));
+            m_topPill = parts.takeFirst();
+            m_topDetail = parts.join(QStringLiteral(" · "));
+        } else {
+            m_topPill = found.topKind == QLatin1StringView("album") ? tr("Album") : tr("Playlist");
+            m_topDetail = item.subtitle;
+        }
         m_topArtworkUrl = CoverSource::forTrack(cover).displayUrl();
         m_topArtworkId = found.topKind + QLatin1Char(':') + item.title;
         m_topArtworkLabel = core::ArtworkPlaceholder::tileLabelFor(item.title);
@@ -614,6 +631,13 @@ void SearchViewModel::playSong(const QString& list, int row)
     // Just the clicked song: results are not a playlist, so autoplay fills
     // Up Next after it (the reference's play: "single").
     m_actions.play(model->trackAt(row));
+}
+
+void SearchViewModel::likeTop()
+{
+    if (m_topSong) {
+        [[maybe_unused]] const std::optional<bool> liked = m_actions.toggleLike(*m_topSong);
+    }
 }
 
 void SearchViewModel::likeSong(const QString& list, int row)

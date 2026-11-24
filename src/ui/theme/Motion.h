@@ -58,6 +58,8 @@ class Motion : public QObject {
     Q_PROPERTY(int settingsFade READ settingsFade CONSTANT FINAL)
     // A Settings dialog rising in (settings-dialog-in, .18s).
     Q_PROPERTY(int settingsDialogIn READ settingsDialogIn CONSTANT FINAL)
+    // A search top card's Play or Open growing on hover (.18s).
+    Q_PROPERTY(int searchTopAction READ searchTopAction CONSTANT FINAL)
     // A card's cover zooms on hover (styles.css 593-602).
     Q_PROPERTY(int cardZoom READ cardZoom CONSTANT FINAL)
     Q_PROPERTY(int playPress READ playPress CONSTANT FINAL)
@@ -150,6 +152,7 @@ public:
     [[nodiscard]] int chipFade() const { return 150; }
     [[nodiscard]] int settingsFade() const { return 150; }
     [[nodiscard]] int settingsDialogIn() const { return 180; }
+    [[nodiscard]] int searchTopAction() const { return 180; }
     [[nodiscard]] int cardZoom() const { return 450; }
     [[nodiscard]] int playPress() const { return 100; }
     [[nodiscard]] int sliderGlide() const { return 140; }

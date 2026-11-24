@@ -25,6 +25,12 @@ class Theme : public ThemeColors {
     Q_PROPERTY(QVariantList shadowArt READ shadowArt NOTIFY changed FINAL)
     // Home's hero cover (.home-hero-art: 0 18px 40px rgba(0,0,0,.35)).
     Q_PROPERTY(QVariantList shadowHeroArt READ shadowHeroArt CONSTANT FINAL)
+    // A Browse category tile's tilted cover (0 6px 18px rgba(0,0,0,.28)).
+    Q_PROPERTY(QVariantList shadowCategoryCover READ shadowCategoryCover CONSTANT FINAL)
+    // A search top card's Play (0 8px 22px rgba(0,0,0,.4)).
+    Q_PROPERTY(QVariantList shadowSearchTopPlay READ shadowSearchTopPlay CONSTANT FINAL)
+    // A search top card's cover (0 10px 28px rgba(0,0,0,.35)).
+    Q_PROPERTY(QVariantList shadowSearchTopArt READ shadowSearchTopArt CONSTANT FINAL)
     Q_PROPERTY(QVariantList shadowButton READ shadowButton NOTIFY changed FINAL)
     Q_PROPERTY(QVariantList shadowButtonHover READ shadowButtonHover NOTIFY changed FINAL)
     Q_PROPERTY(QVariantList shadowSliderThumb READ shadowSliderThumb NOTIFY changed FINAL)
@@ -54,6 +60,9 @@ public:
     [[nodiscard]] QVariantList shadowFlyout() const;
     [[nodiscard]] QVariantList shadowArt() const;
     [[nodiscard]] QVariantList shadowHeroArt() const;
+    [[nodiscard]] QVariantList shadowCategoryCover() const;
+    [[nodiscard]] QVariantList shadowSearchTopPlay() const;
+    [[nodiscard]] QVariantList shadowSearchTopArt() const;
     [[nodiscard]] QVariantList shadowButton() const;
     [[nodiscard]] QVariantList shadowButtonHover() const;
     [[nodiscard]] QVariantList shadowSliderThumb() const;
