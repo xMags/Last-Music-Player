@@ -69,9 +69,11 @@ T.AbstractButton {
     }
 
     contentItem: Item {
+        // A <button> centres its content: the name sits in the middle of
+        // the tile's height, inside its 16px padding.
         Text {
             x: 16
-            y: 16
+            y: Math.max(16, (parent.height - height) / 2)
             width: parent.width - 32 - 36
             text: tile.title
             font: Theme.searchCategory
