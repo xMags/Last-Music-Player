@@ -5,7 +5,12 @@
 
 #include <memory>
 
+#include "../core/ModeServiceFixture.h"
 #include "../core/PlayerFixture.h"
+#include "core/db/CollectionRepository.h"
+#include "core/db/GroupQueries.h"
+#include "core/library/TrackActions.h"
+#include "core/library/UserDataOperationGate.h"
 #include "core/db/LibraryQueries.h"
 #include "core/model/CatalogSourceKey.h"
 #include "core/playback/QueueTypes.h"
@@ -13,6 +18,7 @@
 #include "ui/player/QueueListModel.h"
 #include "ui/player/QueueRailViewModel.h"
 #include "ui/toasts/ToastQueue.h"
+#include "ui/tracks/TrackMenuController.h"
 
 using lmp::core::PlayerController;
 using lmp::core::RepeatMode;
@@ -47,6 +53,7 @@ private slots:
     void playRowPlaysThatSongUnlessTheRowChanged();
     void moveRowCommitsTheDraggedOrder();
     void menuItemsFollowTheRowsPlace();
+    void rowMenuOffersTheSongItems();
     void menuActionsFollowTheSongWhenTheQueueMoves();
     void removeOffersUndoThatPutsTheSongBack();
     void removeOffersNoUndoWhenTheSongIsStillQueued();
@@ -156,6 +163,39 @@ void QueueRailViewModelTest::moveRowCommitsTheDraggedOrder()
     m_rail->moveRow(0, 9, keyAt(0));
     QCOMPARE(visibleTitles(*m_player), QStringList({"e", "c", "d", "b"}));
     QCOMPARE(m_player->currentTrack()->title, QStringLiteral("a"));
+}
+
+void QueueRailViewModelTest::rowMenuOffersTheSongItems()
+{
+    lmp::test::ModeServiceFixture modes;
+    lmp::core::db::CollectionRepository collections(m_fixture->library.database());
+    lmp::core::db::GroupQueries groups(m_fixture->library.database());
+    lmp::core::UserDataOperationGate gate;
+    lmp::core::TrackActions actions(lmp::core::TrackActions::Dependencies{
+        *m_player, m_fixture->tracks, collections, groups, modes.modes, gate});
+    lmp::ui::TrackMenuController trackMenu(actions);
+    makeViewModel();
+    m_rail->setTrackMenu(&trackMenu);
+    playSongs({"a", "b", "c"});
+
+    // The queue's own actions, the song menu's items, then Remove.
+    QVERIFY(m_rail->prepareMenu(1, keyAt(1)));
+    const QStringList ids = menuIds(*m_rail->menu());
+    QCOMPARE(ids.first(), QStringLiteral("play"));
+    QCOMPARE(ids.last(), QStringLiteral("remove"));
+    QVERIFY(ids.contains(QStringLiteral("song:playlist")));
+    QVERIFY(ids.contains(QStringLiteral("song:like")));
+    QVERIFY(ids.contains(QStringLiteral("song:artist")));
+    QVERIFY(ids.indexOf(QStringLiteral("song:playlist")) > ids.indexOf(QStringLiteral("down")));
+    QVERIFY(!ids.contains(QStringLiteral("song:next")));
+    // Add to playlist starts a new group, as in the song menu.
+    const QModelIndex playlist = m_rail->menu()->index(static_cast<int>(ids.indexOf(QStringLiteral("song:playlist"))));
+    QVERIFY(playlist.data(MenuItemListModel::SeparatorBeforeRole).toBool());
+
+    // A song item goes to the song menu, prepared for this row's song.
+    QSignalSpy playlistMenu(&trackMenu, &lmp::ui::TrackMenuController::playlistMenuRequested);
+    m_rail->triggerMenu(QStringLiteral("song:playlist"));
+    QCOMPARE(playlistMenu.count(), 1);
 }
 
 void QueueRailViewModelTest::menuItemsFollowTheRowsPlace()

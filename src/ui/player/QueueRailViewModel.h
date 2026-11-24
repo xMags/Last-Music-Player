@@ -24,6 +24,7 @@ class ConnectSync;
 namespace lmp::ui {
 
 class ToastQueue;
+class TrackMenuController;
 
 // The Up Next list (`App.queueRail`), shown in the queue rail and in the
 // full-screen player's side panel: the songs to come (`queue`), their row
@@ -62,6 +63,11 @@ public:
     [[nodiscard]] QueueListModel* queue() { return &m_queue; }
     [[nodiscard]] QueueListModel* recent() { return &m_recent; }
     [[nodiscard]] MenuItemListModel* menu() { return &m_menu; }
+    // The song menu whose items a row's menu also offers (Add to playlist,
+    // Like, Share, Go to artist, Go to album), as the reference's queue menu
+    // does. It outlives the view model; without it the row menu keeps only
+    // the queue's own actions.
+    void setTrackMenu(TrackMenuController* trackMenu) { m_trackMenu = trackMenu; }
     [[nodiscard]] bool hasTrack() const;
     [[nodiscard]] QString autoplayStatus() const;
 
@@ -110,6 +116,7 @@ private:
     QueueListModel m_queue;
     QueueListModel m_recent;
     MenuItemListModel m_menu;
+    TrackMenuController* m_trackMenu = nullptr;
     // The history, newest first, each song once: what a recent play goes on with.
     QList<core::Track> m_recentContext;
     // The row the menu was prepared for.

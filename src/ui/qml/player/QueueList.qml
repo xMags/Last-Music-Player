@@ -159,11 +159,18 @@ Item {
 
         items: App.queueRail.menu
         onTriggered: itemId => App.queueRail.triggerMenu(itemId)
+        onClosed: songMenus.disarmSoon()
+    }
+
+    // Where "Add to playlist" from a row's menu opens its playlist menu.
+    TrackMenus {
+        id: songMenus
     }
 
     function openMenu(row: QueueRow, at: point, fromKeyboard: bool) {
         if (!App.queueRail.prepareMenu(row.index, row.rowKey))
             return
+        songMenus.arm(row, at.x, at.y)
         const place = row.mapToItem(root, at)
         menu.openAt(place.x, place.y)
         menu.keyboardActive = fromKeyboard

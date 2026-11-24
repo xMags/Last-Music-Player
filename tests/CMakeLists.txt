@@ -75,7 +75,7 @@ lmp_add_test(tst_queue_list_model
     LIBS lmp_ui)
 
 lmp_add_test(tst_queue_rail_view_model
-    SOURCES ui/tst_queue_rail_view_model.cpp core/PlayerFixture.h core/FakeAudioPlayer.h core/FakePlaybackClock.h core/TempLibrary.h
+    SOURCES ui/tst_queue_rail_view_model.cpp core/PlayerFixture.h core/FakeAudioPlayer.h core/FakePlaybackClock.h core/TempLibrary.h core/ModeServiceFixture.h core/AccountSessionFixture.h core/FakeCredentialStore.h core/FakeHttpTransport.h
     LIBS lmp_ui)
 
 lmp_add_test(tst_queue_row_drag

@@ -45,6 +45,7 @@ public:
     [[nodiscard]] QHash<int, QByteArray> roleNames() const override;
 
     [[nodiscard]] int count() const { return static_cast<int>(m_items.size()); }
+    [[nodiscard]] const QList<Item>& items() const { return m_items; }
 
     // Replaces every item at once.
     void setItems(QList<Item> items);

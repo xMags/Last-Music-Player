@@ -11,6 +11,8 @@
 #include "core/playback/PlayerController.h"
 #include "core/playback/QueueTrackIdentity.h"
 #include "ui/toasts/ToastQueue.h"
+#include "ui/tracks/TrackMenuBuilder.h"
+#include "ui/tracks/TrackMenuController.h"
 
 namespace lmp::ui {
 
@@ -22,6 +24,8 @@ constexpr QLatin1StringView kUp{"up"};
 constexpr QLatin1StringView kDown{"down"};
 constexpr QLatin1StringView kRemove{"remove"};
 constexpr QLatin1StringView kUndoPrefix{"queue-undo-"};
+// The song menu's items in a row's menu carry this before their own id.
+constexpr QLatin1StringView kSongPrefix{"song:"};
 
 [[nodiscard]] bool inRange(qsizetype index, qsizetype size)
 {
@@ -135,6 +139,23 @@ bool QueueRailViewModel::prepareMenu(int row, const QString& rowKey)
     if (row < entries.size() - 1) {
         items.append({.id = QString(kDown), .label = tr("Move down"), .iconName = QStringLiteral("arrow-down")});
     }
+    // Then what any song menu offers (track-menu.ts songMenuItems): Add to
+    // playlist and Like, Share, then Go to artist and Go to album.
+    if (m_trackMenu != nullptr) {
+        m_trackMenu->prepare(entries.at(row).track, {});
+        const QSet<QString> songItems{QString(TrackMenuBuilder::AddToPlaylist), QString(TrackMenuBuilder::Like),
+                                      QString(TrackMenuBuilder::Share), QString(TrackMenuBuilder::Artist),
+                                      QString(TrackMenuBuilder::Album)};
+        for (const MenuItemListModel::Item& item : m_trackMenu->menu()->items()) {
+            if (!songItems.contains(item.id)) {
+                continue;
+            }
+            MenuItemListModel::Item copy = item;
+            copy.id = QString(kSongPrefix) + item.id;
+            copy.separatorBefore = item.id == TrackMenuBuilder::AddToPlaylist || item.id == TrackMenuBuilder::Artist;
+            items.append(copy);
+        }
+    }
     items.append({.id = QString(kRemove),
                   .label = tr("Remove from queue"),
                   .iconName = QStringLiteral("trash"),
@@ -148,6 +169,13 @@ void QueueRailViewModel::triggerMenu(const QString& itemId)
 {
     // The queue can move on while the menu is open (a song ends), so the
     // action follows the song, not the row it was on.
+    if (itemId.startsWith(kSongPrefix)) {
+        // The song menu was prepared for this row's song when the menu opened.
+        if (m_trackMenu != nullptr) {
+            m_trackMenu->trigger(itemId.mid(kSongPrefix.size()));
+        }
+        return;
+    }
     const qsizetype now = livePosition(m_menuPosition, m_menuIdentity);
     if (now < 0) {
         return;

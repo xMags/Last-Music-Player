@@ -655,6 +655,8 @@ CompositionRoot::CompositionRoot()
     QObject::connect(&m_connectSync, &core::connect::ConnectSync::notice, &m_toasts,
                      [this](const QString& text) { m_toasts.show(text, true); });
     updateConnect();
+    // A queue row's menu also offers the song menu's items.
+    m_queueRail.setTrackMenu(&m_trackMenu);
     // Discord presence follows its setting and the player.
     m_presence.setEnabled(m_settings.boolean(core::settings::keys::DiscordPresence, false));
     m_presenceVisibilityTimer.setSingleShot(true);
