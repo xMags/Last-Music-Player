@@ -54,7 +54,20 @@ Item {
                 byline: page.model.byline
                 info: page.model.info
                 canPlay: !page.model.showsCards && page.model.tracks.count > 0
-                showMenu: false
+                // "More options for <title>": Play next, Add to queue,
+                // Download, then Share (catalog.ts openDetailMenu).
+                showMenu: !page.model.showsCards
+                onMenuClicked: at => {
+                    detailItems.clear()
+                    detailItems.addItem("next", qsTr("Play next"), "play-next")
+                    detailItems.addItem("queue", qsTr("Add to queue"), "queue-add")
+                    if (App.capabilities.downloadSongs && page.model.canShare)
+                        detailItems.addItem("download", qsTr("Download"), "download", false, true)
+                    if (App.share.available && page.model.canShare)
+                        detailItems.addItem("share", qsTr("Share"), "share", false, true)
+                    const place = mapToItem(page, at.x, at.y)
+                    detailMenu.openAt(place.x - 20, place.y + 4)
+                }
                 showViewSwitch: !page.model.showsCards
                 coverStyle: "image"
                 artworkUrl: page.model.artworkUrl
@@ -197,6 +210,26 @@ Item {
         }
 
         WheelScroll { flickable: cardsView }
+    }
+
+    MenuItemListModel {
+        id: detailItems
+    }
+
+    ActionMenu {
+        id: detailMenu
+
+        items: detailItems
+        onTriggered: itemId => {
+            if (itemId === "next")
+                page.model.playNextAll()
+            else if (itemId === "queue")
+                page.model.addAllToQueue()
+            else if (itemId === "download")
+                page.model.download()
+            else if (itemId === "share")
+                page.model.share()
+        }
     }
 
     TrackMenus {

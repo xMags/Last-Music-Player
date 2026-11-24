@@ -127,6 +127,10 @@ public:
     Q_INVOKABLE void playRow(int row);
     Q_INVOKABLE void play();
     Q_INVOKABLE void shuffle();
+    // The header's More menu: every song after the current one, or at the
+    // end of the queue.
+    Q_INVOKABLE void playNextAll();
+    Q_INVOKABLE void addAllToQueue();
     Q_INVOKABLE void prepareSongMenu(int row);
     Q_INVOKABLE void openCard(int row);
     Q_INVOKABLE void toggleSave();
@@ -169,6 +173,8 @@ private:
     QString m_eyebrow;
     QString m_title;
     QString m_byline;
+    // A chart's subtitle, last on its info line (it has no byline).
+    QString m_infoSuffix;
     QString m_description;
     QUrl m_artworkUrl;
     // The picture's own link, for a share link.

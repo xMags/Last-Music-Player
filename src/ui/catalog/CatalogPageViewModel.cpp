@@ -117,6 +117,7 @@ void CatalogPageViewModel::reset(const QString& kind)
     m_eyebrow.clear();
     m_title.clear();
     m_byline.clear();
+    m_infoSuffix.clear();
     m_description.clear();
     m_artworkUrl.clear();
     m_shareArtwork.clear();
@@ -301,9 +302,12 @@ void CatalogPageViewModel::load(const Route& route, bool force)
             }
             const catalog::Chart& value = result.value();
             m_loading = false;
-            m_eyebrow = tr("CHART");
+            m_eyebrow = value.descriptor.ref.kind == catalog::ChartKind::City    ? tr("CITY CHART")
+                : value.descriptor.ref.kind == catalog::ChartKind::Genre ? tr("GENRE CHART")
+                                                                         : tr("CHART");
             m_title = value.descriptor.title.isEmpty() ? value.shelf.title : value.descriptor.title;
-            m_byline = value.descriptor.subtitle;
+            // chartMeta: songs · length · subtitle, no byline.
+            m_infoSuffix = value.descriptor.subtitle;
             m_shareArtwork = value.descriptor.artworkUrl;
             m_artworkUrl = value.descriptor.artworkUrl.isEmpty()
                 ? QUrl(ChartArtImageProvider::sourceFor(catalog::resolveChartVisual(value.descriptor)))
@@ -531,18 +535,26 @@ QString CatalogPageViewModel::pagingState() const
 QString CatalogPageViewModel::info() const
 {
     const QList<core::Track>& songs = m_tracks.tracks();
-    if (m_showsCards || songs.isEmpty()) {
-        return {};
+    QStringList parts;
+    if (!m_showsCards && !songs.isEmpty()) {
+        double seconds = 0;
+        for (const core::Track& song : songs) {
+            seconds += std::max(0.0, song.durationSeconds);
+        }
+        parts.append(songs.size() == 1 ? tr("1 song") : tr("%1 songs").arg(songs.size()));
+        // totalDurationLabel: at least a minute; "N hr" with no minutes left.
+        if (seconds > 0) {
+            const qint64 minutes = std::max<qint64>(1, std::llround(seconds / 60.0));
+            const qint64 rest = minutes % 60;
+            parts.append(minutes < 60 ? tr("%1 min").arg(minutes)
+                         : rest > 0   ? tr("%1 hr %2 min").arg(minutes / 60).arg(rest)
+                                      : tr("%1 hr").arg(minutes / 60));
+        }
     }
-    double seconds = 0;
-    for (const core::Track& song : songs) {
-        seconds += std::max(0.0, song.durationSeconds);
+    if (!m_infoSuffix.isEmpty()) {
+        parts.append(m_infoSuffix);
     }
-    const qint64 minutes = std::llround(seconds / 60.0);
-    const QString length = minutes >= 60 ? tr("%1 hr %2 min").arg(minutes / 60).arg(minutes % 60)
-                                         : tr("%1 min").arg(minutes);
-    const QString count = songs.size() == 1 ? tr("1 song") : tr("%1 songs").arg(songs.size());
-    return minutes > 0 ? count + QStringLiteral(" · ") + length : count;
+    return parts.join(QStringLiteral(" · "));
 }
 
 bool CatalogPageViewModel::canSave() const
@@ -595,6 +607,20 @@ void CatalogPageViewModel::play()
 void CatalogPageViewModel::shuffle()
 {
     m_actions.shufflePlay(m_tracks.tracks());
+}
+
+void CatalogPageViewModel::playNextAll()
+{
+    // Each goes right after the current song, so the list goes in backwards.
+    const QList<core::Track>& tracks = m_tracks.tracks();
+    for (auto it = tracks.crbegin(); it != tracks.crend(); ++it) {
+        m_actions.playNext(*it);
+    }
+}
+
+void CatalogPageViewModel::addAllToQueue()
+{
+    m_actions.addAllToQueue(m_tracks.tracks());
 }
 
 void CatalogPageViewModel::prepareSongMenu(int row)
