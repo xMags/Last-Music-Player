@@ -89,6 +89,24 @@ QVariantList Theme::shadowArt() const
                          {0, 24, 48, 0, black(0.10f)}});
 }
 
+QVariantList Theme::shadowSignInRecord() const
+{
+    // 0 34px 70px rgba(0,0,0,.6)
+    return shadowLayers({{0, 34, 70, 0, black(0.6f)}});
+}
+
+QVariantList Theme::shadowSignInSleeve() const
+{
+    // 0 50px 90px -20px rgba(0,0,0,.7), 0 18px 36px rgba(0,0,0,.35)
+    return shadowLayers({{0, 50, 90, -20, black(0.7f)}, {0, 18, 36, 0, black(0.35f)}});
+}
+
+QVariantList Theme::shadowSignInButton() const
+{
+    // 0 10px 24px rgba(0,0,0,.28)
+    return shadowLayers({{0, 10, 24, 0, black(0.28f)}});
+}
+
 QVariantList Theme::shadowWelcomeFoot() const
 {
     return shadowLayers({{0, 18, 44, -18, black(0.34f)}});

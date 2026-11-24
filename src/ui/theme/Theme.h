@@ -37,6 +37,10 @@ class Theme : public ThemeColors {
     Q_PROPERTY(QVariantList shadowCatalogHeroArt READ shadowCatalogHeroArt CONSTANT FINAL)
     // The welcome flow's floating footer (0 18px 44px -18px rgba(0,0,0,.34)).
     Q_PROPERTY(QVariantList shadowWelcomeFoot READ shadowWelcomeFoot CONSTANT FINAL)
+    // The sign-in gate: the record, the sleeve and the hovered button.
+    Q_PROPERTY(QVariantList shadowSignInRecord READ shadowSignInRecord CONSTANT FINAL)
+    Q_PROPERTY(QVariantList shadowSignInSleeve READ shadowSignInSleeve CONSTANT FINAL)
+    Q_PROPERTY(QVariantList shadowSignInButton READ shadowSignInButton CONSTANT FINAL)
     Q_PROPERTY(QVariantList shadowButton READ shadowButton NOTIFY changed FINAL)
     Q_PROPERTY(QVariantList shadowButtonHover READ shadowButtonHover NOTIFY changed FINAL)
     Q_PROPERTY(QVariantList shadowSliderThumb READ shadowSliderThumb NOTIFY changed FINAL)
@@ -72,6 +76,9 @@ public:
     [[nodiscard]] QVariantList shadowShelfArrow() const;
     [[nodiscard]] QVariantList shadowCatalogHeroArt() const;
     [[nodiscard]] QVariantList shadowWelcomeFoot() const;
+    [[nodiscard]] QVariantList shadowSignInRecord() const;
+    [[nodiscard]] QVariantList shadowSignInSleeve() const;
+    [[nodiscard]] QVariantList shadowSignInButton() const;
     [[nodiscard]] QVariantList shadowButton() const;
     [[nodiscard]] QVariantList shadowButtonHover() const;
     [[nodiscard]] QVariantList shadowSliderThumb() const;

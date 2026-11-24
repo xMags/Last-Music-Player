@@ -116,6 +116,11 @@ struct TextStyles {
     TextStyle welcomeNext;
     TextStyle welcomeTrayMore;
     TextStyle welcomeAccountName;
+    TextStyle signInMeta;
+    TextStyle signInRecordName;
+    TextStyle signInRecordVol;
+    TextStyle signInPlatform;
+    TextStyle signInHelp;
     TextStyle settingsSection;
     TextStyle settingsRowTitle;
     TextStyle settingsRowDescription;

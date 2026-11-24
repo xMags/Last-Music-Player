@@ -80,6 +80,11 @@ class ThemeTypography : public QObject {
     Q_PROPERTY(QFont welcomeNext READ welcomeNext CONSTANT FINAL)
     Q_PROPERTY(QFont welcomeTrayMore READ welcomeTrayMore CONSTANT FINAL)
     Q_PROPERTY(QFont welcomeAccountName READ welcomeAccountName CONSTANT FINAL)
+    Q_PROPERTY(QFont signInMeta READ signInMeta CONSTANT FINAL)
+    Q_PROPERTY(QFont signInRecordName READ signInRecordName CONSTANT FINAL)
+    Q_PROPERTY(QFont signInRecordVol READ signInRecordVol CONSTANT FINAL)
+    Q_PROPERTY(QFont signInPlatform READ signInPlatform CONSTANT FINAL)
+    Q_PROPERTY(QFont signInHelp READ signInHelp CONSTANT FINAL)
     Q_PROPERTY(qreal lineHeightWelcomeTitle READ lineHeightWelcomeTitle CONSTANT FINAL)
     Q_PROPERTY(qreal lineHeightWelcomeText READ lineHeightWelcomeText CONSTANT FINAL)
     Q_PROPERTY(qreal lineHeightSectionPill READ lineHeightSectionPill CONSTANT FINAL)
@@ -272,6 +277,11 @@ public:
     [[nodiscard]] QFont welcomeNext() const { return m_text.welcomeNext.font; }
     [[nodiscard]] QFont welcomeTrayMore() const { return m_text.welcomeTrayMore.font; }
     [[nodiscard]] QFont welcomeAccountName() const { return m_text.welcomeAccountName.font; }
+    [[nodiscard]] QFont signInMeta() const { return m_text.signInMeta.font; }
+    [[nodiscard]] QFont signInRecordName() const { return m_text.signInRecordName.font; }
+    [[nodiscard]] QFont signInRecordVol() const { return m_text.signInRecordVol.font; }
+    [[nodiscard]] QFont signInPlatform() const { return m_text.signInPlatform.font; }
+    [[nodiscard]] QFont signInHelp() const { return m_text.signInHelp.font; }
     [[nodiscard]] qreal lineHeightWelcomeTitle() const { return m_text.welcomeTitle.lineHeight; }
     [[nodiscard]] qreal lineHeightWelcomeText() const { return m_text.welcomeText.lineHeight; }
     [[nodiscard]] qreal lineHeightSectionPill() const { return m_text.sectionPill.lineHeight; }

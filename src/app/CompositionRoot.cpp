@@ -27,6 +27,8 @@
 #include <QWindow>
 
 #include <memory>
+#include <QTimer>
+
 #include <optional>
 
 #include "core/app/AppIdentity.h"
@@ -874,6 +876,11 @@ void CompositionRoot::showWelcomeForReview()
 
 void CompositionRoot::showViewForReview(const QString& view)
 {
+    if (view == QLatin1StringView("signin")) {
+        m_navigator.openView(static_cast<int>(ui::Route::Kind::Settings));
+        QTimer::singleShot(300, &m_source, [this]() { emit m_source.signInRequested(); });
+        return;
+    }
     if (view == QLatin1StringView("connect")) {
         m_layout.toggleConnect();
         return;

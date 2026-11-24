@@ -174,7 +174,8 @@ public:
     // Opens Browse and searches for `query` (the Debug build's --search).
     void showSearchForReview(const QString& query);
     // For reviewing a page: "library", "settings", "offline", "charts", "shelf" (New Albums)
-    // "artist" (a catalogue artist page) or "connect" (the Connect panel)
+    // "artist" (a catalogue artist page), "connect" (the Connect panel)
+    // or "signin" (the sign-in gate)
     // (others are ignored).
     void showViewForReview(const QString& view);
 
