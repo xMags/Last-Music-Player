@@ -1,5 +1,7 @@
 #include "ui/theme/ThemeColors.h"
 
+#include <algorithm>
+
 #include <QAccessibilityHints>
 #include <QEvent>
 #include <QGuiApplication>
@@ -111,6 +113,20 @@ QColor ThemeColors::accentSel() const
 QColor ThemeColors::accentFill2() const
 {
     return lmp::ui::mixOklab(accentSeed(), Qt::white, 0.72);
+}
+
+QColor ThemeColors::dangerConfirmHover() const
+{
+    // filter: brightness(1.06): each channel times 1.06, clipped at full.
+    const QColor base = danger();
+    const auto brighter = [](float channel) { return std::min(1.0f, channel * 1.06f); };
+    return QColor::fromRgbF(brighter(base.redF()), brighter(base.greenF()), brighter(base.blueF()), base.alphaF());
+}
+
+QColor ThemeColors::dangerConfirmInk() const
+{
+    // #fff on the light theme, #1A1A1A on the dark one.
+    return dark() ? QColor(0x1A, 0x1A, 0x1A) : QColor(Qt::white);
 }
 
 QColor ThemeColors::mixSrgb(const QColor& a, const QColor& b, qreal amountOfA) const

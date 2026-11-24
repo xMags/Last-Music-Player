@@ -67,6 +67,12 @@ struct TextStyles {
     TextStyle settingsRowTitle;
     TextStyle settingsRowDescription;
     TextStyle settingsTileLabel;
+    TextStyle settingsHeroName;
+    TextStyle settingsAvatarLetter;
+    TextStyle settingsTier;
+    TextStyle settingsDialogText;
+    TextStyle settingsComboLabel;
+    TextStyle settingsDialogState;
     TextStyle signInTitle;
     TextStyle signInLabel;
     TextStyle signInTagline;
@@ -104,6 +110,7 @@ struct TextStyles {
     TextStyle homeGreeting;
     TextStyle buttonLabel;
     TextStyle settingsButtonLabel;
+    TextStyle settingsButtonSmallLabel;
     TextStyle chipLabel;
     TextStyle bubbleLabel;
     TextStyle selectLabel;

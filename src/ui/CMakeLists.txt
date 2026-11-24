@@ -140,6 +140,10 @@ set(LMP_UI_QML_FILES
     qml/settings/SettingsSection.qml
     qml/settings/SettingsSectionHead.qml
     qml/settings/SettingsSelectRow.qml
+    qml/settings/SettingsButton.qml
+    qml/settings/SettingsSpinner.qml
+    qml/settings/SettingsConfirmDialog.qml
+    qml/settings/SettingsRegionPicker.qml
     qml/settings/SettingsSwitchRow.qml
     qml/settings/SourceModeCards.qml
     qml/settings/ThemeTile.qml

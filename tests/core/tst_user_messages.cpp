@@ -31,6 +31,7 @@ private slots:
     void signInFailuresReadAsSignInProblems();
     void accountStatusesHaveBoundedText();
     void planRefusalIsTheOnlyServerTextShown();
+    void screensFallBackForFailuresWithoutARequest();
 };
 
 void UserMessagesTest::textsAreTheFixedSentences_data()
@@ -169,6 +170,22 @@ void UserMessagesTest::planRefusalIsTheOnlyServerTextShown()
     QVERIFY(!planRefusalText(QJsonObject{{QStringLiteral("code"), QStringLiteral("plan_required")},
                                          {QStringLiteral("error"), 7}})
                  .has_value());
+}
+
+void UserMessagesTest::screensFallBackForFailuresWithoutARequest()
+{
+    using lmp::core::net::userMessageOr;
+    const QString fallback = QStringLiteral("Could not load music regions.");
+    QCOMPARE(userMessageOr(Failure::of(FailureKind::Network, QStringLiteral("x")), fallback),
+             userMessageText(UserMessage::Connection));
+    QCOMPARE(userMessageOr(Failure::of(FailureKind::Timeout, QStringLiteral("x")), fallback),
+             userMessageText(UserMessage::Timeout));
+    Failure server = Failure::of(FailureKind::Server, QStringLiteral("x"));
+    server.httpStatus = 503;
+    QCOMPARE(userMessageOr(server, fallback), userMessageText(UserMessage::Unavailable));
+    // No request answered: the screen's own sentence.
+    QCOMPARE(userMessageOr(Failure::of(FailureKind::InvalidResponse, QStringLiteral("x")), fallback), fallback);
+    QCOMPARE(userMessageOr(Failure::of(FailureKind::NotAvailable, QStringLiteral("x")), fallback), fallback);
 }
 
 QTEST_GUILESS_MAIN(UserMessagesTest)

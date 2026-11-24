@@ -60,6 +60,13 @@ UserMessage userMessageForStatus(int status)
     return UserMessage::Generic;
 }
 
+QString userMessageOr(const Failure& failure, const QString& fallback)
+{
+    const bool fromRequest =
+        failure.kind == FailureKind::Network || failure.kind == FailureKind::Timeout || failure.httpStatus != 0;
+    return fromRequest ? userMessageText(userMessageForFailure(failure)) : fallback;
+}
+
 UserMessage userMessageForFailure(const Failure& failure)
 {
     // A transport failure can come with the status of a response whose body

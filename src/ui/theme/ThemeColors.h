@@ -47,6 +47,10 @@ class ThemeColors : public ThemeConstants {
     Q_PROPERTY(QColor playBg READ playBg NOTIFY changed FINAL)
     Q_PROPERTY(QColor playFg READ playFg NOTIFY changed FINAL)
     Q_PROPERTY(QColor danger READ danger NOTIFY changed FINAL)
+    // The confirm button of a Settings dialog (.settings-confirm-danger):
+    // its hover fill and its text.
+    Q_PROPERTY(QColor dangerConfirmHover READ dangerConfirmHover NOTIFY changed FINAL)
+    Q_PROPERTY(QColor dangerConfirmInk READ dangerConfirmInk NOTIFY changed FINAL)
 
     // Aliases the screens use.
     Q_PROPERTY(QColor accentColor READ primary NOTIFY changed FINAL)
@@ -109,6 +113,8 @@ public:
     [[nodiscard]] QColor playBg() const { return palette().playBg; }
     [[nodiscard]] QColor playFg() const { return palette().playFg; }
     [[nodiscard]] QColor danger() const { return palette().danger; }
+    [[nodiscard]] QColor dangerConfirmHover() const;
+    [[nodiscard]] QColor dangerConfirmInk() const;
     [[nodiscard]] QColor artGrad1() const { return palette().artGrad1; }
     [[nodiscard]] QColor artGrad2() const { return palette().artGrad2; }
     [[nodiscard]] QColor accentSoft() const;

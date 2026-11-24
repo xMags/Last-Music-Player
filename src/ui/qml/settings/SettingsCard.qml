@@ -10,6 +10,10 @@ Item {
     id: card
 
     default property alias rows: column.data
+    // The account hero (.settings-hero, views.css 1252-1259): the surface
+    // fades down to the alternate surface, under a 1px accent highlight
+    // along the top that fades out to both sides.
+    property bool hero: false
 
     implicitHeight: column.implicitHeight + 2
 
@@ -25,8 +29,37 @@ Item {
         anchors.fill: parent
         radius: Theme.radiusLg
         color: Theme.surface
+        gradient: card.hero ? heroFill : null
         border.width: 1
         border.color: Theme.stroke
+    }
+
+    Gradient {
+        id: heroFill
+
+        GradientStop { position: 0; color: Theme.surface }
+        GradientStop { position: 1; color: Theme.surfaceAlt }
+    }
+
+    // ::before: inset 0 0 auto inside the border, 1px high.
+    Rectangle {
+        id: heroGlow
+
+        // CSS fades to transparent in premultiplied colour; the same hue at
+        // zero alpha keeps Qt's gradient from greying the ends.
+        readonly property color glow: Theme.mixSrgb(Theme.accentFill, "transparent", 0.6)
+
+        visible: card.hero
+        x: 1
+        y: 1
+        width: parent.width - 2
+        height: 1
+        gradient: Gradient {
+            orientation: Gradient.Horizontal
+            GradientStop { position: 0; color: Qt.alpha(heroGlow.glow, 0) }
+            GradientStop { position: 0.5; color: heroGlow.glow }
+            GradientStop { position: 1; color: Qt.alpha(heroGlow.glow, 0) }
+        }
     }
 
     // The rows draw straight into the window, never through a layer: text

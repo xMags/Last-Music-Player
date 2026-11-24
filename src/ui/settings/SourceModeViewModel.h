@@ -72,6 +72,8 @@ class SourceModeViewModel : public QObject {
 
     // The sign-in dialog's error line; empty when there is none.
     Q_PROPERTY(QString signInError READ signInError NOTIFY signInErrorChanged FINAL)
+    Q_PROPERTY(bool signingOut READ signingOut NOTIFY changed FINAL)
+    Q_PROPERTY(QString signOutError READ signOutError NOTIFY changed FINAL)
 
 public:
     struct Parts {
@@ -105,6 +107,8 @@ public:
     [[nodiscard]] bool accountStatusError() const;
     [[nodiscard]] bool canManageAccount() const;
     [[nodiscard]] QString signInError() const { return m_signInError; }
+    [[nodiscard]] bool signingOut() const { return m_signingOut; }
+    [[nodiscard]] QString signOutError() const { return m_signOutError; }
 
     // A card was picked. Account without a session asks for the sign-in
     // dialog (signInRequested) and stays where it was.
@@ -124,6 +128,8 @@ public:
     Q_INVOKABLE void clearSignInError();
 
     Q_INVOKABLE void manageAccount();
+    // Signs out; signingOut holds meanwhile. A sign-out that did not happen
+    // leaves its message in signOutError, which the next attempt clears.
     Q_INVOKABLE void signOut();
 
 signals:
@@ -150,6 +156,8 @@ private:
     core::db::LibraryQueries* m_library;
 
     bool m_connecting = false;
+    bool m_signingOut = false;
+    QString m_signOutError;
     QString m_apiKeyStatus;
     QString m_signInError;
     // Each connect and each sign-in click gets a number; only the newest

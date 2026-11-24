@@ -45,11 +45,18 @@ class RegionLanguagesViewModel final : public QObject {
     QML_ELEMENT
     QML_UNCREATABLE("Provided by App.regionLanguages")
 
-    // Region names, in the service's order; the current one is regionIndex.
-    Q_PROPERTY(QStringList regionNames READ regionNames NOTIFY regionsChanged FINAL)
-    Q_PROPERTY(int regionIndex READ regionIndex NOTIFY regionsChanged FINAL)
+    // The region button's text: the current region's name from the list, or
+    // its code in capitals until the list has it.
+    Q_PROPERTY(QString regionLabel READ regionLabel NOTIFY regionsChanged FINAL)
     Q_PROPERTY(QString regionName READ regionName NOTIFY regionsChanged FINAL)
+    // Why the list could not be loaded; empty otherwise.
     Q_PROPERTY(QString regionError READ regionError NOTIFY regionsChanged FINAL)
+    Q_PROPERTY(bool regionsLoading READ regionsLoading NOTIFY regionsChanged FINAL)
+    Q_PROPERTY(bool hasRegions READ hasRegions NOTIFY regionsChanged FINAL)
+    // The picker's search and the regions it matches, in the service's order:
+    // one map each with name, code and selected.
+    Q_PROPERTY(QString regionSearch READ regionSearch WRITE setRegionSearch NOTIFY regionsChanged FINAL)
+    Q_PROPERTY(QVariantList regionChoices READ regionChoices NOTIFY regionsChanged FINAL)
 
     // "auto", "custom" or "off".
     Q_PROPERTY(QString mode READ mode NOTIFY languagesChanged FINAL)
@@ -87,10 +94,14 @@ public:
     explicit RegionLanguagesViewModel(Parts parts, QObject* parent = nullptr);
     ~RegionLanguagesViewModel() override;
 
-    [[nodiscard]] QStringList regionNames() const;
-    [[nodiscard]] int regionIndex() const;
+    [[nodiscard]] QString regionLabel() const;
     [[nodiscard]] QString regionName() const;
     [[nodiscard]] QString regionError() const { return m_regionError; }
+    [[nodiscard]] bool regionsLoading() const { return m_regionsLoading; }
+    [[nodiscard]] bool hasRegions() const { return !m_regions.isEmpty(); }
+    [[nodiscard]] QString regionSearch() const { return m_regionSearch; }
+    void setRegionSearch(const QString& search);
+    [[nodiscard]] QVariantList regionChoices() const;
 
     [[nodiscard]] QString mode() const;
     [[nodiscard]] QVariantList detected() const;
@@ -112,7 +123,10 @@ public:
     // Loads the regions, the language catalogue and the saved setting; then
     // detection runs when it is due. Called when Settings opens.
     Q_INVOKABLE void refresh();
-    Q_INVOKABLE void chooseRegion(int index);
+    // A region from the picker, by code; the current one changes nothing.
+    Q_INVOKABLE void chooseRegion(const QString& code);
+    // Loads the list again after it failed.
+    Q_INVOKABLE void retryRegions();
     // "auto", "custom" or "off".
     Q_INVOKABLE void selectMode(const QString& mode);
     Q_INVOKABLE void toggleLanguage(const QString& code);
@@ -126,6 +140,7 @@ signals:
 
 private:
     void loadRegions();
+    [[nodiscard]] int regionIndex() const;
     void loadCatalog();
     void loadSetting();
     void onOwnerChanged();
@@ -142,6 +157,8 @@ private:
 
     QList<core::catalog::Region> m_regions;
     QString m_regionError;
+    bool m_regionsLoading = false;
+    QString m_regionSearch;
 
     std::unique_ptr<core::catalog::ContentLanguageController> m_controller;
     std::optional<core::catalog::LanguageSetting> m_setting;

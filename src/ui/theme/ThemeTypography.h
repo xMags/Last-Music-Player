@@ -31,6 +31,15 @@ class ThemeTypography : public QObject {
     Q_PROPERTY(QFont settingsRowTitle READ settingsRowTitle CONSTANT FINAL)
     Q_PROPERTY(QFont settingsRowDescription READ settingsRowDescription CONSTANT FINAL)
     Q_PROPERTY(QFont settingsTileLabel READ settingsTileLabel CONSTANT FINAL)
+    Q_PROPERTY(QFont settingsHeroName READ settingsHeroName CONSTANT FINAL)
+    Q_PROPERTY(QFont settingsAvatarLetter READ settingsAvatarLetter CONSTANT FINAL)
+    Q_PROPERTY(QFont settingsTier READ settingsTier CONSTANT FINAL)
+    Q_PROPERTY(qreal lineHeightSettingsHeroName READ lineHeightSettingsHeroName CONSTANT FINAL)
+    Q_PROPERTY(qreal lineHeightSettingsTier READ lineHeightSettingsTier CONSTANT FINAL)
+    Q_PROPERTY(QFont settingsDialogText READ settingsDialogText CONSTANT FINAL)
+    Q_PROPERTY(qreal lineHeightSettingsDialogText READ lineHeightSettingsDialogText CONSTANT FINAL)
+    Q_PROPERTY(QFont settingsComboLabel READ settingsComboLabel CONSTANT FINAL)
+    Q_PROPERTY(QFont settingsDialogState READ settingsDialogState CONSTANT FINAL)
     Q_PROPERTY(QFont signInTitle READ signInTitle CONSTANT FINAL)
     Q_PROPERTY(QFont signInLabel READ signInLabel CONSTANT FINAL)
     Q_PROPERTY(QFont signInTagline READ signInTagline CONSTANT FINAL)
@@ -74,6 +83,7 @@ class ThemeTypography : public QObject {
     Q_PROPERTY(QFont homeGreeting READ homeGreeting CONSTANT FINAL)
     Q_PROPERTY(QFont buttonLabel READ buttonLabel CONSTANT FINAL)
     Q_PROPERTY(QFont settingsButtonLabel READ settingsButtonLabel CONSTANT FINAL)
+    Q_PROPERTY(QFont settingsButtonSmallLabel READ settingsButtonSmallLabel CONSTANT FINAL)
     Q_PROPERTY(QFont chipLabel READ chipLabel CONSTANT FINAL)
     Q_PROPERTY(QFont bubbleLabel READ bubbleLabel CONSTANT FINAL)
     Q_PROPERTY(QFont selectLabel READ selectLabel CONSTANT FINAL)
@@ -149,6 +159,15 @@ public:
     [[nodiscard]] QFont settingsRowTitle() const { return m_text.settingsRowTitle.font; }
     [[nodiscard]] QFont settingsRowDescription() const { return m_text.settingsRowDescription.font; }
     [[nodiscard]] QFont settingsTileLabel() const { return m_text.settingsTileLabel.font; }
+    [[nodiscard]] QFont settingsHeroName() const { return m_text.settingsHeroName.font; }
+    [[nodiscard]] QFont settingsAvatarLetter() const { return m_text.settingsAvatarLetter.font; }
+    [[nodiscard]] QFont settingsTier() const { return m_text.settingsTier.font; }
+    [[nodiscard]] qreal lineHeightSettingsHeroName() const { return m_text.settingsHeroName.lineHeight; }
+    [[nodiscard]] qreal lineHeightSettingsTier() const { return m_text.settingsTier.lineHeight; }
+    [[nodiscard]] QFont settingsDialogText() const { return m_text.settingsDialogText.font; }
+    [[nodiscard]] qreal lineHeightSettingsDialogText() const { return m_text.settingsDialogText.lineHeight; }
+    [[nodiscard]] QFont settingsComboLabel() const { return m_text.settingsComboLabel.font; }
+    [[nodiscard]] QFont settingsDialogState() const { return m_text.settingsDialogState.font; }
     [[nodiscard]] QFont signInTitle() const { return m_text.signInTitle.font; }
     [[nodiscard]] QFont signInLabel() const { return m_text.signInLabel.font; }
     [[nodiscard]] QFont signInTagline() const { return m_text.signInTagline.font; }
@@ -192,6 +211,7 @@ public:
     [[nodiscard]] QFont homeGreeting() const { return m_text.homeGreeting.font; }
     [[nodiscard]] QFont buttonLabel() const { return m_text.buttonLabel.font; }
     [[nodiscard]] QFont settingsButtonLabel() const { return m_text.settingsButtonLabel.font; }
+    [[nodiscard]] QFont settingsButtonSmallLabel() const { return m_text.settingsButtonSmallLabel.font; }
     [[nodiscard]] QFont chipLabel() const { return m_text.chipLabel.font; }
     [[nodiscard]] QFont bubbleLabel() const { return m_text.bubbleLabel.font; }
     [[nodiscard]] QFont selectLabel() const { return m_text.selectLabel.font; }

@@ -358,11 +358,20 @@ void SourceModeViewModel::manageAccount()
 
 void SourceModeViewModel::signOut()
 {
+    if (m_signingOut) {
+        return;
+    }
+    m_signingOut = true;
+    m_signOutError.clear();
+    emit changed();
     m_signOut.signOut().then(this, [this](const core::account::AccountLogoutResult& result) {
+        m_signingOut = false;
         if (!result.signedOut) {
-            // Nothing changed; the block keeps showing the session.
-            emit changed();
+            // Nothing changed; the hero keeps showing the session and why.
+            m_signOutError =
+                result.safeError.isEmpty() ? tr("The action could not be completed.") : result.safeError;
         }
+        emit changed();
     });
 }
 

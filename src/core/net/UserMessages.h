@@ -40,6 +40,12 @@ enum class UserMessage {
 // InvalidResponse, Cancelled and Unknown as Generic).
 [[nodiscard]] UserMessage userMessageForFailure(const Failure& failure);
 
+// What a screen shows for a failed request: the sentence for a transport
+// failure or an HTTP answer (the reference client's user-facing API errors),
+// otherwise the screen's own `fallback`, such as for an answer that could not
+// be read.
+[[nodiscard]] QString userMessageOr(const Failure& failure, const QString& fallback);
+
 // What a failed browser sign-in shows: Connection when the service could not
 // be reached, nothing when it was cancelled, otherwise SignInFailed.
 [[nodiscard]] std::optional<UserMessage> userMessageForSignInFailure(const Failure& failure);

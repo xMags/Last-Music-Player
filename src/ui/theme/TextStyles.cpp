@@ -129,6 +129,17 @@ TextStyles TextStyles::build(const FontFamilies& families)
         .settingsRowTitle = makeTextStyle({.family = text, .pixelSize = 14, .weight = kSemiBold, .lineHeight = 20}),
         .settingsRowDescription = makeTextStyle({.family = text, .pixelSize = 12, .weight = kRegular, .lineHeight = 17}),
         .settingsTileLabel = makeTextStyle({.family = text, .pixelSize = 11, .weight = kSemiBold}),
+        // The account hero (views.css 1280-1288): .settings-hero-name, the
+        // avatar's letter and .settings-tier.
+        .settingsHeroName = makeTextStyle({.family = text, .pixelSize = 17, .weight = kSemiBold, .lineHeight = 24}),
+        .settingsAvatarLetter = makeTextStyle({.family = text, .pixelSize = 20, .weight = kSemiBold}),
+        .settingsTier = makeTextStyle(
+            {.family = text, .pixelSize = 11, .weight = kBold, .lineHeight = 16, .letterSpacingEm = 0.12}),
+        // .settings-dialog p: 14px at line-height 1.5.
+        .settingsDialogText = makeTextStyle({.family = text, .pixelSize = 14, .weight = kRegular, .lineHeight = 21}),
+        // .settings-combo (13px, 400) and .settings-dialog-state (12.5px).
+        .settingsComboLabel = makeTextStyle({.family = text, .pixelSize = 13, .weight = kRegular}),
+        .settingsDialogState = makeTextStyle({.family = text, .pixelSize = 12.5, .weight = kRegular}),
         // The sign-in dialog (auth.css 307-510): .auth-title, .auth-meta-foot,
         // .auth-tagline, .auth-btn and .auth-err.
         .signInTitle = makeTextStyle({.family = families.sleeveDisplay,
@@ -202,6 +213,8 @@ TextStyles TextStyles::build(const FontFamilies& families)
                                    .letterSpacingEm = -0.015}),
         .buttonLabel = makeTextStyle({.family = text, .pixelSize = 14, .weight = kSemiBold}),
         .settingsButtonLabel = makeTextStyle({.family = text, .pixelSize = 13, .weight = kSemiBold}),
+        // .settings-button.small: 12px.
+        .settingsButtonSmallLabel = makeTextStyle({.family = text, .pixelSize = 12, .weight = kSemiBold}),
         .chipLabel = makeTextStyle({.family = text, .pixelSize = 13, .weight = kSemiBold}),
         // .seek-bubble: line-height 1.2 of 11.5px.
         .bubbleLabel = makeTextStyle({.family = text,

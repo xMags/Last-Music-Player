@@ -54,6 +54,10 @@ class Motion : public QObject {
     // Hover and press colour fades of buttons, chips and the play button.
     Q_PROPERTY(int controlFade READ controlFade CONSTANT FINAL)
     Q_PROPERTY(int chipFade READ chipFade CONSTANT FINAL)
+    // .settings-button and .settings-row-switch: background over .15s.
+    Q_PROPERTY(int settingsFade READ settingsFade CONSTANT FINAL)
+    // A Settings dialog rising in (settings-dialog-in, .18s).
+    Q_PROPERTY(int settingsDialogIn READ settingsDialogIn CONSTANT FINAL)
     // A card's cover zooms on hover (styles.css 593-602).
     Q_PROPERTY(int cardZoom READ cardZoom CONSTANT FINAL)
     Q_PROPERTY(int playPress READ playPress CONSTANT FINAL)
@@ -144,6 +148,8 @@ public:
     [[nodiscard]] int rippleRingDelay() const { return 60; }
     [[nodiscard]] int controlFade() const { return 120; }
     [[nodiscard]] int chipFade() const { return 150; }
+    [[nodiscard]] int settingsFade() const { return 150; }
+    [[nodiscard]] int settingsDialogIn() const { return 180; }
     [[nodiscard]] int cardZoom() const { return 450; }
     [[nodiscard]] int playPress() const { return 100; }
     [[nodiscard]] int sliderGlide() const { return 140; }

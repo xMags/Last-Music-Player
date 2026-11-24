@@ -5,6 +5,7 @@
 #include "core/catalog/CatalogClient.h"
 #include "core/catalog/CatalogService.h"
 #include "core/catalog/ContentLanguageController.h"
+#include "core/net/UserMessages.h"
 #include "core/settings/SettingKeys.h"
 #include "core/settings/SettingsStore.h"
 #include "ui/toasts/ToastQueue.h"
@@ -107,6 +108,9 @@ void RegionLanguagesViewModel::onOwnerChanged()
     m_setting.reset();
     m_settingLoaded = false;
     m_regions.clear();
+    m_regionError.clear();
+    m_regionsLoading = false;
+    m_regionSearch.clear();
     m_editorOpen = false;
     m_search.clear();
     emit regionsChanged();
@@ -118,22 +122,40 @@ void RegionLanguagesViewModel::refresh()
     if (!m_session.captureOperation()) {
         return;
     }
-    loadRegions();
+    // As the reference loads its regions: once, until a retry asks again.
+    if (m_regions.isEmpty() && m_regionError.isEmpty()) {
+        loadRegions();
+    }
     if (!m_catalogLoaded) {
         loadCatalog();
     }
     loadSetting();
 }
 
+void RegionLanguagesViewModel::retryRegions()
+{
+    if (!m_session.captureOperation()) {
+        return;
+    }
+    loadRegions();
+}
+
 void RegionLanguagesViewModel::loadRegions()
 {
+    if (m_regionsLoading) {
+        return;
+    }
     const std::uint64_t epoch = m_epoch;
+    m_regionsLoading = true;
+    m_regionError.clear();
+    emit regionsChanged();
     m_catalogService.regions().then(this, [this, epoch](const core::Result<QList<catalog::Region>>& result) {
         if (epoch != m_epoch) {
             return;
         }
+        m_regionsLoading = false;
         if (!result) {
-            m_regionError = tr("Regions could not be loaded.");
+            m_regionError = core::net::userMessageOr(result.failure(), tr("Could not load music regions."));
         } else {
             m_regionError.clear();
             m_regions = result.value();
@@ -197,16 +219,38 @@ void RegionLanguagesViewModel::retryCatalog()
     loadCatalog();
 }
 
-QStringList RegionLanguagesViewModel::regionNames() const
+QString RegionLanguagesViewModel::regionLabel() const
 {
-    QStringList names;
+    const int index = regionIndex();
+    return index >= 0 ? m_regions.at(index).name : m_catalogService.region().toUpper();
+}
+
+void RegionLanguagesViewModel::setRegionSearch(const QString& search)
+{
+    if (m_regionSearch == search) {
+        return;
+    }
+    m_regionSearch = search;
+    emit regionsChanged();
+}
+
+QVariantList RegionLanguagesViewModel::regionChoices() const
+{
+    // The reference matches "<name> <code>", lower-cased, against the
+    // trimmed, lower-cased search.
+    const QString query = m_regionSearch.trimmed().toLower();
+    const QString current = m_catalogService.region();
+    QVariantList choices;
     for (const catalog::Region& region : m_regions) {
-        names.append(region.name);
+        const QString haystack = (region.name + QLatin1Char(' ') + region.code).toLower();
+        if (!query.isEmpty() && !haystack.contains(query)) {
+            continue;
+        }
+        choices.append(QVariantMap{{QStringLiteral("name"), region.name},
+                                   {QStringLiteral("code"), region.code},
+                                   {QStringLiteral("selected"), region.code == current}});
     }
-    if (regionIndex() < 0) {
-        names.append(regionName());
-    }
-    return names;
+    return choices;
 }
 
 int RegionLanguagesViewModel::regionIndex() const
@@ -223,13 +267,12 @@ QString RegionLanguagesViewModel::regionName() const
     return index >= 0 ? m_regions.at(index).name : catalog::regionDisplayName(m_catalogService.region());
 }
 
-void RegionLanguagesViewModel::chooseRegion(int index)
+void RegionLanguagesViewModel::chooseRegion(const QString& code)
 {
-    if (index < 0 || index >= m_regions.size()) {
-        return;
-    }
-    const QString code = m_regions.at(index).code;
-    if (code == m_catalogService.region()) {
+    // Only a region the service listed.
+    const bool listed = std::any_of(m_regions.cbegin(), m_regions.cend(),
+                                    [&code](const catalog::Region& region) { return region.code == code; });
+    if (!listed || code == m_catalogService.region()) {
         return;
     }
     // Synced with the account as a preference; the catalogue clears itself.
