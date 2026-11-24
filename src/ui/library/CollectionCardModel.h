@@ -38,6 +38,8 @@ public:
         QString iconName;
         // A round cover for another kind of card (a catalogue artist).
         bool round = false;
+        // A mix's small capitals on its cover ("DAILY MIX").
+        QString badge;
     };
 
     enum Role {
@@ -52,6 +54,7 @@ public:
         GradientStartRole,
         GradientEndRole,
         IconNameRole,
+        BadgeRole,
     };
     Q_ENUM(Role)
 

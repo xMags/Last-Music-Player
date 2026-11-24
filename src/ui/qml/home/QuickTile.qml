@@ -97,19 +97,18 @@ T.AbstractButton {
                 width: 64
                 height: parent.height
 
-                Rectangle {
+                // 135deg, and the playlist icon at 0.44 of its card size
+                // (52px for the heart, 56px otherwise).
+                DiagonalGradient {
                     anchors.fill: parent
                     visible: tile.kind === "system"
-                    gradient: Gradient {
-                        orientation: Gradient.Horizontal
-                        GradientStop { position: 0; color: tile.gradientStart }
-                        GradientStop { position: 1; color: tile.gradientEnd }
-                    }
+                    startColor: tile.gradientStart
+                    endColor: tile.gradientEnd
 
                     Icon {
                         anchors.centerIn: parent
                         name: tile.iconName
-                        size: 24
+                        size: Math.round((tile.iconName === "heart-fill" ? 52 : 56) * 0.44)
                         color: "white"
                     }
                 }

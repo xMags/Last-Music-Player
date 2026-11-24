@@ -25,15 +25,12 @@ Item {
     property real radius: 12
     property bool plain: false
 
-    Rectangle {
+    DiagonalGradient {
         anchors.fill: parent
         visible: cover.coverStyle === "system"
         radius: cover.radius
-        gradient: Gradient {
-            orientation: Gradient.Horizontal
-            GradientStop { position: 0; color: cover.gradientStart }
-            GradientStop { position: 1; color: cover.gradientEnd }
-        }
+        startColor: cover.gradientStart
+        endColor: cover.gradientEnd
 
         Icon {
             anchors.centerIn: parent

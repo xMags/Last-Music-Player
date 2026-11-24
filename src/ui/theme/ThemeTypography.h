@@ -30,6 +30,7 @@ class ThemeTypography : public QObject {
     Q_PROPERTY(QFont viewTitle READ viewTitle CONSTANT FINAL)
     Q_PROPERTY(QFont viewSubtitle READ viewSubtitle CONSTANT FINAL)
     Q_PROPERTY(QFont emptyTitle READ emptyTitle CONSTANT FINAL)
+    Q_PROPERTY(QFont mixCoverBadge READ mixCoverBadge CONSTANT FINAL)
     Q_PROPERTY(QFont settingsSection READ settingsSection CONSTANT FINAL)
     Q_PROPERTY(QFont settingsRowTitle READ settingsRowTitle CONSTANT FINAL)
     Q_PROPERTY(QFont settingsRowDescription READ settingsRowDescription CONSTANT FINAL)
@@ -169,6 +170,7 @@ public:
     [[nodiscard]] QFont viewTitle() const { return m_text.viewTitle.font; }
     [[nodiscard]] QFont viewSubtitle() const { return m_text.viewSubtitle.font; }
     [[nodiscard]] QFont emptyTitle() const { return m_text.emptyTitle.font; }
+    [[nodiscard]] QFont mixCoverBadge() const { return m_text.mixCoverBadge.font; }
     [[nodiscard]] QFont settingsSection() const { return m_text.settingsSection.font; }
     [[nodiscard]] QFont settingsRowTitle() const { return m_text.settingsRowTitle.font; }
     [[nodiscard]] QFont settingsRowDescription() const { return m_text.settingsRowDescription.font; }

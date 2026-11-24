@@ -219,7 +219,8 @@ void LibraryViewModel::readPlaylists()
                           .subtitle = tr("%1 · Auto mix").arg(countLabel(static_cast<int>(mix.tracks.size()))),
                           .gradientStart = QColor::fromRgba(mix.colorStart),
                           .gradientEnd = QColor::fromRgba(mix.colorEnd),
-                          .iconName = QStringLiteral("sparkle")});
+                          .iconName = QStringLiteral("sparkle"),
+                          .badge = mix.badge});
         }
         m_playlists.setCards(std::move(cards));
         return;

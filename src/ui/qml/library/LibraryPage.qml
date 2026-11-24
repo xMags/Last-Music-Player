@@ -333,6 +333,7 @@ Item {
                     required property color gradientEnd
                     required property string iconName
                     required property string key
+                    required property string badge
 
                     width: grid.cellWidth
                     height: grid.cellHeight
@@ -349,6 +350,7 @@ Item {
                         gradientStart: cell.gradientStart
                         gradientEnd: cell.gradientEnd
                         iconName: cell.iconName
+                        badge: cell.badge
                         onClicked: cardTab.serverArtists ? App.accountArtists.openCard(cell.index)
                                                          : App.library.openCard(App.library.tab, cell.index)
                         onMenuRequested: (at, fromKeyboard) => {

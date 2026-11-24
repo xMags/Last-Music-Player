@@ -130,6 +130,8 @@ TextStyles TextStyles::build(const FontFamilies& families)
         .viewSubtitle = makeTextStyle({.family = text, .pixelSize = 13, .weight = kRegular}),
         // .offline-empty strong: 16px, 600.
         .emptyTitle = makeTextStyle({.family = text, .pixelSize = 16, .weight = kSemiBold}),
+        // A Library mix cover's badge: 10px, 800, 0.08em.
+        .mixCoverBadge = makeTextStyle({.family = text, .pixelSize = 10, .weight = kExtraBold, .letterSpacingEm = 0.08}),
         // .settings-section-head h2, .settings-row-title, .settings-row-desc
         // and .settings-theme-tile (views.css 1128-1165, 1293-1303).
         .settingsSection = makeTextStyle({.family = display, .pixelSize = 16, .weight = kBold, .lineHeight = 22}),
