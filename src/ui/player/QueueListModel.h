@@ -45,6 +45,8 @@ public:
         DurationTextRole,
         // In the user queue ("play next", "add to queue").
         QueuedRole,
+        // A song from the service's address, for its download mark.
+        RemoteUrlRole,
     };
     Q_ENUM(Role)
 
@@ -78,6 +80,7 @@ private:
         QString artworkLabel;
         QString durationText;
         bool queued = false;
+        QString remoteUrl;
 
         friend bool operator==(const Row&, const Row&) = default;
     };

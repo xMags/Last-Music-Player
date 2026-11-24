@@ -59,6 +59,8 @@ QVariant QueueListModel::data(const QModelIndex& index, int role) const
         return row.durationText;
     case QueuedRole:
         return row.queued;
+    case RemoteUrlRole:
+        return row.remoteUrl;
     default:
         return {};
     }
@@ -75,6 +77,7 @@ QHash<int, QByteArray> QueueListModel::roleNames() const
         {ArtworkLabelRole, "artworkLabel"},
         {DurationTextRole, "durationText"},
         {QueuedRole, "queued"},
+        {RemoteUrlRole, "remoteUrl"},
     };
 }
 
@@ -129,6 +132,7 @@ QList<QueueListModel::Row> QueueListModel::rowsOf(const QList<core::QueueEntry>&
             .artworkLabel = core::ArtworkPlaceholder::tileLabelFor(track.title),
             .durationText = durationTextOf(track),
             .queued = queued,
+            .remoteUrl = track.isRemote() ? track.sourceUrl : QString(),
         });
     }
     return rows;

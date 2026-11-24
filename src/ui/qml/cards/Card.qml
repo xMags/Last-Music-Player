@@ -16,6 +16,8 @@ T.AbstractButton {
     property string subtitle: ""
     // .album-date: a third line, 2px under, 11px tertiary (Listen Again).
     property string dateText: ""
+    // A song card's address, for the download mark beside its name.
+    property string remoteUrl: ""
     property url artworkUrl
     property string artworkId: ""
     property string artworkLabel: ""
@@ -168,7 +170,7 @@ T.AbstractButton {
             id: nameText
 
             y: cover.height + 12
-            width: card.width
+            width: card.width - (cardMark.visible ? cardMark.width + 6 : 0)
             horizontalAlignment: card.centred ? Text.AlignHCenter : Text.AlignLeft
             text: card.title
             font: Theme.cardTitle
@@ -176,6 +178,14 @@ T.AbstractButton {
             lineHeightMode: Text.FixedHeight
             color: Theme.fg
             elide: Text.ElideRight
+        }
+
+        DownloadMark {
+            id: cardMark
+
+            x: Math.min(nameText.contentWidth, nameText.width) + 6
+            y: nameText.y + (nameText.height - height) / 2
+            remoteUrl: card.remoteUrl
         }
 
         Text {

@@ -25,6 +25,7 @@ Item {
     required property string artworkId
     required property string artworkLabel
     required property string durationText
+    required property string remoteUrl
 
     property bool showMore: true
     property bool lifted: false
@@ -134,14 +135,27 @@ Item {
             Layout.fillWidth: true
             Layout.minimumWidth: 0
 
-            Text {
+            // .queue-title-line: the title, its download mark 6px after.
+            Row {
                 width: parent.width
-                text: row.title
-                font: Theme.trackTitle
-                lineHeight: Theme.lineHeightTrackTitle
-                lineHeightMode: Text.FixedHeight
-                color: row.titleColor
-                elide: Text.ElideRight
+                spacing: 6
+
+                Text {
+                    width: Math.min(implicitWidth, parent.width - (queueMark.visible ? queueMark.width + 6 : 0))
+                    text: row.title
+                    font: Theme.trackTitle
+                    lineHeight: Theme.lineHeightTrackTitle
+                    lineHeightMode: Text.FixedHeight
+                    color: row.titleColor
+                    elide: Text.ElideRight
+                }
+
+                DownloadMark {
+                    id: queueMark
+
+                    anchors.verticalCenter: parent.verticalCenter
+                    remoteUrl: row.remoteUrl
+                }
             }
 
             Text {

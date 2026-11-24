@@ -14,6 +14,7 @@ Card {
     required property bool playing
     required property bool unavailable
     required property string unavailableReason
+    required remoteUrl
 
     subtitle: unavailable ? unavailableReason : artist
     opacity: unavailable ? 0.55 : 1

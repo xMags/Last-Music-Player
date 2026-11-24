@@ -233,6 +233,26 @@ QVariantMap OfflineViewModel::groupCover() const
             {QStringLiteral("iconName"), QString()}};
 }
 
+QVariantMap OfflineViewModel::markOf(const QString& remoteUrl) const
+{
+    const auto found = remoteUrl.isEmpty() ? m_marks.constEnd() : m_marks.constFind(remoteUrl);
+    if (found == m_marks.constEnd()) {
+        return {{QStringLiteral("state"), QString()}, {QStringLiteral("percent"), -1}, {QStringLiteral("label"), QString()}};
+    }
+    QString label;
+    if (found->state == QLatin1StringView("done")) {
+        label = tr("Downloaded");
+    } else if (found->state == QLatin1StringView("downloading")) {
+        label = found->percent < 0 ? tr("Downloading") : tr("Downloading, %1%").arg(found->percent);
+    } else if (found->state == QLatin1StringView("queued")) {
+        label = tr("Waiting to download");
+    } else {
+        label = found->error.isEmpty() ? tr("Download failed") : found->error;
+    }
+    return {{QStringLiteral("state"), found->state}, {QStringLiteral("percent"), found->percent},
+            {QStringLiteral("label"), label}};
+}
+
 QString OfflineViewModel::emptyTabText() const
 {
     if (m_downloaded.isEmpty() || !m_groupKey.isEmpty()) {
@@ -279,6 +299,39 @@ void OfflineViewModel::reload()
     m_revision = snapshot.revision;
     m_downloaded.clear();
     m_downloadedKeys.clear();
+    m_marks.clear();
+    ++m_markRevision;
+    for (const core::DownloadJobSummary& summary : snapshot.jobs) {
+        for (const core::DownloadItem& item : summary.job.items) {
+            if (item.sourceUrl.isEmpty()) {
+                continue;
+            }
+            Mark mark;
+            switch (item.state) {
+            case DownloadItemState::Completed:
+                mark.state = QStringLiteral("done");
+                break;
+            case DownloadItemState::Downloading:
+                mark.state = QStringLiteral("downloading");
+                mark.percent = item.bytesTotal > 0
+                    ? static_cast<int>(core::downloadProgressPercent(item.bytesDownloaded, item.bytesTotal))
+                    : -1;
+                break;
+            case DownloadItemState::Failed:
+                mark.state = QStringLiteral("failed");
+                mark.error = item.error;
+                break;
+            default:
+                mark.state = QStringLiteral("queued");
+                break;
+            }
+            // A song in two jobs shows its furthest state.
+            const auto known = m_marks.constFind(item.sourceUrl);
+            if (known == m_marks.constEnd() || known->state != QLatin1StringView("done")) {
+                m_marks.insert(item.sourceUrl, mark);
+            }
+        }
+    }
     m_bytes = snapshot.offlineBytes;
     m_pending.clear();
     // pendingStripMarkup: the songs of the jobs still on their way (the

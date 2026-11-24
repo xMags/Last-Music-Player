@@ -28,6 +28,11 @@ T.AbstractButton {
     required property bool playing
     required property bool unavailable
     required property string unavailableReason
+    required property string remoteUrl
+
+    // .is-offline .track-row:not(.is-downloaded): opacity .45.
+    readonly property bool offlineUnplayable: App.connectivity.offline && remoteUrl !== ""
+        && App.offline.markRevision >= 0 && App.offline.markOf(remoteUrl).state !== "done"
     // The album column shows only when the row is wide enough for it.
     readonly property bool albumShown: width >= 560
     property bool selected: false
@@ -138,7 +143,7 @@ T.AbstractButton {
     }
 
     contentItem: RowLayout {
-        opacity: row.unavailable ? 0.55 : 1
+        opacity: row.unavailable ? 0.55 : row.offlineUnplayable ? 0.45 : 1
         spacing: 16
 
         // padding: 8px 20px
@@ -190,12 +195,25 @@ T.AbstractButton {
                 Layout.minimumWidth: 0
                 spacing: 0
 
-                Text {
+                // .tr-title-line: the title, its download mark 6px after.
+                RowLayout {
                     Layout.fillWidth: true
-                    text: row.title
-                    font: Theme.trackTitle
-                    color: row.playing ? Theme.accentColor : Theme.fg
-                    elide: Text.ElideRight
+                    spacing: 6
+
+                    Text {
+                        Layout.fillWidth: true
+                        Layout.maximumWidth: implicitWidth
+                        text: row.title
+                        font: Theme.trackTitle
+                        color: row.playing ? Theme.accentColor : Theme.fg
+                        elide: Text.ElideRight
+                    }
+
+                    DownloadMark {
+                        remoteUrl: row.remoteUrl
+                    }
+
+                    Item { Layout.fillWidth: true }
                 }
 
                 Text {

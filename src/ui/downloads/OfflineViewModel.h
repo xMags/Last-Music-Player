@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QHash>
 #include <QObject>
 #include <QString>
 #include <QStringList>
@@ -94,6 +95,9 @@ class OfflineViewModel : public QObject {
     Q_PROPERTY(bool paused READ paused NOTIFY changed FINAL)
     // Songs still on their way (not failed), for the sidebar's count.
     Q_PROPERTY(int waitingCount READ waitingCount NOTIFY changed FINAL)
+    // Goes up whenever any song's download changes, so a binding that
+    // reads markOf() is read again.
+    Q_PROPERTY(int markRevision READ markRevision NOTIFY changed FINAL)
     // One map per job not finished: id, title, subtitle, state ("Queued",
     // "Paused", "Failed", "Downloading"), percent, failed, error.
     Q_PROPERTY(QVariantList pending READ pending NOTIFY changed FINAL)
@@ -156,6 +160,11 @@ public:
     [[nodiscard]] QString pendingSpeed() const { return m_pendingSpeed; }
     [[nodiscard]] bool paused() const;
     [[nodiscard]] int waitingCount() const { return m_waitingCount; }
+    [[nodiscard]] int markRevision() const { return m_markRevision; }
+    // A song's download mark (download-badge.ts downloadBadgeContent), by
+    // its address: {state: "done" | "downloading" | "queued" | "failed" | "",
+    // percent (-1 unknown), label}.
+    Q_INVOKABLE QVariantMap markOf(const QString& remoteUrl) const;
     [[nodiscard]] QVariantList pending() const { return m_pending; }
     [[nodiscard]] bool avoidMetered() const;
     void setAvoidMetered(bool value);
@@ -245,6 +254,13 @@ private:
     int m_pendingPercent = 0;
     bool m_pendingActive = false;
     int m_waitingCount = 0;
+    int m_markRevision = 0;
+    struct Mark {
+        QString state;
+        int percent = -1;
+        QString error;
+    };
+    QHash<QString, Mark> m_marks;
     int m_pendingFailed = 0;
     QString m_pendingSpeed;
     std::uint64_t m_revision = 0;

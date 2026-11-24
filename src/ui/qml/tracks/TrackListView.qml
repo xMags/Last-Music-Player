@@ -335,6 +335,7 @@ Item {
                 required property bool playing
                 required property bool unavailable
                 required property string unavailableReason
+                required property string remoteUrl
 
                 width: cards.cellWidth
                 height: cards.cellHeight
@@ -348,6 +349,7 @@ Item {
                     artworkLabel: cell.artworkLabel
                     playing: cell.playing
                     unavailable: cell.unavailable
+                    remoteUrl: cell.remoteUrl
                     unavailableReason: cell.unavailableReason
                     onClicked: root.activated(cell.index)
                     onMenuRequested: (at, fromKeyboard) => root.menuRequested(cell.index, mapToItem(root, at), fromKeyboard)

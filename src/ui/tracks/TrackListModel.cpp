@@ -57,6 +57,8 @@ QVariant TrackListModel::data(const QModelIndex& index, int role) const
         return index.row() + 1;
     case SourceKeyRole:
         return m_keys.at(index.row());
+    case RemoteUrlRole:
+        return track.isRemote() ? track.sourceUrl : QString();
     case PlayedWhenRole:
         return core::home::relativePlayedText(track.lastPlayedAt.isEmpty() ? track.addedAt : track.lastPlayedAt,
                                               QDateTime::currentDateTimeUtc());
@@ -85,6 +87,7 @@ QHash<int, QByteArray> TrackListModel::roleNames() const
         {SourceKeyRole, "sourceKey"},
         {SelectedRole, "selected"},
         {PlayedWhenRole, "playedWhen"},
+        {RemoteUrlRole, "remoteUrl"},
     };
 }
 

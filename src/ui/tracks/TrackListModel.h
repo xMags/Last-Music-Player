@@ -67,6 +67,9 @@ public:
         SelectedRole,
         // Listen Again's "12 min ago" (when last played, else added).
         PlayedWhenRole,
+        // A song from the service's address, for its download mark; empty
+        // for a file on this PC.
+        RemoteUrlRole,
     };
     Q_ENUM(Role)
 
