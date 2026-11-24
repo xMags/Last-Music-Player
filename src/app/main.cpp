@@ -61,7 +61,7 @@ int main(int argc, char* argv[])
     if (const qsizetype at = QCoreApplication::arguments().indexOf(QStringLiteral("--grab"));
         at >= 0 && at + 1 < QCoreApplication::arguments().size()) {
         const QString file = QCoreApplication::arguments().at(at + 1);
-        QTimer::singleShot(9000, &app, [&engine, file]() {
+        QTimer::singleShot(11000, &app, [&engine, file]() {
             const QList<QObject*> roots = engine.rootObjects();
             auto* window = roots.isEmpty() ? nullptr : qobject_cast<QQuickWindow*>(roots.constFirst());
             if (window != nullptr && !window->grabWindow().save(file)) {
