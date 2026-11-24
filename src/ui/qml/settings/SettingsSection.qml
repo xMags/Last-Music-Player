@@ -9,6 +9,10 @@ Column {
     property string iconName: ""
     property string title: ""
     property string note: ""
+    // A line under the card saying how an action went (.settings-feedback):
+    // the accent colour, or the danger colour when `feedbackError`.
+    property string feedback: ""
+    property bool feedbackError: false
     default property alias rows: card.rows
 
     spacing: 12
@@ -24,5 +28,19 @@ Column {
         id: card
 
         width: section.width
+    }
+
+    // margin: 0 4px
+    Text {
+        x: 4
+        width: section.width - 2 * 4
+        visible: section.feedback !== ""
+        text: section.feedback
+        font: Theme.settingsFeedback
+        lineHeight: Theme.lineHeightSettingsFeedback
+        lineHeightMode: Text.FixedHeight
+        color: section.feedbackError ? Theme.danger : Theme.accentColor
+        wrapMode: Text.Wrap
+        Accessible.role: Accessible.StaticText
     }
 }

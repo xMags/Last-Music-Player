@@ -9,10 +9,13 @@ SettingsRow {
 
     property var choices: []
     property int currentIndex: 0
+    // The dropdown alone can be turned off (.settings-select:disabled).
+    property bool selectEnabled: true
 
     signal activated(int index)
 
     AppSelect {
+        enabled: row.selectEnabled
         implicitWidth: Math.max(180, implicitContentWidth + leftPadding + rightPadding)
         model: row.choices
         currentIndex: row.currentIndex

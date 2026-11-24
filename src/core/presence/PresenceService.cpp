@@ -234,7 +234,7 @@ void PresenceWorker::flush()
         return;
     }
     if (!m_ready) {
-        if (m_payload && !m_payload->title.isEmpty()
+        if (m_payload && !m_payload->details.isEmpty()
             && (m_reconnectTimer == nullptr || !m_reconnectTimer->isActive())) {
             connectPipe();
         }
@@ -259,7 +259,7 @@ void PresenceWorker::flush()
         return;
     }
     const qint64 pid = QCoreApplication::applicationPid();
-    write(Opcode::Frame, payload.title.isEmpty() ? clearJson(pid, nextNonce())
+    write(Opcode::Frame, payload.details.isEmpty() ? clearJson(pid, nextNonce())
                                                  : activityJson(payload, pid, nowMs(), nextNonce()));
     m_lastSendMs = nowMs();
     m_sentFingerprint = fingerprint;

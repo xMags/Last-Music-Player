@@ -58,6 +58,46 @@ Item {
             color: Theme.fg
         }
 
+        // The reference's sections, in its order.
+        AccountBlock {
+            width: column.width
+            visible: App.source.accountShown
+            onSignInRequested: signIn.open()
+        }
+
+        SettingsPlaybackSection {
+            width: column.width
+        }
+
+        SettingsLanguagesSection {
+            width: column.width
+            visible: App.capabilities.chooseRegion
+        }
+
+        SettingsAppearanceCard {
+            width: column.width
+        }
+
+        SettingsEqualizerCard {
+            width: column.width
+        }
+
+        SettingsDownloadsCard {
+            width: column.width
+            visible: App.capabilities.downloadSongs
+        }
+
+        SettingsIntegrationsSection {
+            width: column.width
+        }
+
+        SettingsDataSection {
+            width: column.width
+            visible: App.source.accountShown && App.source.signedIn
+        }
+
+        // The current app's own sections: where music comes from, the typed
+        // name outside Account mode, the local library and About.
         SourceModeCards {
             width: column.width
         }
@@ -67,108 +107,13 @@ Item {
             visible: App.source.apiKeyShown
         }
 
-        AccountBlock {
-            width: column.width
-            visible: App.source.accountShown
-            onSignInRequested: signIn.open()
-        }
-
         SettingsProfileCard {
             width: column.width
             visible: App.settings.displayNameShown
         }
 
-        SettingsLanguagesSection {
-            width: column.width
-            visible: App.capabilities.chooseRegion
-        }
-
         SettingsLibraryCard {
             width: column.width
-        }
-
-        SettingsDownloadsCard {
-            width: column.width
-            visible: App.capabilities.downloadSongs
-        }
-
-        SettingsSection {
-            width: column.width
-            iconName: "play"
-            title: qsTr("Playback")
-
-            SettingsSwitchRow {
-                title: qsTr("Autoplay")
-                description: App.settings.autoplay
-                    ? qsTr("Keep playing similar music when your queue ends")
-                    : qsTr("Stop when your queue ends")
-                checked: App.settings.autoplay
-                onChangeRequested: value => App.settings.autoplay = value
-            }
-
-            SettingsDivider {}
-
-            SettingsSwitchRow {
-                visible: App.presenceAvailable
-                title: qsTr("Show in Discord")
-                description: qsTr("Let your Discord friends see what you are listening to.")
-                checked: App.settings.discordPresence
-                onChangeRequested: value => App.settings.discordPresence = value
-            }
-
-            SettingsDivider {
-                visible: App.presenceAvailable
-            }
-
-            SettingsSelectRow {
-                title: qsTr("Output device")
-                description: qsTr("Where the sound plays.")
-                choices: App.audioOutput.choices
-                currentIndex: App.audioOutput.currentIndex
-                onActivated: index => App.audioOutput.choose(index)
-            }
-
-            SettingsDivider {}
-
-            SettingsSwitchRow {
-                title: qsTr("Gapless playback")
-                description: qsTr("Remove silence between consecutive tracks.")
-                checked: App.settings.gapless
-                onChangeRequested: value => App.settings.gapless = value
-            }
-
-            SettingsDivider {}
-
-            SettingsSelectRow {
-                title: qsTr("When closing window")
-                description: App.settings.closeBehavior === 0
-                    ? qsTr("%1 keeps playing in the notification area").arg(AppInfo.displayName)
-                    : qsTr("Closing the window quits %1").arg(AppInfo.displayName)
-                choices: App.settings.closeChoices
-                currentIndex: App.settings.closeBehavior
-                onActivated: index => App.settings.closeBehavior = index
-            }
-        }
-
-        SettingsEqualizerCard {
-            width: column.width
-        }
-
-        SettingsAppearanceCard {
-            width: column.width
-        }
-
-        SettingsSection {
-            width: column.width
-            iconName: "link"
-            title: qsTr("Integrations")
-
-            SettingsSwitchRow {
-                title: qsTr("Windows media controls")
-                description: qsTr("Play and pause from the system media controls and the media keys.")
-                checked: App.settings.mediaControls
-                onChangeRequested: value => App.settings.mediaControls = value
-            }
         }
 
         SettingsAboutCard {

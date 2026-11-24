@@ -328,6 +328,11 @@ QFuture<Result<void>> AccountClient::savePreferencesDocument(const QString& bear
         .then(toVoid);
 }
 
+QFuture<Result<void>> AccountClient::clearHistory(const QString& bearerSession)
+{
+    return send(makeCall(net::HttpMethod::Delete, QStringLiteral("/v1/music/history"), bearerSession)).then(toVoid);
+}
+
 QFuture<Result<QByteArray>> AccountClient::coverArt(const QString& bearerSession, const QString& coverLinkPath)
 {
     if (net::accountCoverLinkPath(coverLinkPath) != coverLinkPath || coverLinkPath.isEmpty()) {

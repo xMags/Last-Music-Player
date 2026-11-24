@@ -49,6 +49,11 @@ class OfflineViewModel : public QObject {
     Q_PROPERTY(lmp::ui::TrackListModel* songs READ songs CONSTANT FINAL)
     Q_PROPERTY(lmp::ui::CollectionCardModel* cards READ cards CONSTANT FINAL)
     Q_PROPERTY(bool hasDownloads READ hasDownloads NOTIFY changed FINAL)
+    // Settings' Downloaded songs row: "<n> songs on this PC · <size>", or how
+    // to start; and whether anything is on the list at all (finished, queued,
+    // running or failed), which shows Remove all downloads.
+    Q_PROPERTY(QString storedSummary READ storedSummary NOTIFY changed FINAL)
+    Q_PROPERTY(bool hasAnyDownloads READ hasAnyDownloads NOTIFY changed FINAL)
     // "42 songs · 312 MB", empty with nothing downloaded.
     Q_PROPERTY(QString summary READ summary NOTIFY changed FINAL)
     Q_PROPERTY(bool hasCompleted READ hasCompleted NOTIFY changed FINAL)
@@ -97,6 +102,8 @@ public:
     [[nodiscard]] TrackListModel* songs() { return &m_songs; }
     [[nodiscard]] CollectionCardModel* cards() { return &m_cards; }
     [[nodiscard]] bool hasDownloads() const { return !m_downloaded.isEmpty(); }
+    [[nodiscard]] QString storedSummary() const;
+    [[nodiscard]] bool hasAnyDownloads() const;
     [[nodiscard]] QString summary() const;
     [[nodiscard]] bool hasCompleted() const { return !m_downloaded.isEmpty(); }
     [[nodiscard]] bool pendingShown() const { return !m_pending.isEmpty(); }
@@ -127,6 +134,8 @@ public:
     Q_INVOKABLE void cancel(const QString& jobId);
     Q_INVOKABLE void retry(const QString& jobId);
     Q_INVOKABLE void clearCompleted();
+    // Removes every download from this PC and says how it went in a toast.
+    Q_INVOKABLE void removeAll();
     Q_INVOKABLE void chooseFolder();
     // The player bar's Download: the song playing now.
     Q_INVOKABLE void downloadPlaying();

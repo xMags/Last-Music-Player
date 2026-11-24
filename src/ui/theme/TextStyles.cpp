@@ -140,6 +140,8 @@ TextStyles TextStyles::build(const FontFamilies& families)
         // .settings-combo (13px, 400) and .settings-dialog-state (12.5px).
         .settingsComboLabel = makeTextStyle({.family = text, .pixelSize = 13, .weight = kRegular}),
         .settingsDialogState = makeTextStyle({.family = text, .pixelSize = 12.5, .weight = kRegular}),
+        // .settings-feedback: 12px at line-height 1.45.
+        .settingsFeedback = makeTextStyle({.family = text, .pixelSize = 12, .weight = kRegular, .lineHeight = 12 * 1.45}),
         // The sign-in dialog (auth.css 307-510): .auth-title, .auth-meta-foot,
         // .auth-tagline, .auth-btn and .auth-err.
         .signInTitle = makeTextStyle({.family = families.sleeveDisplay,

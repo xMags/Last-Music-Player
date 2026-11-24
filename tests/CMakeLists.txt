@@ -562,6 +562,10 @@ lmp_add_test(tst_presence_protocol
     SOURCES core/tst_presence_protocol.cpp
     LIBS lmp_core)
 
+lmp_add_test(tst_presence_card
+    SOURCES core/tst_presence_card.cpp
+    LIBS lmp_core)
+
 lmp_add_test(tst_connect_protocol
     SOURCES core/tst_connect_protocol.cpp
     LIBS lmp_core)

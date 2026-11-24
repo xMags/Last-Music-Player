@@ -499,6 +499,9 @@ QFuture<MusicSyncService::Outcome> MusicSyncService::pullLibrary()
             resetLaneFailure(Lane::Library);
             m_homeLayout = result.value().homeLayout;
             m_homeLayoutOwner = owner;
+            m_historyCount = static_cast<int>(std::count_if(
+                snapshot.tracks.cbegin(), snapshot.tracks.cend(),
+                [](const db::AccountTrackSnapshot& track) { return !track.lastPlayedAtUtc.isEmpty(); }));
             ++m_libraryRevision;
             emit libraryChanged();
             return Outcome::Succeeded;

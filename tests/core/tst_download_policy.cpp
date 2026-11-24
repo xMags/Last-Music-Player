@@ -29,7 +29,21 @@ class DownloadPolicyTest : public QObject {
 private slots:
     void downloadPolicy();
     void everyStateExtensionAndStop();
+    void sizeTextMatchesSettings();
 };
+
+void DownloadPolicyTest::sizeTextMatchesSettings()
+{
+    using lmp::core::downloadSizeText;
+    QCOMPARE(downloadSizeText(0), QStringLiteral("0 MB"));
+    QCOMPARE(downloadSizeText(512), QStringLiteral("512 B"));
+    QCOMPARE(downloadSizeText(1024), QStringLiteral("1 KB"));
+    QCOMPARE(downloadSizeText(1536), QStringLiteral("2 KB"));
+    QCOMPARE(downloadSizeText(1024ULL * 1024), QStringLiteral("1 MB"));
+    QCOMPARE(downloadSizeText(12ULL * 1024 * 1024 + 600 * 1024), QStringLiteral("13 MB"));
+    QCOMPARE(downloadSizeText(1024ULL * 1024 * 1024), QStringLiteral("1.0 GB"));
+    QCOMPARE(downloadSizeText(1536ULL * 1024 * 1024), QStringLiteral("1.5 GB"));
+}
 
 void DownloadPolicyTest::downloadPolicy()
 {

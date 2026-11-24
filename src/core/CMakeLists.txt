@@ -323,6 +323,10 @@ qt_add_library(lmp_core STATIC
     playback/ResumePositionTracker.cpp
     playback/ResumePositionTracker.h
     playback/TrackSourceResolver.h
+    app/AppDataReset.cpp
+    app/AppDataReset.h
+    presence/PresenceCard.cpp
+    presence/PresenceCard.h
     presence/PresenceProtocol.cpp
     presence/PresenceProtocol.h
     presence/PresenceService.cpp

@@ -165,6 +165,8 @@ public:
     [[nodiscard]] QFuture<Result<QByteArray>> preferencesDocument(const QString& bearerSession);
     // PUT /v1/music/preferences with `json` as given.
     [[nodiscard]] QFuture<Result<void>> savePreferencesDocument(const QString& bearerSession, const QByteArray& json);
+    // DELETE /v1/music/history: the account's whole play history.
+    [[nodiscard]] QFuture<Result<void>> clearHistory(const QString& bearerSession);
 
     // GET <cover link path> (net::accountCoverLinkPath): the image bytes, at
     // most MaxArtworkBytes. Anything that is not a cover link sends nothing

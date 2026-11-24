@@ -19,6 +19,7 @@
 #include "ui/library/LibraryViewModel.h"
 #include "ui/library/LocalArtistViewModel.h"
 #include "ui/library/AccountArtistsViewModel.h"
+#include "ui/settings/DataPrivacyViewModel.h"
 #include "ui/settings/DataSettingsViewModel.h"
 #include "ui/catalog/CatalogArtistViewModel.h"
 #include "ui/downloads/OfflineViewModel.h"
@@ -107,6 +108,8 @@ class AppRoot : public QObject {
     Q_PROPERTY(lmp::ui::SearchViewModel* search READ search CONSTANT FINAL)
     // The Settings Data card.
     Q_PROPERTY(lmp::ui::DataSettingsViewModel* dataSettings READ dataSettings CONSTANT FINAL)
+    // The Settings Data and privacy card (Account mode).
+    Q_PROPERTY(lmp::ui::DataPrivacyViewModel* dataPrivacy READ dataPrivacy CONSTANT FINAL)
     Q_PROPERTY(lmp::ui::AccountArtistsViewModel* accountArtists READ accountArtists CONSTANT FINAL)
     Q_PROPERTY(lmp::ui::WelcomeViewModel* welcome READ welcome CONSTANT FINAL)
     Q_PROPERTY(lmp::ui::ConnectivityViewModel* connectivity READ connectivity CONSTANT FINAL)
@@ -158,6 +161,7 @@ public:
         HomeViewModel* home = nullptr;
         SearchViewModel* search = nullptr;
         DataSettingsViewModel* dataSettings = nullptr;
+        DataPrivacyViewModel* dataPrivacy = nullptr;
         AccountArtistsViewModel* accountArtists = nullptr;
         WelcomeViewModel* welcome = nullptr;
         ConnectivityViewModel* connectivity = nullptr;
@@ -209,6 +213,7 @@ public:
     [[nodiscard]] HomeViewModel* home() const { return m_parts.home; }
     [[nodiscard]] SearchViewModel* search() const { return m_parts.search; }
     [[nodiscard]] DataSettingsViewModel* dataSettings() const { return m_parts.dataSettings; }
+    [[nodiscard]] DataPrivacyViewModel* dataPrivacy() const { return m_parts.dataPrivacy; }
     [[nodiscard]] AccountArtistsViewModel* accountArtists() const { return m_parts.accountArtists; }
     [[nodiscard]] WelcomeViewModel* welcome() const { return m_parts.welcome; }
     [[nodiscard]] ConnectivityViewModel* connectivity() const { return m_parts.connectivity; }

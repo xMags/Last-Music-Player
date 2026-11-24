@@ -13,6 +13,8 @@ Item {
     property string description: ""
     // The description in the danger colour, for a failed load or save.
     property bool descriptionError: false
+    // The title in the danger colour (.settings-row-danger).
+    property bool titleDanger: false
     default property alias control: controlSlot.data
 
     width: parent ? parent.width : 0
@@ -37,7 +39,7 @@ Item {
                 font: Theme.settingsRowTitle
                 lineHeight: Theme.lineHeightSettingsRowTitle
                 lineHeightMode: Text.FixedHeight
-                color: Theme.fg
+                color: row.titleDanger ? Theme.danger : Theme.fg
                 elide: Text.ElideRight
             }
 

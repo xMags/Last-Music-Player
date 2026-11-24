@@ -83,10 +83,10 @@ QByteArray activityJson(const PresencePayload& payload, qint64 processId, qint64
     const qint64 position = milliseconds(payload.positionSeconds);
     const qint64 duration = milliseconds(payload.durationSeconds);
     QJsonObject activity{{QStringLiteral("type"), 2}, {QStringLiteral("name"), QStringLiteral("Last Music")}};
-    if (!payload.title.isEmpty()) {
-        activity.insert(QStringLiteral("details"), payload.title);
+    if (!payload.details.isEmpty()) {
+        activity.insert(QStringLiteral("details"), payload.details);
     }
-    QString state = payload.artist;
+    QString state = payload.state;
     if (!payload.isPlaying) {
         if (!state.isEmpty()) {
             state += QStringLiteral(" · ");
@@ -128,7 +128,7 @@ QByteArray clearJson(qint64 processId, const QString& nonce)
 QString activityFingerprint(const PresencePayload& payload)
 {
     const auto part = [](const QString& value) { return QString::number(value.toUtf8().size()) + QLatin1Char(':') + value + QLatin1Char('|'); };
-    return part(payload.title) + part(payload.artist) + part(payload.artworkUrl)
+    return part(payload.details) + part(payload.state) + part(payload.artworkUrl)
         + QString::number(milliseconds(payload.durationSeconds)) + QLatin1Char('|')
         + QString::number(milliseconds(payload.positionSeconds)) + QLatin1Char('|')
         + QString::number(payload.isPlaying ? 1 : 0) + QLatin1Char('|') + QString::number(payload.isLocal ? 1 : 0);

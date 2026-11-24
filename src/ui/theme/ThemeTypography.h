@@ -40,6 +40,8 @@ class ThemeTypography : public QObject {
     Q_PROPERTY(qreal lineHeightSettingsDialogText READ lineHeightSettingsDialogText CONSTANT FINAL)
     Q_PROPERTY(QFont settingsComboLabel READ settingsComboLabel CONSTANT FINAL)
     Q_PROPERTY(QFont settingsDialogState READ settingsDialogState CONSTANT FINAL)
+    Q_PROPERTY(QFont settingsFeedback READ settingsFeedback CONSTANT FINAL)
+    Q_PROPERTY(qreal lineHeightSettingsFeedback READ lineHeightSettingsFeedback CONSTANT FINAL)
     Q_PROPERTY(QFont signInTitle READ signInTitle CONSTANT FINAL)
     Q_PROPERTY(QFont signInLabel READ signInLabel CONSTANT FINAL)
     Q_PROPERTY(QFont signInTagline READ signInTagline CONSTANT FINAL)
@@ -168,6 +170,8 @@ public:
     [[nodiscard]] qreal lineHeightSettingsDialogText() const { return m_text.settingsDialogText.lineHeight; }
     [[nodiscard]] QFont settingsComboLabel() const { return m_text.settingsComboLabel.font; }
     [[nodiscard]] QFont settingsDialogState() const { return m_text.settingsDialogState.font; }
+    [[nodiscard]] QFont settingsFeedback() const { return m_text.settingsFeedback.font; }
+    [[nodiscard]] qreal lineHeightSettingsFeedback() const { return m_text.settingsFeedback.lineHeight; }
     [[nodiscard]] QFont signInTitle() const { return m_text.signInTitle.font; }
     [[nodiscard]] QFont signInLabel() const { return m_text.signInLabel.font; }
     [[nodiscard]] QFont signInTagline() const { return m_text.signInTagline.font; }

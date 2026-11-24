@@ -73,6 +73,7 @@ struct TextStyles {
     TextStyle settingsDialogText;
     TextStyle settingsComboLabel;
     TextStyle settingsDialogState;
+    TextStyle settingsFeedback;
     TextStyle signInTitle;
     TextStyle signInLabel;
     TextStyle signInTagline;

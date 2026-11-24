@@ -5,6 +5,7 @@
 #include <QLatin1StringView>
 
 #include <algorithm>
+#include <cmath>
 
 namespace lmp::core {
 
@@ -48,6 +49,22 @@ QString downloadExtensionForMediaType(QStringView mediaType)
         return QStringLiteral(".wav");
     }
     return QStringLiteral(".audio");
+}
+
+QString downloadSizeText(std::uint64_t bytes)
+{
+    constexpr double kib = 1024.0;
+    const auto size = static_cast<double>(bytes);
+    if (size >= kib * kib * kib) {
+        return QString::number(size / (kib * kib * kib), 'f', 1) + QStringLiteral(" GB");
+    }
+    if (size >= kib * kib) {
+        return QString::number(std::llround(size / (kib * kib))) + QStringLiteral(" MB");
+    }
+    if (size >= kib) {
+        return QString::number(std::llround(size / kib)) + QStringLiteral(" KB");
+    }
+    return bytes > 0 ? QString::number(bytes) + QStringLiteral(" B") : QStringLiteral("0 MB");
 }
 
 double downloadProgressPercent(std::uint64_t downloaded, std::uint64_t total) noexcept

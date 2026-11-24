@@ -3,6 +3,7 @@
 #include <QObject>
 #include <QString>
 #include <QStringList>
+#include <QTimer>
 #include <QVariantList>
 #include <QtQml/qqmlregistration.h>
 
@@ -41,8 +42,25 @@ class SettingsViewModel : public QObject {
     // Kept and saved like every other choice; the audio side has no gap
     // removal yet, as in earlier versions.
     Q_PROPERTY(bool gapless READ gapless WRITE setGapless NOTIFY preferencesChanged FINAL)
+    // Lower-quality streams for songs that are not cached, in Account mode
+    // (the DataSaver setting, synced with the account).
+    Q_PROPERTY(bool dataSaver READ dataSaver WRITE setDataSaver NOTIFY preferencesChanged FINAL)
     // Show what plays in Discord (the DiscordPresence setting).
     Q_PROPERTY(bool discordPresence READ discordPresence WRITE setDiscordPresence NOTIFY preferencesChanged FINAL)
+    // The Discord card's choices (core/presence/PresenceCard): the song or
+    // only that music plays; the layout (0 title then artist, 1 title and
+    // artist then album); what a pause does (0 keep showing, 1 hide after
+    // 5 minutes, 2 hide right away); the Cast device; and a one-hour pause of
+    // sharing, with the time it ends.
+    Q_PROPERTY(bool discordShowSong READ discordShowSong WRITE setDiscordShowSong NOTIFY preferencesChanged FINAL)
+    Q_PROPERTY(int discordLayout READ discordLayout WRITE setDiscordLayout NOTIFY preferencesChanged FINAL)
+    Q_PROPERTY(QStringList discordLayoutChoices READ discordLayoutChoices CONSTANT FINAL)
+    Q_PROPERTY(int discordWhenPaused READ discordWhenPaused WRITE setDiscordWhenPaused NOTIFY preferencesChanged FINAL)
+    Q_PROPERTY(QStringList discordWhenPausedChoices READ discordWhenPausedChoices CONSTANT FINAL)
+    Q_PROPERTY(bool discordShowCastDevice READ discordShowCastDevice WRITE setDiscordShowCastDevice
+                   NOTIFY preferencesChanged FINAL)
+    Q_PROPERTY(bool discordSnoozed READ discordSnoozed NOTIFY preferencesChanged FINAL)
+    Q_PROPERTY(QString discordSnoozeEnd READ discordSnoozeEnd NOTIFY preferencesChanged FINAL)
     Q_PROPERTY(bool showAlbumArt READ showAlbumArt WRITE setShowAlbumArt NOTIFY preferencesChanged FINAL)
     Q_PROPERTY(bool mediaControls READ mediaControls WRITE setMediaControls NOTIFY preferencesChanged FINAL)
     // 0 minimise to the tray, 1 quit, in the order of closeChoices.
@@ -71,8 +89,25 @@ public:
     void setAutoplay(bool autoplay);
     [[nodiscard]] bool gapless() const;
     void setGapless(bool gapless);
+    [[nodiscard]] bool dataSaver() const;
+    void setDataSaver(bool enabled);
     [[nodiscard]] bool discordPresence() const;
     void setDiscordPresence(bool enabled);
+    [[nodiscard]] bool discordShowSong() const;
+    void setDiscordShowSong(bool show);
+    [[nodiscard]] int discordLayout() const;
+    void setDiscordLayout(int index);
+    [[nodiscard]] QStringList discordLayoutChoices() const;
+    [[nodiscard]] int discordWhenPaused() const;
+    void setDiscordWhenPaused(int index);
+    [[nodiscard]] QStringList discordWhenPausedChoices() const;
+    [[nodiscard]] bool discordShowCastDevice() const;
+    void setDiscordShowCastDevice(bool show);
+    [[nodiscard]] bool discordSnoozed() const;
+    [[nodiscard]] QString discordSnoozeEnd() const;
+    // Hides the listening from Discord for an hour, or ends that pause now.
+    Q_INVOKABLE void pauseDiscordSharing();
+    Q_INVOKABLE void resumeDiscordSharing();
     [[nodiscard]] bool showAlbumArt() const;
     void setShowAlbumArt(bool show);
     [[nodiscard]] bool mediaControls() const;
@@ -103,7 +138,11 @@ signals:
     void preferencesChanged();
 
 private:
+    // Refreshes the rows when a sharing pause ends, so "paused until" goes.
+    void armSnoozeEnd();
+
     core::SettingsStore& m_settings;
+    QTimer m_snoozeEnd;
     core::PlayerController& m_player;
     const core::mode::ModeService& m_mode;
 };

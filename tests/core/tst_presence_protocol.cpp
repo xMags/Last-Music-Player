@@ -71,8 +71,8 @@ private slots:
     void activityWhilePlaying()
     {
         PresencePayload payload;
-        payload.title = QStringLiteral("Song \"One\"");
-        payload.artist = QStringLiteral("Artist");
+        payload.details = QStringLiteral("Song \"One\"");
+        payload.state = QStringLiteral("Artist");
         payload.artworkUrl = QStringLiteral("https://example.invalid/a.jpg");
         payload.durationSeconds = 200.0;
         payload.positionSeconds = 50.0;
@@ -85,7 +85,7 @@ private slots:
         const QJsonObject activity = args.value(QStringLiteral("activity")).toObject();
         QCOMPARE(activity.value(QStringLiteral("type")).toInt(), 2);
         QCOMPARE(activity.value(QStringLiteral("name")).toString(), QStringLiteral("Last Music"));
-        QCOMPARE(activity.value(QStringLiteral("details")).toString(), payload.title);
+        QCOMPARE(activity.value(QStringLiteral("details")).toString(), payload.details);
         QCOMPARE(activity.value(QStringLiteral("state")).toString(), QStringLiteral("Artist"));
         const QJsonObject times = activity.value(QStringLiteral("timestamps")).toObject();
         QCOMPARE(times.value(QStringLiteral("start")).toInteger(), 950'000);
@@ -98,8 +98,8 @@ private slots:
     void pausedActivityHasNoTimestamps()
     {
         PresencePayload payload;
-        payload.title = QStringLiteral("Song");
-        payload.artist = QStringLiteral("Artist");
+        payload.details = QStringLiteral("Song");
+        payload.state = QStringLiteral("Artist");
         payload.durationSeconds = 200.0;
         payload.isPlaying = false;
         payload.isLocal = true;
@@ -119,7 +119,7 @@ private slots:
     void externalAssetIsKept()
     {
         PresencePayload payload;
-        payload.title = QStringLiteral("Song");
+        payload.details = QStringLiteral("Song");
         payload.artworkUrl = QStringLiteral("mp:external/abc/https/x");
         const QJsonObject activity = QJsonDocument::fromJson(presence::activityJson(payload, 1, 0, QStringLiteral("n")))
                                          .object()
@@ -172,7 +172,7 @@ private slots:
     void fingerprintChangesWithWhatIsShown()
     {
         PresencePayload a;
-        a.title = QStringLiteral("Song");
+        a.details = QStringLiteral("Song");
         PresencePayload b = a;
         QCOMPARE(presence::activityFingerprint(a), presence::activityFingerprint(b));
         b.isPlaying = false;

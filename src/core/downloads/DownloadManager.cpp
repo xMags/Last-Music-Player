@@ -359,6 +359,45 @@ void DownloadManager::clearCompletedHistory()
     touch();
 }
 
+bool DownloadManager::removeAllDownloads()
+{
+    const std::optional<UserDataOperationGate::Lease> lease = m_deps.gate.tryEnter();
+    if (!lease) {
+        return false;
+    }
+    bool allRemoved = true;
+    // Two items can share one finished file; once it could not be deleted,
+    // every item naming it stays.
+    QSet<QString> kept;
+    QList<DownloadJob> remaining;
+    for (DownloadJob& job : m_jobs) {
+        QList<DownloadItem> stay;
+        for (const DownloadItem& item : std::as_const(job.items)) {
+            m_runtime.remove(item.id);
+            if (item.state != DownloadItemState::Completed || item.filePath.isEmpty()) {
+                QFile::remove(partPathFor(m_root, item.id));
+                continue;
+            }
+            const bool stuck = kept.contains(item.filePath)
+                || (QFileInfo::exists(item.filePath) && !QFile::remove(item.filePath));
+            if (stuck) {
+                kept.insert(item.filePath);
+                stay.append(item);
+                allRemoved = false;
+            }
+        }
+        if (!stay.isEmpty()) {
+            job.items = stay;
+            remaining.append(job);
+        }
+    }
+    m_jobs = remaining;
+    refreshUsage();
+    save();
+    touch();
+    return allRemoved;
+}
+
 void DownloadManager::dismissFailed(const QString& jobId)
 {
     const auto failed = [&jobId](const DownloadJob& job) {

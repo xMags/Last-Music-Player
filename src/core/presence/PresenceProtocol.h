@@ -9,10 +9,11 @@
 
 namespace lmp::core::presence {
 
-// What the rich presence shows for a song; an empty title clears it.
+// What the rich presence shows for a song: its two lines (presenceLines),
+// the picture and the progress.
 struct PresencePayload {
-    QString title;
-    QString artist;
+    QString details;
+    QString state;
     // An https address, a "mp:external/..." asset or a bare asset key;
     // anything else is left out.
     QString artworkUrl;
@@ -67,13 +68,13 @@ private:
 
 [[nodiscard]] QByteArray handshakeJson(const QString& clientId);
 // SET_ACTIVITY for the song, as the earlier versions built it: listening
-// (type 2), named "Last Music", details the title, state the artist (and
+// (type 2), named "Last Music", the details line, the state line (and
 // "Paused"), timestamps while playing a song with a length, the picture
 // with its source label.
 [[nodiscard]] QByteArray activityJson(const PresencePayload& payload, qint64 processId, qint64 nowMs,
                                       const QString& nonce);
 [[nodiscard]] QByteArray clearJson(qint64 processId, const QString& nonce);
-// What makes two activities the same (title, artist, picture, length,
+// What makes two activities the same (both lines, picture, length,
 // position to the millisecond, playing, local).
 [[nodiscard]] QString activityFingerprint(const PresencePayload& payload);
 

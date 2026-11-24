@@ -1,11 +1,16 @@
 #include "ui/settings/SettingsViewModel.h"
 
 #include <QColor>
+#include <QDateTime>
+#include <QLocale>
+
+#include <chrono>
 
 #include "core/account/ProfileIdentity.h"
 #include "core/mode/ModeService.h"
 #include "core/mode/SourceMode.h"
 #include "core/playback/PlayerController.h"
+#include "core/presence/PresenceCard.h"
 #include "core/settings/AppearanceSettings.h"
 #include "core/settings/PreferenceDefaults.h"
 #include "core/settings/SettingKeys.h"
@@ -40,6 +45,134 @@ SettingsViewModel::SettingsViewModel(core::SettingsStore& settings, core::Player
     // reset or reload, so every change refreshes the rows.
     connect(&m_settings, &core::SettingsStore::changed, this, &SettingsViewModel::preferencesChanged);
     connect(&m_player, &core::PlayerController::autoplayChanged, this, &SettingsViewModel::preferencesChanged);
+    m_snoozeEnd.setSingleShot(true);
+    connect(&m_snoozeEnd, &QTimer::timeout, this, &SettingsViewModel::preferencesChanged);
+    connect(&m_settings, &core::SettingsStore::changed, this, [this](const QString& key) {
+        if (key.isEmpty() || key == keys::DiscordSnoozeUntil) {
+            armSnoozeEnd();
+        }
+    });
+    armSnoozeEnd();
+}
+
+void SettingsViewModel::armSnoozeEnd()
+{
+    m_snoozeEnd.stop();
+    const qint64 until = core::presence::presenceVisibilityFrom(m_settings).snoozeUntil;
+    const qint64 now = QDateTime::currentSecsSinceEpoch();
+    if (until > now) {
+        // Half a second after the end, as the reference redraws.
+        m_snoozeEnd.start(std::chrono::milliseconds((until - now) * 1000 + 500));
+    }
+}
+
+bool SettingsViewModel::discordShowSong() const
+{
+    return core::presence::presenceOptionsFrom(m_settings).showSong;
+}
+
+void SettingsViewModel::setDiscordShowSong(bool show)
+{
+    if (discordShowSong() == show && m_settings.contains(keys::DiscordShowSong)) {
+        return;
+    }
+    m_settings.setBoolean(keys::DiscordShowSong, show);
+}
+
+int SettingsViewModel::discordLayout() const
+{
+    return core::presence::presenceOptionsFrom(m_settings).layout == core::presence::PresenceLayout::TitleArtistThenAlbum
+        ? 1
+        : 0;
+}
+
+void SettingsViewModel::setDiscordLayout(int index)
+{
+    if (index != 0 && index != 1) {
+        return;
+    }
+    const QString stored = core::presence::storedLayout(index == 1 ? core::presence::PresenceLayout::TitleArtistThenAlbum
+                                                                   : core::presence::PresenceLayout::TitleThenArtist);
+    if (m_settings.string(keys::DiscordLayout) == stored) {
+        return;
+    }
+    m_settings.setString(keys::DiscordLayout, stored);
+}
+
+QStringList SettingsViewModel::discordLayoutChoices() const
+{
+    return {tr("Title, then artist"), tr("Title · artist, then album")};
+}
+
+int SettingsViewModel::discordWhenPaused() const
+{
+    switch (core::presence::presenceVisibilityFrom(m_settings).whenPaused) {
+    case core::presence::PausedBehavior::HideAfterDelay:
+        return 1;
+    case core::presence::PausedBehavior::Hide:
+        return 2;
+    case core::presence::PausedBehavior::Show:
+        break;
+    }
+    return 0;
+}
+
+void SettingsViewModel::setDiscordWhenPaused(int index)
+{
+    if (index < 0 || index > 2) {
+        return;
+    }
+    const core::presence::PausedBehavior behavior = index == 1 ? core::presence::PausedBehavior::HideAfterDelay
+        : index == 2                                            ? core::presence::PausedBehavior::Hide
+                                                                : core::presence::PausedBehavior::Show;
+    const QString stored = core::presence::storedPausedBehavior(behavior);
+    if (m_settings.string(keys::DiscordWhenPaused) == stored) {
+        return;
+    }
+    m_settings.setString(keys::DiscordWhenPaused, stored);
+}
+
+QStringList SettingsViewModel::discordWhenPausedChoices() const
+{
+    return {tr("Keep showing"), tr("Hide after 5 minutes"), tr("Hide right away")};
+}
+
+bool SettingsViewModel::discordShowCastDevice() const
+{
+    return core::presence::presenceOptionsFrom(m_settings).showCastDevice;
+}
+
+void SettingsViewModel::setDiscordShowCastDevice(bool show)
+{
+    if (discordShowCastDevice() == show && m_settings.contains(keys::DiscordShowCastDevice)) {
+        return;
+    }
+    m_settings.setBoolean(keys::DiscordShowCastDevice, show);
+}
+
+bool SettingsViewModel::discordSnoozed() const
+{
+    return core::presence::presenceVisibilityFrom(m_settings).snoozeUntil > QDateTime::currentSecsSinceEpoch();
+}
+
+QString SettingsViewModel::discordSnoozeEnd() const
+{
+    if (!discordSnoozed()) {
+        return {};
+    }
+    const QDateTime end = QDateTime::fromSecsSinceEpoch(core::presence::presenceVisibilityFrom(m_settings).snoozeUntil);
+    return QLocale::system().toString(end.time(), QLocale::ShortFormat);
+}
+
+void SettingsViewModel::pauseDiscordSharing()
+{
+    m_settings.setNumber(keys::DiscordSnoozeUntil,
+                         static_cast<double>(QDateTime::currentSecsSinceEpoch() + core::presence::SharingPauseSeconds));
+}
+
+void SettingsViewModel::resumeDiscordSharing()
+{
+    m_settings.setNumber(keys::DiscordSnoozeUntil, 0.0);
 }
 
 QString SettingsViewModel::theme() const
@@ -112,6 +245,19 @@ void SettingsViewModel::setGapless(bool gapless)
         return;
     }
     m_settings.setBoolean(keys::Gapless, gapless);
+}
+
+bool SettingsViewModel::dataSaver() const
+{
+    return m_settings.boolean(keys::DataSaver, false);
+}
+
+void SettingsViewModel::setDataSaver(bool enabled)
+{
+    if (dataSaver() == enabled && m_settings.contains(keys::DataSaver)) {
+        return;
+    }
+    m_settings.setBoolean(keys::DataSaver, enabled);
 }
 
 bool SettingsViewModel::discordPresence() const

@@ -168,6 +168,13 @@ public:
     void pauseAll();
     void resumeAll();
     void clearCompletedHistory();
+    // Removes every download from this PC: running transfers are dropped
+    // (their partial files go when they return), partial files go and
+    // finished files are deleted. A finished file that cannot be deleted
+    // (one that is playing, say) keeps its item, so it stays listed. False
+    // when any file stayed, or while "Delete all data" runs (nothing
+    // changes then).
+    [[nodiscard]] bool removeAllDownloads();
     void dismissFailed(const QString& jobId);
     // Starts what the rules now allow (after a connection or power change).
     void refreshScheduling();

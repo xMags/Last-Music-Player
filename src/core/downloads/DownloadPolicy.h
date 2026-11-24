@@ -28,6 +28,11 @@ enum class DownloadItemState {
 // Percentage 0 to 100; 0 when the total is unknown (zero).
 [[nodiscard]] double downloadProgressPercent(std::uint64_t downloaded, std::uint64_t total) noexcept;
 
+// The space downloads take, as Settings writes it: "1.5 GB" (one decimal)
+// from 1 GiB, whole "MB" from 1 MiB, whole "KB" from 1 KiB, else "<n> B",
+// and "0 MB" for nothing.
+[[nodiscard]] QString downloadSizeText(std::uint64_t bytes);
+
 // The conditions the download scheduler checks before starting work.
 struct DownloadSchedulingConditions {
     bool avoidMeteredNetworks = false;

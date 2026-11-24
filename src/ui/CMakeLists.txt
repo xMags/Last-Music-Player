@@ -144,6 +144,9 @@ set(LMP_UI_QML_FILES
     qml/settings/SettingsSpinner.qml
     qml/settings/SettingsConfirmDialog.qml
     qml/settings/SettingsRegionPicker.qml
+    qml/settings/SettingsPlaybackSection.qml
+    qml/settings/SettingsIntegrationsSection.qml
+    qml/settings/SettingsDataSection.qml
     qml/settings/SettingsSwitchRow.qml
     qml/settings/SourceModeCards.qml
     qml/settings/ThemeTile.qml
@@ -283,7 +286,9 @@ qt_add_qml_module(lmp_ui
         shell/ConnectivityViewModel.h
         welcome/WelcomeViewModel.cpp
         welcome/WelcomeViewModel.h
-        settings/DataSettingsViewModel.cpp
+        settings/DataPrivacyViewModel.cpp
+    settings/DataPrivacyViewModel.h
+    settings/DataSettingsViewModel.cpp
         settings/RegionLanguagesViewModel.cpp
         settings/RegionLanguagesViewModel.h
         settings/DataSettingsViewModel.h

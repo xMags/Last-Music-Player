@@ -33,6 +33,12 @@ inline constexpr QLatin1StringView ShowAlbumArt{"ShowAlbumArt"};
 inline constexpr QLatin1StringView WindowsMediaControls{"WindowsMediaControls"};
 // bool, default false. Rich presence in the chat app.
 inline constexpr QLatin1StringView DiscordPresence{"DiscordPresence"};
+// How the Discord card looks and when it shows (core/presence/PresenceCard).
+inline constexpr QLatin1StringView DiscordShowSong{"DiscordShowSong"};
+inline constexpr QLatin1StringView DiscordLayout{"DiscordLayout"};
+inline constexpr QLatin1StringView DiscordWhenPaused{"DiscordWhenPaused"};
+inline constexpr QLatin1StringView DiscordShowCastDevice{"DiscordShowCastDevice"};
+inline constexpr QLatin1StringView DiscordSnoozeUntil{"DiscordSnoozeUntil"};
 // string, made on first use: this PC's id on the account's device link
 // (8 to 64 of A-Z, a-z, 0-9, "_" and "-").
 inline constexpr QLatin1StringView ConnectDeviceId{"ConnectDeviceId"};

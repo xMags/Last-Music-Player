@@ -81,6 +81,7 @@ private slots:
     void artworkIsLimited();
     void streamProbeReadsHeadersOnly();
     void failuresPassThrough();
+    void clearHistoryDeletesTheHistory();
 
 private:
     // The one request sent since init(), with the common checks done.
@@ -294,6 +295,19 @@ void AccountMusicCallsTest::failuresPassThrough()
     const Result<account::ParsedAccountLibrary> library = resultOf(m_client->fetchLibrary(Session));
     QCOMPARE(library.failure().kind, FailureKind::Unauthorized);
     QCOMPARE(library.failure().httpStatus, 401);
+}
+
+void AccountMusicCallsTest::clearHistoryDeletesTheHistory()
+{
+    m_transport->script(QStringLiteral("/v1/music/history"), FakeHttpTransport::ok("{}"));
+    QVERIFY(resultOf(m_client->clearHistory(Session)).isOk());
+    const HttpRequest request = sent(HttpMethod::Delete, "/v1/music/history");
+    QVERIFY(request.body.isEmpty());
+    QCOMPARE(request.header("Authorization"), QByteArray("Bearer session-a"));
+
+    init();
+    m_transport->script(QStringLiteral("/v1/music/history"), FakeHttpTransport::failed(FailureKind::Server, 503));
+    QCOMPARE(resultOf(m_client->clearHistory(Session)).failure().httpStatus, 503);
 }
 
 QTEST_GUILESS_MAIN(AccountMusicCallsTest)

@@ -31,6 +31,7 @@
 #include "core/library/ArtworkCache.h"
 #include "app/CloseToTrayController.h"
 #include "app/WindowPlacementKeeper.h"
+#include "core/app/AppDataReset.h"
 #include "core/app/UserDataCleanup.h"
 #include "core/library/ArtistFollowService.h"
 #include "core/library/CollectionActions.h"
@@ -113,6 +114,7 @@
 #include "ui/library/CollectionViewModel.h"
 #include "ui/library/LibraryViewModel.h"
 #include "ui/library/LocalArtistViewModel.h"
+#include "ui/settings/DataPrivacyViewModel.h"
 #include "ui/settings/DataSettingsViewModel.h"
 #include "ui/settings/LibrarySettingsViewModel.h"
 #include "ui/tracks/TrackMenuController.h"
@@ -332,6 +334,10 @@ private:
     // "Delete all data" and the Data card.
     core::UserDataCleanup m_cleanup;
     ui::DataSettingsViewModel m_dataSettings;
+    // Settings' Data and privacy: clearing the account's history, and
+    // resetting the app's data on this PC.
+    core::AppDataReset m_appDataReset;
+    ui::DataPrivacyViewModel m_dataPrivacy;
     // The main window's size and place between runs.
     platform::windows::WindowsWindowPlacement m_windowPlacement;
     WindowPlacementKeeper m_placementKeeper;
@@ -365,6 +371,11 @@ private:
     // The song the presence's provider picture lookup was asked for.
     QString m_presenceArtworkFor;
     QString m_presenceArtwork;
+    // When playback last stopped playing a song (Unix seconds), 0 while it
+    // plays; and the timer that looks again when a pause runs out its delay
+    // or a sharing pause ends.
+    qint64 m_presencePausedSince = 0;
+    QTimer m_presenceVisibilityTimer;
     ui::AppRoot m_appRoot;
     QPointer<ui::Theme> m_theme; // owned by the QML engine
 };

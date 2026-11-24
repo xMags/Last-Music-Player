@@ -1,6 +1,7 @@
 #include "ui/downloads/OfflineViewModel.h"
 
 #include "core/downloads/DownloadManager.h"
+#include "core/downloads/DownloadPolicy.h"
 #include "core/library/TrackActions.h"
 #include "core/model/DisplayTitle.h"
 #include "platform/IFolderPicker.h"
@@ -279,6 +280,30 @@ void OfflineViewModel::retry(const QString& jobId)
 void OfflineViewModel::clearCompleted()
 {
     m_downloads.clearCompletedHistory();
+}
+
+QString OfflineViewModel::storedSummary() const
+{
+    const core::DownloadSnapshot snapshot = m_downloads.snapshot();
+    if (snapshot.offlineTracks == 0) {
+        return tr("None yet · use Download on any song, album or playlist");
+    }
+    return tr("%1 on this PC · %2").arg(songCount(snapshot.offlineTracks), core::downloadSizeText(snapshot.offlineBytes));
+}
+
+bool OfflineViewModel::hasAnyDownloads() const
+{
+    const core::DownloadSnapshot snapshot = m_downloads.snapshot();
+    return snapshot.offlineTracks > 0 || !snapshot.jobs.isEmpty();
+}
+
+void OfflineViewModel::removeAll()
+{
+    if (m_downloads.removeAllDownloads()) {
+        (void)m_toasts.show(tr("Removed all downloads from this PC"));
+        return;
+    }
+    (void)m_toasts.show(tr("The downloads could not be removed."), true);
 }
 
 bool OfflineViewModel::avoidMetered() const

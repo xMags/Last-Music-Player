@@ -5,6 +5,8 @@
 #include "core/model/DisplayTitle.h"
 
 #include "core/home/HomeModel.h"
+#include "core/presence/PresenceCard.h"
+#include "core/presence/PresenceProtocol.h"
 #include "ui/images/ChartArtImageProvider.h"
 
 #include <QCoreApplication>
@@ -12,6 +14,8 @@
 #include <QJsonDocument>
 #include <QDate>
 #include <QDateTime>
+
+#include <chrono>
 #include <QList>
 #include <QLoggingCategory>
 #include <QObject>
@@ -457,6 +461,13 @@ CompositionRoot::CompositionRoot()
                  .stateFile = m_paths.stateFile(),
                  .coverFolder = m_paths.thumbsFolder()})
     , m_dataSettings(m_cleanup, m_toasts)
+    , m_appDataReset({.signOut = m_signOut,
+                      .session = m_session,
+                      .player = m_player,
+                      .settings = m_settings,
+                      .streamCache = m_streamCache,
+                      .artwork = m_artwork})
+    , m_dataPrivacy({.client = m_accountClient, .session = m_session, .sync = m_sync, .reset = m_appDataReset})
     , m_placementKeeper(m_windowPlacement, m_settings)
     , m_closeToTray(m_tray,
                     m_settings,
@@ -518,6 +529,7 @@ CompositionRoot::CompositionRoot()
           .home = &m_home,
           .search = &m_search,
           .dataSettings = &m_dataSettings,
+        .dataPrivacy = &m_dataPrivacy,
           .accountArtists = &m_accountArtists,
           .welcome = &m_welcome,
           .connectivity = &m_connectivity,
@@ -639,9 +651,19 @@ CompositionRoot::CompositionRoot()
     updateConnect();
     // Discord presence follows its setting and the player.
     m_presence.setEnabled(m_settings.boolean(core::settings::keys::DiscordPresence, false));
+    m_presenceVisibilityTimer.setSingleShot(true);
+    QObject::connect(&m_presenceVisibilityTimer, &QTimer::timeout, &m_presence, [this]() { updatePresence(); });
+    QObject::connect(&m_cast, &core::cast::CastController::phaseChanged, &m_presence, [this]() { updatePresence(); });
     QObject::connect(&m_settings, &core::SettingsStore::changed, &m_presence, [this](const QString& key) {
-        if (key == core::settings::keys::DiscordPresence) {
-            m_presence.setEnabled(m_settings.boolean(core::settings::keys::DiscordPresence, false));
+        namespace keys = core::settings::keys;
+        const bool cardSetting = key == keys::DiscordShowSong || key == keys::DiscordLayout
+            || key == keys::DiscordWhenPaused || key == keys::DiscordShowCastDevice || key == keys::DiscordSnoozeUntil;
+        if (cardSetting) {
+            updatePresence();
+            return;
+        }
+        if (key.isEmpty() || key == keys::DiscordPresence) {
+            m_presence.setEnabled(m_settings.boolean(keys::DiscordPresence, false));
             updatePresence();
         }
     });
@@ -831,28 +853,56 @@ QFuture<core::Result<QByteArray>> CompositionRoot::sendAccount(core::net::HttpMe
 
 void CompositionRoot::updatePresence()
 {
+    m_presenceVisibilityTimer.stop();
     const std::optional<core::Track>& track = m_player.currentTrack();
     if (!track || m_player.state() == core::PlayerController::State::Idle) {
+        m_presencePausedSince = 0;
         m_presence.clear();
         return;
     }
+    const bool playing = m_player.state() == core::PlayerController::State::Playing;
+    const qint64 now = QDateTime::currentSecsSinceEpoch();
+    if (playing) {
+        m_presencePausedSince = 0;
+    } else if (m_presencePausedSince == 0) {
+        m_presencePausedSince = now;
+    }
+    // A pause that runs out its delay, or a sharing pause that ends, is
+    // looked at again then.
+    const core::presence::PresenceVisibility visibility = core::presence::presenceVisibilityFrom(m_settings);
+    if (const std::optional<qint64> next =
+            core::presence::nextVisibilityChange(visibility, m_presencePausedSince, now)) {
+        m_presenceVisibilityTimer.start(std::chrono::seconds(*next - now));
+    }
+    if (!core::presence::shouldPublish(visibility, m_presencePausedSince, now)) {
+        m_presence.clear();
+        return;
+    }
+
+    const core::presence::PresenceOptions options = core::presence::presenceOptionsFrom(m_settings);
+    const QString castDevice =
+        m_cast.phase() == core::cast::CastController::Phase::Casting ? m_cast.deviceName() : QString();
+    const core::presence::PresenceLines lines =
+        core::presence::presenceLines(core::displayTitle(track->title), track->artist, track->album, options, castDevice);
     core::presence::PresencePayload payload;
-    payload.title = core::displayTitle(track->title);
-    payload.artist = track->artist;
+    payload.details = lines.details;
+    payload.state = lines.state;
     payload.durationSeconds = m_player.durationSeconds() > 0 ? m_player.durationSeconds() : track->durationSeconds;
     payload.positionSeconds = m_player.positionSeconds();
-    payload.isPlaying = m_player.state() == core::PlayerController::State::Playing;
+    payload.isPlaying = playing;
     payload.isLocal = !track->isRemote();
-    // A public https picture or an account cover link on the account service;
-    // API key mode asks the provider for one Discord can show, as the earlier
-    // versions did.
-    payload.artworkUrl = core::presence::presenceArtworkUrl(track->artworkUrl, m_accountClient.baseOrigin());
     const QString songKey = track->title + QLatin1Char('\n') + track->artist;
-    if (m_presenceArtworkFor == songKey && !m_presenceArtwork.isEmpty()) {
-        payload.artworkUrl = m_presenceArtwork;
+    if (lines.showArtwork) {
+        // A public https picture or an account cover link on the account
+        // service; API key mode asks the provider for one Discord can show,
+        // as the earlier versions did.
+        payload.artworkUrl = core::presence::presenceArtworkUrl(track->artworkUrl, m_accountClient.baseOrigin());
+        if (m_presenceArtworkFor == songKey && !m_presenceArtwork.isEmpty()) {
+            payload.artworkUrl = m_presenceArtwork;
+        }
     }
     m_presence.show(payload);
-    if (m_presenceArtworkFor == songKey || !m_mode.capabilities().lookUpPresenceArtwork
+    if (!lines.showArtwork || m_presenceArtworkFor == songKey || !m_mode.capabilities().lookUpPresenceArtwork
         || !m_settings.boolean(core::settings::keys::DiscordPresence, false)) {
         return;
     }

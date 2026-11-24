@@ -134,7 +134,42 @@ private slots:
     void rulesHoldTheQueue();
     void itemsOfAnotherScopeFail();
     void earlierStateFileIsRead();
+    void removeAllDeletesFilesAndDropsTransfers();
 };
+
+void DownloadManagerTest::removeAllDeletesFilesAndDropsTransfers()
+{
+    Fixture fixture;
+    fixture.manager.initialize();
+    QVERIFY(fixture.manager.enqueue(QStringLiteral("Job"), {}, {},
+                                    {fixture.song(QStringLiteral("A")), fixture.song(QStringLiteral("B")),
+                                     fixture.song(QStringLiteral("C"))}));
+    fixture.fetcher.finish("a");
+    QTRY_COMPARE(fixture.stateOf(QStringLiteral("A")), DownloadItemState::Completed);
+    const QString finished = fixture.manager.readyPath(fixture.song(QStringLiteral("A")).stableKey);
+    QVERIFY(QFileInfo::exists(finished));
+    // B is still transferring when everything goes.
+    QVERIFY(!fixture.fetcher.pending.empty());
+    const QString runningPart = fixture.fetcher.pending.front().path;
+
+    // Not while "Delete all data" holds the gate: nothing changes.
+    QVERIFY(fixture.gate.closeAdmissions());
+    QVERIFY(!fixture.manager.removeAllDownloads());
+    QCOMPARE(fixture.manager.snapshot().offlineTracks, 1);
+    fixture.gate.reopen();
+
+    QVERIFY(fixture.manager.removeAllDownloads());
+    QVERIFY(!QFileInfo::exists(finished));
+    QVERIFY(fixture.manager.snapshot().jobs.isEmpty());
+    QCOMPARE(fixture.manager.snapshot().offlineTracks, 0);
+    QCOMPARE(fixture.manager.snapshot().offlineBytes, std::uint64_t{0});
+
+    // The dropped transfer returns later; its partial file goes and nothing
+    // comes back.
+    fixture.fetcher.finish("b");
+    QTRY_VERIFY(!QFileInfo::exists(runningPart));
+    QVERIFY(fixture.manager.snapshot().jobs.isEmpty());
+}
 
 void DownloadManagerTest::namesAreMadeSafe()
 {

@@ -118,6 +118,12 @@ public:
     [[nodiscard]] db::AccountPendingCounts pendingCounts() const;
     // Raised each time the library lane stored a new copy.
     [[nodiscard]] quint64 libraryRevision() const { return m_libraryRevision; }
+    // How many songs `ownerId`'s synced history held at the last library
+    // pull of this run; 0 before one, or for another owner.
+    [[nodiscard]] int historyCount(const QString& ownerId) const
+    {
+        return ownerId == m_homeLayoutOwner ? m_historyCount : 0;
+    }
     // Home's layout from the last library the service sent for `ownerId`
     // (Undefined for another owner or before the first library sync).
     [[nodiscard]] QJsonValue homeLayout(const QString& ownerId) const
@@ -175,6 +181,8 @@ private:
     std::optional<UserDataOperationGate::Lease> m_lease;
     std::vector<std::shared_ptr<QPromise<bool>>> m_waiters;
     quint64 m_libraryRevision = 0;
+    // Kept with the home layout, for the same owner.
+    int m_historyCount = 0;
     QJsonValue m_homeLayout = QJsonValue(QJsonValue::Undefined);
     QString m_homeLayoutOwner;
     quint64 m_preferenceRevision = 0;
