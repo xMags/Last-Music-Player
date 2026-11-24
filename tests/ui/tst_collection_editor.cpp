@@ -164,7 +164,7 @@ void CollectionEditorTest::createOpensTheNewPlaylist()
     QVERIFY(m_editor->promptValue().isEmpty());
 
     QVERIFY(m_editor->submitPrompt(QStringLiteral(" Night drive ")));
-    QCOMPARE(lastToast(), QStringLiteral("Created “Night drive”"));
+    QCOMPARE(lastToast(), QStringLiteral("Created \"Night drive\""));
     QCOMPARE(sidebarNames(), QStringList{QStringLiteral("Night drive")});
     // The new playlist's page opens.
     QCOMPARE(m_navigator->current().kind(), Route::Kind::Collection);
@@ -191,7 +191,7 @@ void CollectionEditorTest::renameUpdatesSidebarAndPage()
     QCOMPARE(sidebarNames(), QStringList{QStringLiteral("New name")});
     QCOMPARE(m_page->title(), QStringLiteral("New name"));
     QCOMPARE(m_navigator->current().param(QStringLiteral("title")), QStringLiteral("New name"));
-    QCOMPARE(lastToast(), QStringLiteral("Renamed to “New name”"));
+    QCOMPARE(lastToast(), QStringLiteral("Renamed to \"New name\""));
 
     // The same name changes nothing and says nothing.
     const int toasts = m_toasts->count();
@@ -213,7 +213,7 @@ void CollectionEditorTest::deleteLeavesThePage()
     m_editor->confirm();
     QVERIFY(sidebarNames().isEmpty());
     QCOMPARE(m_navigator->current().kind(), Route::Kind::Library);
-    QCOMPARE(lastToast(), QStringLiteral("Deleted “Gone”"));
+    QCOMPARE(lastToast(), QStringLiteral("Deleted \"Gone\""));
 
     // Unknown kinds are not asked about.
     m_editor->requestDelete(QStringLiteral("genre"), QStringLiteral("Rock"), QStringLiteral("Rock"));

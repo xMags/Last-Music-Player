@@ -361,7 +361,13 @@ CompositionRoot::CompositionRoot()
                         .player = m_player,
                         .settings = m_settings,
                         .trackMenu = m_trackMenu,
-                        .navigator = m_navigator})
+                        .navigator = m_navigator,
+                        .share = &m_share,
+                        .download =
+                            [this](const QString& title, const QString& subtitle, const QString& artwork,
+                                   const QList<core::Track>& tracks) {
+                                return m_offline.downloadTracks(title, subtitle, artwork, tracks);
+                            }})
     , m_artistPage({.library = m_library,
                     .actions = m_trackActions,
                     .player = m_player,

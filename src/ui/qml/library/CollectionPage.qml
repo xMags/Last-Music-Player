@@ -38,7 +38,12 @@ Item {
                 byline: page.model.byline
                 info: page.model.info
                 canPlay: page.model.songCount > 0
-                menuWithoutSongs: page.model.userPlaylist || page.model.kind === "album-collection"
+                // Share and Download whenever there are songs (library.ts
+                // 505-511); More only on what can be renamed or deleted.
+                showShare: App.share.available && page.model.songCount > 0
+                showDownload: App.capabilities.downloadSongs && page.model.songCount > 0
+                showMenu: page.model.userPlaylist || page.model.kind === "album-collection"
+                menuWithoutSongs: true
                 coverStyle: page.model.coverStyle
                 artworkUrl: page.model.artworkUrl
                 artworkId: page.model.artworkId
@@ -50,16 +55,16 @@ Item {
                 onBackClicked: App.navigator.back()
                 onPlayClicked: page.model.play()
                 onShuffleClicked: page.model.shuffle()
+                onShareClicked: page.model.share()
+                onDownloadClicked: page.model.download()
                 onMenuClicked: at => {
+                    // "Playlist options": Rename and Delete only.
                     moreItems.clear()
-                    const songs = page.model.songCount > 0
-                    moreItems.addItem("playNext", qsTr("Play next"), "play-next", false, false, songs)
-                    moreItems.addItem("addToQueue", qsTr("Add to queue"), "queue-add", false, false, songs)
                     if (page.model.userPlaylist) {
-                        moreItems.addItem("rename", qsTr("Rename playlist"), "", false, true)
+                        moreItems.addItem("rename", qsTr("Rename playlist"))
                         moreItems.addItem("delete", qsTr("Delete playlist"), "trash", true)
                     } else if (page.model.kind === "album-collection") {
-                        moreItems.addItem("delete", qsTr("Delete album"), "trash", true, true)
+                        moreItems.addItem("delete", qsTr("Delete album"), "trash", true)
                     }
                     const place = mapToItem(page, at.x, at.y)
                     moreMenu.openAt(place.x - 20, place.y + 4)
@@ -109,16 +114,12 @@ Item {
 
             Item { width: 1; height: 16 }
 
-            Text {
+            // .empty-state (library.ts 351): the boxed sentence.
+            CompactEmptyState {
                 width: parent.width
+                compact: false
                 visible: page.model.tracks.count === 0
-                topPadding: 24
-                bottomPadding: 24
-                horizontalAlignment: Text.AlignHCenter
                 text: page.model.emptyText
-                font: Theme.stateText
-                color: Theme.fgSecondary
-                wrapMode: Text.Wrap
             }
         }
     }

@@ -122,7 +122,7 @@ bool CollectionEditor::submitPrompt(const QString& value)
                 if (!key) {
                     return; // the account editor reported it
                 }
-                m_toasts.show(tr("Created “%1”").arg(title));
+                m_toasts.show(tr("Created \"%1\"").arg(title));
                 m_navigator.push(Route(Route::Kind::Collection, {{QStringLiteral("kind"), QStringLiteral("playlist")},
                                                                  {QStringLiteral("key"), key.value()},
                                                                  {QStringLiteral("title"), title}}));
@@ -137,7 +137,7 @@ bool CollectionEditor::submitPrompt(const QString& value)
             return false;
         }
         const QString title = core::CollectionActions::cleanName(value, tr("Untitled Playlist"));
-        m_toasts.show(tr("Created “%1”").arg(title));
+        m_toasts.show(tr("Created \"%1\"").arg(title));
         // The current app opens the new playlist.
         m_navigator.push(Route(Route::Kind::Collection, {{QStringLiteral("kind"), QStringLiteral("playlist")},
                                                          {QStringLiteral("key"), key.value()},
@@ -174,7 +174,7 @@ bool CollectionEditor::submitPrompt(const QString& value)
             m_pending = pending;
             return false;
         }
-        m_toasts.show(tr("Created “%1”").arg(core::CollectionActions::cleanName(value, tr("Untitled Album"))));
+        m_toasts.show(tr("Created \"%1\"").arg(core::CollectionActions::cleanName(value, tr("Untitled Album"))));
         return true;
     }
     case Pending::Rename: {
@@ -188,7 +188,7 @@ bool CollectionEditor::submitPrompt(const QString& value)
             m_pending = pending;
             return false;
         }
-        m_toasts.show(tr("Renamed to “%1”").arg(title));
+        m_toasts.show(tr("Renamed to \"%1\"").arg(title));
         return true;
     }
     case Pending::Delete:
@@ -209,7 +209,7 @@ void CollectionEditor::confirm()
         m_toasts.show(album ? tr("Could not delete the album.") : tr("Could not delete the playlist."), true);
         return;
     }
-    m_toasts.show(tr("Deleted “%1”").arg(m_title));
+    m_toasts.show(tr("Deleted \"%1\"").arg(m_title));
 }
 
 void CollectionEditor::leaveDeleted(const QString& kind, const QString& key)

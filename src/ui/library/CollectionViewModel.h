@@ -9,6 +9,8 @@
 #include <QVariantList>
 #include <QtQml/qqmlregistration.h>
 
+#include <functional>
+
 #include "core/db/LibraryQueryTypes.h"
 #include "core/library/DetailSortPolicy.h"
 #include "ui/tracks/TrackListModel.h"
@@ -28,6 +30,7 @@ class LibraryQueries;
 namespace lmp::ui {
 
 class Navigator;
+class ShareController;
 class TrackMenuController;
 
 // The page of one local collection (`App.collection`): an album (from song
@@ -99,6 +102,10 @@ public:
         core::SettingsStore& settings;
         TrackMenuController& trackMenu;
         Navigator& navigator;
+        // Sharing the collection as a list link, and downloading its songs;
+        // either may be missing (nothing happens then).
+        ShareController* share = nullptr;
+        std::function<bool(const QString&, const QString&, const QString&, const QList<core::Track>&)> download = {};
     };
 
     // Everything in `parts` is owned by the composition root and outlives this.
@@ -144,6 +151,9 @@ public:
     Q_INVOKABLE void shuffle();
     Q_INVOKABLE void playNextAll();
     Q_INVOKABLE void addAllToQueue();
+    // The header's Share (a list link of every song) and Download.
+    Q_INVOKABLE void share();
+    Q_INVOKABLE void download();
     // A row was clicked: with Ctrl it joins or leaves the selection, with
     // Shift the range from the last one is selected, otherwise it plays.
     Q_INVOKABLE void activate(int row, bool toggle, bool extend);
@@ -189,6 +199,8 @@ private:
     core::SettingsStore& m_settings;
     TrackMenuController& m_trackMenu;
     Navigator& m_navigator;
+    ShareController* m_share = nullptr;
+    std::function<bool(const QString&, const QString&, const QString&, const QList<core::Track>&)> m_download;
     core::HomeMixService& m_mixService;
 
     QString m_kind;

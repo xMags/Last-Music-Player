@@ -1,5 +1,7 @@
 #include "ui/library/CollectionViewModel.h"
 
+#include "ui/share/ShareController.h"
+
 #include <QSet>
 #include <QVariantMap>
 
@@ -81,6 +83,8 @@ CollectionViewModel::CollectionViewModel(Parts parts, QObject* parent)
     , m_settings(parts.settings)
     , m_trackMenu(parts.trackMenu)
     , m_navigator(parts.navigator)
+    , m_share(parts.share)
+    , m_download(std::move(parts.download))
     , m_mixService(parts.mixes)
 {
     connect(&m_mixService, &core::HomeMixService::mixesChanged, this, [this] {
@@ -479,6 +483,36 @@ void CollectionViewModel::play()
             m_actions.play(track, tracks);
             return;
         }
+    }
+}
+
+void CollectionViewModel::share()
+{
+    const QList<core::Track> tracks = allTracks();
+    if (m_share == nullptr || tracks.isEmpty()) {
+        return;
+    }
+    // The cover of its first song with one, as the list's picture.
+    QString artwork;
+    for (const core::Track& track : tracks) {
+        if (!track.artworkUrl.isEmpty()) {
+            artwork = track.artworkUrl;
+            break;
+        }
+    }
+    m_share->share({.kind = core::share::ShareKind::List,
+                    .title = m_title,
+                    .subtitle = m_byline,
+                    .artworkUrl = artwork,
+                    .tracks = tracks},
+                   tr("Could not share this playlist."));
+}
+
+void CollectionViewModel::download()
+{
+    const QList<core::Track> tracks = allTracks();
+    if (m_download && !tracks.isEmpty()) {
+        (void)m_download(m_title, m_byline, tracks.first().artworkUrl, tracks);
     }
 }
 
