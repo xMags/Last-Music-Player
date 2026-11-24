@@ -156,6 +156,22 @@ Item {
         rightSidePadding: page.rightGutter
         header: page.releaseRows ? top : null
         onActivated: row => page.model.openCard(row)
+        onMenuRequested: (row, at, fromKeyboard) => page.openItemMenu(row, releaseTable.mapToItem(page, at.x, at.y), fromKeyboard)
+    }
+
+    // openCatalogItemMenu for a card or release row.
+    function openItemMenu(row: int, at: point, fromKeyboard: bool) {
+        if (!App.catalogItemMenu.prepare(page.model.cards, row))
+            return
+        itemMenu.openAt(at.x, at.y)
+        itemMenu.keyboardActive = fromKeyboard
+    }
+
+    ActionMenu {
+        id: itemMenu
+
+        items: App.catalogItemMenu.menu
+        onTriggered: itemId => App.catalogItemMenu.trigger(itemId)
     }
 
     Connections {
@@ -219,8 +235,9 @@ Item {
                 artworkId: cell.artworkId
                 artworkLabel: cell.artworkLabel
                 round: cell.round
-                hasMenu: false
+                hasMenu: true
                 onClicked: App.catalogPage.openCard(cell.index)
+                onMenuRequested: (at, fromKeyboard) => page.openItemMenu(cell.index, mapToItem(page, at.x, at.y), fromKeyboard)
             }
         }
 

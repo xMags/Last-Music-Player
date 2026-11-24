@@ -220,8 +220,16 @@ Item {
                                 required round
 
                                 width: 184
-                                hasMenu: false
+                                hasMenu: true
                                 onClicked: App.home.playCatalogCard(section.key, catalogCard.index)
+                                // The card's menu (openCatalogItemMenu); a song's is the song menu.
+                                onMenuRequested: (at, fromKeyboard) => {
+                                    if (!App.catalogItemMenu.prepare(App.home.catalogShelf(section.key), catalogCard.index))
+                                        return
+                                    const place = catalogCard.mapToItem(page, at.x, at.y)
+                                    itemMenu.openAt(place.x, place.y)
+                                    itemMenu.keyboardActive = fromKeyboard
+                                }
                             }
                         }
 
@@ -626,6 +634,13 @@ Item {
                 cardMenu.openAt(place.x, place.y)
             }
         }
+    }
+
+    ActionMenu {
+        id: itemMenu
+
+        items: App.catalogItemMenu.menu
+        onTriggered: itemId => App.catalogItemMenu.trigger(itemId)
     }
 
     ActionMenu {

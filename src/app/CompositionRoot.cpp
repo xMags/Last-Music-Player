@@ -430,6 +430,28 @@ CompositionRoot::CompositionRoot()
                                  });
                          }})
     , m_collectionEditor(m_collectionActions, m_navigator, m_toasts)
+    , m_catalogItemMenu({.catalog = m_catalog,
+                         .actions = m_trackActions,
+                         .navigator = m_navigator,
+                         .toasts = m_toasts,
+                         .share = &m_share,
+                         .canDownload = [this]() { return m_mode.capabilities().downloadSongs; },
+                         .download =
+                             [this](const QString& title, const QString& subtitle, const QString& artwork,
+                                    const QList<core::Track>& tracks) {
+                                 return m_offline.downloadTracks(title, subtitle, artwork, tracks);
+                             },
+                         .providerAlbum =
+                             [this](const core::account::LibraryArtistIdentity& identity, const QString& artist) {
+                                 return m_remote.albumDetail(identity, artist)
+                                     .then([identity](const core::Result<QByteArray>& answer)
+                                               -> core::Result<core::catalog::Detail> {
+                                         if (!answer) {
+                                             return answer.failure();
+                                         }
+                                         return core::catalog::parseProviderAlbumDetail(answer.value(), identity);
+                                     });
+                             }})
     , m_home({.library = m_library,
               .actions = m_trackActions,
               .collections = m_collectionActions,
@@ -560,6 +582,7 @@ CompositionRoot::CompositionRoot()
           .catalogPage = &m_catalogPage,
           .catalogArtist = &m_catalogArtist,
           .lyrics = &m_lyrics,
+          .catalogItemMenu = &m_catalogItemMenu,
           .offline = &m_offline,
           .audioOutput = &m_audioOutput,
           .presenceAvailable = m_presence.available(),

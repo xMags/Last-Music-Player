@@ -106,6 +106,7 @@
 #include "ui/settings/AudioOutputViewModel.h"
 #include "ui/player/LyricsViewModel.h"
 #include "ui/share/ShareController.h"
+#include "ui/catalog/CatalogItemMenu.h"
 #include "ui/catalog/CatalogPageViewModel.h"
 #include "ui/settings/RegionLanguagesViewModel.h"
 #include "ui/shell/ConnectivityViewModel.h"
@@ -331,6 +332,7 @@ private:
     // Share links for songs, lists and artists (Account mode).
     ui::ShareController m_share;
     ui::CollectionEditor m_collectionEditor;
+    ui::CatalogItemMenu m_catalogItemMenu;
     ui::HomeViewModel m_home;
     // Browse and search (the local library; remote sources join in P08 and P09).
     ui::LocalSearchSource m_localSearch;

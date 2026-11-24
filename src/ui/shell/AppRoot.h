@@ -33,6 +33,7 @@
 #include "ui/settings/HistoryImportViewModel.h"
 #include "ui/player/LyricsViewModel.h"
 #include "ui/share/ShareController.h"
+#include "ui/catalog/CatalogItemMenu.h"
 #include "ui/catalog/CatalogPageViewModel.h"
 #include "ui/settings/RegionLanguagesViewModel.h"
 #include "ui/shell/ConnectivityViewModel.h"
@@ -117,6 +118,7 @@ class AppRoot : public QObject {
     Q_PROPERTY(lmp::ui::CatalogPageViewModel* catalogPage READ catalogPage CONSTANT FINAL)
     Q_PROPERTY(lmp::ui::CatalogArtistViewModel* catalogArtist READ catalogArtist CONSTANT FINAL)
     Q_PROPERTY(lmp::ui::LyricsViewModel* lyrics READ lyrics CONSTANT FINAL)
+    Q_PROPERTY(lmp::ui::CatalogItemMenu* catalogItemMenu READ catalogItemMenu CONSTANT FINAL)
     Q_PROPERTY(lmp::ui::OfflineViewModel* offline READ offline CONSTANT FINAL)
     Q_PROPERTY(lmp::ui::AudioOutputViewModel* audioOutput READ audioOutput CONSTANT FINAL)
     // The build has a Discord client id, so presence can be offered.
@@ -169,6 +171,7 @@ public:
         CatalogPageViewModel* catalogPage = nullptr;
         CatalogArtistViewModel* catalogArtist = nullptr;
         LyricsViewModel* lyrics = nullptr;
+        CatalogItemMenu* catalogItemMenu = nullptr;
         OfflineViewModel* offline = nullptr;
         AudioOutputViewModel* audioOutput = nullptr;
         bool presenceAvailable = false;
@@ -221,6 +224,7 @@ public:
     [[nodiscard]] CatalogPageViewModel* catalogPage() const { return m_parts.catalogPage; }
     [[nodiscard]] CatalogArtistViewModel* catalogArtist() const { return m_parts.catalogArtist; }
     [[nodiscard]] LyricsViewModel* lyrics() const { return m_parts.lyrics; }
+    [[nodiscard]] CatalogItemMenu* catalogItemMenu() const { return m_parts.catalogItemMenu; }
     [[nodiscard]] OfflineViewModel* offline() const { return m_parts.offline; }
     [[nodiscard]] AudioOutputViewModel* audioOutput() const { return m_parts.audioOutput; }
     [[nodiscard]] bool presenceAvailable() const { return m_parts.presenceAvailable; }
