@@ -18,6 +18,21 @@ Item {
     readonly property real rightGutter: Theme.contentGutter + Theme.contentScrollLane
     readonly property CatalogPageViewModel model: App.catalogPage
     property Flickable currentView: page.model.showsCards ? cardsView : songs.view
+    // The save button a press that saves came from, until the page shows the
+    // album saved; then the save motion starts there.
+    property Item celebrateFrom: null
+
+    Connections {
+        target: page.model
+
+        function onChanged() {
+            if (page.celebrateFrom === null || page.model.saving)
+                return
+            if (page.model.saved)
+                App.effects.collectionSaved(page.celebrateFrom)
+            page.celebrateFrom = null
+        }
+    }
 
     ScrollMemory {
         target: page.currentView
@@ -52,34 +67,12 @@ Item {
                 onShareClicked: page.model.share()
                 showDownload: App.capabilities.downloadSongs && page.model.canShare
                 onDownloadClicked: page.model.download()
-            }
-
-            AppButton {
-                id: saveButton
-
-                // Set by a press that saves, until the page shows it saved.
-                property bool celebrating: false
-
-                visible: page.model.canSave
-                enabled: !page.model.saving
-                iconName: page.model.saved ? "check" : "playlist-add"
-                text: page.model.saving ? qsTr("Saving…")
-                    : page.model.saved ? qsTr("Saved to library") : qsTr("Save to library")
-                onClicked: {
-                    saveButton.celebrating = !page.model.saved
+                showSave: page.model.canSave
+                saved: page.model.saved
+                saveBusy: page.model.saving
+                onSaveClicked: button => {
+                    page.celebrateFrom = page.model.saved ? null : button
                     page.model.toggleSave()
-                }
-
-                Connections {
-                    target: page.model
-
-                    function onChanged() {
-                        if (!saveButton.celebrating || page.model.saving)
-                            return
-                        if (page.model.saved)
-                            App.effects.collectionSaved(saveButton)
-                        saveButton.celebrating = false
-                    }
                 }
             }
 
@@ -138,13 +131,22 @@ Item {
 
         anchors.fill: parent
         anchors.leftMargin: page.gutter
-        anchors.rightMargin: page.rightGutter
+        anchors.rightMargin: page.rightGutter - 20
         visible: page.model.showsCards
         clip: true
-        header: top
-        readonly property int columns: Math.max(2, Math.floor(cardsView.width / 176))
-        cellWidth: cardsView.width / cardsView.columns
-        cellHeight: cardsView.cellWidth + 56
+        // The header keeps the page's width, not the grid's wider one.
+        header: Loader {
+            width: cardsView.innerWidth
+            sourceComponent: top
+        }
+        // .catalog-grid: repeat(auto-fill, minmax(150px, 1fr)), gap 28px 20px.
+        // Each cell holds a card and the gaps after it, so the grid is 20px
+        // wider than the page to take the last column's.
+        readonly property real innerWidth: cardsView.width - 20
+        readonly property int columns: Math.max(1, Math.floor(cardsView.width / (150 + 20)))
+        readonly property real cardWidth: (cardsView.innerWidth - (cardsView.columns - 1) * 20) / cardsView.columns
+        cellWidth: cardsView.cardWidth + 20
+        cellHeight: cardsView.cardWidth + 12 + 22 + 18 + 28
         model: page.model.cards
         onAtYEndChanged: {
             if (cardsView.atYEnd && page.model.pagingState === "idle")
@@ -168,8 +170,7 @@ Item {
             height: GridView.view.cellHeight
 
             Card {
-                x: 8
-                width: cell.width - 16
+                width: cardsView.cardWidth
                 title: cell.title
                 subtitle: cell.subtitle
                 artworkUrl: cell.artworkUrl
@@ -182,7 +183,7 @@ Item {
         }
 
         footer: Item {
-            width: cardsView.width
+            width: cardsView.innerWidth
             height: 64
 
             Text {

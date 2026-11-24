@@ -40,6 +40,11 @@ Column {
     // A Follow button (artist pages), its state, and whether a change is on its way.
     // The round Share button, after Shuffle; Download after it.
     property bool showShare: false
+    // A catalogue album or playlist's Save (collection-header.ts saveButton):
+    // a round bookmark after Shuffle, accent once saved, waiting while busy.
+    property bool showSave: false
+    property bool saved: false
+    property bool saveBusy: false
     property bool showDownload: false
     property bool showFollow: false
     property bool followed: false
@@ -50,6 +55,7 @@ Column {
     signal shuffleClicked()
     signal followClicked()
     signal shareClicked()
+    signal saveClicked(Item button)
     signal downloadClicked()
     // `at` is in the header's coordinates.
     signal menuClicked(point at)
@@ -288,13 +294,28 @@ Column {
                 RoundAction {
                     visible: header.canPlay
                     iconName: "shuffle"
+                    toolTip: qsTr("Shuffle")
                     Accessible.name: qsTr("Shuffle")
                     onClicked: header.shuffleClicked()
                 }
 
                 RoundAction {
+                    id: saveButton
+
+                    visible: header.showSave
+                    enabled: !header.saveBusy
+                    iconName: header.saved ? "bookmark-fill" : "bookmark"
+                    accent: header.saved
+                    toolTip: header.saved ? qsTr("Saved to your library") : qsTr("Save to your library")
+                    Accessible.name: toolTip
+                    Accessible.checked: header.saved
+                    onClicked: header.saveClicked(saveButton)
+                }
+
+                RoundAction {
                     visible: header.showShare
                     iconName: "share"
+                    toolTip: qsTr("Share")
                     Accessible.name: qsTr("Share")
                     onClicked: header.shareClicked()
                 }
@@ -302,6 +323,7 @@ Column {
                 RoundAction {
                     visible: header.showDownload
                     iconName: "download"
+                    toolTip: qsTr("Download")
                     Accessible.name: qsTr("Download")
                     onClicked: header.downloadClicked()
                 }
