@@ -34,6 +34,12 @@ class ThemeTypography : public QObject {
     Q_PROPERTY(QFont sectionPill READ sectionPill CONSTANT FINAL)
     Q_PROPERTY(QFont refreshStatus READ refreshStatus CONSTANT FINAL)
     Q_PROPERTY(QFont navCount READ navCount CONSTANT FINAL)
+    Q_PROPERTY(QFont stripTitle READ stripTitle CONSTANT FINAL)
+    Q_PROPERTY(QFont stripMeta READ stripMeta CONSTANT FINAL)
+    Q_PROPERTY(QFont stripMetaNumbers READ stripMetaNumbers CONSTANT FINAL)
+    Q_PROPERTY(QFont stripSpeed READ stripSpeed CONSTANT FINAL)
+    Q_PROPERTY(QFont stripAction READ stripAction CONSTANT FINAL)
+    Q_PROPERTY(QFont stripToggle READ stripToggle CONSTANT FINAL)
     Q_PROPERTY(qreal lineHeightSectionPill READ lineHeightSectionPill CONSTANT FINAL)
     Q_PROPERTY(QFont settingsSection READ settingsSection CONSTANT FINAL)
     Q_PROPERTY(QFont settingsRowTitle READ settingsRowTitle CONSTANT FINAL)
@@ -178,6 +184,12 @@ public:
     [[nodiscard]] QFont sectionPill() const { return m_text.sectionPill.font; }
     [[nodiscard]] QFont refreshStatus() const { return m_text.refreshStatus.font; }
     [[nodiscard]] QFont navCount() const { return m_text.navCount.font; }
+    [[nodiscard]] QFont stripTitle() const { return m_text.stripTitle.font; }
+    [[nodiscard]] QFont stripMeta() const { return m_text.stripMeta.font; }
+    [[nodiscard]] QFont stripMetaNumbers() const { return m_text.stripMetaNumbers.font; }
+    [[nodiscard]] QFont stripSpeed() const { return m_text.stripSpeed.font; }
+    [[nodiscard]] QFont stripAction() const { return m_text.stripAction.font; }
+    [[nodiscard]] QFont stripToggle() const { return m_text.stripToggle.font; }
     [[nodiscard]] qreal lineHeightSectionPill() const { return m_text.sectionPill.lineHeight; }
     [[nodiscard]] QFont settingsSection() const { return m_text.settingsSection.font; }
     [[nodiscard]] QFont settingsRowTitle() const { return m_text.settingsRowTitle.font; }

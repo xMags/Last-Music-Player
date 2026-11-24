@@ -23,6 +23,22 @@ using core::DownloadItemState;
 
 namespace {
 
+// formatSpeed: "1.4 MB/s" from a megabyte a second, else "320 KB/s"
+// (at least 1); empty for nothing.
+[[nodiscard]] QString speedText(std::uint64_t bytesPerSecond)
+{
+    constexpr double Kilobyte = 1024.0;
+    constexpr double Megabyte = 1024.0 * 1024.0;
+    if (bytesPerSecond == 0) {
+        return {};
+    }
+    const double rate = static_cast<double>(bytesPerSecond);
+    if (rate >= Megabyte) {
+        return QObject::tr("%1 MB/s").arg(rate / Megabyte, 0, 'f', 1);
+    }
+    return QObject::tr("%1 KB/s").arg(std::max(1, static_cast<int>(rate / Kilobyte + 0.5)));
+}
+
 [[nodiscard]] QString songCount(int count)
 {
     return count == 1 ? QObject::tr("1 song") : QObject::tr("%1 songs").arg(count);
@@ -265,12 +281,22 @@ void OfflineViewModel::reload()
     m_downloadedKeys.clear();
     m_bytes = snapshot.offlineBytes;
     m_pending.clear();
+    // pendingStripMarkup: the songs of the jobs still on their way (the
+    // current batch), on their way first, then waiting, then failed.
+    struct Row {
+        int order = 0;
+        QVariantMap fields;
+    };
+    QList<Row> rows;
     int waiting = 0;
     int failed = 0;
     int doneInJobs = 0;
     int itemsInJobs = 0;
     double progress = 0.0;
+    std::uint64_t speed = 0;
     QString now;
+    QString next;
+    const bool allPaused = snapshot.allPaused;
     for (const core::DownloadJobSummary& summary : snapshot.jobs) {
         bool jobPending = false;
         for (const core::DownloadItem& item : summary.job.items) {
@@ -284,49 +310,69 @@ void OfflineViewModel::reload()
         if (!jobPending) {
             continue;
         }
-        int jobPercent = 0;
         for (const core::DownloadItem& item : summary.job.items) {
             ++itemsInJobs;
             if (item.state == DownloadItemState::Completed) {
                 ++doneInJobs;
                 progress += 1.0;
-            } else if (item.state == DownloadItemState::Failed) {
+                continue;
+            }
+            const bool itemFailed = item.state == DownloadItemState::Failed;
+            const bool downloading = item.state == DownloadItemState::Downloading;
+            int percent = -1;
+            if (itemFailed) {
                 ++failed;
             } else {
                 ++waiting;
-                if (item.state == DownloadItemState::Downloading) {
+                if (downloading) {
+                    speed += item.bytesPerSecond;
                     if (item.bytesTotal > 0) {
-                        progress += static_cast<double>(item.bytesDownloaded) / static_cast<double>(item.bytesTotal);
-                        jobPercent = static_cast<int>(core::downloadProgressPercent(item.bytesDownloaded, item.bytesTotal));
-                    }
-                    if (now.isEmpty()) {
-                        now = core::displayTitle(item.title)
-                            + (item.artist.isEmpty() ? QString() : QStringLiteral(" · ") + item.artist);
+                        percent = static_cast<int>(core::downloadProgressPercent(item.bytesDownloaded, item.bytesTotal));
+                        progress += static_cast<double>(percent) / 100.0;
                     }
                 }
+                const QString line = core::displayTitle(item.title)
+                    + (item.artist.isEmpty() ? QString() : QStringLiteral(" · ") + item.artist);
+                if (downloading && now.isEmpty()) {
+                    now = line;
+                } else if (!downloading && next.isEmpty()) {
+                    next = line;
+                }
             }
+            // A song whose size is not announced still shows it is coming in.
+            const QString state = itemFailed ? QStringLiteral("failed")
+                : downloading && percent >= 0 ? QStringLiteral("progress")
+                : downloading && item.bytesDownloaded > 0 ? QStringLiteral("receiving")
+                : downloading ? QStringLiteral("starting")
+                : allPaused || item.state == DownloadItemState::Paused ? QStringLiteral("paused")
+                                                                       : QStringLiteral("queued");
+            rows.append({.order = downloading ? 0 : itemFailed ? 2 : 1,
+                         .fields = {{QStringLiteral("jobId"), summary.job.id},
+                                    {QStringLiteral("itemId"), item.id},
+                                    {QStringLiteral("title"), core::displayTitle(item.title)},
+                                    {QStringLiteral("artist"), item.artist},
+                                    {QStringLiteral("artworkUrl"), item.artworkUrl},
+                                    {QStringLiteral("state"), state},
+                                    {QStringLiteral("percent"), std::max(0, percent)},
+                                    {QStringLiteral("received"), core::downloadSizeText(item.bytesDownloaded)},
+                                    {QStringLiteral("error"), item.error}}});
         }
-        const QString state = summary.state == DownloadItemState::Failed      ? tr("Failed")
-            : summary.state == DownloadItemState::Downloading                 ? tr("Downloading")
-            : summary.state == DownloadItemState::Paused || snapshot.allPaused ? tr("Paused")
-                                                                               : tr("Queued");
-        m_pending.append(QVariantMap{{QStringLiteral("id"), summary.job.id},
-                                     {QStringLiteral("title"), summary.job.title},
-                                     {QStringLiteral("subtitle"), summary.job.subtitle},
-                                     {QStringLiteral("state"), state},
-                                     {QStringLiteral("percent"), jobPercent},
-                                     {QStringLiteral("failed"), summary.state == DownloadItemState::Failed},
-                                     {QStringLiteral("error"), summary.error}});
+    }
+    std::stable_sort(rows.begin(), rows.end(), [](const Row& left, const Row& right) { return left.order < right.order; });
+    for (const Row& row : std::as_const(rows)) {
+        m_pending.append(row.fields);
     }
     m_pendingActive = waiting > 0;
     m_waitingCount = waiting;
-    const bool allPaused = snapshot.allPaused;
+    m_pendingFailed = failed;
+    m_pendingSpeed = waiting > 0 && !allPaused ? speedText(speed) : QString();
     m_pendingTitle = waiting > 0 ? (allPaused ? tr("Paused: %1 left").arg(songCount(waiting)) : tr("Downloading %1").arg(songCount(waiting)))
         : failed == 1             ? tr("1 download failed")
                                   : tr("%1 downloads failed").arg(failed);
     QStringList detail;
-    if (waiting > 0 && !allPaused && !now.isEmpty()) {
-        detail.append(tr("Now: %1").arg(now));
+    const QString current = now.isEmpty() ? next : now;
+    if (waiting > 0 && !allPaused && !current.isEmpty()) {
+        detail.append(tr("Now: %1").arg(current));
     }
     detail.append(tr("%1 of %2 done").arg(doneInJobs).arg(itemsInJobs));
     if (waiting > 0 && failed > 0) {
@@ -561,14 +607,46 @@ void OfflineViewModel::resumeAll()
     m_downloads.resumeAll();
 }
 
-void OfflineViewModel::cancel(const QString& jobId)
+void OfflineViewModel::cancel(const QString& jobId, const QString& itemId)
 {
-    m_downloads.cancelJob(jobId);
+    m_downloads.cancelItem(jobId, itemId);
 }
 
-void OfflineViewModel::retry(const QString& jobId)
+void OfflineViewModel::retry(const QString& jobId, const QString& itemId)
 {
-    m_downloads.retryJob(jobId);
+    m_downloads.retryItem(jobId, itemId);
+}
+
+void OfflineViewModel::retryAll()
+{
+    QStringList jobs;
+    for (const QVariant& row : std::as_const(m_pending)) {
+        const QVariantMap fields = row.toMap();
+        const QString jobId = fields.value(QStringLiteral("jobId")).toString();
+        if (fields.value(QStringLiteral("state")).toString() == QLatin1StringView("failed") && !jobs.contains(jobId)) {
+            jobs.append(jobId);
+        }
+    }
+    for (const QString& jobId : std::as_const(jobs)) {
+        m_downloads.retryJob(jobId);
+    }
+}
+
+void OfflineViewModel::cancelAll()
+{
+    // Song by song, so the finished songs of the same jobs stay downloaded.
+    // With songs still coming, only those go; otherwise the failed ones.
+    const QVariantList rows = m_pending;
+    const bool active = m_pendingActive;
+    for (const QVariant& row : rows) {
+        const QVariantMap fields = row.toMap();
+        const bool rowFailed = fields.value(QStringLiteral("state")).toString() == QLatin1StringView("failed");
+        if (active && rowFailed) {
+            continue;
+        }
+        m_downloads.cancelItem(fields.value(QStringLiteral("jobId")).toString(),
+                               fields.value(QStringLiteral("itemId")).toString());
+    }
 }
 
 void OfflineViewModel::clearCompleted()

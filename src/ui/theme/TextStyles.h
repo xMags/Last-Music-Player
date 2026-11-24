@@ -70,6 +70,12 @@ struct TextStyles {
     TextStyle sectionPill;
     TextStyle refreshStatus;
     TextStyle navCount;
+    TextStyle stripTitle;
+    TextStyle stripMeta;
+    TextStyle stripMetaNumbers;
+    TextStyle stripSpeed;
+    TextStyle stripAction;
+    TextStyle stripToggle;
     TextStyle settingsSection;
     TextStyle settingsRowTitle;
     TextStyle settingsRowDescription;

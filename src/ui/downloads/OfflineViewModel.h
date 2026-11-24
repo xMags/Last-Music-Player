@@ -87,6 +87,10 @@ class OfflineViewModel : public QObject {
     Q_PROPERTY(QString pendingDetail READ pendingDetail NOTIFY changed FINAL)
     Q_PROPERTY(int pendingPercent READ pendingPercent NOTIFY changed FINAL)
     Q_PROPERTY(bool pendingActive READ pendingActive NOTIFY changed FINAL)
+    // How many songs of the batch failed, and how fast the rest come in
+    // ("1.4 MB/s"; empty while paused or with nothing coming).
+    Q_PROPERTY(int pendingFailed READ pendingFailed NOTIFY changed FINAL)
+    Q_PROPERTY(QString pendingSpeed READ pendingSpeed NOTIFY changed FINAL)
     Q_PROPERTY(bool paused READ paused NOTIFY changed FINAL)
     // Songs still on their way (not failed), for the sidebar's count.
     Q_PROPERTY(int waitingCount READ waitingCount NOTIFY changed FINAL)
@@ -148,6 +152,8 @@ public:
     [[nodiscard]] QString pendingDetail() const { return m_pendingDetail; }
     [[nodiscard]] int pendingPercent() const { return m_pendingPercent; }
     [[nodiscard]] bool pendingActive() const { return m_pendingActive; }
+    [[nodiscard]] int pendingFailed() const { return m_pendingFailed; }
+    [[nodiscard]] QString pendingSpeed() const { return m_pendingSpeed; }
     [[nodiscard]] bool paused() const;
     [[nodiscard]] int waitingCount() const { return m_waitingCount; }
     [[nodiscard]] QVariantList pending() const { return m_pending; }
@@ -172,8 +178,13 @@ public:
     Q_INVOKABLE void prepareSongMenu(int row);
     Q_INVOKABLE void pauseAll();
     Q_INVOKABLE void resumeAll();
-    Q_INVOKABLE void cancel(const QString& jobId);
-    Q_INVOKABLE void retry(const QString& jobId);
+    // One song of the strip.
+    Q_INVOKABLE void cancel(const QString& jobId, const QString& itemId);
+    Q_INVOKABLE void retry(const QString& jobId, const QString& itemId);
+    Q_INVOKABLE void retryAll();
+    // The strip's close button: the songs still coming, or, with none, the
+    // failed ones. Finished songs stay.
+    Q_INVOKABLE void cancelAll();
     Q_INVOKABLE void clearCompleted();
     // Removes every download from this PC and says how it went in a toast.
     Q_INVOKABLE void removeAll();
@@ -234,6 +245,8 @@ private:
     int m_pendingPercent = 0;
     bool m_pendingActive = false;
     int m_waitingCount = 0;
+    int m_pendingFailed = 0;
+    QString m_pendingSpeed;
     std::uint64_t m_revision = 0;
 };
 

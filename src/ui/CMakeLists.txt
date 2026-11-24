@@ -48,6 +48,7 @@ set(LMP_UI_QML_FILES
     qml/controls/Chip.qml
     qml/controls/CompactEmptyState.qml
     qml/controls/DiagonalGradient.qml
+    qml/controls/DownloadRing.qml
     qml/controls/ConfirmDialog.qml
     qml/controls/FocusRing.qml
     qml/controls/Icon.qml

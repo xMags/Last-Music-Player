@@ -138,6 +138,15 @@ TextStyles TextStyles::build(const FontFamilies& families)
         .refreshStatus = makeTextStyle({.family = text, .pixelSize = 11, .weight = kRegular}),
         // .nav-count: 12px 600.
         .navCount = makeTextStyle({.family = text, .pixelSize = 12, .weight = kSemiBold}),
+        // The Downloads strip (.offline-pending-*): titles 14px 600, lines
+        // 12px, the speed and percent in tabular figures, Retry 12px 600,
+        // the toggle 12.5px 600.
+        .stripTitle = makeTextStyle({.family = text, .pixelSize = 14, .weight = kSemiBold}),
+        .stripMeta = makeTextStyle({.family = text, .pixelSize = 12, .weight = kRegular}),
+        .stripMetaNumbers = makeTextStyle({.family = text, .pixelSize = 12, .weight = kRegular, .tabularNumbers = true}),
+        .stripSpeed = makeTextStyle({.family = text, .pixelSize = 12, .weight = kSemiBold, .tabularNumbers = true}),
+        .stripAction = makeTextStyle({.family = text, .pixelSize = 12, .weight = kSemiBold}),
+        .stripToggle = makeTextStyle({.family = text, .pixelSize = 12.5, .weight = kSemiBold}),
         // .settings-section-head h2, .settings-row-title, .settings-row-desc
         // and .settings-theme-tile (views.css 1128-1165, 1293-1303).
         .settingsSection = makeTextStyle({.family = display, .pixelSize = 16, .weight = kBold, .lineHeight = 22}),
