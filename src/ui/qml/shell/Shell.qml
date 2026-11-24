@@ -213,29 +213,21 @@ Item {
         z: 95
     }
 
-    // Offline in Account mode: the saved library shows until the service
-    // answers again.
-    Rectangle {
-        id: offlineBanner
+    // Started without reaching the account service (main.ts startOffline):
+    // say so once and open the Offline page, where downloaded songs play.
+    // The saved library stays in place meanwhile.
+    property bool offlineStartShown: false
 
-        visible: App.connectivity.offline && !App.fullscreen.open
-        z: 80
-        anchors.horizontalCenter: parent.horizontalCenter
-        y: shell.titleHeight + 8
-        width: offlineText.implicitWidth + 40
-        height: 36
-        radius: 18
-        color: Theme.surface
-        border.width: 1
-        border.color: Theme.stroke
+    Connections {
+        target: App.connectivity
 
-        Text {
-            id: offlineText
-
-            anchors.centerIn: parent
-            text: qsTr("You're offline. Your library is shown as it was at the last sync.")
-            font: Theme.stateText
-            color: Theme.fgSecondary
+        function onOfflineChanged() {
+            if (!App.connectivity.offline || shell.offlineStartShown)
+                return
+            shell.offlineStartShown = true
+            App.toasts.show(qsTr("You're offline. Downloaded songs still play."))
+            if (App.navigator.currentKind !== Route.Offline)
+                App.navigator.openView(Route.Offline)
         }
     }
 

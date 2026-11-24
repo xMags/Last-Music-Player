@@ -14,7 +14,7 @@ class ModeService;
 
 namespace lmp::ui {
 
-// Whether the window shows the offline banner (App.connectivity): Account
+// Whether the app started without reaching the service (App.connectivity): Account
 // mode with a stored session the service could not confirm. The library
 // shown is the copy saved at the last sync; changes made meanwhile are kept
 // and sent once the session is confirmed again, which happens on its own
