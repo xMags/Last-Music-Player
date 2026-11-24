@@ -1,6 +1,8 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import QtQuick.Controls
+import QtQuick.Templates as T
 import LastMusicPlayer
 
 // The left sidebar (index.html 72-93; styles.css 250-406): the brand row, the
@@ -19,9 +21,6 @@ Rectangle {
     readonly property int fitting: Math.max(0, Math.floor((scroller.height - playlistsTop - 8) / playlistRowHeight))
     readonly property bool overflowing: playlistCount > fitting
     readonly property int shownPlaylists: overflowing ? Math.max(0, fitting - 1) : playlistCount
-    // The playlist whose menu is open.
-    property string menuKey: ""
-    property string menuTitle: ""
 
     color: App.windowChrome.backdropActive ? "transparent" : Theme.surface
 
@@ -115,16 +114,42 @@ Rectangle {
                     color: Theme.fgTertiary
                 }
 
-                IconButton {
+                // .sidebar-add-button: the 14px plus padded 2px, radius 4px,
+                // in the tertiary colour, no hover change; the title as a
+                // tooltip.
+                T.AbstractButton {
+                    id: addPlaylist
+
                     x: parent.width - width - 4
                     y: 32 - 2 + (16 - height) / 2
-                    implicitWidth: 18
-                    implicitHeight: 18
-                    shape: IconButton.Square
-                    iconName: "plus"
-                    iconSize: 14
+                    implicitWidth: 14 + 2 * 2
+                    implicitHeight: 14 + 2 * 2
+                    hoverEnabled: true
+                    focusPolicy: Qt.StrongFocus
+                    Accessible.role: Accessible.Button
                     Accessible.name: qsTr("New playlist")
+                    ToolTip.visible: hovered
+                    ToolTip.text: qsTr("New playlist")
+                    ToolTip.delay: 500
                     onClicked: App.collections.requestCreatePlaylist()
+
+                    HoverHandler {
+                        cursorShape: Qt.PointingHandCursor
+                    }
+
+                    contentItem: Icon {
+                        name: "plus"
+                        size: 14
+                        color: Theme.fgTertiary
+                    }
+
+                    background: Item {
+                        FocusRing {
+                            shown: addPlaylist.visualFocus
+                            controlRadius: 4
+                            offset: 1
+                        }
+                    }
                 }
             }
 
@@ -156,16 +181,6 @@ Rectangle {
                     text: name
                     collapsed: sidebar.collapsed
                     onClicked: App.sidebar.openPlaylist(index)
-
-                    TapHandler {
-                        acceptedButtons: Qt.RightButton
-                        onTapped: eventPoint => {
-                            sidebar.menuKey = playlistRow.playlistId
-                            sidebar.menuTitle = playlistRow.name
-                            const place = playlistRow.mapToItem(sidebar, eventPoint.position.x, eventPoint.position.y)
-                            playlistMenu.openAt(place.x, place.y)
-                        }
-                    }
                 }
             }
 
@@ -190,38 +205,7 @@ Rectangle {
         letter: App.profile.initials
         avatarUrl: App.profile.avatarUrl
         collapsed: sidebar.collapsed
-        onClicked: {
-            App.profile.prepareMenu()
-            profileMenu.openAt(12, profile.y - profileMenu.implicitHeight - 4)
-        }
-    }
-
-    MenuItemListModel {
-        id: playlistMenuItems
-
-        Component.onCompleted: {
-            playlistMenuItems.addItem("rename", qsTr("Rename playlist"))
-            playlistMenuItems.addItem("delete", qsTr("Delete playlist"), "trash", true)
-        }
-    }
-
-    ActionMenu {
-        id: playlistMenu
-
-        items: playlistMenuItems
-        onTriggered: itemId => {
-            if (itemId === "rename")
-                App.collections.requestRename(sidebar.menuKey, sidebar.menuTitle)
-            else if (itemId === "delete")
-                App.collections.requestDelete("playlist", sidebar.menuKey, sidebar.menuTitle)
-        }
-    }
-
-    // Settings, and Sign out while signed in.
-    ActionMenu {
-        id: profileMenu
-
-        items: App.profile.menu
-        onTriggered: itemId => App.profile.triggerMenu(itemId)
+        // Settings, where Sign out also is (main.ts 476-481).
+        onClicked: App.navigator.openView(Route.Settings)
     }
 }
