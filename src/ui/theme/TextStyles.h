@@ -81,6 +81,10 @@ struct TextStyles {
     TextStyle playlistMenuCreate;
     TextStyle playlistMenuCount;
     TextStyle cardDate;
+    TextStyle welcomeEyebrow;
+    TextStyle welcomeTitle;
+    TextStyle welcomeText;
+    TextStyle welcomeButton;
     TextStyle settingsSection;
     TextStyle settingsRowTitle;
     TextStyle settingsRowDescription;

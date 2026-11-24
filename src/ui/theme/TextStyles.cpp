@@ -154,6 +154,11 @@ TextStyles TextStyles::build(const FontFamilies& families)
         .playlistMenuCount = makeTextStyle({.family = text, .pixelSize = 11, .weight = kRegular}),
         // .album-date: 11px.
         .cardDate = makeTextStyle({.family = text, .pixelSize = 11, .weight = kRegular, .lineHeight = 16}),
+        // Home's welcome card (.home-welcome-*).
+        .welcomeEyebrow = makeTextStyle({.family = text, .pixelSize = 11, .weight = kBold, .letterSpacingEm = 0.14}),
+        .welcomeTitle = makeTextStyle({.family = text, .pixelSize = 28, .weight = kBold, .lineHeight = 28 * 1.15, .letterSpacingEm = -0.01}),
+        .welcomeText = makeTextStyle({.family = text, .pixelSize = 14, .weight = kRegular, .lineHeight = 14 * 1.55}),
+        .welcomeButton = makeTextStyle({.family = text, .pixelSize = 14, .weight = kSemiBold}),
         // .settings-section-head h2, .settings-row-title, .settings-row-desc
         // and .settings-theme-tile (views.css 1128-1165, 1293-1303).
         .settingsSection = makeTextStyle({.family = display, .pixelSize = 16, .weight = kBold, .lineHeight = 22}),

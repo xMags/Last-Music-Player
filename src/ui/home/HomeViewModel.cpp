@@ -333,6 +333,9 @@ void HomeViewModel::readAccountSections()
     const QHash<QString, QString> topShelfIds{{QStringLiteral("topSongs"), QStringLiteral("catalog:top-songs")},
                                               {QStringLiteral("topAlbums"), QStringLiteral("catalog:top-albums")},
                                               {QStringLiteral("topPlaylists"), QStringLiteral("catalog:top-playlists")}};
+    // With no mixes and nothing played, For you is a welcome card instead of
+    // two empty shelves, whatever its shelves are set to.
+    const bool newListener = m_mixCards.count() == 0 && !m_hero;
     for (const core::home::HomeLayoutTier& tier : layout.tiers()) {
         QString label = layout.tierTitle(tier.key, tierLabels.value(tier.key));
         const auto add = [&sections, &label](Section section) {
@@ -340,6 +343,11 @@ void HomeViewModel::readAccountSections()
             label.clear();
             sections.append(std::move(section));
         };
+        if (tier.key == QLatin1StringView("you") && newListener) {
+            add({.key = QStringLiteral("welcome"), .title = {}, .tier = {}, .capability = local,
+                 .kind = QStringLiteral("welcome")});
+            continue;
+        }
         QStringList tierTops;
         for (const core::home::HomeLayoutShelf& shelf : tier.shelves) {
             if (topKeys.contains(shelf.key)) {

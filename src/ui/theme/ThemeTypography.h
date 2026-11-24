@@ -45,6 +45,12 @@ class ThemeTypography : public QObject {
     Q_PROPERTY(QFont playlistMenuCreate READ playlistMenuCreate CONSTANT FINAL)
     Q_PROPERTY(QFont playlistMenuCount READ playlistMenuCount CONSTANT FINAL)
     Q_PROPERTY(QFont cardDate READ cardDate CONSTANT FINAL)
+    Q_PROPERTY(QFont welcomeEyebrow READ welcomeEyebrow CONSTANT FINAL)
+    Q_PROPERTY(QFont welcomeTitle READ welcomeTitle CONSTANT FINAL)
+    Q_PROPERTY(QFont welcomeText READ welcomeText CONSTANT FINAL)
+    Q_PROPERTY(QFont welcomeButton READ welcomeButton CONSTANT FINAL)
+    Q_PROPERTY(qreal lineHeightWelcomeTitle READ lineHeightWelcomeTitle CONSTANT FINAL)
+    Q_PROPERTY(qreal lineHeightWelcomeText READ lineHeightWelcomeText CONSTANT FINAL)
     Q_PROPERTY(qreal lineHeightSectionPill READ lineHeightSectionPill CONSTANT FINAL)
     Q_PROPERTY(QFont settingsSection READ settingsSection CONSTANT FINAL)
     Q_PROPERTY(QFont settingsRowTitle READ settingsRowTitle CONSTANT FINAL)
@@ -200,6 +206,12 @@ public:
     [[nodiscard]] QFont playlistMenuCreate() const { return m_text.playlistMenuCreate.font; }
     [[nodiscard]] QFont playlistMenuCount() const { return m_text.playlistMenuCount.font; }
     [[nodiscard]] QFont cardDate() const { return m_text.cardDate.font; }
+    [[nodiscard]] QFont welcomeEyebrow() const { return m_text.welcomeEyebrow.font; }
+    [[nodiscard]] QFont welcomeTitle() const { return m_text.welcomeTitle.font; }
+    [[nodiscard]] QFont welcomeText() const { return m_text.welcomeText.font; }
+    [[nodiscard]] QFont welcomeButton() const { return m_text.welcomeButton.font; }
+    [[nodiscard]] qreal lineHeightWelcomeTitle() const { return m_text.welcomeTitle.lineHeight; }
+    [[nodiscard]] qreal lineHeightWelcomeText() const { return m_text.welcomeText.lineHeight; }
     [[nodiscard]] qreal lineHeightSectionPill() const { return m_text.sectionPill.lineHeight; }
     [[nodiscard]] QFont settingsSection() const { return m_text.settingsSection.font; }
     [[nodiscard]] QFont settingsRowTitle() const { return m_text.settingsRowTitle.font; }
