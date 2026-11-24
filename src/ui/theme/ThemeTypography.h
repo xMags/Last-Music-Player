@@ -42,6 +42,11 @@ class ThemeTypography : public QObject {
     Q_PROPERTY(QFont settingsDialogState READ settingsDialogState CONSTANT FINAL)
     Q_PROPERTY(QFont settingsFeedback READ settingsFeedback CONSTANT FINAL)
     Q_PROPERTY(qreal lineHeightSettingsFeedback READ lineHeightSettingsFeedback CONSTANT FINAL)
+    Q_PROPERTY(QFont settingsLanguageText READ settingsLanguageText CONSTANT FINAL)
+    Q_PROPERTY(qreal lineHeightSettingsLanguageText READ lineHeightSettingsLanguageText CONSTANT FINAL)
+    Q_PROPERTY(QFont settingsLanguageGroup READ settingsLanguageGroup CONSTANT FINAL)
+    Q_PROPERTY(qreal lineHeightSettingsLanguageGroup READ lineHeightSettingsLanguageGroup CONSTANT FINAL)
+    Q_PROPERTY(QFont settingsLanguageNative READ settingsLanguageNative CONSTANT FINAL)
     Q_PROPERTY(QFont signInTitle READ signInTitle CONSTANT FINAL)
     Q_PROPERTY(QFont signInLabel READ signInLabel CONSTANT FINAL)
     Q_PROPERTY(QFont signInTagline READ signInTagline CONSTANT FINAL)
@@ -172,6 +177,11 @@ public:
     [[nodiscard]] QFont settingsDialogState() const { return m_text.settingsDialogState.font; }
     [[nodiscard]] QFont settingsFeedback() const { return m_text.settingsFeedback.font; }
     [[nodiscard]] qreal lineHeightSettingsFeedback() const { return m_text.settingsFeedback.lineHeight; }
+    [[nodiscard]] QFont settingsLanguageText() const { return m_text.settingsLanguageText.font; }
+    [[nodiscard]] qreal lineHeightSettingsLanguageText() const { return m_text.settingsLanguageText.lineHeight; }
+    [[nodiscard]] QFont settingsLanguageGroup() const { return m_text.settingsLanguageGroup.font; }
+    [[nodiscard]] qreal lineHeightSettingsLanguageGroup() const { return m_text.settingsLanguageGroup.lineHeight; }
+    [[nodiscard]] QFont settingsLanguageNative() const { return m_text.settingsLanguageNative.font; }
     [[nodiscard]] QFont signInTitle() const { return m_text.signInTitle.font; }
     [[nodiscard]] QFont signInLabel() const { return m_text.signInLabel.font; }
     [[nodiscard]] QFont signInTagline() const { return m_text.signInTagline.font; }

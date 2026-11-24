@@ -142,6 +142,13 @@ TextStyles TextStyles::build(const FontFamilies& families)
         .settingsDialogState = makeTextStyle({.family = text, .pixelSize = 12.5, .weight = kRegular}),
         // .settings-feedback: 12px at line-height 1.45.
         .settingsFeedback = makeTextStyle({.family = text, .pixelSize = 12, .weight = kRegular, .lineHeight = 12 * 1.45}),
+        // Languages (views.css 1410-1560): the lead, pills and options at
+        // 13px/18px, the group titles (11px, 700, 0.1em, 16px) and the
+        // native names (12px).
+        .settingsLanguageText = makeTextStyle({.family = text, .pixelSize = 13, .weight = kRegular, .lineHeight = 18}),
+        .settingsLanguageGroup = makeTextStyle(
+            {.family = text, .pixelSize = 11, .weight = kBold, .lineHeight = 16, .letterSpacingEm = 0.1}),
+        .settingsLanguageNative = makeTextStyle({.family = text, .pixelSize = 12, .weight = kRegular}),
         // The sign-in dialog (auth.css 307-510): .auth-title, .auth-meta-foot,
         // .auth-tagline, .auth-btn and .auth-err.
         .signInTitle = makeTextStyle({.family = families.sleeveDisplay,

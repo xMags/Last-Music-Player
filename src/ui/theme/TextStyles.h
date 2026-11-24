@@ -74,6 +74,9 @@ struct TextStyles {
     TextStyle settingsComboLabel;
     TextStyle settingsDialogState;
     TextStyle settingsFeedback;
+    TextStyle settingsLanguageText;
+    TextStyle settingsLanguageGroup;
+    TextStyle settingsLanguageNative;
     TextStyle signInTitle;
     TextStyle signInLabel;
     TextStyle signInTagline;

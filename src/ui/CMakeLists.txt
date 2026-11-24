@@ -132,7 +132,6 @@ set(LMP_UI_QML_FILES
     qml/settings/SettingsEqualizerCard.qml
     qml/settings/HistoryImportDialog.qml
     qml/settings/SettingsLibraryCard.qml
-    qml/settings/LanguagePills.qml
     qml/settings/SettingsLanguagesSection.qml
     qml/settings/SettingsPage.qml
     qml/settings/SettingsProfileCard.qml
@@ -147,6 +146,8 @@ set(LMP_UI_QML_FILES
     qml/settings/SettingsPlaybackSection.qml
     qml/settings/SettingsIntegrationsSection.qml
     qml/settings/SettingsDataSection.qml
+    qml/settings/SettingsLanguagePill.qml
+    qml/settings/SettingsLanguageOption.qml
     qml/settings/SettingsSwitchRow.qml
     qml/settings/SourceModeCards.qml
     qml/settings/ThemeTile.qml
