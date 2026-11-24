@@ -1,5 +1,6 @@
 #include "core/model/Track.h"
 
+#include "core/net/ArtworkUrl.h"
 #include "core/net/RemoteUrlPolicy.h"
 
 #include <QJsonValue>
@@ -97,7 +98,11 @@ QJsonObject Track::toSnapshotJson() const
     QString safeArtworkUrl = artworkUrl;
     QString safeSourceUrl = sourceUrl;
     if (remote) {
-        if (!net::isSafeRemoteUrl(safeArtworkUrl, net::RemoteUrlUse::Durable)) {
+        // An account cover link ("/v1/music/art/<id>") is a relative path, not
+        // a web address, but it stays valid and is what account songs carry.
+        const bool coverLink =
+            !safeArtworkUrl.isEmpty() && net::accountCoverLinkPath(safeArtworkUrl) == safeArtworkUrl;
+        if (!coverLink && !net::isSafeRemoteUrl(safeArtworkUrl, net::RemoteUrlUse::Durable)) {
             safeArtworkUrl.clear();
         }
         if (!net::isSafeRemoteUrl(safeSourceUrl, net::RemoteUrlUse::Durable)) {

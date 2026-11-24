@@ -94,6 +94,14 @@ void TrackTest::remoteDropsFilePathAndUnsafeAddresses()
     // An unsafe artwork address is cleared too; a local song keeps both.
     track.artworkUrl = QStringLiteral("http://images.example.test/cover.jpg");
     QCOMPARE(track.toSnapshotJson().value(QStringLiteral("artworkUrl")).toString(), QString());
+    // An account cover link is kept and read back; a look-alike path is not.
+    track.artworkUrl = QStringLiteral("/v1/music/art/AbCdEfGhIjKlMnOpQrSt_-");
+    QCOMPARE(track.toSnapshotJson().value(QStringLiteral("artworkUrl")).toString(), track.artworkUrl);
+    QCOMPARE(Track::fromSnapshotJson(track.toSnapshotJson()).artworkUrl, track.artworkUrl);
+    track.artworkUrl = QStringLiteral("/v1/music/art/short");
+    QCOMPARE(track.toSnapshotJson().value(QStringLiteral("artworkUrl")).toString(), QString());
+    track.artworkUrl = QStringLiteral(" /v1/music/art/AbCdEfGhIjKlMnOpQrSt_-");
+    QCOMPARE(track.toSnapshotJson().value(QStringLiteral("artworkUrl")).toString(), QString());
     Track local = localTrack();
     local.artworkUrl = QStringLiteral("http://images.example.test/cover.jpg");
     QCOMPARE(local.toSnapshotJson().value(QStringLiteral("artworkUrl")).toString(), local.artworkUrl);
