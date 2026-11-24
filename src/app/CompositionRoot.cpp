@@ -1135,6 +1135,14 @@ void CompositionRoot::attachEngine(QQmlEngine& engine)
     }
     m_motion = motion;
     motion->setReduced(m_reducedMotion->reduced());
+#ifndef NDEBUG
+    // For reviewing screens on a display that does not draw (locked or off):
+    // without motion every page shows at once.
+    if (QCoreApplication::arguments().contains(QStringLiteral("--reduced-motion"))) {
+        motion->setReduced(true);
+        return;
+    }
+#endif
     // The engine owns Motion and is destroyed before this root, so the
     // guarded pointer is checked on every change.
     m_reducedMotion->setChangeHandler([motion](bool reduced) {

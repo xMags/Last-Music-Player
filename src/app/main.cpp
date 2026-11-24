@@ -2,6 +2,7 @@
 #include <QGuiApplication>
 #include <QObject>
 #include <QQmlApplicationEngine>
+#include <QImage>
 #include <QQuickWindow>
 #include <QString>
 #include <QTimer>
@@ -50,7 +51,24 @@ int main(int argc, char* argv[])
     // For reviewing a page without clicking to it.
     if (const qsizetype at = QCoreApplication::arguments().indexOf(QStringLiteral("--open-view"));
         at >= 0 && at + 1 < QCoreApplication::arguments().size()) {
-        root.showViewForReview(QCoreApplication::arguments().at(at + 1));
+        // Once the window has drawn, as a click would.
+        QTimer::singleShot(5000, &app, [&root, view = QCoreApplication::arguments().at(at + 1)]() {
+            root.showViewForReview(view);
+        });
+    }
+    // For reviewing a screen as drawn: saves the window's own rendering to
+    // the file named after --grab once the page has settled, then leaves.
+    if (const qsizetype at = QCoreApplication::arguments().indexOf(QStringLiteral("--grab"));
+        at >= 0 && at + 1 < QCoreApplication::arguments().size()) {
+        const QString file = QCoreApplication::arguments().at(at + 1);
+        QTimer::singleShot(9000, &app, [&engine, file]() {
+            const QList<QObject*> roots = engine.rootObjects();
+            auto* window = roots.isEmpty() ? nullptr : qobject_cast<QQuickWindow*>(roots.constFirst());
+            if (window != nullptr && !window->grabWindow().save(file)) {
+                qWarning("Could not save the grab to %s", qPrintable(file));
+            }
+            QCoreApplication::quit();
+        });
     }
     // For reviewing a search: the search box has no accessible role yet.
     if (const qsizetype at = QCoreApplication::arguments().indexOf(QStringLiteral("--search"));
