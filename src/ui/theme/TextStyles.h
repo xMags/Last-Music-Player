@@ -64,6 +64,8 @@ struct TextStyles {
     TextStyle modalTitle;
     TextStyle settingsHeading;
     TextStyle viewTitle;
+    TextStyle viewSubtitle;
+    TextStyle emptyTitle;
     TextStyle settingsSection;
     TextStyle settingsRowTitle;
     TextStyle settingsRowDescription;

@@ -126,6 +126,10 @@ TextStyles TextStyles::build(const FontFamilies& families)
         // .view-title-block h1 (views.css 20-26): 32px, 700, -0.02em, the
         // display cut (styles.css 163), line-height normal.
         .viewTitle = makeTextStyle({.family = display, .pixelSize = 32, .weight = kBold, .letterSpacingEm = -0.02}),
+        // The 13px line under a view title (.h-sub, .offline-summary, .offline-notice).
+        .viewSubtitle = makeTextStyle({.family = text, .pixelSize = 13, .weight = kRegular}),
+        // .offline-empty strong: 16px, 600.
+        .emptyTitle = makeTextStyle({.family = text, .pixelSize = 16, .weight = kSemiBold}),
         // .settings-section-head h2, .settings-row-title, .settings-row-desc
         // and .settings-theme-tile (views.css 1128-1165, 1293-1303).
         .settingsSection = makeTextStyle({.family = display, .pixelSize = 16, .weight = kBold, .lineHeight = 22}),

@@ -33,8 +33,9 @@ Item {
             width: songs.width
             leftPadding: page.gutter
             rightPadding: page.rightGutter
-            topPadding: 32
-            spacing: 16
+            // .view-header: padding 18px 0 22px.
+            topPadding: 18
+            spacing: 0
 
             RowLayout {
                 width: head.inner
@@ -42,9 +43,12 @@ Item {
 
                 Column {
                     Layout.fillWidth: true
-                    spacing: 4
+                    spacing: 0
 
+                    // Only an opened album or artist has an eyebrow.
                     Text {
+                        visible: App.offline.groupTitle !== ""
+                        bottomPadding: 4
                         text: page.groupLabel()
                         font: Theme.eyebrow
                         color: Theme.fgSecondary
@@ -52,17 +56,19 @@ Item {
 
                     Text {
                         width: parent.width
-                        text: App.offline.groupTitle !== "" ? App.offline.groupTitle : qsTr("Offline")
-                        font: Theme.settingsHeading
+                        text: App.offline.groupTitle !== "" ? App.offline.groupTitle : qsTr("Downloads")
+                        font: Theme.viewTitle
                         color: Theme.fg
                         elide: Text.ElideRight
                     }
 
+                    // .offline-summary: 6px under the title, 13px, tertiary.
                     Text {
                         visible: App.offline.summary !== ""
+                        topPadding: 6
                         text: App.offline.summary
-                        font: Theme.body
-                        color: Theme.fgSecondary
+                        font: Theme.viewSubtitle
+                        color: Theme.fgTertiary
                     }
                 }
 
@@ -79,31 +85,42 @@ Item {
                 }
             }
 
-            // You're offline.
+            Item { width: 1; height: 22 }
+
+            // .offline-notice: padded 10px 14px, radius 10px, the selection
+            // tint, 13px secondary text, an accent icon 10px before it; 18px
+            // below.
             Rectangle {
                 width: head.inner
-                height: 40
+                height: notice.implicitHeight + 2 * 10
                 radius: 10
                 visible: App.connectivity.offline
-                color: Theme.accentSoft
+                color: Theme.accentSel
 
                 Row {
+                    id: notice
+
                     anchors.verticalCenter: parent.verticalCenter
                     x: 14
-                    spacing: 8
+                    spacing: 10
 
                     Icon {
+                        anchors.verticalCenter: parent.verticalCenter
                         name: "wifi-off"
                         size: 16
+                        color: Theme.accentColor
                     }
 
                     Text {
+                        anchors.verticalCenter: parent.verticalCenter
                         text: qsTr("You're offline. Downloaded songs still play.")
-                        font: Theme.body
-                        color: Theme.fg
+                        font: Theme.viewSubtitle
+                        color: Theme.fgSecondary
                     }
                 }
             }
+
+            Item { width: 1; height: 18; visible: App.connectivity.offline }
 
             // Downloads on their way.
             Rectangle {
@@ -243,34 +260,55 @@ Item {
                 }
             }
 
-            // Nothing downloaded yet.
+            // .offline-empty: padding 64px 24px, 8px apart; the icon in a
+            // 72px accent-tinted circle (8px more below it), the title 16px
+            // 600, the sentence 13px in the tertiary colour.
             Column {
                 width: head.inner
                 visible: !App.offline.hasDownloads && !App.offline.pendingShown
-                topPadding: 48
+                topPadding: 64
+                bottomPadding: 64
                 spacing: 8
 
-                Icon {
+                Rectangle {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    name: "download"
-                    size: 34
-                    color: Theme.fgSecondary
+                    width: 72
+                    height: 72 + 8
+                    color: "transparent"
+
+                    Rectangle {
+                        width: 72
+                        height: 72
+                        radius: 36
+                        color: Theme.accentSoft
+
+                        Icon {
+                            anchors.centerIn: parent
+                            name: "download"
+                            size: 34
+                            color: Theme.accentColor
+                        }
+                    }
                 }
 
                 Text {
+                    width: parent.width - 48
                     anchors.horizontalCenter: parent.horizontalCenter
+                    horizontalAlignment: Text.AlignHCenter
+                    wrapMode: Text.Wrap
                     text: qsTr("No songs are downloaded on this PC")
-                    font: Theme.collectionInfoStrong
+                    font: Theme.emptyTitle
                     color: Theme.fg
                 }
 
                 Text {
-                    width: parent.width
+                    width: parent.width - 48
+                    anchors.horizontalCenter: parent.horizontalCenter
                     horizontalAlignment: Text.AlignHCenter
                     wrapMode: Text.Wrap
                     text: qsTr("Use Download on any song, album or playlist, and it will be here, even with no internet.")
-                    font: Theme.body
-                    color: Theme.fgSecondary
+                    font: Theme.viewSubtitle
+                    color: Theme.fgTertiary
                 }
             }
 

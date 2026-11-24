@@ -8,7 +8,6 @@
 #include "ui/toasts/ToastQueue.h"
 #include "ui/tracks/TrackMenuController.h"
 
-#include <QLocale>
 #include <QMap>
 #include <QUrl>
 #include <QVariantMap>
@@ -20,11 +19,6 @@ namespace lmp::ui {
 using core::DownloadItemState;
 
 namespace {
-
-[[nodiscard]] QString formatBytes(std::uint64_t bytes)
-{
-    return QLocale::system().formattedDataSize(static_cast<qint64>(bytes), 1, QLocale::DataSizeTraditionalFormat);
-}
 
 [[nodiscard]] QString songCount(int count)
 {
@@ -86,7 +80,8 @@ QString OfflineViewModel::summary() const
     if (m_downloaded.isEmpty()) {
         return {};
     }
-    return songCount(static_cast<int>(m_downloaded.size())) + QStringLiteral(" · ") + formatBytes(m_bytes);
+    // "42 songs · 312 MB" (offlineSummaryText).
+    return songCount(static_cast<int>(m_downloaded.size())) + QStringLiteral(" · ") + core::downloadSizeText(m_bytes);
 }
 
 bool OfflineViewModel::paused() const
