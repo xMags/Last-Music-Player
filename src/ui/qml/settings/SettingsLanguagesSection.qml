@@ -196,6 +196,8 @@ SettingsSection {
             // .settings-language-editor: search, groups, hint, foot; 14px
             // apart. An empty Choose keeps it open until a pick.
             ColumnLayout {
+                id: editor
+
                 Layout.fillWidth: true
                 visible: section.catalogReady && (section.model.editorOpen || section.model.chosen.length === 0)
                 spacing: 14
@@ -230,7 +232,9 @@ SettingsSection {
                         Grid {
                             id: list
 
-                            readonly property real span: group.width + 16
+                            // From the editor's width, not the group's: the group
+                            // is sized from this list, which would loop.
+                            readonly property real span: editor.width + 16
                             readonly property int count: Math.max(1, Math.floor((span + 12) / (190 + 12)))
 
                             Layout.leftMargin: -8
