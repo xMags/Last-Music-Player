@@ -46,6 +46,7 @@ class MusicSyncService;
 namespace lmp::ui {
 
 class Navigator;
+class ShareController;
 class TrackMenuController;
 
 // Home in its offline form (`App.home`; views/home.ts with the built-in
@@ -109,6 +110,10 @@ public:
         core::mode::ModeService* mode = nullptr;
         core::account::MusicSyncService* sync = nullptr;
         core::account::AccountSessionService* session = nullptr;
+        // A card menu's Share (a list link) and Download; either may be
+        // missing, and its item is left out then.
+        ShareController* share = nullptr;
+        std::function<bool(const QString&, const QString&, const QString&, const QList<core::Track>&)> download = {};
     };
 
     // Shelf lengths (home.ts and the current app: twelve songs a row).
@@ -186,6 +191,8 @@ signals:
     void catalogChanged();
 
 private:
+    // Download and Share at the end of a card menu (when available).
+    void appendCollectionItems(QList<MenuItemListModel::Item>& items, bool songs) const;
     [[nodiscard]] TrackListModel* shelfNamed(const QString& shelf);
     void readMixes();
     void readQuickTiles();
@@ -207,6 +214,8 @@ private:
     core::mode::ModeService* m_mode = nullptr;
     core::account::MusicSyncService* m_sync = nullptr;
     core::account::AccountSessionService* m_session = nullptr;
+    ShareController* m_share = nullptr;
+    std::function<bool(const QString&, const QString&, const QString&, const QList<core::Track>&)> m_download;
     // Account mode's catalogue; null without one.
     HomeCatalogFeed* m_feed = nullptr;
 

@@ -291,8 +291,12 @@ void HomeViewModelTest::cardsPlayAndOpen()
     settle();
     QVERIFY(!lastOpenedTitle(m_player->audio).isEmpty());
 
+    // The mix menu: Play now, Play next, Add to queue, Shuffle (Download and
+    // Share join where they exist); a click on the card opens the mix.
     m_home->prepareMixMenu(0);
-    QCOMPARE(m_home->cardMenu()->idAt(4), QStringLiteral("open"));
+    QCOMPARE(m_home->cardMenu()->idAt(0), QStringLiteral("play"));
+    QCOMPARE(m_home->cardMenu()->idAt(3), QStringLiteral("shuffle"));
+    QCOMPARE(m_home->cardMenu()->count(), 4);
     m_home->triggerCardMenu(QStringLiteral("open"));
     QCOMPARE(m_navigator->current().kind(), Route::Kind::Collection);
     QCOMPARE(m_navigator->current().param(QStringLiteral("kind")), QStringLiteral("mix"));

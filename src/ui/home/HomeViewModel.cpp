@@ -1,5 +1,7 @@
 #include "ui/home/HomeViewModel.h"
 
+#include "ui/share/ShareController.h"
+
 #include <QColor>
 #include <chrono>
 
@@ -46,6 +48,8 @@ HomeViewModel::HomeViewModel(Parts parts, QObject* parent)
     , m_mode(parts.mode)
     , m_sync(parts.sync)
     , m_session(parts.session)
+    , m_share(parts.share)
+    , m_download(std::move(parts.download))
 {
     if (parts.catalog != nullptr && m_mode != nullptr && m_sync != nullptr && m_session != nullptr) {
         m_feed = new HomeCatalogFeed(*parts.catalog, this);
@@ -593,12 +597,16 @@ void HomeViewModel::prepareMixMenu(int row)
     m_menuKind = QStringLiteral("mix");
     m_menuKey = id;
     m_menuTitle = core::HomeMixBuilder::blank(id).title;
+    // home.ts openMixMenu: Play now, Play next, Add to queue, Shuffle,
+    // Download, then Share.
     const bool songs = !tracksOf(m_menuKind, id).isEmpty();
-    m_cardMenu.setItems({{.id = QStringLiteral("play"), .label = tr("Play"), .iconName = QStringLiteral("play"), .enabled = songs},
-                         {.id = QStringLiteral("shuffle"), .label = tr("Shuffle"), .iconName = QStringLiteral("shuffle"), .enabled = songs},
-                         {.id = QStringLiteral("next"), .label = tr("Play next"), .iconName = QStringLiteral("play-next"), .enabled = songs},
-                         {.id = QStringLiteral("queue"), .label = tr("Add to queue"), .iconName = QStringLiteral("queue-add"), .enabled = songs},
-                         {.id = QStringLiteral("open"), .label = tr("Open mix"), .iconName = QStringLiteral("open"), .separatorBefore = true}});
+    QList<MenuItemListModel::Item> items{
+        {.id = QStringLiteral("play"), .label = tr("Play now"), .iconName = QStringLiteral("play"), .enabled = songs},
+        {.id = QStringLiteral("next"), .label = tr("Play next"), .iconName = QStringLiteral("play-next"), .enabled = songs},
+        {.id = QStringLiteral("queue"), .label = tr("Add to queue"), .iconName = QStringLiteral("queue-add"), .enabled = songs},
+        {.id = QStringLiteral("shuffle"), .label = tr("Shuffle"), .iconName = QStringLiteral("shuffle"), .enabled = songs}};
+    appendCollectionItems(items, songs);
+    m_cardMenu.setItems(std::move(items));
 }
 
 void HomeViewModel::prepareQuickTileMenu(int row)
@@ -610,9 +618,32 @@ void HomeViewModel::prepareQuickTileMenu(int row)
     m_menuKind = tile.kind;
     m_menuKey = tile.key;
     m_menuTitle = tile.title;
-    m_cardMenu.setItems({{.id = QStringLiteral("open"), .label = tr("Open playlist"), .iconName = QStringLiteral("open")},
-                         {.id = QStringLiteral("next"), .label = tr("Play next"), .iconName = QStringLiteral("play-next"), .separatorBefore = true},
-                         {.id = QStringLiteral("queue"), .label = tr("Add to queue"), .iconName = QStringLiteral("queue-add")}});
+    // home.ts openQuickTileMenu: Open playlist, then Play now, Shuffle, Play
+    // next, Add to queue, Download, then Share.
+    const bool songs = !tracksOf(m_menuKind, m_menuKey).isEmpty();
+    QList<MenuItemListModel::Item> items{
+        {.id = QStringLiteral("open"), .label = tr("Open playlist"), .iconName = QStringLiteral("open")},
+        {.id = QStringLiteral("play"), .label = tr("Play now"), .iconName = QStringLiteral("play"), .enabled = songs,
+         .separatorBefore = true},
+        {.id = QStringLiteral("shuffle"), .label = tr("Shuffle"), .iconName = QStringLiteral("shuffle"), .enabled = songs},
+        {.id = QStringLiteral("next"), .label = tr("Play next"), .iconName = QStringLiteral("play-next"), .enabled = songs},
+        {.id = QStringLiteral("queue"), .label = tr("Add to queue"), .iconName = QStringLiteral("queue-add"), .enabled = songs}};
+    appendCollectionItems(items, songs);
+    m_cardMenu.setItems(std::move(items));
+}
+
+void HomeViewModel::appendCollectionItems(QList<MenuItemListModel::Item>& items, bool songs) const
+{
+    // collectionDownloadAction: Download, in its own group, where songs can
+    // be kept on this PC; then Share in a group of its own.
+    if (m_download && songs && m_mode != nullptr && m_mode->capabilities().downloadSongs) {
+        items.append({.id = QStringLiteral("download"), .label = tr("Download"), .iconName = QStringLiteral("download"),
+                      .separatorBefore = true});
+    }
+    if (m_share != nullptr && m_share->available()) {
+        items.append({.id = QStringLiteral("share"), .label = tr("Share"), .iconName = QStringLiteral("share"),
+                      .enabled = songs, .separatorBefore = true});
+    }
 }
 
 void HomeViewModel::triggerCardMenu(const QString& itemId)
@@ -639,6 +670,14 @@ void HomeViewModel::triggerCardMenu(const QString& itemId)
         }
     } else if (itemId == QLatin1StringView("queue")) {
         m_actions.addAllToQueue(tracks);
+    } else if (itemId == QLatin1StringView("download") && m_download && !tracks.isEmpty()) {
+        (void)m_download(m_menuTitle, {}, tracks.first().artworkUrl, tracks);
+    } else if (itemId == QLatin1StringView("share") && m_share != nullptr && !tracks.isEmpty()) {
+        m_share->share({.kind = core::share::ShareKind::List,
+                        .title = m_menuTitle,
+                        .artworkUrl = tracks.first().artworkUrl,
+                        .tracks = tracks},
+                       tr("Could not share this playlist."));
     }
 }
 

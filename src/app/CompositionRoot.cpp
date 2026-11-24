@@ -431,7 +431,13 @@ CompositionRoot::CompositionRoot()
               .catalog = &m_catalog,
               .mode = &m_mode,
               .sync = &m_sync,
-              .session = &m_session})
+              .session = &m_session,
+              .share = &m_share,
+              .download =
+                  [this](const QString& title, const QString& subtitle, const QString& artwork,
+                         const QList<core::Track>& tracks) {
+                      return m_offline.downloadTracks(title, subtitle, artwork, tracks);
+                  }})
     , m_localSearch(m_library, m_groups)
     , m_search({.source = m_localSearch,
                 .library = m_library,
