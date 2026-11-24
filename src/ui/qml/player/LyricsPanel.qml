@@ -120,6 +120,8 @@ Item {
             required property string modelData
 
             readonly property bool active: index === App.lyrics.activeLine
+            // .lyrics-line.active + .lyrics-line: the next line comes up a little.
+            readonly property bool next: App.lyrics.activeLine >= 0 && index === App.lyrics.activeLine + 1
 
             width: ListView.view.width
             height: label.implicitHeight + (panel.fullscreen ? 16 : 10)
@@ -138,10 +140,21 @@ Item {
                 font.pixelSize: panel.fullscreen ? 26 : 14
                 font.weight: panel.fullscreen || line.active ? (panel.fullscreen ? Font.Bold : Font.DemiBold) : Font.Normal
                 lineHeight: panel.fullscreen ? 1.35 : 1.7
-                color: line.active ? panel.activeColor : panel.lineColor
+                color: line.active ? panel.activeColor
+                    : line.next ? (panel.fullscreen ? Qt.rgba(1, 1, 1, 0.58) : Theme.mixSrgb(Theme.fg, "transparent", 0.62))
+                                : panel.lineColor
+                // motion.css 295-304: the sung line grows 4.5% from its start.
+                transformOrigin: Item.Left
+                scale: line.active && !Motion.reduced ? 1.045 : 1
 
                 Behavior on color {
-                    ColorAnimation { duration: 200 }
+                    enabled: !Motion.reduced
+                    ColorAnimation { duration: 350; easing.type: Easing.InOutQuad }
+                }
+
+                Behavior on scale {
+                    enabled: !Motion.reduced
+                    NumberAnimation { duration: 450; easing.type: Easing.Bezier; easing.bezierCurve: [0.22, 0.61, 0.36, 1, 1, 1] }
                 }
             }
 
