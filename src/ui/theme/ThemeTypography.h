@@ -61,6 +61,25 @@ class ThemeTypography : public QObject {
     Q_PROPERTY(QFont connectStop READ connectStop CONSTANT FINAL)
     Q_PROPERTY(QFont connectSection READ connectSection CONSTANT FINAL)
     Q_PROPERTY(QFont connectNote READ connectNote CONSTANT FINAL)
+    Q_PROPERTY(QFont welcomeBrand READ welcomeBrand CONSTANT FINAL)
+    Q_PROPERTY(QFont welcomeStepLabel READ welcomeStepLabel CONSTANT FINAL)
+    Q_PROPERTY(QFont welcomeStepDot READ welcomeStepDot CONSTANT FINAL)
+    Q_PROPERTY(QFont welcomeEyebrowPill READ welcomeEyebrowPill CONSTANT FINAL)
+    Q_PROPERTY(QFont welcomeStepTitle READ welcomeStepTitle CONSTANT FINAL)
+    Q_PROPERTY(QFont welcomeStepSub READ welcomeStepSub CONSTANT FINAL)
+    Q_PROPERTY(QFont welcomeRegionLabel READ welcomeRegionLabel CONSTANT FINAL)
+    Q_PROPERTY(QFont welcomeSearch READ welcomeSearch CONSTANT FINAL)
+    Q_PROPERTY(QFont welcomeSearchWide READ welcomeSearchWide CONSTANT FINAL)
+    Q_PROPERTY(QFont welcomeGroupTitle READ welcomeGroupTitle CONSTANT FINAL)
+    Q_PROPERTY(QFont welcomeChip READ welcomeChip CONSTANT FINAL)
+    Q_PROPERTY(QFont welcomeChipNative READ welcomeChipNative CONSTANT FINAL)
+    Q_PROPERTY(QFont welcomeArtistName READ welcomeArtistName CONSTANT FINAL)
+    Q_PROPERTY(QFont welcomeEmpty READ welcomeEmpty CONSTANT FINAL)
+    Q_PROPERTY(QFont welcomeNotice READ welcomeNotice CONSTANT FINAL)
+    Q_PROPERTY(QFont welcomeHint READ welcomeHint CONSTANT FINAL)
+    Q_PROPERTY(QFont welcomeNext READ welcomeNext CONSTANT FINAL)
+    Q_PROPERTY(QFont welcomeTrayMore READ welcomeTrayMore CONSTANT FINAL)
+    Q_PROPERTY(QFont welcomeAccountName READ welcomeAccountName CONSTANT FINAL)
     Q_PROPERTY(qreal lineHeightWelcomeTitle READ lineHeightWelcomeTitle CONSTANT FINAL)
     Q_PROPERTY(qreal lineHeightWelcomeText READ lineHeightWelcomeText CONSTANT FINAL)
     Q_PROPERTY(qreal lineHeightSectionPill READ lineHeightSectionPill CONSTANT FINAL)
@@ -234,6 +253,25 @@ public:
     [[nodiscard]] QFont connectStop() const { return m_text.connectStop.font; }
     [[nodiscard]] QFont connectSection() const { return m_text.connectSection.font; }
     [[nodiscard]] QFont connectNote() const { return m_text.connectNote.font; }
+    [[nodiscard]] QFont welcomeBrand() const { return m_text.welcomeBrand.font; }
+    [[nodiscard]] QFont welcomeStepLabel() const { return m_text.welcomeStepLabel.font; }
+    [[nodiscard]] QFont welcomeStepDot() const { return m_text.welcomeStepDot.font; }
+    [[nodiscard]] QFont welcomeEyebrowPill() const { return m_text.welcomeEyebrowPill.font; }
+    [[nodiscard]] QFont welcomeStepTitle() const { return m_text.welcomeStepTitle.font; }
+    [[nodiscard]] QFont welcomeStepSub() const { return m_text.welcomeStepSub.font; }
+    [[nodiscard]] QFont welcomeRegionLabel() const { return m_text.welcomeRegionLabel.font; }
+    [[nodiscard]] QFont welcomeSearch() const { return m_text.welcomeSearch.font; }
+    [[nodiscard]] QFont welcomeSearchWide() const { return m_text.welcomeSearchWide.font; }
+    [[nodiscard]] QFont welcomeGroupTitle() const { return m_text.welcomeGroupTitle.font; }
+    [[nodiscard]] QFont welcomeChip() const { return m_text.welcomeChip.font; }
+    [[nodiscard]] QFont welcomeChipNative() const { return m_text.welcomeChipNative.font; }
+    [[nodiscard]] QFont welcomeArtistName() const { return m_text.welcomeArtistName.font; }
+    [[nodiscard]] QFont welcomeEmpty() const { return m_text.welcomeEmpty.font; }
+    [[nodiscard]] QFont welcomeNotice() const { return m_text.welcomeNotice.font; }
+    [[nodiscard]] QFont welcomeHint() const { return m_text.welcomeHint.font; }
+    [[nodiscard]] QFont welcomeNext() const { return m_text.welcomeNext.font; }
+    [[nodiscard]] QFont welcomeTrayMore() const { return m_text.welcomeTrayMore.font; }
+    [[nodiscard]] QFont welcomeAccountName() const { return m_text.welcomeAccountName.font; }
     [[nodiscard]] qreal lineHeightWelcomeTitle() const { return m_text.welcomeTitle.lineHeight; }
     [[nodiscard]] qreal lineHeightWelcomeText() const { return m_text.welcomeText.lineHeight; }
     [[nodiscard]] qreal lineHeightSectionPill() const { return m_text.sectionPill.lineHeight; }

@@ -89,6 +89,11 @@ QVariantList Theme::shadowArt() const
                          {0, 24, 48, 0, black(0.10f)}});
 }
 
+QVariantList Theme::shadowWelcomeFoot() const
+{
+    return shadowLayers({{0, 18, 44, -18, black(0.34f)}});
+}
+
 QVariantList Theme::shadowCatalogHeroArt() const
 {
     return shadowLayers({{0, 12, 32, 0, black(0.16f)}});

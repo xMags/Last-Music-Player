@@ -393,7 +393,9 @@ CompositionRoot::CompositionRoot()
                  .session = m_session,
                  .sync = m_sync,
                  .accounts = m_accounts,
-                 .settings = m_settings})
+                 .settings = m_settings,
+                 .catalog = &m_catalog,
+                 .regionName = [this]() { return m_regionLanguages.regionName(); }})
     , m_connectivity(m_session, m_mode)
     , m_regionLanguages({.catalog = m_catalog,
                          .client = m_catalogClient,

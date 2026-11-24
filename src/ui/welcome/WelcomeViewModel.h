@@ -4,14 +4,18 @@
 #include <QObject>
 #include <QSet>
 #include <QString>
+#include <QHash>
 #include <QStringList>
+#include <QTimer>
 #include <QVariantList>
 #include <QtQml/qqmlregistration.h>
 
+#include <functional>
 #include <optional>
 
 #include "core/account/WelcomeModel.h"
 #include "core/async/RequestScope.h"
+#include "core/async/Result.h"
 
 namespace lmp::core {
 class SettingsStore;
@@ -20,6 +24,9 @@ class AccountClient;
 class AccountSessionService;
 class MusicSyncService;
 } // namespace account
+namespace catalog {
+class CatalogService;
+}
 namespace db {
 class AccountRepository;
 }
@@ -53,6 +60,30 @@ class WelcomeViewModel final : public QObject {
     Q_PROPERTY(int missing READ missing NOTIFY changed FINAL)
     Q_PROPERTY(bool busy READ busy NOTIFY changed FINAL)
     Q_PROPERTY(QString status READ status NOTIFY changed FINAL)
+    // The words of the step (welcome-flow.ts): the eyebrow, title and
+    // sentence, the footer's hint and its button.
+    Q_PROPERTY(QString eyebrow READ eyebrow NOTIFY changed FINAL)
+    Q_PROPERTY(QString title READ title NOTIFY changed FINAL)
+    Q_PROPERTY(QString subtitle READ subtitle NOTIFY changed FINAL)
+    Q_PROPERTY(QString hint READ hint NOTIFY changed FINAL)
+    Q_PROPERTY(QString nextLabel READ nextLabel NOTIFY changed FINAL)
+    // Why the artist minimum is lifted, or "".
+    Q_PROPERTY(QString notice READ notice NOTIFY changed FINAL)
+    // The languages grouped as Settings groups them ({id, label, languages:
+    // [{code, name, nativeName, selected}]}), filtered by languageQuery.
+    Q_PROPERTY(QVariantList languageGroups READ languageGroups NOTIFY changed FINAL)
+    Q_PROPERTY(QString languageQuery READ languageQuery WRITE setLanguageQuery NOTIFY changed FINAL)
+    Q_PROPERTY(bool languagesLoading READ languagesLoading NOTIFY changed FINAL)
+    Q_PROPERTY(bool languagesFailed READ languagesFailed NOTIFY changed FINAL)
+    // The artist search: what is typed, "idle", "loading", "ready" or
+    // "error", and the artists found ({key, title, artworkUrl, picked}).
+    Q_PROPERTY(QString artistQuery READ artistQuery WRITE setArtistQuery NOTIFY changed FINAL)
+    Q_PROPERTY(QString searchStatus READ searchStatus NOTIFY changed FINAL)
+    Q_PROPERTY(QVariantList searchResults READ searchResults NOTIFY changed FINAL)
+    // The footer's picked faces (the newest five, {key, title, artworkUrl}),
+    // how many older picks are counted as "+N", and rings still to fill.
+    Q_PROPERTY(QVariantList trayFaces READ trayFaces NOTIFY changed FINAL)
+    Q_PROPERTY(int trayMore READ trayMore NOTIFY changed FINAL)
 
 public:
     struct Parts {
@@ -61,6 +92,10 @@ public:
         core::account::MusicSyncService& sync;
         core::db::AccountRepository& accounts;
         core::SettingsStore& settings;
+        // The artist search; without it the step offers none.
+        core::catalog::CatalogService* catalog = nullptr;
+        // The region's name for "Suggested for <country>".
+        std::function<QString()> regionName = {};
     };
 
     // Everything in `parts` outlives this object.
@@ -75,6 +110,23 @@ public:
     [[nodiscard]] int missing() const;
     [[nodiscard]] bool busy() const { return m_busy; }
     [[nodiscard]] QString status() const { return m_status; }
+    [[nodiscard]] QString eyebrow() const;
+    [[nodiscard]] QString title() const;
+    [[nodiscard]] QString subtitle() const;
+    [[nodiscard]] QString hint() const;
+    [[nodiscard]] QString nextLabel() const;
+    [[nodiscard]] QString notice() const;
+    [[nodiscard]] QVariantList languageGroups() const;
+    [[nodiscard]] QString languageQuery() const { return m_languageQuery; }
+    void setLanguageQuery(const QString& query);
+    [[nodiscard]] bool languagesLoading() const { return m_busy && m_catalog.isEmpty(); }
+    [[nodiscard]] bool languagesFailed() const { return m_languagesFailed; }
+    [[nodiscard]] QString artistQuery() const { return m_artistQuery; }
+    void setArtistQuery(const QString& query);
+    [[nodiscard]] QString searchStatus() const { return m_searchStatus; }
+    [[nodiscard]] QVariantList searchResults() const;
+    [[nodiscard]] QVariantList trayFaces() const;
+    [[nodiscard]] int trayMore() const;
 
     // Opens the flow at its first step. `firstRun` gates the app with the
     // minimums; otherwise it can be closed.
@@ -87,6 +139,9 @@ public:
     Q_INVOKABLE void next();
     Q_INVOKABLE void back();
     Q_INVOKABLE void close();
+    // The languages again, after they failed or the region changed.
+    Q_INVOKABLE void reloadLanguages();
+    Q_INVOKABLE void reloadArtists() { loadArtists(); }
 
 signals:
     void visibleChanged();
@@ -99,12 +154,18 @@ private:
     void finish();
     [[nodiscard]] QString region() const;
     void setStatus(const QString& status);
+    void runSearch();
+    // A follow or unfollow came back.
+    void settleFollow(const QString& key, bool pick, const core::Result<void>& result);
+    [[nodiscard]] QVariantMap artistMap(const core::account::WelcomeArtist& artist) const;
 
     core::account::AccountClient& m_client;
     core::account::AccountSessionService& m_session;
     core::account::MusicSyncService& m_sync;
     core::db::AccountRepository& m_accounts;
     core::SettingsStore& m_settings;
+    core::catalog::CatalogService* m_catalogService = nullptr;
+    std::function<QString()> m_regionName;
 
     bool m_visible = false;
     core::account::WelcomeMode m_mode = core::account::WelcomeMode::FirstRun;
@@ -113,6 +174,19 @@ private:
     QStringList m_selectedLanguages;
     QList<core::account::WelcomeArtist> m_grid;
     QSet<QString> m_picked;
+    // Picks in the order made, for the footer's faces.
+    QStringList m_pickOrder;
+    // The public id of an artist followed here, to undo the follow.
+    QHash<QString, QString> m_followIds;
+    std::optional<core::account::RegionLanguageTable> m_regions;
+    QString m_languageQuery;
+    bool m_languagesFailed = false;
+    bool m_saving = false;
+    QString m_artistQuery;
+    QString m_searchStatus = QStringLiteral("idle");
+    QList<core::account::WelcomeArtist> m_searchResults;
+    QTimer m_searchDelay;
+    core::RequestScope m_searches;
     // Keys with a follow change on its way.
     QSet<QString> m_pending;
     core::account::ArtistWaiver m_waiver = core::account::ArtistWaiver::None;

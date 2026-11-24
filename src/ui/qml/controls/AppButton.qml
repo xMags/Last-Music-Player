@@ -14,6 +14,8 @@ T.Button {
     // Optional icon before the text, by Icons name.
     property string iconName: ""
     property real iconSize: 16
+    // A chevron turned to point back, say.
+    property real iconRotation: 0
 
     readonly property bool danger: variant === AppButton.Danger
     readonly property bool lit: enabled && (hovered || down)
@@ -42,6 +44,7 @@ T.Button {
             anchors.verticalCenter: parent.verticalCenter
             name: control.iconName
             size: control.iconSize
+            rotation: control.iconRotation
             color: label.color
             visible: control.iconName !== ""
         }
