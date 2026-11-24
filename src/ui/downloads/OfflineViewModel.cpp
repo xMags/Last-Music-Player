@@ -2,13 +2,16 @@
 
 #include "core/downloads/DownloadManager.h"
 #include "core/downloads/DownloadPolicy.h"
+#include "core/db/LibraryQueries.h"
 #include "core/library/TrackActions.h"
 #include "core/model/DisplayTitle.h"
 #include "platform/IFolderPicker.h"
+#include "ui/library/SystemPlaylists.h"
 #include "ui/toasts/ToastQueue.h"
 #include "ui/tracks/TrackMenuController.h"
 
-#include <QMap>
+#include <QColor>
+#include <QHash>
 #include <QUrl>
 #include <QVariantMap>
 
@@ -45,6 +48,7 @@ OfflineViewModel::OfflineViewModel(Parts parts, QObject* parent)
     : QObject(parent)
     , m_downloads(parts.downloads)
     , m_actions(parts.actions)
+    , m_library(parts.library)
     , m_trackMenu(parts.trackMenu)
     , m_toasts(parts.toasts)
     , m_picker(parts.picker)
@@ -58,21 +62,182 @@ OfflineViewModel::OfflineViewModel(Parts parts, QObject* parent)
 
 QStringList OfflineViewModel::tabs() const
 {
-    return {tr("Songs"), tr("Albums"), tr("Artists")};
+    return {tr("Songs"), tr("Playlists"), tr("History"), tr("Albums"), tr("Artists"), tr("Genres")};
+}
+
+QStringList OfflineViewModel::tabKeys() const
+{
+    return {QStringLiteral("songs"),  QStringLiteral("playlists"), QStringLiteral("history"),
+            QStringLiteral("albums"), QStringLiteral("artists"),   QStringLiteral("genres")};
 }
 
 void OfflineViewModel::setTab(const QString& tab)
 {
-    const QString chosen = tab == QLatin1StringView("albums") || tab == QLatin1StringView("artists")
-        ? tab
-        : QStringLiteral("songs");
-    if (chosen == m_tab && m_groupTitle.isEmpty()) {
+    const QString chosen = tabKeys().contains(tab) ? tab : QStringLiteral("songs");
+    if (chosen == m_tab && m_groupKey.isEmpty()) {
         return;
     }
     m_tab = chosen;
-    m_groupTitle.clear();
+    m_groupKey.clear();
+    refresh();
+}
+
+void OfflineViewModel::refresh()
+{
+    m_groupsSignature.clear();
+    refreshGroups();
     showTab();
     emit changed();
+}
+
+bool OfflineViewModel::showsCards() const
+{
+    return m_tab != QLatin1StringView("songs") && m_tab != QLatin1StringView("history") && m_groupKey.isEmpty();
+}
+
+const core::offline::OfflineGroup* OfflineViewModel::openedGroup() const
+{
+    if (m_groupKey.isEmpty()) {
+        return nullptr;
+    }
+    const QList<core::offline::OfflineGroup>* groups = m_tab == QLatin1StringView("playlists") ? &m_playlistGroups
+        : m_tab == QLatin1StringView("albums")                                                  ? &m_albumGroups
+        : m_tab == QLatin1StringView("artists")                                                 ? &m_artistGroups
+        : m_tab == QLatin1StringView("genres")                                                  ? &m_genreGroups
+                                                                                                : nullptr;
+    if (groups == nullptr) {
+        return nullptr;
+    }
+    for (const core::offline::OfflineGroup& group : *groups) {
+        if (group.key == m_groupKey) {
+            return &group;
+        }
+    }
+    return nullptr;
+}
+
+QString OfflineViewModel::groupTitle() const
+{
+    const core::offline::OfflineGroup* group = openedGroup();
+    return group != nullptr ? group->name : QString();
+}
+
+QString OfflineViewModel::groupEyebrow() const
+{
+    const core::offline::OfflineGroup* group = openedGroup();
+    if (group == nullptr) {
+        return {};
+    }
+    switch (group->kind) {
+    case core::offline::GroupKind::Playlist:
+        return tr("DOWNLOADED PLAYLIST");
+    case core::offline::GroupKind::Album:
+        return tr("DOWNLOADED ALBUM");
+    case core::offline::GroupKind::Artist:
+        return tr("DOWNLOADED ARTIST");
+    case core::offline::GroupKind::Genre:
+        return tr("DOWNLOADED GENRE");
+    }
+    return {};
+}
+
+QString OfflineViewModel::groupBackLabel() const
+{
+    const qsizetype index = tabKeys().indexOf(m_tab);
+    return index < 0 ? QString() : tr("All %1").arg(tabs().at(index).toLower());
+}
+
+QString OfflineViewModel::groupByline() const
+{
+    const core::offline::OfflineGroup* group = openedGroup();
+    return group != nullptr && group->kind == core::offline::GroupKind::Album ? group->subtitle : QString();
+}
+
+QString OfflineViewModel::groupInfo() const
+{
+    const core::offline::OfflineGroup* group = openedGroup();
+    if (group == nullptr) {
+        return {};
+    }
+    // An album's line names its artist above it; the rest say how much of
+    // them is downloaded.
+    QStringList parts{group->kind == core::offline::GroupKind::Album
+                          ? core::offline::songCountText(static_cast<int>(group->tracks.size()))
+                          : group->subtitle};
+    double seconds = 0.0;
+    for (const core::Track& track : group->tracks) {
+        seconds += std::max(0.0, track.durationSeconds);
+    }
+    if (seconds > 0.0) {
+        // totalDurationLabel: at least a minute; "N hr" with no minutes left.
+        const int minutes = std::max(1, static_cast<int>(seconds / 60.0 + 0.5));
+        const int rest = minutes % 60;
+        parts.append(minutes < 60 ? tr("%1 min").arg(minutes)
+                     : rest > 0   ? tr("%1 hr %2 min").arg(minutes / 60).arg(rest)
+                                  : tr("%1 hr").arg(minutes / 60));
+    }
+    return parts.join(QStringLiteral(" · "));
+}
+
+QString OfflineViewModel::groupArtworkUrl() const
+{
+    const core::offline::OfflineGroup* group = openedGroup();
+    if (group == nullptr) {
+        return {};
+    }
+    for (const core::Track& track : group->tracks) {
+        if (!track.artworkUrl.isEmpty()) {
+            return track.artworkUrl;
+        }
+    }
+    return {};
+}
+
+bool OfflineViewModel::groupRound() const
+{
+    const core::offline::OfflineGroup* group = openedGroup();
+    return group != nullptr && group->kind == core::offline::GroupKind::Artist;
+}
+
+QVariantMap OfflineViewModel::groupCover() const
+{
+    const core::offline::OfflineGroup* group = openedGroup();
+    if (group != nullptr && group->kind == core::offline::GroupKind::Playlist) {
+        if (const std::optional<SystemPlaylist> system = systemPlaylist(group->key)) {
+            return {{QStringLiteral("style"), QStringLiteral("system")},
+                    {QStringLiteral("gradientStart"), system->gradientStart},
+                    {QStringLiteral("gradientEnd"), system->gradientEnd},
+                    {QStringLiteral("iconName"), system->iconName}};
+        }
+    }
+    const bool genre = group != nullptr && group->kind == core::offline::GroupKind::Genre;
+    return {{QStringLiteral("style"), genre ? QStringLiteral("genre") : QStringLiteral("image")},
+            {QStringLiteral("gradientStart"), QColor()},
+            {QStringLiteral("gradientEnd"), QColor()},
+            {QStringLiteral("iconName"), QString()}};
+}
+
+QString OfflineViewModel::emptyTabText() const
+{
+    if (m_downloaded.isEmpty() || !m_groupKey.isEmpty()) {
+        return {};
+    }
+    if (m_tab == QLatin1StringView("playlists") && m_playlistGroups.isEmpty()) {
+        return tr("None of your playlists has a downloaded song yet.");
+    }
+    if (m_tab == QLatin1StringView("history") && m_history.isEmpty()) {
+        return tr("None of the songs you played lately is downloaded.");
+    }
+    if (m_tab == QLatin1StringView("albums") && m_albumGroups.isEmpty()) {
+        return tr("Download two or more songs from an album and it shows here.");
+    }
+    if (m_tab == QLatin1StringView("artists") && m_artistGroups.isEmpty()) {
+        return tr("The artists of the songs you download show here.");
+    }
+    if (m_tab == QLatin1StringView("genres") && m_genreGroups.isEmpty()) {
+        return tr("The genres of the songs you download show here.");
+    }
+    return {};
 }
 
 QString OfflineViewModel::summary() const
@@ -97,6 +262,7 @@ void OfflineViewModel::reload()
     }
     m_revision = snapshot.revision;
     m_downloaded.clear();
+    m_downloadedKeys.clear();
     m_bytes = snapshot.offlineBytes;
     m_pending.clear();
     int waiting = 0;
@@ -110,6 +276,7 @@ void OfflineViewModel::reload()
         for (const core::DownloadItem& item : summary.job.items) {
             if (item.state == DownloadItemState::Completed) {
                 m_downloaded.append(playable(item));
+                m_downloadedKeys.append(item.stableKey);
                 continue;
             }
             jobPending = true;
@@ -166,44 +333,175 @@ void OfflineViewModel::reload()
     }
     m_pendingDetail = detail.join(QStringLiteral(" · "));
     m_pendingPercent = itemsInJobs > 0 ? std::min(100, static_cast<int>(progress * 100.0 / itemsInJobs + 0.5)) : 0;
+    refreshGroups();
     showTab();
     emit changed();
+}
+
+void OfflineViewModel::refreshGroups()
+{
+    // Progress ticks change the snapshot but not which songs are here; the
+    // library is read again only when that set changes.
+    const QString signature = m_downloadedKeys.join(QLatin1Char('\n'));
+    if (signature == m_groupsSignature && m_detailed.size() == m_downloaded.size()) {
+        return;
+    }
+    m_groupsSignature = signature;
+
+    // withLibraryDetails: a download is stored with only what it needs to
+    // play, so its genre, length and main artist come from the library.
+    QHash<QString, core::Track> known;
+    if (m_stableKey && !m_downloaded.isEmpty()) {
+        for (const core::Track& track : m_library.loadTracks()) {
+            if (!track.isRemote()) {
+                continue;
+            }
+            const QString key = m_stableKey(track);
+            if (!key.isEmpty() && !known.contains(key)) {
+                known.insert(key, track);
+            }
+        }
+    }
+    m_detailed = m_downloaded;
+    for (qsizetype index = 0; index < m_detailed.size(); ++index) {
+        const auto found = known.constFind(m_downloadedKeys.value(index));
+        if (found == known.constEnd()) {
+            continue;
+        }
+        core::Track& song = m_detailed[index];
+        if (song.genre.isEmpty()) {
+            song.genre = found->genre;
+        }
+        if (song.album.isEmpty()) {
+            song.album = found->album;
+        }
+        if (song.durationSeconds <= 0.0) {
+            song.durationSeconds = found->durationSeconds;
+            song.durationText = found->durationText;
+        }
+        if (song.primaryArtistName.isEmpty()) {
+            song.primaryArtistName = found->primaryArtistName;
+        }
+    }
+
+    // A collection's songs as download keys (empty for songs on this PC).
+    const auto keysOf = [this](const QList<core::Track>& tracks) {
+        QStringList keys;
+        keys.reserve(tracks.size());
+        for (const core::Track& track : tracks) {
+            keys.append(track.isRemote() && m_stableKey ? m_stableKey(track) : QString());
+        }
+        return keys;
+    };
+    m_playlistGroups.clear();
+    const auto addPlaylist = [this, &keysOf](const QString& key, const QString& name, const QList<core::Track>& tracks) {
+        const QStringList keys = keysOf(tracks);
+        const QList<core::Track> part = core::offline::downloadedPart(keys, m_detailed, m_downloadedKeys);
+        if (part.isEmpty()) {
+            return;
+        }
+        QStringList distinct = keys;
+        distinct.removeDuplicates();
+        m_playlistGroups.append({.kind = core::offline::GroupKind::Playlist,
+                                 .key = key,
+                                 .name = name,
+                                 .subtitle = core::offline::playlistSubtitle(static_cast<int>(part.size()),
+                                                                             static_cast<int>(distinct.size())),
+                                 .tracks = part});
+    };
+    QStringList playlistNames;
+    if (!m_downloaded.isEmpty()) {
+        for (const SystemPlaylist& system : systemPlaylists()) {
+            addPlaylist(system.key, system.title, m_library.loadTracksForQuery(system.query));
+        }
+        for (const core::Track& playlist : m_actions.playlists()) {
+            playlistNames.append(playlist.title);
+            core::db::TrackQuery query;
+            query.groupKind = QStringLiteral("playlist");
+            query.groupKey = playlist.sourceUrl;
+            addPlaylist(playlist.sourceUrl, playlist.title, m_library.loadTracksForQuery(query));
+        }
+    }
+    m_albumGroups = core::offline::albumGroups(m_detailed, playlistNames);
+    m_artistGroups = core::offline::artistGroups(m_detailed);
+    m_genreGroups = core::offline::genreGroups(m_detailed);
+    m_history = historySongs();
+    // An opened card whose songs are all gone closes.
+    if (!m_groupKey.isEmpty() && openedGroup() == nullptr) {
+        m_groupKey.clear();
+    }
+}
+
+QList<core::Track> OfflineViewModel::historySongs()
+{
+    if (m_downloaded.isEmpty() || !m_stableKey) {
+        return {};
+    }
+    QStringList keys;
+    for (const core::Track& track : m_library.loadHistoryTracks()) {
+        keys.append(track.isRemote() ? m_stableKey(track) : QString());
+    }
+    return core::offline::downloadedPart(keys, m_detailed, m_downloadedKeys);
 }
 
 void OfflineViewModel::showTab()
 {
     if (m_tab == QLatin1StringView("songs")) {
-        m_songs.setTracks(m_downloaded);
+        m_songs.setTracks(m_detailed);
         return;
     }
-    const bool albums = m_tab == QLatin1StringView("albums");
-    if (!m_groupTitle.isEmpty()) {
-        QList<core::Track> members;
-        for (const core::Track& track : std::as_const(m_downloaded)) {
-            if ((albums ? track.album : track.artist) == m_groupTitle) {
-                members.append(track);
+    if (m_tab == QLatin1StringView("history")) {
+        m_songs.setTracks(m_history);
+        return;
+    }
+    if (const core::offline::OfflineGroup* group = openedGroup()) {
+        m_songs.setTracks(group->tracks);
+        return;
+    }
+    const QList<core::offline::OfflineGroup>& groups = m_tab == QLatin1StringView("playlists") ? m_playlistGroups
+        : m_tab == QLatin1StringView("albums")                                                  ? m_albumGroups
+        : m_tab == QLatin1StringView("artists")                                                 ? m_artistGroups
+                                                                                                : m_genreGroups;
+    QList<CollectionCardModel::Card> cards;
+    cards.reserve(groups.size());
+    for (const core::offline::OfflineGroup& group : groups) {
+        QUrl artwork;
+        for (const core::Track& track : group.tracks) {
+            if (!track.artworkUrl.isEmpty()) {
+                artwork = QUrl(track.artworkUrl);
+                break;
             }
         }
-        m_songs.setTracks(members);
-        return;
-    }
-    QMap<QString, QList<core::Track>> groups;
-    for (const core::Track& track : std::as_const(m_downloaded)) {
-        const QString key = (albums ? track.album : track.artist).trimmed();
-        if (!key.isEmpty()) {
-            groups[key].append(track);
+        CollectionCardModel::Card card{.kind = QStringLiteral("playlist"),
+                                       .key = group.key,
+                                       .title = group.name,
+                                       .subtitle = group.subtitle,
+                                       .artworkUrl = artwork};
+        switch (group.kind) {
+        case core::offline::GroupKind::Playlist:
+            // Liked Songs and the other system playlists keep their covers.
+            if (const std::optional<SystemPlaylist> system = systemPlaylist(group.key)) {
+                card.kind = QStringLiteral("system");
+                card.artworkUrl = QUrl();
+                card.gradientStart = system->gradientStart;
+                card.gradientEnd = system->gradientEnd;
+                card.iconName = system->iconName;
+            }
+            break;
+        case core::offline::GroupKind::Album:
+            card.kind = QStringLiteral("album");
+            break;
+        case core::offline::GroupKind::Artist:
+            card.kind = QStringLiteral("artist");
+            break;
+        case core::offline::GroupKind::Genre:
+            card.kind = QStringLiteral("genre");
+            card.artworkUrl = QUrl();
+            break;
         }
+        cards.append(std::move(card));
     }
-    QList<CollectionCardModel::Card> cards;
-    for (auto group = groups.cbegin(); group != groups.cend(); ++group) {
-        const core::Track& first = group.value().constFirst();
-        cards.append({.kind = albums ? QStringLiteral("album") : QStringLiteral("artist"),
-                      .key = group.key(),
-                      .title = group.key(),
-                      .subtitle = albums ? first.artist : songCount(static_cast<int>(group.value().size())),
-                      .artworkUrl = QUrl(first.artworkUrl)});
-    }
-    m_cards.setCards(cards);
+    m_cards.setCards(std::move(cards));
 }
 
 void OfflineViewModel::openCard(int row)
@@ -211,17 +509,17 @@ void OfflineViewModel::openCard(int row)
     if (row < 0 || row >= m_cards.count()) {
         return;
     }
-    m_groupTitle = m_cards.cardAt(row).key;
+    m_groupKey = m_cards.cardAt(row).key;
     showTab();
     emit changed();
 }
 
 void OfflineViewModel::closeGroup()
 {
-    if (m_groupTitle.isEmpty()) {
+    if (m_groupKey.isEmpty()) {
         return;
     }
-    m_groupTitle.clear();
+    m_groupKey.clear();
     showTab();
     emit changed();
 }

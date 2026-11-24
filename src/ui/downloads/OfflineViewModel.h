@@ -4,10 +4,12 @@
 #include <QString>
 #include <QStringList>
 #include <QVariantList>
+#include <QVariantMap>
 #include <QtQml/qqmlregistration.h>
 
 #include <functional>
 
+#include "core/downloads/OfflineCollections.h"
 #include "core/model/Track.h"
 #include "ui/library/CollectionCardModel.h"
 #include "ui/tracks/TrackListModel.h"
@@ -15,6 +17,9 @@
 namespace lmp::core {
 class DownloadManager;
 class TrackActions;
+namespace db {
+class LibraryQueries;
+}
 } // namespace lmp::core
 
 namespace lmp::platform {
@@ -28,7 +33,8 @@ class ToastQueue;
 
 // The Offline page and the download controls (`App.offline`; the
 // reference's views/offline.ts): the songs downloaded on this PC with Play
-// and Shuffle, Albums and Artists cut down to what is downloaded, the strip
+// and Shuffle; Library's Playlists, History, Albums, Artists and Genres cut
+// down to what is downloaded, a card opening as a page of its own; the strip
 // of downloads on their way (pause or resume all, cancel, retry), the
 // storage summary and Clear completed; the Download buttons of the player
 // bar and collection headers; and the Settings "Downloads" card (the four
@@ -41,10 +47,27 @@ class OfflineViewModel : public QObject {
     QML_UNCREATABLE("Provided by App.offline")
 
     Q_PROPERTY(QStringList tabs READ tabs CONSTANT FINAL)
+    // The tabs' keys, in the order of `tabs`.
+    Q_PROPERTY(QStringList tabKeys READ tabKeys CONSTANT FINAL)
     // "songs", "albums" or "artists".
     Q_PROPERTY(QString tab READ tab WRITE setTab NOTIFY changed FINAL)
     // An album or artist opened from its card; empty for the tab's cards.
     Q_PROPERTY(QString groupTitle READ groupTitle NOTIFY changed FINAL)
+    // An opened card's header: "DOWNLOADED ALBUM", "All albums", an album's
+    // artist, and "12 songs · 48 min".
+    Q_PROPERTY(QString groupEyebrow READ groupEyebrow NOTIFY changed FINAL)
+    Q_PROPERTY(QString groupBackLabel READ groupBackLabel NOTIFY changed FINAL)
+    Q_PROPERTY(QString groupByline READ groupByline NOTIFY changed FINAL)
+    Q_PROPERTY(QString groupInfo READ groupInfo NOTIFY changed FINAL)
+    Q_PROPERTY(QString groupArtworkUrl READ groupArtworkUrl NOTIFY changed FINAL)
+    Q_PROPERTY(bool groupRound READ groupRound NOTIFY changed FINAL)
+    // The opened card's cover: {style: "image" | "system" | "genre",
+    // gradientStart, gradientEnd, iconName} (a system playlist keeps its own).
+    Q_PROPERTY(QVariantMap groupCover READ groupCover NOTIFY changed FINAL)
+    // How many songs are downloaded, for "Remove all 12 songs from this PC".
+    Q_PROPERTY(int downloadedCount READ downloadedCount NOTIFY changed FINAL)
+    // A collection tab with nothing to show says why ("" otherwise).
+    Q_PROPERTY(QString emptyTabText READ emptyTabText NOTIFY changed FINAL)
     Q_PROPERTY(bool showsCards READ showsCards NOTIFY changed FINAL)
     Q_PROPERTY(lmp::ui::TrackListModel* songs READ songs CONSTANT FINAL)
     Q_PROPERTY(lmp::ui::CollectionCardModel* cards READ cards CONSTANT FINAL)
@@ -80,6 +103,8 @@ public:
     struct Parts {
         core::DownloadManager& downloads;
         core::TrackActions& actions;
+        // The library the collection tabs are cut down from.
+        core::db::LibraryQueries& library;
         TrackMenuController& trackMenu;
         ToastQueue& toasts;
         platform::IFolderPicker& picker;
@@ -95,10 +120,20 @@ public:
     explicit OfflineViewModel(Parts parts, QObject* parent = nullptr);
 
     [[nodiscard]] QStringList tabs() const;
+    [[nodiscard]] QStringList tabKeys() const;
     [[nodiscard]] QString tab() const { return m_tab; }
     void setTab(const QString& tab);
-    [[nodiscard]] QString groupTitle() const { return m_groupTitle; }
-    [[nodiscard]] bool showsCards() const { return m_tab != QLatin1StringView("songs") && m_groupTitle.isEmpty(); }
+    [[nodiscard]] QString groupTitle() const;
+    [[nodiscard]] QString groupEyebrow() const;
+    [[nodiscard]] QString groupBackLabel() const;
+    [[nodiscard]] QString groupByline() const;
+    [[nodiscard]] QString groupInfo() const;
+    [[nodiscard]] QString groupArtworkUrl() const;
+    [[nodiscard]] bool groupRound() const;
+    [[nodiscard]] QVariantMap groupCover() const;
+    [[nodiscard]] int downloadedCount() const { return static_cast<int>(m_downloaded.size()); }
+    [[nodiscard]] QString emptyTabText() const;
+    [[nodiscard]] bool showsCards() const;
     [[nodiscard]] TrackListModel* songs() { return &m_songs; }
     [[nodiscard]] CollectionCardModel* cards() { return &m_cards; }
     [[nodiscard]] bool hasDownloads() const { return !m_downloaded.isEmpty(); }
@@ -123,6 +158,9 @@ public:
     void setKeepRecent(bool value);
     [[nodiscard]] QString folder() const;
 
+    // Reads the library again (the page opening): playlists and recent
+    // plays change without the downloads changing.
+    Q_INVOKABLE void refresh();
     Q_INVOKABLE void openCard(int row);
     Q_INVOKABLE void closeGroup();
     Q_INVOKABLE void play();
@@ -154,9 +192,16 @@ signals:
 private:
     void reload();
     void showTab();
+    // The downloaded songs with what the library knows about them (genre,
+    // length, main artist), and the collection tabs' groups, rebuilt only
+    // when the set of downloaded songs changes.
+    void refreshGroups();
+    [[nodiscard]] const core::offline::OfflineGroup* openedGroup() const;
+    [[nodiscard]] QList<core::Track> historySongs();
 
     core::DownloadManager& m_downloads;
     core::TrackActions& m_actions;
+    core::db::LibraryQueries& m_library;
     TrackMenuController& m_trackMenu;
     ToastQueue& m_toasts;
     platform::IFolderPicker& m_picker;
@@ -165,8 +210,18 @@ private:
     std::function<QString(const core::Track&)> m_stableKey;
     quintptr m_ownerWindow = 0;
     QString m_tab = QStringLiteral("songs");
-    QString m_groupTitle;
+    // The opened card's key on a collection tab; empty for the tab's cards.
+    QString m_groupKey;
     QList<core::Track> m_downloaded;
+    // m_downloadedKeys[i] is the download key of m_downloaded[i].
+    QStringList m_downloadedKeys;
+    QString m_groupsSignature;
+    QList<core::Track> m_detailed;
+    QList<core::offline::OfflineGroup> m_playlistGroups;
+    QList<core::offline::OfflineGroup> m_albumGroups;
+    QList<core::offline::OfflineGroup> m_artistGroups;
+    QList<core::offline::OfflineGroup> m_genreGroups;
+    QList<core::Track> m_history;
     std::uint64_t m_bytes = 0;
     TrackListModel m_songs;
     CollectionCardModel m_cards;

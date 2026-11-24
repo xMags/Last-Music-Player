@@ -346,6 +346,7 @@ CompositionRoot::CompositionRoot()
     , m_lyrics(m_player, m_lyricsService)
     , m_offline({.downloads = m_downloads,
                  .actions = m_trackActions,
+                 .library = m_library,
                  .trackMenu = m_trackMenu,
                  .toasts = m_toasts,
                  .picker = m_folderPicker,

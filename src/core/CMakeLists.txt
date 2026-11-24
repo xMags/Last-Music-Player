@@ -144,6 +144,8 @@ qt_add_library(lmp_core STATIC
     downloads/DownloadManager.h
     downloads/DownloadPolicy.cpp
     downloads/DownloadPolicy.h
+    downloads/OfflineCollections.cpp
+    downloads/OfflineCollections.h
     cast/CastAudioPlayer.cpp
     cast/CastAudioPlayer.h
     cast/CastController.cpp
