@@ -84,6 +84,7 @@ set(LMP_UI_QML_FILES
     qml/home/HeroButton.qml
     qml/catalog/CatalogPage.qml
     qml/catalog/ChartCard.qml
+    qml/catalog/ChartsPage.qml
     qml/home/HomePage.qml
     qml/home/MixCard.qml
     qml/home/QuickTile.qml

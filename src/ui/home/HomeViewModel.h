@@ -173,6 +173,8 @@ public:
     // A catalogue section's cards ("catalog" and "charts" sections).
     Q_INVOKABLE lmp::ui::CatalogCardModel* catalogShelf(const QString& key);
     Q_INVOKABLE lmp::ui::ChartCardModel* chartRow(const QString& key);
+    // A chart row's title ("genreCharts", "cityCharts"), for its Charts page.
+    Q_INVOKABLE QString chartsTitle(const QString& key) const;
     // A catalogue card: a song plays with the shelf's other songs; anything
     // else opens its page.
     Q_INVOKABLE void playCatalogCard(const QString& key, int row);

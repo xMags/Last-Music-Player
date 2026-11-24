@@ -127,6 +127,7 @@ Item {
                     : App.navigator.currentKind === Route.Settings ? settingsPage
                     : App.navigator.currentKind === Route.Library ? libraryPage
                     : App.navigator.currentKind === Route.Offline ? offlinePage
+                    : App.navigator.currentKind === Route.Charts ? chartsPage
                     : App.navigator.currentKind === Route.Collection ? (host.showsArtist() ? artistPage : collectionPage)
                     : host.showsCatalog() ? catalogPage
                     : host.showsCatalogArtist() ? catalogArtistPage
@@ -151,6 +152,12 @@ Item {
         id: homePage
 
         HomePage {}
+    }
+
+    Component {
+        id: chartsPage
+
+        ChartsPage {}
     }
 
     Component {

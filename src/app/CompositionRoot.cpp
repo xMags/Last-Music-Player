@@ -849,6 +849,10 @@ void CompositionRoot::showWelcomeForReview()
 
 void CompositionRoot::showViewForReview(const QString& view)
 {
+    if (view == QLatin1StringView("charts")) {
+        m_navigator.push(ui::Route(ui::Route::Kind::Charts, {{QStringLiteral("section"), QStringLiteral("explore")}}));
+        return;
+    }
     const std::optional<ui::Route::Kind> kind = view == QLatin1StringView("library") ? std::optional(ui::Route::Kind::Library)
         : view == QLatin1StringView("settings")                                     ? std::optional(ui::Route::Kind::Settings)
         : view == QLatin1StringView("offline")                                      ? std::optional(ui::Route::Kind::Offline)
