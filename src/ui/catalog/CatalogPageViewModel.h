@@ -203,6 +203,7 @@ private:
     // A chart's or a long shelf's paging: which page loads next.
     std::optional<core::catalog::CatalogPager<core::catalog::CatalogItem>> m_pager;
     std::optional<core::catalog::ChartRef> m_chart;
+    core::catalog::ResourceType m_shelfType = core::catalog::ResourceType::Unknown;
     QString m_shelfKey;
     // A catalogue artist's section in full, which pages.
     QString m_artistId;

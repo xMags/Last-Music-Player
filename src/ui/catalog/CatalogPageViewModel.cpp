@@ -136,6 +136,7 @@ void CatalogPageViewModel::reset(const QString& kind)
     m_title.clear();
     m_byline.clear();
     m_infoSuffix.clear();
+    m_shelfType = core::catalog::ResourceType::Unknown;
     m_description.clear();
     m_artworkUrl.clear();
     m_shareArtwork.clear();
@@ -413,8 +414,14 @@ void CatalogPageViewModel::load(const Route& route, bool force)
             return;
         }
         m_loading = false;
-        m_title = shelf->title;
-        m_eyebrow = tr("BROWSE");
+        // CATALOG_SHELF_PAGES: New Songs and New Albums by name, the rest
+        // under the shelf's own title; Moods is playlists, the rest sit
+        // under New and trending.
+        m_title = m_shelfKey == QLatin1StringView("newSongs")    ? tr("New Songs")
+            : m_shelfKey == QLatin1StringView("newAlbums")        ? tr("New Albums")
+                                                                   : shelf->title;
+        m_eyebrow = m_shelfKey == QLatin1StringView("moods") ? tr("COLLECTIONS") : tr("NEW AND TRENDING");
+        m_shelfType = shelf->type;
         m_showsCards = shelf->type != catalog::ResourceType::Song;
         // New Songs and New Albums page in full; Home's row shows at once
         // while the first page loads.
@@ -567,6 +574,17 @@ QString CatalogPageViewModel::info() const
             parts.append(minutes < 60 ? tr("%1 min").arg(minutes)
                          : rest > 0   ? tr("%1 hr %2 min").arg(minutes / 60).arg(rest)
                                       : tr("%1 hr").arg(minutes / 60));
+        }
+    }
+    // shelfCountLabel: what a shelf page holds so far ("8 releases").
+    if (m_kind == QLatin1StringView("shelf") && m_showsCards && m_cards.count() > 0) {
+        const int count = m_cards.count();
+        if (m_shelfType == catalog::ResourceType::Artist) {
+            parts.append(count == 1 ? tr("1 artist") : tr("%1 artists").arg(count));
+        } else if (m_shelfKey == QLatin1StringView("moods") || m_shelfKey == QLatin1StringView("biggestHits")) {
+            parts.append(count == 1 ? tr("1 playlist") : tr("%1 playlists").arg(count));
+        } else {
+            parts.append(count == 1 ? tr("1 release") : tr("%1 releases").arg(count));
         }
     }
     if (!m_infoSuffix.isEmpty()) {
