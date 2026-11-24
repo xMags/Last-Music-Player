@@ -291,7 +291,7 @@ QFuture<Result<QByteArray>> AccountClient::suggestedArtists(const QString& beare
         .then(toBody);
 }
 
-QFuture<Result<void>> AccountClient::followArtistByIdentity(const QString& bearerSession,
+QFuture<Result<QString>> AccountClient::followArtistByIdentity(const QString& bearerSession,
                                                             const LibraryArtistIdentity& identity,
                                                             const QString& artworkUrl)
 {
@@ -299,7 +299,7 @@ QFuture<Result<void>> AccountClient::followArtistByIdentity(const QString& beare
     const QString catalogId = identity.catalogId.trimmed();
     const QString sourceUrl = identity.sourceUrl.trimmed();
     if (provider.isEmpty() || (catalogId.isEmpty() && sourceUrl.isEmpty())) {
-        return refused<void>(QStringLiteral("this artist cannot be followed"));
+        return refused<QString>(QStringLiteral("this artist cannot be followed"));
     }
     QJsonObject artist{{QStringLiteral("provider"), provider}, {QStringLiteral("name"), identity.name.trimmed()}};
     if (!catalogId.isEmpty()) {
@@ -314,7 +314,14 @@ QFuture<Result<void>> AccountClient::followArtistByIdentity(const QString& beare
     const QJsonObject body{{QStringLiteral("artist"), artist}};
     return send(makeCall(net::HttpMethod::Put, QStringLiteral("/v1/music/artist-follow"), bearerSession,
                          QJsonDocument(body).toJson(QJsonDocument::Compact)))
-        .then(toVoid);
+        .then([](const Result<net::HttpResponse>& response) -> Result<QString> {
+            if (!response) {
+                return response.failure();
+            }
+            // A follow that went through without a readable artist is still
+            // a follow; the id is only needed to undo it.
+            return parseFollowedArtistId(response.value().body).value_or(QString());
+        });
 }
 
 QFuture<Result<QByteArray>> AccountClient::preferencesDocument(const QString& bearerSession)

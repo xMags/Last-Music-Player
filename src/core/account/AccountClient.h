@@ -157,7 +157,8 @@ public:
     // sourceUrl?, artworkUrl?}}: follows an artist known by its catalogue
     // identity. Without a provider, or without both a catalogue id and an
     // address, nothing is sent (Unknown).
-    [[nodiscard]] QFuture<Result<void>> followArtistByIdentity(const QString& bearerSession,
+    // The followed artist's public id (empty when the answer names none).
+    [[nodiscard]] QFuture<Result<QString>> followArtistByIdentity(const QString& bearerSession,
                                                                const LibraryArtistIdentity& identity,
                                                                const QString& artworkUrl);
     // GET /v1/music/preferences, the answer as sent (the welcome flow reads

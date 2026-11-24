@@ -398,7 +398,9 @@ void CatalogArtistViewModel::toggleFollow()
     }
     m_accountClient.followArtistByIdentity(context->bearerSession, m_target.identity,
                                            m_detail ? m_detail->item.artworkUrl : QString())
-        .then(this, finish);
+        .then(this, [finish](const core::Result<QString>& result) {
+            finish(result ? core::Result<void>::success() : core::Result<void>(result.failure()));
+        });
 }
 
 void CatalogArtistViewModel::share()

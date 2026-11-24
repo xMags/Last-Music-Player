@@ -82,6 +82,10 @@ struct LibraryArtistPage {
 // the wrong type.
 [[nodiscard]] LibraryArtistPage parseLibraryArtistPage(const QByteArray& payload);
 
+// The artist a follow answered with ({"artist": {...}}, also under "data"):
+// its public id, or nothing when the answer does not hold a valid artist.
+[[nodiscard]] std::optional<QString> parseFollowedArtistId(const QByteArray& payload);
+
 // The songs of an artist's library entry (the library answer's form).
 [[nodiscard]] std::optional<QList<AccountLibraryTrack>> parseLibraryArtistTracks(const QByteArray& payload);
 

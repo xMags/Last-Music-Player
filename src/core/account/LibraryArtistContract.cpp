@@ -222,6 +222,28 @@ std::optional<QString> libraryArtistListPath(const LibraryArtistListRequest& req
     return path;
 }
 
+std::optional<QString> parseFollowedArtistId(const QByteArray& payload)
+{
+    QJsonParseError error;
+    const QJsonDocument document = QJsonDocument::fromJson(payload, &error);
+    if (error.error != QJsonParseError::NoError || !document.isObject()) {
+        return std::nullopt;
+    }
+    QJsonObject root = document.object();
+    if (const std::optional<QJsonObject> data = objectValue(root, QLatin1StringView("data"))) {
+        root = *data;
+    }
+    const std::optional<QJsonObject> artist = objectValue(root, QLatin1StringView("artist"));
+    if (!artist) {
+        return std::nullopt;
+    }
+    const std::optional<LibraryArtist> parsed = parseArtist(*artist);
+    if (!parsed) {
+        return std::nullopt;
+    }
+    return parsed->id;
+}
+
 LibraryArtistPage parseLibraryArtistPage(const QByteArray& payload)
 {
     QJsonParseError error;
