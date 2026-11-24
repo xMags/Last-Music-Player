@@ -224,7 +224,7 @@ void CollectionViewModelTest::genreOffersNoCustomOrder()
 void CollectionViewModelTest::systemPlaylistFollowsLikes()
 {
     m_model->open(QStringLiteral("system"), QStringLiteral("smart-liked"), QString());
-    QCOMPARE(m_model->title(), QStringLiteral("Favourites"));
+    QCOMPARE(m_model->title(), QStringLiteral("Liked Songs"));
     QCOMPARE(m_model->coverStyle(), QStringLiteral("system"));
     QCOMPARE(m_model->iconName(), QStringLiteral("heart-fill"));
     QVERIFY(!m_model->description().isEmpty());

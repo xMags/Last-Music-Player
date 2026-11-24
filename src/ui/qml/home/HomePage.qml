@@ -12,7 +12,9 @@ import LastMusicPlayer
 Item {
     id: page
 
-    readonly property real gutter: 32
+    readonly property real gutter: Theme.contentGutter
+    // The right side also keeps the scrollbar lane (scrollbar-gutter: stable).
+    readonly property real rightGutter: Theme.contentGutter + Theme.contentScrollLane
 
     implicitHeight: content.implicitHeight + 40
 
@@ -27,7 +29,7 @@ Item {
 
         x: page.gutter
         y: 24
-        width: page.width - 2 * page.gutter
+        width: page.width - (page.gutter + page.rightGutter)
         spacing: 0
 
         // The greeting: the salute with its time-of-day mark, then the name.

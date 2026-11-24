@@ -149,24 +149,9 @@ T.AbstractButton {
                 }
             }
 
-            IconButton {
-                id: more
-
-                anchors.top: parent.top
-                anchors.right: parent.right
-                anchors.margins: 8
-                visible: card.hasMenu && !card.round
-                opacity: card.hovered || card.visualFocus || more.visualFocus ? 1 : 0
-                iconName: "more"
-                shape: IconButton.Overlay
-                Accessible.name: qsTr("More options")
-                onClicked: card.menuRequested(more.mapToItem(card, more.width / 2, more.height), false)
-
-                Behavior on opacity {
-                    enabled: !Motion.reduced
-                    NumberAnimation { duration: Motion.chipFade }
-                }
-            }
+            // No "…" on the cover: on the desktop a card's actions open
+            // with a right-click or the Menu key (.card-menu-button is
+            // display: none, views.css 2085).
 
             FocusRing {
                 shown: card.visualFocus

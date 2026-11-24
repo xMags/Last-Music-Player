@@ -12,7 +12,9 @@ import LastMusicPlayer
 Item {
     id: page
 
-    readonly property real gutter: 32
+    readonly property real gutter: Theme.contentGutter
+    // The right side also keeps the scrollbar lane (scrollbar-gutter: stable).
+    readonly property real rightGutter: Theme.contentGutter + Theme.contentScrollLane
 
     function groupLabel(): string {
         if (App.offline.groupTitle === "")
@@ -26,11 +28,11 @@ Item {
         Column {
             id: head
 
-            readonly property real inner: width - 2 * page.gutter
+            readonly property real inner: width - (page.gutter + page.rightGutter)
 
             width: songs.width
             leftPadding: page.gutter
-            rightPadding: page.gutter
+            rightPadding: page.rightGutter
             topPadding: 32
             spacing: 16
 
@@ -284,6 +286,7 @@ Item {
         model: App.offline.songs
         grid: App.settings.trackView !== "list"
         sidePadding: page.gutter
+        rightSidePadding: page.rightGutter
         header: top
         onActivated: row => App.offline.playRow(row)
         onMenuRequested: (row, at, fromKeyboard) => {
@@ -299,7 +302,7 @@ Item {
 
         anchors.fill: parent
         anchors.leftMargin: page.gutter
-        anchors.rightMargin: page.gutter
+        anchors.rightMargin: page.rightGutter
         visible: App.offline.showsCards
         clip: true
         header: top

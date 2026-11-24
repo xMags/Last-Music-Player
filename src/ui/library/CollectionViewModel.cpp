@@ -376,7 +376,7 @@ QString CollectionViewModel::emptyText() const
     }
     if (m_kind == QLatin1StringView("system")) {
         if (m_key == QLatin1StringView("smart-liked")) {
-            return tr("Tap the heart on a song to add it to Favourites.");
+            return tr("Tap the heart on a song to add it to Liked Songs.");
         }
         if (m_key == QLatin1StringView("smart-recent")) {
             return tr("New library additions will appear here.");

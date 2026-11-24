@@ -13,7 +13,9 @@ import LastMusicPlayer
 Item {
     id: page
 
-    readonly property real gutter: 32
+    readonly property real gutter: Theme.contentGutter
+    // The right side also keeps the scrollbar lane (scrollbar-gutter: stable).
+    readonly property real rightGutter: Theme.contentGutter + Theme.contentScrollLane
     readonly property CollectionViewModel model: App.collection
     property Flickable currentView: songs.view
 
@@ -128,6 +130,7 @@ Item {
         model: page.model.tracks
         grid: App.settings.trackView !== "list"
         sidePadding: page.gutter
+        rightSidePadding: page.rightGutter
         bottomMargin: page.model.selectedCount > 0 ? 96 : 32
         header: top
         selectable: true

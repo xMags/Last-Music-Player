@@ -18,6 +18,10 @@ class ThemeConstants : public ThemeFullscreen {
 
     // Corner scale.
     Q_PROPERTY(int radiusSm READ radiusSm CONSTANT FINAL)
+    // The content panel's side padding (--content-gutter) and the scrollbar
+    // lane it keeps on the right (scrollbar-gutter: stable, a 10px bar).
+    Q_PROPERTY(int contentGutter READ contentGutter CONSTANT FINAL)
+    Q_PROPERTY(int contentScrollLane READ contentScrollLane CONSTANT FINAL)
     Q_PROPERTY(int radiusMd READ radiusMd CONSTANT FINAL)
     Q_PROPERTY(int radiusLg READ radiusLg CONSTANT FINAL)
     Q_PROPERTY(int radiusXl READ radiusXl CONSTANT FINAL)
@@ -87,6 +91,8 @@ public:
     explicit ThemeConstants(QObject* parent = nullptr);
 
     [[nodiscard]] int radiusSm() const { return 6; }
+    [[nodiscard]] int contentGutter() const { return 24; }
+    [[nodiscard]] int contentScrollLane() const { return 10; }
     [[nodiscard]] int radiusMd() const { return 8; }
     [[nodiscard]] int radiusLg() const { return 12; }
     [[nodiscard]] int radiusXl() const { return 14; }

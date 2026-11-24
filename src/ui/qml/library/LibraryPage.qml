@@ -13,12 +13,21 @@ import LastMusicPlayer
 Item {
     id: page
 
-    readonly property real gutter: 32
+    readonly property real gutter: Theme.contentGutter
+    // The right side also keeps the scrollbar lane (scrollbar-gutter: stable).
+    readonly property real rightGutter: Theme.contentGutter + Theme.contentScrollLane
     // The scrolling list of the shown tab (each tab view sets it).
     property Flickable currentView: null
+    // The reference's five tabs; the current app's Songs (local files) outside
+    // Account mode.
+    readonly property var tabs: App.library.tabs.filter(tab => tab.value !== "songs" || !App.capabilities.browseCatalogue)
     readonly property bool trackTab: App.library.tab === "history" || App.library.tab === "songs"
 
-    Component.onCompleted: App.library.refresh()
+    Component.onCompleted: {
+        if (App.library.tab === "songs" && App.capabilities.browseCatalogue)
+            App.library.tab = "playlists"
+        App.library.refresh()
+    }
 
     // The page heading and tabs, at the top of every tab's scrolling list:
     // the eyebrow and title with New playlist (and, on Albums, the current
@@ -30,52 +39,46 @@ Item {
             width: parent ? parent.width : 0
             spacing: 0
 
-            Item { width: 1; height: 24 }
+            // .view-header: padding 18px 0 22px; the title and the buttons
+            // meet at the bottom (align-items: flex-end).
+            Item { width: 1; height: 18 }
 
             Item {
                 width: parent.width
-                height: titleBlock.implicitHeight
+                height: Math.max(titleText.implicitHeight, buttons.implicitHeight)
 
-                Column {
-                    id: titleBlock
+                Text {
+                    id: titleText
 
-                    x: 4
-
-                    Text {
-                        text: qsTr("YOUR COLLECTION")
-                        font: Theme.eyebrow
-                        color: Theme.fgTertiary
-                    }
-
-                    Text {
-                        text: qsTr("Library")
-                        font: Theme.settingsHeading
-                        lineHeight: Theme.lineHeightSettingsHeading
-                        lineHeightMode: Text.FixedHeight
-                        color: Theme.fg
-                    }
+                    anchors.bottom: parent.bottom
+                    text: qsTr("Library")
+                    font: Theme.viewTitle
+                    color: Theme.fg
                 }
 
                 Row {
+                    id: buttons
+
                     anchors.right: parent.right
                     anchors.bottom: parent.bottom
-                    anchors.bottomMargin: 6
-                    spacing: 8
+                    spacing: 10
 
-                    // Albums from a provider link (API key mode), playlists from a
-                    // link in both server modes.
+                    // "Import link" on every tab (an album or playlist link);
+                    // API key mode imports albums from a provider link.
                     AppButton {
                         visible: App.capabilities.importFromLink
-                            && ((App.library.tab === "albums" && !App.capabilities.browseCatalogue)
-                                || App.library.tab === "playlists")
-                        text: App.library.tab === "playlists" ? qsTr("Import playlist") : qsTr("Import album")
+                        text: App.capabilities.browseCatalogue ? qsTr("Import link")
+                            : App.library.tab === "albums" ? qsTr("Import album") : qsTr("Import playlist")
                         iconName: "link"
                         iconSize: 14
-                        onClicked: App.collections.requestImportLink(App.library.tab === "playlists" ? "playlist" : "album")
+                        onClicked: App.collections.requestImportLink(
+                            App.library.tab === "albums" && !App.capabilities.browseCatalogue ? "album" : "playlist")
                     }
 
+                    // The current app's local albums; the account's albums come
+                    // from the catalogue instead.
                     AppButton {
-                        visible: App.library.tab === "albums"
+                        visible: App.library.tab === "albums" && !App.capabilities.browseCatalogue
                         text: qsTr("New album")
                         iconName: "plus"
                         iconSize: 14
@@ -95,9 +98,9 @@ Item {
 
             SegmentedControl {
                 compact: true
-                choices: App.library.tabs.map(tab => tab.label)
-                currentIndex: App.library.tabs.findIndex(tab => tab.value === App.library.tab)
-                onActivated: index => App.library.tab = App.library.tabs[index].value
+                choices: page.tabs.map(tab => tab.label)
+                currentIndex: page.tabs.findIndex(tab => tab.value === App.library.tab)
+                onActivated: index => App.library.tab = page.tabs[index].value
             }
 
             Item { width: 1; height: 20 }
@@ -188,6 +191,7 @@ Item {
             model: App.library.tab === "songs" ? App.library.songs : App.library.history
             grid: App.settings.trackView !== "list"
             sidePadding: page.gutter
+        rightSidePadding: page.rightGutter
             header: trackToolbar
             onActivated: row => App.library.playSong(songList.listName, row)
             onLikeRequested: row => App.library.likeSong(songList.listName, row)
@@ -230,7 +234,7 @@ Item {
                 id: grid
 
                 x: page.gutter
-                width: parent.width - 2 * page.gutter
+                width: parent.width - (page.gutter + page.rightGutter)
                 height: parent.height
                 bottomMargin: 32
                 scrollBarHost: cardTab
@@ -353,7 +357,7 @@ Item {
         Column {
             Loader {
                 x: page.gutter
-                width: parent.width - 2 * page.gutter
+                width: parent.width - (page.gutter + page.rightGutter)
                 sourceComponent: heading
             }
 

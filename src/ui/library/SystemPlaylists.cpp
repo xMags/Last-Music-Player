@@ -24,11 +24,11 @@ QString text(const char* source)
 const QList<SystemPlaylist>& systemPlaylists()
 {
     static const QList<SystemPlaylist> playlists{
-        {QStringLiteral("smart-liked"), text("Favourites"), text("Every song you've liked."),
+        {QStringLiteral("smart-liked"), text("Liked Songs"), text("Everything you have liked"),
          QStringLiteral("heart-fill"), QColor(0x00, 0xB8, 0xD4), QColor(0x00, 0x8D, 0xA8), queryFor("Liked", "DateAdded")},
-        {QStringLiteral("smart-most"), text("Most Played"), text("Your most-played songs."), QStringLiteral("flame"),
+        {QStringLiteral("smart-most"), text("Most Played"), text("Your most-played tracks"), QStringLiteral("flame"),
          QColor(0x8B, 0x7B, 0xE8), QColor(0x64, 0x55, 0xD6), queryFor("Most", "MostPlayed")},
-        {QStringLiteral("smart-recent"), text("Recently Added"), text("The newest songs in your library."),
+        {QStringLiteral("smart-recent"), text("Recently Added"), text("Your newest library additions"),
          QStringLiteral("clock-plus"), QColor(0xF3, 0xA9, 0x3B), QColor(0xD7, 0x7B, 0x18), queryFor("All", "DateAdded")},
     };
     return playlists;

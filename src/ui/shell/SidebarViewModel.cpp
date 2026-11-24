@@ -65,7 +65,7 @@ void SidebarViewModel::openLiked()
 {
     m_navigator.push(Route(Route::Kind::Collection, {{QStringLiteral("kind"), QStringLiteral("system")},
                                                      {QStringLiteral("key"), QStringLiteral("smart-liked")},
-                                                     {QStringLiteral("title"), tr("Favourites")}}));
+                                                     {QStringLiteral("title"), tr("Liked Songs")}}));
 }
 
 void SidebarViewModel::openAllPlaylists()

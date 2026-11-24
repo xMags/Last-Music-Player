@@ -152,7 +152,7 @@ void LibraryViewModelTest::emptyLibraryShowsOnlyFavourites()
     m_model->refresh();
     QVERIFY(m_model->empty());
     // Most Played and Recently Added are left out while they have nothing.
-    QCOMPARE(titles(*m_model->playlists()), QStringList{QStringLiteral("Favourites")});
+    QCOMPARE(titles(*m_model->playlists()), QStringList{QStringLiteral("Liked Songs")});
     QCOMPARE(m_model->albums()->count(), 0);
     QCOMPARE(m_model->songs()->totalCount(), 0);
 }
@@ -169,7 +169,7 @@ void LibraryViewModelTest::tabsReadTheLibrary()
 
     // The system playlists with songs, then today's mixes.
     const QStringList playlists = titles(*m_model->playlists());
-    QCOMPARE(playlists.mid(0, 2), (QStringList{QStringLiteral("Favourites"), QStringLiteral("Recently Added")}));
+    QCOMPARE(playlists.mid(0, 2), (QStringList{QStringLiteral("Liked Songs"), QStringLiteral("Recently Added")}));
     QCOMPARE(playlists.size(), 2 + 9);
     QCOMPARE(m_model->playlists()->cardAt(2).kind, QStringLiteral("mix"));
     QCOMPARE(m_model->playlists()->cardAt(2).title, QStringLiteral("Daily Mix 1"));

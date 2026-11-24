@@ -26,6 +26,8 @@ Item {
     property real bottomMargin: 32
     // Space at each side of the rows; the scroll bar sits in the right one.
     property real sidePadding: 0
+    // The right side, when it differs (the scrollbar lane).
+    property real rightSidePadding: sidePadding
     // A collection page's extras (List only): Ctrl and Shift clicks select
     // instead of playing, the compact density, and dragging rows into a new
     // order. While a row is dragged the rows it passes make room for it.
@@ -61,7 +63,7 @@ Item {
 
         anchors.fill: parent
         anchors.leftMargin: root.sidePadding
-        anchors.rightMargin: root.sidePadding
+        anchors.rightMargin: root.rightSidePadding
         sourceComponent: root.grid ? gridForm : listForm
     }
 
@@ -138,20 +140,40 @@ Item {
                         color: Theme.divider
                     }
 
+                    // padding: 12px 20px; the rows' columns: 40px 1fr 200px
+                    // 60px 40px, 16px apart (the last one has no heading).
                     Row {
-                        x: 24
+                        x: 20
                         anchors.verticalCenter: parent.verticalCenter
                         spacing: 16
 
                         TableHeading { width: 40; text: "#"; horizontalAlignment: Text.AlignHCenter }
-                        TableHeading { width: list.rowWidth - 24 - 40 - 16 - (albumHeading.visible ? 216 : 0) - 60 - 76; text: qsTr("TITLE") }
+                        TableHeading {
+                            width: list.rowWidth - 2 * 20 - (40 + 16) - (albumHeading.visible ? 200 + 16 : 0)
+                                - (60 + 16) - 40
+                            text: qsTr("TITLE")
+                        }
                         TableHeading { id: albumHeading; width: 200; visible: list.rowWidth >= 560; text: qsTr("ALBUM") }
-                        TableHeading { width: 44; text: qsTr("TIME"); horizontalAlignment: Text.AlignRight }
+                        TableHeading { width: 60; text: qsTr("TIME"); horizontalAlignment: Text.AlignRight }
                     }
                 }
             }
 
             WheelScroll { flickable: list }
+
+            // .track-table box-shadow: var(--shadow), round the heading and
+            // the body together.
+            BoxShadow {
+                parent: list.contentItem
+                z: -2
+                // The rows start at 0; the heading row sits just above them.
+                y: -root.headHeight
+                width: list.rowWidth
+                height: list.count * root.rowHeight + root.headHeight
+                visible: list.count > 0
+                layers: Theme.shadow
+                radius: 12
+            }
 
             // The table's body behind the rows, with its bottom corners.
             Rectangle {

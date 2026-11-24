@@ -218,18 +218,23 @@ T.AbstractButton {
         }
 
         Text {
-            Layout.preferredWidth: 44
+            // The 60px time column (grid-template-columns: 40px 1fr 200px 60px 40px).
+            Layout.preferredWidth: 60
             horizontalAlignment: Text.AlignRight
             text: row.unavailable ? "-" : row.durationText
             font: Theme.trackNumber
             color: Theme.fgTertiary
         }
 
-        Row {
-            spacing: 2
+        // The 40px last column holds only the 28px heart, at its start.
+        Item {
+            Layout.preferredWidth: 40
+            implicitHeight: likeButton.implicitHeight
 
             IconButton {
                 id: likeButton
+
+                anchors.verticalCenter: parent.verticalCenter
 
                 iconName: row.liked ? "heart-fill" : "heart"
                 active: row.liked
@@ -244,22 +249,9 @@ T.AbstractButton {
                     row.likeRequested()
                 }
             }
-
-            IconButton {
-                id: more
-
-                iconName: "more"
-                Accessible.name: qsTr("More options")
-                shape: IconButton.Square
-                iconSize: 14
-                implicitWidth: 28
-                implicitHeight: 28
-                opacity: row.hovered || row.visualFocus ? 1 : 0
-                onClicked: row.menuRequested(more.mapToItem(row, more.width / 2, more.height), false)
-            }
         }
 
-        Item { Layout.preferredWidth: 20 - 16 - 2 }
+        Item { Layout.preferredWidth: 20 - 16 }
     }
 
     // Arrives in the page cascade when the page has just opened.

@@ -15,7 +15,9 @@ Item {
     // App.localArtist or App.catalogArtist; their properties are named alike.
     property var model: App.localArtist
     readonly property bool catalogue: page.model === App.catalogArtist
-    readonly property real gutter: 32
+    readonly property real gutter: Theme.contentGutter
+    // The right side also keeps the scrollbar lane (scrollbar-gutter: stable).
+    readonly property real rightGutter: Theme.contentGutter + Theme.contentScrollLane
 
     implicitHeight: content.implicitHeight
 
@@ -23,7 +25,7 @@ Item {
         id: content
 
         x: page.gutter
-        width: page.width - 2 * page.gutter
+        width: page.width - (page.gutter + page.rightGutter)
         bottomPadding: 40
         spacing: 0
 

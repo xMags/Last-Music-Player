@@ -13,7 +13,9 @@ import LastMusicPlayer
 Item {
     id: page
 
-    readonly property real gutter: 32
+    readonly property real gutter: Theme.contentGutter
+    // The right side also keeps the scrollbar lane (scrollbar-gutter: stable).
+    readonly property real rightGutter: Theme.contentGutter + Theme.contentScrollLane
     readonly property CatalogPageViewModel model: App.catalogPage
     property Flickable currentView: page.model.showsCards ? cardsView : songs.view
 
@@ -112,6 +114,7 @@ Item {
         model: page.model.tracks
         grid: App.settings.trackView !== "list"
         sidePadding: page.gutter
+        rightSidePadding: page.rightGutter
         header: top
         onActivated: row => page.model.playRow(row)
         onMenuRequested: (row, at, fromKeyboard) => {
@@ -135,7 +138,7 @@ Item {
 
         anchors.fill: parent
         anchors.leftMargin: page.gutter
-        anchors.rightMargin: page.gutter
+        anchors.rightMargin: page.rightGutter
         visible: page.model.showsCards
         clip: true
         header: top

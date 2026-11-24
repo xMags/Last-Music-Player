@@ -122,20 +122,5 @@ T.AbstractButton {
             maximumLineCount: 2
             elide: Text.ElideRight
         }
-
-        IconButton {
-            id: more
-
-            x: parent.width - width - 8
-            y: 8
-            implicitWidth: 30
-            implicitHeight: 30
-            shape: IconButton.Overlay
-            iconName: "more"
-            iconSize: 15
-            opacity: card.hovered || card.visualFocus ? 1 : 0
-            Accessible.name: qsTr("More options for %1").arg(card.title)
-            onClicked: card.menuRequested(more.mapToItem(card, 0, more.height + 4))
-        }
     }
 }
