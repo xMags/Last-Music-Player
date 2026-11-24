@@ -270,6 +270,28 @@ Item {
                         sourceComponent: heading
                     }
 
+                    // .lib-playlist-filter: "Your playlists" or "Auto mixes",
+                    // 4px apart; padding-bottom 20px and margin-bottom 16px.
+                    Row {
+                        visible: App.library.tab === "playlists"
+                        spacing: 4
+                        bottomPadding: 20 + 16
+
+                        Chip {
+                            quiet: true
+                            text: qsTr("Your playlists")
+                            selected: App.library.playlistFilter === "manual"
+                            onClicked: App.library.playlistFilter = "manual"
+                        }
+
+                        Chip {
+                            quiet: true
+                            text: qsTr("Auto mixes")
+                            selected: App.library.playlistFilter === "auto"
+                            onClicked: App.library.playlistFilter = "auto"
+                        }
+                    }
+
                     SearchField {
                         visible: cardTab.serverArtists
                         width: Math.min(280, parent.width)
@@ -284,14 +306,15 @@ Item {
                         height: 16
                     }
 
-                    EmptyState {
+                    // .empty-state (library.ts 427-431): the boxed sentence.
+                    CompactEmptyState {
                         width: parent.width
+                        compact: false
                         visible: cardTab.cards.count === 0 && !(cardTab.serverArtists && App.accountArtists.loading)
-                        iconName: "library"
-                        title: App.library.tab === "genres" ? qsTr("No genres yet") : qsTr("Nothing here yet")
                         text: App.library.tab === "genres"
                             ? qsTr("No genre tags in your library yet. Genres appear as tagged tracks arrive.")
-                            : qsTr("Play or like some music to build your collection.")
+                            : cardTab.serverArtists ? qsTr("No artists match this view.")
+                            : qsTr("Play or like some music to build your album collection.")
                     }
                 }
 

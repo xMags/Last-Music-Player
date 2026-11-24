@@ -93,6 +93,7 @@ class ThemeTypography : public QObject {
     Q_PROPERTY(QFont settingsButtonLabel READ settingsButtonLabel CONSTANT FINAL)
     Q_PROPERTY(QFont settingsButtonSmallLabel READ settingsButtonSmallLabel CONSTANT FINAL)
     Q_PROPERTY(QFont chipLabel READ chipLabel CONSTANT FINAL)
+    Q_PROPERTY(QFont chipQuietLabel READ chipQuietLabel CONSTANT FINAL)
     Q_PROPERTY(QFont bubbleLabel READ bubbleLabel CONSTANT FINAL)
     Q_PROPERTY(QFont selectLabel READ selectLabel CONSTANT FINAL)
     Q_PROPERTY(QFont optionLabel READ optionLabel CONSTANT FINAL)
@@ -229,6 +230,7 @@ public:
     [[nodiscard]] QFont settingsButtonLabel() const { return m_text.settingsButtonLabel.font; }
     [[nodiscard]] QFont settingsButtonSmallLabel() const { return m_text.settingsButtonSmallLabel.font; }
     [[nodiscard]] QFont chipLabel() const { return m_text.chipLabel.font; }
+    [[nodiscard]] QFont chipQuietLabel() const { return m_text.chipQuietLabel.font; }
     [[nodiscard]] QFont bubbleLabel() const { return m_text.bubbleLabel.font; }
     [[nodiscard]] QFont selectLabel() const { return m_text.selectLabel.font; }
     [[nodiscard]] QFont optionLabel() const { return m_text.optionLabel.font; }

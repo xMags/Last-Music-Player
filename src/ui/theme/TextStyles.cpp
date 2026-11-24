@@ -229,6 +229,8 @@ TextStyles TextStyles::build(const FontFamilies& families)
         // .settings-button.small: 12px.
         .settingsButtonSmallLabel = makeTextStyle({.family = text, .pixelSize = 12, .weight = kSemiBold}),
         .chipLabel = makeTextStyle({.family = text, .pixelSize = 13, .weight = kSemiBold}),
+        // .lib-playlist-filter .chip: 12.5px.
+        .chipQuietLabel = makeTextStyle({.family = text, .pixelSize = 12.5, .weight = kSemiBold}),
         // .seek-bubble: line-height 1.2 of 11.5px.
         .bubbleLabel = makeTextStyle({.family = text,
                                   .pixelSize = 11.5,

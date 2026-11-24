@@ -117,6 +117,7 @@ struct TextStyles {
     TextStyle settingsButtonLabel;
     TextStyle settingsButtonSmallLabel;
     TextStyle chipLabel;
+    TextStyle chipQuietLabel;
     TextStyle bubbleLabel;
     TextStyle selectLabel;
     TextStyle optionLabel;

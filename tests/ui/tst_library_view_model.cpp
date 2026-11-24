@@ -167,15 +167,20 @@ void LibraryViewModelTest::tabsReadTheLibrary()
     QCOMPARE(content.count(), 1);
     QVERIFY(!m_model->empty());
 
-    // The system playlists with songs, then today's mixes.
+    // "Your playlists": the system playlists with songs (and the user's own).
     const QStringList playlists = titles(*m_model->playlists());
-    QCOMPARE(playlists.mid(0, 2), (QStringList{QStringLiteral("Liked Songs"), QStringLiteral("Recently Added")}));
-    QCOMPARE(playlists.size(), 2 + 9);
-    QCOMPARE(m_model->playlists()->cardAt(2).kind, QStringLiteral("mix"));
-    QCOMPARE(m_model->playlists()->cardAt(2).title, QStringLiteral("Daily Mix 1"));
+    QCOMPARE(playlists, (QStringList{QStringLiteral("Liked Songs"), QStringLiteral("Recently Added")}));
     QCOMPARE(m_model->playlists()->cardAt(1).subtitle, QStringLiteral("3 songs"));
     QCOMPARE(m_model->playlists()->cardAt(0).kind, QStringLiteral("system"));
     QCOMPARE(m_model->playlists()->cardAt(0).key, QStringLiteral("smart-liked"));
+
+    // "Auto mixes": today's mixes, each marked as one.
+    m_model->setPlaylistFilter(QStringLiteral("auto"));
+    QCOMPARE(m_model->playlists()->count(), 9);
+    QCOMPARE(m_model->playlists()->cardAt(0).kind, QStringLiteral("mix"));
+    QCOMPARE(m_model->playlists()->cardAt(0).title, QStringLiteral("Daily Mix 1"));
+    QVERIFY(m_model->playlists()->cardAt(0).subtitle.endsWith(QStringLiteral(" · Auto mix")));
+    m_model->setPlaylistFilter(QStringLiteral("manual"));
 
     QStringList albums = titles(*m_model->albums());
     albums.sort();

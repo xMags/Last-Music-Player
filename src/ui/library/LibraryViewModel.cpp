@@ -187,9 +187,36 @@ void LibraryViewModel::refresh()
     emit contentChanged();
 }
 
+void LibraryViewModel::setPlaylistFilter(const QString& filter)
+{
+    const QString chosen = filter == QLatin1StringView("auto") ? QStringLiteral("auto") : QStringLiteral("manual");
+    if (chosen == m_playlistFilter) {
+        return;
+    }
+    m_playlistFilter = chosen;
+    emit playlistFilterChanged();
+    readPlaylists();
+}
+
 void LibraryViewModel::readPlaylists()
 {
     QList<CollectionCardModel::Card> cards;
+    if (m_playlistFilter == QLatin1StringView("auto")) {
+        for (const core::HomeMix& mix : m_mixes.mixes()) {
+            if (mix.tracks.isEmpty()) {
+                continue;
+            }
+            cards.append({.kind = QStringLiteral("mix"),
+                          .key = mix.id,
+                          .title = mix.title,
+                          .subtitle = tr("%1 · Auto mix").arg(countLabel(static_cast<int>(mix.tracks.size()))),
+                          .gradientStart = QColor::fromRgba(mix.colorStart),
+                          .gradientEnd = QColor::fromRgba(mix.colorEnd),
+                          .iconName = QStringLiteral("sparkle")});
+        }
+        m_playlists.setCards(std::move(cards));
+        return;
+    }
     for (const SystemPlaylist& system : systemPlaylists()) {
         core::db::TrackQuery probe = system.query;
         probe.limit = 1;
@@ -213,18 +240,6 @@ void LibraryViewModel::readPlaylists()
                       .title = playlist.title,
                       .subtitle = countLabel(playlist.trackCount),
                       .artworkUrl = coverFor(playlist.artworkUrl)});
-    }
-    for (const core::HomeMix& mix : m_mixes.mixes()) {
-        if (mix.tracks.isEmpty()) {
-            continue;
-        }
-        cards.append({.kind = QStringLiteral("mix"),
-                      .key = mix.id,
-                      .title = mix.title,
-                      .subtitle = countLabel(static_cast<int>(mix.tracks.size())),
-                      .gradientStart = QColor::fromRgba(mix.colorStart),
-                      .gradientEnd = QColor::fromRgba(mix.colorEnd),
-                      .iconName = QStringLiteral("sparkle")});
     }
     m_playlists.setCards(std::move(cards));
 }

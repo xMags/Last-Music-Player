@@ -47,6 +47,9 @@ class LibraryViewModel : public QObject {
 
     // "playlists", "history", "albums", "artists", "genres" or "songs".
     Q_PROPERTY(QString tab READ tab WRITE setTab NOTIFY tabChanged FINAL)
+    // The Playlists tab's filter: "manual" (Liked Songs, the smart playlists
+    // and the user's own) or "auto" (the auto mixes).
+    Q_PROPERTY(QString playlistFilter READ playlistFilter WRITE setPlaylistFilter NOTIFY playlistFilterChanged FINAL)
     // One map per tab: value and label.
     Q_PROPERTY(QVariantList tabs READ tabs CONSTANT FINAL)
     Q_PROPERTY(lmp::ui::CollectionCardModel* playlists READ playlists CONSTANT FINAL)
@@ -83,6 +86,8 @@ public:
 
     [[nodiscard]] QString tab() const { return m_tab; }
     void setTab(const QString& tab);
+    [[nodiscard]] QString playlistFilter() const { return m_playlistFilter; }
+    void setPlaylistFilter(const QString& filter);
     [[nodiscard]] QVariantList tabs() const;
     [[nodiscard]] CollectionCardModel* playlists() { return &m_playlists; }
     [[nodiscard]] CollectionCardModel* albums() { return &m_albums; }
@@ -117,6 +122,7 @@ public:
 
 signals:
     void tabChanged();
+    void playlistFilterChanged();
     void historySortChanged();
     void songsChanged();
     void contentChanged();
@@ -140,6 +146,7 @@ private:
     Navigator& m_navigator;
 
     QString m_tab = QStringLiteral("playlists");
+    QString m_playlistFilter = QStringLiteral("manual");
     CollectionCardModel m_playlists;
     CollectionCardModel m_albums;
     CollectionCardModel m_artists;
