@@ -38,6 +38,7 @@ private slots:
     void init();
     void cleanup();
     void emptyLibraryShowsOnlyFavourites();
+    void anAccountLibraryIsNeverEmpty();
     void tabsReadTheLibrary();
     void tabIsKeptInTheHistoryEntry();
     void cardsOpenCollectionPages();
@@ -155,6 +156,27 @@ void LibraryViewModelTest::emptyLibraryShowsOnlyFavourites()
     QCOMPARE(titles(*m_model->playlists()), QStringList{QStringLiteral("Liked Songs")});
     QCOMPARE(m_model->albums()->count(), 0);
     QCOMPARE(m_model->songs()->totalCount(), 0);
+}
+
+void LibraryViewModelTest::anAccountLibraryIsNeverEmpty()
+{
+    // "Choose music folder" says nothing about an account's library.
+    LibraryViewModel model(LibraryViewModel::Parts{.library = *m_queries,
+                                                   .groups = *m_groups,
+                                                   .actions = *m_actions,
+                                                   .collections = *m_collectionActions,
+                                                   .mixes = *m_mixes,
+                                                   .player = *m_controller,
+                                                   .scanner = *m_scanner,
+                                                   .trackMenu = *m_menu,
+                                                   .navigator = *m_navigator,
+                                                   .mode = &m_modes->modes});
+    model.refresh();
+    QVERIFY(model.empty());
+    QVERIFY(m_modes->validate(QStringLiteral("owner-a")));
+    QVERIFY(m_modes->modes.setMode(lmp::core::mode::SourceMode::Account));
+    model.refresh();
+    QVERIFY(!model.empty());
 }
 
 void LibraryViewModelTest::tabsReadTheLibrary()

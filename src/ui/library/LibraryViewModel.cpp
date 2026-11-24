@@ -193,7 +193,12 @@ void LibraryViewModel::refresh()
     readGroups();
     readHistory();
     readSongs();
-    const bool empty = m_songs.totalCount() == 0 && m_songsFilter.isEmpty();
+    // "Your library is empty" offers to choose a music folder, which says
+    // nothing about an account's library: that lives on the account. On this
+    // PC it shows only with no songs, no plays and no playlists of its own.
+    const bool account = m_mode != nullptr && m_mode->accountSelected();
+    const bool empty = !account && m_songs.totalCount() == 0 && m_songsFilter.isEmpty() && m_history.count() == 0
+        && m_actions.playlists().isEmpty();
     if (empty != m_empty) {
         m_empty = empty;
     }
