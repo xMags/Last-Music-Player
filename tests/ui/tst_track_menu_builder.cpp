@@ -22,6 +22,7 @@ private slots:
     void songsThatCannotPlayOrBeKeptLoseThoseItems();
     void singlesHaveNoAlbumItem();
     void mixSitsBeforeGoToArtist();
+    void downloadItemFollowsTheSongsState();
     void shareFollowsMix();
 };
 
@@ -120,6 +121,29 @@ void TrackMenuBuilderTest::singlesHaveNoAlbumItem()
                  .contains(QStringLiteral("album")));
     QVERIFY(ids(TrackMenuBuilder::songMenu(song(QStringLiteral("Title Track"), QStringLiteral("The Album")), {}))
                 .contains(QStringLiteral("album")));
+}
+
+void TrackMenuBuilderTest::downloadItemFollowsTheSongsState()
+{
+    const Track track = song(QStringLiteral("Song"), QStringLiteral("Album"));
+    const auto itemFor = [&track](const QString& state) {
+        const auto items = TrackMenuBuilder::songMenu(track, {.download = state});
+        for (const MenuItemListModel::Item& item : items) {
+            if (item.id.contains(QStringLiteral("download"))) {
+                return item;
+            }
+        }
+        return MenuItemListModel::Item{};
+    };
+    QVERIFY(itemFor(QString()).id.isEmpty());
+    QCOMPARE(itemFor(QStringLiteral("offer")).id, QStringLiteral("download"));
+    QCOMPARE(itemFor(QStringLiteral("done")).label, QStringLiteral("Remove download"));
+    QCOMPARE(itemFor(QStringLiteral("pending")).label, QStringLiteral("Cancel download"));
+    QCOMPARE(itemFor(QStringLiteral("failed")).id, QStringLiteral("retry-download"));
+    QVERIFY(itemFor(QStringLiteral("offer")).separatorBefore);
+    // Right after Like.
+    const QStringList list = ids(TrackMenuBuilder::songMenu(track, {.download = QStringLiteral("offer")}));
+    QCOMPARE(list.indexOf(QStringLiteral("download")), list.indexOf(QStringLiteral("like")) + 1);
 }
 
 QTEST_GUILESS_MAIN(TrackMenuBuilderTest)

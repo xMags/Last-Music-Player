@@ -165,6 +165,13 @@ public:
     // its address: {state: "done" | "downloading" | "queued" | "failed" | "",
     // percent (-1 unknown), label}.
     Q_INVOKABLE QVariantMap markOf(const QString& remoteUrl) const;
+    // The song menu's download item for `track`: "" (songs cannot be kept
+    // here, or this one is not from the service), "offer", "done",
+    // "pending" or "failed".
+    [[nodiscard]] QString songDownloadState(const core::Track& track) const;
+    // Runs the song menu's "download", "remove-download" or
+    // "retry-download"; a toast says how it went.
+    void runSongDownload(const core::Track& track, const QString& action);
     [[nodiscard]] QVariantList pending() const { return m_pending; }
     [[nodiscard]] bool avoidMetered() const;
     void setAvoidMetered(bool value);
@@ -261,6 +268,8 @@ private:
         QString error;
     };
     QHash<QString, Mark> m_marks;
+    // The same marks by download key.
+    QHash<QString, Mark> m_marksByKey;
     int m_pendingFailed = 0;
     QString m_pendingSpeed;
     std::uint64_t m_revision = 0;

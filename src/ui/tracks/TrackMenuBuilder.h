@@ -31,6 +31,9 @@ public:
         bool mix = false;
         // A link to the song can be made (Account mode).
         bool share = false;
+        // downloadMenuItem: the song's download, "" when songs cannot be
+        // kept here; "offer", "done", "pending" or "failed".
+        QString download;
     };
 
     // Item ids.
@@ -46,6 +49,9 @@ public:
     static constexpr QLatin1StringView Album{"album"};
     static constexpr QLatin1StringView Mix{"mix"};
     static constexpr QLatin1StringView Share{"share"};
+    static constexpr QLatin1StringView Download{"download"};
+    static constexpr QLatin1StringView RemoveDownload{"remove-download"};
+    static constexpr QLatin1StringView RetryDownload{"retry-download"};
 
     // `playlistKey` is the playlist whose page the song is on, or empty.
     [[nodiscard]] static QList<MenuItemListModel::Item> songMenu(const core::Track& track, const Abilities& abilities,

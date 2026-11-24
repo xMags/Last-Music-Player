@@ -33,6 +33,29 @@ QList<MenuItemListModel::Item> TrackMenuBuilder::songMenu(const core::Track& tra
                       .label = track.liked ? text("Remove from Liked Songs") : text("Add to Liked Songs"),
                       .iconName = track.liked ? QStringLiteral("heart-fill") : QStringLiteral("heart")});
     }
+    // Download, Remove download, Cancel download or Retry, in a group of
+    // its own.
+    if (abilities.download == QLatin1StringView("offer")) {
+        items.append({.id = QString(Download),
+                      .label = text("Download"),
+                      .iconName = QStringLiteral("download"),
+                      .separatorBefore = true});
+    } else if (abilities.download == QLatin1StringView("done")) {
+        items.append({.id = QString(RemoveDownload),
+                      .label = text("Remove download"),
+                      .iconName = QStringLiteral("trash"),
+                      .separatorBefore = true});
+    } else if (abilities.download == QLatin1StringView("failed")) {
+        items.append({.id = QString(RetryDownload),
+                      .label = text("Download failed · Retry"),
+                      .iconName = QStringLiteral("alert"),
+                      .separatorBefore = true});
+    } else if (abilities.download == QLatin1StringView("pending")) {
+        items.append({.id = QString(RemoveDownload),
+                      .label = text("Cancel download"),
+                      .iconName = QStringLiteral("download"),
+                      .separatorBefore = true});
+    }
     if (!playlistKey.isEmpty() && abilities.keep && abilities.moveUp) {
         items.append({.id = QString(MoveUp), .label = text("Move up"), .iconName = QStringLiteral("arrow-up")});
     }

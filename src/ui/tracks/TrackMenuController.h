@@ -3,6 +3,8 @@
 #include <QObject>
 #include <QString>
 #include <QVariantList>
+
+#include <functional>
 #include <QtQml/qqmlregistration.h>
 
 #include "core/model/Track.h"
@@ -50,6 +52,16 @@ public:
         bool canMoveDown = false;
     };
     void prepareInPlaylist(const core::Track& track, const QList<core::Track>& context, const PlaylistPlace& place);
+    // Where the song menu learns and changes a song's download (the
+    // Downloads view model); without them it offers none.
+    struct DownloadHooks {
+        // "", "offer", "done", "pending" or "failed".
+        std::function<QString(const core::Track&)> state;
+        // "download", "remove-download" or "retry-download".
+        std::function<void(const core::Track&, const QString&)> run;
+    };
+    void setDownloadHooks(DownloadHooks hooks) { m_downloads = std::move(hooks); }
+
     Q_INVOKABLE void trigger(const QString& itemId);
     // Adds the prepared song to a new playlist of this name (blank names are
     // ignored), or to the playlist with this key; a toast says how it went.
@@ -68,6 +80,7 @@ private:
     ToastQueue* m_toasts = nullptr;
     MenuItemListModel m_menu;
     QVariantList m_playlistChoices;
+    DownloadHooks m_downloads;
     core::Track m_track;
     QList<core::Track> m_context;
     QString m_playlistKey;

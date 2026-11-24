@@ -573,6 +573,10 @@ CompositionRoot::CompositionRoot()
           .showGallery = QCoreApplication::arguments().contains(QStringLiteral("--gallery")),
       })
 {
+    // The song menu's Download, Remove download and Retry.
+    m_trackMenu.setDownloadHooks(
+        {.state = [this](const core::Track& track) { return m_offline.songDownloadState(track); },
+         .run = [this](const core::Track& track, const QString& action) { m_offline.runSongDownload(track, action); }});
     // Before any window exists, so the taskbar and the media session use it.
     // A failure is logged inside and the app runs on.
     [[maybe_unused]] const bool identitySet =

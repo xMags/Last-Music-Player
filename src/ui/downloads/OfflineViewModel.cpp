@@ -253,6 +253,49 @@ QVariantMap OfflineViewModel::markOf(const QString& remoteUrl) const
             {QStringLiteral("label"), label}};
 }
 
+QString OfflineViewModel::songDownloadState(const core::Track& track) const
+{
+    if (!m_canDownload || !m_canDownload() || !m_stableKey || !track.isRemote() || track.unavailable
+        || !track.sourceUrl.startsWith(QLatin1StringView("http"))) {
+        return {};
+    }
+    const QString key = m_stableKey(track);
+    const auto found = key.isEmpty() ? m_marksByKey.constEnd() : m_marksByKey.constFind(key);
+    if (found == m_marksByKey.constEnd()) {
+        return QStringLiteral("offer");
+    }
+    if (found->state == QLatin1StringView("done")) {
+        return QStringLiteral("done");
+    }
+    return found->state == QLatin1StringView("failed") ? QStringLiteral("failed") : QStringLiteral("pending");
+}
+
+void OfflineViewModel::runSongDownload(const core::Track& track, const QString& action)
+{
+    if (action == QLatin1StringView("download")) {
+        // downloadTracks says how it went.
+        (void)downloadTracks(track.title, tr("Single track"), track.artworkUrl, {track});
+        return;
+    }
+    if (!m_stableKey) {
+        return;
+    }
+    const QString key = m_stableKey(track);
+    if (action == QLatin1StringView("retry-download")) {
+        m_downloads.retrySong(key);
+        return;
+    }
+    if (action != QLatin1StringView("remove-download")) {
+        return;
+    }
+    const bool wasDone = songDownloadState(track) == QLatin1StringView("done");
+    if (!m_downloads.removeSong(key)) {
+        (void)m_toasts.show(tr("That didn't work. Try again."), true);
+        return;
+    }
+    (void)m_toasts.show(wasDone ? tr("Removed from this PC") : tr("Download cancelled"));
+}
+
 QString OfflineViewModel::emptyTabText() const
 {
     if (m_downloaded.isEmpty() || !m_groupKey.isEmpty()) {
@@ -300,6 +343,7 @@ void OfflineViewModel::reload()
     m_downloaded.clear();
     m_downloadedKeys.clear();
     m_marks.clear();
+    m_marksByKey.clear();
     ++m_markRevision;
     for (const core::DownloadJobSummary& summary : snapshot.jobs) {
         for (const core::DownloadItem& item : summary.job.items) {
@@ -329,6 +373,11 @@ void OfflineViewModel::reload()
             const auto known = m_marks.constFind(item.sourceUrl);
             if (known == m_marks.constEnd() || known->state != QLatin1StringView("done")) {
                 m_marks.insert(item.sourceUrl, mark);
+            }
+            const auto keyed = m_marksByKey.constFind(item.stableKey);
+            if (!item.stableKey.isEmpty()
+                && (keyed == m_marksByKey.constEnd() || keyed->state != QLatin1StringView("done"))) {
+                m_marksByKey.insert(item.stableKey, mark);
             }
         }
     }

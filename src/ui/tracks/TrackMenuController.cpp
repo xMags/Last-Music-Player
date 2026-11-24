@@ -25,7 +25,8 @@ void TrackMenuController::prepare(const core::Track& track, const QList<core::Tr
         {.play = m_actions.canPlay(track),
          .keep = m_actions.canKeep(track),
          .mix = m_actions.canStartMix(track),
-         .share = m_actions.canShare(track)},
+         .share = m_actions.canShare(track),
+         .download = m_downloads.state ? m_downloads.state(track) : QString()},
         playlistKey));
 }
 
@@ -41,7 +42,8 @@ void TrackMenuController::prepareInPlaylist(const core::Track& track, const QLis
                                                 .moveUp = place.canMoveUp,
                                                 .moveDown = place.canMoveDown,
                                                 .mix = m_actions.canStartMix(track),
-                                                .share = m_actions.canShare(track)},
+                                                .share = m_actions.canShare(track),
+                                                .download = m_downloads.state ? m_downloads.state(track) : QString()},
                                                place.key));
 }
 
@@ -83,6 +85,11 @@ void TrackMenuController::trigger(const QString& itemId)
         m_actions.openAlbum(m_track);
     } else if (itemId == TrackMenuBuilder::Mix) {
         m_actions.startMix(m_track);
+    } else if (itemId == TrackMenuBuilder::Download || itemId == TrackMenuBuilder::RemoveDownload
+               || itemId == TrackMenuBuilder::RetryDownload) {
+        if (m_downloads.run) {
+            m_downloads.run(m_track, itemId);
+        }
     } else if (itemId == TrackMenuBuilder::Share) {
         m_actions.share(m_track);
     }
