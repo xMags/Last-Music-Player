@@ -67,6 +67,24 @@ CatalogPageViewModel::CatalogPageViewModel(Parts parts, QObject* parent)
     , m_download(std::move(parts.download))
 {
     connect(&m_navigator, &Navigator::currentChanged, this, &CatalogPageViewModel::followNavigator);
+    // The release rows follow the cards.
+    connect(&m_cards, &QAbstractItemModel::modelReset, this, [this]() {
+        QList<core::Track> rows;
+        if (core::catalog::isReleaseList(m_cards.items())) {
+            rows.reserve(m_cards.items().size());
+            for (const core::catalog::CatalogItem& item : m_cards.items()) {
+                core::Track row;
+                row.title = item.title;
+                row.artist = item.subtitle;
+                row.album = core::catalog::releaseDateLabel(item.releaseDate);
+                row.durationText = item.trackCount > 0 ? QString::number(item.trackCount) : QString();
+                row.artworkUrl = item.artworkUrl;
+                row.sourceKind = QStringLiteral("remote");
+                rows.append(row);
+            }
+        }
+        m_releases.setTracks(std::move(rows));
+    });
     // A saved copy made or removed elsewhere changes the Save button.
     connect(&m_editor, &core::account::AccountLibraryEditor::playlistsChanged, this, &CatalogPageViewModel::changed);
     connect(&m_actions, &core::TrackActions::likedChanged, this, [this](const QString& sourceKey, bool liked) {

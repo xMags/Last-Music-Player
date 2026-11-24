@@ -172,7 +172,7 @@ public:
     void showWelcomeForReview();
     // Opens Browse and searches for `query` (the Debug build's --search).
     void showSearchForReview(const QString& query);
-    // For reviewing a page: "library", "settings", "offline" or "charts"
+    // For reviewing a page: "library", "settings", "offline", "charts" or "shelf" (New Albums)
     // (others are ignored).
     void showViewForReview(const QString& view);
 

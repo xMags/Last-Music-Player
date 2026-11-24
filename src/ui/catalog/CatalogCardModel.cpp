@@ -1,5 +1,7 @@
 #include "ui/catalog/CatalogCardModel.h"
 
+#include "core/catalog/CatalogPresentation.h"
+
 #include "core/catalog/ChartArt.h"
 #include "core/model/ArtworkPlaceholder.h"
 #include "ui/images/ChartArtImageProvider.h"
@@ -55,6 +57,10 @@ QVariant CatalogCardModel::data(const QModelIndex& index, int role) const
         return core::catalog::resourceTypeName(item->type);
     case RoundRole:
         return item->type == core::catalog::ResourceType::Artist;
+    case ReleaseDateRole:
+        return core::catalog::releaseDateLabel(item->releaseDate);
+    case TrackCountRole:
+        return item->trackCount > 0 ? QString::number(item->trackCount) : QString();
     default:
         return {};
     }

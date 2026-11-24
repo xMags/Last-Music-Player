@@ -37,6 +37,8 @@ T.AbstractButton {
     readonly property bool albumShown: width >= 560
     property bool selected: false
     property bool compact: false
+    // A release row has no heart.
+    property bool showLike: true
     readonly property int artSize: compact ? 28 : 36
     property int pressModifiers: Qt.NoModifier
 
@@ -253,6 +255,7 @@ T.AbstractButton {
                 id: likeButton
 
                 anchors.verticalCenter: parent.verticalCenter
+                visible: row.showLike
 
                 iconName: row.liked ? "heart-fill" : "heart"
                 active: row.liked

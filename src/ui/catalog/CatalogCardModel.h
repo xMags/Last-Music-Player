@@ -28,6 +28,9 @@ public:
         // "song", "album", "playlist" or "artist".
         KindRole,
         RoundRole,
+        // A release row's "12 Mar 2024" and how many songs ("" for unknown).
+        ReleaseDateRole,
+        TrackCountRole,
     };
     Q_ENUM(Role)
 

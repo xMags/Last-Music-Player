@@ -17,6 +17,11 @@ Item {
 
     required property TrackListModel model
     property bool grid: false
+    // A release table (catalog.ts releaseCollection): RELEASED and SONGS
+    // for ALBUM and TIME, and no heart.
+    property string albumHeading: qsTr("ALBUM")
+    property string timeHeading: qsTr("TIME")
+    property bool likes: true
 
     // Switching between List and Grid: the new form's rows or cards fade in
     // one after another (the plan's fade in place of the cover glide).
@@ -153,8 +158,8 @@ Item {
                                 - (60 + 16) - 40
                             text: qsTr("TITLE")
                         }
-                        TableHeading { id: albumHeading; width: 200; visible: list.rowWidth >= 560; text: qsTr("ALBUM") }
-                        TableHeading { width: 60; text: qsTr("TIME"); horizontalAlignment: Text.AlignRight }
+                        TableHeading { id: albumHeading; width: 200; visible: list.rowWidth >= 560; text: root.albumHeading }
+                        TableHeading { width: 60; text: root.timeHeading; horizontalAlignment: Text.AlignRight }
                     }
                 }
             }
@@ -220,6 +225,7 @@ Item {
 
                 width: list.rowWidth
                 compact: root.compact
+                showLike: root.likes
                 z: row.index === root.dragFrom ? 10 : 0
                 transform: Translate {
                     y: row.index === root.dragFrom ? root.dragOffset : row.dragShift

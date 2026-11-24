@@ -31,6 +31,14 @@ struct ChartSection {
 // "albums" "Discography", ...), else by what it lists; empty for neither.
 [[nodiscard]] QString shelfPillLabel(const QString& shelfId, ResourceType type);
 
+// A release row's date (catalog.ts releaseDateLabel): "12 Mar 2024" for a
+// full date, the year alone otherwise.
+[[nodiscard]] QString releaseDateLabel(const QString& releaseDate);
+
+// Every item is an album without a song of its own: a page of them lists
+// as release rows in the List view (isReleaseList).
+[[nodiscard]] bool isReleaseList(const QList<CatalogItem>& items);
+
 // An album page has one cover: every song shows it, since a song's own
 // picture can be an unrelated thumbnail. Playlists and albums without a
 // cover are left as they are.

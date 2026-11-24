@@ -15,6 +15,7 @@
 
 #include "core/catalog/CatalogModels.h"
 #include "core/catalog/CatalogPaging.h"
+#include "core/catalog/CatalogPresentation.h"
 #include "ui/catalog/CatalogCardModel.h"
 #include "ui/tracks/TrackListModel.h"
 
@@ -69,6 +70,8 @@ class CatalogPageViewModel final : public QObject {
     Q_PROPERTY(QString artworkId READ artworkId NOTIFY changed FINAL)
     // Cards instead of songs (a list of albums, playlists or artists).
     Q_PROPERTY(bool showsCards READ showsCards NOTIFY changed FINAL)
+    // The cards are all albums: in the List view they are release rows.
+    Q_PROPERTY(bool releaseList READ releaseList NOTIFY changed FINAL)
     Q_PROPERTY(bool canSave READ canSave NOTIFY changed FINAL)
     // The songs on screen can be shared as a list.
     Q_PROPERTY(bool canShare READ canShare NOTIFY changed FINAL)
@@ -78,6 +81,10 @@ class CatalogPageViewModel final : public QObject {
     Q_PROPERTY(QString pagingState READ pagingState NOTIFY changed FINAL)
     Q_PROPERTY(lmp::ui::TrackListModel* tracks READ tracks CONSTANT FINAL)
     Q_PROPERTY(lmp::ui::CatalogCardModel* cards READ cards CONSTANT FINAL)
+    // The release rows (releaseCollection in the List view): the title, who
+    // made it, the release date in the album column and the song count in
+    // the time column. A row opens its release (openCard).
+    Q_PROPERTY(lmp::ui::TrackListModel* releases READ releases CONSTANT FINAL)
 
 public:
     struct Parts {
@@ -116,6 +123,7 @@ public:
     [[nodiscard]] QUrl artworkUrl() const { return m_artworkUrl; }
     [[nodiscard]] QString artworkId() const { return m_title; }
     [[nodiscard]] bool showsCards() const { return m_showsCards; }
+    [[nodiscard]] bool releaseList() const { return m_showsCards && core::catalog::isReleaseList(m_cards.items()); }
     [[nodiscard]] bool canSave() const;
     [[nodiscard]] bool canShare() const;
     [[nodiscard]] bool saved() const;
@@ -123,6 +131,7 @@ public:
     [[nodiscard]] QString pagingState() const;
     [[nodiscard]] TrackListModel* tracks() { return &m_tracks; }
     [[nodiscard]] CatalogCardModel* cards() { return &m_cards; }
+    [[nodiscard]] TrackListModel* releases() { return &m_releases; }
 
     Q_INVOKABLE void playRow(int row);
     Q_INVOKABLE void play();
@@ -190,6 +199,7 @@ private:
     bool m_saving = false;
     TrackListModel m_tracks;
     CatalogCardModel m_cards;
+    TrackListModel m_releases;
     // A chart's or a long shelf's paging: which page loads next.
     std::optional<core::catalog::CatalogPager<core::catalog::CatalogItem>> m_pager;
     std::optional<core::catalog::ChartRef> m_chart;

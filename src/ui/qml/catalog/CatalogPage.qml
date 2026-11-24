@@ -139,13 +139,42 @@ Item {
         }
     }
 
+    // Releases in the List view: rows that open each release.
+    readonly property bool releaseRows: page.model.releaseList && App.settings.trackView === "list"
+
+    TrackListView {
+        id: releaseTable
+
+        anchors.fill: parent
+        visible: page.releaseRows
+        model: page.model.releases
+        grid: false
+        likes: false
+        albumHeading: qsTr("RELEASED")
+        timeHeading: qsTr("SONGS")
+        sidePadding: page.gutter
+        rightSidePadding: page.rightGutter
+        header: page.releaseRows ? top : null
+        onActivated: row => page.model.openCard(row)
+    }
+
+    Connections {
+        target: releaseTable.view
+        enabled: page.releaseRows
+
+        function onAtYEndChanged() {
+            if (releaseTable.view.atYEnd && page.model.pagingState === "idle")
+                page.model.loadMore()
+        }
+    }
+
     GridView {
         id: cardsView
 
         anchors.fill: parent
         anchors.leftMargin: page.gutter
         anchors.rightMargin: page.rightGutter - 20
-        visible: page.model.showsCards
+        visible: page.model.showsCards && !page.releaseRows
         clip: true
         // The header keeps the page's width, not the grid's wider one.
         header: Loader {

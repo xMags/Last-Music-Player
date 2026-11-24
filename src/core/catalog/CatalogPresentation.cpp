@@ -1,6 +1,9 @@
 #include "core/catalog/CatalogPresentation.h"
 
 #include <QHash>
+#include <QRegularExpression>
+#include <QLocale>
+#include <QDate>
 
 #include <algorithm>
 
@@ -87,6 +90,26 @@ QString shelfPillLabel(const QString& shelfId, ResourceType type)
         break;
     }
     return {};
+}
+
+QString releaseDateLabel(const QString& releaseDate)
+{
+    static const QRegularExpression fullDate(QStringLiteral("^\\d{4}-\\d{2}-\\d{2}"));
+    if (!fullDate.match(releaseDate).hasMatch()) {
+        return releaseDate.left(4);
+    }
+    const QDate date = QDate::fromString(releaseDate.left(10), Qt::ISODate);
+    if (!date.isValid()) {
+        return releaseDate.left(4);
+    }
+    return QLocale(QLocale::English, QLocale::UnitedKingdom).toString(date, QStringLiteral("d MMM yyyy"));
+}
+
+bool isReleaseList(const QList<CatalogItem>& items)
+{
+    return !items.isEmpty() && std::all_of(items.cbegin(), items.cend(), [](const CatalogItem& item) {
+        return item.type == ResourceType::Album && !item.track;
+    });
 }
 
 } // namespace lmp::core::catalog

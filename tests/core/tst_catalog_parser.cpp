@@ -24,6 +24,7 @@ class CatalogParserTest : public QObject {
 
 private slots:
     void shelfPillsFollowTheIdThenTheType();
+    void releaseDatesAndListsReadLikeTheReference();
     void discoveryIsRead();
     void songsCarryTheirTrack();
     void sourceLabelsAreNeverBylines();
@@ -471,6 +472,22 @@ void CatalogParserTest::searchAllIsRead()
         catalog::parseSearchAll(json("{'top':{'kind':'artist','item':{'catalogId':'a1','name':'A','provider':'tag-b'}}}"), testTags());
     QCOMPARE(artistTop.topKind, QStringLiteral("artist"));
     QVERIFY(artistTop.topItem.has_value());
+}
+
+void CatalogParserTest::releaseDatesAndListsReadLikeTheReference()
+{
+    using lmp::core::catalog::CatalogItem;
+    using lmp::core::catalog::ResourceType;
+    QCOMPARE(lmp::core::catalog::releaseDateLabel(QStringLiteral("2024-03-12")), QStringLiteral("12 Mar 2024"));
+    QCOMPARE(lmp::core::catalog::releaseDateLabel(QStringLiteral("2024")), QStringLiteral("2024"));
+    QCOMPARE(lmp::core::catalog::releaseDateLabel(QStringLiteral("2024-99-99")), QStringLiteral("2024"));
+    CatalogItem album;
+    album.type = ResourceType::Album;
+    CatalogItem song = album;
+    song.track = lmp::core::Track{};
+    QVERIFY(lmp::core::catalog::isReleaseList({album, album}));
+    QVERIFY(!lmp::core::catalog::isReleaseList({album, song}));
+    QVERIFY(!lmp::core::catalog::isReleaseList({}));
 }
 
 void CatalogParserTest::shelfPillsFollowTheIdThenTheType()
