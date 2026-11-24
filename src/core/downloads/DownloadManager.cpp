@@ -296,6 +296,48 @@ void DownloadManager::cancelJob(const QString& jobId)
     touch();
 }
 
+void DownloadManager::cancelItem(const QString& jobId, const QString& itemId)
+{
+    DownloadJob* job = findJob(jobId);
+    if (job == nullptr) {
+        return;
+    }
+    const auto item = std::find_if(job->items.begin(), job->items.end(),
+                                   [&itemId](const DownloadItem& candidate) { return candidate.id == itemId; });
+    if (item == job->items.end() || item->state == DownloadItemState::Completed) {
+        return;
+    }
+    QFile::remove(partPathFor(m_root, item->id));
+    // A transfer still running for it is dropped when it returns.
+    m_runtime.remove(item->id);
+    job->items.erase(item);
+    if (job->items.isEmpty()) {
+        m_jobs.removeIf([&jobId](const DownloadJob& candidate) { return candidate.id == jobId; });
+    }
+    save();
+    touch();
+    pump();
+}
+
+void DownloadManager::retryItem(const QString& jobId, const QString& itemId)
+{
+    DownloadJob* job = findJob(jobId);
+    if (job == nullptr) {
+        return;
+    }
+    for (DownloadItem& item : job->items) {
+        if (item.id == itemId && item.state == DownloadItemState::Failed) {
+            item.state = DownloadItemState::Queued;
+            item.error.clear();
+            m_runtime[item.id].pauseRequested = false;
+            save();
+            touch();
+            pump();
+            return;
+        }
+    }
+}
+
 void DownloadManager::retryJob(const QString& jobId)
 {
     DownloadJob* job = findJob(jobId);

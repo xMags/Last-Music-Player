@@ -165,6 +165,11 @@ public:
     void resumeJob(const QString& jobId);
     void cancelJob(const QString& jobId);
     void retryJob(const QString& jobId);
+    // One song of a job: cancelling drops it (and its partial file; a job
+    // left with no songs goes too), retrying queues it again if it failed.
+    // A finished song is left alone.
+    void cancelItem(const QString& jobId, const QString& itemId);
+    void retryItem(const QString& jobId, const QString& itemId);
     void pauseAll();
     void resumeAll();
     void clearCompletedHistory();

@@ -135,6 +135,7 @@ private slots:
     void itemsOfAnotherScopeFail();
     void earlierStateFileIsRead();
     void removeAllDeletesFilesAndDropsTransfers();
+    void oneSongOfAJobCanBeCancelled();
 };
 
 void DownloadManagerTest::removeAllDeletesFilesAndDropsTransfers()
@@ -345,6 +346,33 @@ void DownloadManagerTest::earlierStateFileIsRead()
     QCOMPARE(snapshot.offlineTracks, 1);
     // All paused: nothing starts.
     QVERIFY(fetcher.pending.empty());
+}
+
+void DownloadManagerTest::oneSongOfAJobCanBeCancelled()
+{
+    Fixture fixture;
+    fixture.manager.initialize();
+    QVERIFY(fixture.manager.enqueue(QStringLiteral("Job"), {}, {},
+                                    {fixture.song(QStringLiteral("One")), fixture.song(QStringLiteral("Two")),
+                                     fixture.song(QStringLiteral("Three"))}));
+    const auto job = fixture.manager.snapshot().jobs.first().job;
+    QCOMPARE(job.items.size(), 3);
+    const QString third = job.items.at(2).id;
+    fixture.manager.cancelItem(job.id, third);
+    QCOMPARE(fixture.manager.snapshot().jobs.first().job.items.size(), 2);
+    // A finished song stays.
+    fixture.fetcher.finish("x");
+    QTRY_COMPARE(fixture.stateOf(QStringLiteral("One")), DownloadItemState::Completed);
+    fixture.manager.cancelItem(job.id, job.items.at(0).id);
+    QCOMPARE(fixture.manager.snapshot().jobs.first().job.items.size(), 2);
+    // The last unfinished song gone, a job of finished songs remains;
+    // one with no songs left goes.
+    fixture.manager.cancelItem(job.id, job.items.at(1).id);
+    QCOMPARE(fixture.manager.snapshot().jobs.first().job.items.size(), 1);
+    QVERIFY(fixture.manager.enqueue(QStringLiteral("Solo"), {}, {}, {fixture.song(QStringLiteral("Four"))}));
+    const auto solo = fixture.manager.snapshot().jobs.last().job;
+    fixture.manager.cancelItem(solo.id, solo.items.first().id);
+    QCOMPARE(fixture.manager.snapshot().jobs.size(), 1);
 }
 
 QTEST_GUILESS_MAIN(DownloadManagerTest)
