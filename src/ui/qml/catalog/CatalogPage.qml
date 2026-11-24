@@ -45,7 +45,92 @@ Item {
             width: parent ? parent.width : 0
             spacing: 16
 
+            // A shelf or an artist's section (renderCatalogShelf,
+            // renderArtistSection): Back, then a plain view header with the
+            // eyebrow, the title and what it holds, Play and Shuffle at its
+            // foot on the right; no cover.
+            Column {
+                visible: page.model.kind === "shelf"
+                width: parent.width
+
+                // .catalog-back: margin 16px 0 22px.
+                Item { width: 1; height: 16 }
+
+                BackLink {
+                    onClicked: App.navigator.back()
+                }
+
+                Item { width: 1; height: 22 }
+
+                // .view-header: padding 18px 0 22px, the actions at the bottom.
+                RowLayout {
+                    width: parent.width
+                    spacing: 16
+
+                    Column {
+                        Layout.fillWidth: true
+                        Layout.alignment: Qt.AlignBottom
+                        topPadding: 18
+                        bottomPadding: 22
+
+                        Text {
+                            visible: page.model.eyebrow !== ""
+                            bottomPadding: 4
+                            text: page.model.eyebrow
+                            font: Theme.eyebrow
+                            color: Theme.fgSecondary
+                        }
+
+                        Text {
+                            width: parent.width
+                            text: page.model.title
+                            font: Theme.viewTitle
+                            color: Theme.fg
+                            elide: Text.ElideRight
+                        }
+
+                        // .h-sub: 13px tertiary, 6px under.
+                        Text {
+                            visible: page.model.info !== ""
+                            topPadding: 6
+                            text: page.model.info
+                            font: Theme.viewSubtitle
+                            color: Theme.fgTertiary
+                        }
+                    }
+
+                    Row {
+                        Layout.alignment: Qt.AlignBottom
+                        Layout.bottomMargin: 22
+                        visible: page.model.tracks.count > 0
+                        spacing: 10
+
+                        PlayPill {
+                            onClicked: page.model.play()
+                        }
+
+                        RoundAction {
+                            iconName: "shuffle"
+                            toolTip: qsTr("Shuffle")
+                            Accessible.name: qsTr("Shuffle")
+                            onClicked: page.model.shuffle()
+                        }
+                    }
+                }
+
+                // .track-view-toolbar: the List / Grid switch on the right.
+                RowLayout {
+                    visible: page.model.tracks.count > 0 || page.model.releaseList
+                    width: parent.width
+
+                    Item { Layout.fillWidth: true }
+
+                    ViewSwitch {}
+                }
+            }
+
             CollectionHeader {
+                visible: page.model.kind !== "shelf"
                 width: parent.width
                 backLabel: qsTr("Back")
                 eyebrow: page.model.eyebrow
