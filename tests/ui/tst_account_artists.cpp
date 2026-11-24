@@ -58,6 +58,7 @@ private slots:
     void listPathsAreBuiltSafely();
     void followGoesToTheService();
     void tabListsPagesAndLoadsMore();
+    void viewsAreAskedForAndCounted();
     void searchWaitsForTypingToStop();
 };
 
@@ -218,6 +219,38 @@ void AccountArtistsTest::searchWaitsForTypingToStop()
     QTRY_COMPARE(modes.session.transport.requestCount(kArtistsPath), before + 1);
     QCOMPARE(QUrlQuery(modes.session.transport.requests.last().url).queryItemValue(QStringLiteral("q")),
              QStringLiteral("mira"));
+}
+
+void AccountArtistsTest::viewsAreAskedForAndCounted()
+{
+    lmp::test::ModeServiceFixture modes;
+    (void)modes.modes.start();
+    lmp::core::db::FollowedArtistRepository followed(modes.library.database());
+    lmp::core::UserDataOperationGate gate;
+    lmp::core::ArtistFollowService follows(
+        {modes.session.client, modes.session.service, modes.modes, followed, gate});
+    lmp::ui::Navigator navigator;
+    lmp::ui::AccountArtistsViewModel tab({modes.session.client, modes.session.service, modes.modes, follows, navigator});
+    QVERIFY(modes.validate(QStringLiteral("owner-a")));
+    QVERIFY(modes.modes.setMode(lmp::core::mode::SourceMode::Account));
+
+    modes.session.transport.script(
+        kArtistsPath, FakeHttpTransport::ok(pageJson({artistJson(QStringLiteral("a1"), QStringLiteral("Mira Sol"), true)},
+                                                     QString())));
+    tab.setView(QStringLiteral("followed"));
+    QTRY_COMPARE(tab.artists()->count(), 1);
+    const QUrlQuery query(modes.session.transport.requests.constLast().url);
+    QCOMPARE(query.queryItemValue(QStringLiteral("view")), QStringLiteral("followed"));
+    QVERIFY(tab.artists()->cardAt(0).followed);
+    // The service's total, not just the page.
+    QCOMPARE(tab.countText(), QStringLiteral("3 artists"));
+    // Anything else is the default view.
+    modes.session.transport.script(kArtistsPath, FakeHttpTransport::ok(pageJson({}, QString())));
+    tab.setView(QStringLiteral("nonsense"));
+    QCOMPARE(tab.view(), QStringLiteral("default"));
+    QTRY_COMPARE(tab.artists()->count(), 0);
+    const QUrlQuery again(modes.session.transport.requests.constLast().url);
+    QCOMPARE(again.queryItemValue(QStringLiteral("view")), QStringLiteral("default"));
 }
 
 QTEST_MAIN(AccountArtistsTest)
