@@ -335,6 +335,8 @@ void HomeViewModelTest::cardsPlayAndOpen()
     QCOMPARE(m_navigator->current().param(QStringLiteral("key")), QStringLiteral("smart-recent"));
     m_home->seeAll(QStringLiteral("mixes"));
     QCOMPARE(m_navigator->current().kind(), Route::Kind::Library);
+    // openAutoMixes: the playlists tab on Auto mixes.
+    QCOMPARE(m_navigator->current().param(QStringLiteral("filter")), QStringLiteral("auto"));
 }
 
 void HomeViewModelTest::catalogRetriesBackOffToFiveMinutes()

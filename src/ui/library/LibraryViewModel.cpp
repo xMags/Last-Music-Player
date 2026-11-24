@@ -116,6 +116,12 @@ void LibraryViewModel::followNavigator()
         m_tab = wanted;
         emit tabChanged();
     }
+    // openAutoMixes: Home's "See all" on Your mixes opens the Auto mixes.
+    const QString filter = m_navigator.current().param(QStringLiteral("filter"));
+    if (!filter.isEmpty() && filter != m_playlistFilter) {
+        m_playlistFilter = filter == QLatin1StringView("auto") ? QStringLiteral("auto") : QStringLiteral("manual");
+        emit playlistFilterChanged();
+    }
     refresh();
 }
 
@@ -201,6 +207,10 @@ void LibraryViewModel::setPlaylistFilter(const QString& filter)
         return;
     }
     m_playlistFilter = chosen;
+    // Each history entry keeps its own filter, as it keeps its tab.
+    if (m_navigator.current().kind() == Route::Kind::Library) {
+        m_navigator.setCurrentParam(QStringLiteral("filter"), chosen);
+    }
     emit playlistFilterChanged();
     readPlaylists();
 }

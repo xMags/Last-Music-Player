@@ -535,11 +535,17 @@ void HomeViewModel::openCollection(const QString& kind, const QString& key, cons
                                                      {QStringLiteral("title"), title}}));
 }
 
+QString HomeViewModel::chartsTitle(const QString& key) const
+{
+    return m_feed != nullptr ? m_feed->chartsTitle(key) : QString();
+}
+
 void HomeViewModel::seeAll(const QString& shelf)
 {
     // home.ts bindHome's "See all": the matching playlist page, or Library.
     if (shelf == QLatin1StringView("mixes")) {
-        m_navigator.push(Route(Route::Kind::Library, {{QStringLiteral("tab"), QStringLiteral("playlists")}}));
+        m_navigator.push(Route(Route::Kind::Library, {{QStringLiteral("tab"), QStringLiteral("playlists")},
+                                                      {QStringLiteral("filter"), QStringLiteral("auto")}}));
     } else if (shelf == QLatin1StringView("listenAgain")) {
         m_navigator.push(Route(Route::Kind::Library, {{QStringLiteral("tab"), QStringLiteral("history")}}));
     } else if (shelf == QLatin1StringView("liked")) {
@@ -549,9 +555,10 @@ void HomeViewModel::seeAll(const QString& shelf)
     } else if (shelf == QLatin1StringView("recentlyAdded")) {
         openCollection(QStringLiteral("system"), QStringLiteral("smart-recent"), {});
     } else if (shelf == QLatin1StringView("genreCharts") || shelf == QLatin1StringView("cityCharts")) {
-        // Every chart of the row: the Charts page lists them (P08 later
-        // parts); until then the first chart opens.
-        openChart(shelf, 0);
+        // openCatalogCharts: every chart of the row on a page of its own.
+        m_navigator.push(Route(Route::Kind::Charts, {{QStringLiteral("section"),
+                                                      shelf == QLatin1StringView("cityCharts") ? QStringLiteral("cities")
+                                                                                               : QStringLiteral("explore")}}));
     } else if (m_feed != nullptr) {
         m_navigator.push(catalog_routes::routeForShelf(shelf));
     }
