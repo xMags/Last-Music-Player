@@ -843,9 +843,10 @@ void CompositionRoot::updatePresence()
     payload.positionSeconds = m_player.positionSeconds();
     payload.isPlaying = m_player.state() == core::PlayerController::State::Playing;
     payload.isLocal = !track->isRemote();
-    // A public https picture as it is; API key mode asks the provider for one
-    // Discord can show, as the earlier versions did.
-    payload.artworkUrl = track->artworkUrl.startsWith(QLatin1StringView("https://")) ? track->artworkUrl : QString();
+    // A public https picture or an account cover link on the account service;
+    // API key mode asks the provider for one Discord can show, as the earlier
+    // versions did.
+    payload.artworkUrl = core::presence::presenceArtworkUrl(track->artworkUrl, m_accountClient.baseOrigin());
     const QString songKey = track->title + QLatin1Char('\n') + track->artist;
     if (m_presenceArtworkFor == songKey && !m_presenceArtwork.isEmpty()) {
         payload.artworkUrl = m_presenceArtwork;

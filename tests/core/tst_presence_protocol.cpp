@@ -131,6 +131,26 @@ private slots:
                  payload.artworkUrl);
     }
 
+    void artworkForDiscord()
+    {
+        const QString origin = QStringLiteral("https://api.example.test");
+        const QString link = QStringLiteral("/v1/music/art/AbCdEfGhIjKlMnOpQrSt_-");
+        // An https picture is sent as it is.
+        QCOMPARE(presence::presenceArtworkUrl(QStringLiteral("https://img.example.test/a.jpg"), origin),
+                 QStringLiteral("https://img.example.test/a.jpg"));
+        // An account cover link goes on the account origin, trailing slash or not.
+        QCOMPARE(presence::presenceArtworkUrl(link, origin), origin + link);
+        QCOMPARE(presence::presenceArtworkUrl(link, origin + QStringLiteral("/")), origin + link);
+        // Discord cannot load plain http, so a loopback test origin shows nothing.
+        QVERIFY(presence::presenceArtworkUrl(link, QStringLiteral("http://127.0.0.1:8080")).isEmpty());
+        QVERIFY(presence::presenceArtworkUrl(link, QString()).isEmpty());
+        // Anything else is left out.
+        QVERIFY(presence::presenceArtworkUrl(QStringLiteral("/v1/music/art/short"), origin).isEmpty());
+        QVERIFY(presence::presenceArtworkUrl(QStringLiteral("http://img.example.test/a.jpg"), origin).isEmpty());
+        QVERIFY(presence::presenceArtworkUrl(QStringLiteral("file:///C:/a.jpg"), origin).isEmpty());
+        QVERIFY(presence::presenceArtworkUrl(QString(), origin).isEmpty());
+    }
+
     void clearSendsNullActivity()
     {
         const QJsonObject args = QJsonDocument::fromJson(presence::clearJson(7, QStringLiteral("n")))

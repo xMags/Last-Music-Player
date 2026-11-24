@@ -59,6 +59,12 @@ private:
     QByteArray m_buffer;
 };
 
+// The picture Discord can load for a song's `artworkUrl`: an https address as
+// it is, or an account cover link ("/v1/music/art/<id>", which the account
+// service serves without sign-in) on `accountOrigin` when that is https.
+// Empty for anything else.
+[[nodiscard]] QString presenceArtworkUrl(const QString& artworkUrl, const QString& accountOrigin);
+
 [[nodiscard]] QByteArray handshakeJson(const QString& clientId);
 // SET_ACTIVITY for the song, as the earlier versions built it: listening
 // (type 2), named "Last Music", details the title, state the artist (and

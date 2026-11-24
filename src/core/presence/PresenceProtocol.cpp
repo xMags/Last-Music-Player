@@ -1,5 +1,7 @@
 #include "core/presence/PresenceProtocol.h"
 
+#include "core/net/ArtworkUrl.h"
+
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QtEndian>
@@ -51,6 +53,23 @@ std::optional<Frame> FrameDecoder::next(bool& broken)
     Frame frame{opcode, m_buffer.mid(8, length)};
     m_buffer.remove(0, 8 + length);
     return frame;
+}
+
+QString presenceArtworkUrl(const QString& artworkUrl, const QString& accountOrigin)
+{
+    const QLatin1StringView https("https://");
+    if (artworkUrl.startsWith(https)) {
+        return artworkUrl;
+    }
+    const QString coverLink = net::accountCoverLinkPath(artworkUrl);
+    if (coverLink.isEmpty() || !accountOrigin.startsWith(https)) {
+        return {};
+    }
+    QString origin = accountOrigin;
+    while (origin.endsWith(QLatin1Char('/'))) {
+        origin.chop(1);
+    }
+    return origin + coverLink;
 }
 
 QByteArray handshakeJson(const QString& clientId)
