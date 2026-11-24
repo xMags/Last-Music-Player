@@ -40,6 +40,8 @@ public:
         bool round = false;
         // A mix's small capitals on its cover ("DAILY MIX").
         QString badge;
+        // An account artist the listener follows (the heart on its cover).
+        bool followed = false;
     };
 
     enum Role {
@@ -55,6 +57,7 @@ public:
         GradientEndRole,
         IconNameRole,
         BadgeRole,
+        FollowedRole,
     };
     Q_ENUM(Role)
 

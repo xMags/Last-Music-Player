@@ -1,5 +1,9 @@
 #include "ui/library/AccountArtistsViewModel.h"
 
+#include "ui/toasts/ToastQueue.h"
+
+#include "core/net/UserMessages.h"
+
 #include "core/account/AccountClient.h"
 #include "core/account/AccountSessionService.h"
 #include "core/library/ArtistFollowService.h"
@@ -22,6 +26,7 @@ AccountArtistsViewModel::AccountArtistsViewModel(Parts parts, QObject* parent)
     , m_mode(parts.mode)
     , m_follows(parts.follows)
     , m_navigator(parts.navigator)
+    , m_toasts(parts.toasts)
 {
     m_searchDelay.setSingleShot(true);
     m_searchDelay.setInterval(SearchDelayMs);
@@ -49,6 +54,8 @@ void AccountArtistsViewModel::onModeChanged()
         m_requests.invalidate();
         m_cards.setCards({});
         m_ids.clear();
+        m_identities.clear();
+        m_totalCount.reset();
         m_nextCursor.clear();
         m_status.clear();
         m_loading = false;
@@ -82,13 +89,60 @@ void AccountArtistsViewModel::loadMore()
 
 QString AccountArtistsViewModel::captionFor(const core::account::LibraryArtist& artist)
 {
-    QString caption = (artist.trackCount == 1 ? tr("1 song") : tr("%1 songs").arg(artist.trackCount))
-        + QStringLiteral(" - ")
-        + (artist.albumCount == 1 ? tr("1 album") : tr("%1 albums").arg(artist.albumCount));
-    if (artist.resolving) {
-        caption += QStringLiteral(" - ") + tr("Resolving");
+    // libraryArtistMeta: "12 songs · 3 albums", albums only when there are some.
+    QStringList parts{artist.trackCount == 1 ? tr("1 song") : tr("%1 songs").arg(artist.trackCount)};
+    if (artist.albumCount > 0) {
+        parts.append(artist.albumCount == 1 ? tr("1 album") : tr("%1 albums").arg(artist.albumCount));
     }
-    return caption;
+    if (artist.resolving) {
+        parts.append(tr("Resolving"));
+    }
+    return parts.join(QStringLiteral(" · "));
+}
+
+void AccountArtistsViewModel::setView(const QString& view)
+{
+    const QString chosen = view == QLatin1StringView("followed") || view == QLatin1StringView("all") ? view
+                                                                                                      : QStringLiteral("default");
+    if (chosen == m_view) {
+        return;
+    }
+    m_view = chosen;
+    emit queryChanged();
+    reload();
+}
+
+QString AccountArtistsViewModel::countText() const
+{
+    if (m_loading && m_cards.count() == 0) {
+        return {};
+    }
+    const qint64 count = m_totalCount.value_or(m_cards.count());
+    return count == 1 ? tr("1 artist") : tr("%1 artists").arg(count);
+}
+
+void AccountArtistsViewModel::toggleFollow(int row)
+{
+    if (row < 0 || row >= m_cards.count()) {
+        return;
+    }
+    const CollectionCardModel::Card card = m_cards.cardAt(row);
+    core::FollowableArtist artist;
+    artist.publicId = m_ids.value(row);
+    artist.identity = m_identities.value(row);
+    artist.artworkUrl = card.artworkUrl.toString();
+    const bool follow = !card.followed;
+    m_follows.setFollowed(artist, follow).then(this, [this, follow](const core::Result<bool>& done) {
+        if (m_toasts == nullptr) {
+            return;
+        }
+        if (!done) {
+            (void)m_toasts->show(core::net::userMessageOr(done.failure(), tr("Could not update this artist. Try again.")),
+                                 true);
+            return;
+        }
+        (void)m_toasts->show(follow ? tr("Artist followed") : tr("Artist unfollowed"));
+    });
 }
 
 void AccountArtistsViewModel::request(bool append)
@@ -101,6 +155,9 @@ void AccountArtistsViewModel::request(bool append)
         return;
     }
     core::account::LibraryArtistListRequest request;
+    request.view = m_view == QLatin1StringView("followed") ? core::account::LibraryArtistView::Followed
+        : m_view == QLatin1StringView("all")              ? core::account::LibraryArtistView::All
+                                                          : core::account::LibraryArtistView::Default;
     request.query = m_query.left(core::account::MaxLibraryArtistSearchCharacters);
     request.cursor = append ? m_nextCursor : QString();
     const core::RequestScope::Token token = m_requests.next();
@@ -131,11 +188,13 @@ void AccountArtistsViewModel::apply(const core::account::LibraryArtistPage& page
 {
     QList<CollectionCardModel::Card> cards;
     QList<QString> ids;
+    QList<core::ArtistIdentity> identities;
     if (append) {
         for (int row = 0; row < m_cards.count(); ++row) {
             cards.append(m_cards.cardAt(row));
         }
         ids = m_ids;
+        identities = m_identities;
     }
     QSet<QString> seen(ids.cbegin(), ids.cend());
     for (const core::account::LibraryArtist& artist : page.artists) {
@@ -151,12 +210,19 @@ void AccountArtistsViewModel::apply(const core::account::LibraryArtistPage& page
                       .key = artist.name,
                       .title = artist.name,
                       .subtitle = captionFor(artist),
-                      .artworkUrl = CoverSource::forTrack(cover).displayUrl()});
+                      .artworkUrl = CoverSource::forTrack(cover).displayUrl(),
+                      .followed = artist.followed});
         ids.append(artist.id);
+        identities.append({.catalogId = artist.providerCatalogId,
+                           .sourceUrl = artist.providerSourceUrl,
+                           .name = artist.name,
+                           .provider = artist.provider});
     }
     m_cards.setCards(std::move(cards));
     m_ids = std::move(ids);
+    m_identities = std::move(identities);
     m_nextCursor = page.nextCursor;
+    m_totalCount = page.totalCount;
 }
 
 void AccountArtistsViewModel::openCard(int row)

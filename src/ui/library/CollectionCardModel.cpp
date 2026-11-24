@@ -47,6 +47,8 @@ QVariant CollectionCardModel::data(const QModelIndex& index, int role) const
         return card.iconName;
     case BadgeRole:
         return card.badge;
+    case FollowedRole:
+        return card.followed;
     default:
         return {};
     }
@@ -67,6 +69,7 @@ QHash<int, QByteArray> CollectionCardModel::roleNames() const
         {GradientEndRole, "gradientEnd"},
         {IconNameRole, "iconName"},
         {BadgeRole, "badge"},
+        {FollowedRole, "followed"},
     };
 }
 

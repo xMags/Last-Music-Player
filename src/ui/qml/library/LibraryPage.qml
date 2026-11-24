@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import QtQuick.Controls
 import QtQuick.Layouts
 import LastMusicPlayer
 
@@ -239,6 +240,8 @@ Item {
                 bottomMargin: 32
                 scrollBarHost: cardTab
                 model: cardTab.cards
+                // Account artists carry a Follow link under their caption.
+                textHeight: cardTab.serverArtists ? 22 + 18 + 5 + 18 : 22 + 18
 
                 // More of the account's artists, and what went wrong.
                 footer: Column {
@@ -292,18 +295,60 @@ Item {
                         }
                     }
 
-                    SearchField {
+                    // .library-artist-toolbar: Top / Followed / All Artists,
+                    // the search (230px and up, at most 360px), and how
+                    // many; 10px apart, 18px above the cards.
+                    RowLayout {
                         visible: cardTab.serverArtists
-                        width: Math.min(280, parent.width)
-                        placeholderText: qsTr("Search artists")
-                        text: App.accountArtists.query
-                        onTextChanged: App.accountArtists.query = text
+                        width: parent.width
+                        spacing: 10
+
+                        SegmentedControl {
+                            readonly property var views: ["default", "followed", "all"]
+
+                            choices: [qsTr("Top"), qsTr("Followed"), qsTr("All Artists")]
+                            currentIndex: Math.max(0, views.indexOf(App.accountArtists.view))
+                            onActivated: index => App.accountArtists.view = views[index]
+                        }
+
+                        SearchField {
+                            Layout.fillWidth: true
+                            Layout.minimumWidth: 230
+                            Layout.maximumWidth: 360
+                            placeholderText: qsTr("Search all artists")
+                            text: App.accountArtists.query
+                            onTextChanged: App.accountArtists.query = text
+                        }
+
+                        // .section-pill
+                        Rectangle {
+                            visible: App.accountArtists.countText !== ""
+                            implicitWidth: countLabel.implicitWidth + 2 * 9
+                            implicitHeight: countLabel.implicitHeight + 2 * 3
+                            radius: height / 2
+                            color: Theme.neutral
+                            border.width: 1
+                            border.color: Theme.stroke
+
+                            Text {
+                                id: countLabel
+
+                                anchors.centerIn: parent
+                                text: App.accountArtists.countText.toUpperCase()
+                                font: Theme.sectionPill
+                                lineHeight: Theme.lineHeightSectionPill
+                                lineHeightMode: Text.FixedHeight
+                                color: Theme.fgSecondary
+                            }
+                        }
+
+                        Item { Layout.fillWidth: true }
                     }
 
                     Item {
                         visible: cardTab.serverArtists
                         width: 1
-                        height: 16
+                        height: 18
                     }
 
                     // .empty-state (library.ts 427-431): the boxed sentence.
@@ -334,6 +379,7 @@ Item {
                     required property string iconName
                     required property string key
                     required property string badge
+                    required property bool followed
 
                     width: grid.cellWidth
                     height: grid.cellHeight
@@ -351,6 +397,51 @@ Item {
                         gradientEnd: cell.gradientEnd
                         iconName: cell.iconName
                         badge: cell.badge
+
+                        // .library-artist-followed: a 30px accent circle
+                        // with a 13px heart, ringed 3px in the surface, on the
+                        // round cover's edge at the lower right.
+                        Rectangle {
+                            visible: cardTab.serverArtists && cell.followed
+                            x: parent.width - parent.width * 0.146 - 15
+                            y: parent.width - parent.width * 0.146 - 15
+                            z: 2
+                            width: 30
+                            height: 30
+                            radius: 15
+                            color: Theme.accentColor
+                            border.width: 3
+                            border.color: Theme.surface
+
+                            Icon {
+                                anchors.centerIn: parent
+                                name: "heart-fill"
+                                size: 13
+                                color: Theme.accentInk
+                            }
+
+                            ToolTip.visible: followedHover.hovered
+                            ToolTip.text: qsTr("Following")
+                            ToolTip.delay: 500
+
+                            HoverHandler {
+                                id: followedHover
+                            }
+                        }
+
+                        // .library-artist-follow-button: 5px under the
+                        // caption, 12px 600, the accent (red to unfollow).
+                        LinkButton {
+                            visible: cardTab.serverArtists
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            y: parent.width + 12 + 22 + 18 + 5
+                            z: 2
+                            text: cell.followed ? qsTr("Unfollow") : qsTr("Follow")
+                            labelFont: Theme.artistFollowLink
+                            labelColor: cell.followed ? Theme.danger : Theme.accentColor
+                            onClicked: App.accountArtists.toggleFollow(cell.index)
+                        }
+
                         onClicked: cardTab.serverArtists ? App.accountArtists.openCard(cell.index)
                                                          : App.library.openCard(App.library.tab, cell.index)
                         onMenuRequested: (at, fromKeyboard) => {

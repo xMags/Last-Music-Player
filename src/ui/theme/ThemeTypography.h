@@ -49,6 +49,7 @@ class ThemeTypography : public QObject {
     Q_PROPERTY(QFont welcomeTitle READ welcomeTitle CONSTANT FINAL)
     Q_PROPERTY(QFont welcomeText READ welcomeText CONSTANT FINAL)
     Q_PROPERTY(QFont welcomeButton READ welcomeButton CONSTANT FINAL)
+    Q_PROPERTY(QFont artistFollowLink READ artistFollowLink CONSTANT FINAL)
     Q_PROPERTY(qreal lineHeightWelcomeTitle READ lineHeightWelcomeTitle CONSTANT FINAL)
     Q_PROPERTY(qreal lineHeightWelcomeText READ lineHeightWelcomeText CONSTANT FINAL)
     Q_PROPERTY(qreal lineHeightSectionPill READ lineHeightSectionPill CONSTANT FINAL)
@@ -210,6 +211,7 @@ public:
     [[nodiscard]] QFont welcomeTitle() const { return m_text.welcomeTitle.font; }
     [[nodiscard]] QFont welcomeText() const { return m_text.welcomeText.font; }
     [[nodiscard]] QFont welcomeButton() const { return m_text.welcomeButton.font; }
+    [[nodiscard]] QFont artistFollowLink() const { return m_text.artistFollowLink.font; }
     [[nodiscard]] qreal lineHeightWelcomeTitle() const { return m_text.welcomeTitle.lineHeight; }
     [[nodiscard]] qreal lineHeightWelcomeText() const { return m_text.welcomeText.lineHeight; }
     [[nodiscard]] qreal lineHeightSectionPill() const { return m_text.sectionPill.lineHeight; }

@@ -85,6 +85,7 @@ struct TextStyles {
     TextStyle welcomeTitle;
     TextStyle welcomeText;
     TextStyle welcomeButton;
+    TextStyle artistFollowLink;
     TextStyle settingsSection;
     TextStyle settingsRowTitle;
     TextStyle settingsRowDescription;

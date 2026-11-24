@@ -2,12 +2,15 @@
 
 #include <QHash>
 #include <QObject>
+
+#include <optional>
 #include <QString>
 #include <QTimer>
 #include <QtQml/qqmlregistration.h>
 
 #include "core/account/LibraryArtistContract.h"
 #include "core/async/RequestScope.h"
+#include "core/model/ArtistIdentity.h"
 #include "ui/library/CollectionCardModel.h"
 
 namespace lmp::core {
@@ -24,6 +27,7 @@ class ModeService;
 namespace lmp::ui {
 
 class Navigator;
+class ToastQueue;
 
 // The Library's Artists tab in Account mode (App.accountArtists): the
 // account service's artist list, 50 at a time with "Load more", searched by
@@ -47,6 +51,11 @@ class AccountArtistsViewModel final : public QObject {
     // A problem in words, or empty.
     Q_PROPERTY(QString status READ status NOTIFY stateChanged FINAL)
     Q_PROPERTY(QString query READ query WRITE setQuery NOTIFY queryChanged FINAL)
+    // Which artists: "default" (Top), "followed" or "all".
+    Q_PROPERTY(QString view READ view WRITE setView NOTIFY queryChanged FINAL)
+    // "12 artists": the service's total, else how many are listed; empty
+    // while the first page loads.
+    Q_PROPERTY(QString countText READ countText NOTIFY stateChanged FINAL)
 
 public:
     struct Parts {
@@ -55,6 +64,8 @@ public:
         core::mode::ModeService& mode;
         core::ArtistFollowService& follows;
         Navigator& navigator;
+        // Says how a Follow went; may be missing.
+        ToastQueue* toasts = nullptr;
     };
 
     // How long typing must pause before the search is sent.
@@ -70,12 +81,17 @@ public:
     [[nodiscard]] QString status() const { return m_status; }
     [[nodiscard]] QString query() const { return m_query; }
     void setQuery(const QString& query);
+    [[nodiscard]] QString view() const { return m_view; }
+    void setView(const QString& view);
+    [[nodiscard]] QString countText() const;
 
     // The first page again (the tab opens, the library changed).
     Q_INVOKABLE void reload();
     Q_INVOKABLE void loadMore();
     // Opens the artist's page.
     Q_INVOKABLE void openCard(int row);
+    // The card's Follow / Unfollow; a toast says how it went.
+    Q_INVOKABLE void toggleFollow(int row);
 
 signals:
     void activeChanged();
@@ -93,12 +109,17 @@ private:
     core::mode::ModeService& m_mode;
     core::ArtistFollowService& m_follows;
     Navigator& m_navigator;
+    ToastQueue* m_toasts = nullptr;
 
     CollectionCardModel m_cards;
     // The public id of each card, by row.
     QList<QString> m_ids;
     core::RequestScope m_requests;
     QTimer m_searchDelay;
+    QString m_view = QStringLiteral("default");
+    // The listed artists' identities, by row (for following).
+    QList<core::ArtistIdentity> m_identities;
+    std::optional<qint64> m_totalCount;
     QString m_query;
     QString m_nextCursor;
     QString m_status;

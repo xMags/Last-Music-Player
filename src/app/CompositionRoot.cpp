@@ -387,7 +387,8 @@ CompositionRoot::CompositionRoot()
                         .session = m_session,
                         .mode = m_mode,
                         .follows = m_artistFollows,
-                        .navigator = m_navigator})
+                        .navigator = m_navigator,
+                        .toasts = &m_toasts})
     , m_welcome({.client = m_accountClient,
                  .session = m_session,
                  .sync = m_sync,

@@ -167,7 +167,7 @@ void AccountArtistsTest::tabListsPagesAndLoadsMore()
     QTRY_COMPARE(tab.artists()->count(), 2);
     QVERIFY(tab.hasMore());
     QVERIFY(!tab.loading());
-    QCOMPARE(tab.artists()->cardAt(0).subtitle, QStringLiteral("3 songs - 1 album"));
+    QCOMPARE(tab.artists()->cardAt(0).subtitle, QStringLiteral("3 songs · 1 album"));
     QCOMPARE(tab.artists()->cardAt(0).artworkUrl.scheme(), QStringLiteral("image"));
 
     // The next page is added; a repeated artist is not shown twice.
