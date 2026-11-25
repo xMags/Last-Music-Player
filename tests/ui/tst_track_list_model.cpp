@@ -69,6 +69,7 @@ private slots:
     void playingAndLikedChangeOnlyTheirRows();
     void selectionMarksRowsAndClearsOnReplace();
     void rowsMoveOnlyWhenFullyLoaded();
+    void aMoveTellsEverySelectedRow();
 };
 
 void TrackListModelTest::shortListShowsDisplayText()
@@ -194,6 +195,33 @@ void TrackListModelTest::rowsMoveOnlyWhenFullyLoaded()
     QVERIFY(!model.moveRow(0, 1));
     model.fetchAll();
     QVERIFY(model.moveRow(0, 1));
+}
+
+void TrackListModelTest::aMoveTellsEverySelectedRow()
+{
+    TrackListModel model;
+    model.setTracks({song(1), song(2), song(3), song(4), song(5)});
+    model.setSelectedRows({0, 4});
+    QSignalSpy changed(&model, &QAbstractItemModel::dataChanged);
+    QVERIFY(model.moveRow(2, 3));
+    // Rows 0 and 4 are outside the move, and still hear that they are no
+    // longer selected.
+    QSet<int> told;
+    for (const QList<QVariant>& signal : std::as_const(changed)) {
+        const int top = signal.at(0).value<QModelIndex>().row();
+        const int bottom = signal.at(1).value<QModelIndex>().row();
+        const QList<int> roles = signal.at(2).value<QList<int>>();
+        if (!roles.contains(TrackListModel::SelectedRole)) {
+            continue;
+        }
+        for (int row = top; row <= bottom; ++row) {
+            told.insert(row);
+        }
+    }
+    QVERIFY(told.contains(0));
+    QVERIFY(told.contains(4));
+    QVERIFY(!model.data(model.index(0), TrackListModel::SelectedRole).toBool());
+    QVERIFY(!model.data(model.index(4), TrackListModel::SelectedRole).toBool());
 }
 
 QTEST_GUILESS_MAIN(TrackListModelTest)

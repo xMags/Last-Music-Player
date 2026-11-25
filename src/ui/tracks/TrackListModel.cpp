@@ -232,13 +232,21 @@ bool TrackListModel::moveRow(int from, int to)
     if (!beginMoveRows({}, from, from, {}, to > from ? to + 1 : to)) {
         return false;
     }
+    // A move ends the selection; every row that showed as selected is told,
+    // not only those between the two places.
+    const QSet<int> wasSelected = std::exchange(m_selected, {});
     m_tracks.move(from, to);
-    m_selected.clear();
     reindex();
     endMoveRows();
     const int first = std::min(from, to);
     const int last = std::max(from, to);
     emit dataChanged(index(first), index(last), {NumberRole, SelectedRole});
+    for (const int row : wasSelected) {
+        // Rows outside the moved span keep their place.
+        if ((row < first || row > last) && row >= 0 && row < count()) {
+            emit dataChanged(index(row), index(row), {SelectedRole});
+        }
+    }
     return true;
 }
 
