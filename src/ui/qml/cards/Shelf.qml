@@ -5,7 +5,10 @@ import LastMusicPlayer
 // styles.css 555-562 and 1046-1099): 156px cards 20px apart, no scroll bar,
 // and round arrow buttons at the covers' middle that appear while the row is
 // hovered and only where there is more to scroll to. The wheel and the
-// arrows scroll it; a page of cards per arrow.
+// arrows scroll it; a page of cards per arrow. The row runs edge to edge:
+// it reaches through the page's side gutter (`bleed`), so cards clip at the
+// panel's edge rather than in the middle of the gutter, and a matching
+// margin keeps the first card under the heading at rest.
 Column {
     id: shelf
 
@@ -18,6 +21,8 @@ Column {
     property int cardSpacing: 20
     // A card's height: the cover, 12px, then two lines of text.
     property int cardHeight: cardWidth + 12 + 22 + 18
+    // How far the row reaches past each side: the page's gutter.
+    property real bleed: Theme.contentGutter
 
     signal linkClicked()
 
@@ -46,7 +51,11 @@ Column {
         ListView {
             id: row
 
-            anchors.fill: parent
+            x: -shelf.bleed
+            width: parent.width + 2 * shelf.bleed
+            height: parent.height
+            leftMargin: shelf.bleed
+            rightMargin: shelf.bleed
             orientation: ListView.Horizontal
             spacing: shelf.cardSpacing
             boundsBehavior: Flickable.StopAtBounds
@@ -63,7 +72,9 @@ Column {
             function scrollPage(direction) {
                 // scrollBy(clientWidth * 0.85), as carousel.ts steps.
                 const page = width * 0.85
-                const target = Math.max(originX, Math.min(contentX + direction * page, originX + contentWidth - width))
+                const first = originX - leftMargin
+                const last = originX + contentWidth + rightMargin - width
+                const target = Math.max(first, Math.min(contentX + direction * page, last))
                 glide.enabled = !Motion.reduced
                 contentX = target
                 glide.enabled = false
