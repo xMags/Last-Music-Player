@@ -25,8 +25,22 @@ constexpr wchar_t WindowClassName[] = L"LastMusicPlayerTrayWindow";
     return reinterpret_cast<HWND>(handle);
 }
 
+// Broadcast to top-level windows when the taskbar is made again.
+[[nodiscard]] UINT taskbarCreatedMessage()
+{
+    static const UINT message = RegisterWindowMessageW(L"TaskbarCreated");
+    return message;
+}
+
 LRESULT CALLBACK trayWindowProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam)
 {
+    if (message != 0 && message == taskbarCreatedMessage()) {
+        auto* tray = reinterpret_cast<WindowsTray*>(GetWindowLongPtrW(window, GWLP_USERDATA));
+        if (tray != nullptr) {
+            tray->handleTaskbarCreated();
+        }
+        return 0;
+    }
     if (message == TrayCallbackMessage) {
         // The owner was stored on the window when it was made; it removes the
         // window before it goes away.
@@ -71,14 +85,42 @@ bool WindowsTray::show(const QString& tooltip)
         if (RegisterClassExW(&windowClass) == 0 && GetLastError() != ERROR_CLASS_ALREADY_EXISTS) {
             return false;
         }
+        // A hidden top-level window, not a message-only one: only top-level
+        // windows hear "TaskbarCreated".
         const HWND window =
-            CreateWindowExW(0, WindowClassName, L"", 0, 0, 0, 0, 0, HWND_MESSAGE, nullptr, instance, nullptr);
+            CreateWindowExW(WS_EX_TOOLWINDOW, WindowClassName, L"", WS_POPUP, 0, 0, 0, 0, nullptr, nullptr, instance,
+                            nullptr);
         if (window == nullptr) {
             return false;
+        }
+        // Heard even when this process runs at a higher integrity level than Explorer.
+        if (const UINT created = taskbarCreatedMessage(); created != 0) {
+            ChangeWindowMessageFilterEx(window, created, MSGFLT_ALLOW, nullptr);
         }
         SetWindowLongPtrW(window, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(this));
         m_window = reinterpret_cast<quintptr>(window);
     }
+    m_tooltip = tooltip;
+    if (!addIcon(true)) {
+        return false;
+    }
+    m_added = true;
+    return true;
+}
+
+void WindowsTray::handleTaskbarCreated()
+{
+    // The new taskbar has no icons; this one is added again if it showed.
+    // The message also comes when the icon is still there (some display
+    // changes), and then the icon is only refreshed.
+    if (m_added && !addIcon(true) && !addIcon(false)) {
+        m_added = false;
+    }
+}
+
+bool WindowsTray::addIcon(bool add)
+{
+    const HINSTANCE instance = GetModuleHandleW(nullptr);
     NOTIFYICONDATAW data{};
     data.cbSize = sizeof(data);
     data.hWnd = windowOf(m_window);
@@ -88,13 +130,9 @@ bool WindowsTray::show(const QString& tooltip)
     // The app's own icon from its resources (AppIcon.rc), at the small size.
     data.hIcon = static_cast<HICON>(LoadImageW(instance, L"IDI_ICON1", IMAGE_ICON, GetSystemMetrics(SM_CXSMICON),
                                                GetSystemMetrics(SM_CYSMICON), LR_DEFAULTCOLOR | LR_SHARED));
-    const std::wstring tip = tooltip.left(static_cast<qsizetype>(std::size(data.szTip)) - 1).toStdWString();
+    const std::wstring tip = m_tooltip.left(static_cast<qsizetype>(std::size(data.szTip)) - 1).toStdWString();
     wcsncpy_s(data.szTip, tip.c_str(), _TRUNCATE);
-    if (!Shell_NotifyIconW(NIM_ADD, &data)) {
-        return false;
-    }
-    m_added = true;
-    return true;
+    return Shell_NotifyIconW(add ? NIM_ADD : NIM_MODIFY, &data) != FALSE;
 }
 
 void WindowsTray::hide()
