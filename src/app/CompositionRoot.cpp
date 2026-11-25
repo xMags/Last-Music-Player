@@ -1112,6 +1112,11 @@ bool CompositionRoot::showMainWindow(QQmlApplicationEngine& engine)
     m_librarySettings.setOwnerWindow(static_cast<quintptr>(window->winId()));
     m_offline.setOwnerWindow(static_cast<quintptr>(window->winId()));
     m_closeToTray.attach(window);
+    // A second launch (the Start menu while this copy sits in the tray)
+    // brings the window back the way the tray icon does.
+    QCoreApplication::instance()->installNativeEventFilter(&m_activationRequests);
+    QObject::connect(&m_activationRequests, &platform::windows::WindowsActivationRequests::activationRequested,
+                     &m_closeToTray, &CloseToTrayController::restore);
     // Looping animations stop while the window is minimised or in the tray.
     QObject::connect(window, &QWindow::visibilityChanged, window, [this](QWindow::Visibility visibility) {
         if (m_motion) {

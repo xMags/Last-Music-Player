@@ -50,6 +50,12 @@ bool WindowsSingleInstance::tryAcquire()
     return true;
 }
 
+unsigned int WindowsSingleInstance::activationMessage()
+{
+    static const UINT message = RegisterWindowMessageW(L"LastMusicPlayer.Activate");
+    return message;
+}
+
 void WindowsSingleInstance::activateExistingWindow()
 {
     const std::wstring title = m_windowTitle.toStdWString();
@@ -57,9 +63,15 @@ void WindowsSingleInstance::activateExistingWindow()
     if (window == nullptr) {
         return;
     }
-    ShowWindow(window, IsIconic(window) ? SW_RESTORE : SW_SHOW);
-    if (!SetForegroundWindow(window)) {
-        qCInfo(lcSingleInstance) << "Windows did not let the running copy come to the front";
+    // The running copy may take the foreground: this process has it now
+    // (the user just started it), and may hand it on.
+    DWORD processId = 0;
+    if (GetWindowThreadProcessId(window, &processId) != 0 && processId != 0) {
+        AllowSetForegroundWindow(processId);
+    }
+    const UINT message = activationMessage();
+    if (message == 0 || !PostMessageW(window, message, 0, 0)) {
+        qCWarning(lcSingleInstance) << "Could not ask the running copy to show itself, error" << GetLastError();
     }
 }
 

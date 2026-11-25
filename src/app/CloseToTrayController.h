@@ -43,12 +43,14 @@ public:
 
     // True when closing the window keeps the app running in the tray.
     [[nodiscard]] bool closesToTray() const;
+    // Shows the window again (from the tray, minimised, or behind others)
+    // and takes the tray icon away.
+    void restore();
 
 protected:
     bool eventFilter(QObject* watched, QEvent* event) override;
 
 private:
-    void restore();
     void quit();
 
     platform::ITray& m_tray;

@@ -86,6 +86,7 @@
 #include "platform/windows/WindowsNetworkStatus.h"
 #include "platform/windows/WindowsAudioOutputs.h"
 #include "platform/windows/WindowsPowerStatus.h"
+#include "platform/windows/WindowsActivationRequests.h"
 #include "platform/windows/WindowsTray.h"
 #include "platform/windows/WindowsReducedMotion.h"
 #include "platform/windows/WindowsTagReader.h"
@@ -193,6 +194,8 @@ private:
 
     std::unique_ptr<platform::windows::WindowsReducedMotion> m_reducedMotion;
     platform::windows::WindowsWindowChrome m_windowChrome;
+    // A second launch asking this copy to show its window.
+    platform::windows::WindowsActivationRequests m_activationRequests;
 
     core::AppPaths m_paths;
     core::SettingsStore m_settings;

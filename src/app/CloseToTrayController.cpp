@@ -77,6 +77,10 @@ void CloseToTrayController::restore()
     if (m_window == nullptr) {
         return;
     }
+    // A minimised window comes back as it was (maximised or not).
+    if (m_window->windowStates() & Qt::WindowMinimized) {
+        m_window->setWindowStates(m_window->windowStates() & ~Qt::WindowMinimized);
+    }
     m_window->show();
     m_window->raise();
     m_window->requestActivate();

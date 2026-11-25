@@ -26,6 +26,8 @@ qt_add_library(lmp_platform_windows STATIC
     WindowsPowerStatus.h
     WindowsReducedMotion.cpp
     WindowsReducedMotion.h
+    WindowsActivationRequests.cpp
+    WindowsActivationRequests.h
     WindowsSingleInstance.cpp
     WindowsSingleInstance.h
     WindowsTagReader.cpp
