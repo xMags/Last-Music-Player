@@ -12,9 +12,6 @@ SettingsSection {
     iconName: "download"
     title: qsTr("Downloads")
 
-    // The first press of Remove all asks; the second removes.
-    property bool confirmingRemoval: false
-
     SettingsRow {
         title: qsTr("Downloaded songs")
         description: App.offline.storedSummary
@@ -44,17 +41,13 @@ SettingsSection {
         title: qsTr("Remove all downloads")
         description: qsTr("Frees the space they use. Songs stay in your library.")
 
+        // Asked in a dialog, as the other rows that erase things are: a
+        // two-press button would be disarmed by every download tick, and
+        // left armed forever otherwise.
         SettingsButton {
             danger: true
-            text: section.confirmingRemoval ? qsTr("Remove everything?") : qsTr("Remove all")
-            onClicked: {
-                if (!section.confirmingRemoval) {
-                    section.confirmingRemoval = true
-                    return
-                }
-                section.confirmingRemoval = false
-                App.offline.removeAll()
-            }
+            text: qsTr("Remove all")
+            onClicked: removeDialog.open()
         }
     }
 
@@ -97,13 +90,12 @@ SettingsSection {
         onChangeRequested: value => App.offline.keepRecent = value
     }
 
-    // A redraw of the reference page forgets a half-made confirmation; here
-    // a change to the list does.
-    Connections {
-        target: App.offline
+    SettingsConfirmDialog {
+        id: removeDialog
 
-        function onChanged() {
-            section.confirmingRemoval = false
-        }
+        title: qsTr("Remove all downloads?")
+        description: qsTr("This deletes every downloaded song from this PC. Songs stay in your library and can be downloaded again.")
+        confirmLabel: qsTr("Remove all")
+        onConfirmed: App.offline.removeAll()
     }
 }
