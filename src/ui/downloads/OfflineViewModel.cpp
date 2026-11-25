@@ -99,6 +99,9 @@ OfflineViewModel::OfflineViewModel(Parts parts, QObject* parent)
     // A like or unlike anywhere: every heart is read again.
     connect(&m_actions, &core::TrackActions::likedChanged, this, [this](const QString&, bool) {
         m_likedByKey.clear();
+        // The lists hold copies of the songs: they are made again with the
+        // new hearts.
+        m_groupsSignature.clear();
         m_revision = 0;
         reload();
     });
@@ -516,18 +519,22 @@ void OfflineViewModel::reload()
     m_pendingDetail = detail.join(QStringLiteral(" · "));
     m_pendingPercent = itemsInJobs > 0 ? std::min(100, static_cast<int>(progress * 100.0 / itemsInJobs + 0.5)) : 0;
     markLiked();
-    refreshGroups();
-    showTab();
+    // A progress tick changes only the strip above and the rows' marks; the
+    // lists are set again (a reset, which loses the scroll place, hover and
+    // focus) only when what they show changed.
+    if (refreshGroups()) {
+        showTab();
+    }
     emit changed();
 }
 
-void OfflineViewModel::refreshGroups()
+bool OfflineViewModel::refreshGroups()
 {
     // Progress ticks change the snapshot but not which songs are here; the
     // library is read again only when that set changes.
     const QString signature = m_downloadedKeys.join(QLatin1Char('\n'));
     if (signature == m_groupsSignature && m_detailed.size() == m_downloaded.size()) {
-        return;
+        return false;
     }
     m_groupsSignature = signature;
 
@@ -622,6 +629,7 @@ void OfflineViewModel::refreshGroups()
     if (!m_groupKey.isEmpty() && openedGroup() == nullptr) {
         m_groupKey.clear();
     }
+    return true;
 }
 
 QList<core::Track> OfflineViewModel::historySongs()

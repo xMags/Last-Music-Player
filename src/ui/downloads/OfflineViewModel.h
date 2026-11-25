@@ -237,7 +237,8 @@ private:
     // The downloaded songs with what the library knows about them (genre,
     // length, main artist), and the collection tabs' groups, rebuilt only
     // when the set of downloaded songs changes.
-    void refreshGroups();
+    // True when the lists were made again (the downloaded songs changed).
+    bool refreshGroups();
     void markLiked();
     [[nodiscard]] const core::offline::OfflineGroup* openedGroup() const;
     [[nodiscard]] QList<core::Track> historySongs();
