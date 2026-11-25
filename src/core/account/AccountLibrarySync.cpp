@@ -1,5 +1,7 @@
 #include "core/account/AccountLibrarySync.h"
 
+#include <limits>
+#include "core/net/Json.h"
 #include "core/net/ArtworkUrl.h"
 #include "core/net/RemoteUrlPolicy.h"
 
@@ -18,7 +20,7 @@ namespace {
     if (seconds <= 0.0) {
         return {};
     }
-    const auto whole = static_cast<qint64>(seconds);
+    const qint64 whole = json::wholeNumber(seconds, 0, std::numeric_limits<qint64>::max());
     return QStringLiteral("%1:%2").arg(whole / 60).arg(whole % 60, 2, 10, QLatin1Char('0'));
 }
 

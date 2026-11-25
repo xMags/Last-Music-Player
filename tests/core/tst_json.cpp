@@ -5,6 +5,8 @@
 #include <QString>
 #include <QTest>
 
+#include <limits>
+
 #include <optional>
 
 #include "core/net/Json.h"
@@ -49,6 +51,7 @@ class JsonTest : public QObject {
     Q_OBJECT
 
 private slots:
+    void wholeNumbersStayInRange();
     void parseObjectAcceptsOnlyObjects();
     void parseArrayAcceptsOnlyArrays();
     void strings();
@@ -171,6 +174,17 @@ void JsonTest::objectsAndArrays()
     const Result<std::optional<QJsonArray>> wrong = json::optionalArray(object, QLatin1StringView("count"));
     QVERIFY(!wrong);
     verifyFailure(wrong.failure(), QStringLiteral("count"));
+}
+
+void JsonTest::wholeNumbersStayInRange()
+{
+    using lmp::core::json::wholeNumber;
+    QCOMPARE(wholeNumber(42.9, 0, 100), qint64(42));
+    QCOMPARE(wholeNumber(-5.0, 0, 100), qint64(0));
+    QCOMPARE(wholeNumber(1e300, 0, 100), qint64(100));
+    QCOMPARE(wholeNumber(std::numeric_limits<double>::quiet_NaN(), 0, 100, 7), qint64(7));
+    QCOMPARE(wholeNumber(std::numeric_limits<double>::infinity(), 0, 100, 7), qint64(7));
+    QCOMPARE(wholeNumber(1e300, 0, std::numeric_limits<qint64>::max()), std::numeric_limits<qint64>::max());
 }
 
 QTEST_GUILESS_MAIN(JsonTest)

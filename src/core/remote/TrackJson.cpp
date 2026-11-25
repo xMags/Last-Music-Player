@@ -1,5 +1,7 @@
 #include "core/remote/TrackJson.h"
 
+#include <limits>
+#include "core/net/Json.h"
 #include "core/account/AccountMusicContract.h"
 #include "core/net/ArtworkUrl.h"
 #include "core/net/RemoteUrlPolicy.h"
@@ -23,7 +25,8 @@ QString text(const QJsonObject& object, QLatin1StringView key, const QString& fa
 
 QString formatTime(double seconds)
 {
-    const int whole = static_cast<int>(seconds);
+    // Out of range or not a number reads as nothing long.
+    const int whole = static_cast<int>(json::wholeNumber(seconds, 0, std::numeric_limits<int>::max()));
     return QStringLiteral("%1:%2").arg(whole / 60).arg(whole % 60, 2, 10, QLatin1Char('0'));
 }
 

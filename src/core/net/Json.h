@@ -51,4 +51,10 @@ namespace lmp::core::json {
 [[nodiscard]] Result<std::optional<QJsonArray>> optionalArray(const QJsonObject& object,
                                                               QLatin1StringView key);
 
+// A number from an answer as a whole number, for counts and times that are
+// only shown or stored: its whole part within [low, high], or `fallback`
+// when it is not a finite number. A plain cast of an out-of-range double is
+// undefined.
+[[nodiscard]] qint64 wholeNumber(double value, qint64 low, qint64 high, qint64 fallback = 0) noexcept;
+
 } // namespace lmp::core::json

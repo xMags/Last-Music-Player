@@ -1,5 +1,7 @@
 #include "core/account/AccountMusicContract.h"
 
+#include <limits>
+#include "core/net/Json.h"
 #include "core/net/ArtworkUrl.h"
 #include "core/net/RemoteUrlPolicy.h"
 #include "core/text/CaseFold.h"
@@ -242,8 +244,9 @@ void appendLibraryTrack(ParsedAccountLibrary& parsed, QHash<QString, qsizetype>&
     if (lastPlayed.isEmpty()) {
         lastPlayed = firstString(wrapper, playedKeys);
     }
-    const auto playCount = static_cast<qint64>(std::max(
-        0.0, numberValue(stats, QLatin1StringView("playCount"), numberValue(wrapper, QLatin1StringView("playCount")))));
+    const qint64 playCount = json::wholeNumber(
+        numberValue(stats, QLatin1StringView("playCount"), numberValue(wrapper, QLatin1StringView("playCount"))), 0,
+        std::numeric_limits<qint64>::max());
     double lastPosition = numberValue(stats, QLatin1StringView("lastPositionSec"),
                                       numberValue(wrapper, QLatin1StringView("lastPositionSec"), -1.0));
     if (lastPosition < 0.0) {

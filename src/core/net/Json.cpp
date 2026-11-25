@@ -234,4 +234,18 @@ Result<std::optional<QJsonArray>> optionalArray(const QJsonObject& object, QLati
     return readOptional<QJsonArray>(object, key, toArray);
 }
 
+qint64 wholeNumber(double value, qint64 low, qint64 high, qint64 fallback) noexcept
+{
+    if (!std::isfinite(value)) {
+        return fallback;
+    }
+    if (value <= static_cast<double>(low)) {
+        return low;
+    }
+    if (value >= static_cast<double>(high)) {
+        return high;
+    }
+    return static_cast<qint64>(value);
+}
+
 } // namespace lmp::core::json

@@ -1,5 +1,7 @@
 #include "core/lyrics/LyricsService.h"
 
+#include <limits>
+#include "core/net/Json.h"
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -81,7 +83,7 @@ LyricsResult parseLyrics(const QByteArray& payload)
         const QJsonObject line = entry.toObject();
         const QJsonValue time = line.value(QLatin1StringView("timeMs"));
         const double timeMs = time.isDouble() ? time.toDouble() : 0.0;
-        result.synced.append({.timeMs = std::isfinite(timeMs) ? static_cast<qint64>(timeMs) : 0,
+        result.synced.append({.timeMs = json::wholeNumber(timeMs, 0, std::numeric_limits<qint64>::max()),
                               .text = text(line, QLatin1StringView("text"))});
     }
     std::stable_sort(result.synced.begin(), result.synced.end(),
