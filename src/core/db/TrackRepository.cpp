@@ -121,8 +121,13 @@ Result<void> TrackRepository::completeLocalScan(const QStringList& activeSourceK
         }
     }
 
-    // As before, a failed commit is reported but not rolled back here.
-    return m_connection.exec("COMMIT;");
+    // A failed commit is rolled back like every other one here (earlier
+    // versions left the transaction open, and every later write then failed
+    // or was lost at close).
+    if (const Result<void> committed = m_connection.exec("COMMIT;"); !committed) {
+        return tx::rollbackWith(m_connection, committed.failure());
+    }
+    return Result<void>::success();
 }
 
 Result<qint64> TrackRepository::upsertLocalTrack(const Track& track, const QString& sourceKey)
