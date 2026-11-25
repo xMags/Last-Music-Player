@@ -742,6 +742,11 @@ Item {
         }
     }
 
+    // The page scrolls itself; Back returns its list to where it was.
+    ScrollMemory {
+        target: App.offline.showsCards ? cardsView : songs.view
+    }
+
     TrackListView {
         id: songs
 

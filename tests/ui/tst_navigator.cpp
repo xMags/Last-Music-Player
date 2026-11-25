@@ -23,6 +23,7 @@ private slots:
     void pushAndBack();
     void replaceKeepsDepth();
     void scrollOffsetIsKeptPerEntry();
+    void theReturnOffsetOutlivesAReload();
     void pageViewModelBelongsToItsEntry();
     void openViewOnlyOpensMainViews();
 
@@ -239,6 +240,21 @@ void NavigatorTest::artistSectionsAreKnownIds()
                                               QStringLiteral("usa"));
     QVERIFY(noRegion.has_value());
     QVERIFY(noRegion->param(QStringLiteral("region")).isEmpty());
+}
+
+void NavigatorTest::theReturnOffsetOutlivesAReload()
+{
+    Navigator navigator;
+    navigator.push(Route(Route::Kind::Collection, {{QStringLiteral("key"), QStringLiteral("a")}}));
+    navigator.setCurrentScrollOffset(300);
+    navigator.push(Route(Route::Kind::Collection, {{QStringLiteral("key"), QStringLiteral("b")}}));
+    QCOMPARE(navigator.returnScrollOffset(), 0.0);
+    navigator.back();
+    QCOMPARE(navigator.returnScrollOffset(), 300.0);
+    // The same page shows the playlist again: its list starts at the top
+    // and says so before it is scrolled back.
+    navigator.setCurrentScrollOffset(0);
+    QCOMPARE(navigator.returnScrollOffset(), 300.0);
 }
 
 QTEST_GUILESS_MAIN(NavigatorTest)

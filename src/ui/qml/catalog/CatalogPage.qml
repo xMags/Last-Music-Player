@@ -17,7 +17,9 @@ Item {
     // The right side also keeps the scrollbar lane (scrollbar-gutter: stable).
     readonly property real rightGutter: Theme.contentGutter + Theme.contentScrollLane
     readonly property CatalogPageViewModel model: App.catalogPage
-    property Flickable currentView: page.model.showsCards ? cardsView : songs.view
+    // The list that shows: releases as rows, cards, or songs.
+    property Flickable currentView: page.releaseRows ? releaseTable.view
+                                                     : page.model.showsCards ? cardsView : songs.view
     // The save button a press that saves came from, until the page shows the
     // album saved; then the save motion starts there.
     property Item celebrateFrom: null

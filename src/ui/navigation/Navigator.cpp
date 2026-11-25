@@ -60,6 +60,7 @@ void Navigator::back()
     releasePage(m_entries.last());
     m_entries.removeLast();
     m_returning = true;
+    m_returnOffset = m_entries.constLast().scrollOffset;
     emit currentChanged();
     emit currentPageChanged();
 }

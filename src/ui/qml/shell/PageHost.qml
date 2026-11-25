@@ -40,7 +40,7 @@ Item {
 
     function showCurrent() {
         const ownScroll = host.scrollsItself(App.navigator.currentKind)
-        scroller.contentY = App.navigator.returning && !ownScroll ? App.navigator.currentScrollOffset : 0
+        scroller.contentY = App.navigator.returning && !ownScroll ? App.navigator.returnScrollOffset : 0
         if (!App.navigator.returning && !Motion.reduced)
             enter.restart()
         if (App.navigator.returning && App.navigator.currentFocusName !== "")

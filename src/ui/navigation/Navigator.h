@@ -25,6 +25,10 @@ class Navigator : public QObject {
     Q_PROPERTY(bool canGoBack READ canGoBack NOTIFY currentChanged FINAL)
     Q_PROPERTY(bool returning READ returning NOTIFY currentChanged FINAL)
     Q_PROPERTY(qreal currentScrollOffset READ currentScrollOffset NOTIFY currentChanged FINAL)
+    // How far the entry returned to with Back was scrolled when it was left,
+    // read at that moment: a page reloading for it (its list reset to the
+    // top) cannot overwrite it before the page scrolls there again.
+    Q_PROPERTY(qreal returnScrollOffset READ returnScrollOffset NOTIFY currentChanged FINAL)
     // The control that had keyboard focus on the current page, by its
     // accessible name and its place among controls of that name; Back gives
     // it focus again (view-place.ts). Empty when none.
@@ -45,6 +49,7 @@ public:
     [[nodiscard]] bool canGoBack() const { return m_entries.size() > 1; }
     [[nodiscard]] bool returning() const { return m_returning; }
     [[nodiscard]] qreal currentScrollOffset() const;
+    [[nodiscard]] qreal returnScrollOffset() const { return m_returning ? m_returnOffset : 0; }
     [[nodiscard]] QString currentFocusName() const;
     [[nodiscard]] int currentFocusIndex() const;
     [[nodiscard]] QObject* currentPage() const;
@@ -89,6 +94,7 @@ private:
 
     QList<Entry> m_entries;
     bool m_returning = false;
+    qreal m_returnOffset = 0;
 };
 
 } // namespace lmp::ui
