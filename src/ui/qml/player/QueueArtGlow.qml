@@ -25,7 +25,8 @@ Item {
     }
 
     FrameAnimation {
-        running: !Motion.reduced && glow.visible && glow.playing
+        // Not while the window is minimised or in the tray.
+        running: !Motion.reduced && glow.visible && glow.playing && Motion.windowShown
         onTriggered: glow.phase = (glow.phase + frameTime * 1000 / Motion.nowPlayingBreathe) % 1
     }
 

@@ -26,6 +26,28 @@ Column {
 
         // A different hero: the backdrop, cover and words fade in, 450 ms.
         readonly property string heroKey: App.home.heroTitle + "\n" + App.home.heroArtworkUrl
+        // The scrolling view the card sits in (the page's), found once.
+        property Flickable viewport: null
+        // Some of the card is on screen; the field rests while it is not
+        // (the reference pauses it out of view too).
+        readonly property bool inView: {
+            if (card.viewport === null)
+                return true
+            // Read again as the page scrolls or its layout changes.
+            const scrolled = card.viewport.contentY + card.viewport.height + card.viewport.contentHeight
+            const top = card.mapToItem(card.viewport.contentItem, 0, 0).y
+            return scrolled >= 0 && top + card.height > card.viewport.contentY
+                && top < card.viewport.contentY + card.viewport.height
+        }
+
+        Component.onCompleted: {
+            for (let up = card.parent; up; up = up.parent) {
+                if (up instanceof Flickable) {
+                    card.viewport = up as Flickable
+                    return
+                }
+            }
+        }
         property string shownKey: ""
 
         onHeroKeyChanged: {
@@ -78,7 +100,7 @@ Column {
 
             HeroField {
                 anchors.fill: parent
-                running: card.visible
+                running: card.visible && card.inView
             }
         }
 
