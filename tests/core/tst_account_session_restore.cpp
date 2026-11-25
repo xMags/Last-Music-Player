@@ -45,6 +45,7 @@ private slots:
     void unreachableServiceUsesTheHints_data();
     void unreachableServiceUsesTheHints();
     void unreachableServiceWithoutHintsSignsOut();
+    void stayingOfflineChangesNothing();
     void replacedCredentialIsNotValidated();
     void restoreCannotResurrectARemovedSession();
     void closedGateRefusesRestore();
@@ -257,6 +258,32 @@ void AccountSessionRestoreTest::failedRemovalKeepsTheSession()
     fixture.service.handleUnauthorized(context);
     QCOMPARE(fixture.service.state(), AccountSessionState::Validated);
     QVERIFY(fixture.service.isCurrent(context));
+}
+
+void AccountSessionRestoreTest::stayingOfflineChangesNothing()
+{
+    AccountSessionFixture fixture;
+    fixture.storeSession(QStringLiteral("bearer-a"));
+    fixture.setHints(QStringLiteral("owner-a"));
+    fixture.transport.script(kProfilePath, FakeHttpTransport::failed(FailureKind::Network, 0));
+    fixture.service.restore();
+    QTRY_COMPARE(fixture.service.state(), AccountSessionState::Offline);
+    const quint64 generation = fixture.service.generation();
+    const std::optional<AccountOperationContext> before = fixture.service.captureOperation();
+    QVERIFY(before.has_value());
+
+    // The recheck finds the service still out of reach: the same session.
+    QSignalSpy changed(&fixture.service, &AccountSessionService::stateChanged);
+    QSignalSpy finished(&fixture.service, &AccountSessionService::restoreFinished);
+    fixture.transport.script(kProfilePath, FakeHttpTransport::failed(FailureKind::Timeout, 0));
+    fixture.service.restore();
+    QTRY_COMPARE(finished.count(), 1);
+    QCOMPARE(changed.count(), 0);
+    QCOMPARE(fixture.service.generation(), generation);
+    // Work started under the session before the recheck still counts.
+    QVERIFY(fixture.service.isCurrent(*before));
+    // The newest reason is kept.
+    QCOMPARE(fixture.service.lastFailure()->kind, FailureKind::Timeout);
 }
 
 QTEST_GUILESS_MAIN(AccountSessionRestoreTest)

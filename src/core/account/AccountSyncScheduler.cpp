@@ -28,7 +28,12 @@ AccountSyncScheduler::AccountSyncScheduler(const Dependencies& dependencies, QOb
     m_offlineRecheck = m_deps.clock.createTimer([this]() {
         if (m_deps.mode.accountSelected()
             && m_deps.session.state() == AccountSessionState::Offline) {
-            m_deps.session.restore();
+            // A check still waiting for its answer is left to finish: a new
+            // one would make that answer stale, and on a slow link the
+            // session could then never validate.
+            if (!m_deps.session.isRestoring()) {
+                m_deps.session.restore();
+            }
             m_offlineRecheck->start(OfflineRecheckInterval);
         }
     });

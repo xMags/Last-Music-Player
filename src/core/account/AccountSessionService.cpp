@@ -230,6 +230,19 @@ bool AccountSessionService::commitSignedOut(Token token, CredentialChange change
 void AccountSessionService::publish(AccountSessionState state, const AccountProfile& profile, const QString& bearer,
                                     std::optional<Failure> reason, bool persistHints)
 {
+    // The same offline session again (a recheck that is still offline):
+    // nothing changed, so nothing is made stale and nobody is told; only the
+    // reason it is offline may be newer. Other states are announced every
+    // time: a restore that ends signed out at launch is what Account mode
+    // falls back on, even when nobody was signed in before it.
+    if (state == AccountSessionState::Offline && m_state == AccountSessionState::Offline && profile == m_profile
+        && bearer == m_bearerSession) {
+        m_lastFailure = std::move(reason);
+        if (persistHints && !profile.id.isEmpty()) {
+            persistProfileHints(profile);
+        }
+        return;
+    }
     const QString previousOwner = m_profile.id;
     ++m_generation;
     m_state = state;

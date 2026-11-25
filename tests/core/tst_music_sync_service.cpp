@@ -237,6 +237,7 @@ private slots:
     void needsAValidatedSession();
     void schedulerRunsAtSignInAndOnItsTriggers();
     void offlineSessionIsCheckedAgainUntilItAnswers();
+    void aRecheckWaitsForTheOneStillRunning();
 };
 
 void MusicSyncServiceTest::snapshotLaysUnsentChangesOverTheLibrary()
@@ -628,6 +629,39 @@ void MusicSyncServiceTest::offlineSessionIsCheckedAgainUntilItAnswers()
     fixture.clock.advance(15000);
     settle();
     QCOMPARE(profileChecks(), confirmed);
+}
+
+void MusicSyncServiceTest::aRecheckWaitsForTheOneStillRunning()
+{
+    SyncFixture fixture;
+    FakeNetwork network;
+    account::AccountSyncScheduler scheduler({.sync = fixture.sync,
+                                             .session = fixture.modes.session.service,
+                                             .mode = fixture.modes.modes,
+                                             .network = network,
+                                             .clock = fixture.clock});
+    (void)fixture.modes.modes.start();
+    QVERIFY(fixture.modes.restoreOffline(kOwner));
+    QVERIFY(fixture.modes.modes.setMode(lmp::core::mode::SourceMode::Account));
+    const auto profileChecks = [&fixture]() {
+        return std::count_if(fixture.modes.session.transport.requests.cbegin(),
+                             fixture.modes.session.transport.requests.cend(),
+                             [](const lmp::core::net::HttpRequest& request) { return request.url.path() == lmp::test::kProfilePath; });
+    };
+    const auto before = profileChecks();
+
+    // A slow link: the check is sent and not answered.
+    fixture.clock.advance(15000);
+    QTRY_COMPARE(profileChecks(), before + 1);
+    QVERIFY(fixture.modes.session.service.isRestoring());
+    // The next tick leaves it to finish rather than making its answer stale.
+    fixture.clock.advance(15000);
+    settle();
+    QCOMPARE(profileChecks(), before + 1);
+    // Its answer still counts.
+    QVERIFY(fixture.modes.session.transport.answer(lmp::test::kProfilePath,
+                                                   lmp::test::AccountSessionFixture::profileAnswer(kOwner)));
+    QVERIFY(fixture.modes.waitForSession(account::AccountSessionState::Validated));
 }
 
 QTEST_GUILESS_MAIN(MusicSyncServiceTest)
