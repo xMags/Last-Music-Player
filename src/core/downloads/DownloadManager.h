@@ -240,7 +240,8 @@ private:
     [[nodiscard]] LoadOutcome readState(QList<DownloadJob>& jobs, bool& allPaused) const;
     void load();
     void retryLoad();
-    void quarantineState() const;
+    // Moves an unreadable list aside; false when it stays where it is.
+    [[nodiscard]] bool quarantineState() const;
     // A finished song whose file is gone is queued again.
     void requeueMissingFiles();
     void save();

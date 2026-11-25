@@ -144,6 +144,7 @@ private slots:
     void readingTheListIsAnnounced();
     void anUnreadableListIsSetAside();
     void aListThatCannotBeOpenedIsNeverOverwritten();
+    void anUnreadableListThatCannotBeMovedIsNeverOverwritten();
 };
 
 void DownloadManagerTest::removeAllDeletesFilesAndDropsTransfers()
@@ -485,6 +486,26 @@ void DownloadManagerTest::aListThatCannotBeOpenedIsNeverOverwritten()
     QTRY_COMPARE_WITH_TIMEOUT(fixture.manager.snapshot().jobs.size(), 2, DownloadManager::LoadRetryMs * 3);
     QVERIFY(readAll(list).contains("Old"));
     QVERIFY(readAll(list).contains("New"));
+}
+
+void DownloadManagerTest::anUnreadableListThatCannotBeMovedIsNeverOverwritten()
+{
+    Fixture fixture;
+    const QString list = fixture.folder.filePath(QStringLiteral("Downloads.json"));
+    {
+        QFile file(list);
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        file.write("{ not the list");
+    }
+    // Readable, but held without delete sharing, so it cannot be moved aside.
+    HANDLE held = CreateFileW(reinterpret_cast<const wchar_t*>(QDir::toNativeSeparators(list).utf16()), GENERIC_READ,
+                              FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+    QVERIFY(held != INVALID_HANDLE_VALUE);
+    fixture.manager.initialize();
+    CloseHandle(held);
+    fixture.manager.pauseAll();
+    QVERIFY(fixture.manager.enqueue(QStringLiteral("New"), {}, {}, {fixture.song(QStringLiteral("New"))}));
+    QCOMPARE(readAll(list), QByteArray("{ not the list"));
 }
 
 QTEST_GUILESS_MAIN(DownloadManagerTest)

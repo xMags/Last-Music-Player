@@ -878,8 +878,11 @@ void DownloadManager::load()
     case LoadOutcome::Missing:
         return;
     case LoadOutcome::Unreadable:
-        qCWarning(lcDownloads) << "The download list could not be read; it was set aside and starts empty.";
-        quarantineState();
+        qCWarning(lcDownloads) << "The download list could not be read; it is set aside and starts empty.";
+        // Kept from being overwritten until it is moved aside.
+        if (!quarantineState()) {
+            m_saveBlocked = true;
+        }
         return;
     case LoadOutcome::Unopenable:
         qCWarning(lcDownloads) << "The download list could not be opened; it is read again shortly.";
@@ -906,8 +909,9 @@ void DownloadManager::retryLoad()
         }
         return;
     }
-    if (outcome == LoadOutcome::Unreadable) {
-        quarantineState();
+    if (outcome == LoadOutcome::Unreadable && !quarantineState()) {
+        qCWarning(lcDownloads) << "The unreadable download list could not be set aside; changes are not saved this run.";
+        return;
     }
     if (outcome == LoadOutcome::Loaded) {
         // What the file held first, then what was queued meanwhile.
@@ -931,7 +935,7 @@ void DownloadManager::retryLoad()
     pump();
 }
 
-void DownloadManager::quarantineState() const
+bool DownloadManager::quarantineState() const
 {
     const QString stamp = QDateTime::currentDateTimeUtc().toString(QStringLiteral("yyyyMMdd'T'HHmmss"));
     const QString target = m_deps.stateFile + QStringLiteral(".corrupt-") + stamp;
@@ -940,7 +944,9 @@ void DownloadManager::quarantineState() const
     }
     if (!QFile::rename(m_deps.stateFile, target)) {
         qCWarning(lcDownloads) << "The unreadable download list could not be set aside.";
+        return false;
     }
+    return true;
 }
 
 DownloadManager::LoadOutcome DownloadManager::readState(QList<DownloadJob>& jobs, bool& allPaused) const
