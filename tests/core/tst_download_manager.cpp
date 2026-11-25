@@ -15,6 +15,8 @@
 #include <QTest>
 
 #include <deque>
+
+#include <windows.h>
 #include <memory>
 #include <vector>
 
@@ -140,6 +142,8 @@ private slots:
     void oneSongOfAJobCanBeCancelled();
     void oneSongIsRemovedEverywhere();
     void readingTheListIsAnnounced();
+    void anUnreadableListIsSetAside();
+    void aListThatCannotBeOpenedIsNeverOverwritten();
 };
 
 void DownloadManagerTest::removeAllDeletesFilesAndDropsTransfers()
@@ -409,6 +413,78 @@ void DownloadManagerTest::readingTheListIsAnnounced()
     fixture.manager.initialize();
     QVERIFY(changed.count() >= 1);
     QVERIFY(fixture.manager.snapshot().revision != before);
+}
+
+namespace {
+
+// A one-job list, paused so nothing starts.
+QByteArray oneJobList()
+{
+    const QJsonObject item{{QStringLiteral("id"), QStringLiteral("I1")},
+                           {QStringLiteral("title"), QStringLiteral("Old")},
+                           {QStringLiteral("sourceUrl"), QStringLiteral("https://music.example.test/Old")},
+                           {QStringLiteral("state"), QStringLiteral("queued")}};
+    const QJsonObject job{{QStringLiteral("id"), QStringLiteral("J1")},
+                          {QStringLiteral("title"), QStringLiteral("Old")},
+                          {QStringLiteral("items"), QJsonArray{item}}};
+    return QJsonDocument(QJsonObject{{QStringLiteral("schemaVersion"), 1},
+                                     {QStringLiteral("allPaused"), true},
+                                     {QStringLiteral("jobs"), QJsonArray{job}}})
+        .toJson(QJsonDocument::Compact);
+}
+
+QByteArray readAll(const QString& path)
+{
+    QFile file(path);
+    return file.open(QIODevice::ReadOnly) ? file.readAll() : QByteArray();
+}
+
+} // namespace
+
+void DownloadManagerTest::anUnreadableListIsSetAside()
+{
+    Fixture fixture;
+    const QString list = fixture.folder.filePath(QStringLiteral("Downloads.json"));
+    {
+        QFile file(list);
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        file.write("{ not the list");
+    }
+    fixture.manager.initialize();
+    QVERIFY(fixture.manager.snapshot().jobs.isEmpty());
+    // The unreadable bytes are kept aside, never overwritten.
+    const QStringList aside = QDir(fixture.folder.path()).entryList({QStringLiteral("Downloads.json.corrupt-*")});
+    QCOMPARE(aside.size(), 1);
+    QCOMPARE(readAll(fixture.folder.filePath(aside.first())), QByteArray("{ not the list"));
+    fixture.manager.pauseAll();
+    QVERIFY(fixture.manager.enqueue(QStringLiteral("New"), {}, {}, {fixture.song(QStringLiteral("New"))}));
+    QVERIFY(readAll(list).contains("New"));
+}
+
+void DownloadManagerTest::aListThatCannotBeOpenedIsNeverOverwritten()
+{
+    Fixture fixture;
+    const QString list = fixture.folder.filePath(QStringLiteral("Downloads.json"));
+    {
+        QFile file(list);
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        file.write(oneJobList());
+    }
+    // Held by another program with no sharing, as a scanner might.
+    HANDLE held = CreateFileW(reinterpret_cast<const wchar_t*>(QDir::toNativeSeparators(list).utf16()), GENERIC_READ,
+                              0, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+    QVERIFY(held != INVALID_HANDLE_VALUE);
+    fixture.manager.initialize();
+    QVERIFY(fixture.manager.snapshot().jobs.isEmpty());
+    fixture.manager.pauseAll();
+    QVERIFY(fixture.manager.enqueue(QStringLiteral("New"), {}, {}, {fixture.song(QStringLiteral("New"))}));
+    CloseHandle(held);
+    // Nothing was written over it while it could not be read...
+    QCOMPARE(readAll(list), oneJobList());
+    // ...and once it reads, both the old list and the new song are kept.
+    QTRY_COMPARE_WITH_TIMEOUT(fixture.manager.snapshot().jobs.size(), 2, DownloadManager::LoadRetryMs * 3);
+    QVERIFY(readAll(list).contains("Old"));
+    QVERIFY(readAll(list).contains("New"));
 }
 
 QTEST_GUILESS_MAIN(DownloadManagerTest)

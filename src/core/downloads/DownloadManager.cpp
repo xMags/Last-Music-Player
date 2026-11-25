@@ -11,6 +11,9 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QTimer>
+#include <QLoggingCategory>
+#include <QJsonParseError>
 #include <QSaveFile>
 #include <QSet>
 #include <QUuid>
@@ -22,6 +25,8 @@ namespace lmp::core {
 namespace keys = settings::keys;
 
 namespace {
+
+Q_LOGGING_CATEGORY(lcDownloads, "lmp.downloads")
 
 [[nodiscard]] QString newId()
 {
@@ -136,20 +141,7 @@ void DownloadManager::initialize()
     m_keepRecent = m_deps.settings.boolean(keys::KeepRecentOffline, true);
     load();
     QDir().mkpath(m_root);
-    for (DownloadJob& job : m_jobs) {
-        for (DownloadItem& item : job.items) {
-            if (item.state == DownloadItemState::Completed
-                && (item.filePath.isEmpty() || !QFileInfo(item.filePath).isFile())) {
-                item.state = DownloadItemState::Queued;
-                item.filePath.clear();
-                item.format.clear();
-                item.bytesDownloaded = 0;
-                item.bytesTotal = 0;
-                item.finishedAtUnix = 0;
-                job.hidden = false;
-            }
-        }
-    }
+    requeueMissingFiles();
     refreshUsage();
     // What was read is news to every view built before this ran.
     touch();
@@ -856,17 +848,125 @@ void DownloadManager::refreshUsage()
     }
 }
 
+void DownloadManager::requeueMissingFiles()
+{
+    for (DownloadJob& job : m_jobs) {
+        for (DownloadItem& item : job.items) {
+            if (item.state == DownloadItemState::Completed
+                && (item.filePath.isEmpty() || !QFileInfo(item.filePath).isFile())) {
+                item.state = DownloadItemState::Queued;
+                item.filePath.clear();
+                item.format.clear();
+                item.bytesDownloaded = 0;
+                item.bytesTotal = 0;
+                item.finishedAtUnix = 0;
+                job.hidden = false;
+            }
+        }
+    }
+}
+
 void DownloadManager::load()
 {
+    QList<DownloadJob> jobs;
+    bool allPaused = false;
+    switch (readState(jobs, allPaused)) {
+    case LoadOutcome::Loaded:
+        m_jobs = std::move(jobs);
+        m_allPaused = allPaused;
+        return;
+    case LoadOutcome::Missing:
+        return;
+    case LoadOutcome::Unreadable:
+        qCWarning(lcDownloads) << "The download list could not be read; it was set aside and starts empty.";
+        quarantineState();
+        return;
+    case LoadOutcome::Unopenable:
+        qCWarning(lcDownloads) << "The download list could not be opened; it is read again shortly.";
+        m_saveBlocked = true;
+        m_loadRetries = 0;
+        QTimer::singleShot(LoadRetryMs, this, &DownloadManager::retryLoad);
+        return;
+    }
+}
+
+void DownloadManager::retryLoad()
+{
+    if (m_shutdown || !m_saveBlocked) {
+        return;
+    }
+    QList<DownloadJob> jobs;
+    bool allPaused = false;
+    const LoadOutcome outcome = readState(jobs, allPaused);
+    if (outcome == LoadOutcome::Unopenable) {
+        if (++m_loadRetries < LoadRetries) {
+            QTimer::singleShot(LoadRetryMs, this, &DownloadManager::retryLoad);
+        } else {
+            qCWarning(lcDownloads) << "The download list still cannot be opened; changes are not saved this run.";
+        }
+        return;
+    }
+    if (outcome == LoadOutcome::Unreadable) {
+        quarantineState();
+    }
+    if (outcome == LoadOutcome::Loaded) {
+        // What the file held first, then what was queued meanwhile.
+        QSet<QString> known;
+        for (const DownloadJob& job : std::as_const(jobs)) {
+            known.insert(job.id);
+        }
+        for (const DownloadJob& job : std::as_const(m_jobs)) {
+            if (!known.contains(job.id)) {
+                jobs.append(job);
+            }
+        }
+        m_jobs = std::move(jobs);
+        m_allPaused = allPaused || m_allPaused;
+        requeueMissingFiles();
+        refreshUsage();
+    }
+    m_saveBlocked = false;
+    save();
+    touch();
+    pump();
+}
+
+void DownloadManager::quarantineState() const
+{
+    const QString stamp = QDateTime::currentDateTimeUtc().toString(QStringLiteral("yyyyMMdd'T'HHmmss"));
+    const QString target = m_deps.stateFile + QStringLiteral(".corrupt-") + stamp;
+    if (QFileInfo::exists(target)) {
+        QFile::remove(target);
+    }
+    if (!QFile::rename(m_deps.stateFile, target)) {
+        qCWarning(lcDownloads) << "The unreadable download list could not be set aside.";
+    }
+}
+
+DownloadManager::LoadOutcome DownloadManager::readState(QList<DownloadJob>& jobs, bool& allPaused) const
+{
     QFile file(m_deps.stateFile);
+    if (!file.exists()) {
+        return LoadOutcome::Missing;
+    }
     if (!file.open(QIODevice::ReadOnly)) {
-        return;
+        return LoadOutcome::Unopenable;
     }
-    const QJsonObject root = QJsonDocument::fromJson(file.readAll()).object();
+    const QByteArray bytes = file.readAll();
+    file.close();
+    if (bytes.isEmpty()) {
+        return LoadOutcome::Missing; // an empty file held nothing
+    }
+    QJsonParseError error{};
+    const QJsonDocument document = QJsonDocument::fromJson(bytes, &error);
+    if (error.error != QJsonParseError::NoError || !document.isObject()) {
+        return LoadOutcome::Unreadable;
+    }
+    const QJsonObject root = document.object();
     if (root.value(QLatin1StringView("schemaVersion")).toDouble(0) != 1) {
-        return;
+        return LoadOutcome::Unreadable;
     }
-    m_allPaused = root.value(QLatin1StringView("allPaused")).toBool(false);
+    allPaused = root.value(QLatin1StringView("allPaused")).toBool(false);
     for (const QJsonValue& jobValue : root.value(QLatin1StringView("jobs")).toArray()) {
         const QJsonObject object = jobValue.toObject();
         DownloadJob job;
@@ -898,13 +998,18 @@ void DownloadManager::load()
             }
         }
         if (!job.id.isEmpty()) {
-            m_jobs.append(job);
+            jobs.append(job);
         }
     }
+    return LoadOutcome::Loaded;
 }
 
 void DownloadManager::save()
 {
+    // Never over a list that is there but was not read.
+    if (m_saveBlocked) {
+        return;
+    }
     QJsonArray jobs;
     for (const DownloadJob& source : std::as_const(m_jobs)) {
         QJsonArray items;
@@ -940,10 +1045,13 @@ void DownloadManager::save()
     QDir().mkpath(QFileInfo(m_deps.stateFile).absolutePath());
     QSaveFile file(m_deps.stateFile);
     if (!file.open(QIODevice::WriteOnly)) {
+        qCWarning(lcDownloads) << "The download list could not be saved:" << file.errorString();
         return;
     }
     file.write(QJsonDocument(root).toJson(QJsonDocument::Compact));
-    (void)file.commit();
+    if (!file.commit()) {
+        qCWarning(lcDownloads) << "The download list could not be saved:" << file.errorString();
+    }
 }
 
 } // namespace lmp::core

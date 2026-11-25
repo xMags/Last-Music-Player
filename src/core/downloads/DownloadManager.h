@@ -126,12 +126,21 @@ protected:
 // with the earlier message. A stream address is asked for at the start of
 // every attempt and never stored.
 //
+// Downloads.json is never overwritten with less than it held: a file that is
+// there but does not read as the list (not JSON, another schemaVersion) is
+// moved aside as "Downloads.json.corrupt-<UTC time>" before the list starts
+// empty, and a file that cannot be opened (held by another program) blocks
+// every save while the read is tried again, LoadRetries times, LoadRetryMs
+// apart; songs queued meanwhile are kept beside what it held.
+//
 // GUI thread only.
 class DownloadManager : public QObject {
     Q_OBJECT
 
 public:
     static constexpr int MaxConcurrentTransfers = 2;
+    static constexpr int LoadRetries = 5;
+    static constexpr int LoadRetryMs = 2000;
 
     struct Dependencies {
         SettingsStore& settings;
@@ -226,7 +235,14 @@ private:
                         const QString& partPath, const QString& finalPath, const QString& format,
                         const Result<IDownloadFetcher::Outcome>& outcome, qint64 startedMs);
     void refreshUsage();
+    enum class LoadOutcome { Loaded, Missing, Unopenable, Unreadable };
+    // Reads Downloads.json without changing anything here.
+    [[nodiscard]] LoadOutcome readState(QList<DownloadJob>& jobs, bool& allPaused) const;
     void load();
+    void retryLoad();
+    void quarantineState() const;
+    // A finished song whose file is gone is queued again.
+    void requeueMissingFiles();
     void save();
     void touch();
 
@@ -250,6 +266,9 @@ private:
     bool m_autoLiked = true;
     bool m_onBattery = false;
     bool m_keepRecent = true;
+    // Downloads.json is there but could not be read yet: nothing is saved.
+    bool m_saveBlocked = false;
+    int m_loadRetries = 0;
 };
 
 } // namespace lmp::core
