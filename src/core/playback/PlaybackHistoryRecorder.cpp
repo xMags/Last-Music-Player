@@ -1,5 +1,7 @@
 #include "core/playback/PlaybackHistoryRecorder.h"
 
+#include <QDateTime>
+
 #include "core/db/TrackRepository.h"
 #include "core/model/CatalogSourceKey.h"
 #include "core/net/RemoteUrlPolicy.h"
@@ -76,8 +78,14 @@ void PlaybackHistoryRecorder::record()
     }
 
     // Other writers (the history migration, sync) can raise the stored
-    // order, so the next number is taken from the database each time.
-    m_lastPlayOrder = std::max(m_lastPlayOrder, m_tracks.maxLastPlayedOrder()) + 1;
+    // order, so the next number is taken from the database each time. It is
+    // at least the time in Unix seconds: account songs are ordered by when
+    // they were played, in seconds, and History, Home and the mixes sort
+    // both kinds together (a counter alone would sort every play of a song
+    // on this PC below every account play). Earlier counters stay smaller,
+    // which is right: they were played before.
+    const auto now = static_cast<quint64>(std::max<qint64>(0, QDateTime::currentSecsSinceEpoch()));
+    m_lastPlayOrder = std::max(std::max(m_lastPlayOrder, m_tracks.maxLastPlayedOrder()) + 1, now);
     const Result<void> recorded = m_tracks.recordPlayback(m_sourceKey, m_lastPlayOrder);
     if (!recorded) {
         qCWarning(lcHistory) << "Could not record the play:" << recorded.failure().detail;

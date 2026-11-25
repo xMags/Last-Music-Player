@@ -31,8 +31,9 @@ public:
 
     // Whether the router treats `track` as remote.
     [[nodiscard]] static bool isRemote(const Track& track);
-    // A song with its own file on this PC (a downloaded copy too, which keeps
-    // the address it came from): played from the file while it is there.
+    // A song with its own file on this PC (a downloaded song too, which keeps
+    // the address it came from, and its account identity): played from the
+    // file while it is there.
     [[nodiscard]] static bool playsFromDisk(const Track& track);
 
     [[nodiscard]] QFuture<Result<QUrl>> resolve(const Track& track) override;

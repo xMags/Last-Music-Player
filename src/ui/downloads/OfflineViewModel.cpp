@@ -50,6 +50,10 @@ namespace {
     return count == 1 ? QObject::tr("1 song") : QObject::tr("%1 songs").arg(count);
 }
 
+// The file a download is, as a song of this PC. A download of an account
+// song becomes that account song where the account library has it
+// (refreshGroups): a download keeps no account id, and a remote song without
+// one has no identity in the queue.
 [[nodiscard]] core::Track playable(const core::DownloadItem& item)
 {
     core::Track track;
@@ -555,6 +559,19 @@ bool OfflineViewModel::refreshGroups()
             continue;
         }
         core::Track& song = m_detailed[index];
+        // A song downloaded through the account is still that account song:
+        // played, liked, shown and sent to other devices as it, and counted
+        // in the account's history. Its file only says where the audio is
+        // (the player finds it through the downloads). Songs from a provider
+        // key, and files of this PC, keep the shape of a file here.
+        if (found->origin == QLatin1StringView("account") && found->isRemote()) {
+            const bool liked = song.liked;
+            const QString file = song.filePath;
+            song = *found;
+            song.liked = liked;
+            song.filePath = file;
+            continue;
+        }
         if (song.genre.isEmpty()) {
             song.genre = found->genre;
         }

@@ -415,7 +415,14 @@ QFuture<Result<void>> AccountLibraryEditor::replacePlaylist(const QString& playl
 bool AccountLibraryEditor::recordAccountPlay(const Track& track, double positionSeconds)
 {
     const std::optional<AccountOperationContext> context = writableContext();
-    if (!context || !remote::track_json::isCompatibleAccountRemoteTrack(track)) {
+    if (!context) {
+        return false;
+    }
+    // A downloaded copy of an account song plays as that song: counted once,
+    // synced, and in the account's history with its other plays.
+    const std::optional<Track> song =
+        remote::track_json::isCompatibleAccountRemoteTrack(track) ? std::optional<Track>(track) : accountCopyOf(track);
+    if (!song) {
         return false;
     }
     const std::optional<UserDataOperationGate::Lease> lease = m_deps.gate.tryEnter();
@@ -425,14 +432,14 @@ bool AccountLibraryEditor::recordAccountPlay(const Track& track, double position
     db::PlaybackEventRecord event;
     event.eventId = m_deps.newEventId();
     event.accountId = context->ownerId;
-    event.remoteTrackId = track.remoteId;
-    event.track = track;
+    event.remoteTrackId = song->remoteId;
+    event.track = *song;
     event.playedAtUtc = m_deps.nowUtc();
     event.positionSeconds = std::max(0.0, positionSeconds);
     if (!m_deps.outbox.enqueuePlaybackEvent(event)) {
         return true;
     }
-    (void)m_deps.accounts.recordAccountPlayback(context->ownerId, track, positionSeconds);
+    (void)m_deps.accounts.recordAccountPlayback(context->ownerId, *song, positionSeconds);
     if (context->state == AccountSessionState::Validated) {
         m_deps.sync.scheduleMutation(MusicSyncService::Lane::History);
     }

@@ -2,6 +2,7 @@
 #include <QObject>
 #include <QSignalSpy>
 #include <QTemporaryDir>
+#include <QDateTime>
 #include <QTest>
 
 #include <memory>
@@ -182,7 +183,9 @@ void PlayerControllerRecoveryTest::historyIsRecordedAfterEightSecondsOfPlay()
     playFor(fixture, 500, position);
     QCOMPARE(recordedSpy.count(), 1);
     QCOMPARE(playCount(fixture, song), 1);
-    QCOMPARE(lastPlayedOrder(fixture, song), 1);
+    // The play order is at least the time in Unix seconds, the scale
+    // account plays are ordered on.
+    QVERIFY(lastPlayedOrder(fixture, song) >= QDateTime::currentSecsSinceEpoch() - 60);
 }
 
 void PlayerControllerRecoveryTest::historyCountsOnlyTimeSpentPlaying()
@@ -233,7 +236,7 @@ void PlayerControllerRecoveryTest::historyIsRecordedOncePerPlay()
     position = 0.0;
     playFor(fixture, 8000, position);
     QCOMPARE(recordedSpy.count(), 2);
-    QCOMPARE(lastPlayedOrder(fixture, list.at(1)), 2);
+    QVERIFY(lastPlayedOrder(fixture, list.at(1)) > lastPlayedOrder(fixture, list.at(0)));
     QCOMPARE(playCount(fixture, list.at(0)), 1);
 
     // Each round of a repeat-one song is a play of its own.
@@ -242,10 +245,11 @@ void PlayerControllerRecoveryTest::historyIsRecordedOncePerPlay()
     settle();
     fixture.audio.playing();
     position = 0.0;
+    const auto before = lastPlayedOrder(fixture, list.at(1));
     playFor(fixture, 8000, position);
     QCOMPARE(recordedSpy.count(), 3);
     QCOMPARE(playCount(fixture, list.at(1)), 2);
-    QCOMPARE(lastPlayedOrder(fixture, list.at(1)), 3);
+    QVERIFY(lastPlayedOrder(fixture, list.at(1)) > before);
 }
 
 void PlayerControllerRecoveryTest::supersededResolveIsIgnored()

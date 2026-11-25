@@ -122,6 +122,7 @@ private slots:
     void unlikeTakesEveryVersionOfTheSong();
     void likeIsRefusedWhileDataIsCleared();
     void playIsQueuedForTheHistoryLane();
+    void aDownloadedCopyPlaysAsItsAccountSong();
     void playlistIsCreatedOnTheService();
     void playlistEditsUseTheirCalls();
     void refusedEditIsReported();
@@ -221,6 +222,30 @@ void AccountLibraryEditorTest::playIsQueuedForTheHistoryLane()
     fixture.clock.advance(MusicSyncService::MutationDelay.count());
     QTRY_COMPARE(fixture.http().requestCount(QStringLiteral("/v1/music/history/batch")), 1);
     QTRY_VERIFY(fixture.outbox.loadPendingPlaybackEvents(kOwner, 100, lmp::core::db::OutboxRows::All).isEmpty());
+}
+
+void AccountLibraryEditorTest::aDownloadedCopyPlaysAsItsAccountSong()
+{
+    EditorFixture fixture;
+    QVERIFY(fixture.enterAccountMode());
+    // The account knows the song.
+    QVERIFY(fixture.editor.recordAccountPlay(accountSong(QStringLiteral("s2")), 10));
+    // Its downloaded copy: a file on this PC with the address it came from.
+    Track copy = accountSong(QString());
+    copy.sourceKind = QStringLiteral("local");
+    copy.filePath = QStringLiteral("C:/Music/Offline/Song-12345678.m4a");
+    copy.sourceUrl = accountSong(QStringLiteral("s2")).sourceUrl;
+    QVERIFY(fixture.editor.recordAccountPlay(copy, 20));
+    const QList<lmp::core::db::PlaybackEventRecord> events =
+        fixture.outbox.loadPendingPlaybackEvents(kOwner, 100, lmp::core::db::OutboxRows::All);
+    QCOMPARE(events.size(), 2);
+    QCOMPARE(events.last().remoteTrackId, QStringLiteral("s2"));
+    QCOMPARE(fixture.modes.library.number("SELECT PlayCount FROM AccountTracks WHERE RemoteId='s2';"), 2);
+    // A file the account does not know is not its play.
+    Track stranger = copy;
+    stranger.sourceUrl = QStringLiteral("https://music.example.test/t/unknown");
+    stranger.title = QStringLiteral("Unheard");
+    QVERIFY(!fixture.editor.recordAccountPlay(stranger, 5));
 }
 
 void AccountLibraryEditorTest::playlistIsCreatedOnTheService()

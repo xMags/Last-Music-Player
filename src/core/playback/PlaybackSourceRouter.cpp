@@ -24,10 +24,10 @@ bool PlaybackSourceRouter::isRemote(const Track& track)
 
 bool PlaybackSourceRouter::playsFromDisk(const Track& track)
 {
-    // A downloaded copy keeps the address it came from beside its file; the
-    // file on this PC wins while it is there.
-    return !track.isRemote() && !track.filePath.isEmpty() && !net::isHttpUrl(track.filePath)
-           && QFileInfo(track.filePath).isFile();
+    // A song with its own file here: a file of this PC, or a downloaded
+    // song (which keeps its address, and stays an account song when it came
+    // from the account). The file wins while it is there.
+    return !track.filePath.isEmpty() && !net::isHttpUrl(track.filePath) && QFileInfo(track.filePath).isFile();
 }
 
 TrackSourceResolver* PlaybackSourceRouter::remoteResolver(Result<QUrl>& refusal) const

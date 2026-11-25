@@ -19,6 +19,8 @@
 #include "core/playback/AccountTrackSourceResolver.h"
 #include "core/remote/RemoteMusicService.h"
 #include "core/playback/PlaybackSourceRouter.h"
+#include "core/playback/QueueTrackIdentity.h"
+#include "core/model/CatalogSourceKey.h"
 #include "core/remote/MediaAddresses.h"
 #include "core/settings/SettingKeys.h"
 #include "platform/INetworkStatus.h"
@@ -137,6 +139,7 @@ private slots:
     void refreshAlwaysAsksTheService();
     void routerSendsSongsByModeAndKind();
     void aDownloadedFilePlaysFromDisk();
+    void aDownloadedAccountSongStaysTheAccountSong();
     void resolveFailuresAreAnnounced();
     void remoteFailuresInARowStopWithANotice();
     void failedStreamIsFetchedAgainWhereItStopped();
@@ -533,6 +536,39 @@ void AccountPlaybackTest::aStreamThatNeverStartsIsSkipped()
     settle();
     QCOMPARE(fixture.resolver.refreshCalls, 0);
     QCOMPARE(player->currentTrack()->title, QStringLiteral("r2"));
+}
+
+void AccountPlaybackTest::aDownloadedAccountSongStaysTheAccountSong()
+{
+    QTemporaryDir folder;
+    const QString path = folder.filePath(QStringLiteral("Song-12345678.m4a"));
+    {
+        QFile file(path);
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        file.write("audio");
+    }
+    // The song as a playlist of the account has it...
+    Track fromPlaylist = remoteSong(QStringLiteral("r9"));
+    fromPlaylist.origin = QStringLiteral("account");
+    // ...and as the Offline page hands it out: the library's account song,
+    // with the downloaded file beside it.
+    Track fromOffline = fromPlaylist;
+    fromOffline.filePath = path;
+    QCOMPARE(lmp::core::catalogSourceKey(fromOffline), lmp::core::catalogSourceKey(fromPlaylist));
+    QCOMPARE(lmp::core::queueTrackIdentity(fromOffline), lmp::core::queueTrackIdentity(fromPlaylist));
+
+    // In Account mode it plays from the file, not the network.
+    lmp::test::ModeServiceFixture modes;
+    (void)modes.modes.start();
+    QVERIFY(modes.validate(QStringLiteral("owner-a")));
+    QVERIFY(modes.modes.setMode(lmp::core::mode::SourceMode::Account));
+    FakeSourceResolver local;
+    FakeSourceResolver account;
+    FakeSourceResolver provider;
+    lmp::core::PlaybackSourceRouter router(local, account, provider, modes.modes);
+    QVERIFY(resultOf(router.resolve(fromOffline)).isOk());
+    QCOMPARE(local.calls, 1);
+    QCOMPARE(account.calls, 0);
 }
 
 QTEST_GUILESS_MAIN(AccountPlaybackTest)
