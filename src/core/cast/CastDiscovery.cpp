@@ -2,7 +2,10 @@
 
 #include "platform/IDnsServiceBrowser.h"
 
+#include <QDeadlineTimer>
 #include <QSet>
+
+#include <algorithm>
 
 namespace lmp::core::cast {
 
@@ -33,8 +36,11 @@ std::optional<CastDevice> castDeviceFrom(const platform::DnsServiceRecord& recor
     return device;
 }
 
-QList<CastDevice> discoverCastDevices(platform::IDnsServiceBrowser& browser, int timeoutMs)
+QList<CastDevice> discoverCastDevices(platform::IDnsServiceBrowser& browser, int timeoutMs,
+                                     const DiscoveryLimits& limits)
 {
+    const QDeadlineTimer deadline(std::max(limits.totalMs, 0));
+    const auto stopped = [&limits]() { return limits.stop != nullptr && limits.stop->load(); };
     const std::unique_ptr<platform::IDnsBrowseOperation> browse =
         browser.beginBrowse(QString::fromLatin1(CastServiceName));
     if (!browse) {
@@ -46,12 +52,18 @@ QList<CastDevice> discoverCastDevices(platform::IDnsServiceBrowser& browser, int
 
     QList<CastDevice> devices;
     QSet<QString> seen;
-    for (const QString& instance : browse->instances()) {
+    const QStringList instances = browse->instances().mid(0, std::max(limits.maxInstances, 0));
+    for (const QString& instance : instances) {
+        const qint64 left = deadline.remainingTime();
+        if (stopped() || left == 0) {
+            break;
+        }
         const std::unique_ptr<platform::IDnsResolveOperation> resolve = browser.beginResolve(instance);
         if (!resolve) {
             continue;
         }
-        const bool completed = resolve->wait(ResolveTimeoutMs);
+        const int wait = left < 0 ? ResolveTimeoutMs : static_cast<int>(std::min<qint64>(ResolveTimeoutMs, left));
+        const bool completed = resolve->wait(wait);
         resolve->cancelAndWait();
         if (!completed) {
             continue;

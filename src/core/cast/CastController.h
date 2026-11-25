@@ -5,6 +5,7 @@
 #include "core/playback/IPlaybackSink.h"
 #include "core/playback/TrackSourceResolver.h"
 
+#include <atomic>
 #include <QFuture>
 #include <QList>
 #include <QObject>
@@ -106,6 +107,8 @@ private:
     std::optional<CastDevice> m_device;
     QList<CastDevice> m_devices;
     QFuture<QList<CastDevice>> m_scan;
+    // Stops the running scan between two resolves (set at quit).
+    std::shared_ptr<std::atomic<bool>> m_scanStop;
     Phase m_phase = Phase::Idle;
     bool m_scanning = false;
     bool m_shuttingDown = false;

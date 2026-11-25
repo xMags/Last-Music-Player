@@ -112,7 +112,11 @@ void CastController::scan()
     emit scanningChanged();
     platform::IDnsServiceBrowser* browser = &m_deps.browser;
     const int timeout = m_deps.scanTimeoutMs;
-    m_scan = QtConcurrent::run([browser, timeout]() { return discoverCastDevices(*browser, timeout); });
+    m_scanStop = std::make_shared<std::atomic<bool>>(false);
+    // The flag is shared, so the worker never reads a destroyed one.
+    m_scan = QtConcurrent::run([browser, timeout, stop = m_scanStop]() {
+        return discoverCastDevices(*browser, timeout, DiscoveryLimits{.stop = stop.get()});
+    });
     m_scan.then(this, [this](const QList<CastDevice>& devices) {
         if (m_shuttingDown) {
             return;
@@ -242,6 +246,10 @@ void CastController::shutdown()
     }
     m_shuttingDown = true;
     endSession();
+    // The scan stops at its next resolve: the wait is one resolve at most.
+    if (m_scanStop) {
+        m_scanStop->store(true);
+    }
     if (m_scan.isRunning()) {
         m_scan.waitForFinished();
     }

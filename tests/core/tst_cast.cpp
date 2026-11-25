@@ -10,6 +10,8 @@
 #include <QJsonObject>
 #include <QSignalSpy>
 #include <QTest>
+
+#include <atomic>
 #include <QtEndian>
 
 #include <map>
@@ -208,6 +210,23 @@ private slots:
         noHost.instances = {QStringLiteral("Living Room._googlecast._tcp.local")};
         noHost.records[noHost.instances.first()] = record(noHost.instances.first(), QString(), QStringLiteral("id1"));
         QVERIFY(cast::discoverCastDevices(noHost, 10).isEmpty());
+    }
+
+    void discoveryIsBoundedAndStops()
+    {
+        // Many instances: only the first ones are resolved.
+        FakeBrowser browser;
+        for (int index = 0; index < 50; ++index) {
+            const QString name = QStringLiteral("TV %1._googlecast._tcp.local").arg(index);
+            browser.instances.append(name);
+            browser.records[name] = record(name, QStringLiteral("10.0.0.%1").arg(index + 1), QStringLiteral("id%1").arg(index));
+        }
+        QCOMPARE(cast::discoverCastDevices(browser, 10, cast::DiscoveryLimits{.maxInstances = 5}).size(), 5);
+        // Told to stop, it resolves nothing more.
+        std::atomic<bool> stop{true};
+        QVERIFY(cast::discoverCastDevices(browser, 10, cast::DiscoveryLimits{.stop = &stop}).isEmpty());
+        // No time left, nothing is resolved.
+        QVERIFY(cast::discoverCastDevices(browser, 10, cast::DiscoveryLimits{.totalMs = 0}).isEmpty());
     }
 
     void discoveryKeepsOrderAndDropsDuplicateIds()
