@@ -64,6 +64,16 @@ template <typename T>
     return failure.kind == FailureKind::Cancelled;
 }
 
+// The id a play is sent under: earlier versions stored "{GUID}", which the
+// service refuses; it takes the bare GUID.
+[[nodiscard]] QString wireEventId(const QString& stored)
+{
+    if (stored.size() == 38 && stored.front() == QLatin1Char('{') && stored.back() == QLatin1Char('}')) {
+        return stored.mid(1, 36);
+    }
+    return stored;
+}
+
 [[nodiscard]] QStringList idsOf(const QList<db::PlaybackEventRecord>& events)
 {
     QStringList ids;
@@ -83,6 +93,10 @@ QFuture<MusicSyncService::Outcome> MusicSyncService::historyStep(bool failed, in
     }
     if (round >= kMaxRounds) {
         return ready(Outcome::Failed);
+    }
+    if (round == 0) {
+        // Plays refused only for an id form earlier versions used go again.
+        (void)m_deps.outbox.releaseBracedPlaybackEvents(m_context->ownerId);
     }
     QList<db::PlaybackEventRecord> events = m_deps.outbox.loadPendingPlaybackEvents(m_context->ownerId, kBatchSize);
     if (events.isEmpty()) {
@@ -108,6 +122,8 @@ QFuture<MusicSyncService::Outcome> MusicSyncService::uploadHistory(QList<db::Pla
     const QString owner = m_context->ownerId;
     QList<AccountHistoryEvent> payload;
     QStringList submitted;
+    // The service answers with the ids as they were sent.
+    QHash<QString, QString> storedFor;
     for (const db::PlaybackEventRecord& event : events) {
         std::optional<PortableAccountTrack> track = portableFromQueued(event.trackJson, event.track);
         if (!track || event.eventId.isEmpty() || event.playedAtUtc.isEmpty()) {
@@ -115,7 +131,9 @@ QFuture<MusicSyncService::Outcome> MusicSyncService::uploadHistory(QList<db::Pla
                 owner, {event.eventId}, {.category = QStringLiteral("invalid-payload"), .blocked = true});
             continue;
         }
-        payload.append({event.eventId, std::move(*track), event.playedAtUtc, event.positionSeconds});
+        const QString wire = wireEventId(event.eventId);
+        storedFor.insert(wire, event.eventId);
+        payload.append({wire, std::move(*track), event.playedAtUtc, event.positionSeconds});
         submitted.append(event.eventId);
     }
     if (submitted.isEmpty()) {
@@ -123,14 +141,17 @@ QFuture<MusicSyncService::Outcome> MusicSyncService::uploadHistory(QList<db::Pla
         return ready(Outcome::Failed);
     }
 
-    return m_deps.transport.postHistoryBatch(m_context->bearerSession, serializeHistoryBatch(payload), submitted)
+    return m_deps.transport.postHistoryBatch(m_context->bearerSession, serializeHistoryBatch(payload), storedFor.keys())
         .then(this,
-              [this, owner, events, submitted](const Result<QStringList>& answer) -> QFuture<Outcome> {
+              [this, owner, events, submitted, storedFor](const Result<QStringList>& answer) -> QFuture<Outcome> {
                   if (!isCurrent()) {
                       return ready(Outcome::Cancelled);
                   }
                   if (answer) {
-                      const QStringList& acknowledged = answer.value();
+                      QStringList acknowledged;
+                      for (const QString& wire : answer.value()) {
+                          acknowledged.append(storedFor.value(wire, wire));
+                      }
                       if (!acknowledged.isEmpty()) {
                           (void)m_deps.outbox.acknowledgePlaybackEvents(owner, acknowledged);
                       }

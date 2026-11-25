@@ -56,7 +56,9 @@ AccountLibraryEditor::AccountLibraryEditor(Dependencies dependencies, QObject* p
     }
     if (!m_deps.newEventId) {
         // The earlier app's form: a braced upper-case GUID.
-        m_deps.newEventId = [] { return QUuid::createUuid().toString(QUuid::WithBraces).toUpper(); };
+        // A bare GUID: the account service refuses any other form (braces
+        // included) as an invalid history event.
+        m_deps.newEventId = [] { return QUuid::createUuid().toString(QUuid::WithoutBraces).toUpper(); };
     }
 }
 

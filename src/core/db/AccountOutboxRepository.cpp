@@ -198,6 +198,19 @@ Result<void> AccountOutboxRepository::acknowledgePlaybackEvents(const QString& a
     return updateEach(kAcknowledgePlaybackSql, accountId, eventIds);
 }
 
+Result<void> AccountOutboxRepository::releaseBracedPlaybackEvents(const QString& accountId)
+{
+    auto prepared = m_connection.prepare(
+        "UPDATE PlaybackEvents SET IsBlocked=0, NextAttemptAtUnix=0 WHERE AccountId=? AND COALESCE(IsBlocked,0)=1 "
+        "AND LastFailureCategory='rejected' AND length(EventId)=38 AND substr(EventId,1,1)='{' "
+        "AND substr(EventId,38,1)='}';");
+    if (!prepared) {
+        return prepared.failure();
+    }
+    prepared.value().bindText(1, accountId);
+    return prepared.value().run();
+}
+
 Result<void> AccountOutboxRepository::enqueuePendingLike(const PendingLikeRecord& like)
 {
     if (like.accountId.isEmpty() || like.remoteTrackId.isEmpty() || !like.track) {

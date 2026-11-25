@@ -226,6 +226,7 @@ private slots:
     void historyIsSentAndAcknowledged();
     void refusedPlayIsFoundBySplittingTheBatch();
     void passingHistoryFailureRetriesLater();
+    void playsWithBracedIdsAreSentBare();
     void likesAreSentOneByOne();
     void refusedLikeIsBlocked();
     void pulledPreferencesApplyAndLocalChangesWin();
@@ -374,6 +375,27 @@ void MusicSyncServiceTest::passingHistoryFailureRetriesLater()
     settle();
     QTRY_COMPARE(fixture.transport.count(QStringLiteral("history")), 2);
     QTRY_VERIFY(fixture.outbox.loadPendingPlaybackEvents(kOwner, 100, lmp::core::db::OutboxRows::All).isEmpty());
+}
+
+void MusicSyncServiceTest::playsWithBracedIdsAreSentBare()
+{
+    SyncFixture fixture;
+    QVERIFY(fixture.enterAccountMode());
+    // Queued by an earlier version as "{GUID}", and refused for that.
+    const QString bare = QStringLiteral("0F8FAD5B-D9CB-469F-A165-70867728950E");
+    const QString braced = QLatin1Char('{') + bare + QLatin1Char('}');
+    QVERIFY(fixture.outbox.enqueuePlaybackEvent(playEvent(braced, QStringLiteral("s1"), QStringLiteral("2026-08-01T00:00:00Z"))));
+    QVERIFY(fixture.outbox.markPlaybackEventsFailed(kOwner, {braced},
+                                                    {.category = QStringLiteral("rejected"), .blocked = true}));
+    QStringList sent;
+    fixture.transport.history = [&sent](const QStringList& submitted) {
+        sent = submitted;
+        return answer(Result<QStringList>(submitted));
+    };
+    QCOMPARE(fixture.run(fixture.sync.requestSync(Lane::History)), std::optional<bool>(true));
+    // Sent as the bare GUID the service takes, and gone once it answered.
+    QCOMPARE(sent, QStringList{bare});
+    QVERIFY(fixture.outbox.loadPendingPlaybackEvents(kOwner, 100, lmp::core::db::OutboxRows::All).isEmpty());
 }
 
 void MusicSyncServiceTest::likesAreSentOneByOne()

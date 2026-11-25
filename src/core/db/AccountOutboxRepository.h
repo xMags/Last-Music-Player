@@ -46,6 +46,10 @@ public:
                                                         const QStringList& eventIds,
                                                         const OutboxFailureMark& failure);
     [[nodiscard]] Result<void> acknowledgePlaybackEvents(const QString& accountId, const QStringList& eventIds);
+    // Plays that earlier versions queued with a braced id ("{GUID}") and the
+    // service refused for that alone are queued again; they upload with the
+    // braces taken off (nothing else about them changes).
+    [[nodiscard]] Result<void> releaseBracedPlaybackEvents(const QString& accountId);
 
     // One row per song: a newer request replaces the waiting one and starts
     // its retries over. Makes the account's profile.
