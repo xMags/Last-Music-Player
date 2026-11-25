@@ -31,6 +31,7 @@ struct WindowsAudioOutputs::Native {
     wde::DeviceWatcher watcher{nullptr};
     wde::DeviceWatcher::Added_revoker added;
     wde::DeviceWatcher::Removed_revoker removed;
+    wde::DeviceWatcher::Updated_revoker updated;
 };
 
 WindowsAudioOutputs::WindowsAudioOutputs(QObject* parent)
@@ -55,6 +56,10 @@ WindowsAudioOutputs::WindowsAudioOutputs(QObject* parent)
                                                   [changed](const wde::DeviceWatcher&, const wde::DeviceInformation&) { changed(); });
         m_native->removed = m_native->watcher.Removed(
             winrt::auto_revoke, [changed](const wde::DeviceWatcher&, const wde::DeviceInformationUpdate&) { changed(); });
+        // Needed for Added to keep coming after the first pass (a device
+        // plugged in later), and a device's name or state may change.
+        m_native->updated = m_native->watcher.Updated(
+            winrt::auto_revoke, [changed](const wde::DeviceWatcher&, const wde::DeviceInformationUpdate&) { changed(); });
         m_native->watcher.Start();
     } catch (const winrt::hresult_error&) {
         // Without a watcher the list is read once.
@@ -70,6 +75,7 @@ WindowsAudioOutputs::~WindowsAudioOutputs()
     }
     m_native->added.revoke();
     m_native->removed.revoke();
+    m_native->updated.revoke();
     try {
         if (m_native->watcher && m_native->watcher.Status() == wde::DeviceWatcherStatus::Started) {
             m_native->watcher.Stop();
@@ -80,10 +86,12 @@ WindowsAudioOutputs::~WindowsAudioOutputs()
 
 void WindowsAudioOutputs::read()
 {
+    const quint64 number = ++m_read;
     try {
         auto operation = wde::DeviceInformation::FindAllAsync(winrt::Windows::Media::Devices::MediaDevice::GetAudioRenderSelector());
         std::weak_ptr<OutputsBridge> weak = m_native->bridge;
-        operation.Completed([weak](const wf::IAsyncOperation<wde::DeviceInformationCollection>& done, wf::AsyncStatus status) {
+        operation.Completed([weak, number](const wf::IAsyncOperation<wde::DeviceInformationCollection>& done,
+                                           wf::AsyncStatus status) {
             QList<AudioOutput> outputs;
             if (status == wf::AsyncStatus::Completed) {
                 try {
@@ -101,15 +109,18 @@ void WindowsAudioOutputs::read()
             const std::lock_guard<std::mutex> lock(bridge->mutex);
             if (WindowsAudioOutputs* owner = bridge->owner) {
                 QMetaObject::invokeMethod(
-                    owner, [owner, outputs]() { owner->apply(outputs); }, Qt::QueuedConnection);
+                    owner, [owner, outputs, number]() { owner->apply(outputs, number); }, Qt::QueuedConnection);
             }
         });
     } catch (const winrt::hresult_error&) {
     }
 }
 
-void WindowsAudioOutputs::apply(QList<AudioOutput> outputs)
+void WindowsAudioOutputs::apply(QList<AudioOutput> outputs, quint64 read)
 {
+    if (read != m_read) {
+        return; // a newer read is on its way
+    }
     m_outputs = std::move(outputs);
     emit outputsChanged();
 }
