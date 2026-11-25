@@ -1,5 +1,7 @@
 #include "core/db/TrackRepository.h"
 
+#include "core/text/StrictUtf8.h"
+
 #include "core/db/SqlTransaction.h"
 #include "core/db/TrackRows.h"
 #include "core/net/RemoteUrlPolicy.h"
@@ -149,6 +151,12 @@ Result<qint64> TrackRepository::upsertTrack(const Track& track,
 {
     if (sourceKey.isEmpty()) {
         return tx::notFound(QStringLiteral("empty source key"));
+    }
+    // A key that is not valid text (a file name with a lone surrogate) would
+    // be bound as NULL, which never matches the row it made: every scan would
+    // add another. Such a song is left out instead.
+    if (!text::encodeUtf8Strict(sourceKey)) {
+        return tx::notFound(QStringLiteral("source key is not valid text"));
     }
 
     auto prepared = m_connection.prepare(kUpsertTrackSql);

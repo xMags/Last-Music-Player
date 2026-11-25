@@ -124,6 +124,12 @@ void TrackRepositoryTest::emptySourceKeyIsRefused()
     QVERIFY(!refused.isOk());
     QCOMPARE(refused.failure().kind, FailureKind::NotFound);
     QCOMPARE(library.number("SELECT COUNT(*) FROM Tracks;"), 0);
+    // A key that is not valid text (a lone surrogate) is refused too, rather
+    // than stored under a NULL key that the next scan adds again.
+    const QString broken = QStringLiteral("local|c:/music/") + QChar(0xD800) + QStringLiteral(".mp3");
+    QVERIFY(!tracks.upsertLocalTrack(localTrack(QStringLiteral("Broken")), broken).isOk());
+    QVERIFY(!tracks.upsertLocalTrack(localTrack(QStringLiteral("Broken")), broken).isOk());
+    QCOMPARE(library.number("SELECT COUNT(*) FROM Tracks;"), 0);
     // The void operations skip an empty key without failing.
     QVERIFY(tracks.recordPlayback(QString(), 1).isOk());
     QVERIFY(tracks.setLiked(QString(), true).isOk());
