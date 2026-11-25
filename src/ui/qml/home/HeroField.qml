@@ -84,7 +84,12 @@ Item {
             }
         }
 
-        Shape {
+        // The glow: an ellipse whose radial gradient fades to nothing at its
+        // own edge (SVG's bounding-box gradient). Drawn as a 440 circle and
+        // squashed to 240 high, so the gradient is squashed with it rather
+        // than cut off at the top and bottom. It brightens and swells with
+        // the lines (hero-field-glow-pulse).
+        Item {
             id: glow
 
             x: field.magnet.x - 220
@@ -92,33 +97,46 @@ Item {
             width: 440
             height: 240
             transformOrigin: Item.Center
-            preferredRendererType: Shape.CurveRenderer
+            opacity: Motion.reduced ? 1 : 0.75
 
-            ShapePath {
-                strokeColor: "transparent"
-                fillGradient: RadialGradient {
-                    centerX: 220
-                    centerY: 120
-                    centerRadius: 220
-                    focalX: 220
-                    focalY: 120
-                    GradientStop { position: 0; color: Theme.dark ? Qt.alpha(Theme.ambient, 0.32) : Qt.rgba(1, 1, 1, 0.7) }
-                    GradientStop { position: 1; color: "transparent" }
-                }
-                PathAngleArc {
-                    centerX: 220
-                    centerY: 120
-                    radiusX: 220
-                    radiusY: 120
-                    sweepAngle: 360
+            Shape {
+                width: 440
+                height: 440
+                preferredRendererType: Shape.CurveRenderer
+                transform: Scale { yScale: 240 / 440 }
+
+                ShapePath {
+                    strokeColor: "transparent"
+                    fillGradient: RadialGradient {
+                        centerX: 220
+                        centerY: 220
+                        centerRadius: 220
+                        focalX: 220
+                        focalY: 220
+                        GradientStop { position: 0; color: Theme.dark ? Qt.alpha(Theme.ambient, 0.32) : Qt.rgba(1, 1, 1, 0.7) }
+                        GradientStop { position: 1; color: "transparent" }
+                    }
+                    PathAngleArc {
+                        centerX: 220
+                        centerY: 220
+                        radiusX: 220
+                        radiusY: 220
+                        sweepAngle: 360
+                    }
                 }
             }
 
-            SequentialAnimation on scale {
+            SequentialAnimation {
                 running: field.running && field.visible && !Motion.reduced && Motion.windowShown
                 loops: Animation.Infinite
-                NumberAnimation { from: 1; to: 1.12; duration: 3000; easing.type: Easing.InOutSine }
-                NumberAnimation { from: 1.12; to: 1; duration: 3000; easing.type: Easing.InOutSine }
+                ParallelAnimation {
+                    NumberAnimation { target: glow; property: "scale"; from: 1; to: 1.12; duration: 3000; easing.type: Easing.InOutSine }
+                    NumberAnimation { target: glow; property: "opacity"; from: 0.75; to: 1; duration: 3000; easing.type: Easing.InOutSine }
+                }
+                ParallelAnimation {
+                    NumberAnimation { target: glow; property: "scale"; from: 1.12; to: 1; duration: 3000; easing.type: Easing.InOutSine }
+                    NumberAnimation { target: glow; property: "opacity"; from: 1; to: 0.75; duration: 3000; easing.type: Easing.InOutSine }
+                }
             }
         }
 
