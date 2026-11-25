@@ -3,6 +3,7 @@
 #include "core/mode/ModeService.h"
 #include "core/net/RemoteUrlPolicy.h"
 
+#include <QFileInfo>
 #include <QFuture>
 
 namespace lmp::core {
@@ -21,6 +22,14 @@ bool PlaybackSourceRouter::isRemote(const Track& track)
     return track.isRemote() || net::isHttpUrl(track.filePath) || net::isHttpUrl(track.sourceUrl);
 }
 
+bool PlaybackSourceRouter::playsFromDisk(const Track& track)
+{
+    // A downloaded copy keeps the address it came from beside its file; the
+    // file on this PC wins while it is there.
+    return !track.isRemote() && !track.filePath.isEmpty() && !net::isHttpUrl(track.filePath)
+           && QFileInfo(track.filePath).isFile();
+}
+
 TrackSourceResolver* PlaybackSourceRouter::remoteResolver(Result<QUrl>& refusal) const
 {
     if (m_mode.accountSelected()) {
@@ -35,7 +44,7 @@ TrackSourceResolver* PlaybackSourceRouter::remoteResolver(Result<QUrl>& refusal)
 
 QFuture<Result<QUrl>> PlaybackSourceRouter::resolve(const Track& track)
 {
-    if (!isRemote(track)) {
+    if (!isRemote(track) || playsFromDisk(track)) {
         return m_local.resolve(track);
     }
     if (m_downloaded) {
@@ -52,7 +61,7 @@ QFuture<Result<QUrl>> PlaybackSourceRouter::resolve(const Track& track)
 
 QFuture<Result<QUrl>> PlaybackSourceRouter::refresh(const Track& track)
 {
-    if (!isRemote(track)) {
+    if (!isRemote(track) || playsFromDisk(track)) {
         return m_local.refresh(track);
     }
     Result<QUrl> refusal = Failure::of(FailureKind::Unknown);

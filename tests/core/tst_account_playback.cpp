@@ -4,6 +4,8 @@
 #include <QObject>
 #include <QSignalSpy>
 #include <QString>
+#include <QTemporaryDir>
+#include <QFile>
 #include <QTest>
 #include <QUrl>
 
@@ -134,6 +136,7 @@ private slots:
     void rejectedSessionSignsOut();
     void refreshAlwaysAsksTheService();
     void routerSendsSongsByModeAndKind();
+    void aDownloadedFilePlaysFromDisk();
     void resolveFailuresAreAnnounced();
     void remoteFailuresInARowStopWithANotice();
     void failedStreamIsFetchedAgainWhereItStopped();
@@ -445,6 +448,47 @@ void AccountPlaybackTest::failedRecoveryPausesOnTheSong()
     settle();
     QCOMPARE(player->currentTrack()->title, QStringLiteral("r1")); // not skipped
     QCOMPARE(player->positionSeconds(), 30.0);
+}
+
+void AccountPlaybackTest::aDownloadedFilePlaysFromDisk()
+{
+    // A song shaped as the Offline page plays it: this PC's file, with the
+    // address it was downloaded from.
+    QTemporaryDir folder;
+    const QString path = folder.filePath(QStringLiteral("Song-12345678.m4a"));
+    {
+        QFile file(path);
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        file.write("audio");
+    }
+    Track downloaded;
+    downloaded.title = QStringLiteral("Song");
+    downloaded.sourceKind = QStringLiteral("local");
+    downloaded.filePath = path;
+    downloaded.sourceUrl = QStringLiteral("https://music.example.test/song");
+
+    lmp::test::ModeServiceFixture modes;
+    (void)modes.modes.start();
+    FakeSourceResolver local;
+    FakeSourceResolver account;
+    FakeSourceResolver provider;
+    lmp::core::PlaybackSourceRouter router(local, account, provider, modes.modes);
+    // With no music source at all, the file still plays.
+    QVERIFY(resultOf(router.resolve(downloaded)).isOk());
+    QCOMPARE(local.calls, 1);
+    // In Account mode it is not streamed either.
+    QVERIFY(modes.validate(QStringLiteral("owner-a")));
+    QVERIFY(modes.modes.setMode(lmp::core::mode::SourceMode::Account));
+    QVERIFY(resultOf(router.resolve(downloaded)).isOk());
+    QCOMPARE(local.calls, 2);
+    QCOMPARE(account.calls, 0);
+    // A stopped stream of it is found again on disk, not on the network.
+    (void)resultOf(router.refresh(downloaded));
+    QCOMPARE(account.refreshCalls, 0);
+    // Its file gone, it is the network's again.
+    QVERIFY(QFile::remove(path));
+    (void)resultOf(router.resolve(downloaded));
+    QCOMPARE(account.calls, 1);
 }
 
 QTEST_GUILESS_MAIN(AccountPlaybackTest)

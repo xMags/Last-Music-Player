@@ -276,8 +276,9 @@ void PlayerController::onAudioError(quint64 loadId)
     }
     qCWarning(lcPlayer) << "The audio player could not play the song.";
     // A remote stream can stop working mid-song (its address expired, the
-    // connection dropped): it is fetched again rather than skipped.
-    if (PlaybackSourceRouter::isRemote(*m_current)) {
+    // connection dropped): it is fetched again rather than skipped. A song
+    // playing from its file on this PC has no stream to fetch again.
+    if (PlaybackSourceRouter::isRemote(*m_current) && !PlaybackSourceRouter::playsFromDisk(*m_current)) {
         recoverStream();
         return;
     }
