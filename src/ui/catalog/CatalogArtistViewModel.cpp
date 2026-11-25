@@ -1,5 +1,7 @@
 #include "ui/catalog/CatalogArtistViewModel.h"
 
+#include <optional>
+
 #include "core/catalog/CatalogPresentation.h"
 
 #include "core/account/AccountClient.h"
@@ -381,25 +383,35 @@ void CatalogArtistViewModel::toggleFollow()
     m_followBusy = true;
     emit changed();
     const std::uint64_t request = m_request;
-    const auto finish = [this, request](const core::Result<void>& result) {
+    // The write's own answer sets the button; the read after it only
+    // confirms, so a failed read cannot leave it busy or showing the old state.
+    // `followedId`: the id the write named (empty: unfollowed), or nothing
+    // when it named none and the read after it says.
+    const auto finish = [this, request](bool done, const std::optional<QString>& followedId) {
         if (request != m_request) {
             return;
         }
         m_followBusy = false;
-        if (!result) {
-            emit changed();
-            return;
+        if (done && followedId) {
+            m_followedId = *followedId;
         }
-        readFollow();
+        emit changed();
+        if (done) {
+            readFollow();
+        }
     };
     if (followed()) {
-        m_accountClient.setArtistFollowed(context->bearerSession, m_followedId, false).then(this, finish);
+        m_accountClient.setArtistFollowed(context->bearerSession, m_followedId, false)
+            .then(this, [finish](const core::Result<void>& result) {
+                finish(static_cast<bool>(result), std::optional<QString>(QString()));
+            });
         return;
     }
     m_accountClient.followArtistByIdentity(context->bearerSession, m_target.identity,
                                            m_detail ? m_detail->item.artworkUrl : QString())
         .then(this, [finish](const core::Result<QString>& result) {
-            finish(result ? core::Result<void>::success() : core::Result<void>(result.failure()));
+            const bool named = result && !result.value().isEmpty();
+            finish(static_cast<bool>(result), named ? std::optional<QString>(result.value()) : std::nullopt);
         });
 }
 
