@@ -46,6 +46,16 @@ constexpr auto kKeptFolder = QLatin1StringView("kept");
     return QDir().mkpath(path) || QFileInfo(path).isDir();
 }
 
+// Marks a cached picture as used now: the trim goes by this time. A file's
+// times can only be set through a handle that may write.
+void touch(const QString& path)
+{
+    QFile file(path);
+    if (file.open(QIODevice::ReadWrite)) {
+        (void)file.setFileTime(QDateTime::currentDateTimeUtc(), QFileDevice::FileModificationTime);
+    }
+}
+
 } // namespace
 
 ArtworkDiskCache::ArtworkDiskCache(QString folder, qint64 budgetBytes)
@@ -114,7 +124,8 @@ QFuture<std::optional<QByteArray>> ArtworkDiskCache::read(const QString& fileKey
             }
             if (!kept) {
                 // Used now: trimmed last.
-                (void)file.setFileTime(QDateTime::currentDateTimeUtc(), QFileDevice::FileModificationTime);
+                file.close();
+                touch(pathFor(fileKey, false));
             }
             return bytes;
         }
@@ -196,10 +207,7 @@ void ArtworkDiskCache::releaseNow(const QString& fileKey)
     QFile::remove(cached);
     if (makeFolder(QFileInfo(cached).absolutePath()) && QFile::rename(kept, cached)) {
         // Released now, so it counts as used now.
-        QFile file(cached);
-        if (file.open(QIODevice::ReadWrite)) {
-            (void)file.setFileTime(QDateTime::currentDateTimeUtc(), QFileDevice::FileModificationTime);
-        }
+        touch(cached);
         addCached(size);
     } else {
         QFile::remove(kept);

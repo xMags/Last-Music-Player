@@ -44,6 +44,7 @@ private slots:
     void keptPicturesStayUntilReleased();
     void releaseAllExceptFreesWhatNothingNeeds();
     void theCacheIsTrimmedToItsBudget();
+    void aPictureReadIsTrimmedLast();
 };
 
 void ArtworkDiskCacheTest::keysAreScopedAndSafe()
@@ -125,6 +126,35 @@ void ArtworkDiskCacheTest::theCacheIsTrimmedToItsBudget()
     // At most 8 bytes of cache stay (80% of the budget); kept pictures never go.
     QTRY_VERIFY(!readNow(disk, ArtworkDiskCache::fileKey(QStringLiteral("open"), QStringLiteral("artwork|0"))));
     QVERIFY(readNow(disk, kept).has_value());
+}
+
+void ArtworkDiskCacheTest::aPictureReadIsTrimmedLast()
+{
+    QTemporaryDir folder;
+    // 15 bytes: trimmed down to 12, so one 4-byte picture of four goes.
+    ArtworkDiskCache disk(folder.path(), 15);
+    const auto key = [](const char* name) {
+        return ArtworkDiskCache::fileKey(QStringLiteral("open"), QString::fromLatin1(name));
+    };
+    disk.store(key("a"), QByteArray("aaaa"));
+    QTRY_VERIFY(readNow(disk, key("a")).has_value());
+    QTest::qWait(50);
+    disk.store(key("b"), QByteArray("bbbb"));
+    QTRY_VERIFY(readNow(disk, key("b")).has_value());
+    QTest::qWait(50);
+    // A is used again: B is now the least recently used.
+    QVERIFY(readNow(disk, key("a")).has_value());
+    QTest::qWait(50);
+    disk.store(key("c"), QByteArray("cccc"));
+    QTRY_VERIFY(readNow(disk, key("c")).has_value());
+    QTest::qWait(50);
+    const auto cached = [&folder](const QString& fileKey) {
+        return QFileInfo::exists(folder.path() + QLatin1Char('/') + fileKey.left(64) + QStringLiteral("/cache/")
+                                 + fileKey.mid(65));
+    };
+    disk.store(key("d"), QByteArray("dddd"));
+    QTRY_VERIFY(!cached(key("b")));
+    QVERIFY(cached(key("a")));
 }
 
 QTEST_GUILESS_MAIN(ArtworkDiskCacheTest)
