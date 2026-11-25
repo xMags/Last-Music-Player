@@ -11,7 +11,7 @@ import LastMusicPlayer
 // accent; an unavailable row is faded, says why, and does not play.
 // Right click, the "..." button, the Menu key and Shift+F10 ask for the menu.
 // A collection page adds a compact density (46 rather than 58px in the
-// current app; here 41 rather than 53, the reference row less 12) and a
+// current app; here 41 rather than 55, the cover row less 12) and a
 // selected look; `pressModifiers` says which of Ctrl and Shift were held
 // when the click began.
 T.AbstractButton {
@@ -48,7 +48,11 @@ T.AbstractButton {
     signal likeRequested()
     signal menuRequested(point at, bool fromKeyboard)
 
-    implicitHeight: artSize + 2 * (compact ? 6 : 8) + 1
+    // .track-row: padding 8px, a 1px divider, and the taller of the cover and
+    // the two text lines (.tr-title 20px + .tr-artist 18px): 55px.
+    // Compact rows (an app-only density) stay at the 28px cover's 41px.
+    implicitHeight: compact ? artSize + 2 * 6 + 1
+                            : Math.max(artSize, Theme.lineHeightTrackTitle + Theme.lineHeightTrackArtist) + 2 * 8 + 1
     hoverEnabled: true
     focusPolicy: Qt.StrongFocus
     Accessible.name: qsTr("Play %1 by %2").arg(title).arg(artist)
@@ -215,6 +219,8 @@ T.AbstractButton {
                         Layout.maximumWidth: Math.ceil(implicitWidth)
                         text: row.title
                         font: Theme.trackTitle
+                        lineHeight: Theme.lineHeightTrackTitle
+                        lineHeightMode: Text.FixedHeight
                         color: row.playing ? Theme.accentColor : Theme.fg
                         elide: Text.ElideRight
                     }
@@ -230,6 +236,8 @@ T.AbstractButton {
                     Layout.fillWidth: true
                     text: row.unavailable ? row.unavailableReason : row.artist
                     font: Theme.trackArtist
+                    lineHeight: Theme.lineHeightTrackArtist
+                    lineHeightMode: Text.FixedHeight
                     color: row.unavailable ? Theme.danger : Theme.fgTertiary
                     elide: Text.ElideRight
                 }

@@ -60,7 +60,9 @@ Item {
     // `at` is in this item's coordinates.
     signal menuRequested(int row, point at, bool fromKeyboard)
 
-    readonly property int rowHeight: compact ? 28 + 2 * 6 + 1 : 36 + 2 * 8 + 1
+    // As TrackRow sizes itself: 41px compact, else 55px (.track-row).
+    readonly property int rowHeight: compact ? 28 + 2 * 6 + 1
+                                             : Math.max(36, Theme.lineHeightTrackTitle + Theme.lineHeightTrackArtist) + 2 * 8 + 1
     readonly property int headHeight: 41
     // The list or grid that scrolls, for keeping its position.
     readonly property Flickable view: form.item as Flickable
