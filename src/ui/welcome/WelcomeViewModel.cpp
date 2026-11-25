@@ -255,10 +255,29 @@ void WelcomeViewModel::loadArtists()
                     followed.append(artist);
                 }
             }
-            m_grid = account::withFollowedFirst(suggested, followed);
+            QList<account::WelcomeArtist> grid = account::withFollowedFirst(suggested, followed);
+            // Back and Continue load the grid again: artists picked from the
+            // earlier one (from a search too) stay on it, so they can still
+            // be unpicked, and none is counted twice.
+            QSet<QString> inGrid;
+            for (const account::WelcomeArtist& artist : std::as_const(grid)) {
+                inGrid.insert(account::artistItemKey(artist));
+            }
+            QList<account::WelcomeArtist> kept;
+            for (const account::WelcomeArtist& artist : std::as_const(m_grid)) {
+                const QString key = account::artistItemKey(artist);
+                if (m_picked.contains(key) && !inGrid.contains(key)) {
+                    kept.append(artist);
+                    inGrid.insert(key);
+                }
+            }
+            m_grid = kept + grid;
             for (const account::WelcomeArtist& artist : followed) {
-                m_picked.insert(account::artistItemKey(artist));
-                m_pickOrder.append(account::artistItemKey(artist));
+                const QString key = account::artistItemKey(artist);
+                m_picked.insert(key);
+                if (!m_pickOrder.contains(key)) {
+                    m_pickOrder.append(key);
+                }
             }
             if (m_grid.isEmpty()) {
                 // Nobody is held back by suggestions that did not come.
