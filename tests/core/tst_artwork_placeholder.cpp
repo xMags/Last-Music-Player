@@ -20,6 +20,7 @@ private slots:
     void initialsOfBlankNameIsL();
     void initialsAreCutBeforeUpperCasing();
     void tileLabelIsTheFirstCharacter();
+    void charactersOutsideTheBasicPlaneStayWhole();
 };
 
 void ArtworkPlaceholderTest::gradientIndexMatchesHandValues()
@@ -73,6 +74,14 @@ void ArtworkPlaceholderTest::tileLabelIsTheFirstCharacter()
     QCOMPARE(ArtworkPlaceholder::tileLabelFor(QStringLiteral("  hello")), QStringLiteral("h"));
     QCOMPARE(ArtworkPlaceholder::tileLabelFor(QString()), QStringLiteral("M"));
     QCOMPARE(ArtworkPlaceholder::tileLabelFor(QStringLiteral(" ")), QStringLiteral("M"));
+}
+
+void ArtworkPlaceholderTest::charactersOutsideTheBasicPlaneStayWhole()
+{
+    using lmp::core::ArtworkPlaceholder;
+    const QString note = QString(QChar(0xD83C)) + QChar(0xDFB5); // a musical note emoji, two UTF-16 units
+    QCOMPARE(ArtworkPlaceholder::tileLabelFor(note + QStringLiteral(" Song")), note);
+    QCOMPARE(ArtworkPlaceholder::initialsFor(note + QStringLiteral(" band")), note + QStringLiteral("B"));
 }
 
 QTEST_GUILESS_MAIN(ArtworkPlaceholderTest)

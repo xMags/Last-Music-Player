@@ -1,5 +1,7 @@
 #include "core/model/ArtworkPlaceholder.h"
 
+#include <algorithm>
+
 #include <QChar>
 #include <QStringList>
 
@@ -20,19 +22,33 @@ int ArtworkPlaceholder::gradientIndexForId(const QString& id, int gradientCount)
     return static_cast<int>(hash % static_cast<std::uint32_t>(gradientCount));
 }
 
+namespace {
+
+// The first character of `text` whole: a character outside the basic plane
+// (most emoji) is two UTF-16 units, and half of one draws as a box.
+[[nodiscard]] QString firstCharacter(const QString& text)
+{
+    if (text.size() >= 2 && text.at(0).isHighSurrogate() && text.at(1).isLowSurrogate()) {
+        return text.left(2);
+    }
+    return text.left(1);
+}
+
+} // namespace
+
 QString ArtworkPlaceholder::initialsFor(const QString& name)
 {
     const QStringList words = name.simplified().split(QLatin1Char(' '), Qt::SkipEmptyParts);
     if (words.isEmpty()) {
         return QStringLiteral("L");
     }
+    // The first two words' first characters. Taken before upper-casing: a
+    // letter that upper-cases to two (as the sharp s does) still counts as one.
     QString initials;
-    for (const QString& word : words) {
-        initials.append(word.front());
+    for (qsizetype index = 0; index < std::min<qsizetype>(2, words.size()); ++index) {
+        initials.append(firstCharacter(words.at(index)));
     }
-    // Cut before upper-casing: a letter that upper-cases to two (as the sharp
-    // s does) still counts as one.
-    return initials.left(2).toUpper();
+    return initials.toUpper();
 }
 
 QString ArtworkPlaceholder::tileLabelFor(const QString& title)
@@ -41,7 +57,7 @@ QString ArtworkPlaceholder::tileLabelFor(const QString& title)
     if (trimmed.isEmpty()) {
         return QStringLiteral("M");
     }
-    return trimmed.left(1);
+    return firstCharacter(trimmed);
 }
 
 } // namespace lmp::core
