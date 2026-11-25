@@ -268,10 +268,13 @@ void SearchViewModel::apply(quint64 generation, const QString& query, SearchHits
     }
 
     // The top result: an artist or album named exactly as searched, else the
-    // first song (the reference's comes from its server).
+    // first song (the reference's comes from its server). An online search's
+    // results go with it: they are not this search's.
     m_topKind.clear();
     m_topSong.reset();
     m_topKey.clear();
+    m_onlineTop.reset();
+    m_onlineCards.clear();
     auto takeTop = [this, &query](const QList<CollectionCardModel::Card>& cards, const QString& kind,
                                   const QString& label) {
         for (const CollectionCardModel::Card& card : cards) {
