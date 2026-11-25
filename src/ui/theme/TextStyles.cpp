@@ -288,7 +288,10 @@ TextStyles TextStyles::build(const FontFamilies& families)
         .mixBlurb = makeTextStyle({.family = text, .pixelSize = 12.5, .weight = kMedium, .lineHeight = 12.5 * 1.4}),
         // Browse (views.css 1855-2030): a category tile's name, the top
         // result's title and the small pill naming what it is.
-        .searchCategory = makeTextStyle({.family = text, .pixelSize = 16, .weight = kBold, .lineHeight = 16 * 1.25}),
+        // .search-category-card is a <button> that never sets its font, so the
+        // reference draws the name in the browser's button face, Arial.
+        .searchCategory = makeTextStyle({.family = FontLoader::firstAvailableFamily({QStringLiteral("Arial")}),
+                                         .pixelSize = 16, .weight = kBold, .lineHeight = 16 * 1.25}),
         .searchTopTitle = makeTextStyle(
             {.family = display, .pixelSize = 28, .weight = kBold, .lineHeight = 28 * 1.12, .letterSpacingEm = -0.01}),
         .searchTopKind = makeTextStyle({.family = text, .pixelSize = 12, .weight = kSemiBold, .letterSpacingEm = 0.02}),
