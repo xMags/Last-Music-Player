@@ -43,6 +43,7 @@ private slots:
     void emptyLibraryHasNoSections();
     void sectionsFollowTheLibrary();
     void heroIsTheLastPlay();
+    void heroFollowsANewPlay();
     void shortcutsAreWholeRows();
     void playlistPopupOffersTheNewestEight();
     void mixesAreRemadeOnlyOnANewDay();
@@ -244,6 +245,25 @@ void HomeViewModelTest::heroIsTheLastPlay()
     m_home->playHero();
     settle();
     QCOMPARE(lastOpenedTitle(m_player->audio), QStringLiteral("New"));
+}
+
+void HomeViewModelTest::heroFollowsANewPlay()
+{
+    addSong(QStringLiteral("Old"), QStringLiteral("A"), {});
+    addSong(QStringLiteral("New"), QStringLiteral("B"), {});
+    play(QStringLiteral("Old"), 1);
+    play(QStringLiteral("New"), 2);
+    m_home->refresh();
+    QCOMPARE(m_home->heroTitle(), QStringLiteral("New"));
+    // A play started while Home is open (here or from a remote) reaches the
+    // history: the hero and Listen Again follow without Home being reopened.
+    QSignalSpy changed(m_home.get(), &HomeViewModel::contentChanged);
+    play(QStringLiteral("Old"), 3);
+    emit m_controller->playRecorded(m_player->song(QStringLiteral("Old")));
+    QCOMPARE(changed.count(), 1);
+    QCOMPARE(m_home->heroTitle(), QStringLiteral("Old"));
+    QCOMPARE(m_home->listenAgain()->count(), 1);
+    QCOMPARE(m_home->listenAgain()->trackAt(0).title, QStringLiteral("New"));
 }
 
 void HomeViewModelTest::shortcutsAreWholeRows()

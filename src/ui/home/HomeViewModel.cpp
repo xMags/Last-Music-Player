@@ -3,6 +3,7 @@
 #include "ui/share/ShareController.h"
 
 #include <QColor>
+#include <algorithm>
 #include <chrono>
 
 #include "core/account/AccountSessionService.h"
@@ -63,8 +64,9 @@ HomeViewModel::HomeViewModel(Parts parts, QObject* parent)
             }
             refresh();
         });
-        // A new library may bring a new layout, mixes and shelves.
-        connect(m_sync, &core::account::MusicSyncService::libraryChanged, this, &HomeViewModel::readSections);
+        // A new library may bring a new layout, mixes and shelves, and plays
+        // made on other devices.
+        connect(m_sync, &core::account::MusicSyncService::libraryChanged, this, &HomeViewModel::followHistory);
     }
     connect(&m_mixService, &core::HomeMixService::mixesChanged, this, &HomeViewModel::readMixes);
     connect(&parts.scanner, &core::LibraryScanner::finished, this, &HomeViewModel::refresh);
@@ -77,6 +79,8 @@ HomeViewModel::HomeViewModel(Parts parts, QObject* parent)
         }
     });
     connect(&m_player, &core::PlayerController::currentTrackChanged, this, &HomeViewModel::followPlayer);
+    // Written to the library before it is announced.
+    connect(&m_player, &core::PlayerController::playRecorded, this, &HomeViewModel::followHistory);
     m_greetingTimer.setInterval(kGreetingCheck);
     connect(&m_greetingTimer, &QTimer::timeout, this, &HomeViewModel::refreshGreeting);
     m_greetingTimer.start();
@@ -145,13 +149,7 @@ void HomeViewModel::refresh()
     probe.limit = 1;
     m_empty = m_library.loadTrackPage(probe).totalCount == 0;
 
-    // The newest play leads; Listen Again holds the rest, so the hero song
-    // is not shown twice.
-    m_history = m_library.loadHistoryTracks().mid(0, ShelfLength + 1);
-    m_hero = m_history.isEmpty() ? std::nullopt : std::optional<core::Track>(m_history.constFirst());
-    m_listenAgain.setTracks(m_history.mid(1, ShelfLength));
-
-    m_mostPlayed.setTracks(m_library.loadMostPlayedTracks().mid(0, ShelfLength));
+    loadHistory();
     core::db::TrackQuery liked;
     liked.filter = QStringLiteral("Liked");
     liked.sort = QStringLiteral("DateAdded");
@@ -166,6 +164,37 @@ void HomeViewModel::refresh()
     }
     readQuickTiles();
     followPlayer();
+    readSections();
+    emit contentChanged();
+}
+
+void HomeViewModel::loadHistory()
+{
+    // The newest play leads; Listen Again holds the rest, so the hero song
+    // is not shown twice.
+    m_history = m_library.loadHistoryTracks().mid(0, ShelfLength + 1);
+    m_hero = m_history.isEmpty() ? std::nullopt : std::optional<core::Track>(m_history.constFirst());
+    // A shelf is reset only when its songs changed: a reset scrolls its row
+    // back to the start.
+    const auto keep = [](TrackListModel& shelf, QList<core::Track> tracks) {
+        const QList<core::Track>& shown = shelf.tracks();
+        const bool same = std::equal(shown.cbegin(), shown.cend(), tracks.cbegin(), tracks.cend(),
+                                     [](const core::Track& left, const core::Track& right) {
+                                         return core::catalogSourceKey(left) == core::catalogSourceKey(right);
+                                     });
+        if (!same) {
+            shelf.setTracks(std::move(tracks));
+        }
+    };
+    keep(m_listenAgain, m_history.mid(1, ShelfLength));
+    keep(m_mostPlayed, m_library.loadMostPlayedTracks().mid(0, ShelfLength));
+}
+
+void HomeViewModel::followHistory()
+{
+    loadHistory();
+    followPlayer();
+    // The sections also depend on whether there is a hero and on the history shelves.
     readSections();
     emit contentChanged();
 }

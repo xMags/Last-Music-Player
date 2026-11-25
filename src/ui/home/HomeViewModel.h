@@ -199,6 +199,11 @@ private:
     void readMixes();
     void readQuickTiles();
     void readSections();
+    // The play history: the hero song, Listen Again and Most Played.
+    void loadHistory();
+    // A play reached the history (here or, synced, on another device): the
+    // hero and the history shelves follow it while Home is open.
+    void followHistory();
     void readAccountSections();
     [[nodiscard]] bool accountHome() const;
     void followPlayer();
