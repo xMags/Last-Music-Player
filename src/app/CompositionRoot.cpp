@@ -877,6 +877,10 @@ CompositionRoot::CompositionRoot()
                      [this]() { m_sidebar.refreshPlaylists(); });
     QObject::connect(&m_session, &core::account::AccountSessionService::ownerChanged, &m_sidebar,
                      [this]() { m_sidebar.refreshPlaylists(); });
+    // Download keys name the account: the Offline page's marks and groups,
+    // made while no account was known yet, are made again.
+    QObject::connect(&m_session, &core::account::AccountSessionService::ownerChanged, &m_offline,
+                     [this]() { m_offline.refresh(); });
     // A synced account library, or a change of music source, changes what
     // the library holds.
     QObject::connect(&m_sync, &core::account::MusicSyncService::libraryChanged, &m_sync,
