@@ -82,6 +82,10 @@ WelcomeViewModel::WelcomeViewModel(Parts parts, QObject* parent)
     m_searchDelay.setInterval(350);
     connect(&m_searchDelay, &QTimer::timeout, this, &WelcomeViewModel::runSearch);
     connect(&m_sync, &account::MusicSyncService::libraryChanged, this, &WelcomeViewModel::checkAfterSync);
+    // The flow belongs to the account that opened it: signed out, or another
+    // account signed in, it goes (nothing in it could work any more, and the
+    // first-run flow has no Close). An account that is only offline keeps it.
+    connect(&m_session, &account::AccountSessionService::ownerChanged, this, &WelcomeViewModel::followOwner);
     // Opened while the stored session was still being checked: the languages
     // load once it is.
     connect(&m_session, &account::AccountSessionService::stateChanged, this, [this]() {
@@ -137,8 +141,34 @@ void WelcomeViewModel::checkAfterSync()
         });
 }
 
+void WelcomeViewModel::followOwner(const QString& ownerId)
+{
+    if (!m_visible) {
+        return;
+    }
+    // Opened while the stored session was still being checked: the account
+    // that check found is the flow's own.
+    if (m_owner.isEmpty() && !ownerId.isEmpty()) {
+        m_owner = ownerId;
+        return;
+    }
+    if (!ownerId.isEmpty() && ownerId == m_owner) {
+        return;
+    }
+    m_loads.invalidate();
+    m_searches.invalidate();
+    m_searchDelay.stop();
+    m_busy = false;
+    m_saving = false;
+    m_owner.clear();
+    m_visible = false;
+    emit visibleChanged();
+    emit changed();
+}
+
 void WelcomeViewModel::open(bool firstRun)
 {
+    m_owner = m_session.profile().id;
     m_mode = firstRun ? account::WelcomeMode::FirstRun : account::WelcomeMode::Tune;
     m_step = QStringLiteral("languages");
     m_picked.clear();

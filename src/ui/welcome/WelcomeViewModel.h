@@ -151,6 +151,7 @@ signals:
     void changed();
 
 private:
+    void followOwner(const QString& ownerId);
     void checkAfterSync();
     void loadLanguages();
     void loadArtists();
@@ -199,6 +200,9 @@ private:
     core::account::ArtistWaiver m_waiver = core::account::ArtistWaiver::None;
     bool m_busy = false;
     QString m_status;
+    // The account the flow was opened for (empty while its session was still
+    // being checked).
+    QString m_owner;
     // Accounts already checked this run.
     QSet<QString> m_checkedOwners;
     core::RequestScope m_loads;
