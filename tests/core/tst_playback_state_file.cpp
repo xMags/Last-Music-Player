@@ -112,6 +112,13 @@ void PlaybackStateFileTest::lastTrackHasThreeForms()
              QStringLiteral("remote-id:abc"));
     QCOMPARE(lmp::core::lastTrackValue(remoteSong(QString(), QStringLiteral("https://x.invalid/a"))),
              QStringLiteral("source:remote|account|https://x.invalid/a"));
+    // A downloaded account song carries its file, but is kept by its id, so
+    // the library's copy of it (no file) is found again at launch.
+    Track downloaded = remoteSong(QStringLiteral("abc"), QStringLiteral("https://x.invalid/a"));
+    downloaded.filePath = QStringLiteral("C:/Music/Offline/A-12345678.m4a");
+    QCOMPARE(lmp::core::lastTrackValue(downloaded), QStringLiteral("remote-id:abc"));
+    QVERIFY(lmp::core::matchesLastTrackValue(remoteSong(QStringLiteral("abc"), QStringLiteral("https://x.invalid/a")),
+                                             lmp::core::lastTrackValue(downloaded)));
     // A web address as the path is not a path.
     Track streamed = remoteSong(QString(), QString());
     streamed.filePath = QStringLiteral("https://x.invalid/b");

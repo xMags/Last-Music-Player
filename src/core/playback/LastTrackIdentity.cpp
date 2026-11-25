@@ -66,6 +66,11 @@ QString legacyCatalogSourceKey(const Track& track)
 
 QString lastTrackValue(const Track& track)
 {
+    // An account song first by its id: a downloaded one also carries its
+    // file, which the library's copy of the song does not.
+    if (track.isRemote() && !track.remoteId.isEmpty()) {
+        return kRemoteIdPrefix + track.remoteId;
+    }
     if (!track.filePath.isEmpty() && !net::isHttpUrl(track.filePath)) {
         return track.filePath;
     }
