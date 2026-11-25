@@ -132,6 +132,9 @@ signals:
     void artistRequested(const lmp::core::Track& track);
     void mixRequested(const lmp::core::Track& track);
     void shareRequested(const lmp::core::Track& track);
+    // Share was asked for a song that cannot be shared, and why (a line for
+    // the listener).
+    void shareRefused(const QString& reason);
 
 private:
     // The song's library row, written first when it has none.

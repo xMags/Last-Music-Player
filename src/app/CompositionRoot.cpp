@@ -778,6 +778,8 @@ CompositionRoot::CompositionRoot()
     QObject::connect(&m_mode, &core::mode::ModeService::changed, &m_playerBar, [this]() { m_playerBar.refreshLiked(); });
     QObject::connect(&m_sync, &core::account::MusicSyncService::libraryChanged, &m_playerBar,
                      [this]() { m_playerBar.refreshLiked(); });
+    QObject::connect(&m_trackActions, &core::TrackActions::shareRefused, &m_toasts,
+                     [this](const QString& reason) { m_toasts.show(reason); });
     QObject::connect(&m_playerBar, &ui::PlayerBarViewModel::shareRequested, &m_share, [this]() {
         if (const std::optional<core::Track>& track = m_player.currentTrack()) {
             m_trackActions.share(*track);

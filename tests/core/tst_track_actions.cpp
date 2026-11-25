@@ -23,6 +23,7 @@ class TrackActionsTest : public QObject {
     Q_OBJECT
 
 private slots:
+    void aRefusedShareSaysWhy();
     void init();
     void cleanup();
     void localSongsPlayRemoteOnesNeedStreaming();
@@ -173,6 +174,16 @@ void TrackActionsTest::openingPagesIsReported()
     m_actions->openArtist(m_player->song(QStringLiteral("One")));
     QCOMPARE(album.count(), 1);
     QCOMPARE(artist.count(), 1);
+}
+
+void TrackActionsTest::aRefusedShareSaysWhy()
+{
+    QSignalSpy refused(m_actions.get(), &TrackActions::shareRefused);
+    QSignalSpy requested(m_actions.get(), &TrackActions::shareRequested);
+    m_actions->share(m_player->song(QStringLiteral("One")));
+    QCOMPARE(requested.count(), 0);
+    QCOMPARE(refused.count(), 1);
+    QVERIFY(!refused.first().at(0).toString().isEmpty());
 }
 
 QTEST_MAIN(TrackActionsTest)

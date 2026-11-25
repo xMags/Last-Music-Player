@@ -67,7 +67,13 @@ void TrackActions::share(const Track& track)
 {
     if (canShare(track)) {
         emit shareRequested(track);
+        return;
     }
+    // Said, not silently dropped: a share link is an account's, and only
+    // for a song the account knows.
+    emit shareRefused(m_mode.capabilities().createShareLinks
+                          ? tr("Only songs from your account can be shared. This one is a file on this PC.")
+                          : tr("Sign in to your account to share songs."));
 }
 
 TrackActions::PageSource TrackActions::artistPageSource(const Track& track) const
