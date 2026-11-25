@@ -4,11 +4,12 @@
 
 namespace lmp::platform::windows {
 
-// IWindowPlacement with GetWindowRect, IsIconic, MonitorFromRect and
-// SetWindowPos, as the current app restored and saved its window.
+// IWindowPlacement with GetWindowRect, IsIconic, IsZoomed, MonitorFromRect
+// and SetWindowPos, as the current app restored and saved its window.
 class WindowsWindowPlacement final : public IWindowPlacement {
 public:
     [[nodiscard]] std::optional<QRect> frame(quintptr window) const override;
+    [[nodiscard]] bool maximized(quintptr window) const override;
     void apply(quintptr window, const QSize& size, const std::optional<QPoint>& position) override;
 };
 

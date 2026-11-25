@@ -17,6 +17,7 @@
 
 namespace lmp::core {
 class DownloadManager;
+class SettingsStore;
 class TrackActions;
 namespace db {
 class LibraryQueries;
@@ -124,6 +125,8 @@ public:
         std::function<bool()> canDownload;
         // The key a remote song is downloaded under (downloadStableKey).
         std::function<QString(const core::Track&)> stableKey;
+        // Keeps the tab between runs; may be missing.
+        core::SettingsStore* settings = nullptr;
     };
 
     // Everything in `parts` outlives this object.
@@ -238,6 +241,7 @@ private:
     std::function<std::optional<core::Track>()> m_currentTrack;
     std::function<bool()> m_canDownload;
     std::function<QString(const core::Track&)> m_stableKey;
+    core::SettingsStore* m_settings = nullptr;
     quintptr m_ownerWindow = 0;
     QString m_tab = QStringLiteral("songs");
     // The opened card's key on a collection tab; empty for the tab's cards.

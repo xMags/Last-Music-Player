@@ -27,6 +27,7 @@ WindowPlacement::Saved WindowPlacement::load(const SettingsStore& settings)
     if (x != INT_MIN && y != INT_MIN) {
         saved.position = QPoint(x, y);
     }
+    saved.maximized = settings.boolean(keys::WindowMaximized, false);
     return saved;
 }
 
@@ -35,11 +36,24 @@ bool WindowPlacement::save(SettingsStore& settings, const QRect& frame)
     if (!usableSize(frame.size())) {
         return false;
     }
-    settings.setInteger(keys::WindowWidth, frame.width());
-    settings.setInteger(keys::WindowHeight, frame.height());
-    settings.setInteger(keys::WindowX, frame.x());
-    settings.setInteger(keys::WindowY, frame.y());
+    // Each write saves the file, so an unchanged value is not written again.
+    const auto keep = [&settings](QLatin1StringView key, int value) {
+        if (!settings.contains(key) || settings.integer(key, 0) != value) {
+            settings.setInteger(key, value);
+        }
+    };
+    keep(keys::WindowWidth, frame.width());
+    keep(keys::WindowHeight, frame.height());
+    keep(keys::WindowX, frame.x());
+    keep(keys::WindowY, frame.y());
     return true;
+}
+
+void WindowPlacement::saveMaximized(SettingsStore& settings, bool maximized)
+{
+    if (!settings.contains(keys::WindowMaximized) || settings.boolean(keys::WindowMaximized, false) != maximized) {
+        settings.setBoolean(keys::WindowMaximized, maximized);
+    }
 }
 
 } // namespace lmp::core

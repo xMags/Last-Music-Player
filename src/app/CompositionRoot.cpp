@@ -242,6 +242,7 @@ CompositionRoot::CompositionRoot()
                                                                                                  : QString();
                          }})
     , m_windowChromeViewModel(&m_windowChrome)
+    , m_layout(&m_settings)
     , m_sidebar({.navigator = m_navigator,
                  .library = m_library,
                  .collections = m_collectionActions,
@@ -289,7 +290,8 @@ CompositionRoot::CompositionRoot()
                          [this](const QString& title, const QString& subtitle, const QString& artwork,
                                 const QList<core::Track>& tracks) {
                              return m_offline.downloadTracks(title, subtitle, artwork, tracks);
-                         }})
+                         },
+                     .settings = &m_settings})
     , m_catalogArtist({.catalog = m_catalog,
                        .client = m_catalogClient,
                        .accountClient = m_accountClient,
@@ -358,7 +360,8 @@ CompositionRoot::CompositionRoot()
                  .stableKey =
                      [this](const core::Track& track) {
                          return core::track_keys::downloadStableKey(m_remote.scopeKeyParts(), track);
-                     }})
+                     },
+                 .settings = &m_settings})
     , m_audioOutput(m_audioOutputs, m_audio, m_settings)
     , m_share([this](const QByteArray& body) { return sendAccount(core::net::HttpMethod::Post, QStringLiteral("/v1/music/shares"), body); },
               [this]() {
@@ -391,7 +394,8 @@ CompositionRoot::CompositionRoot()
                         .mode = m_mode,
                         .follows = m_artistFollows,
                         .navigator = m_navigator,
-                        .toasts = &m_toasts})
+                        .toasts = &m_toasts,
+                        .settings = &m_settings})
     , m_welcome({.client = m_accountClient,
                  .session = m_session,
                  .sync = m_sync,
@@ -1128,7 +1132,11 @@ bool CompositionRoot::showMainWindow(QQmlApplicationEngine& engine)
             m_syncScheduler.windowActivated();
         }
     });
-    window->show();
+    if (m_placementKeeper.startsMaximized()) {
+        window->showMaximized();
+    } else {
+        window->show();
+    }
     return true;
 }
 

@@ -1,7 +1,9 @@
 #include <QObject>
 #include <QSignalSpy>
+#include <QTemporaryDir>
 #include <QTest>
 
+#include "core/settings/SettingsStore.h"
 #include "ui/shell/ShellLayoutViewModel.h"
 
 using lmp::ui::ShellLayoutViewModel;
@@ -18,6 +20,7 @@ private slots:
     void railStartsClosedInANarrowWindow();
     void crossingTheDockingWidthOpensOrClosesTheRail();
     void toggleIsRemembered();
+    void railIsKeptBetweenRuns();
 };
 
 void ShellLayoutTest::sidebarWidthSteps()
@@ -121,6 +124,47 @@ void ShellLayoutTest::connectTakesTheRailAndGivesItBack()
     layout.toggleConnect();
     layout.setRailOpen(false);
     QVERIFY(!layout.connectOpen());
+}
+
+void ShellLayoutTest::railIsKeptBetweenRuns()
+{
+    QTemporaryDir folder;
+    QVERIFY(folder.isValid());
+    lmp::core::SettingsStore settings(folder.filePath(QStringLiteral("Settings.json")));
+    {
+        ShellLayoutViewModel layout(&settings);
+        layout.setWindowWidth(1400);
+        QVERIFY(layout.railOpen());
+        QCOMPARE(layout.railTab(), 0);
+        layout.toggleRail();
+        layout.setRailTab(1);
+    }
+    {
+        // The next run opens as the user left it.
+        ShellLayoutViewModel layout(&settings);
+        layout.setWindowWidth(1400);
+        QVERIFY(!layout.railOpen());
+        QCOMPARE(layout.railTab(), 1);
+        // Widening past the docking width still opens it (not a choice to keep).
+        layout.setWindowWidth(1100);
+        layout.setWindowWidth(1400);
+        QVERIFY(layout.railOpen());
+    }
+    {
+        // Opened again by the user while docked, it starts open again.
+        ShellLayoutViewModel layout(&settings);
+        layout.setWindowWidth(1400);
+        QVERIFY(!layout.railOpen());
+        layout.toggleRail();
+        QVERIFY(layout.railOpen());
+        // Closing the overlay in a narrow window is not a choice for the next run.
+        layout.setWindowWidth(1000);
+        layout.setRailOpen(true);
+        layout.setRailOpen(false);
+    }
+    ShellLayoutViewModel layout(&settings);
+    layout.setWindowWidth(1400);
+    QVERIFY(layout.railOpen());
 }
 
 QTEST_GUILESS_MAIN(ShellLayoutTest)

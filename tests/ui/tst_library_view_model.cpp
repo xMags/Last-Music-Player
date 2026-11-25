@@ -41,6 +41,7 @@ private slots:
     void anAccountLibraryIsNeverEmpty();
     void tabsReadTheLibrary();
     void tabIsKeptInTheHistoryEntry();
+    void choicesAreKeptBetweenRuns();
     void cardsOpenCollectionPages();
     void songsSortAndFilter();
     void likingUpdatesFavourites();
@@ -256,6 +257,42 @@ void LibraryViewModelTest::tabIsKeptInTheHistoryEntry()
     m_navigator->back();
     QCOMPARE(m_navigator->current().kind(), Route::Kind::Library);
     QCOMPARE(m_model->tab(), QStringLiteral("albums"));
+}
+
+void LibraryViewModelTest::choicesAreKeptBetweenRuns()
+{
+    const auto make = [this]() {
+        return std::make_unique<LibraryViewModel>(LibraryViewModel::Parts{.library = *m_queries,
+                                                                           .groups = *m_groups,
+                                                                           .actions = *m_actions,
+                                                                           .collections = *m_collectionActions,
+                                                                           .mixes = *m_mixes,
+                                                                           .player = *m_controller,
+                                                                           .scanner = *m_scanner,
+                                                                           .trackMenu = *m_menu,
+                                                                           .navigator = *m_navigator,
+                                                                           .settings = &m_player->settings});
+    };
+    std::unique_ptr<LibraryViewModel> first = make();
+    m_navigator->push(Route(Route::Kind::Library));
+    QCOMPARE(first->tab(), QStringLiteral("playlists"));
+    first->setTab(QStringLiteral("albums"));
+    first->setSongsSort(2);
+    first->setHistorySort(3);
+    first->setPlaylistFilter(QStringLiteral("auto"));
+    first.reset();
+
+    // The next run: Library opened afresh shows what the user last chose.
+    m_navigator->push(Route(Route::Kind::Settings));
+    std::unique_ptr<LibraryViewModel> next = make();
+    m_navigator->push(Route(Route::Kind::Library));
+    QCOMPARE(next->tab(), QStringLiteral("albums"));
+    QCOMPARE(next->songsSort(), 2);
+    QCOMPARE(next->historySort(), 3);
+    QCOMPARE(next->playlistFilter(), QStringLiteral("auto"));
+    // A route that names its tab still opens that tab.
+    m_navigator->push(Route(Route::Kind::Library, {{QStringLiteral("tab"), QStringLiteral("history")}}));
+    QCOMPARE(next->tab(), QStringLiteral("history"));
 }
 
 void LibraryViewModelTest::cardsOpenCollectionPages()

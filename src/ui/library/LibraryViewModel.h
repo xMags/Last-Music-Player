@@ -17,6 +17,7 @@ class CollectionActions;
 class HomeMixService;
 class LibraryScanner;
 class PlayerController;
+class SettingsStore;
 class TrackActions;
 } // namespace lmp::core
 
@@ -96,6 +97,9 @@ public:
         const core::mode::ModeService* mode = nullptr;
         ShareController* share = nullptr;
         std::function<bool(const QString&, const QString&, const QString&, const QList<core::Track>&)> download = {};
+        // Keeps the tab, the playlists filter and the sorts between runs;
+        // may be missing.
+        core::SettingsStore* settings = nullptr;
     };
 
     // Everything in `parts` is owned by the composition root and outlives this.
@@ -164,6 +168,8 @@ private:
     void followPlayer();
     void onLiked(const QString& sourceKey, bool liked);
     void followNavigator();
+    // The tab the user last chose (LibraryTab), or Playlists.
+    [[nodiscard]] QString savedTab() const;
 
     core::db::LibraryQueries& m_library;
     core::db::GroupQueries& m_groups;
@@ -183,6 +189,7 @@ private:
     const core::mode::ModeService* m_mode = nullptr;
     ShareController* m_share = nullptr;
     std::function<bool(const QString&, const QString&, const QString&, const QList<core::Track>&)> m_download;
+    core::SettingsStore* m_settings = nullptr;
     CollectionCardModel m_albums;
     CollectionCardModel m_artists;
     CollectionCardModel m_genres;

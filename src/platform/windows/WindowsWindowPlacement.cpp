@@ -26,6 +26,12 @@ std::optional<QRect> WindowsWindowPlacement::frame(quintptr window) const
     return QRect(QPoint(rect.left, rect.top), QSize(rect.right - rect.left, rect.bottom - rect.top));
 }
 
+bool WindowsWindowPlacement::maximized(quintptr window) const
+{
+    const HWND hwnd = handleOf(window);
+    return hwnd != nullptr && !IsIconic(hwnd) && IsZoomed(hwnd) != FALSE;
+}
+
 void WindowsWindowPlacement::apply(quintptr window, const QSize& size, const std::optional<QPoint>& position)
 {
     const HWND hwnd = handleOf(window);

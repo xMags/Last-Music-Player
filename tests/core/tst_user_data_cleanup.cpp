@@ -191,6 +191,14 @@ void UserDataCleanupTest::windowFrameRules()
     saved = lmp::core::WindowPlacement::load(settings);
     QCOMPARE(*saved.size, QSize(1700, 1000));
     QCOMPARE(*saved.position, QPoint(-1500, 40));
+    // Maximised: kept apart from the frame it restores to.
+    QVERIFY(!saved.maximized);
+    lmp::core::WindowPlacement::saveMaximized(settings, true);
+    saved = lmp::core::WindowPlacement::load(settings);
+    QVERIFY(saved.maximized);
+    QCOMPARE(*saved.size, QSize(1700, 1000));
+    lmp::core::WindowPlacement::saveMaximized(settings, false);
+    QVERIFY(!lmp::core::WindowPlacement::load(settings).maximized);
     settings.setInteger(lmp::core::settings::keys::WindowHeight, 500);
     QVERIFY(!lmp::core::WindowPlacement::load(settings).size);
 }

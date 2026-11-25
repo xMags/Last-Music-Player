@@ -23,6 +23,8 @@
 #include "ui/library/SystemPlaylists.h"
 #include "ui/navigation/Navigator.h"
 #include "ui/navigation/Route.h"
+#include "core/settings/SettingKeys.h"
+#include "core/settings/SettingsStore.h"
 #include "ui/player/CoverSource.h"
 #include "ui/tracks/QueryTrackSource.h"
 #include "ui/tracks/TrackMenuController.h"
@@ -37,6 +39,12 @@ const QStringList kTabs{QStringLiteral("playlists"), QStringLiteral("history"), 
 // Songs' sorts, as the current app offered them, and their query names.
 const QStringList kSongSortKeys{QStringLiteral("DateAdded"), QStringLiteral("Title"), QStringLiteral("Artist"),
                                 QStringLiteral("Duration"), QStringLiteral("MostPlayed")};
+
+// History's sorts as they are saved (LibraryHistorySort), in menu order.
+const QStringList kHistorySortKeys{QStringLiteral("Relevance"), QStringLiteral("Title"), QStringLiteral("Artist"),
+                                   QStringLiteral("Duration")};
+
+namespace keys = core::settings::keys;
 
 QString countLabel(int count)
 {
@@ -70,7 +78,22 @@ LibraryViewModel::LibraryViewModel(Parts parts, QObject* parent)
     , m_mode(parts.mode)
     , m_share(parts.share)
     , m_download(std::move(parts.download))
+    , m_settings(parts.settings)
 {
+    // The tab, filter and sorts the user last chose.
+    if (m_settings != nullptr) {
+        const QString tab = m_settings->string(keys::LibraryTab);
+        if (kTabs.contains(tab)) {
+            m_tab = tab;
+        }
+        if (m_settings->string(keys::LibraryPlaylistFilter) == QLatin1StringView("auto")) {
+            m_playlistFilter = QStringLiteral("auto");
+        }
+        m_historySort = static_cast<int>(std::max<qsizetype>(0, kHistorySortKeys.indexOf(
+                                                                    m_settings->string(keys::LibraryHistorySort))));
+        m_songsSort = static_cast<int>(std::max<qsizetype>(0, kSongSortKeys.indexOf(
+                                                                 m_settings->string(keys::LibrarySongsSort))));
+    }
     connect(&m_player, &core::PlayerController::currentTrackChanged, this, &LibraryViewModel::followPlayer);
     connect(&m_actions, &core::TrackActions::likedChanged, this, &LibraryViewModel::onLiked);
     connect(&m_actions, &core::TrackActions::playlistsChanged, this, &LibraryViewModel::readPlaylists);
@@ -109,9 +132,10 @@ void LibraryViewModel::followNavigator()
     if (m_navigator.current().kind() != Route::Kind::Library) {
         return;
     }
-    // Each history entry keeps its own tab.
+    // Each history entry keeps its own tab; Library opened afresh shows the
+    // tab the user last chose.
     const QString tab = m_navigator.current().param(QStringLiteral("tab"));
-    const QString wanted = kTabs.contains(tab) ? tab : QStringLiteral("playlists");
+    const QString wanted = kTabs.contains(tab) ? tab : savedTab();
     if (wanted != m_tab) {
         m_tab = wanted;
         emit tabChanged();
@@ -132,7 +156,16 @@ void LibraryViewModel::setTab(const QString& tab)
     }
     m_tab = tab;
     m_navigator.setCurrentParam(QStringLiteral("tab"), tab);
+    if (m_settings != nullptr) {
+        m_settings->setString(keys::LibraryTab, tab);
+    }
     emit tabChanged();
+}
+
+QString LibraryViewModel::savedTab() const
+{
+    const QString tab = m_settings != nullptr ? m_settings->string(keys::LibraryTab) : QString();
+    return kTabs.contains(tab) ? tab : QStringLiteral("playlists");
 }
 
 QVariantList LibraryViewModel::tabs() const
@@ -161,6 +194,9 @@ void LibraryViewModel::setHistorySort(int sort)
         return;
     }
     m_historySort = sort;
+    if (m_settings != nullptr) {
+        m_settings->setString(keys::LibraryHistorySort, kHistorySortKeys.value(sort));
+    }
     emit historySortChanged();
     readHistory();
 }
@@ -171,6 +207,9 @@ void LibraryViewModel::setSongsSort(int sort)
         return;
     }
     m_songsSort = sort;
+    if (m_settings != nullptr) {
+        m_settings->setString(keys::LibrarySongsSort, kSongSortKeys.value(sort));
+    }
     emit songsChanged();
     readSongs();
 }
@@ -212,6 +251,9 @@ void LibraryViewModel::setPlaylistFilter(const QString& filter)
         return;
     }
     m_playlistFilter = chosen;
+    if (m_settings != nullptr) {
+        m_settings->setString(keys::LibraryPlaylistFilter, chosen);
+    }
     // Each history entry keeps its own filter, as it keeps its tab.
     if (m_navigator.current().kind() == Route::Kind::Library) {
         m_navigator.setCurrentParam(QStringLiteral("filter"), chosen);

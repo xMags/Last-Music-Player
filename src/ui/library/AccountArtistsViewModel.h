@@ -15,6 +15,7 @@
 
 namespace lmp::core {
 class ArtistFollowService;
+class SettingsStore;
 namespace account {
 class AccountClient;
 class AccountSessionService;
@@ -66,6 +67,8 @@ public:
         Navigator& navigator;
         // Says how a Follow went; may be missing.
         ToastQueue* toasts = nullptr;
+        // Keeps the view between runs; may be missing.
+        core::SettingsStore* settings = nullptr;
     };
 
     // How long typing must pause before the search is sent.
@@ -110,6 +113,7 @@ private:
     core::ArtistFollowService& m_follows;
     Navigator& m_navigator;
     ToastQueue* m_toasts = nullptr;
+    core::SettingsStore* m_settings = nullptr;
 
     CollectionCardModel m_cards;
     // The public id of each card, by row.

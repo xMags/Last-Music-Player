@@ -5,6 +5,8 @@
 #include "core/db/LibraryQueries.h"
 #include "core/library/TrackActions.h"
 #include "core/model/DisplayTitle.h"
+#include "core/settings/SettingKeys.h"
+#include "core/settings/SettingsStore.h"
 #include "platform/IFolderPicker.h"
 #include "ui/library/SystemPlaylists.h"
 #include "ui/toasts/ToastQueue.h"
@@ -71,7 +73,15 @@ OfflineViewModel::OfflineViewModel(Parts parts, QObject* parent)
     , m_currentTrack(std::move(parts.currentTrack))
     , m_canDownload(std::move(parts.canDownload))
     , m_stableKey(std::move(parts.stableKey))
+    , m_settings(parts.settings)
 {
+    // The tab the user last chose.
+    if (m_settings != nullptr) {
+        const QString tab = m_settings->string(core::settings::keys::OfflineTab);
+        if (tabKeys().contains(tab)) {
+            m_tab = tab;
+        }
+    }
     connect(&m_downloads, &core::DownloadManager::changed, this, &OfflineViewModel::reload);
     reload();
 }
@@ -95,6 +105,9 @@ void OfflineViewModel::setTab(const QString& tab)
     }
     m_tab = chosen;
     m_groupKey.clear();
+    if (m_settings != nullptr) {
+        m_settings->setString(core::settings::keys::OfflineTab, chosen);
+    }
     refresh();
 }
 

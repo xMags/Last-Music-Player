@@ -3,6 +3,10 @@
 #include <QObject>
 #include <QtQml/qqmlregistration.h>
 
+namespace lmp::core {
+class SettingsStore;
+}
+
 namespace lmp::ui {
 
 // The shell's width steps (`App.layout`): sidebar and rail widths for the
@@ -14,8 +18,10 @@ namespace lmp::ui {
 //   width <  1180: the rail opens over the content, min(380, 88% of width)
 //   width <=  899: the sidebar collapses to a 64px icon rail
 //
-// The rail starts open; it is closed at start-up in a narrow window, and
-// crossing 1180 opens it when widening and closes it when narrowing.
+// The rail starts open, or closed when the user last closed the docked
+// rail; it is closed at start-up in a narrow window, and crossing 1180 opens
+// it when widening and closes it when narrowing. Its tab (Up Next or
+// Lyrics) is kept between runs too.
 class ShellLayoutViewModel : public QObject {
     Q_OBJECT
     QML_ELEMENT
@@ -30,13 +36,17 @@ class ShellLayoutViewModel : public QObject {
     Q_PROPERTY(bool railOpen READ railOpen WRITE setRailOpen NOTIFY changed FINAL)
     // The Connect panel (connect-ui.ts) holds the rail in place of its tabs.
     Q_PROPERTY(bool connectOpen READ connectOpen NOTIFY changed FINAL)
+    // The rail's tab, shared by its docked and overlay forms: 0 Up Next, 1 Lyrics.
+    Q_PROPERTY(int railTab READ railTab WRITE setRailTab NOTIFY railTabChanged FINAL)
 
 public:
     static constexpr int kWideMinWidth = 1500;
     static constexpr int kDockedRailMinWidth = 1180;
     static constexpr int kCollapsedMaxWidth = 899;
 
-    explicit ShellLayoutViewModel(QObject* parent = nullptr);
+    // `settings`, when given, keeps the rail's state between runs and
+    // outlives this object.
+    explicit ShellLayoutViewModel(core::SettingsStore* settings = nullptr, QObject* parent = nullptr);
 
     [[nodiscard]] qreal windowWidth() const { return m_width; }
     void setWindowWidth(qreal width);
@@ -58,8 +68,12 @@ public:
     Q_INVOKABLE void toggleConnect();
     Q_INVOKABLE void closeConnect();
 
+    [[nodiscard]] int railTab() const { return m_railTab; }
+    void setRailTab(int tab);
+
 signals:
     void changed();
+    void railTabChanged();
 
 private:
     qreal m_width = 0;
@@ -68,6 +82,10 @@ private:
     bool m_connectOpen = false;
     // The rail was closed when Connect opened in it.
     bool m_railOpenedForConnect = false;
+    core::SettingsStore* m_settings = nullptr;
+    // The user closed the docked rail (QueueRailClosed).
+    bool m_railClosedByUser = false;
+    int m_railTab = 0;
 };
 
 } // namespace lmp::ui

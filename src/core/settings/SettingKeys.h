@@ -85,6 +85,33 @@ inline constexpr QLatin1StringView FullscreenPanel{"FullscreenPanel"};
 // string "grid" or "list", default "grid". How every song list is laid out.
 // Added by this version.
 inline constexpr QLatin1StringView TrackView{"TrackView"};
+// bool, default false. The window was maximised; the frame above is then
+// the size it restores to. Added by this version.
+inline constexpr QLatin1StringView WindowMaximized{"WindowMaximized"};
+// bool, default false. The user closed the docked queue rail. Added by this
+// version.
+inline constexpr QLatin1StringView QueueRailClosed{"QueueRailClosed"};
+// string "queue" or "lyrics", default "queue". The queue rail's tab. Added by
+// this version.
+inline constexpr QLatin1StringView QueueRailTab{"QueueRailTab"};
+// string, default "playlists": "playlists", "history", "albums", "artists",
+// "genres" or "songs". The Library tab last chosen. Added by this version.
+inline constexpr QLatin1StringView LibraryTab{"LibraryTab"};
+// string "manual" or "auto", default "manual". Library's playlists filter.
+// Added by this version.
+inline constexpr QLatin1StringView LibraryPlaylistFilter{"LibraryPlaylistFilter"};
+// string "Relevance", "Title", "Artist" or "Duration", default "Relevance".
+// Library's History sort. Added by this version.
+inline constexpr QLatin1StringView LibraryHistorySort{"LibraryHistorySort"};
+// string "DateAdded", "Title", "Artist", "Duration" or "MostPlayed", default
+// "DateAdded". Library's Songs sort. Added by this version.
+inline constexpr QLatin1StringView LibrarySongsSort{"LibrarySongsSort"};
+// string, default "songs": "songs", "playlists", "history", "albums",
+// "artists" or "genres". The Offline tab last chosen. Added by this version.
+inline constexpr QLatin1StringView OfflineTab{"OfflineTab"};
+// string "default", "followed" or "all", default "default". Which account
+// artists Library's Artists tab lists. Added by this version.
+inline constexpr QLatin1StringView AccountArtistsView{"AccountArtistsView"};
 // bool. The first-run music source page: stored false when it is shown and
 // true once a source was chosen; missing until then. Added by this version.
 inline constexpr QLatin1StringView SourceChoiceSeen{"SourceChoiceSeen"};

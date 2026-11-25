@@ -25,8 +25,6 @@ Item {
     readonly property int bodyHeight: height - Theme.playerBarHeight
     readonly property bool railInColumn: App.layout.railDocked && App.layout.railOpen
     readonly property bool typing: Window.activeFocusItem instanceof TextInput || Window.activeFocusItem instanceof TextEdit
-    // The rail's tab, shared by its docked and overlay forms.
-    property int railTab: 0
     // Where keyboard focus was before the full-screen player opened.
     property Item focusBeforePlayer: null
 
@@ -152,8 +150,8 @@ Item {
             width: App.layout.railWidth
             height: shell.bodyHeight - y
             visible: shell.railInColumn
-            tab: shell.railTab
-            onTabChanged: shell.railTab = tab
+            tab: App.layout.railTab
+            onTabChanged: App.layout.railTab = tab
         }
 
         // The rail over the content in narrower windows: from the top of the
@@ -181,8 +179,8 @@ Item {
 
             RightRail {
                 anchors.fill: parent
-                tab: shell.railTab
-                onTabChanged: shell.railTab = tab
+                tab: App.layout.railTab
+                onTabChanged: App.layout.railTab = tab
 
                 // border-left: 1px solid divider
                 Rectangle {

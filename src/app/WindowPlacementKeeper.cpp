@@ -33,9 +33,11 @@ void WindowPlacementKeeper::attach(QWindow& window)
     if (saved.size) {
         m_placement.apply(static_cast<quintptr>(window.winId()), *saved.size, saved.position);
     }
+    m_maximized = saved.maximized;
     for (auto signal : {&QWindow::xChanged, &QWindow::yChanged, &QWindow::widthChanged, &QWindow::heightChanged}) {
         connect(&window, signal, &m_settle, qOverload<>(&QTimer::start));
     }
+    connect(&window, &QWindow::windowStateChanged, &m_settle, qOverload<>(&QTimer::start));
     connect(&window, &QWindow::visibleChanged, &m_settle, qOverload<>(&QTimer::start));
 }
 
@@ -45,9 +47,17 @@ void WindowPlacementKeeper::note()
     if (!m_window || !m_window->isVisible()) {
         return;
     }
-    if (const std::optional<QRect> frame = m_placement.frame(static_cast<quintptr>(m_window->winId()))) {
+    const auto handle = static_cast<quintptr>(m_window->winId());
+    const std::optional<QRect> frame = m_placement.frame(handle);
+    if (!frame) {
+        return; // minimised: neither its frame nor its state counts
+    }
+    // A maximised window keeps the frame it restores to.
+    m_maximized = m_placement.maximized(handle);
+    if (!m_maximized) {
         m_last = frame;
     }
+    save();
 }
 
 void WindowPlacementKeeper::save()
@@ -55,6 +65,7 @@ void WindowPlacementKeeper::save()
     if (m_last) {
         core::WindowPlacement::save(m_settings, *m_last);
     }
+    core::WindowPlacement::saveMaximized(m_settings, m_maximized);
 }
 
 } // namespace lmp::app

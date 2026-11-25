@@ -2,11 +2,22 @@
 
 #include <algorithm>
 
+#include "core/settings/SettingKeys.h"
+#include "core/settings/SettingsStore.h"
+
 namespace lmp::ui {
 
-ShellLayoutViewModel::ShellLayoutViewModel(QObject* parent)
+namespace keys = core::settings::keys;
+
+ShellLayoutViewModel::ShellLayoutViewModel(core::SettingsStore* settings, QObject* parent)
     : QObject(parent)
+    , m_settings(settings)
 {
+    if (m_settings == nullptr) {
+        return;
+    }
+    m_railClosedByUser = m_settings->boolean(keys::QueueRailClosed, false);
+    m_railTab = m_settings->string(keys::QueueRailTab) == QLatin1StringView("lyrics") ? 1 : 0;
 }
 
 void ShellLayoutViewModel::setWindowWidth(qreal width)
@@ -19,10 +30,9 @@ void ShellLayoutViewModel::setWindowWidth(qreal width)
     m_width = width;
     m_widthKnown = true;
     if (first) {
-        // A window that opens narrow starts with the rail closed.
-        if (!railDocked()) {
-            m_railOpen = false;
-        }
+        // A window that opens narrow starts with the rail closed; a wide
+        // one as the user last left the docked rail.
+        m_railOpen = railDocked() && !m_railClosedByUser;
     } else if (railDocked() != wasDocked) {
         // Crossing the docking width opens the rail when widening and
         // closes it when narrowing.
@@ -55,7 +65,28 @@ void ShellLayoutViewModel::setRailOpen(bool open)
         m_connectOpen = false;
         m_railOpenedForConnect = false;
     }
+    // Opening or closing the docked rail is the user's choice for the next
+    // run; the overlay in a narrow window always starts closed.
+    if (railDocked() && m_railClosedByUser != !open) {
+        m_railClosedByUser = !open;
+        if (m_settings != nullptr) {
+            m_settings->setBoolean(keys::QueueRailClosed, m_railClosedByUser);
+        }
+    }
     emit changed();
+}
+
+void ShellLayoutViewModel::setRailTab(int tab)
+{
+    const int chosen = tab == 1 ? 1 : 0;
+    if (chosen == m_railTab) {
+        return;
+    }
+    m_railTab = chosen;
+    if (m_settings != nullptr) {
+        m_settings->setString(keys::QueueRailTab, chosen == 1 ? QStringLiteral("lyrics") : QStringLiteral("queue"));
+    }
+    emit railTabChanged();
 }
 
 void ShellLayoutViewModel::toggleRail()

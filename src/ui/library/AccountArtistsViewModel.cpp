@@ -1,5 +1,7 @@
 #include "ui/library/AccountArtistsViewModel.h"
 
+#include "core/settings/SettingKeys.h"
+#include "core/settings/SettingsStore.h"
 #include "ui/toasts/ToastQueue.h"
 
 #include "core/net/UserMessages.h"
@@ -27,7 +29,15 @@ AccountArtistsViewModel::AccountArtistsViewModel(Parts parts, QObject* parent)
     , m_follows(parts.follows)
     , m_navigator(parts.navigator)
     , m_toasts(parts.toasts)
+    , m_settings(parts.settings)
 {
+    // The view the user last chose.
+    if (m_settings != nullptr) {
+        const QString view = m_settings->string(core::settings::keys::AccountArtistsView);
+        if (view == QLatin1StringView("followed") || view == QLatin1StringView("all")) {
+            m_view = view;
+        }
+    }
     m_searchDelay.setSingleShot(true);
     m_searchDelay.setInterval(SearchDelayMs);
     connect(&m_searchDelay, &QTimer::timeout, this, &AccountArtistsViewModel::reload);
@@ -108,6 +118,9 @@ void AccountArtistsViewModel::setView(const QString& view)
         return;
     }
     m_view = chosen;
+    if (m_settings != nullptr) {
+        m_settings->setString(core::settings::keys::AccountArtistsView, chosen);
+    }
     emit queryChanged();
     reload();
 }
