@@ -14,6 +14,11 @@ WheelHandler {
     id: handler
 
     required property Flickable flickable
+
+    // The user scrolled `flickable` with the wheel. The glide animates
+    // contentY, which a Flickable does not count as the user moving it (no
+    // movementStarted), so views that follow something listen here.
+    signal scrolled()
     // Where the current run of notches is heading, in `glide.target`.
     property real destination: 0
     readonly property real notch: 100 * Math.max(1, Application.styleHints.wheelScrollLines) / 3
@@ -66,6 +71,8 @@ WheelHandler {
         for (let view = handler.flickable; view; view = handler.outerView(view)) {
             if (view.interactive && handler.scroll(view, pixels)) {
                 event.accepted = true
+                if (view === handler.flickable)
+                    handler.scrolled()
                 return
             }
         }

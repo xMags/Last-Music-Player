@@ -102,7 +102,11 @@ Item {
             positionViewAtBeginning()
         }
 
-        WheelScroll { flickable: lines }
+        // A drag or the wheel: the user reads on their own.
+        WheelScroll {
+            flickable: lines
+            onScrolled: panel.follow = false
+        }
 
         NumberAnimation {
             id: scroll
