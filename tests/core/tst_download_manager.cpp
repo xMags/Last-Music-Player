@@ -11,6 +11,7 @@
 #include <QObject>
 #include <QPromise>
 #include <QTemporaryDir>
+#include <QSignalSpy>
 #include <QTest>
 
 #include <deque>
@@ -138,6 +139,7 @@ private slots:
     void removeAllDeletesFilesAndDropsTransfers();
     void oneSongOfAJobCanBeCancelled();
     void oneSongIsRemovedEverywhere();
+    void readingTheListIsAnnounced();
 };
 
 void DownloadManagerTest::removeAllDeletesFilesAndDropsTransfers()
@@ -396,6 +398,17 @@ void DownloadManagerTest::oneSongIsRemovedEverywhere()
     QVERIFY(fixture.manager.removeSong(fixture.scope + QStringLiteral("Two")));
     QVERIFY(fixture.manager.snapshot().jobs.isEmpty());
     QVERIFY(fixture.manager.removeSong(fixture.scope + QStringLiteral("Nobody")));
+}
+
+void DownloadManagerTest::readingTheListIsAnnounced()
+{
+    // Views built before the list was read (the Offline page) learn of it.
+    Fixture fixture;
+    const std::uint64_t before = fixture.manager.snapshot().revision;
+    QSignalSpy changed(&fixture.manager, &lmp::core::DownloadManager::changed);
+    fixture.manager.initialize();
+    QVERIFY(changed.count() >= 1);
+    QVERIFY(fixture.manager.snapshot().revision != before);
 }
 
 QTEST_GUILESS_MAIN(DownloadManagerTest)

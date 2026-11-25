@@ -151,6 +151,8 @@ void DownloadManager::initialize()
         }
     }
     refreshUsage();
+    // What was read is news to every view built before this ran.
+    touch();
     pump();
 }
 
