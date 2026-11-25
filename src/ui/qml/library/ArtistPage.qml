@@ -99,7 +99,6 @@ Item {
             Column {
                 id: songs
 
-                objectName: "roundedTrackRows"
                 width: parent.width
 
                 Repeater {
@@ -111,6 +110,8 @@ Item {
                         required property int index
 
                         width: songs.width
+                        roundTop: row.index === 0
+                        roundBottom: row.index === page.model.topSongs.count - 1
                         onClicked: page.model.playSong(row.index)
                         onLikeRequested: page.model.likeSong(row.index)
                         onMenuRequested: (at, fromKeyboard) => {

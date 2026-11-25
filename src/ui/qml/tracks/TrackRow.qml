@@ -45,6 +45,10 @@ T.AbstractButton {
     readonly property int artSize: compact ? 28 : 36
     property int pressModifiers: Qt.NoModifier
 
+    // The first and last row of a rounded box of rows round those corners.
+    property bool roundTop: false
+    property bool roundBottom: false
+
     signal likeRequested()
     signal menuRequested(point at, bool fromKeyboard)
 
@@ -94,18 +98,13 @@ T.AbstractButton {
     }
 
     background: Rectangle {
-        // In a rounded box of rows (a Column named "roundedTrackRows"), the
-        // first and last row follow its corners; text is never put through
-        // a clipping layer, which would blur it.
-        readonly property var rows: row.parent && row.parent.objectName === "roundedTrackRows"
-                                    ? row.parent.visibleChildren.filter(item => item.height > 0) : []
-        readonly property bool first: rows.length > 0 && rows[0] === row
-        readonly property bool last: rows.length > 0 && rows[rows.length - 1] === row
-
-        topLeftRadius: first ? 12 : 0
-        topRightRadius: first ? 12 : 0
-        bottomLeftRadius: last ? 12 : 0
-        bottomRightRadius: last ? 12 : 0
+        // In a rounded box of rows, the first and last row follow its
+        // corners (the box says which, from the row's index); text is never
+        // put through a clipping layer, which would blur it.
+        topLeftRadius: row.roundTop ? 12 : 0
+        topRightRadius: row.roundTop ? 12 : 0
+        bottomLeftRadius: row.roundBottom ? 12 : 0
+        bottomRightRadius: row.roundBottom ? 12 : 0
         clip: true
         color: row.selected ? Theme.accentSoft2
              : row.playing ? Theme.accentSel
