@@ -902,6 +902,12 @@ void CompositionRoot::showViewForReview(const QString& view)
         m_navigator.push(ui::Route(ui::Route::Kind::Shelf, {{QStringLiteral("key"), QStringLiteral("newAlbums")}}));
         return;
     }
+    if (view == QLatin1StringView("liked")) {
+        m_navigator.push(ui::Route(ui::Route::Kind::Collection, {{QStringLiteral("kind"), QStringLiteral("system")},
+                                                                 {QStringLiteral("key"), QStringLiteral("smart-liked")},
+                                                                 {QStringLiteral("title"), QStringLiteral("Liked Songs")}}));
+        return;
+    }
     if (view == QLatin1StringView("charts")) {
         m_navigator.push(ui::Route(ui::Route::Kind::Charts, {{QStringLiteral("section"), QStringLiteral("explore")}}));
         return;
