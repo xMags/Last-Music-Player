@@ -39,7 +39,9 @@ class CastController final : public QObject {
     Q_OBJECT
 
 public:
-    enum class Phase { Idle, Scanning, Connecting, Casting };
+    // The session only; a scan for devices is apart (scanning()), so a scan
+    // during a cast or a connection never changes them.
+    enum class Phase { Idle, Connecting, Casting };
     Q_ENUM(Phase)
 
     struct Dependencies {
@@ -60,6 +62,7 @@ public:
     ~CastController() override;
 
     [[nodiscard]] Phase phase() const noexcept { return m_phase; }
+    [[nodiscard]] bool scanning() const noexcept { return m_scanning; }
     [[nodiscard]] const QList<CastDevice>& devices() const noexcept { return m_devices; }
     [[nodiscard]] QString deviceName() const { return m_device ? m_device->name : QString(); }
 
@@ -78,6 +81,7 @@ public:
 
 signals:
     void phaseChanged();
+    void scanningChanged();
     void devicesChanged();
     // A one-line message for the listener (a refusal or a lost device).
     void notice(const QString& text);
@@ -103,6 +107,7 @@ private:
     QList<CastDevice> m_devices;
     QFuture<QList<CastDevice>> m_scan;
     Phase m_phase = Phase::Idle;
+    bool m_scanning = false;
     bool m_shuttingDown = false;
 };
 

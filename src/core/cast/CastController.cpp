@@ -105,10 +105,11 @@ void CastController::setPhase(Phase phase)
 
 void CastController::scan()
 {
-    if (m_shuttingDown || m_phase == Phase::Scanning || m_phase == Phase::Connecting) {
+    if (m_shuttingDown || m_scanning) {
         return;
     }
-    setPhase(Phase::Scanning);
+    m_scanning = true;
+    emit scanningChanged();
     platform::IDnsServiceBrowser* browser = &m_deps.browser;
     const int timeout = m_deps.scanTimeoutMs;
     m_scan = QtConcurrent::run([browser, timeout]() { return discoverCastDevices(*browser, timeout); });
@@ -117,8 +118,9 @@ void CastController::scan()
             return;
         }
         m_devices = devices;
+        m_scanning = false;
         emit devicesChanged();
-        setPhase(m_session && m_session->isReady() ? Phase::Casting : Phase::Idle);
+        emit scanningChanged();
     });
 }
 

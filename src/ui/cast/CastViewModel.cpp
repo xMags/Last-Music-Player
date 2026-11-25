@@ -50,6 +50,7 @@ CastViewModel::CastViewModel(core::cast::CastController& controller, core::conne
         emit stateChanged();
     });
     connect(&m_controller, &core::cast::CastController::devicesChanged, this, &CastViewModel::rebuild);
+    connect(&m_controller, &core::cast::CastController::scanningChanged, this, &CastViewModel::rebuild);
 }
 
 bool CastViewModel::active() const
@@ -219,7 +220,7 @@ void CastViewModel::rebuildPanel()
                                       devices.at(index).name, tr("Google Cast")));
             }
             if (devices.isEmpty()) {
-                m_castNote = phase == Phase::Scanning ? tr("Looking for TVs and speakers...")
+                m_castNote = m_controller.scanning() ? tr("Looking for TVs and speakers...")
                                                       : tr("No TVs or speakers found on this network.");
             }
         }
@@ -272,7 +273,7 @@ void CastViewModel::rebuild()
                       .separatorBefore = first && (casting || linked)});
         first = false;
     }
-    if (phase == Phase::Scanning) {
+    if (m_controller.scanning() && phase != Phase::Connecting) {
         items.append({.id = QStringLiteral("scanning"),
                       .label = tr("Scanning for devices…"),
                       .enabled = false,
