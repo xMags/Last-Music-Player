@@ -43,6 +43,8 @@ Item {
 
         Column {
             width: parent ? parent.width : 0
+            // .catalog-page: padding-top 2px.
+            topPadding: 2
             spacing: 16
 
             // A shelf or an artist's section (renderCatalogShelf,
