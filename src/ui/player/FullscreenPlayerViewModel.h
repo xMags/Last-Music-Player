@@ -70,6 +70,9 @@ public:
     [[nodiscard]] static QString settingForPanel(Panel panel);
 
 signals:
+    // The player is about to open: anything that must be read before it
+    // takes focus (where focus was) is read now.
+    void aboutToOpen();
     void openChanged();
     void panelChanged();
     void trackChanged();

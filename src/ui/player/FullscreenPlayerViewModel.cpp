@@ -132,6 +132,9 @@ void FullscreenPlayerViewModel::setOpen(bool open)
     if (open == m_open) {
         return;
     }
+    if (open) {
+        emit aboutToOpen();
+    }
     m_open = open;
     emit openChanged();
 }

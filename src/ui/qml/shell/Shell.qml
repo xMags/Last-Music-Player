@@ -34,20 +34,15 @@ Item {
     onWidthChanged: App.layout.windowWidth = width
     Component.onCompleted: App.layout.windowWidth = width
 
-    // Kept while the player is closed: the player takes focus as it opens,
-    // before anything here hears that it did, so it is never read then.
-    Connections {
-        target: shell.Window.window
-
-        function onActiveFocusItemChanged() {
-            const item = shell.Window.activeFocusItem
-            if (!App.fullscreen.open && item)
-                shell.focusBeforePlayer = item
-        }
-    }
-
+    // Read just before the player opens: once it is open it has taken focus
+    // (its Loader's binding runs before any handler here), and while it
+    // closes focus passes through the window itself.
     Connections {
         target: App.fullscreen
+
+        function onAboutToOpen() {
+            shell.focusBeforePlayer = shell.Window.activeFocusItem
+        }
 
         function onOpenChanged() {
             if (!App.fullscreen.open && shell.focusBeforePlayer)
