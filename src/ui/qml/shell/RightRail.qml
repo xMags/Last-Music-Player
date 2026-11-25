@@ -8,6 +8,8 @@ Rectangle {
     id: rail
 
     // 0: Up Next, 1: Lyrics.
+    // Shown from App.layout.railTab; a press writes there, never here, so
+    // the docked and the overlay rail keep following the shared setting.
     property int tab: 0
 
     color: Theme.surface
@@ -34,7 +36,7 @@ Rectangle {
         // A song sent to the queue lands on the Up Next half.
         Component.onCompleted: App.effects.addQueueTarget(tabs, 0.25, 1)
         currentIndex: rail.tab
-        onActivated: index => rail.tab = index
+        onActivated: index => App.layout.railTab = index
     }
 
     // .right-scroll: the rest of the rail, padding 0 24px 16px. Up Next

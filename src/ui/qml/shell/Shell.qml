@@ -151,7 +151,6 @@ Item {
             height: shell.bodyHeight - y
             visible: shell.railInColumn
             tab: App.layout.railTab
-            onTabChanged: App.layout.railTab = tab
         }
 
         // The rail over the content in narrower windows: from the top of the
@@ -180,8 +179,7 @@ Item {
             RightRail {
                 anchors.fill: parent
                 tab: App.layout.railTab
-                onTabChanged: App.layout.railTab = tab
-
+    
                 // border-left: 1px solid divider
                 Rectangle {
                     width: 1
