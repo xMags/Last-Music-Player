@@ -122,6 +122,7 @@ private slots:
     void queueEntriesCanMoveRemoveAndAcceptDeduplicatedAutoplayTracks();
     void shuffleExposesItsStableOrderAndKeepsThatOrderAfterAnEdit();
     void shuffleKeepsEveryUnplayedContextTrackReachable();
+    void shuffledEditsKeepWhatWasPlayedInPlayOrder();
     void removedQueueEntriesRestoreAtASafePositionWithoutDuplicatingLaterChanges();
     void aSnapshotKeepsEveryUpcomingSongOfALongQueueAndTrimsOnlyPlayedOnes();
     void aShuffledQueueRestoresInTheOrderItWasGoingToPlay();
@@ -457,6 +458,38 @@ void QueueEngineTest::anEmptyRemoteListClearsEverything()
 {
     const QList<Track> visible{track("b"), track("c")};
     QVERIFY(QueueEngine::mergeRemoteUpcoming(visible, {}, {}).isEmpty());
+}
+
+void QueueEngineTest::shuffledEditsKeepWhatWasPlayedInPlayOrder()
+{
+    // Shuffle on: a, b, c, d in the order c, a, b, d; c plays, nothing
+    // before it in that order, so nothing was played yet.
+    QueueState state;
+    state.contextQueue = tracks({QStringLiteral("a"), QStringLiteral("b"), QStringLiteral("c"), QStringLiteral("d")});
+    state.contextIndex = 2;
+    state.shuffle = true;
+    state.shuffleOrder = {2, 0, 1, 3};
+    QueueEngine core = QueueEngine::fromState(state);
+    QCOMPARE(ids(core.visibleQueue()), QStringList({QStringLiteral("a"), QStringLiteral("b"), QStringLiteral("d")}));
+    // Removing a takes it out (it was never played, so nothing keeps it).
+    const QueueEntry removed = core.visibleQueue().at(0);
+    QueueEngine edited = core.removeVisibleEntry(0);
+    QCOMPARE(ids(edited.state().contextQueue), QStringList({QStringLiteral("c"), QStringLiteral("b"), QStringLiteral("d")}));
+    // ...and Undo can put it back.
+    QCOMPARE(ids(edited.restoreVisibleEntry(0, removed).visibleQueue()),
+             QStringList({QStringLiteral("a"), QStringLiteral("b"), QStringLiteral("d")}));
+
+    // The order b, d, c, a with c playing: b and d were played, a is next.
+    state.shuffleOrder = {1, 3, 2, 0};
+    core = QueueEngine::fromState(state);
+    QCOMPARE(ids(core.visibleQueue()), QStringList({QStringLiteral("a")}));
+    edited = core.removeVisibleEntry(0);
+    // What was played stays, in the order it played; a is gone.
+    QCOMPARE(ids(edited.state().contextQueue), QStringList({QStringLiteral("b"), QStringLiteral("d"), QStringLiteral("c")}));
+    QVERIFY(edited.visibleQueue().isEmpty());
+    // Clearing what is upcoming keeps the same played songs.
+    QCOMPARE(ids(core.commitVisibleOrder({}).state().contextQueue),
+             QStringList({QStringLiteral("b"), QStringLiteral("d"), QStringLiteral("c")}));
 }
 
 QTEST_GUILESS_MAIN(QueueEngineTest)

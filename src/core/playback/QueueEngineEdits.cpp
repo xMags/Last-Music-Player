@@ -72,13 +72,17 @@ QueueEngine QueueEngine::commitVisibleOrder(const QList<Track>& visibleTracks) c
         }
     }
 
-    // Played songs keep their place before the current one, except those the
-    // new order moved ahead. With repeat-all they all come round again, so
-    // the visible list already holds every one of them.
+    // Played songs keep their place before the current one, in the order
+    // they played (with shuffle on, that is the shuffle order, not the
+    // list's), except those the new order moved ahead. With repeat-all they
+    // all come round again, so the visible list already holds every one.
     QList<Track> prior;
-    if (m_state.repeatMode != RepeatMode::All) {
+    if (m_state.repeatMode != RepeatMode::All && current) {
         const QSet<QString> moved = queueIdentitiesOf(userQueue + future);
-        for (const Track& track : slicedQueueTracks(m_state.contextQueue, 0, std::max<qsizetype>(0, m_state.contextIndex))) {
+        const QList<qsizetype> order = playOrder();
+        const qsizetype currentPosition = std::max<qsizetype>(0, order.indexOf(m_state.contextIndex));
+        for (qsizetype position = 0; position < currentPosition; ++position) {
+            const Track& track = m_state.contextQueue.at(order.at(position));
             if (!moved.contains(queueTrackIdentity(track))) {
                 prior.append(track);
             }
