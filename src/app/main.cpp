@@ -61,13 +61,23 @@ int main(int argc, char* argv[])
     if (const qsizetype at = QCoreApplication::arguments().indexOf(QStringLiteral("--grab"));
         at >= 0 && at + 1 < QCoreApplication::arguments().size()) {
         const QString file = QCoreApplication::arguments().at(at + 1);
-        QTimer::singleShot(11000, &app, [&engine, file]() {
+        // With the display off no frames run, so layout work waits for the
+        // next one; a first grab renders that frame and the saved one, a
+        // second later, shows the settled page.
+        QTimer::singleShot(11000, &app, [&app, &engine, file]() {
             const QList<QObject*> roots = engine.rootObjects();
             auto* window = roots.isEmpty() ? nullptr : qobject_cast<QQuickWindow*>(roots.constFirst());
-            if (window != nullptr && !window->grabWindow().save(file)) {
-                qWarning("Could not save the grab to %s", qPrintable(file));
+            if (window == nullptr) {
+                QCoreApplication::quit();
+                return;
             }
-            QCoreApplication::quit();
+            static_cast<void>(window->grabWindow());
+            QTimer::singleShot(1000, &app, [window, file]() {
+                if (!window->grabWindow().save(file)) {
+                    qWarning("Could not save the grab to %s", qPrintable(file));
+                }
+                QCoreApplication::quit();
+            });
         });
     }
     // For reviewing a search: the search box has no accessible role yet.
