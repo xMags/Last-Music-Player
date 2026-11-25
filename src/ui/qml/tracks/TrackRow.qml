@@ -154,155 +154,165 @@ T.AbstractButton {
         }
     }
 
-    contentItem: RowLayout {
-        opacity: row.unavailable ? 0.55 : row.offlineUnplayable ? 0.45 : 1
-        spacing: 16
+    // The dimming sits on the inner row: the page cascade animates the
+    // content item's own opacity, which would otherwise end the binding.
+    contentItem: Item {
+        implicitWidth: rowLayout.implicitWidth
+        implicitHeight: rowLayout.implicitHeight
 
-        // padding: 8px 20px
-        Item { Layout.preferredWidth: 20 - 16 }
+        RowLayout {
+            id: rowLayout
 
-        Item {
-            Layout.preferredWidth: 40
-            Layout.fillHeight: true
+            anchors.fill: parent
+            opacity: row.unavailable ? 0.55 : row.offlineUnplayable ? 0.45 : 1
+            spacing: 16
+
+            // padding: 8px 20px
+            Item { Layout.preferredWidth: 20 - 16 }
+
+            Item {
+                Layout.preferredWidth: 40
+                Layout.fillHeight: true
+
+                Text {
+                    anchors.centerIn: parent
+                    visible: !row.playing && !(row.hovered && !row.unavailable)
+                    text: row.number
+                    font: Theme.trackNumber
+                    color: Theme.fgTertiary
+                }
+
+                Icon {
+                    anchors.centerIn: parent
+                    visible: row.hovered && !row.playing
+                    name: row.unavailable ? "alert" : "play"
+                    size: 12
+                    color: row.unavailable ? Theme.danger : Theme.accentColor
+                }
+
+                EqBars {
+                    anchors.centerIn: parent
+                    visible: row.playing
+                    running: App.playerBar.playing
+                }
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                Layout.minimumWidth: 0
+                spacing: 12
+
+                ArtTile {
+                    Layout.preferredWidth: row.artSize
+                    Layout.preferredHeight: row.artSize
+                    radius: 6
+                    source: row.artworkUrl
+                    artworkId: row.artworkId
+                    label: row.artworkLabel
+                }
+
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    Layout.minimumWidth: 0
+                    spacing: 0
+
+                    // .tr-title-line: the title, its download mark 6px after.
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 6
+
+                        Text {
+                            // Rounded up: a width snapped down would elide a title that fits.
+                            Layout.fillWidth: true
+                            Layout.maximumWidth: Math.ceil(implicitWidth)
+                            text: row.title
+                            font: Theme.trackTitle
+                            lineHeight: Theme.lineHeightTrackTitle
+                            lineHeightMode: Text.FixedHeight
+                            color: row.playing ? Theme.accentColor : Theme.fg
+                            elide: Text.ElideRight
+                        }
+
+                        DownloadMark {
+                            remoteUrl: row.remoteUrl
+                        }
+
+                        Item { Layout.fillWidth: true }
+                    }
+
+                    Text {
+                        Layout.fillWidth: true
+                        text: row.unavailable ? row.unavailableReason : row.artist
+                        font: Theme.trackArtist
+                        lineHeight: Theme.lineHeightTrackArtist
+                        lineHeightMode: Text.FixedHeight
+                        color: row.unavailable ? Theme.danger : Theme.fgTertiary
+                        elide: Text.ElideRight
+                    }
+                }
+            }
 
             Text {
-                anchors.centerIn: parent
-                visible: !row.playing && !(row.hovered && !row.unavailable)
-                text: row.number
+                Layout.preferredWidth: 200
+                visible: row.albumShown
+                text: row.album
+                font: Theme.trackAlbum
+                color: Theme.fgSecondary
+                elide: Text.ElideRight
+            }
+
+            Text {
+                // The 60px time column (grid-template-columns: 40px 1fr 200px 60px 40px).
+                Layout.preferredWidth: 60
+                horizontalAlignment: Text.AlignRight
+                text: row.unavailable ? "-" : row.durationText
                 font: Theme.trackNumber
                 color: Theme.fgTertiary
             }
 
-            Icon {
-                anchors.centerIn: parent
-                visible: row.hovered && !row.playing
-                name: row.unavailable ? "alert" : "play"
-                size: 12
-                color: row.unavailable ? Theme.danger : Theme.accentColor
-            }
+            // The 40px last column holds only the 28px heart, at its start.
+            Item {
+                Layout.preferredWidth: 40
+                implicitHeight: likeButton.implicitHeight
 
-            EqBars {
-                anchors.centerIn: parent
-                visible: row.playing
-                running: App.playerBar.playing
-            }
-        }
+                IconButton {
+                    anchors.verticalCenter: parent.verticalCenter
+                    visible: row.showMore
+                    iconName: "more"
+                    shape: IconButton.Square
+                    iconSize: 14
+                    implicitWidth: 28
+                    implicitHeight: 28
+                    Accessible.name: qsTr("More options for %1").arg(row.title)
+                    ToolTip.visible: hovered
+                    ToolTip.text: qsTr("More")
+                    ToolTip.delay: 500
+                    onClicked: row.menuRequested(mapToItem(row, width / 2, height), false)
+                }
 
-        RowLayout {
-            Layout.fillWidth: true
-            Layout.minimumWidth: 0
-            spacing: 12
+                IconButton {
+                    id: likeButton
 
-            ArtTile {
-                Layout.preferredWidth: row.artSize
-                Layout.preferredHeight: row.artSize
-                radius: 6
-                source: row.artworkUrl
-                artworkId: row.artworkId
-                label: row.artworkLabel
-            }
+                    anchors.verticalCenter: parent.verticalCenter
+                    visible: row.showLike
 
-            ColumnLayout {
-                Layout.fillWidth: true
-                Layout.minimumWidth: 0
-                spacing: 0
-
-                // .tr-title-line: the title, its download mark 6px after.
-                RowLayout {
-                    Layout.fillWidth: true
-                    spacing: 6
-
-                    Text {
-                        // Rounded up: a width snapped down would elide a title that fits.
-                        Layout.fillWidth: true
-                        Layout.maximumWidth: Math.ceil(implicitWidth)
-                        text: row.title
-                        font: Theme.trackTitle
-                        lineHeight: Theme.lineHeightTrackTitle
-                        lineHeightMode: Text.FixedHeight
-                        color: row.playing ? Theme.accentColor : Theme.fg
-                        elide: Text.ElideRight
+                    iconName: row.liked ? "heart-fill" : "heart"
+                    active: row.liked
+                    shape: IconButton.Square
+                    iconSize: 14
+                    implicitWidth: 28
+                    implicitHeight: 28
+                    Accessible.name: row.liked ? qsTr("Remove from Liked Songs") : qsTr("Add to Liked Songs")
+                    onClicked: {
+                        if (!row.liked)
+                            App.effects.heartLiked(likeButton)
+                        row.likeRequested()
                     }
-
-                    DownloadMark {
-                        remoteUrl: row.remoteUrl
-                    }
-
-                    Item { Layout.fillWidth: true }
-                }
-
-                Text {
-                    Layout.fillWidth: true
-                    text: row.unavailable ? row.unavailableReason : row.artist
-                    font: Theme.trackArtist
-                    lineHeight: Theme.lineHeightTrackArtist
-                    lineHeightMode: Text.FixedHeight
-                    color: row.unavailable ? Theme.danger : Theme.fgTertiary
-                    elide: Text.ElideRight
                 }
             }
+
+            Item { Layout.preferredWidth: 20 - 16 }
         }
-
-        Text {
-            Layout.preferredWidth: 200
-            visible: row.albumShown
-            text: row.album
-            font: Theme.trackAlbum
-            color: Theme.fgSecondary
-            elide: Text.ElideRight
-        }
-
-        Text {
-            // The 60px time column (grid-template-columns: 40px 1fr 200px 60px 40px).
-            Layout.preferredWidth: 60
-            horizontalAlignment: Text.AlignRight
-            text: row.unavailable ? "-" : row.durationText
-            font: Theme.trackNumber
-            color: Theme.fgTertiary
-        }
-
-        // The 40px last column holds only the 28px heart, at its start.
-        Item {
-            Layout.preferredWidth: 40
-            implicitHeight: likeButton.implicitHeight
-
-            IconButton {
-                anchors.verticalCenter: parent.verticalCenter
-                visible: row.showMore
-                iconName: "more"
-                shape: IconButton.Square
-                iconSize: 14
-                implicitWidth: 28
-                implicitHeight: 28
-                Accessible.name: qsTr("More options for %1").arg(row.title)
-                ToolTip.visible: hovered
-                ToolTip.text: qsTr("More")
-                ToolTip.delay: 500
-                onClicked: row.menuRequested(mapToItem(row, width / 2, height), false)
-            }
-
-            IconButton {
-                id: likeButton
-
-                anchors.verticalCenter: parent.verticalCenter
-                visible: row.showLike
-
-                iconName: row.liked ? "heart-fill" : "heart"
-                active: row.liked
-                shape: IconButton.Square
-                iconSize: 14
-                implicitWidth: 28
-                implicitHeight: 28
-                Accessible.name: row.liked ? qsTr("Remove from Liked Songs") : qsTr("Add to Liked Songs")
-                onClicked: {
-                    if (!row.liked)
-                        App.effects.heartLiked(likeButton)
-                    row.likeRequested()
-                }
-            }
-        }
-
-        Item { Layout.preferredWidth: 20 - 16 }
     }
 
     // Arrives in the page cascade when the page has just opened.
