@@ -17,6 +17,13 @@ AudioOutputViewModel::AudioOutputViewModel(platform::IAudioOutputs& outputs, pla
     , m_settings(settings)
 {
     connect(&m_outputs, &platform::IAudioOutputs::outputsChanged, this, &AudioOutputViewModel::follow);
+    // The setting changed elsewhere (Reset settings clears it): the player
+    // follows it, as it does a device coming or going.
+    connect(&m_settings, &core::SettingsStore::changed, this, [this](const QString& key) {
+        if (key.isEmpty() || key == keys::OutputDeviceId) {
+            follow();
+        }
+    });
     // The stored choice at once; the player falls back to the default when
     // the system does not know it.
     m_applied = m_settings.string(keys::OutputDeviceId, QString());

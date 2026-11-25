@@ -32,6 +32,7 @@ class AudioOutputViewModelTest : public QObject {
 private slots:
     void choiceIsKeptAndApplied();
     void goneDeviceFallsBackAndReturns();
+    void resettingTheSettingMovesThePlayer();
 };
 
 void AudioOutputViewModelTest::choiceIsKeptAndApplied()
@@ -72,6 +73,22 @@ void AudioOutputViewModelTest::goneDeviceFallsBackAndReturns()
     outputs.set({{QStringLiteral("dev-a"), QStringLiteral("Speakers")}, {QStringLiteral("dev-b"), QStringLiteral("Headphones")}});
     QCOMPARE(player.outputDevices.constLast(), QStringLiteral("dev-b"));
     QCOMPARE(model.currentIndex(), 2);
+}
+
+void AudioOutputViewModelTest::resettingTheSettingMovesThePlayer()
+{
+    QTemporaryDir folder;
+    lmp::core::SettingsStore settings(folder.filePath(QStringLiteral("Settings.json")));
+    FakeOutputs outputs;
+    FakeAudioPlayer player;
+    lmp::ui::AudioOutputViewModel model(outputs, player, settings);
+    outputs.set({{QStringLiteral("dev-a"), QStringLiteral("Speakers")}, {QStringLiteral("dev-b"), QStringLiteral("Headphones")}});
+    model.choose(2);
+    QCOMPARE(player.outputDevices.constLast(), QStringLiteral("dev-b"));
+    // Reset settings (or anything else) clears the choice: the default plays.
+    QVERIFY(settings.reset());
+    QCOMPARE(player.outputDevices.constLast(), QString());
+    QCOMPARE(model.currentIndex(), 0);
 }
 
 QTEST_GUILESS_MAIN(AudioOutputViewModelTest)
