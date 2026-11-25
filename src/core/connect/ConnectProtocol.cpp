@@ -1,5 +1,7 @@
 #include "core/connect/ConnectProtocol.h"
 
+#include <limits>
+#include "core/net/Json.h"
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonValue>
@@ -28,7 +30,7 @@ namespace {
     if (!value.isDouble() || !std::isfinite(value.toDouble())) {
         return std::nullopt;
     }
-    return static_cast<qint64>(value.toDouble());
+    return json::wholeNumber(value.toDouble(), std::numeric_limits<qint64>::min(), std::numeric_limits<qint64>::max());
 }
 
 [[nodiscard]] QList<QJsonObject> trackList(const QJsonValue& value, qsizetype limit)
@@ -90,7 +92,8 @@ namespace {
     if (state.isObject()) {
         session.state = parsePlayback(state.toObject());
     }
-    session.ageMs = static_cast<qint64>(std::max(0.0, finiteNumber(object.value(QLatin1StringView("ageMs")))));
+    session.ageMs = json::wholeNumber(finiteNumber(object.value(QLatin1StringView("ageMs"))), 0,
+                                      std::numeric_limits<qint64>::max());
     return session;
 }
 

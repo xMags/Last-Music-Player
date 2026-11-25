@@ -1,5 +1,7 @@
 #include "core/connect/ConnectTracks.h"
 
+#include <limits>
+#include "core/net/Json.h"
 #include "core/account/AccountLibrarySync.h"
 #include "core/account/AccountMusicContract.h"
 #include "core/net/ArtworkUrl.h"
@@ -36,7 +38,7 @@ namespace {
     if (!(seconds > 0.0) || !std::isfinite(seconds)) {
         return {};
     }
-    const auto total = static_cast<qint64>(std::llround(seconds));
+    const qint64 total = json::wholeNumber(std::round(seconds), 0, std::numeric_limits<qint64>::max());
     return QStringLiteral("%1:%2").arg(total / 60).arg(total % 60, 2, 10, QLatin1Char('0'));
 }
 

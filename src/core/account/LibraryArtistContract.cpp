@@ -1,5 +1,6 @@
 #include "core/account/LibraryArtistContract.h"
 
+#include "core/net/Json.h"
 #include "core/net/ArtworkUrl.h"
 #include "core/net/RemoteUrlPolicy.h"
 
@@ -75,7 +76,8 @@ enum class Presence { Optional, Required };
     }
     const double number = value.toDouble();
     if (!std::isfinite(number) || number < 0.0
-        || number > static_cast<double>(std::numeric_limits<qint64>::max()) || std::floor(number) != number) {
+        // max() is 2^63 - 1, which a double rounds up to 2^63: that value is out of range too.
+        || number >= static_cast<double>(std::numeric_limits<qint64>::max()) || std::floor(number) != number) {
         return std::nullopt;
     }
     return static_cast<qint64>(number);
