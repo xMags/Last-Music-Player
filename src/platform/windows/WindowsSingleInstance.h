@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QString>
+#include <QtGlobal>
 
 #include "platform/ISingleInstance.h"
 
@@ -25,6 +26,10 @@ public:
     // The registered message a second copy posts to the running copy's
     // window (WindowsActivationRequests); 0 when it could not be registered.
     [[nodiscard]] static unsigned int activationMessage();
+    // Marks the running copy's main window, so a second copy finds that
+    // window and not another one with the same title (a folder of that name
+    // open in Explorer).
+    static void markMainWindow(quintptr window);
 
 private:
     QString m_mutexName;

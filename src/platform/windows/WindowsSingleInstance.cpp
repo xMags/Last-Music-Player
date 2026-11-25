@@ -13,7 +13,27 @@ namespace {
 
 Q_LOGGING_CATEGORY(lcSingleInstance, "lmp.platform.singleinstance")
 
+// The property the running copy sets on its main window.
+constexpr wchar_t MainWindowProperty[] = L"LastMusicPlayer.MainWindow";
+
+BOOL CALLBACK findMarkedWindow(HWND window, LPARAM found)
+{
+    if (GetPropW(window, MainWindowProperty) == nullptr) {
+        return TRUE;
+    }
+    *reinterpret_cast<HWND*>(found) = window;
+    return FALSE;
+}
+
 } // namespace
+
+void WindowsSingleInstance::markMainWindow(quintptr window)
+{
+    // Any non-null value marks it; the property goes with the window.
+    if (window != 0) {
+        SetPropW(reinterpret_cast<HWND>(window), MainWindowProperty, reinterpret_cast<HANDLE>(1));
+    }
+}
 
 WindowsSingleInstance::WindowsSingleInstance(QString mutexName, QString windowTitle)
     : m_mutexName(std::move(mutexName))
@@ -58,8 +78,14 @@ unsigned int WindowsSingleInstance::activationMessage()
 
 void WindowsSingleInstance::activateExistingWindow()
 {
-    const std::wstring title = m_windowTitle.toStdWString();
-    HWND window = FindWindowW(nullptr, title.c_str());
+    // The marked window; a copy that does not mark it (an earlier version) is
+    // found by its title.
+    HWND window = nullptr;
+    EnumWindows(&findMarkedWindow, reinterpret_cast<LPARAM>(&window));
+    if (window == nullptr) {
+        const std::wstring title = m_windowTitle.toStdWString();
+        window = FindWindowW(nullptr, title.c_str());
+    }
     if (window == nullptr) {
         return;
     }

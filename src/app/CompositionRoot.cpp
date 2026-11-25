@@ -1,4 +1,6 @@
 #include "app/CompositionRoot.h"
+
+#include "platform/windows/WindowsSingleInstance.h"
 #include "core/cast/CastTransport.h"
 #include "core/connect/ConnectProtocol.h"
 #include "core/connect/WebSocketConnectSocket.h"
@@ -1112,6 +1114,7 @@ bool CompositionRoot::showMainWindow(QQmlApplicationEngine& engine)
     m_librarySettings.setOwnerWindow(static_cast<quintptr>(window->winId()));
     m_offline.setOwnerWindow(static_cast<quintptr>(window->winId()));
     m_closeToTray.attach(window);
+    platform::windows::WindowsSingleInstance::markMainWindow(static_cast<quintptr>(window->winId()));
     // A second launch (the Start menu while this copy sits in the tray)
     // brings the window back the way the tray icon does.
     QCoreApplication::instance()->installNativeEventFilter(&m_activationRequests);
