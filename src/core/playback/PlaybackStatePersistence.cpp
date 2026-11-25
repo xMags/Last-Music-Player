@@ -101,9 +101,16 @@ void PlaybackStatePersistence::applyRestoredTrack(const PlaybackState& state, co
     if (player.currentTrack()) {
         return; // something was started meanwhile
     }
+    // Downloaded copies saved by earlier versions come back as the account
+    // songs they are (the Offline page now hands those out).
+    PlaybackState saved = state;
+    Track current = track;
+    if (holdsDownloadedCopies(saved, current)) {
+        restoreAccountSongs(saved, current, m_services.library.loadTracks());
+    }
     const QueueEngine queue =
-        restoredQueue(state, track, player.shuffle(), player.repeatMode(), systemQueueRandom());
-    player.restore(queue, track, resumeStartSeconds(track));
+        restoredQueue(saved, current, player.shuffle(), player.repeatMode(), systemQueueRandom());
+    player.restore(queue, current, resumeStartSeconds(current));
 }
 
 void PlaybackStatePersistence::finishRestore()

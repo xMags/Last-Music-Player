@@ -37,6 +37,15 @@ class TrackRepository;
 // played long enough to reach the history).
 [[nodiscard]] std::optional<Track> findLastTrack(const PlaybackState& state, const QList<Track>& history);
 
+// Whether the saved song or queue holds a downloaded copy of a song as a
+// file (earlier versions queued them so from the Offline page).
+[[nodiscard]] bool holdsDownloadedCopies(const PlaybackState& state, const Track& current);
+// Gives back each such copy as the account song it is (the library's song
+// with origin "account" and the same source address), keeping its file so it
+// still plays from disk; other songs stay as they are. `library` is the
+// library's songs.
+void restoreAccountSongs(PlaybackState& state, Track& current, const QList<Track>& library);
+
 // A restored song needs something to play from: a path, or a remote source
 // address.
 [[nodiscard]] bool hasPlayableSource(const Track& track);

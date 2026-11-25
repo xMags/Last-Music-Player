@@ -17,6 +17,8 @@
 #include "core/library/UserDataOperationGate.h"
 #include "core/model/CatalogSourceKey.h"
 #include "core/playback/PlaybackStatePersistence.h"
+#include "core/playback/PlaybackStateRestore.h"
+#include "core/playback/QueueTrackIdentity.h"
 #include "core/settings/SettingKeys.h"
 
 using lmp::core::PlaybackStatePersistence;
@@ -80,6 +82,7 @@ class PlaybackStatePersistenceTest : public QObject {
     Q_OBJECT
 
 private slots:
+    void savedDownloadedCopiesComeBackAsAccountSongs();
     void init();
     void cleanup();
 
@@ -447,6 +450,43 @@ void PlaybackStatePersistenceTest::shutdownBeforeRestoreKeepsTheFile()
     Session session(*m_fixture, *m_paths, *m_gate);
     session.persistence->shutdown();
     QCOMPARE(stateJson().value(QStringLiteral("LastTrack")).toString(), QStringLiteral("C:\\kept.mp3"));
+}
+
+void PlaybackStatePersistenceTest::savedDownloadedCopiesComeBackAsAccountSongs()
+{
+    // An account song as the library has it...
+    Track song;
+    song.title = QStringLiteral("Song");
+    song.sourceKind = QStringLiteral("remote");
+    song.origin = QStringLiteral("account");
+    song.remoteId = QStringLiteral("r1");
+    song.sourceUrl = QStringLiteral("https://music.example.test/t/r1");
+    // ...and its downloaded copy, saved in a queue by an earlier version.
+    Track copy;
+    copy.title = song.title;
+    copy.sourceKind = QStringLiteral("local");
+    copy.filePath = QStringLiteral("C:/Music/Offline/Song-12345678.m4a");
+    copy.sourceUrl = song.sourceUrl;
+    // A file of this PC that only has a source address stays a file.
+    Track other = copy;
+    other.sourceUrl = QStringLiteral("https://music.example.test/t/unknown");
+    other.filePath = QStringLiteral("C:/Music/Other.mp3");
+
+    lmp::core::PlaybackState state;
+    lmp::core::SavedQueue queue;
+    queue.queue.contextQueue = {copy, other};
+    queue.queue.contextIndex = 0;
+    queue.currentTrack = copy;
+    state.queue = queue;
+    Track current = copy;
+    QVERIFY(lmp::core::holdsDownloadedCopies(state, current));
+    lmp::core::restoreAccountSongs(state, current, {song});
+
+    QCOMPARE(lmp::core::queueTrackIdentity(current), QStringLiteral("remote|r1"));
+    QCOMPARE(current.filePath, copy.filePath); // still plays from its file
+    QCOMPARE(lmp::core::queueTrackIdentity(state.queue->currentTrack), QStringLiteral("remote|r1"));
+    QCOMPARE(lmp::core::queueTrackIdentity(state.queue->queue.contextQueue.at(0)), QStringLiteral("remote|r1"));
+    QCOMPARE(state.queue->queue.contextQueue.at(1).sourceKind, QStringLiteral("local"));
 }
 
 QTEST_GUILESS_MAIN(PlaybackStatePersistenceTest)

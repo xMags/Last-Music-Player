@@ -9,6 +9,8 @@
 #include "core/settings/SettingsStore.h"
 
 #include <QFileInfo>
+#include <algorithm>
+#include <QHash>
 #include <QLoggingCategory>
 #include <QSet>
 #include <QString>
@@ -79,6 +81,66 @@ QList<Track> migrateLegacyHomeHistory(const PlaybackState& state, QList<Track> h
 
     settings.setBoolean(settings::keys::LegacyHomeHistoryMigrated, true);
     return history;
+}
+
+namespace {
+
+[[nodiscard]] bool isDownloadedCopy(const Track& track)
+{
+    return !track.isRemote() && net::isHttpUrl(track.sourceUrl) && !track.filePath.isEmpty();
+}
+
+} // namespace
+
+bool holdsDownloadedCopies(const PlaybackState& state, const Track& current)
+{
+    if (isDownloadedCopy(current)) {
+        return true;
+    }
+    if (!state.queue) {
+        return false;
+    }
+    const QueueSnapshot& queue = state.queue->queue;
+    return isDownloadedCopy(state.queue->currentTrack)
+        || std::any_of(queue.contextQueue.cbegin(), queue.contextQueue.cend(), isDownloadedCopy)
+        || std::any_of(queue.userQueue.cbegin(), queue.userQueue.cend(), isDownloadedCopy);
+}
+
+void restoreAccountSongs(PlaybackState& state, Track& current, const QList<Track>& library)
+{
+    QHash<QString, Track> bySource;
+    for (const Track& song : library) {
+        if (song.isRemote() && song.origin == QLatin1StringView("account") && !song.sourceUrl.isEmpty()) {
+            bySource.insert(song.sourceUrl, song);
+        }
+    }
+    const auto map = [&bySource](Track& track) {
+        if (!isDownloadedCopy(track)) {
+            return;
+        }
+        const auto found = bySource.constFind(track.sourceUrl);
+        if (found == bySource.constEnd()) {
+            return;
+        }
+        const QString file = track.filePath;
+        const double resume = track.resumePositionSeconds;
+        track = found.value();
+        track.filePath = file;
+        if (resume > 0.0) {
+            track.resumePositionSeconds = resume;
+        }
+    };
+    map(current);
+    if (!state.queue) {
+        return;
+    }
+    map(state.queue->currentTrack);
+    for (Track& track : state.queue->queue.contextQueue) {
+        map(track);
+    }
+    for (Track& track : state.queue->queue.userQueue) {
+        map(track);
+    }
 }
 
 std::optional<Track> findLastTrack(const PlaybackState& state, const QList<Track>& history)
