@@ -25,6 +25,9 @@ Item {
     readonly property int bodyHeight: height - Theme.playerBarHeight
     readonly property bool railInColumn: App.layout.railDocked && App.layout.railOpen
     readonly property bool typing: Window.activeFocusItem instanceof TextInput || Window.activeFocusItem instanceof TextEdit
+    // The welcome flow covers the shell: its keys and the Back button do not
+    // reach the pages and the player underneath.
+    readonly property bool covered: App.welcome.visible
     // Where keyboard focus was before the full-screen player opened.
     property Item focusBeforePlayer: null
 
@@ -44,7 +47,7 @@ Item {
 
     Shortcut {
         sequence: "F"
-        enabled: !shell.typing
+        enabled: !shell.typing && !shell.covered
         onActivated: App.fullscreen.toggle()
     }
 
@@ -62,26 +65,26 @@ Item {
 
     Shortcut {
         sequence: "Space"
-        enabled: !playbackKeys.blocked
+        enabled: !playbackKeys.blocked && !shell.covered
         onActivated: App.playerBar.togglePlay()
     }
 
     Shortcut {
         sequence: "Ctrl+Right"
-        enabled: !playbackKeys.blocked
+        enabled: !playbackKeys.blocked && !shell.covered
         onActivated: App.playerBar.next()
     }
 
     Shortcut {
         sequence: "Ctrl+Left"
-        enabled: !playbackKeys.blocked
+        enabled: !playbackKeys.blocked && !shell.covered
         onActivated: App.playerBar.previous()
     }
 
     // Ctrl+K: Browse, with the caret in its search field.
     Shortcut {
         sequence: "Ctrl+K"
-        enabled: !App.fullscreen.open
+        enabled: !App.fullscreen.open && !shell.covered
         onActivated: {
             if (App.navigator.currentKind !== Route.Browse)
                 App.navigator.openView(Route.Browse)
@@ -91,7 +94,7 @@ Item {
 
     Shortcut {
         sequences: [StandardKey.Back]
-        enabled: App.navigator.canGoBack && !App.fullscreen.open
+        enabled: App.navigator.canGoBack && !App.fullscreen.open && !shell.covered
         onActivated: App.navigator.back()
     }
 
@@ -100,7 +103,7 @@ Item {
         anchors.fill: parent
         z: 1000
         acceptedButtons: Qt.BackButton
-        enabled: App.navigator.canGoBack && !App.fullscreen.open
+        enabled: App.navigator.canGoBack && !App.fullscreen.open && !shell.covered
         onClicked: App.navigator.back()
     }
 
