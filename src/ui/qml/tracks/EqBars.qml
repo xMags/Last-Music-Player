@@ -34,16 +34,39 @@ Row {
             radius: 1
             color: Theme.accentColor
             transformOrigin: Item.Bottom
-            scale: Motion.reduced ? 0.6 : 0.3
+            readonly property real rest: Motion.reduced ? 0.6 : 0.3
+            readonly property bool moving: bars.running && bars.visible && !Motion.reduced && Motion.windowShown
 
-            // Paused: sink to rest.
-            Behavior on scale {
-                enabled: !Motion.reduced && !bars.running
-                NumberAnimation { duration: 320; easing: Motion.water }
+            scale: rest
+
+            // Stopped: sink to rest. The bounce below sets the scale itself,
+            // so the binding above no longer applies once it has run; the
+            // way down is started here.
+            onMovingChanged: {
+                if (bar.moving) {
+                    sink.stop()
+                    return
+                }
+                if (Motion.reduced) {
+                    sink.stop()
+                    bar.scale = bar.rest
+                } else {
+                    sink.restart()
+                }
+            }
+
+            NumberAnimation {
+                id: sink
+
+                target: bar
+                property: "scale"
+                to: bar.rest
+                duration: 320
+                easing: Motion.water
             }
 
             SequentialAnimation on scale {
-                running: bars.running && bars.visible && !Motion.reduced && Motion.windowShown
+                running: bar.moving
                 loops: Animation.Infinite
                 alwaysRunToEnd: false
 
