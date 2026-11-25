@@ -30,9 +30,11 @@ T.AbstractButton {
     required property bool unavailable
     required property string unavailableReason
     required property string remoteUrl
+    required property bool hasFile
 
-    // .is-offline .track-row:not(.is-downloaded): opacity .45.
-    readonly property bool offlineUnplayable: App.connectivity.offline && remoteUrl !== ""
+    // .is-offline .track-row:not(.is-downloaded): opacity .45. A song with
+    // its own file here plays anyway, whatever address it came from.
+    readonly property bool offlineUnplayable: App.connectivity.offline && remoteUrl !== "" && !hasFile
         && App.offline.markRevision >= 0 && App.offline.markOf(remoteUrl).state !== "done"
     // The album column shows only when the row is wide enough for it.
     readonly property bool albumShown: width >= 560

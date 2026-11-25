@@ -52,6 +52,8 @@ QVariant TrackListModel::data(const QModelIndex& index, int role) const
         return !m_playingKey.isEmpty() && m_keys.at(index.row()) == m_playingKey;
     case UnavailableRole:
         return track.unavailable;
+    case HasFileRole:
+        return !track.filePath.isEmpty() && !core::net::isHttpUrl(track.filePath);
     case UnavailableReasonRole:
         return track.unavailableReason.isEmpty() ? tr("This song no longer exists.") : track.unavailableReason;
     case NumberRole:
@@ -85,6 +87,7 @@ QHash<int, QByteArray> TrackListModel::roleNames() const
         {PlayingRole, "playing"},
         {UnavailableRole, "unavailable"},
         {UnavailableReasonRole, "unavailableReason"},
+        {HasFileRole, "hasFile"},
         {NumberRole, "number"},
         {SourceKeyRole, "sourceKey"},
         {SelectedRole, "selected"},

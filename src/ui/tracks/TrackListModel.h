@@ -60,6 +60,9 @@ public:
         PlayingRole,
         UnavailableRole,
         UnavailableReasonRole,
+        // The song has its own file on this PC (a file of this PC, or a
+        // downloaded song): it plays with no connection.
+        HasFileRole,
         // The row's number in the list, from 1.
         NumberRole,
         SourceKeyRole,
