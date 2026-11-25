@@ -34,13 +34,23 @@ Item {
     onWidthChanged: App.layout.windowWidth = width
     Component.onCompleted: App.layout.windowWidth = width
 
+    // Kept while the player is closed: the player takes focus as it opens,
+    // before anything here hears that it did, so it is never read then.
+    Connections {
+        target: shell.Window.window
+
+        function onActiveFocusItemChanged() {
+            const item = shell.Window.activeFocusItem
+            if (!App.fullscreen.open && item)
+                shell.focusBeforePlayer = item
+        }
+    }
+
     Connections {
         target: App.fullscreen
 
         function onOpenChanged() {
-            if (App.fullscreen.open)
-                shell.focusBeforePlayer = shell.Window.activeFocusItem
-            else if (shell.focusBeforePlayer)
+            if (!App.fullscreen.open && shell.focusBeforePlayer)
                 shell.focusBeforePlayer.forceActiveFocus(Qt.OtherFocusReason)
         }
     }
