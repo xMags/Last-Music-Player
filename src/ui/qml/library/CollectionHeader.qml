@@ -66,13 +66,15 @@ Column {
     // .collection-back: 16px above, 14px below, accent, a turned chevron.
     Item { width: 1; height: 16 }
 
+    // 16px tall, as the reference lays the 12.5px line out.
     Item {
         implicitWidth: backRow.implicitWidth
-        implicitHeight: backRow.implicitHeight
+        implicitHeight: 16
 
         Row {
             id: backRow
 
+            anchors.verticalCenter: parent.verticalCenter
             spacing: 6
 
             Icon {
@@ -105,7 +107,10 @@ Column {
         readonly property real gap: Math.max(20, Math.min(32, width * 0.034))
 
         width: parent.width
-        height: Math.max(artSize, copy.implicitHeight) + 2 * 24
+        // border-box: 24px padding inside a 1px border on each side.
+        readonly property real inset: 24 + 1
+
+        height: Math.max(artSize, copy.implicitHeight) + 2 * inset
 
         // The tint: the cover's colours only, stretched over the card. It
         // fades in when it appears or changes (wash-in, views.css 402-403).
@@ -186,8 +191,8 @@ Column {
         Item {
             id: art
 
-            x: 24
-            y: 24
+            x: card.inset
+            y: card.inset
             width: card.artSize
             height: card.artSize
 
@@ -222,8 +227,8 @@ Column {
             id: copy
 
             x: art.x + art.width + card.gap
-            y: 24
-            width: card.width - x - 24
+            y: card.inset
+            width: card.width - x - card.inset
             height: card.artSize
             spacing: 6
 

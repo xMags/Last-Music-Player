@@ -12,7 +12,8 @@ Item {
     signal clicked()
 
     implicitWidth: backRow.implicitWidth
-    implicitHeight: backRow.implicitHeight
+    // 16px tall, as the reference lays the 12.5px line out.
+    implicitHeight: 16
     activeFocusOnTab: true
     Accessible.role: Accessible.Link
     Accessible.name: link.text
@@ -23,6 +24,7 @@ Item {
     Row {
         id: backRow
 
+        anchors.verticalCenter: parent.verticalCenter
         spacing: 6
 
         Icon {
