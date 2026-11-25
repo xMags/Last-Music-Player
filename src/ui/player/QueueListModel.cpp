@@ -1,5 +1,6 @@
 #include "ui/player/QueueListModel.h"
 
+#include "core/net/RemoteUrlPolicy.h"
 #include "core/model/DisplayTitle.h"
 
 #include <QHash>
@@ -132,7 +133,10 @@ QList<QueueListModel::Row> QueueListModel::rowsOf(const QList<core::QueueEntry>&
             .artworkLabel = core::ArtworkPlaceholder::tileLabelFor(track.title),
             .durationText = durationTextOf(track),
             .queued = queued,
-            .remoteUrl = track.isRemote() ? track.sourceUrl : QString(),
+            // The address downloads are marked by: a downloaded copy keeps
+            // the one it came from (a queue saved before such copies played
+            // as their account songs holds them).
+            .remoteUrl = track.isRemote() || core::net::isHttpUrl(track.sourceUrl) ? track.sourceUrl : QString(),
         });
     }
     return rows;

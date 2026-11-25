@@ -12,6 +12,8 @@ Item {
 
     // The song's address (the rows' remoteUrl role).
     property string remoteUrl: ""
+    // Its own label on hover; off inside a control that says it already.
+    property bool showsLabel: true
 
     readonly property var info: App.offline.markRevision >= 0 ? App.offline.markOf(remoteUrl) : ({})
     readonly property string state_: info.state !== undefined ? info.state : ""
@@ -50,7 +52,7 @@ Item {
         id: hover
     }
 
-    ToolTip.visible: hover.hovered && Accessible.name !== ""
+    ToolTip.visible: mark.showsLabel && hover.hovered && Accessible.name !== ""
     ToolTip.text: Accessible.name
     ToolTip.delay: 500
 }

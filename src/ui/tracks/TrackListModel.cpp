@@ -1,5 +1,6 @@
 #include "ui/tracks/TrackListModel.h"
 
+#include "core/net/RemoteUrlPolicy.h"
 #include "core/home/PlayedWhen.h"
 
 #include <QDateTime>
@@ -58,7 +59,8 @@ QVariant TrackListModel::data(const QModelIndex& index, int role) const
     case SourceKeyRole:
         return m_keys.at(index.row());
     case RemoteUrlRole:
-        return track.isRemote() ? track.sourceUrl : QString();
+        // A downloaded copy keeps the address it came from (its mark).
+        return track.isRemote() || core::net::isHttpUrl(track.sourceUrl) ? track.sourceUrl : QString();
     case PlayedWhenRole:
         return core::home::relativePlayedText(track.lastPlayedAt.isEmpty() ? track.addedAt : track.lastPlayedAt,
                                               QDateTime::currentDateTimeUtc());

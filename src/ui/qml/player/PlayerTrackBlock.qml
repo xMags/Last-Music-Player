@@ -177,15 +177,34 @@ RowLayout {
         onClicked: App.playerBar.share()
     }
 
+    // Download, or where the song's download stands: the same mark the
+    // lists show (downloaded, on its way, failed). A song already listed is
+    // not asked for again; a failed one is tried again.
     IconButton {
+        id: downloadButton
+
+        readonly property var mark: App.offline.markRevision >= 0
+                                    ? App.offline.markOf(App.playerBar.downloadAddress) : ({})
+        readonly property string markState: mark.state !== undefined ? mark.state : ""
+        readonly property bool listed: markState !== "" && markState !== "failed"
+
         visible: App.capabilities.downloadSongs
         opacity: block.idle ? 0 : 1
         enabled: !block.idle && !App.playerBar.remote
-        iconName: "download"
-        Accessible.name: qsTr("Download this song")
+        iconName: markState === "" ? "download" : ""
+        Accessible.name: markState === "" ? qsTr("Download this song") : mark.label
         ToolTip.visible: hovered
-        ToolTip.text: qsTr("Download this song")
+        ToolTip.text: Accessible.name
         ToolTip.delay: 500
-        onClicked: App.offline.downloadPlaying()
+        onClicked: {
+            if (!downloadButton.listed)
+                App.offline.downloadPlaying()
+        }
+
+        DownloadMark {
+            anchors.centerIn: parent
+            remoteUrl: App.playerBar.downloadAddress
+            showsLabel: false
+        }
     }
 }

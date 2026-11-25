@@ -6,6 +6,7 @@
 #include "core/connect/ConnectSync.h"
 #include "core/library/TrackActions.h"
 #include "core/model/CatalogSourceKey.h"
+#include "core/net/RemoteUrlPolicy.h"
 #include "core/model/ArtworkPlaceholder.h"
 #include "core/playback/PlayerController.h"
 #include "core/playback/QueueTrackIdentity.h"
@@ -253,6 +254,15 @@ void PlayerBarViewModel::cycleRepeat()
         return;
     }
     m_player.setRepeatMode(static_cast<core::RepeatMode>((repeatMode() + 1) % 3));
+}
+
+QString PlayerBarViewModel::downloadAddress() const
+{
+    const core::Track* track = shownTrack();
+    if (track == nullptr || remote()) {
+        return {};
+    }
+    return core::net::isHttpUrl(track->sourceUrl) ? track->sourceUrl : QString();
 }
 
 void PlayerBarViewModel::refreshLiked()

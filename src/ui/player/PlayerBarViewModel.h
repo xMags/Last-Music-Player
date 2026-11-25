@@ -48,6 +48,9 @@ class PlayerBarViewModel : public QObject {
     // The placeholder letter of the cover.
     Q_PROPERTY(QString artworkLabel READ artworkLabel NOTIFY trackChanged FINAL)
     Q_PROPERTY(bool liked READ liked NOTIFY stateChanged FINAL)
+    // The address the song's download is listed under (its source address),
+    // empty for a file of this PC: the player bar's download mark.
+    Q_PROPERTY(QString downloadAddress READ downloadAddress NOTIFY trackChanged FINAL)
     // Playing, or starting to play.
     Q_PROPERTY(bool playing READ playing NOTIFY stateChanged FINAL)
     Q_PROPERTY(bool shuffle READ shuffle NOTIFY stateChanged FINAL)
@@ -85,6 +88,7 @@ public:
     [[nodiscard]] QString previousArtist() const { return m_previousArtist; }
     [[nodiscard]] QString artworkLabel() const;
     [[nodiscard]] bool liked() const { return m_liked; }
+    [[nodiscard]] QString downloadAddress() const;
     [[nodiscard]] bool playing() const;
     [[nodiscard]] bool shuffle() const;
     [[nodiscard]] int repeatMode() const;
