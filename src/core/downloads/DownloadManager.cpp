@@ -746,13 +746,21 @@ void DownloadManager::start(const QString& jobId, const QString& itemId, UserDat
                 return;
             }
             const QFileInfo part(partPath);
-            const std::uint64_t existing = part.isFile() ? static_cast<std::uint64_t>(part.size()) : 0;
+            std::uint64_t existing = part.isFile() ? static_cast<std::uint64_t>(part.size()) : 0;
+            // A part file is resumed only for the file it came from: without
+            // its validator (after a restart, or a server that names none)
+            // the download starts over.
+            const QString validator = m_runtime.value(itemId).validator;
+            if (existing > 0 && validator.isEmpty()) {
+                QFile::remove(partPath);
+                existing = 0;
+            }
             QElapsedTimer sample;
             sample.start();
             auto lastBytes = std::make_shared<std::uint64_t>(existing);
             auto lastSample = std::make_shared<qint64>(sample.elapsed());
             m_deps.fetcher
-                .fetch(stream.value(), partPath, existing,
+                .fetch(stream.value(), partPath, existing, validator,
                        [this, itemId, current]() {
                            return !current() || m_runtime.value(itemId).pauseRequested || m_allPaused;
                        },
@@ -773,6 +781,11 @@ void DownloadManager::start(const QString& jobId, const QString& itemId, UserDat
                            *lastBytes = written;
                            *lastSample = now;
                            touch();
+                       },
+                       [this, itemId, current](const QString& named) {
+                           if (current()) {
+                               m_runtime[itemId].validator = named;
+                           }
                        })
                 .then(this, [this, held, jobId, itemId, generation, attempt, root, partPath, snapshotItem,
                              startedMs](const Result<IDownloadFetcher::Outcome>& outcome) {
@@ -806,6 +819,21 @@ void DownloadManager::finishTransfer(const QString& jobId, const QString& itemId
     }
     Runtime& runtime = m_runtime[itemId];
     item->bytesPerSecond = 0;
+    // 416: the part file already reaches the end (a finished transfer whose
+    // file could not be published, say). It goes, and the song starts over,
+    // once; asking for the same range again would fail every time.
+    if (!outcome && outcome.failure().httpStatus == 416 && !runtime.restartedAfterRangeError) {
+        runtime.restartedAfterRangeError = true;
+        runtime.validator.clear();
+        QFile::remove(partPath);
+        item->state = DownloadItemState::Queued;
+        item->error.clear();
+        item->bytesDownloaded = 0;
+        save();
+        touch();
+        pump();
+        return;
+    }
     if (outcome && outcome.value().stopped) {
         item->state = DownloadItemState::Paused;
         runtime.pauseRequested = false;

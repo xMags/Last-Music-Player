@@ -15,8 +15,9 @@ HttpDownloadFetcher::HttpDownloadFetcher(QObject* parent)
 }
 
 QFuture<Result<IDownloadFetcher::Outcome>> HttpDownloadFetcher::fetch(const QUrl& url, const QString& filePath,
-                                                                      std::uint64_t offset, Stop stop,
-                                                                      Progress progress)
+                                                                      std::uint64_t offset, const QString& ifRange,
+                                                                      Stop stop, Progress progress,
+                                                                      Validated validated)
 {
     auto promise = std::make_shared<QPromise<Result<Outcome>>>();
     promise->start();
@@ -27,8 +28,27 @@ QFuture<Result<IDownloadFetcher::Outcome>> HttpDownloadFetcher::fetch(const QUrl
     request.setTransferTimeout(StallTimeoutMs);
     if (offset > 0) {
         request.setRawHeader("Range", QByteArray("bytes=") + QByteArray::number(static_cast<qulonglong>(offset)) + '-');
+        // The range only of the same file: a changed one comes back whole
+        // (200), and the file is written from the start.
+        if (!ifRange.isEmpty()) {
+            request.setRawHeader("If-Range", ifRange.toUtf8());
+        }
     }
     QNetworkReply* reply = m_network.get(request);
+    // The file's validator, for a later resume: a strong ETag, else the
+    // Last-Modified date (a weak ETag cannot be used for If-Range).
+    connect(reply, &QNetworkReply::metaDataChanged, reply, [reply, validated]() {
+        if (!validated) {
+            return;
+        }
+        const QByteArray etag = reply->rawHeader("ETag");
+        if (!etag.isEmpty() && !etag.startsWith("W/")) {
+            validated(QString::fromLatin1(etag));
+            return;
+        }
+        const QByteArray modified = reply->rawHeader("Last-Modified");
+        validated(QString::fromLatin1(modified));
+    });
 
     struct Transfer {
         QFile file;
@@ -104,7 +124,7 @@ QFuture<Result<IDownloadFetcher::Outcome>> HttpDownloadFetcher::fetch(const QUrl
         } else if (transfer->writeFailed) {
             result = Failure::of(FailureKind::Unknown, QStringLiteral("Could not write to the download folder"));
         } else if (status >= 400) {
-            result = Failure::of(FailureKind::Server, QStringLiteral("The media server rejected the download"));
+            result = Failure::of(FailureKind::Server, QStringLiteral("The media server rejected the download"), status);
         } else if (success && reply->error() == QNetworkReply::NoError) {
             result = Outcome{.stopped = false,
                              .appended = transfer->append,

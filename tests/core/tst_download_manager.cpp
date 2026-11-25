@@ -2,6 +2,7 @@
 // earlier Downloads.json, resuming a partial file, file names, the two-transfer
 // cap, the network and battery rules, pausing, and items of another scope.
 
+#include <QCoreApplication>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -38,16 +39,21 @@ public:
         QUrl url;
         QString path;
         std::uint64_t offset = 0;
+        QString ifRange;
         Stop stop;
         std::shared_ptr<QPromise<Result<Outcome>>> promise;
     };
 
-    QFuture<Result<Outcome>> fetch(const QUrl& url, const QString& filePath, std::uint64_t offset, Stop stop,
-                                   Progress) override
+    QFuture<Result<Outcome>> fetch(const QUrl& url, const QString& filePath, std::uint64_t offset,
+                                   const QString& ifRange, Stop stop, Progress, Validated validated) override
     {
         auto promise = std::make_shared<QPromise<Result<Outcome>>>();
         promise->start();
-        pending.push_back({url, filePath, offset, std::move(stop), promise});
+        // The server names its file at once, as a real answer's headers do.
+        if (validated && !validator.isEmpty()) {
+            validated(validator);
+        }
+        pending.push_back({url, filePath, offset, ifRange, std::move(stop), promise});
         kept.push_back(promise);
         return promise->future();
     }
@@ -66,6 +72,17 @@ public:
         next.promise->finish();
     }
 
+    // Fails the oldest transfer with an HTTP status.
+    void failOldest(int status)
+    {
+        QVERIFY(!pending.empty());
+        Pending next = pending.front();
+        pending.pop_front();
+        next.promise->addResult(Result<Outcome>(
+            lmp::core::Failure::of(lmp::core::FailureKind::Server, QStringLiteral("refused"), status)));
+        next.promise->finish();
+    }
+
     void stopOldest()
     {
         QVERIFY(!pending.empty());
@@ -75,6 +92,8 @@ public:
         next.promise->finish();
     }
 
+    // What the fake server calls its file (an ETag); empty: it names none.
+    QString validator = QStringLiteral("\"v1\"");
     std::deque<Pending> pending;
     std::vector<std::shared_ptr<QPromise<Result<Outcome>>>> kept;
 };
@@ -145,6 +164,9 @@ private slots:
     void anUnreadableListIsSetAside();
     void aListThatCannotBeOpenedIsNeverOverwritten();
     void anUnreadableListThatCannotBeMovedIsNeverOverwritten();
+    void aResumeAsksForTheSameFile();
+    void aPartWithoutAValidatorStartsOver();
+    void aRangePastTheEndStartsOverOnce();
     void earlierKeysAreStillFound();
 };
 
@@ -530,6 +552,77 @@ void DownloadManagerTest::earlierKeysAreStillFound()
     DownloadTrackRequest again = fixture.song(QStringLiteral("One"));
     again.stableKey = today;
     QVERIFY(!fixture.manager.enqueue(QStringLiteral("Again"), {}, {}, {again}));
+}
+
+namespace {
+
+// Starts one song, writes half of it, and pauses it.
+QString pauseHalfway(Fixture& fixture)
+{
+    fixture.manager.initialize();
+    if (!fixture.manager.enqueue(QStringLiteral("Job"), {}, {}, {fixture.song(QStringLiteral("One"))})) {
+        return {};
+    }
+    const QString part = fixture.fetcher.pending.front().path;
+    QFile half(part);
+    if (!half.open(QIODevice::WriteOnly)) {
+        return {};
+    }
+    half.write("first-");
+    half.close();
+    const QString jobId = fixture.manager.snapshot().jobs.first().job.id;
+    fixture.manager.pauseJob(jobId);
+    fixture.fetcher.stopOldest();
+    QCoreApplication::processEvents();
+    return jobId;
+}
+
+} // namespace
+
+void DownloadManagerTest::aResumeAsksForTheSameFile()
+{
+    Fixture fixture;
+    const QString jobId = pauseHalfway(fixture);
+    QVERIFY(!jobId.isEmpty());
+    QTRY_COMPARE(fixture.stateOf(QStringLiteral("One")), DownloadItemState::Paused);
+    fixture.manager.resumeJob(jobId);
+    QTRY_COMPARE(fixture.fetcher.pending.size(), size_t(1));
+    // The range is asked for with the file's validator.
+    QCOMPARE(fixture.fetcher.pending.front().offset, std::uint64_t(6));
+    QCOMPARE(fixture.fetcher.pending.front().ifRange, QStringLiteral("\"v1\""));
+}
+
+void DownloadManagerTest::aPartWithoutAValidatorStartsOver()
+{
+    Fixture fixture;
+    fixture.fetcher.validator.clear(); // the server names no validator
+    const QString jobId = pauseHalfway(fixture);
+    QVERIFY(!jobId.isEmpty());
+    QTRY_COMPARE(fixture.stateOf(QStringLiteral("One")), DownloadItemState::Paused);
+    fixture.manager.resumeJob(jobId);
+    QTRY_COMPARE(fixture.fetcher.pending.size(), size_t(1));
+    // Its bytes may be another file's: they go, and the song starts over.
+    QCOMPARE(fixture.fetcher.pending.front().offset, std::uint64_t(0));
+    QVERIFY(!QFileInfo::exists(fixture.fetcher.pending.front().path));
+}
+
+void DownloadManagerTest::aRangePastTheEndStartsOverOnce()
+{
+    Fixture fixture;
+    const QString jobId = pauseHalfway(fixture);
+    QVERIFY(!jobId.isEmpty());
+    QTRY_COMPARE(fixture.stateOf(QStringLiteral("One")), DownloadItemState::Paused);
+    fixture.manager.resumeJob(jobId);
+    QTRY_COMPARE(fixture.fetcher.pending.size(), size_t(1));
+    const QString part = fixture.fetcher.pending.front().path;
+    fixture.fetcher.failOldest(416);
+    // The part goes and the song is fetched again from the start.
+    QTRY_COMPARE(fixture.fetcher.pending.size(), size_t(1));
+    QCOMPARE(fixture.fetcher.pending.front().offset, std::uint64_t(0));
+    QVERIFY(!QFileInfo::exists(part));
+    // A second 416 is a failure like any other.
+    fixture.fetcher.failOldest(416);
+    QTRY_COMPARE(fixture.stateOf(QStringLiteral("One")), DownloadItemState::Failed);
 }
 
 QTEST_GUILESS_MAIN(DownloadManagerTest)

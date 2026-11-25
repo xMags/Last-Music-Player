@@ -23,7 +23,8 @@ public:
     explicit HttpDownloadFetcher(QObject* parent = nullptr);
 
     [[nodiscard]] QFuture<Result<Outcome>> fetch(const QUrl& url, const QString& filePath, std::uint64_t offset,
-                                                 Stop stop, Progress progress) override;
+                                                 const QString& ifRange, Stop stop, Progress progress,
+                                                 Validated validated) override;
 
 private:
     QNetworkAccessManager m_network;

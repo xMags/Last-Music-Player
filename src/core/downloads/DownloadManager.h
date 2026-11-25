@@ -91,8 +91,13 @@ struct DownloadSnapshot {
 };
 
 // Streams a song into a file, appending from `offset` with a range request
-// when it is not zero. `stop` is asked between pieces; `progress` gets the
-// bytes in the file so far and the expected total (0 when unknown).
+// when it is not zero. `ifRange` is the validator the server gave the file
+// before (sent as If-Range, so a file that changed since comes back whole
+// and the file is written from the start). `stop` is asked between pieces;
+// `progress` gets the bytes in the file so far and the expected total (0
+// when unknown); `validated` gets the file's validator (a strong ETag, else
+// Last-Modified) as soon as the answer names one. A 416 answer (the range
+// is past the end) fails with that status.
 class IDownloadFetcher {
 public:
     struct Outcome {
@@ -104,10 +109,12 @@ public:
     };
     using Stop = std::function<bool()>;
     using Progress = std::function<void(std::uint64_t written, std::uint64_t total)>;
+    using Validated = std::function<void(const QString& validator)>;
 
     virtual ~IDownloadFetcher() = default;
     [[nodiscard]] virtual QFuture<Result<Outcome>> fetch(const QUrl& url, const QString& filePath, std::uint64_t offset,
-                                                         Stop stop, Progress progress) = 0;
+                                                         const QString& ifRange, Stop stop, Progress progress,
+                                                         Validated validated) = 0;
 
 protected:
     IDownloadFetcher() = default;
@@ -224,6 +231,12 @@ private:
     struct Runtime {
         std::uint64_t attempt = 0;
         bool pauseRequested = false;
+        // What the server said its file was (fetcher's validator), kept only
+        // in memory: a part file with none known is not resumed, since its
+        // bytes may belong to another file.
+        QString validator;
+        // A 416 already led to one fresh start.
+        bool restartedAfterRangeError = false;
     };
 
     [[nodiscard]] DownloadJob* findJob(const QString& jobId);
