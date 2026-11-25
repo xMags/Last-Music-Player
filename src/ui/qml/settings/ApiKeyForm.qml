@@ -14,11 +14,30 @@ SettingsSection {
     title: qsTr("Provider connection")
     note: App.source.providerConnected ? qsTr("Connected") : qsTr("Not connected")
 
+    // The address as stored. The field is an edit buffer, not bound to it:
+    // the source's signal fires on any mode or connection change (the
+    // network coming and going), which would put the stored address over
+    // what is being typed.
+    property string storedUrl: ""
+
+    Component.onCompleted: {
+        section.storedUrl = App.source.providerBaseUrl
+        urlField.text = section.storedUrl
+    }
+
     Connections {
         target: App.source
 
         function onConnected() {
             keyField.text = ""
+        }
+
+        function onChanged() {
+            const stored = App.source.providerBaseUrl
+            if (stored === section.storedUrl)
+                return
+            section.storedUrl = stored
+            urlField.text = stored
         }
     }
 
@@ -31,7 +50,6 @@ SettingsSection {
 
             width: 280
             enabled: !App.source.connecting
-            text: App.source.providerBaseUrl
             placeholderText: "http://127.0.0.1:4527"
             inputMethodHints: Qt.ImhUrlCharactersOnly | Qt.ImhNoAutoUppercase
             onAccepted: keyField.forceActiveFocus()

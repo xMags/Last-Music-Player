@@ -12,6 +12,28 @@ SettingsSection {
     iconName: "person"
     title: qsTr("Profile")
 
+    // The name as last saved. The field is an edit buffer, not bound to the
+    // setting: that signal fires for every setting written (a switch, the
+    // volume), which would put the saved name over what is being typed.
+    property string savedName: ""
+
+    Component.onCompleted: {
+        section.savedName = App.settings.displayName
+        field.text = section.savedName
+    }
+
+    Connections {
+        target: App.settings
+
+        function onPreferencesChanged() {
+            const saved = App.settings.displayName
+            if (saved === section.savedName)
+                return
+            section.savedName = saved
+            field.text = saved
+        }
+    }
+
     SettingsRow {
         title: qsTr("Display name")
         description: qsTr("Shown in the greeting and the sidebar")
@@ -25,7 +47,6 @@ SettingsSection {
                 Layout.preferredWidth: 220
                 maximumLength: 40
                 placeholderText: qsTr("Listener")
-                text: App.settings.displayName
                 onAccepted: section.save()
             }
 
@@ -44,6 +65,8 @@ SettingsSection {
     function save() {
         if (!App.settings.isDisplayNameEdit(field.text))
             return
-        field.text = App.settings.saveDisplayName(field.text)
+        const saved = App.settings.saveDisplayName(field.text)
+        section.savedName = saved
+        field.text = saved
     }
 }
