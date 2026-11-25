@@ -8,7 +8,9 @@
 #include "core/settings/SettingKeys.h"
 #include "core/settings/SettingsStore.h"
 #include "platform/IFolderPicker.h"
+#include "ui/downloads/OfflineArtistPhotos.h"
 #include "ui/library/SystemPlaylists.h"
+#include "ui/player/CoverSource.h"
 #include "ui/toasts/ToastQueue.h"
 #include "ui/tracks/TrackMenuController.h"
 
@@ -74,7 +76,17 @@ OfflineViewModel::OfflineViewModel(Parts parts, QObject* parent)
     , m_canDownload(std::move(parts.canDownload))
     , m_stableKey(std::move(parts.stableKey))
     , m_settings(parts.settings)
+    , m_artistPhotos(parts.artistPhotos)
 {
+    // A photo found for an artist shows on its card.
+    if (m_artistPhotos != nullptr) {
+        connect(m_artistPhotos, &OfflineArtistPhotos::photoFound, this, [this]() {
+            if (m_tab == QLatin1StringView("artists") && m_groupKey.isEmpty()) {
+                showTab();
+            }
+            emit changed();
+        });
+    }
     // The tab the user last chose.
     if (m_settings != nullptr) {
         const QString tab = m_settings->string(core::settings::keys::OfflineTab);
@@ -593,6 +605,14 @@ void OfflineViewModel::refreshGroups()
     }
     m_albumGroups = core::offline::albumGroups(m_detailed, playlistNames);
     m_artistGroups = core::offline::artistGroups(m_detailed);
+    if (m_artistPhotos != nullptr) {
+        QStringList names;
+        names.reserve(m_artistGroups.size());
+        for (const core::offline::OfflineGroup& group : m_artistGroups) {
+            names.append(group.name);
+        }
+        m_artistPhotos->lookUp(names);
+    }
     m_genreGroups = core::offline::genreGroups(m_detailed);
     m_history = historySongs();
     // An opened card whose songs are all gone closes.
@@ -634,10 +654,12 @@ void OfflineViewModel::showTab()
     QList<CollectionCardModel::Card> cards;
     cards.reserve(groups.size());
     for (const core::offline::OfflineGroup& group : groups) {
+        // A song's cover, loaded as every cover is (an account cover link
+        // goes through the account; a kept one comes from disk).
         QUrl artwork;
         for (const core::Track& track : group.tracks) {
-            if (!track.artworkUrl.isEmpty()) {
-                artwork = QUrl(track.artworkUrl);
+            artwork = CoverSource::forLibraryTrack(track).displayUrl();
+            if (!artwork.isEmpty()) {
                 break;
             }
         }
@@ -662,6 +684,17 @@ void OfflineViewModel::showTab()
             break;
         case core::offline::GroupKind::Artist:
             card.kind = QStringLiteral("artist");
+            // The artist's own photo once it is known.
+            if (m_artistPhotos != nullptr) {
+                if (const QString photo = m_artistPhotos->known(group.name); !photo.isEmpty()) {
+                    core::Track picture;
+                    picture.artworkUrl = photo;
+                    picture.sourceKind = QStringLiteral("remote");
+                    if (const QUrl shown = CoverSource::forTrack(picture).displayUrl(); !shown.isEmpty()) {
+                        card.artworkUrl = shown;
+                    }
+                }
+            }
             break;
         case core::offline::GroupKind::Genre:
             card.kind = QStringLiteral("genre");
@@ -703,6 +736,20 @@ void OfflineViewModel::play()
 void OfflineViewModel::shuffle()
 {
     m_actions.shufflePlay(m_songs.tracks());
+}
+
+QStringList OfflineViewModel::artistPhotoUrls() const
+{
+    QStringList urls;
+    if (m_artistPhotos == nullptr) {
+        return urls;
+    }
+    for (const core::offline::OfflineGroup& group : m_artistGroups) {
+        if (const QString photo = m_artistPhotos->known(group.name); !photo.isEmpty()) {
+            urls.append(photo);
+        }
+    }
+    return urls;
 }
 
 void OfflineViewModel::markLiked()

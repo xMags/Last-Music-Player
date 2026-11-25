@@ -36,6 +36,7 @@
 #include "core/library/ArtistFollowService.h"
 #include "core/library/CollectionActions.h"
 #include "core/library/HomeMixService.h"
+#include "core/downloads/DownloadArtworkKeeper.h"
 #include "core/downloads/DownloadManager.h"
 #include "core/downloads/HttpDownloadFetcher.h"
 #include "core/library/LibraryScanner.h"
@@ -72,6 +73,7 @@
 #include "ui/navigation/FocusPlace.h"
 #include "core/playback/TrackSourceResolver.h"
 #include "core/provider/ProviderClient.h"
+#include "core/remote/ArtworkDiskCache.h"
 #include "core/remote/ArtworkService.h"
 #include "core/catalog/CatalogDetailParser.h"
 #include "core/remote/RemoteMusicService.h"
@@ -102,6 +104,7 @@
 #include "ui/search/SearchViewModel.h"
 #include "ui/library/AccountArtistsViewModel.h"
 #include "ui/catalog/CatalogArtistViewModel.h"
+#include "ui/downloads/OfflineArtistPhotos.h"
 #include "ui/downloads/OfflineViewModel.h"
 #include "ui/settings/AudioOutputViewModel.h"
 #include "ui/player/LyricsViewModel.h"
@@ -255,8 +258,12 @@ private:
     core::PlaybackStatePersistence m_persistence;
     core::ProviderStreamPrefetcher m_prefetcher;
     core::MediaControlsBridge m_mediaBridge;
+    // Pictures on disk between runs; before the service that posts to it.
+    core::remote::ArtworkDiskCache m_pictureDisk;
     // Cover pictures from the network (the account relay in Account mode).
     core::remote::ArtworkService m_artwork;
+    // Downloaded songs' covers and their artists' photos, kept on disk.
+    core::DownloadArtworkKeeper m_downloadArtwork;
     // The account library on this PC: changes queued here, the sync that
     // sends them and brings the library down, and when it runs.
     core::db::AccountOutboxRepository m_outbox;
@@ -326,6 +333,8 @@ private:
     core::LinkImportService m_linkImport;
     ui::LyricsViewModel m_lyrics;
     // The Offline page and the download controls.
+    // The Offline page's artist photos, remembered on this PC.
+    ui::OfflineArtistPhotos m_offlineArtistPhotos;
     ui::OfflineViewModel m_offline;
     // The output device choice.
     platform::windows::WindowsAudioOutputs m_audioOutputs;

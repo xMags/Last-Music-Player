@@ -84,6 +84,11 @@ void UserDataCleanup::clearEverything()
     if (QDir folder(m_parts.coverFolder); folder.exists() && !folder.removeRecursively()) {
         failed.append(tr("the cover cache"));
     }
+    if (!m_parts.pictureFolder.isEmpty()) {
+        if (QDir folder(m_parts.pictureFolder); folder.exists() && !folder.removeRecursively()) {
+            failed.append(tr("the picture cache"));
+        }
+    }
     // Last, as the current app does: the steps above may write settings.
     if (!m_parts.settings.reset()) {
         failed.append(tr("the settings"));

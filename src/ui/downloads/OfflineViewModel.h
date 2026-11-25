@@ -30,6 +30,7 @@ class IFolderPicker;
 
 namespace lmp::ui {
 
+class OfflineArtistPhotos;
 class TrackMenuController;
 class ToastQueue;
 
@@ -127,6 +128,9 @@ public:
         std::function<QString(const core::Track&)> stableKey;
         // Keeps the tab between runs; may be missing.
         core::SettingsStore* settings = nullptr;
+        // The Artists tab's photos, looked up by name; may be missing (the
+        // cards then show a song's cover).
+        OfflineArtistPhotos* artistPhotos = nullptr;
     };
 
     // Everything in `parts` outlives this object.
@@ -220,6 +224,9 @@ public:
 
     // The downloaded songs as playable songs on this PC (for tests).
     [[nodiscard]] const QList<core::Track>& downloaded() const { return m_downloaded; }
+    // The photos known for the downloaded songs' artists (picture
+    // addresses), so they are kept on disk with the covers.
+    [[nodiscard]] QStringList artistPhotoUrls() const;
 
 signals:
     void changed();
@@ -245,6 +252,7 @@ private:
     std::function<bool()> m_canDownload;
     std::function<QString(const core::Track&)> m_stableKey;
     core::SettingsStore* m_settings = nullptr;
+    OfflineArtistPhotos* m_artistPhotos = nullptr;
     quintptr m_ownerWindow = 0;
     QString m_tab = QStringLiteral("songs");
     // The opened card's key on a collection tab; empty for the tab's cards.

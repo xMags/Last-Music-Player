@@ -16,6 +16,7 @@
 #include <cstdint>
 #include <deque>
 #include <memory>
+#include <optional>
 #include <vector>
 
 namespace lmp::core {
@@ -31,6 +32,8 @@ class IHttpTransport;
 } // namespace lmp::core
 
 namespace lmp::core::remote {
+
+class ArtworkDiskCache;
 
 // Fetches cover pictures from the network, with the rules earlier versions
 // used for account artwork. In Account mode every picture goes through the
@@ -49,6 +52,12 @@ namespace lmp::core::remote {
 // finished fetches are kept in memory, up to MaxCachedBytes, after which the
 // whole cache is dropped and starts over. A change of account or mode drops
 // the cache and every request (their futures finish as Cancelled).
+//
+// With a disk cache, a picture is looked for on disk before it is fetched,
+// and a fetched one is written there, in the folder of the account (or of
+// the open web) it was fetched for; so pictures show again without the
+// network. keep() holds a picture on disk for good while something needs it
+// (a downloaded song's cover), until release().
 //
 // At launch the stored account session is checked with the service before
 // it can be used. A picture asked for in Account mode during that check waits
@@ -83,6 +92,8 @@ public:
         // Fetches pictures outside Account mode.
         net::IHttpTransport& http;
         PlaybackClock& clock;
+        // Pictures on disk between runs; may be missing (memory only then).
+        ArtworkDiskCache* disk = nullptr;
     };
 
     // Every dependency must outlive this object.
@@ -105,9 +116,30 @@ public:
     // Drops the cache and every request.
     void clear();
 
+    // Keeps the picture on disk for good, from the disk cache when it is
+    // there, else fetched (off-screen work). True once it is kept; false
+    // without a disk cache, an account to keep it for, or a picture.
+    [[nodiscard]] QFuture<bool> keep(const QString& artworkUrl, const QString& sourceUrl = {});
+    // A kept picture nothing needs any more goes back to the disk cache.
+    void release(const QString& artworkUrl, const QString& sourceUrl = {});
+    // Releases every kept picture of the current account except these:
+    // what was kept for things removed while the app was closed.
+    void keepOnly(const QList<QString>& artworkUrls);
+    // The disk file key of the picture now; empty without a disk cache, an
+    // account, or a picture address.
+    [[nodiscard]] QString diskKey(const QString& artworkUrl, const QString& sourceUrl = {}) const;
+    // Whether pictures can be kept on disk now (a disk cache, and an
+    // account to keep them for in Account mode).
+    [[nodiscard]] bool diskReady() const { return !diskScope().isEmpty(); }
+
     [[nodiscard]] int activeCount() const { return m_active; }
     [[nodiscard]] std::size_t cachedBytes() const { return m_cacheBytes; }
     [[nodiscard]] bool isCached(const QString& artworkUrl, const QString& sourceUrl = {}) const;
+
+signals:
+    // The account or mode changed: pictures kept for the old one are not
+    // this one's (clear() ran).
+    void scopeChanged();
 
 private:
     using Promise = std::shared_ptr<QPromise<Result<QByteArray>>>;
@@ -127,6 +159,10 @@ private:
         QString sourceUrl;
         Priority priority = Priority::Visible;
         bool deferred = false;
+        // Being looked for on disk; not queued for the network yet.
+        bool probing = false;
+        // Where it is written on disk once fetched; empty: not written.
+        QString diskKey;
         int runs = 0;
         std::vector<Promise> waiters;
     };
@@ -147,6 +183,11 @@ private:
     };
 
     [[nodiscard]] static QString keyFor(const QString& artworkUrl, const QString& sourceUrl);
+    // The request key fetch() would use, or empty when it would not fetch.
+    [[nodiscard]] QString requestKey(const QString& artworkUrl, const QString& sourceUrl) const;
+    // Whose pictures the disk holds now: the account, or the open web.
+    [[nodiscard]] QString diskScope() const;
+    void onProbe(const QString& key, quint64 id, const std::optional<QByteArray>& bytes);
     void startRequests();
     void startRun(const QString& key, Priority slot);
     void attempt(const QString& key, quint64 id, Priority slot, int attemptIndex, const QString& url,

@@ -75,6 +75,11 @@ QString AppPaths::streamCacheFolder() const
     return child(QStringLiteral("stream-cache"));
 }
 
+QString AppPaths::pictureCacheFolder() const
+{
+    return child(QStringLiteral("picture-cache"));
+}
+
 QString AppPaths::child(const QString& name) const
 {
     return QDir(m_root).filePath(name);

@@ -65,6 +65,8 @@ public:
         // The saved playback state file and the cover cache folder.
         QString stateFile;
         QString coverFolder;
+        // Pictures kept from the network (covers, artist photos); may be empty.
+        QString pictureFolder;
         // How long running operations may take to finish (the current app's 30 seconds).
         std::chrono::milliseconds idleTimeout{std::chrono::seconds(30)};
     };

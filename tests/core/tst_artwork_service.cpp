@@ -2,10 +2,12 @@
 #include <QFuture>
 #include <QObject>
 #include <QString>
+#include <QTemporaryDir>
 #include <QTest>
 
 #include "FakePlaybackClock.h"
 #include "ModeServiceFixture.h"
+#include "core/remote/ArtworkDiskCache.h"
 #include "core/remote/ArtworkService.h"
 
 using lmp::core::Failure;
@@ -33,12 +35,13 @@ void settle()
 
 // An account-mode service over the mode fixture's fake network.
 struct ArtworkFixture {
-    ArtworkFixture()
+    explicit ArtworkFixture(lmp::core::remote::ArtworkDiskCache* disk = nullptr)
         : service({.client = modes.session.client,
                    .session = modes.session.service,
                    .mode = modes.modes,
                    .http = modes.session.transport,
-                   .clock = clock})
+                   .clock = clock,
+                   .disk = disk})
     {
     }
 
@@ -89,6 +92,8 @@ private slots:
     void cacheStartsOverPastItsBudget();
     void coverLinksLoadFromTheAccountService();
     void coversWaitForTheStoredSessionCheck();
+    void aPictureOnDiskNeedsNoNetwork();
+    void keptPicturesSurviveTheMemoryCache();
 };
 
 void ArtworkServiceTest::visibleRequestsUseSixSlots()
@@ -401,6 +406,48 @@ void ArtworkServiceTest::coversWaitForTheStoredSessionCheck()
     QVERIFY(QTest::qWaitFor([&refused]() { return refused.isFinished(); }, 2000));
     QVERIFY(!refused.result());
     QCOMPARE(rejected.modes.session.transport.requestCount(other), 0);
+}
+
+void ArtworkServiceTest::aPictureOnDiskNeedsNoNetwork()
+{
+    QTemporaryDir folder;
+    lmp::core::remote::ArtworkDiskCache disk(folder.path());
+    {
+        ArtworkFixture first(&disk);
+        (void)first.modes.modes.start();
+        first.modes.session.transport.script(QStringLiteral("/7.jpg"), FakeHttpTransport::ok("direct"));
+        const QFuture<Result<QByteArray>> fetched = first.service.fetch(picture(7));
+        QTRY_VERIFY(fetched.isFinished());
+        QCOMPARE(fetched.result().value(), QByteArray("direct"));
+        // Written to disk once fetched.
+        const QString key = first.service.diskKey(picture(7));
+        QVERIFY(!key.isEmpty());
+        QTRY_VERIFY(disk.read(key).result().has_value());
+    }
+    // The next run: no network asked.
+    ArtworkFixture next(&disk);
+    (void)next.modes.modes.start();
+    const QFuture<Result<QByteArray>> again = next.service.fetch(picture(7));
+    QTRY_VERIFY(again.isFinished());
+    QCOMPARE(again.result().value(), QByteArray("direct"));
+    QVERIFY(next.modes.session.transport.requests.isEmpty());
+}
+
+void ArtworkServiceTest::keptPicturesSurviveTheMemoryCache()
+{
+    QTemporaryDir folder;
+    lmp::core::remote::ArtworkDiskCache disk(folder.path());
+    ArtworkFixture fixture(&disk);
+    (void)fixture.modes.modes.start();
+    fixture.modes.session.transport.script(QStringLiteral("/8.jpg"), FakeHttpTransport::ok("cover"));
+    const QFuture<bool> kept = fixture.service.keep(picture(8));
+    QTRY_VERIFY(kept.isFinished());
+    QVERIFY(kept.result());
+    QVERIFY(fixture.service.diskReady());
+    QTRY_VERIFY(disk.keepIfCached(fixture.service.diskKey(picture(8))).result());
+    // Without an account in Account mode there is nobody to keep it for.
+    QVERIFY(fixture.enterAccountMode());
+    QVERIFY(fixture.service.diskReady());
 }
 
 QTEST_GUILESS_MAIN(ArtworkServiceTest)

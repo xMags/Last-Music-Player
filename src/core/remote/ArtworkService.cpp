@@ -7,12 +7,14 @@
 #include "core/net/IHttpTransport.h"
 #include "core/net/RemoteUrlPolicy.h"
 #include "core/playback/PlaybackClock.h"
+#include "core/remote/ArtworkDiskCache.h"
 
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonParseError>
 #include <QJsonValue>
 #include <QLatin1StringView>
+#include <QSet>
 #include <QUrl>
 
 #include <algorithm>
@@ -139,6 +141,107 @@ bool ArtworkService::isCached(const QString& artworkUrl, const QString& sourceUr
     return m_cache.contains(keyFor(pictureAddress(artworkUrl), sourceUrl));
 }
 
+QString ArtworkService::requestKey(const QString& artworkUrl, const QString& sourceUrl) const
+{
+    const bool accountMode = m_deps.mode.mode() == mode::SourceMode::Account;
+    const QString coverLink = net::accountCoverLinkPath(artworkUrl);
+    const QString normalized = pictureAddress(artworkUrl);
+    const bool hasArtwork = coverLink.isEmpty() ? !normalized.isEmpty() && net::isHttpUrl(normalized) : accountMode;
+    const bool canResolve = normalized.isEmpty() && net::isHttpUrl(sourceUrl) && accountMode;
+    if (!hasArtwork && !canResolve) {
+        return {};
+    }
+    return keyFor(hasArtwork ? normalized : QString(), hasArtwork ? QString() : sourceUrl);
+}
+
+QString ArtworkService::diskScope() const
+{
+    if (m_deps.disk == nullptr) {
+        return {};
+    }
+    if (m_deps.mode.mode() != mode::SourceMode::Account) {
+        return QStringLiteral("open");
+    }
+    // An account's pictures go through its session: they are its own.
+    const QString owner = m_deps.session.profile().id;
+    return owner.isEmpty() ? QString() : QStringLiteral("account|") + owner;
+}
+
+QString ArtworkService::diskKey(const QString& artworkUrl, const QString& sourceUrl) const
+{
+    return ArtworkDiskCache::fileKey(diskScope(), requestKey(artworkUrl, sourceUrl));
+}
+
+QFuture<bool> ArtworkService::keep(const QString& artworkUrl, const QString& sourceUrl)
+{
+    const QString fileKey = diskKey(artworkUrl, sourceUrl);
+    if (fileKey.isEmpty()) {
+        return QtFuture::makeReadyValueFuture(false);
+    }
+    ArtworkDiskCache* disk = m_deps.disk;
+    auto promise = std::make_shared<QPromise<bool>>();
+    promise->start();
+    QFuture<bool> future = promise->future();
+    disk->keepIfCached(fileKey).then(this, [this, disk, fileKey, artworkUrl, sourceUrl, promise](bool kept) {
+        if (kept) {
+            promise->addResult(true);
+            promise->finish();
+            return;
+        }
+        fetch(artworkUrl, sourceUrl, Priority::Backfill)
+            .then(this, [this, disk, fileKey, artworkUrl, sourceUrl, promise](const Result<QByteArray>& bytes) {
+                // Only for the account it was asked for.
+                const bool ok = bytes && !bytes.value().isEmpty() && diskKey(artworkUrl, sourceUrl) == fileKey;
+                if (ok) {
+                    disk->keep(fileKey, bytes.value());
+                }
+                promise->addResult(ok);
+                promise->finish();
+            });
+    });
+    return future;
+}
+
+void ArtworkService::release(const QString& artworkUrl, const QString& sourceUrl)
+{
+    if (const QString fileKey = diskKey(artworkUrl, sourceUrl); !fileKey.isEmpty()) {
+        m_deps.disk->release(fileKey);
+    }
+}
+
+void ArtworkService::keepOnly(const QList<QString>& artworkUrls)
+{
+    const QString scope = diskScope();
+    if (scope.isEmpty()) {
+        return;
+    }
+    QSet<QString> keys;
+    for (const QString& url : artworkUrls) {
+        if (const QString fileKey = diskKey(url); !fileKey.isEmpty()) {
+            keys.insert(fileKey);
+        }
+    }
+    m_deps.disk->releaseAllExcept(scope, keys);
+}
+
+void ArtworkService::onProbe(const QString& key, quint64 id, const std::optional<QByteArray>& bytes)
+{
+    const auto found = m_requests.find(key);
+    if (found == m_requests.end() || found->id != id || !found->probing) {
+        return; // dropped meanwhile (an account change)
+    }
+    if (bytes && !bytes->isEmpty()) {
+        Request request = m_requests.take(key);
+        store(key, *bytes);
+        settle(request.waiters, *bytes);
+        return;
+    }
+    // Not on disk: to the network, at the priority it holds now.
+    found->probing = false;
+    (found->priority == Priority::Visible ? m_visibleQueue : m_backfillQueue).push_back(key);
+    startRequests();
+}
+
 QFuture<Result<QByteArray>> ArtworkService::fetch(const QString& artworkUrl, const QString& sourceUrl,
                                                  Priority priority)
 {
@@ -183,6 +286,18 @@ QFuture<Result<QByteArray>> ArtworkService::fetch(const QString& artworkUrl, con
     request.sourceUrl = hasArtwork ? QString() : sourceUrl;
     request.priority = priority;
     request.waiters.push_back(std::move(promise));
+    // The disk first: a picture shown before needs no network.
+    request.diskKey = ArtworkDiskCache::fileKey(diskScope(), key);
+    if (!request.diskKey.isEmpty()) {
+        request.probing = true;
+        const quint64 id = request.id;
+        const QString diskKey = request.diskKey;
+        m_requests.insert(key, std::move(request));
+        m_deps.disk->read(diskKey).then(this, [this, key, id](const std::optional<QByteArray>& bytes) {
+            onProbe(key, id, bytes);
+        });
+        return future;
+    }
     m_requests.insert(key, std::move(request));
     (priority == Priority::Visible ? m_visibleQueue : m_backfillQueue).push_back(key);
     startRequests();
@@ -245,6 +360,7 @@ void ArtworkService::clear()
     // gives back its slot when it finds its request gone.
     settle(waiters, Failure::of(FailureKind::Cancelled, QStringLiteral("account or mode changed")));
     armTimer();
+    emit scopeChanged();
 }
 
 void ArtworkService::startRequests()
@@ -343,6 +459,9 @@ void ArtworkService::onAttempt(const QString& key, quint64 id, Priority slot, in
         }
         Request request = m_requests.take(key);
         store(key, bytes.value());
+        if (!request.diskKey.isEmpty() && m_deps.disk != nullptr) {
+            m_deps.disk->store(request.diskKey, bytes.value());
+        }
         settle(request.waiters, bytes.value());
         complete(slot);
         return;

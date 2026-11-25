@@ -142,6 +142,8 @@ qt_add_library(lmp_core STATIC
     db/TrackRows.cpp
     db/TrackRows.h
     db/TrackSchema.h
+    downloads/DownloadArtworkKeeper.cpp
+    downloads/DownloadArtworkKeeper.h
     downloads/DownloadManager.cpp
     downloads/DownloadManager.h
     downloads/DownloadPolicy.cpp
@@ -337,6 +339,8 @@ qt_add_library(lmp_core STATIC
     presence/PresenceService.h
     provider/ProviderClient.cpp
     provider/ProviderClient.h
+    remote/ArtworkDiskCache.cpp
+    remote/ArtworkDiskCache.h
     remote/ArtworkService.cpp
     remote/ArtworkService.h
     remote/MediaAddresses.cpp

@@ -172,7 +172,14 @@ CompositionRoot::CompositionRoot()
                     m_paths)
     , m_prefetcher({.player = m_player, .remote = m_remote, .mode = m_mode, .cache = m_streamCache})
     , m_mediaBridge({.player = m_player, .controls = m_mediaControls, .settings = m_settings, .clock = m_clock})
-    , m_artwork({.client = m_accountClient, .session = m_session, .mode = m_mode, .http = m_http, .clock = m_clock})
+    , m_pictureDisk(m_paths.pictureCacheFolder())
+    , m_artwork({.client = m_accountClient,
+                 .session = m_session,
+                 .mode = m_mode,
+                 .http = m_http,
+                 .clock = m_clock,
+                 .disk = &m_pictureDisk})
+    , m_downloadArtwork(m_downloads, m_artwork)
     , m_outbox(m_database)
     , m_sync({.transport = m_accountClient,
               .session = m_session,
@@ -349,6 +356,7 @@ CompositionRoot::CompositionRoot()
                     .accountEditor = &m_accountEditor,
                     .toAccount = [this]() { return m_mode.capabilities().editServerPlaylists; }})
     , m_lyrics(m_player, m_lyricsService)
+    , m_offlineArtistPhotos(m_catalog, m_paths.pictureCacheFolder() + QStringLiteral("/artist-photos.json"))
     , m_offline({.downloads = m_downloads,
                  .actions = m_trackActions,
                  .library = m_library,
@@ -361,7 +369,8 @@ CompositionRoot::CompositionRoot()
                      [this](const core::Track& track) {
                          return core::track_keys::downloadStableKey(m_remote.scopeKeyParts(), track);
                      },
-                 .settings = &m_settings})
+                 .settings = &m_settings,
+                 .artistPhotos = &m_offlineArtistPhotos})
     , m_audioOutput(m_audioOutputs, m_audio, m_settings)
     , m_share([this](const QByteArray& body) { return sendAccount(core::net::HttpMethod::Post, QStringLiteral("/v1/music/shares"), body); },
               [this]() {
@@ -511,7 +520,8 @@ CompositionRoot::CompositionRoot()
                  .session = m_session,
                  .mode = m_mode,
                  .stateFile = m_paths.stateFile(),
-                 .coverFolder = m_paths.thumbsFolder()})
+                 .coverFolder = m_paths.thumbsFolder(),
+                 .pictureFolder = m_paths.pictureCacheFolder()})
     , m_dataSettings(m_cleanup, m_toasts)
     , m_appDataReset({.signOut = m_signOut,
                       .session = m_session,
@@ -645,6 +655,12 @@ CompositionRoot::CompositionRoot()
     // played songs are fetched when the rules say so; the rules are checked
     // again every few seconds and on every connection change.
     m_downloads.initialize();
+    // The covers of what is downloaded, and its artists' photos, stay on
+    // disk for offline use.
+    m_downloadArtwork.start();
+    QObject::connect(&m_offline, &ui::OfflineViewModel::changed, &m_downloadArtwork,
+                     [this]() { m_downloadArtwork.setExtraPictures(m_offline.artistPhotoUrls()); });
+    m_downloadArtwork.setExtraPictures(m_offline.artistPhotoUrls());
     m_resolver.setDownloadLookup([this](const core::Track& track) {
         return m_downloads.readyPath(core::track_keys::downloadStableKey(m_remote.scopeKeyParts(), track));
     });

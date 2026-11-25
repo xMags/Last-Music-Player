@@ -470,6 +470,10 @@ lmp_add_test(tst_artwork_service
     SOURCES core/tst_artwork_service.cpp
     LIBS lmp_core)
 
+lmp_add_test(tst_artwork_disk_cache
+    SOURCES core/tst_artwork_disk_cache.cpp
+    LIBS lmp_core)
+
 lmp_add_test(tst_artwork_image_provider
     SOURCES ui/tst_artwork_image_provider.cpp core/ModeServiceFixture.h core/FakePlaybackClock.h
     LIBS lmp_ui)

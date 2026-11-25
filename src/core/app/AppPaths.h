@@ -40,6 +40,8 @@ public:
     [[nodiscard]] QString thumbsFolder() const;
     // stream-cache: audio fetched ahead in API key mode.
     [[nodiscard]] QString streamCacheFolder() const;
+    // picture-cache: covers and artist photos shown, and those downloads keep.
+    [[nodiscard]] QString pictureCacheFolder() const;
 
 private:
     [[nodiscard]] QString child(const QString& name) const;
