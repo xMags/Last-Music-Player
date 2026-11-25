@@ -3,6 +3,7 @@
 #include <QFuture>
 #include <functional>
 
+#include "ui/navigation/Route.h"
 #include "core/async/Result.h"
 
 #include <QObject>
@@ -34,7 +35,7 @@ namespace lmp::ui {
 class ShareController;
 
 class Navigator;
-class Route;
+
 class TrackMenuController;
 
 // The catalogue's album, playlist, chart and shelf pages (App.catalogPage;
@@ -159,6 +160,9 @@ signals:
     void changed();
 
 private:
+    // Replaces the current page with `next`, while it is still the page the
+    // latest request was made for.
+    void replaceCurrent(const Route& next);
     void followNavigator();
     void load(const Route& route, bool force);
     void reset(const QString& kind);
@@ -175,6 +179,8 @@ private:
     Navigator& m_navigator;
 
     std::uint64_t m_request = 0;
+    // The route the latest request was made for.
+    Route m_requestRoute;
     QString m_kind;
     bool m_loading = false;
     bool m_finding = false;

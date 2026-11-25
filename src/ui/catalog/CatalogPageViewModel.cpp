@@ -116,7 +116,20 @@ void CatalogPageViewModel::followNavigator()
     const Route& current = m_navigator.current();
     if (handles(current)) {
         load(current, false);
+        return;
     }
+    // Another page: whatever is still on its way for this one is not wanted
+    // (its answer would replace the page the user went to).
+    ++m_request;
+}
+
+void CatalogPageViewModel::replaceCurrent(const Route& next)
+{
+    // Only over the page the request was made for.
+    if (m_navigator.current().kind() != m_requestRoute.kind()) {
+        return;
+    }
+    m_navigator.replace(next);
 }
 
 void CatalogPageViewModel::retry()
@@ -163,6 +176,7 @@ void CatalogPageViewModel::fail(const QString& message)
 void CatalogPageViewModel::load(const Route& route, bool force)
 {
     const std::uint64_t request = ++m_request;
+    m_requestRoute = route;
     const auto current = [this, request]() { return request == m_request; };
     const QString title = route.param(QStringLiteral("title"));
 
@@ -192,7 +206,7 @@ void CatalogPageViewModel::load(const Route& route, bool force)
                     if (!item.artist->sourceUrl.isEmpty()) {
                         params.insert(QStringLiteral("sourceUrl"), item.artist->sourceUrl);
                     }
-                    m_navigator.replace(Route(Route::Kind::SourceArtist, params));
+                    replaceCurrent(Route(Route::Kind::SourceArtist, params));
                     return;
                 }
                 m_loading = false;
@@ -254,10 +268,10 @@ void CatalogPageViewModel::load(const Route& route, bool force)
             }
             // The pending page gives way to the album, so Back skips it.
             if (!target->catalogAlbumId.isEmpty()) {
-                m_navigator.replace(Route(Route::Kind::CatalogDetail, {{QStringLiteral("type"), QStringLiteral("album")},
+                replaceCurrent(Route(Route::Kind::CatalogDetail, {{QStringLiteral("type"), QStringLiteral("album")},
                                                                        {QStringLiteral("id"), target->catalogAlbumId}}));
             } else {
-                m_navigator.replace(routes::routeForAlbumIdentity(target->identity, target->artist));
+                replaceCurrent(routes::routeForAlbumIdentity(target->identity, target->artist));
             }
         });
         return;
@@ -410,7 +424,7 @@ void CatalogPageViewModel::load(const Route& route, bool force)
         }
         // A shelf with a chart behind it opens the chart.
         if (shelf->chart) {
-            m_navigator.replace(routes::routeForChart(*shelf->chart));
+            replaceCurrent(routes::routeForChart(*shelf->chart));
             return;
         }
         m_loading = false;
