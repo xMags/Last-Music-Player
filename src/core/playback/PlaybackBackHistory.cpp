@@ -1,5 +1,7 @@
 #include "core/playback/PlaybackBackHistory.h"
 
+#include <algorithm>
+
 #include "core/playback/QueueTrackIdentity.h"
 #include "core/playback/QueueTrackLists.h"
 
@@ -40,10 +42,20 @@ std::optional<PlaybackBackHistory::Restored> PlaybackBackHistory::restorePreviou
         if (index >= 0) {
             state.contextIndex = index;
         } else {
-            // The context changed since: the song goes back at its front.
+            // The context changed since: the song goes back at its front, and
+            // the rest follow in the order they were going to play (from the
+            // song that was on), so a shuffled context stays shuffled.
             const QString identity = queueTrackIdentity(previous.track);
             QList<Track> context{previous.track};
-            for (const Track& track : std::as_const(state.contextQueue)) {
+            const qsizetype size = state.contextQueue.size();
+            const QList<qsizetype> order = state.shuffle && state.shuffleOrder.size() == size
+                                               ? state.shuffleOrder
+                                               : canonicalQueueOrder(size);
+            const qsizetype count = order.size();
+            const qsizetype start =
+                isQueueIndexInRange(state.contextIndex, count) ? std::max<qsizetype>(0, order.indexOf(state.contextIndex)) : 0;
+            for (qsizetype offset = 0; offset < count; ++offset) {
+                const Track& track = state.contextQueue.at(order.at((start + offset) % count));
                 if (queueTrackIdentity(track) != identity) {
                     context.append(track);
                 }

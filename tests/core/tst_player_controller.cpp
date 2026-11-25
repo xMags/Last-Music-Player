@@ -34,6 +34,7 @@ class PlayerControllerTest : public QObject {
     Q_OBJECT
 
 private slots:
+    void previousIntoAChangedContextKeepsTheShuffleOrder();
     void playInContextStartsTheChosenSong();
     void playInContextPlaysInListOrderAndSavesShuffleOff();
     void playNextAndAddToQueueStartPlaybackWhenIdle();
@@ -447,6 +448,31 @@ void PlayerControllerTest::restoreIsIgnoredWhileASongIsCurrent()
     QCOMPARE(player->currentTrack()->title, QStringLiteral("a"));
     QCOMPARE(visibleTitles(*player), QStringList{QStringLiteral("b")});
     QCOMPARE(player->state(), PlayerController::State::Playing);
+}
+
+void PlayerControllerTest::previousIntoAChangedContextKeepsTheShuffleOrder()
+{
+    PlayerFixture fixture;
+    QVERIFY(fixture.ok());
+    // A song of playlist A was playing; then album B started, shuffled.
+    const QList<Track> playlist = fixture.songs({"x"});
+    lmp::core::PlaybackBackHistory history;
+    history.remember(playlist.first(), lmp::core::QueueEngine::create(playlist, 0));
+    lmp::core::QueueState album;
+    album.contextQueue = fixture.songs({"p", "q", "r", "s"});
+    album.contextIndex = 2;
+    album.shuffle = true;
+    album.shuffleOrder = {2, 0, 3, 1}; // r, p, s, q
+    const auto restored = history.restorePrevious(lmp::core::QueueEngine::fromState(album));
+    QVERIFY(restored.has_value());
+    QCOMPARE(restored->track.title, QStringLiteral("x"));
+    QVERIFY(restored->queue.state().shuffle);
+    // The album's songs come after it in the order they were going to play.
+    QStringList upcoming;
+    for (const lmp::core::QueueEntry& entry : restored->queue.visibleQueue()) {
+        upcoming.append(entry.track.title);
+    }
+    QCOMPARE(upcoming, QStringList({QStringLiteral("r"), QStringLiteral("p"), QStringLiteral("s"), QStringLiteral("q")}));
 }
 
 QTEST_GUILESS_MAIN(PlayerControllerTest)
