@@ -771,6 +771,13 @@ CompositionRoot::CompositionRoot()
         m_share.share({.kind = core::share::ShareKind::Song, .track = track},
                       QCoreApplication::translate("Share", "Could not share this song."));
     });
+    // The heart follows the account's likes: they are known only once the
+    // session is checked, and change with each sync.
+    QObject::connect(&m_session, &core::account::AccountSessionService::stateChanged, &m_playerBar,
+                     [this]() { m_playerBar.refreshLiked(); });
+    QObject::connect(&m_mode, &core::mode::ModeService::changed, &m_playerBar, [this]() { m_playerBar.refreshLiked(); });
+    QObject::connect(&m_sync, &core::account::MusicSyncService::libraryChanged, &m_playerBar,
+                     [this]() { m_playerBar.refreshLiked(); });
     QObject::connect(&m_playerBar, &ui::PlayerBarViewModel::shareRequested, &m_share, [this]() {
         if (const std::optional<core::Track>& track = m_player.currentTrack()) {
             m_trackActions.share(*track);

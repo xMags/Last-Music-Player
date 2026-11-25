@@ -107,6 +107,10 @@ public:
     Q_INVOKABLE void cycleRepeat();
     // Only the shown state for now: liking is stored once the library exists.
     Q_INVOKABLE void toggleLike();
+    // Reads the heart again: the account (and its likes) became known or
+    // changed after the song was shown, as at launch while the session is
+    // still being checked.
+    void refreshLiked();
     Q_INVOKABLE void toggleMute();
     Q_INVOKABLE void share();
     // Seeks to a point along the song, 0 to 1.

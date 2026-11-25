@@ -33,13 +33,7 @@ PlayerBarViewModel::PlayerBarViewModel(core::PlayerController& player, core::con
 {
     // A like or unlike anywhere (a list's heart, a menu, a sync) moves this heart too.
     if (m_actions != nullptr) {
-        connect(m_actions, &core::TrackActions::likedChanged, this, [this](const QString&, bool) {
-            const bool liked = likedNow(shownTrack());
-            if (liked != m_liked) {
-                m_liked = liked;
-                emit stateChanged();
-            }
-        });
+        connect(m_actions, &core::TrackActions::likedChanged, this, &PlayerBarViewModel::refreshLiked);
     }
     connect(&m_player, &core::PlayerController::currentTrackChanged, this, &PlayerBarViewModel::onTrackChanged);
     connect(&m_player, &core::PlayerController::stateChanged, this, &PlayerBarViewModel::stateChanged);
@@ -259,6 +253,15 @@ void PlayerBarViewModel::cycleRepeat()
         return;
     }
     m_player.setRepeatMode(static_cast<core::RepeatMode>((repeatMode() + 1) % 3));
+}
+
+void PlayerBarViewModel::refreshLiked()
+{
+    const bool liked = likedNow(shownTrack());
+    if (liked != m_liked) {
+        m_liked = liked;
+        emit stateChanged();
+    }
 }
 
 bool PlayerBarViewModel::likedNow(const core::Track* track) const

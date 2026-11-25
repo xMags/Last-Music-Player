@@ -336,6 +336,13 @@ void PlayerBarViewModelTest::theHeartReadsAndWritesTheLibrary()
     // A like made elsewhere moves it too.
     QCOMPARE(actions.toggleLike(song), std::optional<bool>(true));
     QVERIFY(bar.liked());
+
+    // Likes that arrive without a like being made here (an account sync, the
+    // session checked after launch) show once the heart is read again.
+    QVERIFY(m_fixture->tracks.setLiked(lmp::core::catalogSourceKey(song), false));
+    QVERIFY(bar.liked());
+    bar.refreshLiked();
+    QVERIFY(!bar.liked());
 }
 
 QTEST_GUILESS_MAIN(PlayerBarViewModelTest)
