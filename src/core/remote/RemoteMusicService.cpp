@@ -48,6 +48,7 @@ track_keys::RemoteScopeKeyParts RemoteMusicService::scopeKeyParts() const
     parts.mode = scope.mode;
     parts.generation = scope.generation;
     parts.accountGeneration = m_deps.session.generation();
+    parts.ownerId = m_deps.session.profile().id;
     if (const std::optional<provider::ProviderConnection> connection = m_deps.mode.providerConnection()) {
         parts.cachePartition = apiKeyCachePartition(connection->baseUrl, connection->apiKey);
     }

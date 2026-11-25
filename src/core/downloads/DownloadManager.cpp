@@ -1,5 +1,6 @@
 #include "core/downloads/DownloadManager.h"
 
+#include "core/model/TrackKeys.h"
 #include "core/settings/SettingKeys.h"
 #include "core/settings/SettingsStore.h"
 
@@ -200,7 +201,7 @@ bool DownloadManager::enqueue(const QString& title, const QString& subtitle, con
     for (const DownloadJob& job : std::as_const(m_jobs)) {
         for (const DownloadItem& item : job.items) {
             if (item.state != DownloadItemState::Failed) {
-                existing.insert(item.stableKey);
+                existing.insert(track_keys::downloadMatchKey(item.stableKey));
             }
         }
     }
@@ -210,10 +211,11 @@ bool DownloadManager::enqueue(const QString& title, const QString& subtitle, con
     job.subtitle = subtitle;
     job.artworkUrl = artworkUrl;
     for (const DownloadTrackRequest& track : tracks) {
-        if (track.stableKey.isEmpty() || track.sourceUrl.isEmpty() || existing.contains(track.stableKey)) {
+        const QString match = track_keys::downloadMatchKey(track.stableKey);
+        if (track.stableKey.isEmpty() || track.sourceUrl.isEmpty() || existing.contains(match)) {
             continue;
         }
-        existing.insert(track.stableKey);
+        existing.insert(match);
         DownloadItem item;
         item.id = newId();
         item.stableKey = track.stableKey;
@@ -445,10 +447,11 @@ bool DownloadManager::removeSong(const QString& stableKey)
     }
     bool removed = true;
     bool changed = false;
+    const QString match = track_keys::downloadMatchKey(stableKey);
     for (DownloadJob& job : m_jobs) {
         QList<DownloadItem> stay;
         for (const DownloadItem& item : std::as_const(job.items)) {
-            if (item.stableKey != stableKey) {
+            if (track_keys::downloadMatchKey(item.stableKey) != match) {
                 stay.append(item);
                 continue;
             }
@@ -481,9 +484,10 @@ bool DownloadManager::removeSong(const QString& stableKey)
 void DownloadManager::retrySong(const QString& stableKey)
 {
     bool changed = false;
+    const QString match = track_keys::downloadMatchKey(stableKey);
     for (DownloadJob& job : m_jobs) {
         for (DownloadItem& item : job.items) {
-            if (item.stableKey == stableKey && item.state == DownloadItemState::Failed) {
+            if (track_keys::downloadMatchKey(item.stableKey) == match && item.state == DownloadItemState::Failed) {
                 item.state = DownloadItemState::Queued;
                 item.error.clear();
                 m_runtime[item.id].pauseRequested = false;
@@ -612,9 +616,12 @@ QString DownloadManager::readyPath(const QString& stableKey) const
     if (stableKey.isEmpty()) {
         return {};
     }
+    // An earlier version's key of the same song counts (downloadMatchKey).
+    const QString match = track_keys::downloadMatchKey(stableKey);
     for (const DownloadJob& job : m_jobs) {
         for (const DownloadItem& item : job.items) {
-            if (item.stableKey == stableKey && item.state == DownloadItemState::Completed && !item.filePath.isEmpty()
+            if (track_keys::downloadMatchKey(item.stableKey) == match && item.state == DownloadItemState::Completed
+                && !item.filePath.isEmpty()
                 && QFileInfo(item.filePath).isFile()) {
                 return item.filePath;
             }
@@ -651,8 +658,16 @@ void DownloadManager::pump()
             if (item.state != DownloadItemState::Queued) {
                 continue;
             }
-            if (item.stableKey.startsWith(QLatin1StringView("download|"))
-                && (scopePrefix.isEmpty() || !item.stableKey.startsWith(scopePrefix))) {
+            if (!item.stableKey.startsWith(QLatin1StringView("download|"))) {
+                starts.append({job.id, item.id});
+                continue;
+            }
+            // No account known yet (its session is still being checked):
+            // the song waits rather than failing.
+            if (scopePrefix.isEmpty()) {
+                continue;
+            }
+            if (!track_keys::downloadInScope(item.stableKey, scopePrefix)) {
                 // Its offline identity belongs to another account or source.
                 item.state = DownloadItemState::Failed;
                 item.error = QStringLiteral("Queued while a different account was signed in");

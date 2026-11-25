@@ -119,7 +119,7 @@ struct Fixture {
     lmp::core::SettingsStore settings;
     lmp::core::UserDataOperationGate gate;
     FakeFetcher fetcher;
-    QString scope = QStringLiteral("download|Account:1:1\n");
+    QString scope = QStringLiteral("download|Account:owner-a\n");
     bool metered = false;
     bool battery = false;
     DownloadManager manager;
@@ -145,6 +145,7 @@ private slots:
     void anUnreadableListIsSetAside();
     void aListThatCannotBeOpenedIsNeverOverwritten();
     void anUnreadableListThatCannotBeMovedIsNeverOverwritten();
+    void earlierKeysAreStillFound();
 };
 
 void DownloadManagerTest::removeAllDeletesFilesAndDropsTransfers()
@@ -288,7 +289,8 @@ void DownloadManagerTest::itemsOfAnotherScopeFail()
     fixture.metered = true;
     fixture.manager.initialize();
     QVERIFY(fixture.manager.enqueue(QStringLiteral("Job"), {}, {}, {fixture.song(QStringLiteral("One"))}));
-    fixture.scope = QStringLiteral("download|Account:1:2\n");
+    // Another account signed in.
+    fixture.scope = QStringLiteral("download|Account:owner-b\n");
     fixture.metered = false;
     fixture.manager.refreshScheduling();
     QCOMPARE(fixture.stateOf(QStringLiteral("One")), DownloadItemState::Failed);
@@ -506,6 +508,28 @@ void DownloadManagerTest::anUnreadableListThatCannotBeMovedIsNeverOverwritten()
     fixture.manager.pauseAll();
     QVERIFY(fixture.manager.enqueue(QStringLiteral("New"), {}, {}, {fixture.song(QStringLiteral("New"))}));
     QCOMPARE(readAll(list), QByteArray("{ not the list"));
+}
+
+void DownloadManagerTest::earlierKeysAreStillFound()
+{
+    // Downloaded by an earlier version, whose key carried run counters.
+    Fixture fixture;
+    fixture.manager.initialize();
+    const QString song = QStringLiteral("remote|tag-b|https://music.example.test/One");
+    DownloadTrackRequest earlier = fixture.song(QStringLiteral("One"));
+    earlier.stableKey = QStringLiteral("download|Account:3:7\n") + song;
+    QVERIFY(fixture.manager.enqueue(QStringLiteral("Job"), {}, {}, {earlier}));
+    // It still runs in the same mode (an earlier key names no account).
+    QTRY_VERIFY(!fixture.fetcher.pending.empty());
+    fixture.fetcher.finish("one");
+    QTRY_COMPARE(fixture.stateOf(QStringLiteral("One")), DownloadItemState::Completed);
+
+    // Today's key of the same song finds it, and does not queue it again.
+    const QString today = QStringLiteral("download|Account:owner-a\n") + song;
+    QVERIFY(!fixture.manager.readyPath(today).isEmpty());
+    DownloadTrackRequest again = fixture.song(QStringLiteral("One"));
+    again.stableKey = today;
+    QVERIFY(!fixture.manager.enqueue(QStringLiteral("Again"), {}, {}, {again}));
 }
 
 QTEST_GUILESS_MAIN(DownloadManagerTest)

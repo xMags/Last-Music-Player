@@ -153,8 +153,11 @@ CompositionRoot::CompositionRoot()
                        },
                    .scopePrefix =
                        [this]() {
-                           return QStringLiteral("download|")
-                               + core::track_keys::remoteScopeCacheKey(m_remote.scopeKeyParts()) + QLatin1Char('\n');
+                           // The lasting scope, as new download keys carry it;
+                           // empty while no account is known.
+                           const QString durable = core::track_keys::durableScopeKey(m_remote.scopeKeyParts());
+                           return durable.isEmpty() ? QString()
+                                                    : QStringLiteral("download|") + durable + QLatin1Char('\n');
                        },
                    .metered = [this]() { return m_network.metered() || !m_network.online(); },
                    .onBattery = [this]() { return m_power.onBattery(); }})

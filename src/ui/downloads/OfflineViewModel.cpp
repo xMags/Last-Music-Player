@@ -5,6 +5,7 @@
 #include "core/db/LibraryQueries.h"
 #include "core/library/TrackActions.h"
 #include "core/model/DisplayTitle.h"
+#include "core/model/TrackKeys.h"
 #include "core/settings/SettingKeys.h"
 #include "core/settings/SettingsStore.h"
 #include "platform/IFolderPicker.h"
@@ -290,7 +291,7 @@ QString OfflineViewModel::songDownloadState(const core::Track& track) const
         || !track.sourceUrl.startsWith(QLatin1StringView("http"))) {
         return {};
     }
-    const QString key = m_stableKey(track);
+    const QString key = core::track_keys::downloadMatchKey(m_stableKey(track));
     const auto found = key.isEmpty() ? m_marksByKey.constEnd() : m_marksByKey.constFind(key);
     if (found == m_marksByKey.constEnd()) {
         return QStringLiteral("offer");
@@ -405,10 +406,11 @@ void OfflineViewModel::reload()
             if (known == m_marks.constEnd() || known->state != QLatin1StringView("done")) {
                 m_marks.insert(item.sourceUrl, mark);
             }
-            const auto keyed = m_marksByKey.constFind(item.stableKey);
+            const QString match = core::track_keys::downloadMatchKey(item.stableKey);
+            const auto keyed = m_marksByKey.constFind(match);
             if (!item.stableKey.isEmpty()
                 && (keyed == m_marksByKey.constEnd() || keyed->state != QLatin1StringView("done"))) {
-                m_marksByKey.insert(item.stableKey, mark);
+                m_marksByKey.insert(match, mark);
             }
         }
     }
@@ -435,7 +437,7 @@ void OfflineViewModel::reload()
         for (const core::DownloadItem& item : summary.job.items) {
             if (item.state == DownloadItemState::Completed) {
                 m_downloaded.append(playable(item));
-                m_downloadedKeys.append(item.stableKey);
+                m_downloadedKeys.append(core::track_keys::downloadMatchKey(item.stableKey));
                 continue;
             }
             jobPending = true;
@@ -537,7 +539,7 @@ void OfflineViewModel::refreshGroups()
             if (!track.isRemote()) {
                 continue;
             }
-            const QString key = m_stableKey(track);
+            const QString key = core::track_keys::downloadMatchKey(m_stableKey(track));
             if (!key.isEmpty() && !known.contains(key)) {
                 known.insert(key, track);
             }
@@ -570,7 +572,8 @@ void OfflineViewModel::refreshGroups()
         QStringList keys;
         keys.reserve(tracks.size());
         for (const core::Track& track : tracks) {
-            keys.append(track.isRemote() && m_stableKey ? m_stableKey(track) : QString());
+            keys.append(track.isRemote() && m_stableKey ? core::track_keys::downloadMatchKey(m_stableKey(track))
+                                                         : QString());
         }
         return keys;
     };
@@ -628,7 +631,7 @@ QList<core::Track> OfflineViewModel::historySongs()
     }
     QStringList keys;
     for (const core::Track& track : m_library.loadHistoryTracks()) {
-        keys.append(track.isRemote() ? m_stableKey(track) : QString());
+        keys.append(track.isRemote() ? core::track_keys::downloadMatchKey(m_stableKey(track)) : QString());
     }
     return core::offline::downloadedPart(keys, m_detailed, m_downloadedKeys);
 }

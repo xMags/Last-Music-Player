@@ -32,7 +32,7 @@ Track remoteSong()
 
 keys::RemoteScopeKeyParts scope(SourceMode mode)
 {
-    return {mode, 3, 7, QStringLiteral("p1")};
+    return {mode, 3, 7, QStringLiteral("p1"), QStringLiteral("owner-a")};
 }
 
 } // namespace
@@ -46,6 +46,8 @@ private slots:
     void scopeKeys();
     void streamCacheKeys();
     void downloadKeys();
+    void downloadKeysOutliveRunCounters();
+    void earlierDownloadKeysStillMatch();
 };
 
 void TrackKeysTest::scopeKeys()
@@ -70,18 +72,60 @@ void TrackKeysTest::downloadKeys()
     QCOMPARE(keys::downloadStableKey(scope(SourceMode::Account), localSong()), QStringLiteral("local|c:/music/song.mp3"));
     QVERIFY(keys::downloadStableKey(scope(SourceMode::LocalOnly), remoteSong()).isEmpty());
     QCOMPARE(keys::downloadStableKey(scope(SourceMode::Account), remoteSong()),
-             QStringLiteral("download|Account:3:7\nremote|source-a|https://music.example.test/t/1"));
+             QStringLiteral("download|Account:owner-a\nremote|source-a|https://music.example.test/t/1"));
     QCOMPARE(keys::downloadStableKey(scope(SourceMode::ApiKey), remoteSong()),
-             QStringLiteral("download|ApiKey:p1:3\nremote|source-a|https://music.example.test/t/1"));
+             QStringLiteral("download|ApiKey:p1\nremote|source-a|https://music.example.test/t/1"));
 
     // No path and no address: the history key stands in, as before.
     Track bare = remoteSong();
     bare.sourceUrl.clear();
     bare.artist = QStringLiteral("The  Artist!");
     QCOMPARE(keys::downloadStableKey(scope(SourceMode::Account), bare),
-             QStringLiteral("download|Account:3:7\nremote|song|the artist"));
+             QStringLiteral("download|Account:owner-a\nremote|song|the artist"));
     // A song with nothing at all still has the local history key.
     QCOMPARE(keys::downloadStableKey(scope(SourceMode::Account), Track()), QStringLiteral("local|||"));
+}
+
+void TrackKeysTest::downloadKeysOutliveRunCounters()
+{
+    // The same song in the same account, after the session was checked again
+    // or the app started over: the counters moved, the download did not.
+    keys::RemoteScopeKeyParts before = scope(SourceMode::Account);
+    keys::RemoteScopeKeyParts after = before;
+    after.generation += 5;
+    after.accountGeneration += 2;
+    QCOMPARE(keys::downloadStableKey(after, remoteSong()), keys::downloadStableKey(before, remoteSong()));
+}
+
+void TrackKeysTest::earlierDownloadKeysStillMatch()
+{
+    // No account known yet: no key to keep a download under.
+    keys::RemoteScopeKeyParts unknown = scope(SourceMode::Account);
+    unknown.ownerId.clear();
+    QVERIFY(keys::downloadStableKey(unknown, remoteSong()).isEmpty());
+
+    const QString song = QStringLiteral("\nremote|source-a|https://music.example.test/t/1");
+    const QString earlierAccount = QStringLiteral("download|Account:3:7") + song;
+    const QString todayAccount = QStringLiteral("download|Account:owner-a") + song;
+    const QString earlierApi = QStringLiteral("download|ApiKey:p1:3") + song;
+    // The same song matches across the two forms, within its mode.
+    QCOMPARE(keys::downloadMatchKey(earlierAccount), keys::downloadMatchKey(todayAccount));
+    QCOMPARE(keys::downloadMatchKey(earlierApi), keys::downloadMatchKey(QStringLiteral("download|ApiKey:p1") + song));
+    QVERIFY(keys::downloadMatchKey(earlierApi) != keys::downloadMatchKey(todayAccount));
+    QVERIFY(keys::downloadMatchKey(earlierApi)
+            != keys::downloadMatchKey(QStringLiteral("download|ApiKey:p2") + song)); // another provider
+    // A song on this PC is its own key.
+    QCOMPARE(keys::downloadMatchKey(QStringLiteral("local|c:/music/song.mp3")), QStringLiteral("local|c:/music/song.mp3"));
+
+    // Running: today's keys by account; earlier ones (no account named) by mode.
+    const QString scopeA = QStringLiteral("download|Account:owner-a\n");
+    QVERIFY(keys::downloadInScope(todayAccount, scopeA));
+    QVERIFY(!keys::downloadInScope(QStringLiteral("download|Account:owner-b") + song, scopeA));
+    QVERIFY(keys::downloadInScope(earlierAccount, scopeA));
+    QVERIFY(!keys::downloadInScope(earlierApi, scopeA));
+    QVERIFY(keys::downloadInScope(earlierApi, QStringLiteral("download|ApiKey:p1\n")));
+    QVERIFY(!keys::downloadInScope(earlierApi, QStringLiteral("download|ApiKey:p2\n")));
+    QVERIFY(!keys::downloadInScope(todayAccount, QString()));
 }
 
 QTEST_GUILESS_MAIN(TrackKeysTest)
