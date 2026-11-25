@@ -78,7 +78,6 @@
 #include "core/catalog/CatalogDetailParser.h"
 #include "core/remote/RemoteMusicService.h"
 #include "core/settings/SettingsStore.h"
-#include "platform/ISingleInstance.h"
 #include "platform/windows/WindowsAudioPlayer.h"
 #include "platform/windows/WindowsCredentialStore.h"
 #include "platform/windows/WindowsExternalLinks.h"
@@ -160,10 +159,6 @@ public:
     CompositionRoot(const CompositionRoot&) = delete;
     CompositionRoot& operator=(const CompositionRoot&) = delete;
 
-    // True when this is the only running copy. Otherwise brings the running
-    // copy's window to the front and returns false; the caller then exits.
-    [[nodiscard]] bool claimSingleInstance();
-
     // Connects the engine's singletons to the services behind them. Call
     // once, after the engine exists and before QML is loaded.
     void attachEngine(QQmlEngine& engine);
@@ -196,7 +191,6 @@ private:
     // Every view that shows the library reads it again.
     void refreshLibraryViews();
 
-    std::unique_ptr<platform::ISingleInstance> m_singleInstance;
     std::unique_ptr<platform::windows::WindowsReducedMotion> m_reducedMotion;
     platform::windows::WindowsWindowChrome m_windowChrome;
 

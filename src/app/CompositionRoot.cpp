@@ -37,7 +37,6 @@
 #include "core/settings/SettingKeys.h"
 #include "core/playback/QueueEngine.h"
 #include "platform/windows/WindowsAppIdentity.h"
-#include "platform/windows/WindowsSingleInstance.h"
 #include "ui/images/ArtworkImageProvider.h"
 #include "ui/player/CoverSource.h"
 #include "ui/player/EmbeddedCoverImageProvider.h"
@@ -88,9 +87,7 @@ QString connectDeviceId(core::SettingsStore& settings)
 } // namespace
 
 CompositionRoot::CompositionRoot()
-    : m_singleInstance(std::make_unique<platform::windows::WindowsSingleInstance>(
-          core::AppIdentity::singleInstanceMutexName(), core::AppIdentity::displayName()))
-    , m_paths(core::AppPaths::forCurrentUser())
+    : m_paths(core::AppPaths::forCurrentUser())
     , m_settings(m_paths.settingsFile())
     , m_database(m_paths)
     , m_databaseOpen(openDatabase(m_database))
@@ -1088,15 +1085,6 @@ CompositionRoot::~CompositionRoot()
     m_persistence.shutdown();
     m_player.shutdown();
     m_downloads.shutdown();
-}
-
-bool CompositionRoot::claimSingleInstance()
-{
-    if (m_singleInstance->tryAcquire()) {
-        return true;
-    }
-    m_singleInstance->activateExistingWindow();
-    return false;
 }
 
 bool CompositionRoot::showMainWindow(QQmlApplicationEngine& engine)

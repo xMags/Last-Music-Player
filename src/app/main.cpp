@@ -10,6 +10,7 @@
 
 #include "app/CompositionRoot.h"
 #include "core/app/AppIdentity.h"
+#include "platform/windows/WindowsSingleInstance.h"
 
 Q_IMPORT_QML_PLUGIN(LastMusicPlayerPlugin)
 
@@ -19,11 +20,18 @@ int main(int argc, char* argv[])
     QCoreApplication::setApplicationName(lmp::core::AppIdentity::displayName());
     QCoreApplication::setApplicationVersion(lmp::core::AppIdentity::version());
 
-    lmp::app::CompositionRoot root;
-    if (!root.claimSingleInstance()) {
-        // Another copy is running and has been brought to the front.
+    // Claimed before any service exists: a second copy must not open the
+    // database (which resets its account context), the download list or the
+    // settings of the copy that is already running. Held until exit.
+    lmp::platform::windows::WindowsSingleInstance singleInstance(lmp::core::AppIdentity::singleInstanceMutexName(),
+                                                                 lmp::core::AppIdentity::displayName());
+    if (!singleInstance.tryAcquire()) {
+        // Another copy is running: bring it to the front and leave.
+        singleInstance.activateExistingWindow();
         return 0;
     }
+
+    lmp::app::CompositionRoot root;
 
     // Text drawn by the system's font rasteriser, hinted to the pixel grid,
     // as in other Windows apps. Qt Quick's default (distance fields) looks
