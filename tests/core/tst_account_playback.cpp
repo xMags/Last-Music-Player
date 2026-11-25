@@ -142,6 +142,8 @@ private slots:
     void failedStreamIsFetchedAgainWhereItStopped();
     void streamRecoveryIsLimitedPerWindow();
     void failedRecoveryPausesOnTheSong();
+    void eachSongGetsItsOwnStreamTries();
+    void aStreamThatNeverStartsIsSkipped();
 };
 
 void AccountPlaybackTest::streamAddressRules()
@@ -489,6 +491,48 @@ void AccountPlaybackTest::aDownloadedFilePlaysFromDisk()
     QVERIFY(QFile::remove(path));
     (void)resultOf(router.resolve(downloaded));
     QCOMPARE(account.calls, 1);
+}
+
+void AccountPlaybackTest::eachSongGetsItsOwnStreamTries()
+{
+    PlayerFixture fixture;
+    QVERIFY(fixture.ok());
+    auto player = fixture.makeController();
+    player->playInContext(remoteSong(QStringLiteral("r1")), {remoteSong(QStringLiteral("r1")), remoteSong(QStringLiteral("r2"))});
+    settle();
+    // r1 fails three times and once more: it pauses on r1.
+    for (int attempt = 0; attempt < 4; ++attempt) {
+        fixture.audio.start();
+        fixture.audio.fail();
+        settle();
+    }
+    QCOMPARE(player->state(), PlayerController::State::Paused);
+    QCOMPARE(fixture.resolver.refreshCalls, 3);
+    // Next at once: r2's first failure is fetched again, not paused on.
+    player->next();
+    settle();
+    QCOMPARE(player->currentTrack()->title, QStringLiteral("r2"));
+    fixture.audio.start();
+    fixture.audio.fail();
+    settle();
+    QCOMPARE(fixture.resolver.refreshCalls, 4);
+    QVERIFY(player->state() != PlayerController::State::Paused);
+}
+
+void AccountPlaybackTest::aStreamThatNeverStartsIsSkipped()
+{
+    PlayerFixture fixture;
+    QVERIFY(fixture.ok());
+    auto player = fixture.makeController();
+    player->playInContext(remoteSong(QStringLiteral("r1")), {remoteSong(QStringLiteral("r1")), remoteSong(QStringLiteral("r2"))});
+    settle();
+    // Its address was found, but the audio player turns it down before it plays.
+    fixture.audio.fail();
+    settle();
+    fixture.clock.advance(250);
+    settle();
+    QCOMPARE(fixture.resolver.refreshCalls, 0);
+    QCOMPARE(player->currentTrack()->title, QStringLiteral("r2"));
 }
 
 QTEST_GUILESS_MAIN(AccountPlaybackTest)
