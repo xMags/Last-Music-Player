@@ -59,6 +59,12 @@ QVariant SidebarPlaylistListModel::data(const QModelIndex& index, int role) cons
         return item.id;
     case NameRole:
         return item.name;
+    case CoverStyleRole:
+        return item.coverStyle;
+    case ArtworkUrlRole:
+        return item.artworkUrl;
+    case CollageRole:
+        return QVariant::fromValue(item.collage);
     default:
         return {};
     }
@@ -66,7 +72,11 @@ QVariant SidebarPlaylistListModel::data(const QModelIndex& index, int role) cons
 
 QHash<int, QByteArray> SidebarPlaylistListModel::roleNames() const
 {
-    return {{PlaylistIdRole, "playlistId"}, {NameRole, "name"}};
+    return {{PlaylistIdRole, "playlistId"},
+            {NameRole, "name"},
+            {CoverStyleRole, "coverStyle"},
+            {ArtworkUrlRole, "artworkUrl"},
+            {CollageRole, "collage"}};
 }
 
 void SidebarPlaylistListModel::setItems(QList<Item> items)

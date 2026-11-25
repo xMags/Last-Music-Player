@@ -18,10 +18,10 @@
 #include "core/playback/PlayerController.h"
 #include "core/settings/SettingKeys.h"
 #include "core/settings/SettingsStore.h"
+#include "ui/library/PlaylistCoverArt.h"
 #include "ui/library/SystemPlaylists.h"
 #include "ui/navigation/Navigator.h"
 #include "ui/navigation/Route.h"
-#include "ui/player/CoverSource.h"
 #include "ui/tracks/QueryTrackSource.h"
 #include "ui/tracks/TrackMenuController.h"
 
@@ -286,36 +286,11 @@ void CollectionViewModel::readCover()
         m_coverStyle = QStringLiteral("genre");
         return;
     }
-    // Up to four distinct covers in list order (playlist-art.ts).
-    QList<QUrl> covers;
-    for (const core::Track& track : m_tracks.tracks()) {
-        const QUrl url = CoverSource::forLibraryTrack(track).displayUrl();
-        if (url.isEmpty() || covers.contains(url)) {
-            continue;
-        }
-        covers.append(url);
-        if (covers.size() == 4) {
-            break;
-        }
-    }
-    // An album shows its cover; a playlist with two or more covers a
-    // collage: two as a checkerboard, three or four in order.
-    const bool playlist = m_kind == QLatin1StringView("playlist");
-    if (playlist && covers.size() >= 2) {
-        m_coverStyle = QStringLiteral("collage");
-        if (covers.size() == 2) {
-            m_collage = {covers.at(0), covers.at(1), covers.at(1), covers.at(0)};
-        } else {
-            for (int slot = 0; slot < 4; ++slot) {
-                m_collage.append(covers.at(slot % covers.size()));
-            }
-        }
-        return;
-    }
-    m_coverStyle = QStringLiteral("image");
-    if (!covers.isEmpty()) {
-        m_artworkUrl = covers.constFirst();
-    }
+    // An album shows its cover; a playlist with two or more covers a collage.
+    const PlaylistCoverArt art = playlistCoverArt(m_tracks.tracks(), m_kind == QLatin1StringView("playlist"));
+    m_coverStyle = art.style;
+    m_artworkUrl = art.image;
+    m_collage = art.collage;
 }
 
 QString CollectionViewModel::eyebrow() const

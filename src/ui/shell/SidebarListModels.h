@@ -5,6 +5,7 @@
 #include <QHash>
 #include <QList>
 #include <QString>
+#include <QUrl>
 #include <QtQml/qqmlregistration.h>
 
 namespace lmp::ui {
@@ -46,12 +47,17 @@ class SidebarPlaylistListModel : public QAbstractListModel {
     Q_PROPERTY(int count READ count NOTIFY countChanged FINAL)
 
 public:
-    enum Role { PlaylistIdRole = Qt::UserRole + 1, NameRole };
+    enum Role { PlaylistIdRole = Qt::UserRole + 1, NameRole, CoverStyleRole, ArtworkUrlRole, CollageRole };
     Q_ENUM(Role)
 
     struct Item {
         QString id;
         QString name;
+        // The cover mosaic (PlaylistCoverArt): "collage" or "image", with
+        // an empty image when no song has a cover.
+        QString coverStyle = QStringLiteral("image");
+        QUrl artworkUrl;
+        QList<QUrl> collage;
     };
 
     explicit SidebarPlaylistListModel(QObject* parent = nullptr);

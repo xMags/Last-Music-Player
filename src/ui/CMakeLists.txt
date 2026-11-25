@@ -232,6 +232,8 @@ qt_add_qml_module(lmp_ui
         library/CollectionEditor.h
         library/CollectionViewModel.cpp
         library/CollectionViewModel.h
+        library/PlaylistCoverArt.cpp
+        library/PlaylistCoverArt.h
         library/GenreArtwork.cpp
         library/GenreArtwork.h
         library/LibraryViewModel.cpp

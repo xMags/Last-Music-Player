@@ -1,7 +1,10 @@
 #include "ui/shell/SidebarViewModel.h"
 
+#include "core/db/LibraryQueries.h"
 #include "core/library/CollectionActions.h"
+#include "core/library/DetailSortPolicy.h"
 #include "core/library/TrackActions.h"
+#include "ui/library/PlaylistCoverArt.h"
 #include "ui/navigation/Route.h"
 
 namespace lmp::ui {
@@ -26,6 +29,7 @@ QList<SidebarNavListModel::Item> mainViews()
 SidebarViewModel::SidebarViewModel(Parts parts, QObject* parent)
     : QObject(parent)
     , m_navigator(parts.navigator)
+    , m_library(parts.library)
     , m_actions(parts.actions)
     , m_navItems(mainViews())
     , m_activeKind(static_cast<int>(Route::Kind::Home))
@@ -34,6 +38,8 @@ SidebarViewModel::SidebarViewModel(Parts parts, QObject* parent)
     connect(&parts.collections, &core::CollectionActions::playlistsChanged, this,
             &SidebarViewModel::refreshPlaylists);
     connect(&m_actions, &core::TrackActions::playlistsChanged, this, &SidebarViewModel::refreshPlaylists);
+    // A playlist's songs changed: its cover may have.
+    connect(&m_actions, &core::TrackActions::playlistChanged, this, &SidebarViewModel::refreshPlaylists);
     followNavigator();
 }
 
@@ -44,7 +50,19 @@ void SidebarViewModel::refreshPlaylists()
         if (items.size() == PlaylistLimit) {
             break;
         }
-        items.append({.id = playlist.sourceUrl, .name = playlist.title});
+        // The first songs in the playlist's own order are enough to find
+        // four distinct covers in almost every playlist.
+        core::db::TrackQuery query;
+        query.groupKind = QStringLiteral("playlist");
+        query.groupKey = playlist.sourceUrl;
+        query.sort = core::detailSortQueryValue(core::DetailSort::Curated);
+        query.limit = CoverSongLimit;
+        const PlaylistCoverArt art = playlistCoverArt(m_library.loadTrackPage(query).tracks, true);
+        items.append({.id = playlist.sourceUrl,
+                      .name = playlist.title,
+                      .coverStyle = art.style,
+                      .artworkUrl = art.image,
+                      .collage = art.collage});
     }
     m_playlists.setItems(std::move(items));
 }

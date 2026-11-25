@@ -177,6 +177,10 @@ Rectangle {
                     required property int index
                     required property string playlistId
                     required property string name
+                    // The row's own cover properties, filled from the model.
+                    required coverStyle
+                    required artworkUrl
+                    required collage
 
                     width: column.width
                     visible: index < sidebar.shownPlaylists

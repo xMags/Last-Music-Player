@@ -7,6 +7,10 @@
 #include "ui/navigation/Navigator.h"
 #include "ui/shell/SidebarListModels.h"
 
+namespace lmp::core::db {
+class LibraryQueries;
+} // namespace lmp::core::db
+
 namespace lmp::core {
 class CollectionActions;
 class TrackActions;
@@ -22,7 +26,8 @@ namespace lmp::ui {
 // the user's playlists on this PC (the account's join with account sync),
 // at most 50; the sidebar shows those that fit and an "All playlists" row
 // that opens Library. It follows playlists as they are made, renamed and
-// deleted.
+// deleted, and each row shows the playlist's cover mosaic from its first
+// songs, read again when its songs change.
 class SidebarViewModel : public QObject {
     Q_OBJECT
     QML_ELEMENT
@@ -36,12 +41,15 @@ class SidebarViewModel : public QObject {
 public:
     struct Parts {
         Navigator& navigator;
+        core::db::LibraryQueries& library;
         core::CollectionActions& collections;
         core::TrackActions& actions;
     };
 
     // More playlists than this never reach the sidebar; Library lists them all.
     static constexpr int PlaylistLimit = 50;
+    // How many of a playlist's first songs its sidebar cover is looked for in.
+    static constexpr int CoverSongLimit = 40;
 
     // Everything in `parts` is owned by the composition root and outlives this.
     explicit SidebarViewModel(Parts parts, QObject* parent = nullptr);
@@ -69,6 +77,7 @@ private:
     void followNavigator();
 
     Navigator& m_navigator;
+    core::db::LibraryQueries& m_library;
     core::TrackActions& m_actions;
     SidebarNavListModel m_navItems;
     SidebarPlaylistListModel m_playlists;

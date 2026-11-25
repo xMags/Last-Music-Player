@@ -90,7 +90,7 @@ void CollectionEditorTest::init()
     m_navigator = std::make_unique<Navigator>();
     m_toasts = std::make_unique<lmp::ui::ToastQueue>();
     m_sidebar = std::make_unique<lmp::ui::SidebarViewModel>(
-        lmp::ui::SidebarViewModel::Parts{*m_navigator, *m_collectionActions, *m_actions});
+        lmp::ui::SidebarViewModel::Parts{*m_navigator, *m_queries, *m_collectionActions, *m_actions});
     m_page = std::make_unique<lmp::ui::CollectionViewModel>(lmp::ui::CollectionViewModel::Parts{
         *m_queries, *m_actions, *m_collectionActions, *m_mixes, *m_controller, m_player->settings, *m_menu, *m_navigator});
     m_editor = std::make_unique<CollectionEditor>(*m_collectionActions, *m_navigator, *m_toasts);

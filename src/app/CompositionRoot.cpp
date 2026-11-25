@@ -243,6 +243,7 @@ CompositionRoot::CompositionRoot()
                          }})
     , m_windowChromeViewModel(&m_windowChrome)
     , m_sidebar({.navigator = m_navigator,
+                 .library = m_library,
                  .collections = m_collectionActions,
                  .actions = m_trackActions})
     , m_playerBar(m_player, &m_connectSync)
