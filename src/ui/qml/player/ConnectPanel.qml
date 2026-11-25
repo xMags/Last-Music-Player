@@ -18,7 +18,12 @@ Item {
 
     signal closeRequested()
 
-    Component.onCompleted: App.cast.scan()
+    // A fresh look each time the panel opens (not at start-up, when both
+    // rails build one), then every 15 s while it shows.
+    onVisibleChanged: {
+        if (visible)
+            App.cast.scan()
+    }
 
     Timer {
         interval: 15000
