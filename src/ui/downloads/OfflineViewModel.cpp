@@ -4,6 +4,7 @@
 #include "core/downloads/DownloadPolicy.h"
 #include "core/db/LibraryQueries.h"
 #include "core/library/TrackActions.h"
+#include "core/model/CatalogSourceKey.h"
 #include "core/model/DisplayTitle.h"
 #include "core/model/TrackKeys.h"
 #include "core/settings/SettingKeys.h"
@@ -97,14 +98,9 @@ OfflineViewModel::OfflineViewModel(Parts parts, QObject* parent)
     }
     connect(&m_downloads, &core::DownloadManager::changed, this, &OfflineViewModel::reload);
     // A like or unlike anywhere: every heart is read again.
-    connect(&m_actions, &core::TrackActions::likedChanged, this, [this](const QString&, bool) {
-        m_likedByKey.clear();
-        // The lists hold copies of the songs: they are made again with the
-        // new hearts.
-        m_groupsSignature.clear();
-        m_revision = 0;
-        reload();
-    });
+    // A like or unlike anywhere: the hearts are read again and changed in
+    // place (a reset of the list would lose its scroll place).
+    connect(&m_actions, &core::TrackActions::likedChanged, this, &OfflineViewModel::rereadHearts);
     reload();
 }
 
@@ -780,6 +776,31 @@ void OfflineViewModel::markLiked()
         }
         track.liked = lookup(track);
         m_likedByKey.insert(key, track.liked);
+    }
+}
+
+void OfflineViewModel::rereadHearts()
+{
+    m_likedByKey.clear();
+    const std::function<bool(const core::Track&)> liked = m_actions.likedLookup();
+    // Every copy the page keeps, so the next tab or group shows them too.
+    const auto reread = [&liked](QList<core::Track>& tracks) {
+        for (core::Track& track : tracks) {
+            track.liked = liked(track);
+        }
+    };
+    reread(m_downloaded);
+    reread(m_detailed);
+    for (QList<core::offline::OfflineGroup>* groups : {&m_playlistGroups, &m_albumGroups, &m_artistGroups, &m_genreGroups}) {
+        for (core::offline::OfflineGroup& group : *groups) {
+            reread(group.tracks);
+        }
+    }
+    markLiked();
+    // The list on show: row by row, its liked mark only.
+    const QList<core::Track> shown = m_songs.tracks();
+    for (const core::Track& track : shown) {
+        m_songs.setLiked(core::catalogSourceKey(track), liked(track));
     }
 }
 

@@ -240,6 +240,8 @@ private:
     // True when the lists were made again (the downloaded songs changed).
     bool refreshGroups();
     void markLiked();
+    // A like changed somewhere: every heart is read again, in place.
+    void rereadHearts();
     [[nodiscard]] const core::offline::OfflineGroup* openedGroup() const;
     [[nodiscard]] QList<core::Track> historySongs();
 
