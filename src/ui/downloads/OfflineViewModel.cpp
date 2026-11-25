@@ -83,6 +83,12 @@ OfflineViewModel::OfflineViewModel(Parts parts, QObject* parent)
         }
     }
     connect(&m_downloads, &core::DownloadManager::changed, this, &OfflineViewModel::reload);
+    // A like or unlike anywhere: every heart is read again.
+    connect(&m_actions, &core::TrackActions::likedChanged, this, [this](const QString&, bool) {
+        m_likedByKey.clear();
+        m_revision = 0;
+        reload();
+    });
     reload();
 }
 
@@ -495,6 +501,7 @@ void OfflineViewModel::reload()
     }
     m_pendingDetail = detail.join(QStringLiteral(" · "));
     m_pendingPercent = itemsInJobs > 0 ? std::min(100, static_cast<int>(progress * 100.0 / itemsInJobs + 0.5)) : 0;
+    markLiked();
     refreshGroups();
     showTab();
     emit changed();
@@ -696,6 +703,33 @@ void OfflineViewModel::play()
 void OfflineViewModel::shuffle()
 {
     m_actions.shufflePlay(m_songs.tracks());
+}
+
+void OfflineViewModel::markLiked()
+{
+    // The hearts: each download's answer is kept, since this runs on every
+    // progress tick, and the likes are read only for songs not seen yet.
+    std::function<bool(const core::Track&)> lookup;
+    for (qsizetype i = 0; i < m_downloaded.size(); ++i) {
+        core::Track& track = m_downloaded[i];
+        const QString key = m_downloadedKeys.value(i).isEmpty() ? track.sourceUrl : m_downloadedKeys.value(i);
+        if (const auto known = m_likedByKey.constFind(key); known != m_likedByKey.constEnd()) {
+            track.liked = known.value();
+            continue;
+        }
+        if (!lookup) {
+            lookup = m_actions.likedLookup();
+        }
+        track.liked = lookup(track);
+        m_likedByKey.insert(key, track.liked);
+    }
+}
+
+void OfflineViewModel::likeRow(int row)
+{
+    if (row >= 0 && row < m_songs.count()) {
+        [[maybe_unused]] const std::optional<bool> liked = m_actions.toggleLike(m_songs.trackAt(row));
+    }
 }
 
 void OfflineViewModel::playRow(int row)

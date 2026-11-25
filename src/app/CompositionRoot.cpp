@@ -247,7 +247,7 @@ CompositionRoot::CompositionRoot()
                  .library = m_library,
                  .collections = m_collectionActions,
                  .actions = m_trackActions})
-    , m_playerBar(m_player, &m_connectSync)
+    , m_playerBar(m_player, &m_connectSync, &m_trackActions)
     , m_playbackNotices(m_player, m_toasts)
     , m_fullscreen(m_player, m_settings, m_layout, m_toasts)
     , m_queueRail(m_player, m_library, m_toasts, &m_connectSync)

@@ -4,6 +4,8 @@
 
 #include "core/app/AppIdentity.h"
 #include "core/connect/ConnectSync.h"
+#include "core/library/TrackActions.h"
+#include "core/model/CatalogSourceKey.h"
 #include "core/model/ArtworkPlaceholder.h"
 #include "core/playback/PlayerController.h"
 #include "core/playback/QueueTrackIdentity.h"
@@ -23,11 +25,22 @@ using State = core::PlayerController::State;
 } // namespace
 
 PlayerBarViewModel::PlayerBarViewModel(core::PlayerController& player, core::connect::ConnectSync* link,
-                                       QObject* parent)
+                                       core::TrackActions* actions, QObject* parent)
     : QObject(parent)
     , m_player(player)
+    , m_actions(actions)
     , m_connect(link)
 {
+    // A like or unlike anywhere (a list's heart, a menu, a sync) moves this heart too.
+    if (m_actions != nullptr) {
+        connect(m_actions, &core::TrackActions::likedChanged, this, [this](const QString&, bool) {
+            const bool liked = likedNow(shownTrack());
+            if (liked != m_liked) {
+                m_liked = liked;
+                emit stateChanged();
+            }
+        });
+    }
     connect(&m_player, &core::PlayerController::currentTrackChanged, this, &PlayerBarViewModel::onTrackChanged);
     connect(&m_player, &core::PlayerController::stateChanged, this, &PlayerBarViewModel::stateChanged);
     connect(&m_player, &core::PlayerController::shuffleChanged, this, &PlayerBarViewModel::stateChanged);
@@ -51,7 +64,7 @@ PlayerBarViewModel::PlayerBarViewModel(core::PlayerController& player, core::con
         m_shownIdentity = core::queueTrackIdentity(*track);
         m_artworkUrl = CoverSource::forTrack(*track).displayUrl();
         m_artworkId = CoverSource::placeholderIdFor(*track);
-        m_liked = track->liked;
+        m_liked = likedNow(track);
     }
     m_shownTitle = displayTitle();
     m_shownArtist = displayArtist();
@@ -66,7 +79,7 @@ void PlayerBarViewModel::onTrackChanged()
     m_shownArtist = displayArtist();
     const core::Track* track = shownTrack();
     const QString identity = track ? core::queueTrackIdentity(*track) : QString();
-    const bool liked = track && track->liked;
+    const bool liked = likedNow(track);
     // Only a new song moves; a redraw of the same one (or the launch
     // restore, which opens nothing) does not.
     const bool newSong = track && identity != m_shownIdentity && (remote() || m_player.state() != State::Idle);
@@ -248,13 +261,34 @@ void PlayerBarViewModel::cycleRepeat()
     m_player.setRepeatMode(static_cast<core::RepeatMode>((repeatMode() + 1) % 3));
 }
 
+bool PlayerBarViewModel::likedNow(const core::Track* track) const
+{
+    if (track == nullptr) {
+        return false;
+    }
+    // Another device's song is that device's to like: its own field says.
+    if (m_actions == nullptr || remote()) {
+        return track->liked;
+    }
+    return m_actions->isLiked(*track);
+}
+
 void PlayerBarViewModel::toggleLike()
 {
-    if (!hasTrack()) {
+    const core::Track* track = shownTrack();
+    if (track == nullptr || remote()) {
         return;
     }
-    m_liked = !m_liked;
-    emit stateChanged();
+    if (m_actions == nullptr) {
+        m_liked = !m_liked;
+        emit stateChanged();
+        return;
+    }
+    // The heart moves with likedChanged; a refused like leaves it as it was.
+    if (const std::optional<bool> liked = m_actions->toggleLike(*track); liked && *liked != m_liked) {
+        m_liked = *liked;
+        emit stateChanged();
+    }
 }
 
 void PlayerBarViewModel::toggleMute()

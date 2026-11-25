@@ -73,6 +73,9 @@ public:
     [[nodiscard]] std::optional<bool> isAccountTrackLiked(const QString& accountId, const QString& remoteTrackId) const;
     // The account's liked songs: remote id, title and artist only.
     [[nodiscard]] QList<Track> loadAccountLikedTracks(const QString& accountId) const;
+    // The remote id of the account song with this source address, when one is cached.
+    [[nodiscard]] std::optional<QString> findAccountTrackIdBySource(const QString& accountId,
+                                                                    const QString& sourceUrl) const;
 
     // The stored state, or one holding only the account id.
     [[nodiscard]] AccountSyncState loadAccountSyncState(const QString& accountId) const;

@@ -132,6 +132,25 @@ QList<Track> AccountRepository::loadAccountLikedTracks(const QString& accountId)
     return liked;
 }
 
+std::optional<QString> AccountRepository::findAccountTrackIdBySource(const QString& accountId,
+                                                                     const QString& sourceUrl) const
+{
+    if (accountId.isEmpty() || sourceUrl.isEmpty()) {
+        return std::nullopt;
+    }
+    auto prepared = m_connection.prepare(
+        "SELECT RemoteId FROM AccountTracks WHERE AccountId=? AND SourceUrl=? AND RemoteId<>'' LIMIT 1;");
+    if (!prepared) {
+        return std::nullopt;
+    }
+    prepared.value().bindText(1, accountId);
+    prepared.value().bindText(2, sourceUrl);
+    if (!prepared.value().step().valueOr(false)) {
+        return std::nullopt;
+    }
+    return prepared.value().columnText(0);
+}
+
 AccountSyncState AccountRepository::loadAccountSyncState(const QString& accountId) const
 {
     AccountSyncState state;

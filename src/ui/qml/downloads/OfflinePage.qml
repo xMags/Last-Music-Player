@@ -753,6 +753,7 @@ Item {
         rightSidePadding: page.rightGutter
         header: top
         onActivated: row => App.offline.playRow(row)
+        onLikeRequested: row => App.offline.likeRow(row)
         onMenuRequested: (row, at, fromKeyboard) => {
             App.offline.prepareSongMenu(row)
             menus.open(songs, at.x, at.y, fromKeyboard)

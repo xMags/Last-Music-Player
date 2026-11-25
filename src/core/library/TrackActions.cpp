@@ -1,5 +1,7 @@
 #include "core/library/TrackActions.h"
 
+#include "core/library/LikedIndex.h"
+
 #include "core/remote/TrackJson.h"
 
 #include "core/account/AccountLibraryEditor.h"
@@ -14,6 +16,7 @@
 #include "core/mode/ModeService.h"
 #include "core/mode/SourceMode.h"
 #include "core/model/CatalogSourceKey.h"
+#include "core/net/RemoteUrlPolicy.h"
 #include "core/playback/PlayerController.h"
 
 namespace lmp::core {
@@ -264,21 +267,53 @@ Result<qint64> TrackActions::persist(const Track& track)
     return track.isRemote() ? m_tracks.upsertRemoteTrack(track, key) : m_tracks.upsertLocalTrack(track, key);
 }
 
+bool TrackActions::isLiked(const Track& track)
+{
+    return likedLookup()(track);
+}
+
+std::function<bool(const Track&)> TrackActions::likedLookup()
+{
+    std::optional<LikedIndex> account;
+    if (m_account != nullptr && m_account->isActive()) {
+        account = m_account->likedIndex();
+    }
+    return [this, account = std::move(account)](const Track& track) {
+        if (account && account->hasTrack({track.remoteId, track.title, track.artist})) {
+            return true;
+        }
+        const QString key = catalogSourceKey(track);
+        return !key.isEmpty() && m_tracks.isLiked(key);
+    };
+}
+
 std::optional<bool> TrackActions::toggleLike(const Track& track)
 {
-    if (!canKeep(track)) {
+    // A copy of an account song (a downloaded file, a song another device
+    // sent without its account id) is liked as that song.
+    std::optional<Track> accountSong;
+    if (m_account != nullptr && m_account->handles(track)) {
+        accountSong = track;
+    } else if (m_account != nullptr && m_account->isActive() && net::isHttpUrl(track.sourceUrl)) {
+        accountSong = m_account->accountCopyOf(track);
+        if (!accountSong) {
+            return std::nullopt; // not this account's song: nothing to like it as
+        }
+    }
+    if (!accountSong && !canKeep(track)) {
         return std::nullopt;
     }
     const std::optional<UserDataOperationGate::Lease> lease = m_gate.tryEnter();
     if (!lease) {
         return std::nullopt;
     }
-    if (m_account != nullptr && m_account->handles(track)) {
-        const std::optional<bool> liked = m_account->setLiked(track, !m_account->isLiked(track));
+    if (accountSong) {
+        const bool likedBefore = isLiked(track);
+        const std::optional<bool> liked = m_account->setLiked(*accountSong, !likedBefore);
         if (liked) {
-            emit likedChanged(catalogSourceKey(track), *liked);
+            emit likedChanged(catalogSourceKey(*accountSong), *liked);
             if (*liked) {
-                emit songLiked(track);
+                emit songLiked(*accountSong);
             }
         }
         return liked;

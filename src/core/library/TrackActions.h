@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include <QList>
 #include <QObject>
 #include <QString>
@@ -89,6 +90,14 @@ public:
 
     // Likes or unlikes the song; the new state, or nothing when refused.
     std::optional<bool> toggleLike(const Track& track);
+    // Whether the song is liked now, whatever copy of it this is: in Account
+    // mode by the account's likes (another version of the same song counts,
+    // as the heart shows it), else, and for this PC's own files, by the
+    // library's flag. A song's own `liked` field can be stale or missing (a
+    // download, a song another device sent), so it is not trusted.
+    [[nodiscard]] bool isLiked(const Track& track);
+    // The same check for many songs at once: the account's likes are read once.
+    [[nodiscard]] std::function<bool(const Track&)> likedLookup();
 
     // The user's own playlists, newest first (title and key in sourceUrl).
     [[nodiscard]] QList<Track> playlists();

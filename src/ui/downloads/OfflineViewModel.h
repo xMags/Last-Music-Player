@@ -194,6 +194,8 @@ public:
     Q_INVOKABLE void play();
     Q_INVOKABLE void shuffle();
     Q_INVOKABLE void playRow(int row);
+    // The heart on a song's row.
+    Q_INVOKABLE void likeRow(int row);
     Q_INVOKABLE void prepareSongMenu(int row);
     Q_INVOKABLE void pauseAll();
     Q_INVOKABLE void resumeAll();
@@ -229,6 +231,7 @@ private:
     // length, main artist), and the collection tabs' groups, rebuilt only
     // when the set of downloaded songs changes.
     void refreshGroups();
+    void markLiked();
     [[nodiscard]] const core::offline::OfflineGroup* openedGroup() const;
     [[nodiscard]] QList<core::Track> historySongs();
 
@@ -249,6 +252,8 @@ private:
     QList<core::Track> m_downloaded;
     // m_downloadedKeys[i] is the download key of m_downloaded[i].
     QStringList m_downloadedKeys;
+    // Whether each download is liked, by download key (markLiked).
+    QHash<QString, bool> m_likedByKey;
     QString m_groupsSignature;
     QList<core::Track> m_detailed;
     QList<core::offline::OfflineGroup> m_playlistGroups;

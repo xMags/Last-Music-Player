@@ -7,6 +7,7 @@
 
 namespace lmp::core {
 class PlayerController;
+class TrackActions;
 struct Track;
 }
 
@@ -67,7 +68,10 @@ class PlayerBarViewModel : public QObject {
 
 public:
     // `player`, and `link` when given, must outlive this view model.
+    // `actions`, when given, says whether the song is liked and likes it;
+    // without it the heart only follows the song's own field.
     explicit PlayerBarViewModel(core::PlayerController& player, core::connect::ConnectSync* link = nullptr,
+                                core::TrackActions* actions = nullptr,
                                 QObject* parent = nullptr);
 
     [[nodiscard]] bool hasTrack() const;
@@ -131,10 +135,13 @@ signals:
 
 private:
     void onTrackChanged();
+    // The heart for `track`: the library's answer, or the song's own field.
+    [[nodiscard]] bool likedNow(const core::Track* track) const;
     // The song shown: the other device's while remote, else the player's.
     [[nodiscard]] const core::Track* shownTrack() const;
 
     core::PlayerController& m_player;
+    core::TrackActions* m_actions = nullptr;
     core::connect::ConnectSync* m_connect = nullptr;
     // The identity of the song shown; empty while idle.
     QString m_shownIdentity;

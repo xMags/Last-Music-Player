@@ -9,7 +9,13 @@
 #include <QJsonObject>
 
 #include "../core/FakeConnectSocket.h"
+#include "../core/ModeServiceFixture.h"
 #include "../core/PlayerFixture.h"
+#include "core/db/CollectionRepository.h"
+#include "core/db/GroupQueries.h"
+#include "core/library/TrackActions.h"
+#include "core/library/UserDataOperationGate.h"
+#include "core/model/CatalogSourceKey.h"
 #include "core/connect/ConnectSync.h"
 #include "core/connect/ConnectTracks.h"
 #include "core/playback/QueueEngine.h"
@@ -40,6 +46,7 @@ private slots:
     void aNewSongAnimatesButTheLaunchRestoreDoesNot();
     void aLocalSongWithoutArtworkShowsItsEmbeddedCover();
     void anotherDevicesSongIsShownAndControlled();
+    void theHeartReadsAndWritesTheLibrary();
 
 private:
     void playSongs(const QStringList& names);
@@ -299,6 +306,36 @@ void PlayerBarViewModelTest::anotherDevicesSongIsShownAndControlled()
     QCOMPARE(harness.lastSent().value("command").toObject().value("value").toInt(), 25);
     QCOMPARE(bar.volume(), 25);
     QCOMPARE(m_player->volume(), localVolume);
+}
+
+void PlayerBarViewModelTest::theHeartReadsAndWritesTheLibrary()
+{
+    lmp::test::ModeServiceFixture modes;
+    (void)modes.modes.start();
+    lmp::core::db::Database& database = m_fixture->library.database();
+    lmp::core::db::CollectionRepository collections(database);
+    lmp::core::db::GroupQueries groups(database);
+    lmp::core::UserDataOperationGate gate;
+    lmp::core::TrackActions actions(lmp::core::TrackActions::Dependencies{
+        *m_player, m_fixture->tracks, collections, groups, modes.modes, gate});
+    PlayerBarViewModel bar(*m_player, nullptr, &actions);
+
+    // Liked in the library, though the song that plays does not say so (a
+    // song sent from another device, a downloaded copy).
+    const Track song = m_fixture->song(QStringLiteral("One"));
+    QCOMPARE(actions.toggleLike(song), std::optional<bool>(true));
+    playSongs({QStringLiteral("One"), QStringLiteral("Two")});
+    QVERIFY(!m_player->currentTrack()->liked);
+    QVERIFY(bar.liked());
+
+    // The heart writes the like, not only its own look.
+    bar.toggleLike();
+    QVERIFY(!bar.liked());
+    QVERIFY(!m_fixture->tracks.isLiked(lmp::core::catalogSourceKey(song)));
+
+    // A like made elsewhere moves it too.
+    QCOMPARE(actions.toggleLike(song), std::optional<bool>(true));
+    QVERIFY(bar.liked());
 }
 
 QTEST_GUILESS_MAIN(PlayerBarViewModelTest)

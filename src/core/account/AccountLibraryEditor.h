@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/library/LikedIndex.h"
 #include "core/account/AccountSessionState.h"
 #include "core/async/Result.h"
 #include "core/model/Track.h"
@@ -75,6 +76,15 @@ public:
 
     // The song's stored liked state (false when it is not cached).
     [[nodiscard]] bool isLiked(const Track& track) const;
+    // The account's liked songs, indexed by id and by song name, so a copy of
+    // a liked song that carries no account id (a downloaded file, a song sent
+    // from another device) is found too; nothing while no account is in use.
+    [[nodiscard]] std::optional<LikedIndex> likedIndex() const;
+    // The account song `track` is a copy of (a downloaded file, a song sent
+    // from another device), in the form the account edits take: by the
+    // liked copy of the same song, else by its source address. Nothing when
+    // no account is in use or none matches.
+    [[nodiscard]] std::optional<Track> accountCopyOf(const Track& track) const;
     // Likes or unlikes the song. The new state, or nothing when refused.
     std::optional<bool> setLiked(const Track& track, bool liked);
 

@@ -14,6 +14,7 @@
 #include "core/db/AccountOutboxRepository.h"
 #include "core/db/AccountRepository.h"
 #include "core/library/LikedIndex.h"
+#include "core/net/RemoteUrlPolicy.h"
 #include "core/library/SameSong.h"
 #include "core/library/UserDataOperationGate.h"
 #include "core/mode/ModeService.h"
@@ -94,6 +95,51 @@ bool AccountLibraryEditor::isLiked(const Track& track) const
         return false;
     }
     return m_deps.accounts.isAccountTrackLiked(context->ownerId, track.remoteId).value_or(track.liked);
+}
+
+std::optional<LikedIndex> AccountLibraryEditor::likedIndex() const
+{
+    const std::optional<AccountOperationContext> context = writableContext();
+    if (!context) {
+        return std::nullopt;
+    }
+    QList<SongIdentity> liked;
+    for (const Track& stored : m_deps.accounts.loadAccountLikedTracks(context->ownerId)) {
+        liked.append(identityOf(stored));
+    }
+    return LikedIndex(liked);
+}
+
+std::optional<Track> AccountLibraryEditor::accountCopyOf(const Track& track) const
+{
+    const std::optional<AccountOperationContext> context = writableContext();
+    if (!context || !net::isSafeRemoteUrl(track.sourceUrl, net::RemoteUrlUse::Durable)) {
+        return std::nullopt;
+    }
+    QString remoteId = track.remoteId;
+    if (remoteId.isEmpty()) {
+        QList<SongIdentity> liked;
+        for (const Track& stored : m_deps.accounts.loadAccountLikedTracks(context->ownerId)) {
+            liked.append(identityOf(stored));
+        }
+        if (const std::optional<SongIdentity> copy = LikedIndex(liked).copyOf(identityOf(track))) {
+            remoteId = copy->id;
+        }
+    }
+    if (remoteId.isEmpty()) {
+        remoteId = m_deps.accounts.findAccountTrackIdBySource(context->ownerId, track.sourceUrl).value_or(QString());
+    }
+    if (remoteId.isEmpty()) {
+        return std::nullopt;
+    }
+    Track copy = track;
+    copy.remoteId = remoteId;
+    copy.sourceKind = QStringLiteral("remote");
+    copy.filePath.clear();
+    if (!remote::track_json::isCompatibleAccountRemoteTrack(copy)) {
+        return std::nullopt;
+    }
+    return copy;
 }
 
 bool AccountLibraryEditor::writeLike(const QString& owner, const Track& track, bool liked)

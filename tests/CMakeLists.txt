@@ -63,7 +63,7 @@ lmp_add_test(tst_effect_ownership
     LIBS lmp_ui Qt6::Quick)
 
 lmp_add_test(tst_player_bar_view_model
-    SOURCES ui/tst_player_bar_view_model.cpp core/FakeConnectSocket.h core/PlayerFixture.h core/FakeAudioPlayer.h core/FakePlaybackClock.h core/TempLibrary.h
+    SOURCES ui/tst_player_bar_view_model.cpp core/FakeConnectSocket.h core/PlayerFixture.h core/FakeAudioPlayer.h core/FakePlaybackClock.h core/TempLibrary.h core/ModeServiceFixture.h core/AccountSessionFixture.h core/FakeCredentialStore.h core/FakeHttpTransport.h
     LIBS lmp_ui)
 
 lmp_add_test(tst_fullscreen_player_view_model
