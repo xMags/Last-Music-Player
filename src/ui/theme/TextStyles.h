@@ -93,6 +93,7 @@ struct TextStyles {
     TextStyle connectTitle;
     TextStyle connectCurrentName;
     TextStyle connectRowName;
+    TextStyle connectHelpRow;
     TextStyle connectDetail;
     TextStyle connectStop;
     TextStyle connectSection;

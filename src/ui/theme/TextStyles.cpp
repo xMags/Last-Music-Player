@@ -171,6 +171,8 @@ TextStyles TextStyles::build(const FontFamilies& families)
         .connectTitle = makeTextStyle({.family = text, .pixelSize = 17, .weight = kBold}),
         .connectCurrentName = makeTextStyle({.family = text, .pixelSize = 15, .weight = kBubble}),
         .connectRowName = makeTextStyle({.family = text, .pixelSize = 14.5, .weight = 550}),
+        // .connect-help-row: 14px 550.
+        .connectHelpRow = makeTextStyle({.family = text, .pixelSize = 14, .weight = 550}),
         .connectDetail = makeTextStyle({.family = text, .pixelSize = 12, .weight = kRegular}),
         .connectStop = makeTextStyle({.family = text, .pixelSize = 12, .weight = kBubble}),
         .connectSection = makeTextStyle({.family = text, .pixelSize = 11, .weight = kBubble, .letterSpacingEm = 0.06}),

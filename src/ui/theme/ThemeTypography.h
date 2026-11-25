@@ -57,6 +57,7 @@ class ThemeTypography : public QObject {
     Q_PROPERTY(QFont connectTitle READ connectTitle CONSTANT FINAL)
     Q_PROPERTY(QFont connectCurrentName READ connectCurrentName CONSTANT FINAL)
     Q_PROPERTY(QFont connectRowName READ connectRowName CONSTANT FINAL)
+    Q_PROPERTY(QFont connectHelpRow READ connectHelpRow CONSTANT FINAL)
     Q_PROPERTY(QFont connectDetail READ connectDetail CONSTANT FINAL)
     Q_PROPERTY(QFont connectStop READ connectStop CONSTANT FINAL)
     Q_PROPERTY(QFont connectSection READ connectSection CONSTANT FINAL)
@@ -255,6 +256,7 @@ public:
     [[nodiscard]] QFont connectTitle() const { return m_text.connectTitle.font; }
     [[nodiscard]] QFont connectCurrentName() const { return m_text.connectCurrentName.font; }
     [[nodiscard]] QFont connectRowName() const { return m_text.connectRowName.font; }
+    [[nodiscard]] QFont connectHelpRow() const { return m_text.connectHelpRow.font; }
     [[nodiscard]] QFont connectDetail() const { return m_text.connectDetail.font; }
     [[nodiscard]] QFont connectStop() const { return m_text.connectStop.font; }
     [[nodiscard]] QFont connectSection() const { return m_text.connectSection.font; }

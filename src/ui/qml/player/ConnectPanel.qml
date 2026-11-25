@@ -372,7 +372,7 @@ Item {
                     anchors.verticalCenter: parent.verticalCenter
                     width: parent.width - 32 - 16
                     text: helpRow.title
-                    font: Theme.connectRowName
+                    font: Theme.connectHelpRow
                     color: Theme.fg
                     elide: Text.ElideRight
                 }

@@ -16,6 +16,8 @@ Rectangle {
     // Connect holds the column in place of the tabs while it is open.
     ConnectPanel {
         anchors.fill: parent
+        anchors.topMargin: 8
+        anchors.bottomMargin: 16
         visible: App.layout.connectOpen
         onCloseRequested: App.layout.closeConnect()
     }
