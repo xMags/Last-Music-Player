@@ -14,10 +14,14 @@ Item {
 
     // The song's address (the rows' remoteUrl role).
     property string remoteUrl: ""
+    // A mark already looked up (markOf's form), in place of the address's;
+    // the player bar passes the playing song's (OfflineViewModel.playingMark).
+    property var given: null
     // Its own label on hover; off inside a control that says it already.
     property bool showsLabel: true
 
-    readonly property var info: App.offline.markRevision >= 0 ? App.offline.markOf(remoteUrl) : ({})
+    readonly property var info: given !== null ? given
+                              : App.offline.markRevision >= 0 ? App.offline.markOf(remoteUrl) : ({})
     readonly property string state_: info.state !== undefined ? info.state : ""
 
     implicitWidth: 16

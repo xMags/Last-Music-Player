@@ -269,24 +269,42 @@ QVariantMap OfflineViewModel::groupCover() const
             {QStringLiteral("iconName"), QString()}};
 }
 
-QVariantMap OfflineViewModel::markOf(const QString& remoteUrl) const
+QVariantMap OfflineViewModel::markMap(const Mark* mark)
 {
-    const auto found = remoteUrl.isEmpty() ? m_marks.constEnd() : m_marks.constFind(remoteUrl);
-    if (found == m_marks.constEnd()) {
+    if (mark == nullptr) {
         return {{QStringLiteral("state"), QString()}, {QStringLiteral("percent"), -1}, {QStringLiteral("label"), QString()}};
     }
     QString label;
-    if (found->state == QLatin1StringView("done")) {
+    if (mark->state == QLatin1StringView("done")) {
         label = tr("Downloaded");
-    } else if (found->state == QLatin1StringView("downloading")) {
-        label = found->percent < 0 ? tr("Downloading") : tr("Downloading, %1%").arg(found->percent);
-    } else if (found->state == QLatin1StringView("queued")) {
+    } else if (mark->state == QLatin1StringView("downloading")) {
+        label = mark->percent < 0 ? tr("Downloading") : tr("Downloading, %1%").arg(mark->percent);
+    } else if (mark->state == QLatin1StringView("queued")) {
         label = tr("Waiting to download");
     } else {
-        label = found->error.isEmpty() ? tr("Download failed") : found->error;
+        label = mark->error.isEmpty() ? tr("Download failed") : mark->error;
     }
-    return {{QStringLiteral("state"), found->state}, {QStringLiteral("percent"), found->percent},
+    return {{QStringLiteral("state"), mark->state}, {QStringLiteral("percent"), mark->percent},
             {QStringLiteral("label"), label}};
+}
+
+QVariantMap OfflineViewModel::markOf(const QString& remoteUrl) const
+{
+    const auto found = remoteUrl.isEmpty() ? m_marks.constEnd() : m_marks.constFind(remoteUrl);
+    return markMap(found == m_marks.constEnd() ? nullptr : &*found);
+}
+
+QVariantMap OfflineViewModel::playingMark(const QString& address) const
+{
+    const std::optional<core::Track> track = m_currentTrack ? m_currentTrack() : std::nullopt;
+    if (track && m_stableKey) {
+        const QString key = core::track_keys::downloadMatchKey(m_stableKey(*track));
+        if (!key.isEmpty()) {
+            const auto found = m_marksByKey.constFind(key);
+            return markMap(found == m_marksByKey.constEnd() ? nullptr : &*found);
+        }
+    }
+    return markOf(address);
 }
 
 QString OfflineViewModel::songDownloadState(const core::Track& track) const
@@ -382,7 +400,8 @@ void OfflineViewModel::reload()
     // must not make every row read its mark again.
     QHash<QString, Mark> previousMarks;
     previousMarks.swap(m_marks);
-    m_marksByKey.clear();
+    QHash<QString, Mark> previousMarksByKey;
+    previousMarksByKey.swap(m_marksByKey);
     for (const core::DownloadJobSummary& summary : snapshot.jobs) {
         for (const core::DownloadItem& item : summary.job.items) {
             if (item.sourceUrl.isEmpty()) {
@@ -420,7 +439,8 @@ void OfflineViewModel::reload()
             }
         }
     }
-    const bool marksDiffer = m_marks != previousMarks;
+    // Both lookups are read (markOf by address, playingMark by key).
+    const bool marksDiffer = m_marks != previousMarks || m_marksByKey != previousMarksByKey;
     if (marksDiffer) {
         ++m_markRevision;
     }
@@ -1049,7 +1069,8 @@ bool OfflineViewModel::downloadTracks(const QString& title, const QString& subti
         return false;
     }
     if (!m_downloads.enqueue(title, subtitle, artworkUrl, requests)) {
-        m_toasts.show(tr("These songs are already downloaded or on their way."));
+        m_toasts.show(requests.size() == 1 ? tr("This song is already downloaded or on its way.")
+                                           : tr("These songs are already downloaded or on their way."));
         return false;
     }
     m_toasts.show(requests.size() == 1 ? tr("Downloading 1 song")
@@ -1059,9 +1080,18 @@ bool OfflineViewModel::downloadTracks(const QString& title, const QString& subti
 
 void OfflineViewModel::downloadPlaying()
 {
-    if (const std::optional<core::Track> track = m_currentTrack ? m_currentTrack() : std::nullopt) {
-        (void)downloadTracks(track->title, tr("Single track"), track->artworkUrl, {*track});
+    const std::optional<core::Track> track = m_currentTrack ? m_currentTrack() : std::nullopt;
+    if (!track) {
+        return;
     }
+    // Asked again by the service's own matching: no new job for a song it
+    // holds already (a failed one is tried again).
+    const QString state = songDownloadState(*track);
+    if (state == QLatin1StringView("done") || state == QLatin1StringView("pending")) {
+        m_toasts.show(tr("This song is already downloaded or on its way."));
+        return;
+    }
+    (void)downloadTracks(track->title, tr("Single track"), track->artworkUrl, {*track});
 }
 
 } // namespace lmp::ui

@@ -92,8 +92,12 @@ private slots:
     void aProgressTickThatChangesAPercentNotifiesTheMarks();
     void aReloadWithTheSameMarksDoesNotNotifyThem();
     void anOutOfDateLibraryReadIsDropped();
+    void thePlayingSongsMarkFollowsItsDownloadKey();
+    void downloadingThePlayingSongAgainStartsNoJob();
 
 private:
+    // The song the bar shows (OfflineViewModel's currentTrack).
+    std::optional<lmp::core::Track> m_playing;
     std::unique_ptr<PlayerFixture> m_player;
     std::unique_ptr<lmp::test::ModeServiceFixture> m_modes;
     std::unique_ptr<lmp::core::PlayerController> m_controller;
@@ -156,13 +160,15 @@ void OfflineViewModelTest::init()
         .trackMenu = *m_menu,
         .toasts = *m_toasts,
         .picker = *m_picker,
-        .currentTrack = []() { return std::optional<lmp::core::Track>(); },
+        .currentTrack = [this]() { return m_playing; },
         .canDownload = []() { return true; },
-        .stableKey = [](const lmp::core::Track&) { return QString(); }});
+        // As song() keys them: the scope, then the title.
+        .stableKey = [](const lmp::core::Track& track) { return Scope + track.title; }});
 }
 
 void OfflineViewModelTest::cleanup()
 {
+    m_playing.reset();
     m_model.reset();
     m_downloads.reset();
     m_picker.reset();
@@ -257,6 +263,63 @@ void OfflineViewModelTest::anOutOfDateLibraryReadIsDropped()
     settle();
     QCOMPARE(changes.count(), 1);
     QCOMPARE(m_runner->posted, readsBefore + 2);
+}
+
+namespace {
+
+// Song "A" as it plays from another address than the one it was downloaded
+// from: the same song (the same download key), another source.
+lmp::core::Track songAFromElsewhere()
+{
+    lmp::core::Track track;
+    track.title = QStringLiteral("A");
+    track.artist = QStringLiteral("Artist");
+    track.sourceKind = QStringLiteral("remote");
+    track.sourceUrl = QStringLiteral("https://mirror.example.test/a");
+    return track;
+}
+
+} // namespace
+
+// The player bar's mark is found by the song's download key, as the service
+// refuses a song again by it, not only by the address it came from.
+void OfflineViewModelTest::thePlayingSongsMarkFollowsItsDownloadKey()
+{
+    QVERIFY(m_downloads->enqueue(QStringLiteral("Job"), {}, {}, {song(QStringLiteral("A"))}));
+    QTRY_COMPARE(m_fetcher->progressOf.size(), std::size_t{1});
+    m_fetcher->complete(0);
+    QTRY_COMPARE(m_model->markOf(song(QStringLiteral("A")).sourceUrl).value(QStringLiteral("state")).toString(),
+                 QStringLiteral("done"));
+
+    m_playing = songAFromElsewhere();
+    const QString address = m_playing->sourceUrl;
+    // Unknown by its own address, known by its key.
+    QCOMPARE(m_model->markOf(address).value(QStringLiteral("state")).toString(), QString());
+    QCOMPARE(m_model->playingMark(address).value(QStringLiteral("state")).toString(), QStringLiteral("done"));
+    QCOMPARE(m_model->songDownloadState(*m_playing), QStringLiteral("done"));
+
+    // A song the list does not hold has no mark.
+    m_playing->title = QStringLiteral("B");
+    QCOMPARE(m_model->playingMark(address).value(QStringLiteral("state")).toString(), QString());
+}
+
+// Pressing the bar's download for a song the service already holds starts
+// no job and says so once, for one song.
+void OfflineViewModelTest::downloadingThePlayingSongAgainStartsNoJob()
+{
+    QVERIFY(m_downloads->enqueue(QStringLiteral("Job"), {}, {}, {song(QStringLiteral("A"))}));
+    QTRY_COMPARE(m_fetcher->progressOf.size(), std::size_t{1});
+    m_playing = songAFromElsewhere();
+    QSignalSpy toasts(m_toasts.get(), &QAbstractItemModel::rowsInserted);
+
+    m_model->downloadPlaying();
+    m_model->downloadPlaying();
+    settle();
+    QCOMPARE(m_fetcher->paths.size(), std::size_t{1});
+    QCOMPARE(m_toasts->count(), 1);
+    QCOMPARE(toasts.count(), 1);
+    QCOMPARE(m_toasts->data(m_toasts->index(0), lmp::ui::ToastQueue::TextRole).toString(),
+             QStringLiteral("This song is already downloaded or on its way."));
 }
 
 QTEST_GUILESS_MAIN(OfflineViewModelTest)

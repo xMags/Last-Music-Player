@@ -175,6 +175,13 @@ public:
     // its address: {state: "done" | "downloading" | "queued" | "failed" | "",
     // percent (-1 unknown), label}.
     Q_INVOKABLE QVariantMap markOf(const QString& remoteUrl) const;
+    // The playing song's mark (the player bar's), in markOf's form. Found by
+    // the song's download key, the matching the download service refuses a
+    // song again by (as songDownloadState), so the bar never offers what the
+    // service would refuse; by its address when the song has no key.
+    // `address` is the bar's downloadAddress: it moves with the song, so a
+    // binding that passes it is read again when the song changes.
+    Q_INVOKABLE QVariantMap playingMark(const QString& address) const;
     // The song menu's download item for `track`: "" (songs cannot be kept
     // here, or this one is not from the service), "offer", "done",
     // "pending" or "failed".
@@ -305,6 +312,8 @@ private:
     QHash<QString, Mark> m_marks;
     // The same marks by download key.
     QHash<QString, Mark> m_marksByKey;
+    // A mark in markOf's form; no mark when `mark` is null.
+    [[nodiscard]] static QVariantMap markMap(const Mark* mark);
     int m_pendingFailed = 0;
     QString m_pendingSpeed;
     std::uint64_t m_revision = 0;

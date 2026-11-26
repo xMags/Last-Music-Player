@@ -182,8 +182,9 @@ RowLayout {
     IconButton {
         id: downloadButton
 
+        // By the song's download key, as the service matches it.
         readonly property var mark: App.offline.markRevision >= 0
-                                    ? App.offline.markOf(App.playerBar.downloadAddress) : ({})
+                                    ? App.offline.playingMark(App.playerBar.downloadAddress) : ({})
         readonly property string markState: mark.state !== undefined ? mark.state : ""
         readonly property bool listed: markState !== "" && markState !== "failed"
 
@@ -203,7 +204,7 @@ RowLayout {
 
         DownloadMark {
             anchors.centerIn: parent
-            remoteUrl: App.playerBar.downloadAddress
+            given: downloadButton.mark
             showsLabel: false
         }
     }
