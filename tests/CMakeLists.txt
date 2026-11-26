@@ -657,6 +657,10 @@ lmp_add_test(tst_cover_wash
     SOURCES ui/tst_cover_wash.cpp
     LIBS lmp_ui)
 
+lmp_add_test(tst_staged_build
+    SOURCES ui/tst_staged_build.cpp
+    LIBS lmp_ui)
+
 lmp_add_test(tst_art_tile
     SOURCES ui/tst_art_tile.cpp
     LIBS lmp_ui lmp_uiplugin Qt6::Quick)

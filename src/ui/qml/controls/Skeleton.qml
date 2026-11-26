@@ -16,8 +16,10 @@ Rectangle {
     border.width: 1
     border.color: Theme.stroke
 
-    SkeletonSweep {
+    // Made only for a block that sweeps on its own: most share a group's.
+    Loader {
         anchors.fill: parent
-        visible: block.sweep
+        active: block.sweep
+        sourceComponent: SkeletonSweep {}
     }
 }

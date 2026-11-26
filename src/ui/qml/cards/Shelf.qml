@@ -1,3 +1,5 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import LastMusicPlayer
 
@@ -15,8 +17,11 @@ Column {
     property string title: ""
     property string pill: ""
     property string linkText: ""
-    property alias model: row.model
+    property var model
     property alias delegate: row.delegate
+    // False keeps the cards unbuilt and shows skeleton cards in their place,
+    // at the same height; a page sets it while the shelf waits its turn.
+    property bool cardsBuilt: true
     property int cardWidth: 156
     property int cardSpacing: 20
     // A card's height: the cover, 12px, then two lines of text.
@@ -48,9 +53,21 @@ Column {
             id: hover
         }
 
+        Loader {
+            width: parent.width
+            height: parent.height
+            active: !shelf.cardsBuilt
+            sourceComponent: ShelfSkeleton {
+                cardWidth: shelf.cardWidth
+                cardHeight: shelf.cardHeight
+                cardSpacing: shelf.cardSpacing
+            }
+        }
+
         ListView {
             id: row
 
+            model: shelf.cardsBuilt ? shelf.model : null
             x: -shelf.bleed
             width: parent.width + 2 * shelf.bleed
             height: parent.height

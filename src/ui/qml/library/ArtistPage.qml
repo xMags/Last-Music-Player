@@ -133,6 +133,20 @@ Item {
                 id: section
 
                 required property var modelData
+                // This section's turn in the staged build (0 until it has one).
+                property int ticket: 0
+                property bool cardsBuilt: false
+
+                // Built once, then kept; near view counts only once the page
+                // has placed the section (see HomeSection).
+                Binding on cardsBuilt {
+                    when: (section.y > 0 && sectionInView.inView)
+                        || (section.ticket > 0 && stage.served >= section.ticket)
+                    value: true
+                    restoreMode: Binding.RestoreNone
+                }
+
+                Component.onCompleted: section.ticket = stage.take()
 
                 width: content.width
                 // Not drawn while it lies wholly outside the visible part of the page.
@@ -150,6 +164,7 @@ Item {
                     pill: section.modelData.pill
                     linkText: section.modelData.link ? qsTr("View more ›") : ""
                     model: App.catalogArtist.sectionCards(section.modelData.key)
+                    cardsBuilt: section.cardsBuilt
                     onLinkClicked: App.catalogArtist.seeAllSection(section.modelData.key)
 
                     delegate: Card {
@@ -187,6 +202,11 @@ Item {
             }
         }
 
+    }
+
+    // Builds the sections' cards one section per turn, in page order.
+    StagedBuild {
+        id: stage
     }
 
     TrackMenus {

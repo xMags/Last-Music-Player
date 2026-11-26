@@ -36,6 +36,7 @@ set(LMP_UI_QML_FILES
     qml/cards/LinkButton.qml
     qml/cards/SectionHeader.qml
     qml/cards/Shelf.qml
+    qml/cards/ShelfSkeleton.qml
     qml/cards/ShelfArrow.qml
     qml/controls/AccentSwatch.qml
     qml/controls/ActionMenu.qml
@@ -94,6 +95,10 @@ set(LMP_UI_QML_FILES
     qml/catalog/ChartCard.qml
     qml/catalog/ChartsPage.qml
     qml/home/HomePage.qml
+    qml/home/HomeSection.qml
+    qml/home/HomeStatusSection.qml
+    qml/home/HomeTierLabel.qml
+    qml/home/HomeWelcomeCard.qml
     qml/home/MixCard.qml
     qml/home/QuickTile.qml
     qml/home/QuickTileField.qml
@@ -348,6 +353,8 @@ qt_add_qml_module(lmp_ui
         shell/ProfileViewModel.h
         shell/ShellLayoutViewModel.cpp
         shell/ShellLayoutViewModel.h
+        shell/StagedBuild.cpp
+        shell/StagedBuild.h
         shell/SidebarListModels.cpp
         shell/SidebarListModels.h
         shell/SidebarViewModel.cpp
