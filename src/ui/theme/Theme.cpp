@@ -167,21 +167,27 @@ QColor Theme::sliderTrack() const
 }
 
 // Opaque mixes of the accent into the surface, so a block reads the same on
-// any page background; on dark the accent lifts the block a little above the
-// surface, on light it tints it.
+// any page background. On light the accent's own colour tints it (the darker
+// light-theme variant would grey it); on dark the dark variant lifts the
+// block a little above the surface. High contrast uses the system's colour.
+QColor Theme::skeletonTint() const
+{
+    return dark() || highContrast() ? primary() : accentSeed();
+}
+
 QColor Theme::skeleton() const
 {
-    return mixSrgb(primary(), surface(), 0.10);
+    return mixSrgb(skeletonTint(), surface(), 0.10);
 }
 
 QColor Theme::skeletonStrong() const
 {
-    return mixSrgb(primary(), surface(), 0.14);
+    return mixSrgb(skeletonTint(), surface(), 0.14);
 }
 
 QColor Theme::skeletonGlyph() const
 {
-    return mixSrgb(primary(), surface(), 0.33);
+    return mixSrgb(skeletonTint(), surface(), 0.33);
 }
 
 QColor Theme::scrollThumb() const

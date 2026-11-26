@@ -4,6 +4,8 @@
 #include <QSignalSpy>
 #include <QString>
 #include <QTest>
+
+#include <cstdlib>
 #include <QVariantList>
 
 #include <cmath>
@@ -54,6 +56,7 @@ private slots:
     void ambientDefaultsToTheAccentSeed();
     void fullscreenTokensMatchReference();
     void queueTokensMatchReference();
+    void skeletonsAreTheAccentTintedIntoTheSurface();
 };
 
 // A macro because QVERIFY2 has to expand inside the test function to end it on
@@ -84,6 +87,28 @@ void ThemeTest::lightTokens()
     LMP_CHECK_COLOR(theme.danger(), QColor(QStringLiteral("#D83B3B")));
     LMP_CHECK_COLOR(theme.onPrimary(), QColor(QStringLiteral("#FFFFFF")));
     LMP_CHECK_COLOR(theme.artGrad1(), QColor(QStringLiteral("#F3EDFC")));
+}
+
+// Loading placeholders: the teal accent (#0097B2) at 10%, 14% and 33% over
+// white on light, as the design's mock-up gives them; on dark the dark accent
+// over the dark surface, a little lighter than it.
+void ThemeTest::skeletonsAreTheAccentTintedIntoTheSurface()
+{
+    Theme theme;
+    theme.setMode(Theme::ThemeMode::Light);
+    theme.setAccent(Theme::Accent::Teal);
+    const auto near = [](const QColor& actual, const char* expected) {
+        const QColor want(QString::fromLatin1(expected));
+        return std::abs(actual.red() - want.red()) <= 2 && std::abs(actual.green() - want.green()) <= 2
+            && std::abs(actual.blue() - want.blue()) <= 2;
+    };
+    QVERIFY2(near(theme.skeleton(), "#E6F4F7"), qPrintable(theme.skeleton().name()));
+    QVERIFY2(near(theme.skeletonStrong(), "#DDEFF3"), qPrintable(theme.skeletonStrong().name()));
+    QVERIFY2(near(theme.skeletonGlyph(), "#ABDCE5"), qPrintable(theme.skeletonGlyph().name()));
+
+    theme.setMode(Theme::ThemeMode::Dark);
+    QVERIFY(theme.skeleton().lightness() > theme.surface().lightness());
+    QVERIFY(theme.skeleton().lightness() - theme.surface().lightness() < 20);
 }
 
 void ThemeTest::darkTokens()

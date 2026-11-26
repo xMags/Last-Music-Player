@@ -111,6 +111,8 @@ signals:
     void ambientChanged();
 
 private:
+    // The colour the skeleton tokens mix into the surface.
+    [[nodiscard]] QColor skeletonTint() const;
     [[nodiscard]] bool darkSurface(const QColor& surface) const;
 
     // Invalid while no song colour is set.
