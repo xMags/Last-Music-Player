@@ -1,3 +1,5 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Controls
 import LastMusicPlayer
@@ -24,28 +26,44 @@ Item {
     Accessible.role: Accessible.Graphic
     Accessible.name: info.label !== undefined ? info.label : ""
 
-    Icon {
+    // Only the picture of the current state is made; a song with no mark
+    // (most of them) makes none.
+    Loader {
         anchors.centerIn: parent
-        visible: mark.state_ === "done"
-        name: "download-done"
-        size: 16
-        color: Theme.accentColor
+        active: mark.state_ !== ""
+        sourceComponent: mark.state_ === "done" ? doneIcon
+                       : mark.state_ === "failed" ? failedIcon
+                       : ring
     }
 
-    DownloadRing {
-        anchors.centerIn: parent
-        visible: mark.state_ === "downloading" || mark.state_ === "queued"
-        size: 16
-        percent: mark.state_ === "downloading" ? mark.info.percent : -1
-        color: mark.state_ === "queued" ? Theme.fgTertiary : Theme.accentColor
+    Component {
+        id: doneIcon
+
+        Icon {
+            name: "download-done"
+            size: 16
+            color: Theme.accentColor
+        }
     }
 
-    Icon {
-        anchors.centerIn: parent
-        visible: mark.state_ === "failed"
-        name: "alert"
-        size: 16
-        color: Theme.danger
+    Component {
+        id: ring
+
+        DownloadRing {
+            size: 16
+            percent: mark.state_ === "downloading" ? mark.info.percent : -1
+            color: mark.state_ === "queued" ? Theme.fgTertiary : Theme.accentColor
+        }
+    }
+
+    Component {
+        id: failedIcon
+
+        Icon {
+            name: "alert"
+            size: 16
+            color: Theme.danger
+        }
     }
 
     HoverHandler {
