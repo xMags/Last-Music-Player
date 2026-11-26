@@ -32,6 +32,7 @@
 #include <QTimer>
 
 #include <optional>
+#include <utility>
 
 #include "core/app/AppIdentity.h"
 #include "core/async/Result.h"
@@ -754,7 +755,10 @@ CompositionRoot::CompositionRoot()
     m_homeMixes.setRemoteFill(
         [this](const QString& query) { return m_remote.search(query).then(&core::catalog::parseProviderTrackListResult); },
         [this]() { return m_mode.capabilities().showOnlineMixes && !m_mode.capabilities().browseCatalogue; });
-    QObject::connect(&m_mode, &core::mode::ModeService::changed, &m_homeMixes, [this]() { m_homeMixes.refresh(true); });
+    m_viewRefreshSoon.setSingleShot(true);
+    m_viewRefreshSoon.setInterval(0);
+    QObject::connect(&m_viewRefreshSoon, &QTimer::timeout, &m_viewRefreshSoon, [this]() { runDueViewRefresh(); });
+    QObject::connect(&m_mode, &core::mode::ModeService::changed, &m_homeMixes, [this]() { refreshMixesSoon(); });
     // Autoplay follows the player's queue; a mix that finds nothing says so.
     QObject::connect(&m_player, &core::PlayerController::autoplayExtensionWanted, &m_autoplay,
                      [this](bool queueEnded) { m_autoplay.extensionWanted(queueEnded); });
@@ -898,12 +902,12 @@ CompositionRoot::CompositionRoot()
     // A synced account library, or a change of music source, changes what
     // the library holds.
     QObject::connect(&m_sync, &core::account::MusicSyncService::libraryChanged, &m_sync,
-                     [this]() { refreshLibraryViews(); });
+                     [this]() { refreshLibraryViewsSoon(); });
     QObject::connect(&m_mode, &core::mode::ModeService::changed, &m_mode,
                      [this, shown = m_mode.mode()]() mutable {
                          if (m_mode.mode() != shown) {
                              shown = m_mode.mode();
-                             refreshLibraryViews();
+                             refreshLibraryViewsSoon();
                          }
                      });
     // The window's frame is kept for the next run.
@@ -1091,6 +1095,29 @@ void CompositionRoot::refreshLibraryViews()
     m_sidebar.refreshPlaylists();
     m_libraryPage.refresh();
     m_home.refresh();
+}
+
+void CompositionRoot::refreshLibraryViewsSoon()
+{
+    m_libraryViewsDue = true;
+    m_viewRefreshSoon.start();
+}
+
+void CompositionRoot::refreshMixesSoon()
+{
+    m_mixesDue = true;
+    m_viewRefreshSoon.start();
+}
+
+void CompositionRoot::runDueViewRefresh()
+{
+    const bool libraryViews = std::exchange(m_libraryViewsDue, false);
+    const bool mixes = std::exchange(m_mixesDue, false);
+    if (libraryViews) {
+        refreshLibraryViews(); // the mixes too
+    } else if (mixes) {
+        m_homeMixes.refresh(true);
+    }
 }
 
 CompositionRoot::~CompositionRoot()

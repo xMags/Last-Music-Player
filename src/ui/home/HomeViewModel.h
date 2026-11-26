@@ -218,6 +218,10 @@ private:
     Navigator& m_navigator;
     Clock m_now;
     QTimer m_greetingTimer;
+    // Runs refresh() once at the next turn of the event loop. Signals that
+    // change what Home shows start it, so a burst of them (a confirmed
+    // session announces the mode, then the account) reads Home once.
+    QTimer m_refreshSoon;
     core::mode::ModeService* m_mode = nullptr;
     core::account::MusicSyncService* m_sync = nullptr;
     core::account::AccountSessionService* m_session = nullptr;

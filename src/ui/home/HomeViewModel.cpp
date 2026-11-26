@@ -62,15 +62,18 @@ HomeViewModel::HomeViewModel(Parts parts, QObject* parent)
             if (!accountHome()) {
                 m_feed->reset();
             }
-            refresh();
+            m_refreshSoon.start();
         });
         // A new library may bring a new layout, mixes and shelves, and plays
         // made on other devices.
         connect(m_sync, &core::account::MusicSyncService::libraryChanged, this, &HomeViewModel::followHistory);
     }
     connect(&m_mixService, &core::HomeMixService::mixesChanged, this, &HomeViewModel::readMixes);
-    connect(&parts.scanner, &core::LibraryScanner::finished, this, &HomeViewModel::refresh);
-    connect(&parts.scanner, &core::LibraryScanner::pruned, this, &HomeViewModel::refresh);
+    m_refreshSoon.setSingleShot(true);
+    m_refreshSoon.setInterval(0);
+    connect(&m_refreshSoon, &QTimer::timeout, this, &HomeViewModel::refresh);
+    connect(&parts.scanner, &core::LibraryScanner::finished, &m_refreshSoon, qOverload<>(&QTimer::start));
+    connect(&parts.scanner, &core::LibraryScanner::pruned, &m_refreshSoon, qOverload<>(&QTimer::start));
     connect(&parts.collections, &core::CollectionActions::playlistsChanged, this, &HomeViewModel::readQuickTiles);
     connect(&m_actions, &core::TrackActions::playlistChanged, this, &HomeViewModel::readQuickTiles);
     connect(&m_actions, &core::TrackActions::likedChanged, this, [this](const QString& sourceKey, bool liked) {

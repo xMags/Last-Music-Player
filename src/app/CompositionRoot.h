@@ -191,6 +191,12 @@ public:
 private:
     // Every view that shows the library reads it again.
     void refreshLibraryViews();
+    // The same, or only the Home mixes, once at the next turn of the event
+    // loop: a confirmed session announces the mode and the account, and a
+    // sync the library, one after another, and each used to rebuild them.
+    void refreshLibraryViewsSoon();
+    void refreshMixesSoon();
+    void runDueViewRefresh();
 
     std::unique_ptr<platform::windows::WindowsReducedMotion> m_reducedMotion;
     platform::windows::WindowsWindowChrome m_windowChrome;
@@ -389,6 +395,11 @@ private:
     // or a sharing pause ends.
     qint64 m_presencePausedSince = 0;
     QTimer m_presenceVisibilityTimer;
+    // refreshLibraryViewsSoon and refreshMixesSoon: what is due, and the
+    // zero-delay timer that runs it.
+    QTimer m_viewRefreshSoon;
+    bool m_libraryViewsDue = false;
+    bool m_mixesDue = false;
     ui::AppRoot m_appRoot;
     QPointer<ui::Theme> m_theme; // owned by the QML engine
 };
