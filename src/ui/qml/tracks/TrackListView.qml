@@ -41,6 +41,7 @@ Item {
         // The new form's header may be at its full height from the start,
         // with no height change to place it, so place it here as well.
         root.holdStart = true
+        root.pinned = true
         Qt.callLater(root.placeViewAtStart)
     }
     property Component header: null
@@ -91,6 +92,27 @@ Item {
     property real startOffset: 0
     // Set while the form holds startOffset; cleared once it is scrolled.
     property bool holdStart: true
+    // Set by an explicit start (a layout switch, startAt, a new route):
+    // while it holds, the view is also put back when it moves on its own
+    // (a model swapped under it resets it to the top, with no size change
+    // to notice). Only the user's own scrolling ends it, never a restore.
+    property bool pinned: false
+
+    // The user moved the list (drag, wheel, scroll bar, keys, a row drag):
+    // the start place no longer holds.
+    function release() {
+        root.holdStart = false
+        root.pinned = false
+    }
+
+    Connections {
+        target: root.view
+        enabled: root.pinned && root.holdStart
+
+        function onContentYChanged() {
+            Qt.callLater(root.placeViewAtStart)
+        }
+    }
 
     Component.onCompleted: {
         root.shownGrid = root.grid
@@ -117,6 +139,7 @@ Item {
         if (flickable === null)
             return
         root.holdStart = true
+        root.pinned = true
         Qt.callLater(root.placeAtStart, flickable)
     }
 
@@ -132,6 +155,7 @@ Item {
         function onCurrentChanged() {
             root.startOffset = 0
             root.holdStart = !App.navigator.returning
+            root.pinned = root.holdStart
             if (root.holdStart)
                 Qt.callLater(root.placeViewAtStart)
         }
@@ -175,7 +199,7 @@ Item {
                 laneTopMargin: root.scrollLaneTopMargin
                 onPressedChanged: {
                     if (pressed)
-                        root.holdStart = false
+                        root.release()
                 }
             }
 
@@ -186,10 +210,13 @@ Item {
             // The wheel, the scroll bar and the arrow keys move the list
             // without a movementStarted, so they end the hold as well.
             Component.onCompleted: root.holdStart = true
-            onMovementStarted: root.holdStart = false
-            onCurrentIndexChanged: {
-                if (currentIndex >= 0)
-                    root.holdStart = false
+            onMovementStarted: root.release()
+            // A key moves the current row and the list with it. Not on
+            // currentIndex itself: a model swapped under the list moves
+            // that too.
+            Keys.onPressed: event => {
+                root.release()
+                event.accepted = false
             }
 
             header: Column {
@@ -257,7 +284,7 @@ Item {
 
             WheelScroll {
                 flickable: list
-                onScrolled: root.holdStart = false
+                onScrolled: root.release()
             }
 
             // .track-table box-shadow: var(--shadow), round the heading and
@@ -353,6 +380,7 @@ Item {
                         if (drag.active) {
                             root.dragStarted()
                             root.dragPointerShift = 0
+                            root.release()
                             root.dragStartContentY = list.contentY
                             root.dragOffset = 0
                             root.dragFrom = row.index
@@ -414,11 +442,11 @@ Item {
             currentIndex: -1
 
             Component.onCompleted: root.holdStart = true
-            onMovementStarted: root.holdStart = false
-            onUserScrolled: root.holdStart = false
-            onCurrentIndexChanged: {
-                if (currentIndex >= 0)
-                    root.holdStart = false
+            onMovementStarted: root.release()
+            onUserScrolled: root.release()
+            Keys.onPressed: event => {
+                root.release()
+                event.accepted = false
             }
 
             header: Loader {

@@ -19,6 +19,24 @@ GridView {
     // Flickable movement (movementStarted), so views that hold a place
     // until the user scrolls listen here too.
     signal userScrolled()
+
+    // Shows the grid from `offset` below its header's top and holds it there
+    // until it is scrolled (a tab or filter in the header changed it).
+    function startAt(offset: real) {
+        place.start(offset)
+    }
+
+    onUserScrolled: place.release()
+    // A key moves the current card and the grid with it. Not on
+    // currentIndex itself: a model swapped under the grid moves that too.
+    Keys.onPressed: event => {
+        place.release()
+        event.accepted = false
+    }
+
+    readonly property StartPlace place: StartPlace {
+        flickable: grid
+    }
     readonly property int columns: Math.max(1, Math.floor((width + columnGap) / (minimumCardWidth + columnGap)))
     readonly property real cardWidth: (width - (columns - 1) * columnGap) / columns
     property int minimumCardWidth: 160

@@ -148,7 +148,7 @@ Item {
                     compact: true
                     choices: App.offline.tabs
                     currentIndex: Math.max(0, App.offline.tabKeys.indexOf(App.offline.tab))
-                    onActivated: index => App.offline.tab = App.offline.tabKeys[index]
+                    onActivated: index => page.keepPlace(() => { App.offline.tab = App.offline.tabKeys[index] })
                 }
 
                 Item { width: 1; height: 18; visible: App.offline.hasDownloads || App.offline.pendingShown }
@@ -740,9 +740,39 @@ Item {
         }
     }
 
+    // The list that shows: the cards of a collection tab, or the songs.
+    readonly property Flickable currentView: App.offline.showsCards ? cardsView : songs.view
+
     // The page scrolls itself; Back returns its list to where it was.
     ScrollMemory {
-        target: App.offline.showsCards ? cardsView : songs.view
+        target: page.currentView
+    }
+
+    // Runs `change` (a tab in the header) and opens what it shows as far
+    // down as the view was, at most the header's height, so the tabs stay
+    // where they were.
+    function keepPlace(change) {
+        const from = page.currentView
+        const fromList = from as ListView
+        const fromGrid = from as GridView
+        const header = fromList !== null ? fromList.headerItem : fromGrid !== null ? fromGrid.headerItem : null
+        const offset = from !== null && header !== null
+            ? Math.max(0, Math.min(from.contentY - from.originY + from.topMargin, header.height)) : 0
+        change()
+        Qt.callLater(page.placeAt, offset)
+    }
+
+    function placeAt(offset: real) {
+        if (App.offline.showsCards)
+            cardsPlace.start(offset)
+        else
+            songs.startAt(offset)
+    }
+
+    StartPlace {
+        id: cardsPlace
+
+        flickable: cardsView
     }
 
     TrackListView {
@@ -779,7 +809,18 @@ Item {
         cellHeight: cardsView.cellWidth + 56
         model: App.offline.cards
 
-        AppScrollBar.vertical: AppScrollBar {}
+        // In the page's scroll lane at its right edge, clear of the panel's
+        // rounded top corner, where the songs' bar is.
+        AppScrollBar.vertical: AppScrollBar {
+            parent: page
+            x: page.width - width
+            height: page.height
+            laneTopMargin: Theme.radius2xl
+            onPressedChanged: {
+                if (pressed)
+                    cardsPlace.release()
+            }
+        }
 
         delegate: CollectionCard {
             required property int index
@@ -789,7 +830,12 @@ Item {
             onClicked: App.offline.openCard(index)
         }
 
-        WheelScroll { flickable: cardsView }
+        onMovementStarted: cardsPlace.release()
+
+        WheelScroll {
+            flickable: cardsView
+            onScrolled: cardsPlace.release()
+        }
     }
 
     MenuItemListModel {

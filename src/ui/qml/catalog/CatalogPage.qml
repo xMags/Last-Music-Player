@@ -251,7 +251,7 @@ Item {
         if (rows)
             releaseTable.startAt(offset)
         else
-            page.startCardsAt(offset)
+            cardsPlace.start(offset)
     }
 
     Connections {
@@ -271,8 +271,11 @@ Item {
     }
 
     // The cards' counterpart of TrackListView.startAt.
-    property real cardsStartOffset: 0
-    property bool cardsHoldStart: false
+    StartPlace {
+        id: cardsPlace
+
+        flickable: cardsView
+    }
 
     // A new route on this page opens the cards at the top, held there while
     // the header fills, as TrackListView does; Back leaves it to
@@ -281,22 +284,11 @@ Item {
         target: App.navigator
 
         function onCurrentChanged() {
-            page.cardsStartOffset = 0
-            page.cardsHoldStart = !App.navigator.returning
-            if (page.cardsHoldStart)
-                Qt.callLater(page.placeCards)
+            if (App.navigator.returning)
+                cardsPlace.release()
+            else
+                cardsPlace.start(0)
         }
-    }
-
-    function startCardsAt(offset: real) {
-        page.cardsStartOffset = offset
-        page.cardsHoldStart = true
-        Qt.callLater(page.placeCards)
-    }
-
-    function placeCards() {
-        const furthest = Math.max(0, cardsView.contentHeight + cardsView.topMargin + cardsView.bottomMargin - cardsView.height)
-        cardsView.contentY = cardsView.originY - cardsView.topMargin + Math.min(page.cardsStartOffset, furthest)
     }
 
     TrackListView {
@@ -383,12 +375,7 @@ Item {
         header: Loader {
             width: cardsView.innerWidth
             sourceComponent: top
-            onHeightChanged: {
-                if (page.cardsHoldStart)
-                    Qt.callLater(page.placeCards)
-            }
         }
-        onMovementStarted: page.cardsHoldStart = false
         // .catalog-grid: repeat(auto-fill, minmax(150px, 1fr)), gap 28px 20px.
         // Each cell holds a card and the gaps after it, so the grid is 20px
         // wider than the page to take the last column's.
@@ -413,7 +400,7 @@ Item {
             laneTopMargin: Theme.radius2xl
             onPressedChanged: {
                 if (pressed)
-                    page.cardsHoldStart = false
+                    cardsPlace.release()
             }
         }
 
@@ -459,7 +446,7 @@ Item {
 
         WheelScroll {
             flickable: cardsView
-            onScrolled: page.cardsHoldStart = false
+            onScrolled: cardsPlace.release()
         }
     }
 

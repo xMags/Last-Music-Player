@@ -26,6 +26,31 @@ Item {
     readonly property var tabs: App.library.tabs.filter(tab => tab.value !== "songs" || !App.capabilities.browseCatalogue)
     readonly property bool trackTab: App.library.tab === "history" || App.library.tab === "songs"
 
+    // Runs `change` (a tab or filter in the header) and opens what it shows
+    // as far down as the view was, at most the header's height, so the
+    // header and the control in it stay where they were.
+    function keepPlace(change) {
+        const from = page.currentView
+        const fromList = from as ListView
+        const fromGrid = from as GridView
+        const header = fromList !== null ? fromList.headerItem : fromGrid !== null ? fromGrid.headerItem : null
+        const offset = from !== null && header !== null
+            ? Math.max(0, Math.min(from.contentY - from.originY + from.topMargin, header.height)) : 0
+        change()
+        Qt.callLater(page.placeAt, offset)
+    }
+
+    function placeAt(offset: real) {
+        const list = tabLoader.item as TrackListView
+        if (list !== null) {
+            list.startAt(offset)
+            return
+        }
+        const grid = page.currentView as CardGrid
+        if (grid !== null)
+            grid.startAt(offset)
+    }
+
     Component.onCompleted: {
         if (App.library.tab === "songs" && App.capabilities.browseCatalogue)
             App.library.tab = "playlists"
@@ -103,7 +128,7 @@ Item {
                 compact: true
                 choices: page.tabs.map(tab => tab.label)
                 currentIndex: page.tabs.findIndex(tab => tab.value === App.library.tab)
-                onActivated: index => App.library.tab = page.tabs[index].value
+                onActivated: index => page.keepPlace(() => { App.library.tab = page.tabs[index].value })
             }
 
             Item { width: 1; height: 20 }
@@ -176,6 +201,8 @@ Item {
     }
 
     Loader {
+        id: tabLoader
+
         anchors.fill: parent
         sourceComponent: App.library.empty ? emptyLibrary : (page.trackTab ? trackTabView : cardTabView)
     }
@@ -193,8 +220,9 @@ Item {
 
             model: App.library.tab === "songs" ? App.library.songs : App.library.history
             grid: App.settings.trackView !== "list"
+            scrollLaneTopMargin: Theme.radius2xl
             sidePadding: page.gutter
-        rightSidePadding: page.rightGutter
+            rightSidePadding: page.rightGutter
             header: trackToolbar
             onActivated: row => App.library.playSong(songList.listName, row)
             onLikeRequested: row => App.library.likeSong(songList.listName, row)
@@ -241,6 +269,7 @@ Item {
                 height: parent.height
                 bottomMargin: 32
                 scrollBarHost: cardTab
+                scrollLaneTopMargin: Theme.radius2xl
                 model: cardTab.cards
                 // Account artists carry a Follow link under their caption.
                 textHeight: cardTab.serverArtists ? 22 + 18 + 5 + 18 : 22 + 18
@@ -286,14 +315,14 @@ Item {
                             quiet: true
                             text: qsTr("Your playlists")
                             selected: App.library.playlistFilter === "manual"
-                            onClicked: App.library.playlistFilter = "manual"
+                            onClicked: page.keepPlace(() => { App.library.playlistFilter = "manual" })
                         }
 
                         Chip {
                             quiet: true
                             text: qsTr("Auto mixes")
                             selected: App.library.playlistFilter === "auto"
-                            onClicked: App.library.playlistFilter = "auto"
+                            onClicked: page.keepPlace(() => { App.library.playlistFilter = "auto" })
                         }
                     }
 
@@ -310,7 +339,7 @@ Item {
 
                             choices: [qsTr("Top"), qsTr("Followed"), qsTr("All Artists")]
                             currentIndex: Math.max(0, views.indexOf(App.accountArtists.view))
-                            onActivated: index => App.accountArtists.view = views[index]
+                            onActivated: index => page.keepPlace(() => { App.accountArtists.view = views[index] })
                         }
 
                         SearchField {

@@ -76,6 +76,7 @@ set(LMP_UI_QML_FILES
     qml/controls/SkeletonRows.qml
     qml/controls/SkeletonSweep.qml
     qml/controls/SliderBubble.qml
+    qml/controls/StartPlace.qml
     qml/controls/TextPromptDialog.qml
     qml/controls/Toast.qml
     qml/controls/ToastStack.qml
