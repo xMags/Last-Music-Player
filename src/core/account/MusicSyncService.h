@@ -181,6 +181,9 @@ private:
     std::optional<UserDataOperationGate::Lease> m_lease;
     std::vector<std::shared_ptr<QPromise<bool>>> m_waiters;
     quint64 m_libraryRevision = 0;
+    // Numbers each library pull; only the newest one's answer is applied (its
+    // parse runs off this thread, so answers could come back out of order).
+    quint64 m_libraryPull = 0;
     // Kept with the home layout, for the same owner.
     int m_historyCount = 0;
     QJsonValue m_homeLayout = QJsonValue(QJsonValue::Undefined);

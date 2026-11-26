@@ -6,6 +6,7 @@
 #include <QObject>
 #include <QString>
 #include <QTest>
+#include <QThread>
 
 #include "FakeHttpTransport.h"
 #include "core/account/AccountClient.h"
@@ -71,6 +72,7 @@ private slots:
     void init();
     void libraryAsksForThePlayHistory();
     void libraryThatIsNotALibrary();
+    void libraryIsParsedOffTheCallingThread();
     void likeAndUnlike();
     void invalidLikesSendNothing();
     void historyBatchReturnsAcknowledgedIds();
@@ -134,6 +136,26 @@ void AccountMusicCallsTest::libraryThatIsNotALibrary()
     const Result<account::ParsedAccountLibrary> library = resultOf(m_client->fetchLibrary(Session));
     QVERIFY(library.isOk());
     QVERIFY(!library.value().valid);
+}
+
+// The library is parsed on a worker: whatever follows the parse at once runs
+// on the thread that parsed it, which is not the caller's.
+void AccountMusicCallsTest::libraryIsParsedOffTheCallingThread()
+{
+    m_transport->script(QStringLiteral("/v1/music/library"),
+                        FakeHttpTransport::ok(R"({"tracks":[{"id":"t1","title":"T","sourceUrl":"https://m.example.test/t1"}]})"));
+    QThread* parsedOn = nullptr;
+    const QFuture<Result<account::ParsedAccountLibrary>> parsed =
+        m_client->fetchLibrary(Session).then(QtFuture::Launch::Sync,
+                                             [&parsedOn](const Result<account::ParsedAccountLibrary>& library) {
+                                                 parsedOn = QThread::currentThread();
+                                                 return library;
+                                             });
+    const Result<account::ParsedAccountLibrary> library = resultOf(parsed);
+    QVERIFY(library.isOk());
+    QCOMPARE(library.value().tracks.size(), 1);
+    QVERIFY(parsedOn != nullptr);
+    QVERIFY(parsedOn != QThread::currentThread());
 }
 
 void AccountMusicCallsTest::likeAndUnlike()

@@ -4,6 +4,7 @@
 #include "core/account/WelcomeModel.h"
 #include "core/net/ArtworkUrl.h"
 
+#include <QFuture>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QLatin1StringView>
@@ -84,12 +85,17 @@ QFuture<Result<ParsedAccountLibrary>> AccountClient::fetchLibrary(const QString&
     const AccountCall call = makeCall(net::HttpMethod::Get,
                                       QStringLiteral("/v1/music/library?historyLimit=%1").arg(LibraryHistoryLimit),
                                       bearerSession);
-    return send(call).then([](const Result<net::HttpResponse>& response) -> Result<ParsedAccountLibrary> {
-        if (!response) {
-            return response.failure();
-        }
-        return parseAccountLibrary(response.value().body);
-    });
+    // The whole library arrives at once; it is parsed on the global thread
+    // pool, off the GUI thread. The parse is pure and touches nothing shared;
+    // the caller continues on its own context and decides whether the result
+    // is still wanted (MusicSyncService checks its session and pull number).
+    return send(call).then(QtFuture::Launch::Async,
+                           [](const Result<net::HttpResponse>& response) -> Result<ParsedAccountLibrary> {
+                               if (!response) {
+                                   return response.failure();
+                               }
+                               return parseAccountLibrary(response.value().body);
+                           });
 }
 
 QFuture<Result<void>> AccountClient::setLiked(const QString& bearerSession, const QByteArray& trackJson, bool liked,

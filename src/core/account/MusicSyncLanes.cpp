@@ -476,9 +476,10 @@ QFuture<MusicSyncService::Outcome> MusicSyncService::pullLibrary()
     if (!isCurrent()) {
         return ready(Outcome::Cancelled);
     }
+    const quint64 pull = ++m_libraryPull;
     return m_deps.transport.fetchLibrary(m_context->bearerSession)
-        .then(this, [this](const Result<ParsedAccountLibrary>& result) {
-            if (!isCurrent()) {
+        .then(this, [this, pull](const Result<ParsedAccountLibrary>& result) {
+            if (!isCurrent() || pull != m_libraryPull) {
                 return Outcome::Cancelled;
             }
             if (!result) {
