@@ -5,6 +5,7 @@
 #include <QMutex>
 #include <QObject>
 #include <QString>
+#include <QThreadPool>
 
 namespace lmp::core {
 
@@ -22,6 +23,11 @@ namespace lmp::core {
 //
 // Thread-safe: every member may be called from any thread. `changed` is
 // emitted on the calling thread after the lock is released.
+//
+// setStringInBackground is the one exception to saving at once: the store
+// owns one worker thread that writes the newest settings in order (an older
+// write never lands after a newer one, background or not). flush() and the
+// destructor wait for it and write whatever is still unsaved.
 class SettingsStore : public QObject {
     Q_OBJECT
 
@@ -30,6 +36,7 @@ public:
     static constexpr double DefaultVolume = 0.7;
 
     explicit SettingsStore(QString filePath, QObject* parent = nullptr);
+    ~SettingsStore() override;
 
     [[nodiscard]] QString filePath() const { return m_filePath; }
 
@@ -47,6 +54,12 @@ public:
     void setBoolean(QAnyStringView key, bool value);
     void setInteger(QAnyStringView key, int value);
     void setNumber(QAnyStringView key, double value);
+    // The value is set now and saved on the store's worker thread, for a busy
+    // path that need not wait for the disk. A failed save keeps the value in
+    // memory, as setBoolean does.
+    void setStringInBackground(QAnyStringView key, const QString& value);
+    // Waits for background saves, then writes anything still unsaved.
+    void flush();
     // True when the key is gone from the saved file (or was never there).
     bool remove(QAnyStringView key);
 
@@ -70,6 +83,11 @@ signals:
 private:
     void ensureLoaded() const;
     [[nodiscard]] bool persist();
+    // Writes `json` as the settings file, unless a newer `version` was
+    // written already. True when the file holds it (or something newer).
+    [[nodiscard]] bool writeVersion(const QJsonObject& json, quint64 version);
+    // The worker's (or flush's) save of the newest settings.
+    void writeLatest();
     [[nodiscard]] QJsonValue lookup(QAnyStringView key) const;
     void insertAndPersist(const QString& key, const QJsonValue& value);
     void quarantineCorruptFile() const;
@@ -83,6 +101,14 @@ private:
     // first save that carries a real setting.
     mutable bool m_recoveredFromCorruption = false;
     double m_volume = DefaultVolume;
+    // Each save is numbered (under m_mutex); the file holds number
+    // m_writtenVersion (under m_writeMutex, which is only ever taken after
+    // m_mutex or alone, never before it).
+    quint64 m_version = 0;
+    quint64 m_writtenVersion = 0;
+    QMutex m_writeMutex;
+    // One thread, so background saves run one after another.
+    QThreadPool m_writer;
 };
 
 } // namespace lmp::core

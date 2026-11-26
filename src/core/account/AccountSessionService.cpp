@@ -276,10 +276,12 @@ AccountProfile AccountSessionService::profileHints() const
 
 void AccountSessionService::persistProfileHints(const AccountProfile& profile)
 {
-    m_settings.setString(keys::AccountOwnerHint, profile.id);
-    m_settings.setString(keys::AccountDisplayNameHint, profile.displayName);
-    m_settings.setString(keys::AccountUsernameHint, profile.username);
-    m_settings.setString(keys::AccountPlanHint, profile.planLabel);
+    // Saved in the background: this runs as a session is confirmed, while the
+    // window fills, and each save waits for the disk.
+    m_settings.setStringInBackground(keys::AccountOwnerHint, profile.id);
+    m_settings.setStringInBackground(keys::AccountDisplayNameHint, profile.displayName);
+    m_settings.setStringInBackground(keys::AccountUsernameHint, profile.username);
+    m_settings.setStringInBackground(keys::AccountPlanHint, profile.planLabel);
 }
 
 } // namespace lmp::core::account

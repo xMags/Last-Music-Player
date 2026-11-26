@@ -58,12 +58,47 @@ private slots:
     void volumeIsClamped();
     void changedIsEmitted();
     void legacyFixtureLoadsEveryKey();
+    void backgroundSavesEndWithTheLastValue();
+    void aBackgroundSaveIsWrittenBeforeExit();
 
 private:
     QString settingsPath() const { return m_dir->filePath(QStringLiteral("Settings.json")); }
 
     std::unique_ptr<QTemporaryDir> m_dir;
 };
+
+// Quick changes, background and immediate mixed: the file ends with the
+// last of each, and an older write never lands over a newer one.
+void SettingsStoreTest::backgroundSavesEndWithTheLastValue()
+{
+    SettingsStore store(settingsPath());
+    for (int value = 0; value < 50; ++value) {
+        store.setStringInBackground(keys::Theme, QString::number(value));
+    }
+    store.setString(keys::AccentColor, QStringLiteral("#123456"));
+    store.setStringInBackground(keys::Theme, QStringLiteral("last"));
+    QTRY_COMPARE(readObject(settingsPath()).value(keys::Theme).toString(), QStringLiteral("last"));
+    QCOMPARE(readObject(settingsPath()).value(keys::AccentColor).toString(), QStringLiteral("#123456"));
+    QCOMPARE(store.string(keys::Theme), QStringLiteral("last"));
+
+    // Nothing written afterwards changes it.
+    QTest::qWait(50);
+    QCOMPARE(readObject(settingsPath()).value(keys::Theme).toString(), QStringLiteral("last"));
+}
+
+// A setting changed in the background just before the store goes (the app
+// quits) is on disk afterwards.
+void SettingsStoreTest::aBackgroundSaveIsWrittenBeforeExit()
+{
+    {
+        SettingsStore store(settingsPath());
+        store.setStringInBackground(keys::Theme, QStringLiteral("first"));
+        store.setStringInBackground(keys::Theme, QStringLiteral("Dark"));
+    }
+    QCOMPARE(readObject(settingsPath()).value(keys::Theme).toString(), QStringLiteral("Dark"));
+    SettingsStore again(settingsPath());
+    QCOMPARE(again.string(keys::Theme), QStringLiteral("Dark"));
+}
 
 void SettingsStoreTest::init()
 {

@@ -80,6 +80,13 @@ SettingsStore::SettingsStore(QString filePath, QObject* parent)
     : QObject(parent)
     , m_filePath(std::move(filePath))
 {
+    m_writer.setMaxThreadCount(1);
+}
+
+SettingsStore::~SettingsStore()
+{
+    // A setting changed just before exit is still saved.
+    flush();
 }
 
 void SettingsStore::ensureLoaded() const
@@ -135,6 +142,19 @@ bool SettingsStore::persist()
     if (m_recoveredFromCorruption && !hasUserKeys(m_json)) {
         return false;
     }
+    if (!writeVersion(m_json, ++m_version)) {
+        return false;
+    }
+    m_recoveredFromCorruption = false;
+    return true;
+}
+
+bool SettingsStore::writeVersion(const QJsonObject& json, quint64 version)
+{
+    const QMutexLocker locker(&m_writeMutex);
+    if (version <= m_writtenVersion) {
+        return true; // a newer save got there first
+    }
     const QFileInfo info(m_filePath);
     if (!QDir().mkpath(info.absolutePath())) {
         return false;
@@ -143,7 +163,7 @@ bool SettingsStore::persist()
     if (!file.open(QIODevice::WriteOnly)) {
         return false;
     }
-    const QByteArray text = QJsonDocument(m_json).toJson(QJsonDocument::Compact);
+    const QByteArray text = QJsonDocument(json).toJson(QJsonDocument::Compact);
     if (file.write(text) != text.size()) {
         file.cancelWriting();
         return false;
@@ -151,8 +171,48 @@ bool SettingsStore::persist()
     if (!file.commit()) {
         return false;
     }
-    m_recoveredFromCorruption = false;
+    m_writtenVersion = version;
     return true;
+}
+
+void SettingsStore::writeLatest()
+{
+    QJsonObject json;
+    quint64 version = 0;
+    {
+        const QMutexLocker locker(&m_mutex);
+        if (m_recoveredFromCorruption && !hasUserKeys(m_json)) {
+            return;
+        }
+        json = m_json;
+        version = m_version;
+    }
+    if (!writeVersion(json, version)) {
+        return; // kept in memory; the next save carries it
+    }
+    const QMutexLocker locker(&m_mutex);
+    if (hasUserKeys(json)) {
+        m_recoveredFromCorruption = false;
+    }
+}
+
+void SettingsStore::setStringInBackground(QAnyStringView key, const QString& value)
+{
+    const QString name = key.toString();
+    {
+        const QMutexLocker locker(&m_mutex);
+        ensureLoaded();
+        m_json.insert(name, value);
+        ++m_version;
+    }
+    m_writer.start([this]() { writeLatest(); });
+    emit changed(name);
+}
+
+void SettingsStore::flush()
+{
+    m_writer.waitForDone();
+    writeLatest();
 }
 
 QJsonValue SettingsStore::lookup(QAnyStringView key) const
@@ -323,6 +383,8 @@ void SettingsStore::setVolume(double volume)
 
 void SettingsStore::load()
 {
+    // A background save still running would land after the file is read.
+    m_writer.waitForDone();
     {
         const QMutexLocker locker(&m_mutex);
         m_loaded = false;
@@ -340,6 +402,7 @@ void SettingsStore::save()
 
 bool SettingsStore::reset()
 {
+    m_writer.waitForDone();
     bool removed = false;
     {
         const QMutexLocker locker(&m_mutex);
