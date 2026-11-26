@@ -23,6 +23,10 @@ Item {
     property real cornerRadius: 0
 
     readonly property bool active: source !== null && visible && width > 0 && height > 0
+    // The ancestors whose moves call place(), each connected once. A former
+    // ancestor is let go when the chain changes; one destroyed since has
+    // already dropped its connections and has no signals left to read.
+    property var followed: []
 
     anchors.fill: parent
 
@@ -35,10 +39,19 @@ Item {
     }
 
     function follow() {
+        for (const item of root.followed) {
+            if (!item.xChanged)
+                continue
+            item.xChanged.disconnect(root.place)
+            item.yChanged.disconnect(root.place)
+        }
+        const chain = []
         for (let item = root; item; item = item.parent) {
             item.xChanged.connect(root.place)
             item.yChanged.connect(root.place)
+            chain.push(item)
         }
+        root.followed = chain
         root.place()
     }
 
