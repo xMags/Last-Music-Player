@@ -1,4 +1,5 @@
 #include "core/library/HomeMixService.h"
+#include "core/app/PerfLog.h"
 #include "core/model/CatalogSourceKey.h"
 #include <algorithm>
 #include <QSet>
@@ -63,7 +64,14 @@ void HomeMixService::refresh(bool force)
         }
         m_key = key;
         m_derivedFrom = account;
-        m_mixes = home::deriveHomeModel(*account).mixes;
+        {
+            PerfScope perf("account mixes derived");
+            m_mixes = home::deriveHomeModel(*account).mixes;
+            if (perf.enabled()) {
+                perf.done(QStringLiteral("%1 songs").arg(account->history.size() + account->liked.size()
+                                                         + account->playlistTracks.size()));
+            }
+        }
         emit mixesChanged();
         return;
     }
@@ -78,8 +86,10 @@ void HomeMixService::refresh(bool force)
         return;
     }
     m_key = key;
+    PerfScope perf("library mixes made");
     const HomeMixInputs inputs = readInputs();
     m_mixes = HomeMixBuilder::build(inputs);
+    perf.done(QStringLiteral("from the library"));
     ++m_fillGeneration;
     emit mixesChanged();
     if (m_remoteSearch && m_remoteActive && m_remoteActive()) {

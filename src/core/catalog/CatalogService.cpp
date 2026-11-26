@@ -1,4 +1,5 @@
 #include "core/catalog/CatalogService.h"
+#include "core/app/PerfLog.h"
 
 #include "core/account/AccountSessionService.h"
 #include "core/account/PortablePreferenceSettings.h"
@@ -135,7 +136,12 @@ QFuture<Result<T>> CatalogService::uncached(Loader load, Parser<T> parse)
                 }
                 return answer.failure();
             }
-            return parse(answer.value());
+            core::PerfScope perf("catalogue answer parsed");
+            Result<T> parsed = parse(answer.value());
+            if (perf.enabled()) {
+                perf.done(QStringLiteral("%1 bytes").arg(answer.value().size()));
+            }
+            return parsed;
         });
 }
 
@@ -153,6 +159,7 @@ QFuture<Result<T>> CatalogService::cached(const QString& key, Loader load, Parse
         const CatalogAge age = catalogAge(found->savedAtMs, m_deps.clock.nowMilliseconds(), fresh);
         if (age != CatalogAge::Expired) {
             if (age == CatalogAge::Stale) {
+                qCDebug(lcPerf) << "catalogue entry stale: served from memory, refreshing";
                 revalidate<T>(key, load, parse);
             }
             return ready<T>(std::any_cast<T>(found->value));

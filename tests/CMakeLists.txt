@@ -669,6 +669,10 @@ lmp_add_test(tst_art_tile
     SOURCES ui/tst_art_tile.cpp
     LIBS lmp_ui lmp_uiplugin Qt6::Quick)
 
+lmp_add_test(tst_stall_rule
+    SOURCES core/tst_stall_rule.cpp
+    LIBS lmp_core)
+
 lmp_add_test(tst_database_reader
     SOURCES core/tst_database_reader.cpp core/TempLibrary.h
     LIBS lmp_core)

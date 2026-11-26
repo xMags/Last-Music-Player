@@ -1,4 +1,5 @@
 #include "ui/downloads/OfflineViewModel.h"
+#include "core/app/PerfLog.h"
 
 #include "core/downloads/DownloadManager.h"
 #include "core/downloads/DownloadPolicy.h"
@@ -591,6 +592,7 @@ void OfflineViewModel::startGroupsRead()
 
 void OfflineViewModel::applyGroups(const OfflineLibraryRead& read)
 {
+    core::PerfScope perf("offline groups applied");
     // withLibraryDetails: a download is stored with only what it needs to
     // play, so its genre, length and main artist come from the library.
     QHash<QString, core::Track> known;

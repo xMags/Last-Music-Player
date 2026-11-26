@@ -27,6 +27,7 @@
 #include "core/db/GroupQueries.h"
 #include "core/db/Database.h"
 #include "core/db/DatabaseReader.h"
+#include "core/app/StallWatch.h"
 #include "core/db/LibraryQueries.h"
 #include "core/db/TrackRepository.h"
 #include "core/library/ArtworkCache.h"
@@ -213,6 +214,9 @@ private:
     // Library reads off the GUI thread, on one worker with its own read-only
     // connection; made once the schema exists, shut down before the database.
     core::db::DatabaseReader m_reader;
+    // Logs GUI event-loop stalls to lmp.perf; exists only while that
+    // category is on at start.
+    std::unique_ptr<core::StallWatcher> m_stallWatcher;
     core::db::TrackRepository m_tracks;
     // The cached account library (songs, playlists, sync bookkeeping).
     core::db::AccountRepository m_accounts;

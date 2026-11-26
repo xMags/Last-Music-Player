@@ -2,6 +2,7 @@
 // the library. Each returns how it went; the run loop decides what follows.
 
 #include "core/account/AccountLibrarySync.h"
+#include "core/app/PerfLog.h"
 #include "core/account/AccountSessionService.h"
 #include "core/account/AccountSyncTransport.h"
 #include "core/account/AutoSyncPolicy.h"
@@ -504,6 +505,7 @@ QFuture<MusicSyncService::Outcome> MusicSyncService::pullLibrary()
                 return Outcome::Failed;
             }
 
+            core::PerfScope perf("synced library stored");
             const QString owner = m_context->ownerId;
             AccountLibraryInputs inputs;
             inputs.ownerId = owner;
@@ -525,7 +527,15 @@ QFuture<MusicSyncService::Outcome> MusicSyncService::pullLibrary()
                 snapshot.tracks.cbegin(), snapshot.tracks.cend(),
                 [](const db::AccountTrackSnapshot& track) { return !track.lastPlayedAtUtc.isEmpty(); }));
             ++m_libraryRevision;
-            emit libraryChanged();
+            if (perf.enabled()) {
+                perf.done(QStringLiteral("%1 songs, %2 playlists, before the views read it")
+                              .arg(snapshot.tracks.size())
+                              .arg(snapshot.playlists.size()));
+            }
+            {
+                core::PerfScope views("views read the synced library");
+                emit libraryChanged();
+            }
             return Outcome::Succeeded;
         });
 }

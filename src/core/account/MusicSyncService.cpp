@@ -2,6 +2,7 @@
 // lanes themselves are in MusicSyncLanes.cpp.
 
 #include "core/account/MusicSyncService.h"
+#include "core/app/PerfLog.h"
 
 #include "core/account/AccountSessionService.h"
 #include "core/account/AutoSyncPolicy.h"
@@ -125,6 +126,7 @@ QFuture<bool> MusicSyncService::requestSync(Lane lanes)
     }
 
     m_syncing = true;
+    qCDebug(lcPerf) << "sync started";
     emit syncingChanged();
     m_lease = m_deps.gate.tryEnter();
     if (!m_lease) {
@@ -205,6 +207,7 @@ void MusicSyncService::finish(bool succeeded)
     m_batchLanes = 0;
     std::vector<std::shared_ptr<QPromise<bool>>> waiters = std::exchange(m_waiters, {});
     m_syncing = false;
+    qCDebug(lcPerf) << "sync ended";
     emit syncingChanged();
     for (const std::shared_ptr<QPromise<bool>>& waiter : waiters) {
         waiter->addResult(succeeded);

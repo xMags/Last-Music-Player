@@ -1,4 +1,5 @@
 #include "ui/shell/SidebarViewModel.h"
+#include "core/app/PerfLog.h"
 
 #include "core/db/LibraryQueries.h"
 #include "core/library/CollectionActions.h"
@@ -45,6 +46,7 @@ SidebarViewModel::SidebarViewModel(Parts parts, QObject* parent)
 
 void SidebarViewModel::refreshPlaylists()
 {
+    core::PerfScope perf("sidebar playlists read");
     QList<SidebarPlaylistListModel::Item> items;
     for (const core::Track& playlist : m_actions.playlists()) {
         if (items.size() == PlaylistLimit) {

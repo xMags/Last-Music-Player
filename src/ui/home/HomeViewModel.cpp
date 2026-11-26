@@ -1,4 +1,5 @@
 #include "ui/home/HomeViewModel.h"
+#include "core/app/PerfLog.h"
 
 #include "ui/share/ShareController.h"
 
@@ -148,6 +149,7 @@ QString HomeViewModel::heroArtworkLabel() const
 
 void HomeViewModel::refresh()
 {
+    core::PerfScope perf("home refreshed");
     core::db::TrackQuery probe;
     probe.limit = 1;
     m_empty = m_library.loadTrackPage(probe).totalCount == 0;

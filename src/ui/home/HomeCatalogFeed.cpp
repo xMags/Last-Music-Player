@@ -1,4 +1,5 @@
 #include "ui/home/HomeCatalogFeed.h"
+#include "core/app/PerfLog.h"
 
 #include "core/catalog/CatalogPresentation.h"
 #include "core/catalog/CatalogService.h"
@@ -124,6 +125,7 @@ QString HomeCatalogFeed::regionName() const
 
 void HomeCatalogFeed::apply(catalog::Discovery discovery, bool cached)
 {
+    core::PerfScope perf("home feed applied");
     m_cached = cached;
     m_titles.clear();
     const auto set = [this](const QString& key, const std::optional<catalog::Shelf>& shelf, const QString& fallback,
@@ -172,6 +174,17 @@ void HomeCatalogFeed::apply(catalog::Discovery discovery, bool cached)
     charts(QStringLiteral("cityCharts"))->setCharts(cities);
     m_discovery = std::move(discovery);
     emit changed();
+    if (perf.enabled()) {
+        int cards = 0;
+        for (const CatalogCardModel* shelf : std::as_const(m_shelves)) {
+            cards += shelf->count();
+        }
+        perf.done(QStringLiteral("%1 shelves, %2 cards, %3 charts, %4")
+                      .arg(m_shelves.size())
+                      .arg(cards)
+                      .arg(explore.size() + cities.size())
+                      .arg(cached ? QStringLiteral("cached") : QStringLiteral("fresh")));
+    }
 }
 
 QStringList HomeCatalogFeed::discoveryShelfKeys() const

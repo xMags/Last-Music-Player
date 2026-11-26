@@ -1,4 +1,5 @@
 #include "core/remote/ArtworkService.h"
+#include "core/app/PerfLog.h"
 
 #include "core/account/AccountClient.h"
 #include "core/account/AccountSessionService.h"
@@ -232,6 +233,7 @@ void ArtworkService::onProbe(const QString& key, quint64 id, const std::optional
     }
     if (bytes && !bytes->isEmpty()) {
         Request request = m_requests.take(key);
+        qCDebug(lcPerf) << "cover read from disk:" << bytes->size() << "bytes";
         store(key, *bytes);
         settle(request.waiters, *bytes);
         return;
@@ -458,6 +460,7 @@ void ArtworkService::onAttempt(const QString& key, quint64 id, Priority slot, in
             return;
         }
         Request request = m_requests.take(key);
+        qCDebug(lcPerf) << "cover fetched:" << bytes.value().size() << "bytes";
         store(key, bytes.value());
         if (!request.diskKey.isEmpty() && m_deps.disk != nullptr) {
             m_deps.disk->store(request.diskKey, bytes.value());

@@ -96,6 +96,7 @@ CompositionRoot::CompositionRoot()
     , m_database(m_paths)
     , m_databaseOpen(openDatabase(m_database))
     , m_reader(std::make_unique<core::db::ThreadDatabaseReadRunner>(m_paths))
+    , m_stallWatcher(core::StallWatcher::create())
     , m_tracks(m_database)
     , m_accounts(m_database)
     , m_library(m_database, &m_accounts)
@@ -1130,6 +1131,9 @@ CompositionRoot::~CompositionRoot()
     // the pending volume, while every service still exists. The device link
     // goes first, so nothing is reported while the rest stops.
     m_connectClient.stop();
+    if (m_stallWatcher) {
+        m_stallWatcher->stop();
+    }
     // No library read runs once the views it answers are going.
     m_reader.shutdown();
     m_cast.shutdown();

@@ -56,6 +56,10 @@ qt_add_library(lmp_core STATIC
     app/AppPaths.cpp
     app/ExternalLinkPolicy.cpp
     app/ExternalLinkPolicy.h
+    app/PerfLog.cpp
+    app/PerfLog.h
+    app/StallWatch.cpp
+    app/StallWatch.h
     app/UserDataCleanup.cpp
     app/UserDataCleanup.h
     app/WindowPlacement.cpp
