@@ -3,6 +3,7 @@
 #include <QSignalSpy>
 #include <QString>
 #include <QTest>
+#include <QUrl>
 
 #include "../core/CatalogFixtures.h"
 #include "../core/FakePlaybackClock.h"
@@ -121,7 +122,48 @@ class CatalogPageViewModelTest : public QObject {
 private slots:
     void aLateAlbumLookupLeavesTheNewPageAlone();
     void aSingleOnTheSinglesPagePlaysItsSong();
+    void anotherAlbumShowsNoCoverWhileItLoads();
 };
+
+void CatalogPageViewModelTest::anotherAlbumShowsNoCoverWhileItLoads()
+{
+    PageFixture fixture;
+    (void)fixture.modes.modes.start();
+    QVERIFY(fixture.modes.validate(QStringLiteral("owner-a")));
+    QVERIFY(fixture.modes.modes.setMode(lmp::core::mode::SourceMode::Account));
+    settle();
+    const auto albumAnswer = [](const QString& id) {
+        return FakeHttpTransport::ok((QStringLiteral(R"({"album":{"resourceType":"album","catalogId":")") + id
+                                      + QStringLiteral(R"(","title":"Album )") + id
+                                      + QStringLiteral(R"(","artworkUrl":"https://cdn.example.test/artwork/)") + id
+                                      + QStringLiteral(R"(.jpg"},"tracks":[]})"))
+                                         .toUtf8());
+    };
+    const auto openAlbum = [&fixture](const QString& id) {
+        fixture.navigator.push(Route(Route::Kind::CatalogDetail, {{QStringLiteral("type"), QStringLiteral("album")},
+                                                                  {QStringLiteral("id"), id},
+                                                                  {QStringLiteral("title"), QStringLiteral("Album ") + id}}));
+    };
+    const QString firstPath = QStringLiteral("/v1/music/catalog/albums/111");
+    const QString secondPath = QStringLiteral("/v1/music/catalog/albums/222");
+
+    openAlbum(QStringLiteral("111"));
+    settle();
+    QVERIFY(fixture.modes.session.transport.answer(firstPath, albumAnswer(QStringLiteral("111"))));
+    QTRY_VERIFY(!fixture.page.loading());
+    const QUrl firstCover = fixture.page.artworkUrl();
+    QVERIFY(!firstCover.isEmpty());
+
+    // The next album: no cover (the last one's least of all) until it answers.
+    openAlbum(QStringLiteral("222"));
+    settle();
+    QVERIFY(fixture.page.loading());
+    QVERIFY(fixture.page.artworkUrl().isEmpty());
+    QVERIFY(fixture.modes.session.transport.answer(secondPath, albumAnswer(QStringLiteral("222"))));
+    QTRY_VERIFY(!fixture.page.loading());
+    QVERIFY(!fixture.page.artworkUrl().isEmpty());
+    QVERIFY(fixture.page.artworkUrl() != firstCover);
+}
 
 void CatalogPageViewModelTest::aSingleOnTheSinglesPagePlaysItsSong()
 {

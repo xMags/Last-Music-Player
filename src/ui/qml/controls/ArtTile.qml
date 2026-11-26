@@ -9,8 +9,13 @@ import LastMusicPlayer
 // on its way, or its owner is still loading what it belongs to (`pending`), a
 // plain skeleton block holds its place; a gradient tile (chosen from
 // `artworkId`) with a glyph in the middle (a music note, or a person on a
-// round tile) shows only when there is no picture or it cannot load. When `source` changes, the old picture stays
-// until the new one has loaded and fades in over it.
+// round tile) shows only when there is no picture or it cannot load.
+//
+// When `source` changes to another picture, the old one stays until the new
+// one has loaded and fades in over it (a song's cover giving way to the
+// next). When it changes to none, as an owner clears it while it loads
+// something else, the old picture goes at once: it never stands in for
+// another thing.
 Item {
     id: root
 
@@ -89,7 +94,9 @@ Item {
                 && current.sourceSize.height === size.height)
             return
         previous.source = ""
-        if (current.status === Image.Ready) {
+        fadeIn.stop()
+        // Kept only to fade into a new picture; with none coming it goes now.
+        if (current.status === Image.Ready && root.source.toString() !== "") {
             previous.sourceSize = current.sourceSize
             previous.source = current.source
         }
@@ -254,6 +261,7 @@ Item {
     Image {
         id: previous
 
+        objectName: "previousPicture"
         anchors.fill: parent
         asynchronous: true
         visible: false

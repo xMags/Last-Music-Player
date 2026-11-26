@@ -235,6 +235,47 @@ private slots:
         QTRY_VERIFY(missingGlyph(missing) != nullptr && missingGlyph(missing)->isVisible());
     }
 
+    // Another picture fades in over the old one; no picture (the owner clears
+    // the address while it loads another thing) drops the old one at once and
+    // shows the skeleton.
+    void theOldPictureStaysOnlyForANewOne()
+    {
+        QQmlEngine engine;
+        auto* provider = new GatedProvider(); // the engine owns it
+        engine.addImageProvider(QStringLiteral("gated"), provider);
+        QQuickWindow window; // never shown
+        QQmlComponent component(&engine);
+        component.setData(TileQml, QUrl());
+        std::unique_ptr<QObject> object(component.create());
+        QVERIFY2(object, qPrintable(component.errorString()));
+        auto* tile = qobject_cast<QQuickItem*>(object.get());
+        QVERIFY(tile);
+        tile->setParentItem(window.contentItem());
+        tile->setSize(QSizeF(100, 100));
+        auto* previous = tile->findChild<QObject*>(QStringLiteral("previousPicture"));
+        auto* skeleton = tile->findChild<QQuickItem*>(QStringLiteral("coverSkeleton"));
+        QVERIFY(previous);
+        QVERIFY(skeleton);
+        const QUrl first(QStringLiteral("image://gated/first"));
+        tile->setProperty("source", first);
+        provider->open();
+        QTRY_VERIFY(tile->property("covered").toBool());
+
+        // The same tile, another picture: the old one waits under it.
+        tile->setProperty("source", QUrl(QStringLiteral("image://gated/second")));
+        QCOMPARE(previous->property("source").toUrl(), first);
+        provider->open();
+        QTRY_VERIFY(tile->property("covered").toBool());
+        QTRY_VERIFY(previous->property("source").toUrl().isEmpty());
+
+        // Cleared while the owner loads another thing: gone at once.
+        tile->setProperty("pending", true);
+        tile->setProperty("source", QUrl());
+        QVERIFY(previous->property("source").toUrl().isEmpty());
+        QVERIFY(!tile->property("covered").toBool());
+        QTRY_VERIFY(skeleton->isVisible());
+    }
+
     // While the owner is still loading, a tile with no picture yet shows the
     // skeleton, not the gradient tile; once loading ends with no picture, the
     // gradient tile shows.
