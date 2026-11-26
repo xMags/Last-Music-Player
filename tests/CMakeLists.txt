@@ -501,6 +501,10 @@ lmp_add_test(tst_catalog_page_view_model
     SOURCES ui/tst_catalog_page_view_model.cpp core/CatalogFixtures.h core/ModeServiceFixture.h core/FakePlaybackClock.h core/AccountSessionFixture.h core/FakeCredentialStore.h core/FakeHttpTransport.h core/TempLibrary.h core/PlayerFixture.h core/FakeAudioPlayer.h
     LIBS lmp_ui)
 
+lmp_add_test(tst_catalog_artist_view_model
+    SOURCES ui/tst_catalog_artist_view_model.cpp core/CatalogFixtures.h core/ModeServiceFixture.h core/FakePlaybackClock.h core/AccountSessionFixture.h core/FakeCredentialStore.h core/FakeHttpTransport.h core/TempLibrary.h core/PlayerFixture.h core/FakeAudioPlayer.h
+    LIBS lmp_ui)
+
 lmp_add_test(tst_welcome_view_model
     SOURCES ui/tst_welcome_view_model.cpp core/ModeServiceFixture.h core/FakePlaybackClock.h core/AccountSessionFixture.h core/FakeCredentialStore.h core/FakeHttpTransport.h core/TempLibrary.h
     LIBS lmp_ui)

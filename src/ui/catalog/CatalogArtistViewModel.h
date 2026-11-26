@@ -9,7 +9,6 @@
 #include <QObject>
 #include <QString>
 #include <QUrl>
-#include <QVariantList>
 #include <QtQml/qqmlregistration.h>
 
 #include <cstdint>
@@ -17,6 +16,7 @@
 
 #include "core/catalog/ArtistPageLoader.h"
 #include "core/catalog/CatalogModels.h"
+#include "ui/catalog/ArtistSectionListModel.h"
 #include "ui/catalog/CatalogCardModel.h"
 #include "ui/tracks/TrackListModel.h"
 
@@ -79,8 +79,9 @@ class CatalogArtistViewModel final : public QObject {
     Q_PROPERTY(bool canShare READ canShare NOTIFY changed FINAL)
     Q_PROPERTY(bool followed READ followed NOTIFY changed FINAL)
     Q_PROPERTY(bool followBusy READ followBusy NOTIFY changed FINAL)
-    // One map per shelf below the top songs: key, title, link.
-    Q_PROPERTY(QVariantList sections READ sections NOTIFY changed FINAL)
+    // One row per shelf below the top songs: key, title, pill, link. Its own
+    // model, updated by key, so `changed` rebuilds no shelf.
+    Q_PROPERTY(lmp::ui::ArtistSectionListModel* sections READ sections CONSTANT FINAL)
 
 public:
     static constexpr int TopSongsShown = 5;
@@ -126,7 +127,7 @@ public:
     [[nodiscard]] bool canShare() const { return canFollow(); }
     [[nodiscard]] bool followed() const;
     [[nodiscard]] bool followBusy() const { return m_followBusy; }
-    [[nodiscard]] QVariantList sections() const;
+    [[nodiscard]] ArtistSectionListModel* sections() { return &m_sectionList; }
 
     Q_INVOKABLE lmp::ui::CatalogCardModel* sectionCards(const QString& key);
     Q_INVOKABLE void openSectionCard(const QString& key, int row);
@@ -154,6 +155,8 @@ private:
     void show(const core::catalog::ArtistPageResult& result);
     void readFollow();
     void showTopSongs();
+    // The section rows from m_detail (none without one).
+    void readSections();
 
     core::catalog::CatalogService& m_catalog;
     core::catalog::CatalogClient& m_client;
@@ -181,6 +184,7 @@ private:
     TrackListModel m_topSongs;
     bool m_showingAll = false;
     QHash<QString, CatalogCardModel*> m_sectionModels;
+    ArtistSectionListModel m_sectionList;
     // The library's public id while the artist is followed.
     QString m_followedId;
     bool m_followBusy = false;

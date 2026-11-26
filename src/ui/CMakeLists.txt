@@ -223,6 +223,8 @@ qt_add_qml_module(lmp_ui
         icons/IconImageProvider.h
         icons/IconSet.cpp
         icons/IconSet.h
+        catalog/ArtistSectionListModel.cpp
+        catalog/ArtistSectionListModel.h
         catalog/CatalogArtistViewModel.cpp
         catalog/CatalogArtistViewModel.h
         catalog/CatalogCardModel.cpp

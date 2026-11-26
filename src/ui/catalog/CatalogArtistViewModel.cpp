@@ -23,7 +23,6 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QLatin1StringView>
-#include <QVariantMap>
 
 namespace lmp::ui {
 
@@ -99,6 +98,7 @@ void CatalogArtistViewModel::load(const Route& route, bool force)
     for (CatalogCardModel* model : std::as_const(m_sectionModels)) {
         model->setItems({});
     }
+    readSections();
     emit changed();
     m_fromProvider = m_providerPages && m_providerPages() && m_providerArtist;
     if (m_fromProvider) {
@@ -148,6 +148,7 @@ void CatalogArtistViewModel::show(const catalog::ArtistPageResult& result)
         sectionCards(section.id)->setItems(section.items);
     }
     showTopSongs();
+    readSections();
     emit changed();
     readFollow();
 }
@@ -194,24 +195,23 @@ QString CatalogArtistViewModel::artworkLabel() const
     return core::ArtworkPlaceholder::tileLabelFor(name());
 }
 
-QVariantList CatalogArtistViewModel::sections() const
+void CatalogArtistViewModel::readSections()
 {
-    QVariantList list;
-    if (!m_detail) {
-        return list;
-    }
-    for (const catalog::Shelf& section : m_detail->sections) {
-        if (section.id == QLatin1StringView("top-songs") || section.items.isEmpty()) {
-            continue;
+    QList<ArtistSectionListModel::Section> rows;
+    if (m_detail) {
+        for (const catalog::Shelf& section : m_detail->sections) {
+            if (section.id == QLatin1StringView("top-songs") || section.items.isEmpty()) {
+                continue;
+            }
+            // The latest release is a single card; every other section opens in full.
+            rows.append({.key = section.id,
+                         .title = section.title,
+                         .pill = catalog::shelfPillLabel(section.id, section.type),
+                         .link = section.id != QLatin1StringView("latest-release")
+                             && catalog::parseArtistSectionId(section.id).has_value()});
         }
-        // The latest release is a single card; every other section opens in full.
-        list.append(QVariantMap{{QStringLiteral("key"), section.id},
-                                {QStringLiteral("title"), section.title},
-                                {QStringLiteral("pill"), catalog::shelfPillLabel(section.id, section.type)},
-                                {QStringLiteral("link"), section.id != QLatin1StringView("latest-release")
-                                                             && catalog::parseArtistSectionId(section.id).has_value()}});
     }
-    return list;
+    m_sectionList.setSections(rows);
 }
 
 CatalogCardModel* CatalogArtistViewModel::sectionCards(const QString& key)

@@ -127,12 +127,15 @@ Item {
 
         // The catalogue's sections.
         Repeater {
-            model: page.catalogue ? page.model.sections : []
+            model: page.catalogue ? page.model.sections : null
 
             Column {
                 id: section
 
-                required property var modelData
+                required property string key
+                required property string title
+                required property string pill
+                required property bool link
                 // This section's turn in the staged build (0 until it has one).
                 property int ticket: 0
                 property bool cardsBuilt: false
@@ -160,13 +163,13 @@ Item {
 
                 Shelf {
                     width: parent.width
-                    title: section.modelData.title
-                    pill: section.modelData.pill
-                    linkText: section.modelData.link ? qsTr("View more ›") : ""
-                    model: App.catalogArtist.sectionCards(section.modelData.key)
+                    title: section.title
+                    pill: section.pill
+                    linkText: section.link ? qsTr("View more ›") : ""
+                    model: App.catalogArtist.sectionCards(section.key)
                     cardsBuilt: section.cardsBuilt
-                    skeletonRound: App.catalogArtist.sectionCards(section.modelData.key).leadsWithRound
-                    onLinkClicked: App.catalogArtist.seeAllSection(section.modelData.key)
+                    skeletonRound: App.catalogArtist.sectionCards(section.key).leadsWithRound
+                    onLinkClicked: App.catalogArtist.seeAllSection(section.key)
 
                     delegate: Card {
                         id: sectionCard
@@ -181,7 +184,7 @@ Item {
 
                         width: 156
                         hasMenu: false
-                        onClicked: App.catalogArtist.openSectionCard(section.modelData.key, sectionCard.index)
+                        onClicked: App.catalogArtist.openSectionCard(section.key, sectionCard.index)
                     }
                 }
 
