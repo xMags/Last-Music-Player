@@ -104,70 +104,85 @@ Item {
         radius: root.radius
     }
 
-    Item {
-        id: content
-
+    // The placeholder: made while it shows (loading, an error, no picture,
+    // the crossfade) and let go once the picture covers it, so its colours
+    // cannot show through the picture's soft edge and its layers are freed.
+    Loader {
         anchors.fill: parent
-        // Hidden once the picture covers it, so its colours cannot show
-        // through the picture's soft edge.
-        visible: !root.loaded || current.opacity < 1
-        layer.enabled: true
-        // The mask's anti-aliased edge decides coverage: half coverage is the
-        // edge, spread over the full soft band. With the defaults every
-        // partly covered pixel counted as inside, so the corners stair-stepped.
-        layer.effect: MultiEffect {
-            maskEnabled: true
-            maskSource: mask
-            maskThresholdMin: 0.5
-            maskSpreadAtMin: 1.0
-        }
+        active: !root.loaded || current.opacity < 1
+        sourceComponent: Item {
+            Item {
+                id: content
 
-        // linear-gradient(135deg, a, b): corner to corner on a square.
-        Shape {
-            anchors.fill: parent
-            preferredRendererType: Shape.CurveRenderer
-
-            ShapePath {
-                strokeColor: "transparent"
-                fillGradient: LinearGradient {
-                    x1: root.width / 2 - (root.width + root.height) / 4
-                    y1: root.height / 2 - (root.width + root.height) / 4
-                    x2: root.width / 2 + (root.width + root.height) / 4
-                    y2: root.height / 2 + (root.width + root.height) / 4
-                    GradientStop { position: 0; color: Theme.artworkGradientStart(root.artworkId) }
-                    GradientStop { position: 1; color: Theme.artworkGradientEnd(root.artworkId) }
+                anchors.fill: parent
+                layer.enabled: true
+                // The mask's anti-aliased edge decides coverage: half coverage
+                // is the edge, spread over the full soft band. With the defaults
+                // every partly covered pixel counted as inside, so the corners
+                // stair-stepped.
+                layer.effect: MultiEffect {
+                    maskEnabled: true
+                    maskSource: mask
+                    maskThresholdMin: 0.5
+                    maskSpreadAtMin: 1.0
                 }
-                PathRectangle { width: root.width; height: root.height }
+
+                // linear-gradient(135deg, a, b): corner to corner on a square.
+                Shape {
+                    anchors.fill: parent
+                    preferredRendererType: Shape.CurveRenderer
+
+                    ShapePath {
+                        strokeColor: "transparent"
+                        fillGradient: LinearGradient {
+                            x1: root.width / 2 - (root.width + root.height) / 4
+                            y1: root.height / 2 - (root.width + root.height) / 4
+                            x2: root.width / 2 + (root.width + root.height) / 4
+                            y2: root.height / 2 + (root.width + root.height) / 4
+                            GradientStop { position: 0; color: Theme.artworkGradientStart(root.artworkId) }
+                            GradientStop { position: 1; color: Theme.artworkGradientEnd(root.artworkId) }
+                        }
+                        PathRectangle { width: root.width; height: root.height }
+                    }
+                }
+
+                Text {
+                    anchors.centerIn: parent
+                    text: root.label
+                    color: Theme.artLabel
+                    font: root.big ? Theme.artTileLabelBig : Theme.artTileLabel
+                    layer.enabled: true
+                    layer.effect: MultiEffect {
+                        shadowEnabled: true
+                        shadowColor: Theme.artLabelShadow
+                        shadowVerticalOffset: 2
+                        shadowHorizontalOffset: 0
+                        // drop-shadow blur 6px
+                        blurMax: 6
+                        shadowBlur: 1
+                    }
+                }
+
+                // The sheen: lighter at the top, a touch darker at the bottom.
+                Rectangle {
+                    anchors.fill: parent
+                    gradient: Gradient {
+                        GradientStop { position: 0; color: Theme.artSheenTop }
+                        GradientStop { position: 0.35; color: "transparent" }
+                        GradientStop { position: 1; color: Theme.artSheenBottom }
+                    }
+                }
+            }
+
+            Rectangle {
+                id: mask
+
+                anchors.fill: parent
+                radius: root.radius
+                visible: false
+                layer.enabled: true
             }
         }
-
-        Text {
-            anchors.centerIn: parent
-            text: root.label
-            color: Theme.artLabel
-            font: root.big ? Theme.artTileLabelBig : Theme.artTileLabel
-            layer.enabled: true
-            layer.effect: MultiEffect {
-                shadowEnabled: true
-                shadowColor: Theme.artLabelShadow
-                shadowVerticalOffset: 2
-                shadowHorizontalOffset: 0
-                // drop-shadow blur 6px
-                blurMax: 6
-                shadowBlur: 1
-            }
-        }
-
-        // The sheen: lighter at the top, a touch darker at the bottom.
-        Rectangle {
-            anchors.fill: parent
-            gradient: Gradient {
-                GradientStop { position: 0; color: Theme.artSheenTop }
-                GradientStop { position: 0.35; color: "transparent" }
-                GradientStop { position: 1; color: Theme.artSheenBottom }
-            }
-        }
-
     }
 
     // The pictures load here but are drawn by CoverPicture, straight from
@@ -199,15 +214,6 @@ Item {
 
     CoverPicture { picture: previous }
     CoverPicture { picture: current }
-
-    Rectangle {
-        id: mask
-
-        anchors.fill: parent
-        radius: root.radius
-        visible: false
-        layer.enabled: true
-    }
 
     NumberAnimation {
         id: fadeIn
