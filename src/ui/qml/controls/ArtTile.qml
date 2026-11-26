@@ -6,9 +6,10 @@ import QtQuick.Shapes
 import LastMusicPlayer
 
 // A cover: the picture at `source` with rounded corners. While the picture is
-// on its way a plain skeleton block holds its place; a gradient tile (chosen
-// from `artworkId`) with `label` in the middle shows only when there is no
-// picture or it cannot load. When `source` changes, the old picture stays
+// on its way, or its owner is still loading what it belongs to (`pending`), a
+// plain skeleton block holds its place; a gradient tile (chosen from
+// `artworkId`) with `label` in the middle shows only when there is no picture
+// or it cannot load. When `source` changes, the old picture stays
 // until the new one has loaded and fades in over it.
 Item {
     id: root
@@ -23,10 +24,15 @@ Item {
     property real radius: Theme.radiusMd
     property bool shadow: false
     property var shadowLayers: Theme.shadowArt
+    // The owner is still loading the thing this picture belongs to, so an
+    // empty `source` means "not known yet", not "none".
+    property bool pending: false
 
     readonly property bool loaded: current.status === Image.Ready
-    // No picture to wait for: none was given, or it could not load.
-    readonly property bool pictureMissing: root.source.toString() === "" || current.status === Image.Error
+    // No picture to wait for: none was given (and none is still to come), or
+    // it could not load.
+    readonly property bool pictureMissing: (root.source.toString() === "" && !root.pending)
+        || current.status === Image.Error
     // The picture fully drawn over everything under it.
     readonly property bool covered: root.loaded && current.opacity >= 1
     // Pictures are decoded at the tile's size in pixels. A zero size means

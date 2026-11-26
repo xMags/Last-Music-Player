@@ -162,6 +162,7 @@ Item {
                 artworkUrl: page.model.artworkUrl
                 artworkId: page.model.artworkId
                 artworkLabel: page.model.title.length > 0 ? page.model.title.charAt(0).toUpperCase() : ""
+                artworkPending: page.model.loading
                 onBackClicked: App.navigator.back()
                 onPlayClicked: page.model.play()
                 onShuffleClicked: page.model.shuffle()

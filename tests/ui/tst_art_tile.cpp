@@ -196,6 +196,36 @@ private slots:
         QVERIFY(!skeleton->isVisible());
         QVERIFY(!tile->property("loaded").toBool());
     }
+
+    // While the owner is still loading, a tile with no picture yet shows the
+    // skeleton, not the lettered tile; once loading ends with no picture, the
+    // lettered tile shows.
+    void aPendingTileWithoutAPictureShowsTheSkeleton()
+    {
+        QQmlEngine engine;
+        QQuickWindow window; // never shown
+        QQmlComponent component(&engine);
+        component.setData(TileQml, QUrl());
+        std::unique_ptr<QObject> object(component.create());
+        QVERIFY2(object, qPrintable(component.errorString()));
+        auto* tile = qobject_cast<QQuickItem*>(object.get());
+        QVERIFY(tile);
+        tile->setParentItem(window.contentItem());
+        tile->setSize(QSizeF(100, 100));
+        auto* skeleton = tile->findChild<QQuickItem*>(QStringLiteral("coverSkeleton"));
+        auto* letter = tile->findChild<QObject*>(QStringLiteral("coverLetterTile"));
+        QVERIFY(skeleton);
+        QVERIFY(letter);
+
+        tile->setProperty("pending", true);
+        QTRY_VERIFY(skeleton->isVisible());
+        QVERIFY(!letter->property("active").toBool());
+        QVERIFY(!tile->property("pictureMissing").toBool());
+
+        tile->setProperty("pending", false);
+        QTRY_VERIFY(letter->property("active").toBool());
+        QVERIFY(!skeleton->isVisible());
+    }
 };
 
 QTEST_MAIN(ArtTileTest)

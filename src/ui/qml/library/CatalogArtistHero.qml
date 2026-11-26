@@ -48,6 +48,7 @@ Column {
                 big: true
                 source: hero.model.artworkUrl
                 artworkId: hero.model.artworkId
+                pending: hero.model.loading
                 label: hero.model.artworkLabel
             }
         }

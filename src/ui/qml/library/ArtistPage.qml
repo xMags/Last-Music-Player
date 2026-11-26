@@ -52,6 +52,7 @@ Item {
             artworkUrl: page.model.artworkUrl
             artworkId: page.model.artworkId
             artworkLabel: page.model.artworkLabel
+            artworkPending: page.catalogue && page.model.loading
             onBackClicked: App.navigator.back()
             onPlayClicked: page.model.play()
             onShuffleClicked: page.model.shuffle()

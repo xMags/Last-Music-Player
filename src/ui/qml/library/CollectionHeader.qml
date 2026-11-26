@@ -32,6 +32,8 @@ Column {
     property url artworkUrl
     property string artworkId: ""
     property string artworkLabel: ""
+    // The page is still loading, so its picture is not known yet.
+    property bool artworkPending: false
     property var collage: []
     property color gradientStart
     property color gradientEnd
@@ -212,6 +214,7 @@ Column {
                 Component.onCompleted: App.coverFlight.headerShown(headerCover)
                 coverStyle: header.coverStyle
                 source: header.artworkUrl
+                pending: header.artworkPending
                 artworkId: header.artworkId
                 label: header.artworkLabel
                 collage: header.collage

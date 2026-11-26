@@ -24,6 +24,8 @@ Item {
     property string genre: ""
     property real radius: 12
     property bool plain: false
+    // The owner is still loading; an empty `source` is not known yet.
+    property bool pending: false
 
     DiagonalGradient {
         anchors.fill: parent
@@ -90,6 +92,7 @@ Item {
         radius: cover.radius
         big: true
         source: cover.source
+        pending: cover.pending
         artworkId: cover.artworkId
         label: cover.plain ? "" : cover.label
     }
