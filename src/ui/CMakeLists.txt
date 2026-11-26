@@ -187,7 +187,9 @@ set(LMP_UI_QML_FILES
     qml/tracks/EqBars.qml
     qml/tracks/TableHeading.qml
     qml/tracks/PlaylistPopup.qml
+    qml/tracks/RowSweep.qml
     qml/tracks/TrackMenus.qml
+    qml/tracks/TrackNumberCell.qml
     qml/tracks/TrackListView.qml
     qml/tracks/TrackRow.qml
     qml/tracks/TrackTile.qml)

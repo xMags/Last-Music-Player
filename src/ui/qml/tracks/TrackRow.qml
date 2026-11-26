@@ -1,3 +1,5 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
@@ -94,10 +96,15 @@ T.AbstractButton {
 
     // A song starting on screen: one band of light sweeps across its row
     // (motion.css 140-158), 760 ms.
+    // The band is made for the first sweep, in the same moment, and kept.
     onPlayingChanged: {
-        if (row.playing && !Motion.reduced && row.visible)
-            sweep.restart()
+        if (!row.playing || Motion.reduced || !row.visible)
+            return
+        band.active = true
+        const sweep = band.item as RowSweep
+        sweep.play()
     }
+
 
     background: Rectangle {
         // In a rounded box of rows, the first and last row follow its
@@ -116,30 +123,12 @@ T.AbstractButton {
             enabled: !row.unavailable
         }
 
-        Rectangle {
+        Loader {
             id: band
 
-            width: parent.width
-            height: parent.height
-            x: -width
-            visible: sweep.running
-            // linear-gradient(100deg, transparent 20%, accent 22% at 50%, transparent 80%)
-            gradient: Gradient {
-                orientation: Gradient.Horizontal
-                GradientStop { position: 0.2; color: "transparent" }
-                GradientStop { position: 0.5; color: Theme.mixSrgb(Theme.accentColor, "transparent", 0.22) }
-                GradientStop { position: 0.8; color: "transparent" }
-            }
-
-            NumberAnimation on x {
-                id: sweep
-
-                running: false
-                from: -band.width
-                to: band.width
-                duration: 760
-                easing: Motion.water
-            }
+            anchors.fill: parent
+            active: false
+            sourceComponent: RowSweep {}
         }
 
         // border-bottom: 1px solid divider
@@ -172,31 +161,13 @@ T.AbstractButton {
             // padding: 8px 20px
             Item { Layout.preferredWidth: 20 - 16 }
 
-            Item {
+            TrackNumberCell {
                 Layout.preferredWidth: 40
                 Layout.fillHeight: true
-
-                Text {
-                    anchors.centerIn: parent
-                    visible: !row.playing && !(row.hovered && !row.unavailable)
-                    text: row.number
-                    font: Theme.trackNumber
-                    color: Theme.fgTertiary
-                }
-
-                Icon {
-                    anchors.centerIn: parent
-                    visible: row.hovered && !row.playing
-                    name: row.unavailable ? "alert" : "play"
-                    size: 12
-                    color: row.unavailable ? Theme.danger : Theme.accentColor
-                }
-
-                EqBars {
-                    anchors.centerIn: parent
-                    visible: row.playing
-                    running: App.playerBar.playing
-                }
+                number: row.number
+                hovered: row.hovered
+                playing: row.playing
+                unavailable: row.unavailable
             }
 
             RowLayout {
@@ -277,19 +248,23 @@ T.AbstractButton {
                 Layout.preferredWidth: 40
                 implicitHeight: likeButton.implicitHeight
 
-                IconButton {
+                Loader {
                     anchors.verticalCenter: parent.verticalCenter
-                    visible: row.showMore
-                    iconName: "more"
-                    shape: IconButton.Square
-                    iconSize: 14
-                    implicitWidth: 28
-                    implicitHeight: 28
-                    Accessible.name: qsTr("More options for %1").arg(row.title)
-                    ToolTip.visible: hovered
-                    ToolTip.text: qsTr("More")
-                    ToolTip.delay: 500
-                    onClicked: row.menuRequested(mapToItem(row, width / 2, height), false)
+                    active: row.showMore
+                    sourceComponent: IconButton {
+                        id: moreButton
+
+                        iconName: "more"
+                        shape: IconButton.Square
+                        iconSize: 14
+                        implicitWidth: 28
+                        implicitHeight: 28
+                        Accessible.name: qsTr("More options for %1").arg(row.title)
+                        ToolTip.visible: moreButton.hovered
+                        ToolTip.text: qsTr("More")
+                        ToolTip.delay: 500
+                        onClicked: row.menuRequested(moreButton.mapToItem(row, moreButton.width / 2, moreButton.height), false)
+                    }
                 }
 
                 IconButton {
