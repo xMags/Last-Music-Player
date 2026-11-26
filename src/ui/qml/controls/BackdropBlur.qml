@@ -99,6 +99,11 @@ Item {
         // length is a standard deviation, which reaches about twice as far.
         blurMax: Math.min(64, Math.round(root.blurPx * 2))
         blur: 1
+        // MultiEffect grows itself by the blur's reach on every side by
+        // default, so a blur can spread past its item. Here that drew the
+        // blurred, saturated backdrop around the surface, outside its outline
+        // and its mask. The capture is exactly the surface, so it stays inside.
+        autoPaddingEnabled: false
         saturation: root.saturate - 1
         maskEnabled: root.cornerRadius > 0
         maskSource: mask

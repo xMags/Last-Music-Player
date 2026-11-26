@@ -665,6 +665,10 @@ lmp_add_test(tst_art_tile
     SOURCES ui/tst_art_tile.cpp
     LIBS lmp_ui lmp_uiplugin Qt6::Quick)
 
+lmp_add_test(tst_backdrop_blur
+    SOURCES ui/tst_backdrop_blur.cpp
+    LIBS lmp_ui lmp_uiplugin Qt6::Quick)
+
 lmp_add_test(tst_wheel_scroll
     SOURCES ui/tst_wheel_scroll.cpp
     LIBS lmp_ui lmp_uiplugin Qt6::Quick)
