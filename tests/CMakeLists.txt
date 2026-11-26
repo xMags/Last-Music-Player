@@ -633,6 +633,10 @@ lmp_add_test(tst_page_cascade
     SOURCES ui/tst_page_cascade.cpp
     LIBS lmp_ui)
 
+lmp_add_test(tst_ambient_motion
+    SOURCES ui/tst_ambient_motion.cpp
+    LIBS lmp_ui)
+
 lmp_add_test(tst_motion_effects
     SOURCES ui/tst_motion_effects.cpp
     LIBS lmp_ui)

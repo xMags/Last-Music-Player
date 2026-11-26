@@ -13,7 +13,7 @@ Item {
 
     required property bool playing
     // 0 to 1 through one breath, straight in time.
-    property real phase: 0
+    readonly property real phase: breath.phase
     property color wash: Theme.mixSrgb(Theme.ambient, "transparent", 0.62 * Theme.ambientStrength)
 
     opacity: Motion.reduced ? Motion.glowRestOpacity : Motion.glowBreathOpacity(phase)
@@ -24,10 +24,14 @@ Item {
         ColorAnimation { duration: Motion.ambient; easing: Motion.easeInOut }
     }
 
-    FrameAnimation {
+    AmbientPhase {
+        id: breath
+
         // Not while the window is minimised or in the tray.
         running: !Motion.reduced && glow.visible && glow.playing && Motion.windowShown
-        onTriggered: glow.phase = (glow.phase + frameTime * 1000 / Motion.nowPlayingBreathe) % 1
+        period: Motion.nowPlayingBreathe
+        // Paused, it holds where it is and goes on from there.
+        resume: true
     }
 
     // A circle as wide as the box, squeezed to its height: an ellipse.

@@ -28,26 +28,32 @@ Item {
         width: 20
         radius: 10
         color: Theme.brandLogoBar
+        // Full height until its delay has passed and whenever the ripple stops.
         transform: Scale {
-            id: squeeze
-
             origin.x: bar.width / 2
             origin.y: bar.height / 2
-            yScale: 1
+            yScale: squeeze.holding ? 1 : squeeze.value
         }
 
-        SequentialAnimation {
-            running: mark.rippling && Motion.windowShown
-            onStopped: squeeze.yScale = 1
+        // 1 to 0.7 and back, half a ripple each way.
+        AmbientBounce {
+            id: squeeze
 
-            PauseAnimation { duration: bar.delay }
-            SequentialAnimation {
-                loops: Animation.Infinite
-
-                NumberAnimation { target: squeeze; property: "yScale"; from: 1; to: 0.7; duration: Motion.logoRipple / 2; easing: Motion.easeInOut }
-                NumberAnimation { target: squeeze; property: "yScale"; from: 0.7; to: 1; duration: Motion.logoRipple / 2; easing: Motion.easeInOut }
-            }
+            clock: ripple
+            delay: bar.delay
+            halfPeriod: Motion.logoRipple / 2
+            from: 1
+            to: 0.7
+            easing: Motion.easeInOut
         }
+    }
+
+    // The bars share one clock, so each keeps its delay after the middle one.
+    AmbientPhase {
+        id: ripple
+
+        running: mark.rippling && Motion.windowShown
+        period: Motion.logoRipple
     }
 
     Item {

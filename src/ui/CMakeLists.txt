@@ -246,6 +246,12 @@ qt_add_qml_module(lmp_ui
         library/SystemPlaylists.cpp
         library/SystemPlaylists.h
         menus/MenuItemListModel.cpp
+        motion/AmbientBounce.cpp
+        motion/AmbientBounce.h
+        motion/AmbientDrift.cpp
+        motion/AmbientDrift.h
+        motion/AmbientPhase.cpp
+        motion/AmbientPhase.h
         motion/CoverFlight.cpp
         motion/CoverFlight.h
         effects/EffectOwnership.cpp
@@ -398,6 +404,7 @@ set(LMP_UI_TYPE_FOLDERS
     icons
     library
     menus
+    motion
     search
     navigation
     player

@@ -21,13 +21,13 @@ Item {
     readonly property real radius: Theme.radius2xl
 
     // The drift glow (.content::before): 46% + 560px wide, 560px high,
-    // starting at 18% - 280px, then moved by the keyframes below. `driftX`
+    // starting at 18% - 280px, then moved by the drift's keyframes. `driftX`
     // is a share of the glow's width, `driftY` pixels, as in the keyframes.
     readonly property real glowWidth: width * 0.46 + 560
     readonly property real glowLeft: width * 0.18 - 280
-    property real driftX: -0.14
-    property real driftY: -270
-    property real driftScale: 1
+    readonly property real driftX: drift.x
+    readonly property real driftY: drift.y
+    readonly property real driftScale: drift.scale
     // Without motion the glow keeps no transform, as the reduced-motion rule does.
     readonly property real glowCenterX: glowLeft + glowWidth / 2 + (Motion.reduced ? 0 : driftX) * glowWidth
     readonly property real glowCenterY: 280 + (Motion.reduced ? 0 : driftY)
@@ -45,42 +45,21 @@ Item {
         NumberAnimation { duration: Motion.ambientFade; easing: Motion.ease }
     }
 
-    // ambient-drift: 26s, ease-in-out between keyframes, alternating.
-    SequentialAnimation {
-        running: panel.playing && !Motion.reduced && panel.visible && Motion.windowShown
-        loops: Animation.Infinite
+    // ambient-drift: 26s each way, ease-in-out between keyframes, alternating
+    // (AmbientDrift holds the keyframes). The loop there and back is twice
+    // the drift's duration.
+    AmbientPhase {
+        id: driftClock
 
-        ParallelAnimation {
-            NumberAnimation { target: panel; property: "driftX"; to: 0.11; duration: Motion.ambientDrift * 0.35; easing: Motion.easeInOut }
-            NumberAnimation { target: panel; property: "driftY"; to: -210; duration: Motion.ambientDrift * 0.35; easing: Motion.easeInOut }
-            NumberAnimation { target: panel; property: "driftScale"; to: 1.12; duration: Motion.ambientDrift * 0.35; easing: Motion.easeInOut }
-        }
-        ParallelAnimation {
-            NumberAnimation { target: panel; property: "driftX"; to: 0.32; duration: Motion.ambientDrift * 0.35; easing: Motion.easeInOut }
-            NumberAnimation { target: panel; property: "driftY"; to: -260; duration: Motion.ambientDrift * 0.35; easing: Motion.easeInOut }
-            NumberAnimation { target: panel; property: "driftScale"; to: 0.94; duration: Motion.ambientDrift * 0.35; easing: Motion.easeInOut }
-        }
-        ParallelAnimation {
-            NumberAnimation { target: panel; property: "driftX"; to: 0.05; duration: Motion.ambientDrift * 0.30; easing: Motion.easeInOut }
-            NumberAnimation { target: panel; property: "driftY"; to: -190; duration: Motion.ambientDrift * 0.30; easing: Motion.easeInOut }
-            NumberAnimation { target: panel; property: "driftScale"; to: 1.06; duration: Motion.ambientDrift * 0.30; easing: Motion.easeInOut }
-        }
-        // ...and back again (animation-direction: alternate).
-        ParallelAnimation {
-            NumberAnimation { target: panel; property: "driftX"; to: 0.32; duration: Motion.ambientDrift * 0.30; easing: Motion.easeInOut }
-            NumberAnimation { target: panel; property: "driftY"; to: -260; duration: Motion.ambientDrift * 0.30; easing: Motion.easeInOut }
-            NumberAnimation { target: panel; property: "driftScale"; to: 0.94; duration: Motion.ambientDrift * 0.30; easing: Motion.easeInOut }
-        }
-        ParallelAnimation {
-            NumberAnimation { target: panel; property: "driftX"; to: 0.11; duration: Motion.ambientDrift * 0.35; easing: Motion.easeInOut }
-            NumberAnimation { target: panel; property: "driftY"; to: -210; duration: Motion.ambientDrift * 0.35; easing: Motion.easeInOut }
-            NumberAnimation { target: panel; property: "driftScale"; to: 1.12; duration: Motion.ambientDrift * 0.35; easing: Motion.easeInOut }
-        }
-        ParallelAnimation {
-            NumberAnimation { target: panel; property: "driftX"; to: -0.14; duration: Motion.ambientDrift * 0.35; easing: Motion.easeInOut }
-            NumberAnimation { target: panel; property: "driftY"; to: -270; duration: Motion.ambientDrift * 0.35; easing: Motion.easeInOut }
-            NumberAnimation { target: panel; property: "driftScale"; to: 1; duration: Motion.ambientDrift * 0.35; easing: Motion.easeInOut }
-        }
+        running: panel.playing && !Motion.reduced && panel.visible && Motion.windowShown
+        period: Motion.ambientDrift * 2
+    }
+
+    AmbientDrift {
+        id: drift
+
+        clock: driftClock
+        easing: Motion.easeInOut
     }
 
     // An elliptical radial fill of the panel outline: a circular gradient of

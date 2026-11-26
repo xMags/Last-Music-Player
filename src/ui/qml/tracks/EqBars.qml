@@ -17,6 +17,13 @@ Row {
     spacing: 2
     height: 14
 
+    AmbientPhase {
+        id: beat
+
+        running: bars.running && bars.visible && !Motion.reduced && Motion.windowShown
+        period: 900
+    }
+
     Repeater {
         model: [8, 14, 10]
 
@@ -36,12 +43,15 @@ Row {
             transformOrigin: Item.Bottom
             readonly property real rest: Motion.reduced ? 0.6 : 0.3
             readonly property bool moving: bars.running && bars.visible && !Motion.reduced && Motion.windowShown
+            // What the bar shows while it does not bounce: at rest, or on
+            // its way down to it.
+            property real held: rest
 
-            scale: rest
+            scale: bounce.holding ? held : bounce.value
 
-            // Stopped: sink to rest. The bounce below sets the scale itself,
-            // so the binding above no longer applies once it has run; the
-            // way down is started here.
+            // Stopped: sink from where the bounce left the bar down to rest.
+            // While moving again, the bar keeps its place until its delay
+            // has passed.
             onMovingChanged: {
                 if (bar.moving) {
                     sink.stop()
@@ -49,8 +59,11 @@ Row {
                 }
                 if (Motion.reduced) {
                     sink.stop()
-                    bar.scale = bar.rest
+                    bar.held = bar.rest
                 } else {
+                    // The clock holds the stopped run's time: past the delay,
+                    // the bar showed the bounce; before it, the held value.
+                    sink.from = beat.elapsed >= bounce.delay ? bounce.value : bar.held
                     sink.restart()
                 }
             }
@@ -59,24 +72,24 @@ Row {
                 id: sink
 
                 target: bar
-                property: "scale"
+                property: "held"
                 to: bar.rest
                 duration: 320
                 easing: Motion.water
             }
 
-            SequentialAnimation on scale {
-                running: bar.moving
-                loops: Animation.Infinite
-                alwaysRunToEnd: false
+            // The bounce: after the bar's delay, 0.4 to full height and back,
+            // 450 ms each way. The bars share one clock, so they keep their
+            // fifth of a second apart.
+            AmbientBounce {
+                id: bounce
 
-                PauseAnimation { duration: bar.index * 200 }
-                SequentialAnimation {
-                    loops: Animation.Infinite
-
-                    NumberAnimation { from: 0.4; to: 1; duration: 450; easing.type: Easing.InOutQuad }
-                    NumberAnimation { from: 1; to: 0.4; duration: 450; easing.type: Easing.InOutQuad }
-                }
+                clock: beat
+                delay: bar.index * 200
+                halfPeriod: 450
+                from: 0.4
+                to: 1
+                easing.type: Easing.InOutQuad
             }
         }
     }

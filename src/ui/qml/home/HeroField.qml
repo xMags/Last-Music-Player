@@ -20,6 +20,8 @@ Item {
     readonly property color lineColor: Theme.dark ? Qt.rgba(1, 1, 1, 0.14) : Qt.rgba(1, 1, 1, 0.6)
     readonly property color strongColor: Theme.dark ? Qt.alpha(Qt.tint(Theme.ambient, Qt.rgba(1, 1, 1, 0.2)), 0.45)
                                                     : Qt.alpha(Theme.ambient, 0.55)
+    // 0 at rest, 1 at the top of a breath.
+    readonly property real swell: (1 - Math.cos(2 * Math.PI * pulse.phase)) / 2
 
     // One closed field line r = k sin^2(theta) of a dipole, stretched 1.6 sideways.
     function fieldLine(reach) {
@@ -37,6 +39,16 @@ Item {
     }
 
     clip: true
+
+    // One breath: up over 3 s and down over 3 s, InOutSine both ways, which
+    // over the whole loop is (1 - cos(2 pi phase)) / 2. Each start begins
+    // at rest; a stop holds the lines and glow where they are.
+    AmbientPhase {
+        id: pulse
+
+        running: field.running && field.visible && !Motion.reduced && Motion.windowShown
+        period: 6000
+    }
 
     Item {
         id: box
@@ -97,7 +109,8 @@ Item {
             width: 440
             height: 240
             transformOrigin: Item.Center
-            opacity: Motion.reduced ? 1 : 0.75
+            scale: Motion.reduced ? 1 : 1 + 0.12 * field.swell
+            opacity: Motion.reduced ? 1 : 0.75 + 0.25 * field.swell
 
             Shape {
                 width: 440
@@ -125,19 +138,6 @@ Item {
                     }
                 }
             }
-
-            SequentialAnimation {
-                running: field.running && field.visible && !Motion.reduced && Motion.windowShown
-                loops: Animation.Infinite
-                ParallelAnimation {
-                    NumberAnimation { target: glow; property: "scale"; from: 1; to: 1.12; duration: 3000; easing.type: Easing.InOutSine }
-                    NumberAnimation { target: glow; property: "opacity"; from: 0.75; to: 1; duration: 3000; easing.type: Easing.InOutSine }
-                }
-                ParallelAnimation {
-                    NumberAnimation { target: glow; property: "scale"; from: 1.12; to: 1; duration: 3000; easing.type: Easing.InOutSine }
-                    NumberAnimation { target: glow; property: "opacity"; from: 1; to: 0.75; duration: 3000; easing.type: Easing.InOutSine }
-                }
-            }
         }
 
         Item {
@@ -149,6 +149,8 @@ Item {
 
                 origin.x: field.magnet.x
                 origin.y: field.magnet.y
+                xScale: Motion.reduced ? 1 : 1 + 0.035 * field.swell
+                yScale: Motion.reduced ? 1 : 1 + 0.035 * field.swell
             }
 
             Repeater {
@@ -170,19 +172,6 @@ Item {
                         capStyle: ShapePath.RoundCap
                         PathSvg { path: field.fieldLine(line.modelData) }
                     }
-                }
-            }
-
-            SequentialAnimation {
-                running: field.running && field.visible && !Motion.reduced && Motion.windowShown
-                loops: Animation.Infinite
-                ParallelAnimation {
-                    NumberAnimation { target: breathe; property: "xScale"; from: 1; to: 1.035; duration: 3000; easing.type: Easing.InOutSine }
-                    NumberAnimation { target: breathe; property: "yScale"; from: 1; to: 1.035; duration: 3000; easing.type: Easing.InOutSine }
-                }
-                ParallelAnimation {
-                    NumberAnimation { target: breathe; property: "xScale"; from: 1.035; to: 1; duration: 3000; easing.type: Easing.InOutSine }
-                    NumberAnimation { target: breathe; property: "yScale"; from: 1.035; to: 1; duration: 3000; easing.type: Easing.InOutSine }
                 }
             }
         }
