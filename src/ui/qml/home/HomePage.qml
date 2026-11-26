@@ -17,6 +17,9 @@ Item {
     readonly property real gutter: Theme.contentGutter
     // The right side also keeps the scrollbar lane (scrollbar-gutter: stable).
     readonly property real rightGutter: Theme.contentGutter + Theme.contentScrollLane
+    // How far outside the visible part a section still counts as in view:
+    // past its cards' shadows, the hover zoom and the page's enter rise.
+    readonly property real offscreenMargin: 160
 
     implicitHeight: content.implicitHeight + 24
 
@@ -129,6 +132,15 @@ Item {
                     : App.home.recentlyAdded
 
                 width: content.width
+                // Not drawn while it lies wholly outside the visible part of the page.
+                opacity: sectionInView.inView ? 1 : 0
+
+                InViewWatch {
+                    id: sectionInView
+
+                    target: section
+                    margin: page.offscreenMargin
+                }
 
                 // .home-tier's 18px under the label collapses with a
                 // catalogue shelf's 28px top margin and a chart row's 30px.
