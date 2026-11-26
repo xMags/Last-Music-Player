@@ -233,8 +233,11 @@ void CatalogArtistViewModel::openSectionCard(const QString& key, int row)
         m_actions.play(*item->track, model->tracks());
         return;
     }
-    // A single plays as its one song; anything else opens its page.
-    if (SingleSongLookup::isCandidate(*item, key == QLatin1StringView("singles"))) {
+    // A single plays as its one song; anything else opens its page. The
+    // latest release carries no single or EP mark, so like an unmarked
+    // release on the singles shelf it is loaded first to see.
+    const bool mayBeSingle = key == QLatin1StringView("singles") || key == QLatin1StringView("latest-release");
+    if (SingleSongLookup::isCandidate(*item, mayBeSingle)) {
         const catalog::CatalogItem release = *item;
         (void)m_singleSongs.lookUp(release, [this, release](const std::optional<core::Track>& song) {
             if (song) {

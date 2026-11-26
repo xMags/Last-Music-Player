@@ -75,7 +75,9 @@ Track releaseSong(const QString& id, int n)
 // An artist with six top songs, an albums shelf (two albums, then the marked
 // singles "s1" of one song, "s3" of three and "fail", whose load fails, the
 // EP "e1" and the album "album1"), a singles shelf ("u1": one song, no mark;
-// "slow": answers when the test says) and a similar-artists shelf.
+// "slow": answers when the test says), a latest-release shelf (unmarked, as
+// the catalogue sends it: "l1" of one song, "l10" of ten) and a
+// similar-artists shelf.
 catalog::Detail artistDetail()
 {
     catalog::Detail detail;
@@ -94,6 +96,8 @@ catalog::Detail artistDetail()
     }
     detail.sections = {
         shelf(QStringLiteral("top-songs"), QStringLiteral("Top songs"), catalog::ResourceType::Song, songs),
+        shelf(QStringLiteral("latest-release"), QStringLiteral("Latest Release"), catalog::ResourceType::Album,
+              {release(QStringLiteral("l1")), release(QStringLiteral("l10"))}),
         shelf(QStringLiteral("albums"), QStringLiteral("Albums"), catalog::ResourceType::Album,
               {item(QStringLiteral("a1"), catalog::ResourceType::Album),
                item(QStringLiteral("a2"), catalog::ResourceType::Album),
@@ -113,7 +117,8 @@ catalog::Detail artistDetail()
 using DetailResult = lmp::core::Result<catalog::Detail>;
 
 // The release pages the provider answers, by identity id: "s1", "u1" and
-// "slow" hold one song, "s3" three, "e1" two and "album1" ten; "fail" fails.
+// "slow" hold one song, "s3" three, "e1" two, "album1" ten, "l1" one and
+// "l10" ten; "fail" fails.
 // "slow" answers only when the test finishes `slow`.
 struct ReleasePages {
     QFuture<DetailResult> answer(const lmp::core::account::LibraryArtistIdentity& identity)
@@ -129,7 +134,8 @@ struct ReleasePages {
                 DetailResult(lmp::core::Failure::of(lmp::core::FailureKind::Unknown, QStringLiteral("no"))));
         }
         const QMap<QString, int> songs{{QStringLiteral("s1"), 1}, {QStringLiteral("u1"), 1}, {QStringLiteral("s3"), 3},
-                                       {QStringLiteral("e1"), 2}, {QStringLiteral("album1"), 10}};
+                                       {QStringLiteral("e1"), 2}, {QStringLiteral("album1"), 10},
+                                       {QStringLiteral("l1"), 1}, {QStringLiteral("l10"), 10}};
         return QtFuture::makeReadyValueFuture(DetailResult(page(identity.catalogId, songs.value(identity.catalogId))));
     }
 
@@ -260,6 +266,8 @@ private slots:
     void aSingleOfSeveralSongsOpensItsPage();
     void anUnmarkedReleaseOnTheSinglesShelfOfOneSongPlaysIt();
     void anEpOrAnAlbumOpensItsPage();
+    void aLatestReleaseOfOneSongPlaysIt();
+    void aLatestReleaseOfSeveralSongsOpensItsPage();
     void aFailedLoadOpensThePage();
     void aLateAnswerAfterLeavingDoesNothing();
     void aDoubleClickLoadsOnce();
@@ -311,6 +319,28 @@ void CatalogArtistViewModelTest::anEpOrAnAlbumOpensItsPage()
         QCOMPARE(fixture.releases.calls.value(id), 0);
         QVERIFY(fixture.playing().isEmpty());
     }
+}
+
+void CatalogArtistViewModelTest::aLatestReleaseOfOneSongPlaysIt()
+{
+    ArtistFixture fixture;
+    fixture.openArtist();
+    const qsizetype depth = fixture.navigator.depth();
+    fixture.artist.openSectionCard(QStringLiteral("latest-release"),
+                                   fixture.rowOf(QStringLiteral("latest-release"), QStringLiteral("l1")));
+    QTRY_COMPARE(fixture.playing(), QStringLiteral("l1-song-1"));
+    QCOMPARE(fixture.navigator.depth(), depth);
+}
+
+void CatalogArtistViewModelTest::aLatestReleaseOfSeveralSongsOpensItsPage()
+{
+    ArtistFixture fixture;
+    fixture.openArtist();
+    fixture.artist.openSectionCard(QStringLiteral("latest-release"),
+                                   fixture.rowOf(QStringLiteral("latest-release"), QStringLiteral("l10")));
+    QTRY_COMPARE(fixture.navigator.current().kind(), Route::Kind::SourceAlbum);
+    QCOMPARE(fixture.navigator.current().param(QStringLiteral("catalogId")), QStringLiteral("l10"));
+    QVERIFY(fixture.playing().isEmpty());
 }
 
 void CatalogArtistViewModelTest::aFailedLoadOpensThePage()
@@ -373,8 +403,9 @@ void CatalogArtistViewModelTest::pageStateChangesRebuildNoShelf()
                                                               {QStringLiteral("title"), QStringLiteral("Mira Sol")}}));
     QTRY_VERIFY(!fixture.artist.loading());
     lmp::ui::ArtistSectionListModel* sections = fixture.artist.sections();
-    QCOMPARE(sections->count(), 3);
-    QCOMPARE(sections->sections().at(0).key, QStringLiteral("albums"));
+    QCOMPARE(sections->count(), 4);
+    QCOMPARE(sections->sections().at(0).key, QStringLiteral("latest-release"));
+    QCOMPARE(sections->sections().at(1).key, QStringLiteral("albums"));
     QCOMPARE(fixture.artist.sections(), sections);
     QCOMPARE(fixture.artist.sectionCards(QStringLiteral("albums")), fixture.artist.sectionCards(QStringLiteral("albums")));
 

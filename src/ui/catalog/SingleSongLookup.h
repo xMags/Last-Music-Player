@@ -52,9 +52,10 @@ public:
     explicit SingleSongLookup(Parts parts, QObject* parent = nullptr);
 
     // Whether a click on `item` looks for its one song first: a release (an
-    // album item) not marked EP that is marked single or sits on the
-    // artist's singles shelf (`onSinglesShelf`; a release saved before
-    // releases were marked has no mark, so the shelf decides).
+    // album item) not marked EP that is marked single or sits on a shelf
+    // whose releases may be singles without the mark (`onSinglesShelf`: the
+    // artist's singles shelf, whose releases saved before releases were
+    // marked have none, or the latest release, never marked).
     [[nodiscard]] static bool isCandidate(const core::catalog::CatalogItem& item, bool onSinglesShelf);
 
     // Loads `item`'s release and calls `done` with its only song, or with
