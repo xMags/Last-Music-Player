@@ -96,13 +96,20 @@ public:
             return future;
         }
         // A dropped job destroys its promise unfinished, which cancels it.
-        m_runner->post([promise, work = std::move(work)](Database* database) {
-            if (database == nullptr) {
+        // A read that shutdown() interrupted returns what it had read so far:
+        // it ends cancelled too, never with a partial answer.
+        m_runner->post([promise, stopped = m_stopped, work = std::move(work)](Database* database) {
+            if (database == nullptr || stopped->load()) {
                 promise->future().cancel();
                 promise->finish();
                 return;
             }
-            promise->addResult(work(*database));
+            T answer = work(*database);
+            if (stopped->load()) {
+                promise->future().cancel();
+            } else {
+                promise->addResult(std::move(answer));
+            }
             promise->finish();
         });
         return future;
@@ -115,6 +122,9 @@ public:
 private:
     std::unique_ptr<DatabaseReadRunner> m_runner;
     bool m_shutDown = false;
+    // Set before the runner is stopped (and a read under way interrupted);
+    // shared with the jobs, which run on the runner's thread.
+    std::shared_ptr<std::atomic<bool>> m_stopped = std::make_shared<std::atomic<bool>>(false);
 };
 
 } // namespace lmp::core::db

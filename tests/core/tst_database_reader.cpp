@@ -5,7 +5,9 @@
 #include <QTest>
 #include <QThread>
 
+#include <atomic>
 #include <memory>
+#include <thread>
 
 #include "TempLibrary.h"
 #include "core/db/DatabaseReader.h"
@@ -35,6 +37,7 @@ private slots:
     void readsWhatTheMainConnectionCommitted();
     void itsConnectionCannotWrite();
     void nothingRunsAfterShutdown();
+    void aReadUnderWayAtShutdownEndsCancelled();
 };
 
 void DatabaseReaderTest::readsWhatTheMainConnectionCommitted()
@@ -98,6 +101,35 @@ void DatabaseReaderTest::nothingRunsAfterShutdown()
     QTest::qWait(20);
     QVERIFY(!ran);
     QVERIFY(!continued);
+}
+
+// A read that is still running when the reader shuts down (interrupted, or
+// finishing on its own) never delivers what it had: its future is cancelled.
+void DatabaseReaderTest::aReadUnderWayAtShutdownEndsCancelled()
+{
+    TempLibrary library;
+    QVERIFY(library.ok());
+    DatabaseReader reader(std::make_unique<ThreadDatabaseReadRunner>(library.database().paths()));
+    std::atomic<bool> started = false;
+    std::atomic<bool> release = false;
+    QFuture<int> read = reader.read<int>([&started, &release](Database&) {
+        started = true;
+        while (!release.load()) {
+            QThread::msleep(1);
+        }
+        return 42;
+    });
+    QTRY_VERIFY(started.load());
+    // Shutdown waits for the job; let it finish once shutdown has begun.
+    std::thread releaser([&release]() {
+        QThread::msleep(20);
+        release = true;
+    });
+    reader.shutdown();
+    releaser.join();
+    QVERIFY(read.isFinished());
+    QVERIFY(read.isCanceled());
+    QCOMPARE(read.resultCount(), 0);
 }
 
 QTEST_GUILESS_MAIN(DatabaseReaderTest)

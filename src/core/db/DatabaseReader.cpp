@@ -98,6 +98,7 @@ void DatabaseReader::shutdown()
         return;
     }
     m_shutDown = true;
+    m_stopped->store(true);
     m_runner->stop();
 }
 
