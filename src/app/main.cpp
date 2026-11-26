@@ -33,11 +33,13 @@ int main(int argc, char* argv[])
 
     lmp::app::CompositionRoot root;
 
-    // Text drawn by the system's font rasteriser, hinted to the pixel grid,
-    // as in other Windows apps. Qt Quick's default (distance fields) looks
-    // soft at normal sizes, more so at fractional display scaling. Must be
-    // set before any window or text item exists.
-    QQuickWindow::setTextRenderType(QQuickWindow::NativeTextRendering);
+    // Text drawn from the glyph outlines on the GPU, with grey anti-aliasing
+    // as Windows 11's own app UI uses. The system rasteriser (native
+    // rendering) always used ClearType here, whose coloured edges read as a
+    // misprinted second copy over tinted and translucent surfaces, and
+    // Qt Quick's default (distance fields) is soft and coloured as well.
+    // Must be set before any window or text item exists.
+    QQuickWindow::setTextRenderType(QQuickWindow::CurveTextRendering);
 
     // Declared after the root so it is destroyed first: QML never outlives
     // the services behind it.
