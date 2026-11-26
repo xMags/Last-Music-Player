@@ -38,6 +38,10 @@ Item {
         root.startOffset = root.view !== null ? root.offsetOf(root.view) : 0
         root.shownGrid = root.grid
         App.cascade.restart()
+        // The new form's header may be at its full height from the start,
+        // with no height change to place it, so place it here as well.
+        root.holdStart = true
+        Qt.callLater(root.placeViewAtStart)
     }
     property Component header: null
     // Space below the last row, inside the scrolling area.
