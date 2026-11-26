@@ -57,6 +57,8 @@ Item {
 
     // Loading: a few soft bars (.lm-skeleton-lyrics).
     Column {
+        id: lineSkeleton
+
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: parent.top
@@ -75,9 +77,15 @@ Item {
                 width: panel.width * bar.modelData
                 height: panel.fullscreen ? 16 : 13
                 radius: height / 2
-                sweep: true
             }
         }
+    }
+
+    // One band for the whole group of lines.
+    SkeletonSweep {
+        anchors.fill: lineSkeleton
+        visible: lineSkeleton.visible
+        bandColor: Theme.surface
     }
 
     // Synced lines.

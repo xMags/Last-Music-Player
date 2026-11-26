@@ -17,6 +17,9 @@ class CatalogCardModel : public KeyedListModel {
     QML_UNCREATABLE("Provided by the pages")
 
     Q_PROPERTY(int count READ count NOTIFY countChanged FINAL)
+    // The first card is round (an artist): a shelf still loading its cards
+    // draws round placeholders.
+    Q_PROPERTY(bool leadsWithRound READ leadsWithRound NOTIFY itemsChanged FINAL)
 
 public:
     enum Role {
@@ -41,6 +44,10 @@ public:
     [[nodiscard]] QVariant data(const QModelIndex& index, int role) const override;
     [[nodiscard]] QHash<int, QByteArray> roleNames() const override;
     [[nodiscard]] int count() const { return static_cast<int>(m_items.size()); }
+    [[nodiscard]] bool leadsWithRound() const
+    {
+        return !m_items.isEmpty() && m_items.constFirst().type == core::catalog::ResourceType::Artist;
+    }
 
     [[nodiscard]] const QList<core::catalog::CatalogItem>& items() const { return m_items; }
     [[nodiscard]] const core::catalog::CatalogItem* itemAt(int row) const;

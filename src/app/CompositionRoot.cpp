@@ -9,6 +9,7 @@
 #include "core/home/HomeModel.h"
 #include "core/presence/PresenceCard.h"
 #include "core/presence/PresenceProtocol.h"
+#include "ui/icons/IconImageProvider.h"
 #include "ui/images/ChartArtImageProvider.h"
 
 #include <QCoreApplication>
@@ -1218,6 +1219,8 @@ void CompositionRoot::attachEngine(QQmlEngine& engine)
     engine.addImageProvider(QString(ui::CoverSource::RemoteProviderId) + QStringLiteral("-wash"),
                             std::make_unique<ui::ArtworkImageProvider>(m_artwork, ui::CoverOutput::Wash).release());
     engine.addImageProvider(QStringLiteral("chartart"), std::make_unique<ui::ChartArtImageProvider>().release());
+    // Icons as shared pictures (SkeletonGlyph.qml).
+    engine.addImageProvider(QStringLiteral("icon"), std::make_unique<ui::IconImageProvider>().release());
 
     m_reducedMotion = std::make_unique<platform::windows::WindowsReducedMotion>();
     QPointer<ui::Motion> motion =

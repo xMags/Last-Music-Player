@@ -49,6 +49,11 @@ class Theme : public ThemeColors {
     Q_PROPERTY(QColor sliderTrack READ sliderTrack NOTIFY changed FINAL)
     Q_PROPERTY(QColor scrollThumb READ scrollThumb NOTIFY changed FINAL)
     Q_PROPERTY(QColor scrollThumbHover READ scrollThumbHover NOTIFY changed FINAL)
+    // Loading placeholders: the accent tinted into the surface. Covers and
+    // secondary lines, title lines, and the line glyph on a cover.
+    Q_PROPERTY(QColor skeleton READ skeleton NOTIFY changed FINAL)
+    Q_PROPERTY(QColor skeletonStrong READ skeletonStrong NOTIFY changed FINAL)
+    Q_PROPERTY(QColor skeletonGlyph READ skeletonGlyph NOTIFY changed FINAL)
     // The dimmed backdrop behind a dialog.
     Q_PROPERTY(QColor scrim READ scrim NOTIFY changed FINAL)
     // The Up Next "Clear" action, red because it is destructive.
@@ -85,6 +90,9 @@ public:
     [[nodiscard]] QColor sliderTrack() const;
     [[nodiscard]] QColor scrollThumb() const;
     [[nodiscard]] QColor scrollThumbHover() const;
+    [[nodiscard]] QColor skeleton() const;
+    [[nodiscard]] QColor skeletonStrong() const;
+    [[nodiscard]] QColor skeletonGlyph() const;
     [[nodiscard]] QColor scrim() const;
     [[nodiscard]] QColor queueClear() const;
     [[nodiscard]] QColor queueClearHover() const;

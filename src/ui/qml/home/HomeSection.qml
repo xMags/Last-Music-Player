@@ -155,6 +155,7 @@ Column {
                 linkText: section.link ? qsTr("See all ›") : ""
                 model: App.home.catalogShelf(section.key)
                 cardsBuilt: section.cardsBuilt
+                skeletonRound: App.home.catalogShelf(section.key)?.leadsWithRound ?? false
                 // Every Home card below the hero is 184px (views.css 2779-2786).
                 cardWidth: 184
                 onLinkClicked: App.home.seeAll(section.key)

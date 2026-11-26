@@ -71,6 +71,7 @@ set(LMP_UI_QML_FILES
     qml/controls/SearchField.qml
     qml/controls/SegmentedControl.qml
     qml/controls/Skeleton.qml
+    qml/controls/SkeletonGlyph.qml
     qml/controls/SkeletonGrid.qml
     qml/controls/SkeletonRows.qml
     qml/controls/SkeletonSweep.qml
@@ -218,6 +219,8 @@ qt_add_qml_module(lmp_ui
         icons/IconDataSolid.cpp
         icons/IconPart.cpp
         icons/IconPart.h
+        icons/IconImageProvider.cpp
+        icons/IconImageProvider.h
         icons/IconSet.cpp
         icons/IconSet.h
         catalog/CatalogArtistViewModel.cpp

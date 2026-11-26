@@ -1,57 +1,56 @@
 import QtQuick
-import QtQuick.Effects
-import QtQuick.Shapes
 import LastMusicPlayer
 
-// The light band that sweeps across a loading placeholder (styles.css 663-671,
-// 786-790): a 105 degree gradient band crosses the whole region, then pauses.
-// Per 2.8 s pass it waits 18%, moves for 44% with ease-in-out, waits 38%.
-// Fill the region with it, above the blocks. Nothing moves under reduced motion.
+// The light band that sweeps across a group of loading placeholders: one
+// band per group, tilted like a 105 degree gradient, transparent to 35% of
+// its width, `bandColor` at 75% in the middle, transparent from 65%. Per
+// Motion.skeletonSweep pass it crosses from fully off the left edge to fully
+// off the right during the first 55%, easing in and out, then rests.
+//
+// The band is the colour of what the group sits on, so it shows only over
+// the tinted blocks: the content panel's (the middle of its gradient) by
+// default, where the pages' skeletons sit; a group elsewhere sets it. One
+// gradient rectangle stepped by the shared 60-a-second clock (AmbientPhase),
+// not a display-rate animation. Fill the group with it, above the blocks.
+// Nothing moves and no band is drawn under reduced motion, while the window
+// is hidden or while the group is not visible.
 Item {
     id: root
 
+    property color bandColor: Theme.mixSrgb(Theme.panelGrad1, Theme.panelGrad2, 0.5)
+
+    // The band's travel through the pass: 0 off the left, 1 off the right.
+    readonly property real travel: {
+        const t = Math.min(1, clock.phase / 0.55)
+        return 0.5 - 0.5 * Math.cos(Math.PI * t)
+    }
+    // How far the tilt reaches past the band's own width on each side.
+    readonly property real overhang: root.height * 0.27
+
     clip: true
 
-    Shape {
-        id: band
+    AmbientPhase {
+        id: clock
 
+        running: !Motion.reduced && Motion.windowShown && root.visible && root.width > 0
+        period: Motion.skeletonSweep
+    }
+
+    Rectangle {
+        // As wide as the group, so the visible band is 30% of it; tall enough
+        // to cover the group once tilted 15 degrees.
         width: root.width
-        height: root.height
-        x: -1.15 * root.width
-        preferredRendererType: Shape.CurveRenderer
-        visible: !Motion.reduced
-
-        // A 105 degree gradient line through the centre, long enough that the
-        // corners sit at 0% and 100% (as CSS sizes it).
-        readonly property real lineLength: 0.9659 * width + 0.2588 * height
-
-        ShapePath {
-            strokeColor: "transparent"
-            fillGradient: LinearGradient {
-                x1: band.width / 2 - 0.9659 * band.lineLength / 2
-                y1: band.height / 2 - 0.2588 * band.lineLength / 2
-                x2: band.width / 2 + 0.9659 * band.lineLength / 2
-                y2: band.height / 2 + 0.2588 * band.lineLength / 2
-                GradientStop { position: 0; color: "transparent" }
-                GradientStop { position: 0.48; color: Theme.mixSrgb(Theme.surface, "transparent", 0.62) }
-                GradientStop { position: 0.59; color: "transparent" }
-            }
-            PathRectangle { width: band.width; height: band.height }
-        }
-
-        SequentialAnimation on x {
-            running: !Motion.reduced && Motion.windowShown && root.visible
-            loops: Animation.Infinite
-
-            PropertyAction { value: -1.15 * root.width }
-            PauseAnimation { duration: Motion.skeletonSweep * 0.18 }
-            NumberAnimation {
-                from: -1.15 * root.width
-                to: 1.15 * root.width
-                duration: Motion.skeletonSweep * 0.44
-                easing: Motion.easeInOut
-            }
-            PauseAnimation { duration: Motion.skeletonSweep * 0.38 }
+        height: root.height * 1.2 + root.width * 0.3
+        y: (root.height - height) / 2
+        x: -0.65 * root.width - root.overhang
+           + root.travel * (root.width + 0.3 * root.width + 2 * root.overhang)
+        rotation: 15
+        visible: clock.active
+        gradient: Gradient {
+            orientation: Gradient.Horizontal
+            GradientStop { position: 0.35; color: Qt.alpha(root.bandColor, 0) }
+            GradientStop { position: 0.5; color: Qt.alpha(root.bandColor, 0.75) }
+            GradientStop { position: 0.65; color: Qt.alpha(root.bandColor, 0) }
         }
     }
 }

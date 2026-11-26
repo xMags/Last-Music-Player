@@ -22,6 +22,8 @@ Column {
     // False keeps the cards unbuilt and shows skeleton cards in their place,
     // at the same height; a page sets it while the shelf waits its turn.
     property bool cardsBuilt: true
+    // The skeleton cards are round (artist shelves).
+    property bool skeletonRound: false
     property int cardWidth: 156
     property int cardSpacing: 20
     // A card's height: the cover, 12px, then two lines of text.
@@ -61,6 +63,7 @@ Column {
                 cardWidth: shelf.cardWidth
                 cardHeight: shelf.cardHeight
                 cardSpacing: shelf.cardSpacing
+                round: shelf.skeletonRound
             }
         }
 

@@ -165,6 +165,7 @@ Item {
                     linkText: section.modelData.link ? qsTr("View more ›") : ""
                     model: App.catalogArtist.sectionCards(section.modelData.key)
                     cardsBuilt: section.cardsBuilt
+                    skeletonRound: App.catalogArtist.sectionCards(section.modelData.key).leadsWithRound
                     onLinkClicked: App.catalogArtist.seeAllSection(section.modelData.key)
 
                     delegate: Card {

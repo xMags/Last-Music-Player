@@ -109,17 +109,31 @@ Item {
         radius: root.radius
     }
 
-    // The picture is on its way: one plain block, no layer or effect, so a
-    // shelf of loading covers costs next to nothing to build. Hidden once the
-    // picture covers it, so it cannot show through the picture's soft edge.
+    // The picture is on its way: one tinted block, no layer or effect, so a
+    // shelf of loading covers costs next to nothing to build, with the line
+    // glyph (a person on a round tile) made only while it shows. No sweep of
+    // its own: bands belong to groups. Hidden once the picture covers it, so
+    // it cannot show through the picture's soft edge.
     Rectangle {
+        id: skeleton
+
         objectName: "coverSkeleton"
         anchors.fill: parent
         visible: !root.pictureMissing && !root.covered
         radius: root.radius
-        color: Theme.hover
-        border.width: 1
-        border.color: Theme.stroke
+        color: Theme.skeleton
+
+        // Built in the frames after the block appears, not in the turn that
+        // made it: a page often starts loading many covers at once.
+        Loader {
+            anchors.centerIn: parent
+            asynchronous: true
+            active: skeleton.visible && Math.min(root.width, root.height) >= 32
+            sourceComponent: SkeletonGlyph {
+                side: Math.min(root.width, root.height)
+                person: root.radius >= Math.min(root.width, root.height) / 2 - 0.5
+            }
+        }
     }
 
     // The lettered tile, for a cover with no picture: made only then, and let

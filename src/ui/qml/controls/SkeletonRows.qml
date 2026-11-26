@@ -46,7 +46,7 @@ Item {
                         Layout.minimumWidth: 0
                         spacing: 12
 
-                        Skeleton { Layout.preferredWidth: 38; Layout.preferredHeight: 38 }
+                        Skeleton { Layout.preferredWidth: 38; Layout.preferredHeight: 38; radius: Theme.radiusMd; glyph: "note" }
 
                         Item {
                             id: lines
@@ -54,8 +54,8 @@ Item {
                             Layout.fillWidth: true
                             Layout.preferredHeight: 11 + 7 + 9
 
-                            Skeleton { width: lines.width * 0.72; height: 11 }
-                            Skeleton { y: 18; width: lines.width * 0.48; height: 9 }
+                            Skeleton { width: lines.width * 0.72; height: 11; radius: 5.5; strong: true }
+                            Skeleton { y: 18; width: lines.width * 0.48; height: 9; radius: 4.5 }
                         }
                     }
 

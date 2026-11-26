@@ -34,23 +34,19 @@ Item {
                 Layout.fillWidth: true
                 Layout.preferredWidth: 150
                 Layout.alignment: Qt.AlignTop
-                // Each block keeps 8px below it.
-                spacing: 8
                 bottomPadding: 8
 
                 Skeleton {
                     width: card.width
                     height: card.width
                     radius: root.round ? width / 2 : Theme.radiusXl
+                    glyph: root.round ? "person" : "note"
                 }
-                Skeleton { width: card.width * 0.76; height: 14 }
-
-                Item {
-                    width: card.width
-                    height: 3 + 11
-
-                    Skeleton { y: 3; width: card.width * 0.52; height: 11 }
-                }
+                // The title 14 px under the cover, the subtitle 9 px under it.
+                Item { width: 1; height: 14 }
+                Skeleton { width: card.width * 0.76; height: 12; radius: 6; strong: true }
+                Item { width: 1; height: 9 }
+                Skeleton { width: card.width * 0.52; height: 10; radius: 5 }
             }
         }
     }

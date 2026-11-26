@@ -25,6 +25,7 @@ Column {
             Skeleton {
                 width: 180
                 height: 20
+                strong: true
             }
 
             SkeletonGrid {

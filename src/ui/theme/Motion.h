@@ -167,7 +167,7 @@ public:
     [[nodiscard]] int toastEnter() const { return 420; }
     [[nodiscard]] int toastExit() const { return 200; }
     [[nodiscard]] int toastReflow() const { return 280; }
-    [[nodiscard]] int skeletonSweep() const { return 2800; }
+    [[nodiscard]] int skeletonSweep() const { return 2200; }
     [[nodiscard]] int artRevealTimeout() const { return 2500; }
     [[nodiscard]] int navItemFade() const { return 100; }
     [[nodiscard]] int logoRipple() const { return 1900; }
