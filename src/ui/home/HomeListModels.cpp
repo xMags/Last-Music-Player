@@ -61,7 +61,7 @@ void HomeSectionListModel::setSections(QList<Section> sections)
 }
 
 HomeMixListModel::HomeMixListModel(QObject* parent)
-    : QAbstractListModel(parent)
+    : KeyedListModel(parent)
 {
 }
 
@@ -105,10 +105,11 @@ QHash<int, QByteArray> HomeMixListModel::roleNames() const
 
 void HomeMixListModel::setCards(QList<Card> cards)
 {
+    if (cards == m_cards) {
+        return;
+    }
     const int before = count();
-    beginResetModel();
-    m_cards = std::move(cards);
-    endResetModel();
+    replaceRows(m_cards, cards, [](const Card& card) { return card.id; });
     if (count() != before) {
         emit countChanged();
     }

@@ -62,7 +62,7 @@ private:
 
 // The generated mixes as cards (home.ts mixCard): title, badge, the line
 // under it, the two gradient colours and whether the mix has songs.
-class HomeMixListModel : public QAbstractListModel {
+class HomeMixListModel : public KeyedListModel {
     Q_OBJECT
     QML_ELEMENT
     QML_UNCREATABLE("Provided by App.home")
@@ -89,6 +89,7 @@ public:
         QColor colorStart;
         QColor colorEnd;
         bool empty = true;
+        friend bool operator==(const Card&, const Card&) = default;
     };
 
     explicit HomeMixListModel(QObject* parent = nullptr);

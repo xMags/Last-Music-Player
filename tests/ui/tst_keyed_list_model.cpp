@@ -7,6 +7,7 @@
 #include "ui/home/HomeListModels.h"
 
 using lmp::ui::CatalogCardModel;
+using lmp::ui::HomeMixListModel;
 using lmp::ui::HomeSectionListModel;
 using Section = lmp::ui::HomeSectionListModel::Section;
 
@@ -39,6 +40,7 @@ private slots:
     void rowsThatComeOrGoAreInsertedOrRemoved();
     void theSameListTellsNobody();
     void cardsSayWhenTheyChange();
+    void mixCardsUpdateInPlace();
 };
 
 void KeyedListModelTest::aChangedRowIsUpdatedInPlace()
@@ -102,6 +104,28 @@ void KeyedListModelTest::cardsSayWhenTheyChange()
 
     cards.setItems({card("a"), card("b"), card("c")});
     QCOMPARE(items.count(), 2);
+}
+
+void KeyedListModelTest::mixCardsUpdateInPlace()
+{
+    const auto mixCard = [](const char* id, bool empty) {
+        HomeMixListModel::Card card;
+        card.id = QString::fromLatin1(id);
+        card.title = card.id;
+        card.empty = empty;
+        return card;
+    };
+    HomeMixListModel model;
+    model.setCards({mixCard("daily1", true), mixCard("daily2", true)});
+    QSignalSpy reset(&model, &QAbstractItemModel::modelReset);
+    QSignalSpy changed(&model, &QAbstractItemModel::dataChanged);
+
+    // The mixes filled in: the same cards, updated where they stand.
+    model.setCards({mixCard("daily1", false), mixCard("daily2", true)});
+    QCOMPARE(reset.count(), 0);
+    QCOMPARE(changed.count(), 1);
+    QCOMPARE(changed.at(0).at(0).value<QModelIndex>().row(), 0);
+    QCOMPARE(model.idAt(0), QStringLiteral("daily1"));
 }
 
 QTEST_GUILESS_MAIN(KeyedListModelTest)
