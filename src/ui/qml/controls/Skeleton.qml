@@ -21,6 +21,8 @@ Rectangle {
 
     // Built in the frames after the block appears (see ArtTile).
     Loader {
+        id: glyphLoader
+
         anchors.centerIn: parent
         asynchronous: true
         active: block.glyph !== "" && Math.min(block.width, block.height) >= 32
@@ -29,6 +31,11 @@ Rectangle {
             person: block.glyph === "person"
         }
     }
+
+    // A block often goes while its glyph is still being built (a skeleton
+    // replaced by the content right after the page opens). Letting go of the
+    // glyph first ends its build while the block's context is still alive.
+    Component.onDestruction: glyphLoader.active = false
 
     // Made only for a block that sweeps on its own: most share a group's.
     Loader {

@@ -124,8 +124,12 @@ Item {
         color: Theme.skeleton
 
         // Built in the frames after the block appears, not in the turn that
-        // made it: a page often starts loading many covers at once.
+        // made it: a page often starts loading many covers at once. Let go
+        // when the tile goes, so a build still under way ends while the
+        // tile's context is alive (see Skeleton).
         Loader {
+            id: glyphLoader
+
             anchors.centerIn: parent
             asynchronous: true
             active: skeleton.visible && Math.min(root.width, root.height) >= 32
@@ -267,4 +271,5 @@ Item {
     }
 
     Component.onCompleted: root.load()
+    Component.onDestruction: glyphLoader.active = false
 }
