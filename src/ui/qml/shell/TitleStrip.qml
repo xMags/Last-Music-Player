@@ -37,18 +37,18 @@ Rectangle {
             Accessible.name: qsTr("Minimize")
             id: minimize
 
-            glyph: ""
+            kind: "minimize"
             windowActive: App.windowChrome.active
             overPlayer: strip.overPlayer
             onClicked: App.windowChrome.minimize()
         }
 
-        // ChromeRestore while maximised, ChromeMaximize otherwise.
+        // Restore while maximised, maximise otherwise.
         CaptionButton {
             Accessible.name: App.windowChrome.maximized ? qsTr("Restore") : qsTr("Maximize")
             id: maximize
 
-            glyph: App.windowChrome.maximized ? "" : ""
+            kind: App.windowChrome.maximized ? "restore" : "maximize"
             windowActive: App.windowChrome.active
             overPlayer: strip.overPlayer
             externalHover: App.windowChrome.maximizeHovered
@@ -60,7 +60,7 @@ Rectangle {
             Accessible.name: qsTr("Close")
             id: close
 
-            glyph: ""
+            kind: "close"
             closeButton: true
             windowActive: App.windowChrome.active
             overPlayer: strip.overPlayer

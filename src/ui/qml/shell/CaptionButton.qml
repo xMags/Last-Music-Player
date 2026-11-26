@@ -3,14 +3,14 @@ import QtQuick.Templates as T
 import LastMusicPlayer
 
 // One window caption button (.caption-button, styles.css 196-214): 46px wide,
-// the title strip's height, a Segoe Fluent Icons glyph. Close turns red under
+// the title strip's height, with a CaptionGlyph. Close turns red under
 // the pointer; every glyph dims while the window is inactive. Over the
 // full-screen player the glyphs are light (styles.css 2316-2318).
 T.AbstractButton {
     id: control
 
-    // The glyph's character in the caption icon font.
-    required property string glyph
+    // The glyph: "minimize", "maximize", "restore" or "close".
+    required property string kind
     property bool closeButton: false
     // The system answers the pointer over the maximise button, so its hover
     // and press come from the window chrome instead of this item.
@@ -22,20 +22,21 @@ T.AbstractButton {
 
     readonly property bool lit: hovered || externalHover
 
-    implicitWidth: 46
-    implicitHeight: Theme.titleBarHeight
+    // Whole device pixels, so buttons lined up from the window's edge each
+    // start on a pixel and their glyphs' one-pixel lines stay sharp.
+    readonly property real dpr: Screen.devicePixelRatio > 0 ? Screen.devicePixelRatio : 1
+
+    implicitWidth: Math.round(46 * dpr) / dpr
+    implicitHeight: Math.round(Theme.titleBarHeight * dpr) / dpr
     padding: 0
     hoverEnabled: true
     focusPolicy: Qt.NoFocus
 
-    contentItem: Text {
+    contentItem: CaptionGlyph {
         id: label
 
-        text: control.glyph
-        font: Theme.captionGlyph
+        kind: control.kind
         color: control.overPlayer ? Theme.fullscreenCaptionGlyph : control.windowActive ? Theme.fg : Theme.fgTertiary
-        horizontalAlignment: Text.AlignHCenter
-        verticalAlignment: Text.AlignVCenter
     }
 
     background: Rectangle {

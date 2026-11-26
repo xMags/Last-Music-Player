@@ -169,6 +169,7 @@ set(LMP_UI_QML_FILES
     qml/shell/ContentPanel.qml
     qml/shell/FirstRunPage.qml
     qml/shell/CaptionButton.qml
+    qml/shell/CaptionGlyph.qml
     qml/shell/NavItem.qml
     qml/shell/PageHost.qml
     qml/shell/PlaceholderPage.qml
