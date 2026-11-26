@@ -49,9 +49,11 @@ Rectangle {
         x: 24
         y: tabs.y + tabs.height + 24
         width: rail.width - 2 * 24
-        // .sidebar-right's own 16px padding below (the list keeps its 16px
-        // inside the scroll).
-        height: rail.height - y - 16
+        // Down to the rail's bottom edge (the player bar's top), so rows go
+        // under the bar's edge; the rail's 16px padding below is space after
+        // the last row inside the scroll (QueueList's bottomMargin), and the
+        // idle panels keep it as a margin of their own.
+        height: rail.height - y
 
         QueueRail {
             anchors.fill: parent

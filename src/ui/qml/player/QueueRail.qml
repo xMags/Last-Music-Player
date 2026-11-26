@@ -31,6 +31,7 @@ Item {
 
     QueueIdlePanel {
         anchors.fill: parent
+        anchors.bottomMargin: 16
         visible: !App.queueRail.hasTrack
     }
 }
