@@ -25,6 +25,7 @@ set_source_files_properties("${CMAKE_SOURCE_DIR}/Assets/LibraryStripeOverlay.svg
 set(LMP_UI_QML_FILES
     qml/Main.qml
     qml/cards/Card.qml
+    qml/cards/CardSheen.qml
     qml/motion/CascadeIn.qml
     qml/motion/MotionLayer.qml
     qml/motion/SharedCover.qml

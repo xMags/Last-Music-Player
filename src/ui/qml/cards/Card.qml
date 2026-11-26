@@ -1,5 +1,6 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
-import QtQuick.Shapes
 import QtQuick.Templates as T
 import LastMusicPlayer
 
@@ -43,6 +44,11 @@ T.AbstractButton {
     Keys.onMenuPressed: {
         if (card.hasMenu)
             card.menuRequested(Qt.point(width / 2, width / 2), true)
+    }
+
+    onHoveredChanged: {
+        if (card.hovered && !card.round)
+            sheen.active = true
     }
 
     TapHandler {
@@ -114,44 +120,18 @@ T.AbstractButton {
                         sourceComponent: card.art
                     }
 
-                    // The hover light (card-sheen.ts, motion.css 357-374): a
-                    // glossy sheen on the cover that follows the pointer.
-                    Shape {
+                    // The hover light, made on the first hover of a square
+                    // cover and kept.
+                    Loader {
                         id: sheen
 
-                        readonly property real px: pointer.point.position.x
-                        readonly property real py: pointer.point.position.y
-                        // CSS's farthest-corner circle.
-                        readonly property real reach: Math.max(Math.hypot(px, py), Math.hypot(width - px, py),
-                                                               Math.hypot(px, height - py), Math.hypot(width - px, height - py))
-
                         anchors.fill: parent
-                        visible: !Motion.reduced && opacity > 0
-                        opacity: card.hovered && !card.round ? 1 : 0
-
-                        Behavior on opacity {
-                            enabled: !Motion.reduced
-                            NumberAnimation { duration: 300; easing: Motion.ease }
+                        active: false
+                        sourceComponent: CardSheen {
+                            pointerAt: pointer.point.position
+                            shown: card.hovered && !card.round
                         }
-
-                        ShapePath {
-                            strokeColor: "transparent"
-                            fillGradient: RadialGradient {
-                                centerX: sheen.px
-                                centerY: sheen.py
-                                focalX: sheen.px
-                                focalY: sheen.py
-                                centerRadius: Math.max(1, sheen.reach)
-                                GradientStop { position: 0; color: Qt.rgba(1, 1, 1, 0.24) }
-                                GradientStop { position: 0.34; color: Qt.rgba(1, 1, 1, 0.07) }
-                                GradientStop { position: 0.6; color: "transparent" }
-                            }
-                            PathRectangle {
-                                width: sheen.width
-                                height: sheen.height
-                                radius: Theme.radiusXl
-                            }
-                        }
+                        onLoaded: (sheen.item as CardSheen).lit = true
                     }
                 }
             }
