@@ -264,6 +264,14 @@ Item {
 
                     width: content.width
                     visible: row.modelData.cards.count > 0
+                    // Not drawn while it lies wholly outside the visible part of the page.
+                    opacity: rowInView.inView ? 1 : 0
+
+                    InViewWatch {
+                        id: rowInView
+
+                        target: row
+                    }
 
                     SearchSectionHead {
                         width: parent.width
@@ -290,8 +298,17 @@ Item {
             }
 
             Column {
+                id: allSongs
+
                 width: parent.width
                 visible: App.search.songs.count > 0
+                opacity: allSongsInView.inView ? 1 : 0
+
+                InViewWatch {
+                    id: allSongsInView
+
+                    target: allSongs
+                }
 
                 SearchSectionHead {
                     width: parent.width

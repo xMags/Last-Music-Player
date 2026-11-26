@@ -62,64 +62,120 @@ Item {
 
         // The reference's sections, in its order.
         AccountBlock {
+            id: accountCard
+
             width: column.width
+            opacity: accountInView.inView ? 1 : 0
             visible: App.source.accountShown
             onSignInRequested: signIn.open()
         }
 
         SettingsPlaybackSection {
+            id: playbackCard
+
             width: column.width
+            opacity: playbackInView.inView ? 1 : 0
         }
 
         SettingsLanguagesSection {
+            id: languagesCard
+
             width: column.width
+            opacity: languagesInView.inView ? 1 : 0
             visible: App.capabilities.chooseRegion
         }
 
         SettingsAppearanceCard {
+            id: appearanceCard
+
             width: column.width
+            opacity: appearanceInView.inView ? 1 : 0
         }
 
         SettingsEqualizerCard {
+            id: equalizerCard
+
             width: column.width
+            opacity: equalizerInView.inView ? 1 : 0
         }
 
         SettingsDownloadsCard {
+            id: downloadsCard
+
             width: column.width
+            opacity: downloadsInView.inView ? 1 : 0
             visible: App.capabilities.downloadSongs
         }
 
         SettingsIntegrationsSection {
+            id: integrationsCard
+
             width: column.width
+            opacity: integrationsInView.inView ? 1 : 0
         }
 
         SettingsDataSection {
+            id: dataCard
+
             width: column.width
+            opacity: dataInView.inView ? 1 : 0
             visible: App.source.accountShown && App.source.signedIn
         }
 
         // The current app's own sections: where music comes from, the typed
         // name outside Account mode, the local library and About.
         SourceModeCards {
+            id: sourceModeCard
+
             width: column.width
+            opacity: sourceModeInView.inView ? 1 : 0
         }
 
         ApiKeyForm {
+            id: apiKeyCard
+
             width: column.width
+            opacity: apiKeyInView.inView ? 1 : 0
             visible: App.source.apiKeyShown
         }
 
         SettingsProfileCard {
+            id: profileCard
+
             width: column.width
+            opacity: profileInView.inView ? 1 : 0
             visible: App.settings.displayNameShown
         }
 
         SettingsLibraryCard {
+            id: libraryCard
+
             width: column.width
+            opacity: libraryInView.inView ? 1 : 0
         }
 
         SettingsAboutCard {
+            id: aboutCard
+
             width: column.width
+            opacity: aboutInView.inView ? 1 : 0
         }
+
+        // Each card is not drawn while it lies wholly outside the visible
+        // part of the page; the watches sit beside the cards, not inside
+        // them, so no card's own content changes.
+        InViewWatch { id: accountInView; target: accountCard }
+        InViewWatch { id: playbackInView; target: playbackCard }
+        InViewWatch { id: languagesInView; target: languagesCard }
+        InViewWatch { id: appearanceInView; target: appearanceCard }
+        InViewWatch { id: equalizerInView; target: equalizerCard }
+        InViewWatch { id: downloadsInView; target: downloadsCard }
+        InViewWatch { id: integrationsInView; target: integrationsCard }
+        InViewWatch { id: dataInView; target: dataCard }
+        InViewWatch { id: sourceModeInView; target: sourceModeCard }
+        InViewWatch { id: apiKeyInView; target: apiKeyCard }
+        InViewWatch { id: profileInView; target: profileCard }
+        InViewWatch { id: libraryInView; target: libraryCard }
+        InViewWatch { id: aboutInView; target: aboutCard }
     }
 }

@@ -12,7 +12,9 @@ QtObject {
     id: watch
 
     required property Item target
-    property real margin: 0
+    // How far outside the visible part the target still counts as in view:
+    // past its cards' shadows, the hover zoom and the page's enter rise.
+    property real margin: 160
 
     // The scrolling view, found once.
     property Flickable viewport: null

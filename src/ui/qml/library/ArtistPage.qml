@@ -135,6 +135,14 @@ Item {
                 required property var modelData
 
                 width: content.width
+                // Not drawn while it lies wholly outside the visible part of the page.
+                opacity: sectionInView.inView ? 1 : 0
+
+                InViewWatch {
+                    id: sectionInView
+
+                    target: section
+                }
 
                 Shelf {
                     width: parent.width

@@ -17,9 +17,6 @@ Item {
     readonly property real gutter: Theme.contentGutter
     // The right side also keeps the scrollbar lane (scrollbar-gutter: stable).
     readonly property real rightGutter: Theme.contentGutter + Theme.contentScrollLane
-    // How far outside the visible part a section still counts as in view:
-    // past its cards' shadows, the hover zoom and the page's enter rise.
-    readonly property real offscreenMargin: 160
 
     implicitHeight: content.implicitHeight + 24
 
@@ -139,7 +136,6 @@ Item {
                     id: sectionInView
 
                     target: section
-                    margin: page.offscreenMargin
                 }
 
                 // .home-tier's 18px under the label collapses with a
