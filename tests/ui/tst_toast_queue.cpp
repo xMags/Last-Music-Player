@@ -27,6 +27,7 @@ private slots:
     void keepsAtMostThree();
     void actionReportsAndRemoves();
     void dismissByIdIgnoresUnknownIds();
+    void aRepeatedToastIsNotAddedAgain();
 };
 
 void ToastQueueTest::showAddsAToast()
@@ -92,6 +93,26 @@ void ToastQueueTest::dismissByIdIgnoresUnknownIds()
     QCOMPARE(queue.count(), 1);
     queue.dismiss(id);
     QCOMPARE(queue.count(), 0);
+}
+
+void ToastQueueTest::aRepeatedToastIsNotAddedAgain()
+{
+    ToastQueue queue(std::chrono::milliseconds(300), nullptr);
+    QSignalSpy inserted(&queue, &QAbstractItemModel::rowsInserted);
+    const int first = queue.show(QStringLiteral("Already downloaded"));
+    QTest::qWait(200);
+    // The same message again: one toast, whose time starts over.
+    QCOMPARE(queue.show(QStringLiteral("Already downloaded")), first);
+    QCOMPARE(queue.count(), 1);
+    QCOMPARE(inserted.count(), 1);
+    QTest::qWait(200);
+    QCOMPARE(queue.count(), 1);
+    QTRY_COMPARE(queue.count(), 0);
+
+    // An error with the same words is another toast.
+    queue.show(QStringLiteral("Same words"));
+    queue.show(QStringLiteral("Same words"), true);
+    QCOMPARE(queue.count(), 2);
 }
 
 QTEST_GUILESS_MAIN(ToastQueueTest)

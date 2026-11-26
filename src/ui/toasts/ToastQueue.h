@@ -45,7 +45,9 @@ public:
     [[nodiscard]] int count() const { return static_cast<int>(m_toasts.size()); }
 
     // Shows a toast and returns its id. `actionId` is reported by
-    // actionTriggered when the user presses the action button.
+    // actionTriggered when the user presses the action button. The same
+    // toast (text, error, action) while it still shows is not added again:
+    // its time starts over and its id is returned.
     Q_INVOKABLE int show(const QString& text, bool error = false,
                          const QString& actionLabel = {}, const QString& actionId = {});
     Q_INVOKABLE void dismiss(int toastId);

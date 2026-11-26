@@ -51,6 +51,13 @@ QHash<int, QByteArray> ToastQueue::roleNames() const
 int ToastQueue::show(const QString& text, bool error, const QString& actionLabel,
                      const QString& actionId)
 {
+    for (const Toast& shown : std::as_const(m_toasts)) {
+        if (shown.text == text && shown.error == error && shown.actionLabel == actionLabel
+            && shown.actionId == actionId) {
+            shown.timer->start();
+            return shown.id;
+        }
+    }
     while (count() >= kMaxVisible) {
         removeRow(count() - 1);
     }
