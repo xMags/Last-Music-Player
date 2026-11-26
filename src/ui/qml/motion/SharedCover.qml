@@ -6,7 +6,7 @@ import LastMusicPlayer
 // cover's place by position and scale only, while the real header cover
 // hides (App.coverFlight.landing). Drawn at the card's size, the copy asks
 // for the same picture the card already shows, so it comes from the image
-// cache at once instead of loading again (a lettered tile meanwhile). The
+// cache at once instead of loading again (a skeleton block meanwhile). The
 // layer clips to the panel, so a flight never passes over the rest of the
 // window. A new navigation, or another flight, lands the current one at once.
 // Skipped with reduced motion.

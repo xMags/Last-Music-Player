@@ -5,10 +5,11 @@ import QtQuick.Effects
 import QtQuick.Shapes
 import LastMusicPlayer
 
-// A cover: the picture at `source` with rounded corners, over a gradient tile
-// (chosen from `artworkId`) with `label` in the middle, which is what shows
-// while the picture loads or when it cannot load. When `source` changes, the
-// old picture stays until the new one has loaded and fades in over it.
+// A cover: the picture at `source` with rounded corners. While the picture is
+// on its way a plain skeleton block holds its place; a gradient tile (chosen
+// from `artworkId`) with `label` in the middle shows only when there is no
+// picture or it cannot load. When `source` changes, the old picture stays
+// until the new one has loaded and fades in over it.
 Item {
     id: root
 
@@ -24,6 +25,10 @@ Item {
     property var shadowLayers: Theme.shadowArt
 
     readonly property bool loaded: current.status === Image.Ready
+    // No picture to wait for: none was given, or it could not load.
+    readonly property bool pictureMissing: root.source.toString() === "" || current.status === Image.Error
+    // The picture fully drawn over everything under it.
+    readonly property bool covered: root.loaded && current.opacity >= 1
     // Pictures are decoded at the tile's size in pixels. A zero size means
     // "full resolution" to an image, so the size is only known while the tile
     // is laid out and in a window (Screen.devicePixelRatio is 0 outside one):
@@ -104,12 +109,25 @@ Item {
         radius: root.radius
     }
 
-    // The placeholder: made while it shows (loading, an error, no picture,
-    // the crossfade) and let go once the picture covers it, so its colours
-    // cannot show through the picture's soft edge and its layers are freed.
-    Loader {
+    // The picture is on its way: one plain block, no layer or effect, so a
+    // shelf of loading covers costs next to nothing to build. Hidden once the
+    // picture covers it, so it cannot show through the picture's soft edge.
+    Rectangle {
+        objectName: "coverSkeleton"
         anchors.fill: parent
-        active: !root.loaded || current.opacity < 1
+        visible: !root.pictureMissing && !root.covered
+        radius: root.radius
+        color: Theme.hover
+        border.width: 1
+        border.color: Theme.stroke
+    }
+
+    // The lettered tile, for a cover with no picture: made only then, and let
+    // go as soon as a picture is on its way, which frees its layers.
+    Loader {
+        objectName: "coverLetterTile"
+        anchors.fill: parent
+        active: root.pictureMissing
         sourceComponent: Item {
             Item {
                 id: content

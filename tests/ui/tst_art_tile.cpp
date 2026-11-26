@@ -7,6 +7,7 @@
 #include <QQuickImageProvider>
 #include <QQuickItem>
 #include <QQuickWindow>
+#include <QSemaphore>
 #include <QSize>
 #include <QTest>
 #include <QtQml/qqmlextensionplugin.h>
@@ -51,6 +52,36 @@ public:
 private:
     mutable QMutex m_lock;
     std::vector<QSize> m_sizes;
+};
+
+// Holds every picture back until the test lets it through; "missing" never
+// has one.
+class GatedProvider final : public QQuickImageProvider {
+public:
+    GatedProvider()
+        : QQuickImageProvider(QQuickImageProvider::Image)
+    {
+    }
+
+    QImage requestImage(const QString& id, QSize* size, const QSize& requestedSize) override
+    {
+        if (id == QStringLiteral("missing")) {
+            return {};
+        }
+        m_gate.acquire();
+        QImage image(requestedSize.isValid() && !requestedSize.isEmpty() ? requestedSize : QSize(8, 8),
+                     QImage::Format_ARGB32_Premultiplied);
+        image.fill(QColor(40, 80, 120));
+        if (size != nullptr) {
+            *size = image.size();
+        }
+        return image;
+    }
+
+    void open() { m_gate.release(); }
+
+private:
+    QSemaphore m_gate;
 };
 
 constexpr char TileQml[] = R"(
@@ -120,6 +151,50 @@ private slots:
         QTRY_COMPARE(provider->sizes().size(), std::size_t{2});
         QCOMPARE(provider->sizes().back(), decoded);
         QVERIFY(allSized(provider->sizes()));
+    }
+
+    // Loading shows the skeleton block, a loaded picture neither placeholder,
+    // and no picture (none given, or one that fails) the lettered tile.
+    void placeholdersFollowThePicture()
+    {
+        QQmlEngine engine;
+        auto* provider = new GatedProvider(); // the engine owns it
+        engine.addImageProvider(QStringLiteral("gated"), provider);
+        QQuickWindow window; // never shown
+        QQmlComponent component(&engine);
+        component.setData(TileQml, QUrl());
+        std::unique_ptr<QObject> object(component.create());
+        QVERIFY2(object, qPrintable(component.errorString()));
+        auto* tile = qobject_cast<QQuickItem*>(object.get());
+        QVERIFY(tile);
+        tile->setParentItem(window.contentItem());
+        tile->setSize(QSizeF(100, 100));
+        auto* skeleton = tile->findChild<QQuickItem*>(QStringLiteral("coverSkeleton"));
+        auto* letter = tile->findChild<QObject*>(QStringLiteral("coverLetterTile"));
+        QVERIFY(skeleton);
+        QVERIFY(letter);
+        const auto letterShown = [letter]() { return letter->property("active").toBool(); };
+
+        // No picture at all.
+        QVERIFY(letterShown());
+        QVERIFY(!skeleton->isVisible());
+
+        // On its way.
+        tile->setProperty("source", QUrl(QStringLiteral("image://gated/cover")));
+        QTRY_VERIFY(skeleton->isVisible());
+        QVERIFY(!letterShown());
+
+        // Loaded.
+        provider->open();
+        QTRY_VERIFY(tile->property("loaded").toBool());
+        QTRY_VERIFY(!skeleton->isVisible());
+        QVERIFY(!letterShown());
+
+        // A picture that cannot load.
+        tile->setProperty("source", QUrl(QStringLiteral("image://gated/missing")));
+        QTRY_VERIFY(letterShown());
+        QVERIFY(!skeleton->isVisible());
+        QVERIFY(!tile->property("loaded").toBool());
     }
 };
 
