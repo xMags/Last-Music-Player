@@ -12,6 +12,7 @@
 
 #include "core/downloads/OfflineCollections.h"
 #include "core/model/Track.h"
+#include "ui/downloads/OfflineLibraryRead.h"
 #include "ui/library/CollectionCardModel.h"
 #include "ui/tracks/TrackListModel.h"
 
@@ -20,7 +21,7 @@ class DownloadManager;
 class SettingsStore;
 class TrackActions;
 namespace db {
-class LibraryQueries;
+class DatabaseReader;
 }
 } // namespace lmp::core
 
@@ -115,8 +116,9 @@ public:
     struct Parts {
         core::DownloadManager& downloads;
         core::TrackActions& actions;
-        // The library the collection tabs are cut down from.
-        core::db::LibraryQueries& library;
+        // Reads the library the collection tabs are cut down from, off the
+        // GUI thread.
+        core::db::DatabaseReader& reader;
         TrackMenuController& trackMenu;
         ToastQueue& toasts;
         platform::IFolderPicker& picker;
@@ -237,19 +239,24 @@ private:
     void reload();
     void showTab();
     // The downloaded songs with what the library knows about them (genre,
-    // length, main artist), and the collection tabs' groups, rebuilt only
-    // when the set of downloaded songs changes.
-    // True when the lists were made again (the downloaded songs changed).
-    bool refreshGroups();
+    // length, main artist), and the collection tabs' groups, made again only
+    // when the set of downloaded songs changes (or `invalidate`: the library
+    // or the account changed). The library is read on the reader; until its
+    // answer comes the tabs keep what they show. A request while a read is
+    // under way waits for it and then reads once more; `invalidate` also
+    // drops that read's answer.
+    void refreshGroups(bool invalidate);
+    void startGroupsRead();
+    void applyGroups(const OfflineLibraryRead& read);
     void markLiked();
     // A like changed somewhere: every heart is read again, in place.
     void rereadHearts();
     [[nodiscard]] const core::offline::OfflineGroup* openedGroup() const;
-    [[nodiscard]] QList<core::Track> historySongs();
+    [[nodiscard]] QList<core::Track> historySongs(const QList<core::Track>& history) const;
 
     core::DownloadManager& m_downloads;
     core::TrackActions& m_actions;
-    core::db::LibraryQueries& m_library;
+    core::db::DatabaseReader& m_reader;
     TrackMenuController& m_trackMenu;
     ToastQueue& m_toasts;
     platform::IFolderPicker& m_picker;
@@ -268,6 +275,10 @@ private:
     // Whether each download is liked, by download key (markLiked).
     QHash<QString, bool> m_likedByKey;
     QString m_groupsSignature;
+    // The newest groups read; an answer of an older one is dropped.
+    std::uint64_t m_groupsGeneration = 0;
+    bool m_groupsReading = false;
+    bool m_groupsDirty = false;
     QList<core::Track> m_detailed;
     QList<core::offline::OfflineGroup> m_playlistGroups;
     QList<core::offline::OfflineGroup> m_albumGroups;

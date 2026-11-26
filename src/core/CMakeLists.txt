@@ -122,6 +122,8 @@ qt_add_library(lmp_core STATIC
     db/CollectionSql.h
     db/Database.cpp
     db/Database.h
+    db/DatabaseReader.cpp
+    db/DatabaseReader.h
     db/FollowedArtistRepository.cpp
     db/FollowedArtistRepository.h
     db/GroupQueries.cpp

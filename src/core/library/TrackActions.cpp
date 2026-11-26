@@ -342,12 +342,21 @@ std::optional<bool> TrackActions::toggleLike(const Track& track)
 
 QList<Track> TrackActions::playlists()
 {
+    return ownPlaylists(m_groups.loadPlaylists(), accountPlaylistsActive());
+}
+
+bool TrackActions::accountPlaylistsActive() const
+{
+    return m_account != nullptr && m_account->isActive();
+}
+
+QList<Track> TrackActions::ownPlaylists(const QList<Track>& all, bool accountActive)
+{
     // The account's playlists while its account is in use, then the ones
     // kept on this PC.
-    const bool accountPlaylists = m_account != nullptr && m_account->isActive();
     QList<Track> mine;
-    for (const Track& playlist : m_groups.loadPlaylists()) {
-        if (playlist.origin != QLatin1StringView("account") || accountPlaylists) {
+    for (const Track& playlist : all) {
+        if (playlist.origin != QLatin1StringView("account") || accountActive) {
             mine.append(playlist);
         }
     }

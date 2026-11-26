@@ -2,7 +2,7 @@
 
 #include "core/downloads/DownloadManager.h"
 #include "core/downloads/DownloadPolicy.h"
-#include "core/db/LibraryQueries.h"
+#include "core/db/DatabaseReader.h"
 #include "core/library/TrackActions.h"
 #include "core/model/CatalogSourceKey.h"
 #include "core/model/DisplayTitle.h"
@@ -74,7 +74,7 @@ OfflineViewModel::OfflineViewModel(Parts parts, QObject* parent)
     : QObject(parent)
     , m_downloads(parts.downloads)
     , m_actions(parts.actions)
-    , m_library(parts.library)
+    , m_reader(parts.reader)
     , m_trackMenu(parts.trackMenu)
     , m_toasts(parts.toasts)
     , m_picker(parts.picker)
@@ -136,7 +136,7 @@ void OfflineViewModel::setTab(const QString& tab)
 void OfflineViewModel::refresh()
 {
     m_groupsSignature.clear();
-    refreshGroups();
+    refreshGroups(true);
     showTab();
     emit changed();
 }
@@ -528,33 +528,74 @@ void OfflineViewModel::reload()
     // A progress tick changes only the strip above and the rows' marks; the
     // lists are set again (a reset, which loses the scroll place, hover and
     // focus) only when what they show changed.
-    if (refreshGroups()) {
-        showTab();
-    }
+    refreshGroups(false);
     emit changed();
     if (marksDiffer) {
         emit marksChanged();
     }
 }
 
-bool OfflineViewModel::refreshGroups()
+void OfflineViewModel::refreshGroups(bool invalidate)
 {
     // Progress ticks change the snapshot but not which songs are here; the
     // library is read again only when that set changes.
     const QString signature = m_downloadedKeys.join(QLatin1Char('\n'));
     if (signature == m_groupsSignature && m_detailed.size() == m_downloaded.size()) {
-        return false;
+        return;
     }
     m_groupsSignature = signature;
+    if (m_downloaded.isEmpty()) {
+        // Nothing to match: no read, and any read under way is out of date.
+        ++m_groupsGeneration;
+        m_groupsDirty = false;
+        applyGroups({});
+        showTab();
+        return;
+    }
+    if (m_groupsReading) {
+        m_groupsDirty = true;
+        if (invalidate) {
+            ++m_groupsGeneration;
+        }
+        return;
+    }
+    startGroupsRead();
+}
 
+void OfflineViewModel::startGroupsRead()
+{
+    const std::uint64_t generation = ++m_groupsGeneration;
+    m_groupsReading = true;
+    QList<core::db::TrackQuery> systemQueries;
+    for (const SystemPlaylist& system : systemPlaylists()) {
+        systemQueries.append(system.query);
+    }
+    const bool accountPlaylists = m_actions.accountPlaylistsActive();
+    m_reader
+        .read<OfflineLibraryRead>([systemQueries, accountPlaylists](core::db::Database& database) {
+            return readOfflineLibrary(database, systemQueries, accountPlaylists);
+        })
+        .then(this, [this, generation](const OfflineLibraryRead& read) {
+            m_groupsReading = false;
+            if (generation == m_groupsGeneration) {
+                applyGroups(read);
+                showTab();
+                emit changed();
+            }
+            if (m_groupsDirty) {
+                m_groupsDirty = false;
+                startGroupsRead();
+            }
+        });
+}
+
+void OfflineViewModel::applyGroups(const OfflineLibraryRead& read)
+{
     // withLibraryDetails: a download is stored with only what it needs to
     // play, so its genre, length and main artist come from the library.
     QHash<QString, core::Track> known;
     if (m_stableKey && !m_downloaded.isEmpty()) {
-        for (const core::Track& track : m_library.loadTracks()) {
-            if (!track.isRemote()) {
-                continue;
-            }
+        for (const core::Track& track : read.remoteSongs) {
             const QString key = core::track_keys::downloadMatchKey(m_stableKey(track));
             if (!key.isEmpty() && !known.contains(key)) {
                 known.insert(key, track);
@@ -624,15 +665,14 @@ bool OfflineViewModel::refreshGroups()
     };
     QStringList playlistNames;
     if (!m_downloaded.isEmpty()) {
-        for (const SystemPlaylist& system : systemPlaylists()) {
-            addPlaylist(system.key, system.title, m_library.loadTracksForQuery(system.query));
+        const QList<SystemPlaylist>& systems = systemPlaylists();
+        for (qsizetype index = 0; index < systems.size() && index < read.systemSongs.size(); ++index) {
+            addPlaylist(systems.at(index).key, systems.at(index).title, read.systemSongs.at(index));
         }
-        for (const core::Track& playlist : m_actions.playlists()) {
+        for (qsizetype index = 0; index < read.playlists.size() && index < read.playlistSongs.size(); ++index) {
+            const core::Track& playlist = read.playlists.at(index);
             playlistNames.append(playlist.title);
-            core::db::TrackQuery query;
-            query.groupKind = QStringLiteral("playlist");
-            query.groupKey = playlist.sourceUrl;
-            addPlaylist(playlist.sourceUrl, playlist.title, m_library.loadTracksForQuery(query));
+            addPlaylist(playlist.sourceUrl, playlist.title, read.playlistSongs.at(index));
         }
     }
     m_albumGroups = core::offline::albumGroups(m_detailed, playlistNames);
@@ -646,21 +686,20 @@ bool OfflineViewModel::refreshGroups()
         m_artistPhotos->lookUp(names);
     }
     m_genreGroups = core::offline::genreGroups(m_detailed);
-    m_history = historySongs();
+    m_history = historySongs(read.history);
     // An opened card whose songs are all gone closes.
     if (!m_groupKey.isEmpty() && openedGroup() == nullptr) {
         m_groupKey.clear();
     }
-    return true;
 }
 
-QList<core::Track> OfflineViewModel::historySongs()
+QList<core::Track> OfflineViewModel::historySongs(const QList<core::Track>& history) const
 {
     if (m_downloaded.isEmpty() || !m_stableKey) {
         return {};
     }
     QStringList keys;
-    for (const core::Track& track : m_library.loadHistoryTracks()) {
+    for (const core::Track& track : history) {
         keys.append(track.isRemote() ? core::track_keys::downloadMatchKey(m_stableKey(track)) : QString());
     }
     return core::offline::downloadedPart(keys, m_detailed, m_downloadedKeys);

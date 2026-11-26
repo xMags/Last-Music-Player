@@ -101,6 +101,10 @@ public:
 
     // The user's own playlists, newest first (title and key in sourceUrl).
     [[nodiscard]] QList<Track> playlists();
+    // Which of `all` (every stored playlist) are the user's own now: the
+    // account's only while its account is in use (`accountActive`).
+    [[nodiscard]] static QList<Track> ownPlaylists(const QList<Track>& all, bool accountActive);
+    [[nodiscard]] bool accountPlaylistsActive() const;
     Result<void> addToPlaylist(const Track& track, const QString& playlistKey);
     // A new playlist with the song in it; its key.
     Result<QString> addToNewPlaylist(const Track& track, const QString& name);

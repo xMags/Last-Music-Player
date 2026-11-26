@@ -95,6 +95,7 @@ CompositionRoot::CompositionRoot()
     , m_settings(m_paths.settingsFile())
     , m_database(m_paths)
     , m_databaseOpen(openDatabase(m_database))
+    , m_reader(std::make_unique<core::db::ThreadDatabaseReadRunner>(m_paths))
     , m_tracks(m_database)
     , m_accounts(m_database)
     , m_library(m_database, &m_accounts)
@@ -363,7 +364,7 @@ CompositionRoot::CompositionRoot()
     , m_offlineArtistPhotos(m_catalog, m_paths.pictureCacheFolder() + QStringLiteral("/artist-photos.json"))
     , m_offline({.downloads = m_downloads,
                  .actions = m_trackActions,
-                 .library = m_library,
+                 .reader = m_reader,
                  .trackMenu = m_trackMenu,
                  .toasts = m_toasts,
                  .picker = m_folderPicker,
@@ -1129,6 +1130,8 @@ CompositionRoot::~CompositionRoot()
     // the pending volume, while every service still exists. The device link
     // goes first, so nothing is reported while the rest stops.
     m_connectClient.stop();
+    // No library read runs once the views it answers are going.
+    m_reader.shutdown();
     m_cast.shutdown();
     m_ambient.shutdown();
     m_persistence.shutdown();

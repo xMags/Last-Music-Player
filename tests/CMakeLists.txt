@@ -434,7 +434,7 @@ lmp_add_test(tst_library_view_model
     LIBS lmp_ui)
 
 lmp_add_test(tst_offline_view_model
-    SOURCES ui/tst_offline_view_model.cpp core/PlayerFixture.h core/FakeAudioPlayer.h core/FakePlaybackClock.h core/ModeServiceFixture.h core/AccountSessionFixture.h core/FakeCredentialStore.h core/FakeHttpTransport.h core/TempLibrary.h
+    SOURCES ui/tst_offline_view_model.cpp core/PlayerFixture.h core/FakeAudioPlayer.h core/FakePlaybackClock.h core/ModeServiceFixture.h core/AccountSessionFixture.h core/FakeCredentialStore.h core/FakeHttpTransport.h core/TempLibrary.h core/InlineDatabaseReadRunner.h
     LIBS lmp_ui)
 
 lmp_add_test(tst_collection_view_model
@@ -668,6 +668,10 @@ lmp_add_test(tst_staged_build
 lmp_add_test(tst_art_tile
     SOURCES ui/tst_art_tile.cpp
     LIBS lmp_ui lmp_uiplugin Qt6::Quick)
+
+lmp_add_test(tst_database_reader
+    SOURCES core/tst_database_reader.cpp core/TempLibrary.h
+    LIBS lmp_core)
 
 lmp_add_test(tst_icon_image_provider
     SOURCES ui/tst_icon_image_provider.cpp

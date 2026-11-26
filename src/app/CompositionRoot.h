@@ -26,6 +26,7 @@
 #include "core/db/FollowedArtistRepository.h"
 #include "core/db/GroupQueries.h"
 #include "core/db/Database.h"
+#include "core/db/DatabaseReader.h"
 #include "core/db/LibraryQueries.h"
 #include "core/db/TrackRepository.h"
 #include "core/library/ArtworkCache.h"
@@ -209,6 +210,9 @@ private:
     // Set right after m_database is built: whether it opened. Without it the
     // app runs on and plays, but nothing reaches the history.
     bool m_databaseOpen = false;
+    // Library reads off the GUI thread, on one worker with its own read-only
+    // connection; made once the schema exists, shut down before the database.
+    core::db::DatabaseReader m_reader;
     core::db::TrackRepository m_tracks;
     // The cached account library (songs, playlists, sync bookkeeping).
     core::db::AccountRepository m_accounts;

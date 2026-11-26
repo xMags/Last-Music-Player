@@ -308,6 +308,8 @@ qt_add_qml_module(lmp_ui
         player/QueueListModel.h
         downloads/OfflineArtistPhotos.cpp
         downloads/OfflineArtistPhotos.h
+        downloads/OfflineLibraryRead.cpp
+        downloads/OfflineLibraryRead.h
         downloads/OfflineViewModel.cpp
         cast/CastViewModel.cpp
         cast/CastViewModel.h
