@@ -78,9 +78,10 @@ Rectangle {
                 : App.cast.active ? qsTr("Casting to %1").arg(App.cast.deviceName)
                 : qsTr("Connect to a device")
 
-            // Always the 18px devices glyph, always offered (casting from
-            // this PC is always possible).
-            iconName: "devices"
+            // Always the 18px filled devices glyph (a laptop and a phone, the
+            // web player bar's materialIcon("devices")), always offered
+            // (casting from this PC is always possible).
+            iconName: "solid-devices"
             iconSize: 18
             active: App.cast.active || App.playerBar.remote || App.layout.connectOpen
             Accessible.name: label
