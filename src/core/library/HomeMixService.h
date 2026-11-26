@@ -86,6 +86,9 @@ private:
     // Bumped by every rebuild, so a late provider answer fills nothing.
     quint64 m_fillGeneration = 0;
     QString m_key;
+    // The account songs the current mixes were derived from (none for the
+    // library's own mixes).
+    std::optional<home::HomeLibrary> m_derivedFrom;
     QList<HomeMix> m_mixes;
 };
 

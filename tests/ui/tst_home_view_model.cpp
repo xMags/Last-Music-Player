@@ -47,6 +47,7 @@ private slots:
     void shortcutsAreWholeRows();
     void playlistPopupOffersTheNewestEight();
     void mixesAreRemadeOnlyOnANewDay();
+    void accountMixesAreDerivedOncePerChange();
     void cardsPlayAndOpen();
 
 private:
@@ -324,6 +325,38 @@ void HomeViewModelTest::mixesAreRemadeOnlyOnANewDay()
     m_home->refresh();
     QCOMPARE(remade.count(), 2);
     QCOMPARE(m_mixes->mix(QStringLiteral("fresh"))->tracks.size(), 2);
+}
+
+void HomeViewModelTest::accountMixesAreDerivedOncePerChange()
+{
+    Track song;
+    song.remoteId = QStringLiteral("account-1");
+    song.title = QStringLiteral("One");
+    song.artist = QStringLiteral("A");
+    song.sourceUrl = QStringLiteral("https://music.example.test/account-1");
+    lmp::core::home::HomeLibrary account;
+    account.liked = {song};
+    m_mixes->setAccountSource([&account]() { return std::optional(account); });
+    QSignalSpy remade(m_mixes.get(), &lmp::core::HomeMixService::mixesChanged);
+
+    m_mixes->refresh(true);
+    QCOMPARE(remade.count(), 1);
+    const QList<lmp::core::HomeMix> first = m_mixes->mixes();
+    // Asked again, even forced, about the same songs: nothing to make.
+    m_mixes->refresh(true);
+    m_mixes->refresh();
+    QCOMPARE(remade.count(), 1);
+
+    // Another song: made again, and the result is what a fresh derivation gives.
+    Track other = song;
+    other.remoteId = QStringLiteral("account-2");
+    other.sourceUrl = QStringLiteral("https://music.example.test/account-2");
+    account.liked.append(other);
+    m_mixes->refresh(true);
+    QCOMPARE(remade.count(), 2);
+    QCOMPARE(m_mixes->mix(QStringLiteral("daily1"))->tracks.size(), 2);
+    QVERIFY(m_mixes->mixes().size() == first.size());
+    m_mixes->setAccountSource({});
 }
 
 void HomeViewModelTest::cardsPlayAndOpen()

@@ -54,11 +54,20 @@ void HomeMixService::refresh(bool force)
         if (!force && key == m_key) {
             return;
         }
+        // The mixes are a function of the account's songs and the day: the
+        // same songs on the same day make the same mixes. One change reaches
+        // several refreshes (Home's and the library views'), and only the
+        // first has anything to derive.
+        if (key == m_key && m_derivedFrom == account) {
+            return;
+        }
         m_key = key;
+        m_derivedFrom = account;
         m_mixes = home::deriveHomeModel(*account).mixes;
         emit mixesChanged();
         return;
     }
+    m_derivedFrom.reset();
     // "Music" is any song in the library, as the current app's mixes come
     // from the whole catalogue (not only history and likes).
     db::TrackQuery probe;

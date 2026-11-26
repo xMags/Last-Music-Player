@@ -23,6 +23,7 @@ struct HomeLibrary {
     QList<Track> liked;
     // Every playlist's songs, playlist after playlist.
     QList<Track> playlistTracks;
+    friend bool operator==(const HomeLibrary&, const HomeLibrary&) = default;
 };
 
 struct HomeModel {
