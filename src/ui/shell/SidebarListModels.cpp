@@ -39,7 +39,7 @@ QHash<int, QByteArray> SidebarNavListModel::roleNames() const
 }
 
 SidebarPlaylistListModel::SidebarPlaylistListModel(QObject* parent)
-    : QAbstractListModel(parent)
+    : KeyedListModel(parent)
 {
 }
 
@@ -81,10 +81,11 @@ QHash<int, QByteArray> SidebarPlaylistListModel::roleNames() const
 
 void SidebarPlaylistListModel::setItems(QList<Item> items)
 {
+    if (items == m_items) {
+        return;
+    }
     const int before = count();
-    beginResetModel();
-    m_items = std::move(items);
-    endResetModel();
+    replaceRows(m_items, items, [](const Item& item) { return item.id; });
     if (count() != before) {
         emit countChanged();
     }

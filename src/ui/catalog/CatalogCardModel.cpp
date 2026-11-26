@@ -27,7 +27,7 @@ namespace {
 } // namespace
 
 CatalogCardModel::CatalogCardModel(QObject* parent)
-    : QAbstractListModel(parent)
+    : KeyedListModel(parent)
 {
 }
 
@@ -84,13 +84,19 @@ const core::catalog::CatalogItem* CatalogCardModel::itemAt(int row) const
 
 void CatalogCardModel::setItems(QList<core::catalog::CatalogItem> items)
 {
+    if (items == m_items) {
+        return;
+    }
     const bool countChange = items.size() != m_items.size();
-    beginResetModel();
-    m_items = std::move(items);
-    endResetModel();
+    // A card is the same card while it names the same thing.
+    replaceRows(m_items, items, [](const core::catalog::CatalogItem& item) {
+        return core::catalog::resourceTypeName(item.type) + QLatin1Char('|') + item.catalogId + QLatin1Char('|')
+               + item.sourceUrl + QLatin1Char('|') + item.externalPlaylistId;
+    });
     if (countChange) {
         emit countChanged();
     }
+    emit itemsChanged();
 }
 
 QList<core::Track> CatalogCardModel::tracks() const

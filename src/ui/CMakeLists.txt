@@ -283,6 +283,7 @@ qt_add_qml_module(lmp_ui
         player/PlayerBarViewModel.h
         player/QueueListDiff.cpp
         player/QueueListDiff.h
+        models/KeyedListModel.h
         player/QueueListModel.cpp
         player/QueueListModel.h
         downloads/OfflineArtistPhotos.cpp

@@ -5,7 +5,7 @@
 namespace lmp::ui {
 
 HomeSectionListModel::HomeSectionListModel(QObject* parent)
-    : QAbstractListModel(parent)
+    : KeyedListModel(parent)
 {
 }
 
@@ -54,9 +54,7 @@ void HomeSectionListModel::setSections(QList<Section> sections)
         return;
     }
     const int before = count();
-    beginResetModel();
-    m_sections = std::move(sections);
-    endResetModel();
+    replaceRows(m_sections, sections, [](const Section& section) { return section.key; });
     if (count() != before) {
         emit countChanged();
     }

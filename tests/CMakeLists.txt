@@ -641,6 +641,10 @@ lmp_add_test(tst_focus_place
     SOURCES ui/tst_focus_place.cpp
     LIBS lmp_ui)
 
+lmp_add_test(tst_keyed_list_model
+    SOURCES ui/tst_keyed_list_model.cpp
+    LIBS lmp_ui)
+
 lmp_add_test(tst_cover_wash
     SOURCES ui/tst_cover_wash.cpp
     LIBS lmp_ui)

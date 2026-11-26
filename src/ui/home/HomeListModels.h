@@ -7,12 +7,14 @@
 #include <QString>
 #include <QtQml/qqmlregistration.h>
 
+#include "ui/models/KeyedListModel.h"
+
 namespace lmp::ui {
 
 // Home's sections in page order. Each names the capability it needs, so a
 // mode without it leaves the section out (this phase shows the local
 // library's sections only; catalogue tiers join in P08).
-class HomeSectionListModel : public QAbstractListModel {
+class HomeSectionListModel : public KeyedListModel {
     Q_OBJECT
     QML_ELEMENT
     QML_UNCREATABLE("Provided by App.home")

@@ -123,6 +123,7 @@ enum class ReleaseKind {
 struct ArtistPageTarget {
     account::LibraryArtistIdentity identity;
     QString catalogArtistId;
+    friend bool operator==(const ArtistPageTarget&, const ArtistPageTarget&) = default;
 };
 
 struct CatalogItem {
@@ -149,6 +150,7 @@ struct CatalogItem {
     // Songs on an album, when the catalogue says; 0 otherwise.
     int trackCount = 0;
     ReleaseKind releaseKind = ReleaseKind::None;
+    friend bool operator==(const CatalogItem&, const CatalogItem&) = default;
 };
 
 struct Shelf {

@@ -68,7 +68,7 @@ CatalogPageViewModel::CatalogPageViewModel(Parts parts, QObject* parent)
 {
     connect(&m_navigator, &Navigator::currentChanged, this, &CatalogPageViewModel::followNavigator);
     // The release rows follow the cards.
-    connect(&m_cards, &QAbstractItemModel::modelReset, this, [this]() {
+    connect(&m_cards, &CatalogCardModel::itemsChanged, this, [this]() {
         QList<core::Track> rows;
         if (core::catalog::isReleaseList(m_cards.items())) {
             rows.reserve(m_cards.items().size());

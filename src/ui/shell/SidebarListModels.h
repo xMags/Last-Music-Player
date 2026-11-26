@@ -8,6 +8,8 @@
 #include <QUrl>
 #include <QtQml/qqmlregistration.h>
 
+#include "ui/models/KeyedListModel.h"
+
 namespace lmp::ui {
 
 // The sidebar's navigation items: the main views, in order.
@@ -39,7 +41,7 @@ private:
 };
 
 // The user's playlists shown in the sidebar, after Liked Songs.
-class SidebarPlaylistListModel : public QAbstractListModel {
+class SidebarPlaylistListModel : public KeyedListModel {
     Q_OBJECT
     QML_ELEMENT
     QML_UNCREATABLE("Provided by App.sidebar")
@@ -58,6 +60,7 @@ public:
         QString coverStyle = QStringLiteral("image");
         QUrl artworkUrl;
         QList<QUrl> collage;
+        friend bool operator==(const Item&, const Item&) = default;
     };
 
     explicit SidebarPlaylistListModel(QObject* parent = nullptr);

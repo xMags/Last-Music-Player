@@ -34,6 +34,7 @@ struct LibraryArtistIdentity {
     QString sourceUrl;
     QString name;
     QString provider;
+    friend bool operator==(const LibraryArtistIdentity&, const LibraryArtistIdentity&) = default;
 };
 
 struct LibraryArtist {

@@ -5,12 +5,13 @@
 #include <QtQml/qqmlregistration.h>
 
 #include "core/catalog/CatalogModels.h"
+#include "ui/models/KeyedListModel.h"
 
 namespace lmp::ui {
 
 // Catalogue items as cards: songs, albums, playlists (square) and artists
 // (round). The items stay here so a click can act on the one shown.
-class CatalogCardModel : public QAbstractListModel {
+class CatalogCardModel : public KeyedListModel {
     Q_OBJECT
     QML_ELEMENT
     QML_UNCREATABLE("Provided by the pages")
@@ -49,6 +50,9 @@ public:
 
 signals:
     void countChanged();
+    // After setItems changed the items. Rows are inserted, removed and
+    // updated by key, so a reset no longer marks every change.
+    void itemsChanged();
 
 private:
     QList<core::catalog::CatalogItem> m_items;
