@@ -274,6 +274,20 @@ Item {
     property real cardsStartOffset: 0
     property bool cardsHoldStart: false
 
+    // A new route on this page opens the cards at the top, held there while
+    // the header fills, as TrackListView does; Back leaves it to
+    // ScrollMemory.
+    Connections {
+        target: App.navigator
+
+        function onCurrentChanged() {
+            page.cardsStartOffset = 0
+            page.cardsHoldStart = !App.navigator.returning
+            if (page.cardsHoldStart)
+                Qt.callLater(page.placeCards)
+        }
+    }
+
     function startCardsAt(offset: real) {
         page.cardsStartOffset = offset
         page.cardsHoldStart = true

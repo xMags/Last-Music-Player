@@ -116,13 +116,26 @@ Item {
         Qt.callLater(root.placeAtStart, flickable)
     }
 
-    // A new route (another page in this list) opens at the top again.
+    // A new route that keeps this page (one playlist, then another) opens
+    // at the top and holds there while its header fills. Back leaves the
+    // place to ScrollMemory. Deferred: when the route shows another kind of
+    // page this one is gone by then and the call is dropped, so a list on
+    // its way out never moves (its ScrollMemory would record the move in
+    // the new route's entry).
     Connections {
         target: App.navigator
 
         function onCurrentChanged() {
             root.startOffset = 0
+            root.holdStart = !App.navigator.returning
+            if (root.holdStart)
+                Qt.callLater(root.placeViewAtStart)
         }
+    }
+
+    function placeViewAtStart() {
+        if (root.view !== null)
+            root.placeAtStart(root.view)
     }
 
     Loader {
