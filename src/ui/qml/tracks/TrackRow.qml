@@ -130,8 +130,10 @@ T.AbstractButton {
             sourceComponent: RowSweep {}
         }
 
-        // border-bottom: 1px solid divider
+        // border-bottom: 1px solid divider; the last row of a rounded box
+        // has none, the box's own border closes it.
         Rectangle {
+            visible: !row.roundBottom
             anchors.bottom: parent.bottom
             width: parent.width
             height: 1
