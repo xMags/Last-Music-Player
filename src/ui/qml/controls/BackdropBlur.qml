@@ -38,13 +38,18 @@ Item {
                                          : Qt.rect(0, 0, 0, 0)
     }
 
-    function follow() {
+    function unfollow() {
         for (const item of root.followed) {
-            if (!item.xChanged)
+            if (!item || !item.xChanged)
                 continue
             item.xChanged.disconnect(root.place)
             item.yChanged.disconnect(root.place)
         }
+        root.followed = []
+    }
+
+    function follow() {
+        root.unfollow()
         const chain = []
         for (let item = root; item; item = item.parent) {
             item.xChanged.connect(root.place)
@@ -56,6 +61,9 @@ Item {
     }
 
     Component.onCompleted: follow()
+    // The ancestors outlive this item (a card of a shelf goes while the page
+    // stays); their moves would keep calling place() on what is gone.
+    Component.onDestruction: unfollow()
     // A popup's background gets its parent after it is made.
     onParentChanged: follow()
     onActiveChanged: place()
