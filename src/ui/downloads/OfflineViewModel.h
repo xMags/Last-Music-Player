@@ -97,9 +97,9 @@ class OfflineViewModel : public QObject {
     Q_PROPERTY(bool paused READ paused NOTIFY changed FINAL)
     // Songs still on their way (not failed), for the sidebar's count.
     Q_PROPERTY(int waitingCount READ waitingCount NOTIFY changed FINAL)
-    // Goes up whenever any song's download changes, so a binding that
-    // reads markOf() is read again.
-    Q_PROPERTY(int markRevision READ markRevision NOTIFY changed FINAL)
+    // Goes up whenever a song's download mark changes (its state, percent
+    // or error), so a binding that reads markOf() is read again.
+    Q_PROPERTY(int markRevision READ markRevision NOTIFY marksChanged FINAL)
     // One map per job not finished: id, title, subtitle, state ("Queued",
     // "Paused", "Failed", "Downloading"), percent, failed, error.
     Q_PROPERTY(QVariantList pending READ pending NOTIFY changed FINAL)
@@ -231,6 +231,7 @@ public:
 
 signals:
     void changed();
+    void marksChanged();
 
 private:
     void reload();
@@ -287,6 +288,8 @@ private:
         QString state;
         int percent = -1;
         QString error;
+
+        friend bool operator==(const Mark&, const Mark&) = default;
     };
     QHash<QString, Mark> m_marks;
     // The same marks by download key.

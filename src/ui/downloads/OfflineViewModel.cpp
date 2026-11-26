@@ -377,9 +377,11 @@ void OfflineViewModel::reload()
     m_revision = snapshot.revision;
     m_downloaded.clear();
     m_downloadedKeys.clear();
-    m_marks.clear();
+    // Kept to tell whether any mark changed: a progress tick of one song
+    // must not make every row read its mark again.
+    QHash<QString, Mark> previousMarks;
+    previousMarks.swap(m_marks);
     m_marksByKey.clear();
-    ++m_markRevision;
     for (const core::DownloadJobSummary& summary : snapshot.jobs) {
         for (const core::DownloadItem& item : summary.job.items) {
             if (item.sourceUrl.isEmpty()) {
@@ -416,6 +418,10 @@ void OfflineViewModel::reload()
                 m_marksByKey.insert(match, mark);
             }
         }
+    }
+    const bool marksDiffer = m_marks != previousMarks;
+    if (marksDiffer) {
+        ++m_markRevision;
     }
     m_bytes = snapshot.offlineBytes;
     m_pending.clear();
@@ -526,6 +532,9 @@ void OfflineViewModel::reload()
         showTab();
     }
     emit changed();
+    if (marksDiffer) {
+        emit marksChanged();
+    }
 }
 
 bool OfflineViewModel::refreshGroups()
