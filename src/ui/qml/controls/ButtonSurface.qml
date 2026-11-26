@@ -1,3 +1,5 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import LastMusicPlayer
 
@@ -21,11 +23,16 @@ Rectangle {
         ColorAnimation { duration: surface.fadeDuration; easing: surface.fadeEasing }
     }
 
-    Ripple {
+    // Made on the first press, in the same moment, and kept.
+    Loader {
         id: ripple
 
-        radius: surface.radius
-        surfaceColor: surface.color
+        anchors.fill: parent
+        active: false
+        sourceComponent: Ripple {
+            radius: surface.radius
+            surfaceColor: surface.color
+        }
     }
 
     // Passive: sees the press without taking it from the button.
@@ -33,8 +40,11 @@ Rectangle {
         acceptedButtons: Qt.LeftButton
         enabled: surface.rippleEnabled
         onActiveChanged: {
-            if (active)
-                ripple.start(point.position.x, point.position.y)
+            if (!active)
+                return
+            ripple.active = true
+            const drop = ripple.item as Ripple
+            drop.start(point.position.x, point.position.y)
         }
     }
 

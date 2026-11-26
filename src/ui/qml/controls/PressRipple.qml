@@ -1,3 +1,5 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import LastMusicPlayer
 
@@ -13,19 +15,28 @@ Item {
 
     anchors.fill: parent
 
-    Ripple {
+    // Made on the first press, in the same moment, and kept: most pressable
+    // items are never pressed.
+    Loader {
         id: ripple
 
-        radius: root.radius
-        surfaceColor: root.surfaceColor
+        anchors.fill: parent
+        active: false
+        sourceComponent: Ripple {
+            radius: root.radius
+            surfaceColor: root.surfaceColor
+        }
     }
 
     PointHandler {
         acceptedButtons: Qt.LeftButton
         enabled: root.enabled && root.visible
         onActiveChanged: {
-            if (active)
-                ripple.start(point.position.x, point.position.y)
+            if (!active)
+                return
+            ripple.active = true
+            const drop = ripple.item as Ripple
+            drop.start(point.position.x, point.position.y)
         }
     }
 }
