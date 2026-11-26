@@ -15,6 +15,10 @@ GridView {
     property Item scrollBarHost: null
     // Passed to the scroll bar (AppScrollBar.laneTopMargin).
     property real scrollLaneTopMargin: 0
+    // The wheel or the scroll bar moved the grid. Neither starts a
+    // Flickable movement (movementStarted), so views that hold a place
+    // until the user scrolls listen here too.
+    signal userScrolled()
     readonly property int columns: Math.max(1, Math.floor((width + columnGap) / (minimumCardWidth + columnGap)))
     readonly property real cardWidth: (width - (columns - 1) * columnGap) / columns
     property int minimumCardWidth: 160
@@ -37,7 +41,14 @@ GridView {
         y: grid.scrollBarHost !== null ? grid.mapToItem(grid.scrollBarHost, 0, 0).y : 0
         height: grid.height
         laneTopMargin: grid.scrollLaneTopMargin
+        onPressedChanged: {
+            if (pressed)
+                grid.userScrolled()
+        }
     }
 
-    WheelScroll { flickable: grid }
+    WheelScroll {
+        flickable: grid
+        onScrolled: grid.userScrolled()
+    }
 }

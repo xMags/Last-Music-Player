@@ -397,6 +397,10 @@ Item {
             x: page.width - width
             height: page.height
             laneTopMargin: Theme.radius2xl
+            onPressedChanged: {
+                if (pressed)
+                    page.cardsHoldStart = false
+            }
         }
 
         delegate: Item {
@@ -439,7 +443,10 @@ Item {
             }
         }
 
-        WheelScroll { flickable: cardsView }
+        WheelScroll {
+            flickable: cardsView
+            onScrolled: page.cardsHoldStart = false
+        }
     }
 
     MenuItemListModel {

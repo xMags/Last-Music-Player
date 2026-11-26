@@ -156,14 +156,24 @@ Item {
                 x: root.width - width
                 height: root.height
                 laneTopMargin: root.scrollLaneTopMargin
+                onPressedChanged: {
+                    if (pressed)
+                        root.holdStart = false
+                }
             }
 
             // Until the list is scrolled, it stays at its start (the top,
             // or where the other form was) while the header above grows (a
             // page fills its header after the list exists; a ListView would
             // otherwise keep its old offset and hide the header's top).
+            // The wheel, the scroll bar and the arrow keys move the list
+            // without a movementStarted, so they end the hold as well.
             Component.onCompleted: root.holdStart = true
             onMovementStarted: root.holdStart = false
+            onCurrentIndexChanged: {
+                if (currentIndex >= 0)
+                    root.holdStart = false
+            }
 
             header: Column {
                 width: list.rowWidth
@@ -228,7 +238,10 @@ Item {
                 }
             }
 
-            WheelScroll { flickable: list }
+            WheelScroll {
+                flickable: list
+                onScrolled: root.holdStart = false
+            }
 
             // .track-table box-shadow: var(--shadow), round the heading and
             // the body together.
@@ -385,6 +398,11 @@ Item {
 
             Component.onCompleted: root.holdStart = true
             onMovementStarted: root.holdStart = false
+            onUserScrolled: root.holdStart = false
+            onCurrentIndexChanged: {
+                if (currentIndex >= 0)
+                    root.holdStart = false
+            }
 
             header: Loader {
                 width: cards.width
