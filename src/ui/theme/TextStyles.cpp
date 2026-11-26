@@ -55,6 +55,10 @@ TextStyle makeTextStyle(const TextStyleSpec& unscaled)
         font.setPointSizeF(spec.pixelSize * 0.75);
     }
     font.setWeight(static_cast<QFont::Weight>(spec.weight));
+    // Heights snap to the pixel grid, so horizontal strokes and baselines
+    // stay sharp at 125% and 150%; widths keep the font's design, so text
+    // measures as the design does. Full hinting widened and thickened it.
+    font.setHintingPreference(QFont::PreferVerticalHinting);
     // Segoe UI Variable keeps every weight in one variable font, and the font
     // matcher only offers its Regular and Bold faces: weight 600 came out
     // Bold and 500 Regular. Setting the weight axis draws the exact weight;

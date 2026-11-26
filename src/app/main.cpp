@@ -1,4 +1,5 @@
 #include <QCoreApplication>
+#include <QFont>
 #include <QGuiApplication>
 #include <QObject>
 #include <QQmlApplicationEngine>
@@ -16,7 +17,22 @@ Q_IMPORT_QML_PLUGIN(LastMusicPlayerPlugin)
 
 int main(int argc, char* argv[])
 {
+    // FreeType draws the text: hinted to the pixel grid like the system's
+    // rasteriser, but with grey anti-aliasing, as Windows 11's own app UI
+    // uses. Qt Quick asks DirectWrite (the default engine) for ClearType
+    // glyphs whatever the font says, and ClearType's coloured edges read as
+    // a misprinted second copy over tinted and translucent surfaces; outline
+    // (curve) rendering is grey but unhinted, so soft at 125% and 150%.
+    // Only when nothing else chose the platform (tests run it offscreen),
+    // and not passed on to programs this app starts.
+    const bool choosePlatform = !qEnvironmentVariableIsSet("QT_QPA_PLATFORM");
+    if (choosePlatform) {
+        qputenv("QT_QPA_PLATFORM", "windows:fontengine=freetype");
+    }
     QGuiApplication app(argc, argv);
+    if (choosePlatform) {
+        qunsetenv("QT_QPA_PLATFORM");
+    }
     QCoreApplication::setApplicationName(lmp::core::AppIdentity::displayName());
     QCoreApplication::setApplicationVersion(lmp::core::AppIdentity::version());
 
@@ -33,13 +49,16 @@ int main(int argc, char* argv[])
 
     lmp::app::CompositionRoot root;
 
-    // Text drawn from the glyph outlines on the GPU, with grey anti-aliasing
-    // as Windows 11's own app UI uses. The system rasteriser (native
-    // rendering) always used ClearType here, whose coloured edges read as a
-    // misprinted second copy over tinted and translucent surfaces, and
-    // Qt Quick's default (distance fields) is soft and coloured as well.
-    // Must be set before any window or text item exists.
-    QQuickWindow::setTextRenderType(QQuickWindow::CurveTextRendering);
+    // Text drawn by the font engine (FreeType, above), hinted to the pixel
+    // grid. Qt Quick's default (distance fields) looks soft at normal sizes,
+    // more so at fractional display scaling. Must be set before any window
+    // or text item exists.
+    QQuickWindow::setTextRenderType(QQuickWindow::NativeTextRendering);
+    // Text without a theme font is hinted as the theme's fonts are
+    // (TextStyles.cpp).
+    QFont defaultFont = QGuiApplication::font();
+    defaultFont.setHintingPreference(QFont::PreferVerticalHinting);
+    QGuiApplication::setFont(defaultFont);
 
     // Declared after the root so it is destroyed first: QML never outlives
     // the services behind it.
