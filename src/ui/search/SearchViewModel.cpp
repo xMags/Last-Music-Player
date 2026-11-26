@@ -16,7 +16,6 @@
 #include "core/library/RecentSearchStore.h"
 #include "core/library/TrackActions.h"
 #include "core/library/TrackSearchPolicy.h"
-#include "core/model/ArtworkPlaceholder.h"
 #include "core/model/CatalogSourceKey.h"
 #include "core/model/DisplayTitle.h"
 #include "core/playback/PlayerController.h"
@@ -286,7 +285,6 @@ void SearchViewModel::apply(quint64 generation, const QString& query, SearchHits
                 m_topDetail = kind == QLatin1StringView("album") ? card.subtitle : QString();
                 m_topArtworkUrl = card.artworkUrl;
                 m_topArtworkId = kind + QLatin1Char(':') + card.key;
-                m_topArtworkLabel = core::ArtworkPlaceholder::tileLabelFor(card.title);
                 return true;
             }
         }
@@ -302,7 +300,6 @@ void SearchViewModel::apply(quint64 generation, const QString& query, SearchHits
         m_topDetail = QStringList{song.artist, song.durationText}.join(QStringLiteral(" · "));
         m_topArtworkUrl = CoverSource::forLibraryTrack(song).displayUrl();
         m_topArtworkId = CoverSource::placeholderIdFor(song);
-        m_topArtworkLabel = core::ArtworkPlaceholder::tileLabelFor(song.title);
     }
 
     m_artists.setCards(std::move(artists));
@@ -360,7 +357,6 @@ void SearchViewModel::applyOnline(quint64 generation, const QString& query, cons
         m_topDetail = QStringList{song.artist, song.durationText}.join(QStringLiteral(" · "));
         m_topArtworkUrl = CoverSource::forTrack(song).displayUrl();
         m_topArtworkId = CoverSource::placeholderIdFor(song);
-        m_topArtworkLabel = core::ArtworkPlaceholder::tileLabelFor(song.title);
     } else if (found.topItem) {
         const core::catalog::CatalogItem& item = *found.topItem;
         core::Track cover;
@@ -385,7 +381,6 @@ void SearchViewModel::applyOnline(quint64 generation, const QString& query, cons
         }
         m_topArtworkUrl = CoverSource::forTrack(cover).displayUrl();
         m_topArtworkId = found.topKind + QLatin1Char(':') + item.title;
-        m_topArtworkLabel = core::ArtworkPlaceholder::tileLabelFor(item.title);
     }
     m_topSongs.setTracks(m_hits.mid(0, TopSongCount));
     showSongs();

@@ -77,7 +77,6 @@ T.AbstractButton {
                     shadowLayers: Theme.shadowSearchTopArt
                     source: App.search.topArtworkUrl
                     artworkId: App.search.topArtworkId
-                    label: App.search.topArtworkLabel
                 }
             }
 

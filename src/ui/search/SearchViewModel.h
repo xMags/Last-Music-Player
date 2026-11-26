@@ -82,7 +82,6 @@ class SearchViewModel : public QObject {
     Q_PROPERTY(bool topLiked READ topLiked NOTIFY resultsChanged FINAL)
     Q_PROPERTY(QUrl topArtworkUrl READ topArtworkUrl NOTIFY resultsChanged FINAL)
     Q_PROPERTY(QString topArtworkId READ topArtworkId NOTIFY resultsChanged FINAL)
-    Q_PROPERTY(QString topArtworkLabel READ topArtworkLabel NOTIFY resultsChanged FINAL)
     Q_PROPERTY(lmp::ui::TrackListModel* topSongs READ topSongs CONSTANT FINAL)
     Q_PROPERTY(lmp::ui::TrackListModel* songs READ songs CONSTANT FINAL)
     Q_PROPERTY(lmp::ui::CollectionCardModel* artists READ artists CONSTANT FINAL)
@@ -141,7 +140,6 @@ public:
     [[nodiscard]] bool topLiked() const { return m_topSong && m_topSong->liked; }
     [[nodiscard]] QUrl topArtworkUrl() const { return m_topArtworkUrl; }
     [[nodiscard]] QString topArtworkId() const { return m_topArtworkId; }
-    [[nodiscard]] QString topArtworkLabel() const { return m_topArtworkLabel; }
     [[nodiscard]] TrackListModel* topSongs() { return &m_topSongs; }
     [[nodiscard]] TrackListModel* songs() { return &m_songs; }
     [[nodiscard]] CollectionCardModel* artists() { return &m_artists; }
@@ -229,7 +227,6 @@ private:
     QString m_topDetail;
     QUrl m_topArtworkUrl;
     QString m_topArtworkId;
-    QString m_topArtworkLabel;
     std::optional<core::Track> m_topSong;
     QString m_topKey;
     TrackListModel m_topSongs;

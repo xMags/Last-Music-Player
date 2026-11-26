@@ -21,7 +21,7 @@ Item {
         App.coverFlight.landing = null
     }
 
-    function begin(from, source, artworkId, label, round, target) {
+    function begin(from, source, artworkId, round, target) {
         land()
         if (Motion.reduced || !target || !target.visible)
             return
@@ -37,7 +37,6 @@ Item {
                 return
             copy.source = source
             copy.artworkId = artworkId
-            copy.label = label
             const landedScale = to.width / start.width
             // The header's rounding once scaled to its size.
             copy.radius = round ? start.width / 2 : 12 / landedScale
@@ -78,8 +77,8 @@ Item {
     Connections {
         target: App.coverFlight
 
-        function onFlightWanted(from, source, artworkId, label, round, target) {
-            layer.begin(from, source, artworkId, label, round, target)
+        function onFlightWanted(from, source, artworkId, round, target) {
+            layer.begin(from, source, artworkId, round, target)
         }
     }
 

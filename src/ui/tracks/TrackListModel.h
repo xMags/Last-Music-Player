@@ -55,7 +55,6 @@ public:
         DurationTextRole,
         ArtworkUrlRole,
         ArtworkIdRole,
-        ArtworkLabelRole,
         LikedRole,
         PlayingRole,
         UnavailableRole,

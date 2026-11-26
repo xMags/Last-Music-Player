@@ -54,7 +54,6 @@ Item {
                 coverStyle: App.offline.groupCover.style
                 artworkUrl: App.offline.groupArtworkUrl
                 artworkId: "offline:" + App.offline.groupTitle
-                artworkLabel: App.offline.groupTitle
                 gradientStart: App.offline.groupCover.gradientStart
                 gradientEnd: App.offline.groupCover.gradientEnd
                 iconName: App.offline.groupCover.iconName
@@ -523,7 +522,6 @@ Item {
                 radius: 6
                 source: row.modelData.artworkUrl
                 artworkId: "pending:" + row.modelData.itemId
-                label: ""
             }
 
             Column {

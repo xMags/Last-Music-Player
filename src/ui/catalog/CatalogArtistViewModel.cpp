@@ -10,7 +10,6 @@
 #include "core/catalog/CatalogClient.h"
 #include "core/catalog/CatalogService.h"
 #include "core/library/TrackActions.h"
-#include "core/model/ArtworkPlaceholder.h"
 #include "ui/catalog/CatalogRoutes.h"
 #include "ui/navigation/Navigator.h"
 #include "ui/navigation/Route.h"
@@ -188,11 +187,6 @@ QUrl CatalogArtistViewModel::artworkUrl() const
     cover.artworkUrl = m_detail->item.artworkUrl;
     cover.sourceKind = QStringLiteral("remote");
     return CoverSource::forTrack(cover).displayUrl();
-}
-
-QString CatalogArtistViewModel::artworkLabel() const
-{
-    return core::ArtworkPlaceholder::tileLabelFor(name());
 }
 
 void CatalogArtistViewModel::readSections()

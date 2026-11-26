@@ -2,7 +2,6 @@
 
 #include <utility>
 
-#include "core/model/ArtworkPlaceholder.h"
 
 namespace lmp::ui {
 
@@ -35,8 +34,6 @@ QVariant CollectionCardModel::data(const QModelIndex& index, int role) const
         return card.artworkUrl;
     case ArtworkIdRole:
         return card.artworkId.isEmpty() ? card.kind + QLatin1Char(':') + card.key : card.artworkId;
-    case ArtworkLabelRole:
-        return core::ArtworkPlaceholder::tileLabelFor(card.title);
     case RoundRole:
         return card.round || card.kind == QLatin1StringView("artist");
     case GradientStartRole:
@@ -63,7 +60,6 @@ QHash<int, QByteArray> CollectionCardModel::roleNames() const
         {SubtitleRole, "subtitle"},
         {ArtworkUrlRole, "artworkUrl"},
         {ArtworkIdRole, "artworkId"},
-        {ArtworkLabelRole, "artworkLabel"},
         {RoundRole, "round"},
         {GradientStartRole, "gradientStart"},
         {GradientEndRole, "gradientEnd"},

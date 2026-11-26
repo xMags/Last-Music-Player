@@ -27,7 +27,7 @@ private slots:
         QCOMPARE(arcs.count(), 1);
         QCOMPARE(arcs.first().at(0).toPointF(), QPointF(120, 340));
         QCOMPARE(arcs.first().at(1).toUrl(), QUrl(track.artworkUrl));
-        QCOMPARE(arcs.first().at(3).toString(), QStringLiteral("S"));
+        QCOMPARE(arcs.first().at(2).toString(), QStringLiteral("song"));
 
         // The press is used once; a keyboard action has none.
         effects.trackQueued(track);

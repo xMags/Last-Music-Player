@@ -13,7 +13,6 @@ T.AbstractButton {
     required property string title
     required property url artworkUrl
     required property string artworkId
-    required property string artworkLabel
     required property color gradientStart
     required property color gradientEnd
     required property string iconName
@@ -124,7 +123,6 @@ T.AbstractButton {
                     radius: 0
                     source: tile.artworkUrl
                     artworkId: tile.artworkId
-                    label: tile.artworkLabel
                 }
             }
         }

@@ -4,7 +4,6 @@
 
 #include "core/db/LibraryQueries.h"
 #include "core/library/TrackActions.h"
-#include "core/model/ArtworkPlaceholder.h"
 #include "core/model/CatalogSourceKey.h"
 #include "core/playback/PlayerController.h"
 #include "ui/navigation/Navigator.h"
@@ -155,11 +154,6 @@ void LocalArtistViewModel::setShowingAll(bool all)
     m_showingAll = all;
     showSongs();
     emit opened();
-}
-
-QString LocalArtistViewModel::artworkLabel() const
-{
-    return core::ArtworkPlaceholder::tileLabelFor(m_name);
 }
 
 QString LocalArtistViewModel::info() const

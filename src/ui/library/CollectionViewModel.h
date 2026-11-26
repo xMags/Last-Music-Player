@@ -68,7 +68,6 @@ class CollectionViewModel : public QObject {
     Q_PROPERTY(QString coverStyle READ coverStyle NOTIFY contentChanged FINAL)
     Q_PROPERTY(QUrl artworkUrl READ artworkUrl NOTIFY contentChanged FINAL)
     Q_PROPERTY(QString artworkId READ artworkId NOTIFY contentChanged FINAL)
-    Q_PROPERTY(QString artworkLabel READ artworkLabel NOTIFY contentChanged FINAL)
     // Four tile addresses in slot order (a 2x2 collage).
     Q_PROPERTY(QList<QUrl> collage READ collage NOTIFY contentChanged FINAL)
     Q_PROPERTY(QColor gradientStart READ gradientStart NOTIFY opened FINAL)
@@ -125,7 +124,6 @@ public:
     [[nodiscard]] QString coverStyle() const { return m_coverStyle; }
     [[nodiscard]] QUrl artworkUrl() const { return m_artworkUrl; }
     [[nodiscard]] QString artworkId() const;
-    [[nodiscard]] QString artworkLabel() const;
     [[nodiscard]] QList<QUrl> collage() const { return m_collage; }
     [[nodiscard]] QColor gradientStart() const { return m_gradientStart; }
     [[nodiscard]] QColor gradientEnd() const { return m_gradientEnd; }

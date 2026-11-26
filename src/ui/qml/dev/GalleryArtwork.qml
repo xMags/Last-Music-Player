@@ -22,7 +22,6 @@ Column {
                 height: 160
                 source: "qrc:/qt/qml/LastMusicPlayer/dev/sample-cover.png"
                 artworkId: "sample-cover"
-                label: "L"
                 radius: Theme.radiusXl
                 shadow: true
             }
@@ -31,7 +30,6 @@ Column {
                 width: 160
                 height: 160
                 artworkId: "Midnight Drive"
-                label: "M"
                 radius: Theme.radiusXl
             }
 
@@ -39,7 +37,6 @@ Column {
                 width: 160
                 height: 160
                 artworkId: "Ocean Avenue"
-                label: "O"
                 radius: Theme.radiusXl
             }
 
@@ -47,7 +44,6 @@ Column {
                 width: 160
                 height: 160
                 artworkId: "Round cover"
-                label: "R"
                 radius: width / 2
             }
 
@@ -55,7 +51,6 @@ Column {
                 width: 240
                 height: 240
                 artworkId: "Full size"
-                label: "F"
                 big: true
                 radius: Theme.radius2xl
                 shadow: true

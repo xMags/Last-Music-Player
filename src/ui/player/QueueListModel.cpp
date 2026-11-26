@@ -5,7 +5,6 @@
 
 #include <QHash>
 
-#include "core/model/ArtworkPlaceholder.h"
 #include "core/playback/QueueTrackIdentity.h"
 #include "ui/player/CoverSource.h"
 #include "ui/player/PlayerBarViewModel.h"
@@ -54,8 +53,6 @@ QVariant QueueListModel::data(const QModelIndex& index, int role) const
         return row.artworkUrl;
     case ArtworkIdRole:
         return row.artworkId;
-    case ArtworkLabelRole:
-        return row.artworkLabel;
     case DurationTextRole:
         return row.durationText;
     case QueuedRole:
@@ -75,7 +72,6 @@ QHash<int, QByteArray> QueueListModel::roleNames() const
         {ArtistLineRole, "artistLine"},
         {ArtworkUrlRole, "artworkUrl"},
         {ArtworkIdRole, "artworkId"},
-        {ArtworkLabelRole, "artworkLabel"},
         {DurationTextRole, "durationText"},
         {QueuedRole, "queued"},
         {RemoteUrlRole, "remoteUrl"},
@@ -130,7 +126,6 @@ QList<QueueListModel::Row> QueueListModel::rowsOf(const QList<core::QueueEntry>&
             .artistLine = artistLine,
             .artworkUrl = CoverSource::forTrack(track).displayUrl(),
             .artworkId = CoverSource::placeholderIdFor(track),
-            .artworkLabel = core::ArtworkPlaceholder::tileLabelFor(track.title),
             .durationText = durationTextOf(track),
             .queued = queued,
             // The address downloads are marked by: a downloaded copy keeps

@@ -66,7 +66,6 @@ RowLayout {
             radius: Theme.radiusMd
             source: App.playerBar.artworkUrl
             artworkId: App.playerBar.artworkId
-            label: App.playerBar.artworkLabel
         }
     }
 

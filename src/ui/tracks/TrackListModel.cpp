@@ -8,7 +8,6 @@
 #include <algorithm>
 #include <utility>
 
-#include "core/model/ArtworkPlaceholder.h"
 #include "core/model/CatalogSourceKey.h"
 #include "core/model/DisplayTitle.h"
 #include "ui/player/CoverSource.h"
@@ -44,8 +43,6 @@ QVariant TrackListModel::data(const QModelIndex& index, int role) const
         return CoverSource::forLibraryTrack(track).displayUrl();
     case ArtworkIdRole:
         return CoverSource::placeholderIdFor(track);
-    case ArtworkLabelRole:
-        return core::ArtworkPlaceholder::tileLabelFor(track.title);
     case LikedRole:
         return track.liked;
     case PlayingRole:
@@ -82,7 +79,6 @@ QHash<int, QByteArray> TrackListModel::roleNames() const
         {DurationTextRole, "durationText"},
         {ArtworkUrlRole, "artworkUrl"},
         {ArtworkIdRole, "artworkId"},
-        {ArtworkLabelRole, "artworkLabel"},
         {LikedRole, "liked"},
         {PlayingRole, "playing"},
         {UnavailableRole, "unavailable"},

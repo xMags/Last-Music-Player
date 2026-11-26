@@ -637,7 +637,6 @@ Rectangle {
                                 radius: width / 2
                                 source: face.modelData.artworkUrl
                                 artworkId: "artist:" + face.modelData.key
-                                label: face.modelData.title
                             }
                         }
                     }
@@ -1034,7 +1033,6 @@ Rectangle {
                     big: true
                     source: card.artist.artworkUrl
                     artworkId: "artist:" + card.artist.title
-                    label: card.artist.title
 
                     Behavior on scale {
                         enabled: !Motion.reduced
@@ -1137,7 +1135,7 @@ Rectangle {
             radius: width / 2
             source: App.profile.avatarUrl
             artworkId: "account"
-            label: ""
+            bare: true
         }
     }
 }

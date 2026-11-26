@@ -17,12 +17,12 @@ private slots:
         QSignalSpy wanted(&flight, &CoverFlight::flightWanted);
         QObject header;
         flight.notePress(QRectF(10, 20, 160, 160), QUrl(QStringLiteral("https://example.invalid/a.jpg")),
-                         QStringLiteral("id"), QStringLiteral("A"), false);
+                         QStringLiteral("id"), false);
         now += 600;
         flight.headerShown(&header);
         QCOMPARE(wanted.count(), 1);
         QCOMPARE(wanted.first().at(0).toRectF(), QRectF(10, 20, 160, 160));
-        QCOMPARE(wanted.first().at(5).value<QObject*>(), &header);
+        QCOMPARE(wanted.first().at(4).value<QObject*>(), &header);
         // The press is used up.
         flight.headerShown(&header);
         QCOMPARE(wanted.count(), 1);
@@ -34,16 +34,16 @@ private slots:
         CoverFlight flight([&now]() { return now; });
         QSignalSpy wanted(&flight, &CoverFlight::flightWanted);
         QObject header;
-        flight.notePress(QRectF(0, 0, 160, 160), QUrl(QStringLiteral("https://example.invalid/a.jpg")), {}, {}, false);
+        flight.notePress(QRectF(0, 0, 160, 160), QUrl(QStringLiteral("https://example.invalid/a.jpg")), {}, false);
         now += CoverFlight::PressWindowMs + 1;
         flight.headerShown(&header);
         QCOMPARE(wanted.count(), 0);
 
-        flight.notePress(QRectF(0, 0, 4, 4), QUrl(QStringLiteral("https://example.invalid/a.jpg")), {}, {}, false);
+        flight.notePress(QRectF(0, 0, 4, 4), QUrl(QStringLiteral("https://example.invalid/a.jpg")), {}, false);
         flight.headerShown(&header);
         QCOMPARE(wanted.count(), 0);
 
-        flight.notePress(QRectF(0, 0, 160, 160), QUrl(QStringLiteral("https://example.invalid/a.jpg")), {}, {}, false);
+        flight.notePress(QRectF(0, 0, 160, 160), QUrl(QStringLiteral("https://example.invalid/a.jpg")), {}, false);
         flight.forget();
         flight.headerShown(&header);
         flight.headerShown(nullptr);

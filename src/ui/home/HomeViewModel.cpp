@@ -16,7 +16,6 @@
 #include "core/library/HomeMixService.h"
 #include "core/library/LibraryScanner.h"
 #include "core/library/TrackActions.h"
-#include "core/model/ArtworkPlaceholder.h"
 #include "core/model/CatalogSourceKey.h"
 #include "core/model/DisplayTitle.h"
 #include "core/playback/PlayerController.h"
@@ -140,11 +139,6 @@ QUrl HomeViewModel::heroArtworkUrl() const
 QString HomeViewModel::heroArtworkId() const
 {
     return m_hero ? CoverSource::placeholderIdFor(*m_hero) : QString();
-}
-
-QString HomeViewModel::heroArtworkLabel() const
-{
-    return m_hero ? core::ArtworkPlaceholder::tileLabelFor(m_hero->title) : QString();
 }
 
 void HomeViewModel::refresh()

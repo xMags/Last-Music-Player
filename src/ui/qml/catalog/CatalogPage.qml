@@ -161,7 +161,6 @@ Item {
                 coverStyle: "image"
                 artworkUrl: page.model.artworkUrl
                 artworkId: page.model.artworkId
-                artworkLabel: page.model.title.length > 0 ? page.model.title.charAt(0).toUpperCase() : ""
                 artworkPending: page.model.loading
                 onBackClicked: App.navigator.back()
                 onPlayClicked: page.model.play()
@@ -314,7 +313,6 @@ Item {
             required property string subtitle
             required property url artworkUrl
             required property string artworkId
-            required property string artworkLabel
             required property bool round
 
             width: GridView.view.cellWidth
@@ -326,7 +324,6 @@ Item {
                 subtitle: cell.subtitle
                 artworkUrl: cell.artworkUrl
                 artworkId: cell.artworkId
-                artworkLabel: cell.artworkLabel
                 round: cell.round
                 hasMenu: true
                 onClicked: App.catalogPage.openCard(cell.index)

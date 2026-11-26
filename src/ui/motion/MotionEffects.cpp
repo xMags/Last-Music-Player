@@ -98,9 +98,7 @@ void MotionEffects::trackQueued(const core::Track& track)
     if (m_now() - press.at > PressWindowMs) {
         return;
     }
-    const QString title = track.title.trimmed();
-    emit queueArc(press.position, QUrl(track.artworkUrl), title,
-                  title.isEmpty() ? QString() : QString(title.at(0)).toUpper());
+    emit queueArc(press.position, QUrl(track.artworkUrl), track.title.trimmed());
 }
 
 bool MotionEffects::eventFilter(QObject* watched, QEvent* event)

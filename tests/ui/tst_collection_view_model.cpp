@@ -207,7 +207,6 @@ void CollectionViewModelTest::albumShowsItsSongsAndHeader()
     QCOMPARE(m_model->coverStyle(), QStringLiteral("image"));
     QVERIFY(!m_model->userPlaylist());
     QVERIFY(!m_model->canReorder());
-    QCOMPARE(m_model->artworkLabel().isEmpty(), false);
 }
 
 void CollectionViewModelTest::genreOffersNoCustomOrder()

@@ -47,7 +47,6 @@ Item {
                 coverStyle: page.model.coverStyle
                 artworkUrl: page.model.artworkUrl
                 artworkId: page.model.artworkId
-                artworkLabel: page.model.artworkLabel
                 collage: page.model.collage
                 gradientStart: page.model.gradientStart
                 gradientEnd: page.model.gradientEnd

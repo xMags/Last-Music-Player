@@ -70,7 +70,6 @@ class CatalogArtistViewModel final : public QObject {
     Q_PROPERTY(QString description READ description NOTIFY changed FINAL)
     Q_PROPERTY(QUrl artworkUrl READ artworkUrl NOTIFY changed FINAL)
     Q_PROPERTY(QString artworkId READ artworkId NOTIFY changed FINAL)
-    Q_PROPERTY(QString artworkLabel READ artworkLabel NOTIFY changed FINAL)
     Q_PROPERTY(lmp::ui::TrackListModel* topSongs READ topSongs CONSTANT FINAL)
     Q_PROPERTY(bool hasMore READ hasMore NOTIFY changed FINAL)
     Q_PROPERTY(bool showingAll READ showingAll WRITE setShowingAll NOTIFY changed FINAL)
@@ -118,7 +117,6 @@ public:
     [[nodiscard]] QString description() const { return m_detail ? m_detail->item.description : QString(); }
     [[nodiscard]] QUrl artworkUrl() const;
     [[nodiscard]] QString artworkId() const { return QStringLiteral("artist:") + name(); }
-    [[nodiscard]] QString artworkLabel() const;
     [[nodiscard]] TrackListModel* topSongs() { return &m_topSongs; }
     [[nodiscard]] bool hasMore() const { return m_allTopSongs.size() > TopSongsShown; }
     [[nodiscard]] bool showingAll() const { return m_showingAll; }

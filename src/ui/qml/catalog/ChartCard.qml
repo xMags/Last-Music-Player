@@ -38,7 +38,6 @@ T.AbstractButton {
             anchors.fill: parent
             source: card.artSource
             artworkId: "chart:" + card.name
-            label: card.name
             radius: Theme.radius2xl
             scale: card.hovered && !picture.loaded ? 1.045 : 1
 

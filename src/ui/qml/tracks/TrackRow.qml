@@ -26,7 +26,6 @@ T.AbstractButton {
     required property string durationText
     required property url artworkUrl
     required property string artworkId
-    required property string artworkLabel
     required property bool liked
     required property bool playing
     required property bool unavailable
@@ -181,7 +180,6 @@ T.AbstractButton {
                     radius: 6
                     source: row.artworkUrl
                     artworkId: row.artworkId
-                    label: row.artworkLabel
                 }
 
                 ColumnLayout {

@@ -13,7 +13,6 @@
 #include "core/library/CollectionActions.h"
 #include "core/library/HomeMixService.h"
 #include "core/library/TrackActions.h"
-#include "core/model/ArtworkPlaceholder.h"
 #include "core/model/CatalogSourceKey.h"
 #include "core/playback/PlayerController.h"
 #include "core/settings/SettingKeys.h"
@@ -338,11 +337,6 @@ QString CollectionViewModel::info() const
 QString CollectionViewModel::artworkId() const
 {
     return m_kind + QLatin1Char(':') + m_key;
-}
-
-QString CollectionViewModel::artworkLabel() const
-{
-    return core::ArtworkPlaceholder::tileLabelFor(m_title);
 }
 
 QString CollectionViewModel::emptyText() const

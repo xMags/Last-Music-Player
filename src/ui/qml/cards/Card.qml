@@ -21,7 +21,6 @@ T.AbstractButton {
     property string remoteUrl: ""
     property url artworkUrl
     property string artworkId: ""
-    property string artworkLabel: ""
     // An artist: the cover is a circle and the text is centred.
     property bool round: false
     // Library's artist cards centre their text (.library-artist-card); a
@@ -68,7 +67,7 @@ T.AbstractButton {
     onClicked: {
         if (card.art === null && card.artworkUrl.toString() !== "")
             App.coverFlight.notePress(cover.mapToItem(null, 0, 0, cover.width, cover.height), card.artworkUrl,
-                                      card.artworkId !== "" ? card.artworkId : card.title, card.artworkLabel,
+                                      card.artworkId !== "" ? card.artworkId : card.title,
                                       card.round)
     }
 
@@ -87,7 +86,7 @@ T.AbstractButton {
 
             // The picture zooms inside a frame cut to the card's corners. The
             // clip is a layer only while zoomed, so the art (which may carry
-            // a label) is drawn directly, and sharp, the rest of the time.
+            // a glyph) is drawn directly, and sharp, the rest of the time.
             RoundedClip {
                 anchors.fill: parent
                 radius: zoom.scale > 1 ? (card.round ? width / 2 : Theme.radiusXl) : 0
@@ -111,7 +110,6 @@ T.AbstractButton {
                         big: true
                         source: card.artworkUrl
                         artworkId: card.artworkId !== "" ? card.artworkId : card.title
-                        label: card.artworkLabel
                     }
 
                     Loader {

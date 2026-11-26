@@ -374,7 +374,6 @@ Item {
                     required property string subtitle
                     required property url artworkUrl
                     required property string artworkId
-                    required property string artworkLabel
                     required property bool round
                     required property color gradientStart
                     required property color gradientEnd
@@ -393,7 +392,6 @@ Item {
                         subtitle: cell.subtitle
                         artworkUrl: cell.artworkUrl
                         artworkId: cell.artworkId
-                        artworkLabel: cell.artworkLabel
                         round: cell.round
                         gradientStart: cell.gradientStart
                         gradientEnd: cell.gradientEnd

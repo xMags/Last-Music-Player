@@ -51,7 +51,6 @@ Item {
             coverStyle: "image"
             artworkUrl: page.model.artworkUrl
             artworkId: page.model.artworkId
-            artworkLabel: page.model.artworkLabel
             artworkPending: page.catalogue && page.model.loading
             onBackClicked: App.navigator.back()
             onPlayClicked: page.model.play()
@@ -180,7 +179,6 @@ Item {
                         required subtitle
                         required artworkUrl
                         required artworkId
-                        required artworkLabel
                         required round
 
                         width: 156

@@ -53,7 +53,6 @@ Column {
                 required title
                 required artworkUrl
                 required artworkId
-                required artworkLabel
                 required property string artist
 
                 width: 156

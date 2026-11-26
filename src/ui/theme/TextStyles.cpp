@@ -345,8 +345,6 @@ TextStyles TextStyles::build(const FontFamilies& families)
         .errorText = makeTextStyle({.family = text, .pixelSize = 12.5, .weight = kRegular}),
         .toastLabel = makeTextStyle({.family = text, .pixelSize = 12.5, .weight = kRegular}),
         .toastAction = makeTextStyle({.family = text, .pixelSize = 12.5, .weight = kBold}),
-        .artTileLabel = makeTextStyle({.family = text, .pixelSize = 22, .weight = kBold}),
-        .artTileLabelBig = makeTextStyle({.family = text, .pixelSize = 48, .weight = kBold}),
         .captionGlyph =
             makeTextStyle({.family = families.captionIcons, .pixelSize = 10, .weight = kRegular}),
         .brandLabel = makeTextStyle({.family = text, .pixelSize = 12, .weight = kSemiBold}),

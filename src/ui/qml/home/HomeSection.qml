@@ -168,7 +168,6 @@ Column {
                     required subtitle
                     required artworkUrl
                     required artworkId
-                    required artworkLabel
                     required round
 
                     width: 184

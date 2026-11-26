@@ -7,8 +7,8 @@ import LastMusicPlayer
 
 // A collection's cover (playlist-art.ts): a system playlist's gradient with
 // its icon, a genre's drawn tile, a 2x2 collage of song covers, or one
-// cover with the lettered placeholder behind it. `plain` draws only the
-// colours (the header's tint): no icon and no letters.
+// cover with the glyph placeholder behind it. `plain` draws only the
+// colours (the header's tint): no icon and no glyph.
 Item {
     id: cover
 
@@ -16,7 +16,6 @@ Item {
     property string coverStyle: "image"
     property url source
     property string artworkId: ""
-    property string label: ""
     property var collage: []
     property color gradientStart
     property color gradientEnd
@@ -80,7 +79,7 @@ Item {
                     radius: 0
                     source: modelData
                     artworkId: cover.artworkId
-                    label: ""
+                    bare: true
                 }
             }
         }
@@ -94,7 +93,7 @@ Item {
         source: cover.source
         pending: cover.pending
         artworkId: cover.artworkId
-        label: cover.plain ? "" : cover.label
+        bare: cover.plain
     }
 
     Rectangle {

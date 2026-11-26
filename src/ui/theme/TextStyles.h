@@ -192,8 +192,6 @@ struct TextStyles {
     TextStyle errorText;
     TextStyle toastLabel;
     TextStyle toastAction;
-    TextStyle artTileLabel;
-    TextStyle artTileLabelBig;
     TextStyle captionGlyph;
     TextStyle brandLabel;
     TextStyle navLabel;

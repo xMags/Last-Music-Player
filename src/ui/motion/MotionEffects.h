@@ -72,7 +72,7 @@ protected:
     bool eventFilter(QObject* watched, QEvent* event) override;
 
 signals:
-    void queueArc(const QPointF& from, const QUrl& source, const QString& artworkId, const QString& label);
+    void queueArc(const QPointF& from, const QUrl& source, const QString& artworkId);
     void heartBurst(QObject* heart);
     void saveBurst(QObject* button);
     void backdropsChanged();

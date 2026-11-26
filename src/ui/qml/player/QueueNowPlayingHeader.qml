@@ -42,7 +42,6 @@ ColumnLayout {
             big: true
             source: App.playerBar.artworkUrl
             artworkId: App.playerBar.artworkId
-            label: App.playerBar.artworkLabel
         }
     }
 

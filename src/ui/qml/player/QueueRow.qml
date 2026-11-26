@@ -23,7 +23,6 @@ Item {
     required property string artistLine
     required property url artworkUrl
     required property string artworkId
-    required property string artworkLabel
     required property string durationText
     required property string remoteUrl
 
@@ -132,7 +131,6 @@ Item {
             radius: Theme.radiusMd
             source: row.artworkUrl
             artworkId: row.artworkId
-            label: row.artworkLabel
         }
 
         Column {

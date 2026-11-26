@@ -347,7 +347,6 @@ Item {
                 required property string artist
                 required property url artworkUrl
                 required property string artworkId
-                required property string artworkLabel
                 required property bool playing
                 required property bool unavailable
                 required property string unavailableReason
@@ -362,7 +361,6 @@ Item {
                     artist: cell.artist
                     artworkUrl: cell.artworkUrl
                     artworkId: cell.artworkId
-                    artworkLabel: cell.artworkLabel
                     playing: cell.playing
                     unavailable: cell.unavailable
                     remoteUrl: cell.remoteUrl

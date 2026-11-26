@@ -38,7 +38,7 @@ Item {
     Connections {
         target: App.effects
 
-        function onQueueArc(from, source, artworkId, label) {
+        function onQueueArc(from, source, artworkId) {
             if (Motion.reduced)
                 return
             const target = layer.queueTarget()
@@ -47,7 +47,7 @@ Item {
             const start = layer.mapFromItem(null, from.x, from.y)
             arcComponent.createObject(layer, {
                 startX: start.x, startY: start.y, endX: target.point.x, endY: target.point.y,
-                source: source, artworkId: artworkId, label: label, landing: target.item
+                source: source, artworkId: artworkId, landing: target.item
             })
         }
 
@@ -101,7 +101,6 @@ Item {
             property real endY
             property url source
             property string artworkId
-            property string label
             property Item landing
             // Driven by the animation below, from 0 to 1.
             property real progress
@@ -135,7 +134,6 @@ Item {
                 shadow: true
                 source: chip.source
                 artworkId: chip.artworkId
-                label: chip.label
             }
 
             NumberAnimation on progress {

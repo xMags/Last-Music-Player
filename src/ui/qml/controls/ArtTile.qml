@@ -8,8 +8,8 @@ import LastMusicPlayer
 // A cover: the picture at `source` with rounded corners. While the picture is
 // on its way, or its owner is still loading what it belongs to (`pending`), a
 // plain skeleton block holds its place; a gradient tile (chosen from
-// `artworkId`) with `label` in the middle shows only when there is no picture
-// or it cannot load. When `source` changes, the old picture stays
+// `artworkId`) with a glyph in the middle (a music note, or a person on a
+// round tile) shows only when there is no picture or it cannot load. When `source` changes, the old picture stays
 // until the new one has loaded and fades in over it.
 Item {
     id: root
@@ -17,10 +17,11 @@ Item {
     property url source
     // Picks the placeholder gradient; the same id always gets the same one.
     property string artworkId
-    // The letter drawn on the placeholder (ArtworkPlaceholder::tileLabelFor).
-    property string label
-    // Large tiles (the full-size cover) draw a bigger letter.
+    // Large tiles (the full-size cover) draw a bigger glyph.
     property bool big: false
+    // Only the gradient when there is no picture, no glyph: for tiles that
+    // are a colour wash or sit inside a drawn cover.
+    property bool bare: false
     property real radius: Theme.radiusMd
     property bool shadow: false
     property var shadowLayers: Theme.shadowArt
@@ -35,6 +36,7 @@ Item {
         || current.status === Image.Error
     // The picture fully drawn over everything under it.
     readonly property bool covered: root.loaded && current.opacity >= 1
+    readonly property bool round: root.radius >= Math.min(root.width, root.height) / 2 - 0.5
     // Pictures are decoded at the tile's size in pixels. A zero size means
     // "full resolution" to an image, so the size is only known while the tile
     // is laid out and in a window (Screen.devicePixelRatio is 0 outside one):
@@ -141,15 +143,15 @@ Item {
             active: skeleton.visible && Math.min(root.width, root.height) >= 32
             sourceComponent: SkeletonGlyph {
                 side: Math.min(root.width, root.height)
-                person: root.radius >= Math.min(root.width, root.height) / 2 - 0.5
+                person: root.round
             }
         }
     }
 
-    // The lettered tile, for a cover with no picture: made only then, and let
+    // The gradient tile, for a cover with no picture: made only then, and let
     // go as soon as a picture is on its way, which frees its layers.
     Loader {
-        objectName: "coverLetterTile"
+        objectName: "coverMissingTile"
         anchors.fill: parent
         active: root.pictureMissing
         sourceComponent: Item {
@@ -188,15 +190,34 @@ Item {
                     }
                 }
 
-                Text {
+                // The glyph: 22 px (48 px on big tiles, never over 45% of the
+                // tile) in Theme.artGlyph with a soft shadow. Drawn by the
+                // icon provider, so every glyph of a size and colour shares
+                // one texture.
+                Image {
+                    id: missingGlyph
+
+                    readonly property int glyphSize: Math.min(root.big ? 48 : 22,
+                                                              Math.round(Math.min(root.width, root.height) * 0.45))
+                    readonly property int pixels: Math.ceil(missingGlyph.glyphSize * Math.max(1, Screen.devicePixelRatio))
+                    readonly property color tone: Theme.artGlyph
+
+                    objectName: "coverMissingGlyph"
                     anchors.centerIn: parent
-                    text: root.label
-                    color: Theme.artLabel
-                    font: root.big ? Theme.artTileLabelBig : Theme.artTileLabel
-                    layer.enabled: true
+                    visible: !root.bare && missingGlyph.glyphSize > 0
+                    width: missingGlyph.glyphSize
+                    height: missingGlyph.glyphSize
+                    opacity: missingGlyph.tone.a
+                    asynchronous: true
+                    sourceSize: Qt.size(missingGlyph.pixels, missingGlyph.pixels)
+                    source: missingGlyph.visible
+                        ? "image://icon/" + (root.round ? "person" : "music-note") + "/"
+                          + Qt.rgba(missingGlyph.tone.r, missingGlyph.tone.g, missingGlyph.tone.b, 1).toString().slice(1)
+                        : ""
+                    layer.enabled: missingGlyph.visible
                     layer.effect: MultiEffect {
                         shadowEnabled: true
-                        shadowColor: Theme.artLabelShadow
+                        shadowColor: Theme.artGlyphShadow
                         shadowVerticalOffset: 2
                         shadowHorizontalOffset: 0
                         // drop-shadow blur 6px

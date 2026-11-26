@@ -171,8 +171,6 @@ class ThemeTypography : public QObject {
     Q_PROPERTY(QFont errorText READ errorText CONSTANT FINAL)
     Q_PROPERTY(QFont toastLabel READ toastLabel CONSTANT FINAL)
     Q_PROPERTY(QFont toastAction READ toastAction CONSTANT FINAL)
-    Q_PROPERTY(QFont artTileLabel READ artTileLabel CONSTANT FINAL)
-    Q_PROPERTY(QFont artTileLabelBig READ artTileLabelBig CONSTANT FINAL)
     Q_PROPERTY(QFont captionGlyph READ captionGlyph CONSTANT FINAL)
     Q_PROPERTY(QFont brandLabel READ brandLabel CONSTANT FINAL)
     Q_PROPERTY(QFont navLabel READ navLabel CONSTANT FINAL)
@@ -370,8 +368,6 @@ public:
     [[nodiscard]] QFont errorText() const { return m_text.errorText.font; }
     [[nodiscard]] QFont toastLabel() const { return m_text.toastLabel.font; }
     [[nodiscard]] QFont toastAction() const { return m_text.toastAction.font; }
-    [[nodiscard]] QFont artTileLabel() const { return m_text.artTileLabel.font; }
-    [[nodiscard]] QFont artTileLabelBig() const { return m_text.artTileLabelBig.font; }
     [[nodiscard]] QFont captionGlyph() const { return m_text.captionGlyph.font; }
     [[nodiscard]] QFont brandLabel() const { return m_text.brandLabel.font; }
     [[nodiscard]] QFont navLabel() const { return m_text.navLabel.font; }

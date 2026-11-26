@@ -51,7 +51,6 @@ public:
         SubtitleRole,
         ArtworkUrlRole,
         ArtworkIdRole,
-        ArtworkLabelRole,
         RoundRole,
         GradientStartRole,
         GradientEndRole,

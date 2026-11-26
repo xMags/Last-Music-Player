@@ -14,7 +14,6 @@ Card {
     required subtitle
     required artworkUrl
     required artworkId
-    required artworkLabel
     required round
     required property color gradientStart
     required property color gradientEnd

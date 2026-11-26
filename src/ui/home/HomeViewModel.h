@@ -71,7 +71,6 @@ class HomeViewModel : public QObject {
     Q_PROPERTY(QString heroArtist READ heroArtist NOTIFY contentChanged FINAL)
     Q_PROPERTY(QUrl heroArtworkUrl READ heroArtworkUrl NOTIFY contentChanged FINAL)
     Q_PROPERTY(QString heroArtworkId READ heroArtworkId NOTIFY contentChanged FINAL)
-    Q_PROPERTY(QString heroArtworkLabel READ heroArtworkLabel NOTIFY contentChanged FINAL)
     Q_PROPERTY(lmp::ui::CollectionCardModel* quickTiles READ quickTiles CONSTANT FINAL)
     Q_PROPERTY(lmp::ui::HomeMixListModel* mixes READ mixes CONSTANT FINAL)
     Q_PROPERTY(lmp::ui::TrackListModel* listenAgain READ listenAgain CONSTANT FINAL)
@@ -133,7 +132,6 @@ public:
     [[nodiscard]] QString heroArtist() const;
     [[nodiscard]] QUrl heroArtworkUrl() const;
     [[nodiscard]] QString heroArtworkId() const;
-    [[nodiscard]] QString heroArtworkLabel() const;
     [[nodiscard]] CollectionCardModel* quickTiles() { return &m_quickTiles; }
     [[nodiscard]] HomeMixListModel* mixes() { return &m_mixCards; }
     [[nodiscard]] TrackListModel* listenAgain() { return &m_listenAgain; }

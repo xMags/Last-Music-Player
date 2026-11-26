@@ -112,7 +112,6 @@ void PlayerBarViewModelTest::showsTheSongThatPlays()
     QCOMPARE(m_bar->title(), QStringLiteral("One"));
     QCOMPARE(m_bar->displayTitle(), QStringLiteral("One"));
     QCOMPARE(m_bar->artist(), QStringLiteral("Artist"));
-    QCOMPARE(m_bar->artworkLabel(), QStringLiteral("O"));
     QVERIFY(!m_bar->artworkId().isEmpty());
     QVERIFY(track.count() >= 1);
 }

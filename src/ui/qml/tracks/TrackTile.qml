@@ -9,7 +9,6 @@ Card {
     required title
     required artworkUrl
     required artworkId
-    required artworkLabel
     required property string artist
     required property bool playing
     required property bool unavailable

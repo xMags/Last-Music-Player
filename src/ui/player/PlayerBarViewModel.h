@@ -46,8 +46,6 @@ class PlayerBarViewModel : public QObject {
     // What the bar showed before the latest song change (songChanged).
     Q_PROPERTY(QString previousTitle READ previousTitle NOTIFY trackChanged FINAL)
     Q_PROPERTY(QString previousArtist READ previousArtist NOTIFY trackChanged FINAL)
-    // The placeholder letter of the cover.
-    Q_PROPERTY(QString artworkLabel READ artworkLabel NOTIFY trackChanged FINAL)
     Q_PROPERTY(bool liked READ liked NOTIFY stateChanged FINAL)
     // The address the song's download is listed under (its source address),
     // empty for a file of this PC: the player bar's download mark.
@@ -87,7 +85,6 @@ public:
     [[nodiscard]] QString artworkId() const { return m_artworkId; }
     [[nodiscard]] QString previousTitle() const { return m_previousTitle; }
     [[nodiscard]] QString previousArtist() const { return m_previousArtist; }
-    [[nodiscard]] QString artworkLabel() const;
     [[nodiscard]] bool liked() const { return m_liked; }
     [[nodiscard]] QString downloadAddress() const;
     [[nodiscard]] bool playing() const;

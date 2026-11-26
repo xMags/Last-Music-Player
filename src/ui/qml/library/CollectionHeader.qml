@@ -31,7 +31,6 @@ Column {
     property string coverStyle: "image"
     property url artworkUrl
     property string artworkId: ""
-    property string artworkLabel: ""
     // The page is still loading, so its picture is not known yet.
     property bool artworkPending: false
     property var collage: []
@@ -216,7 +215,6 @@ Column {
                 source: header.artworkUrl
                 pending: header.artworkPending
                 artworkId: header.artworkId
-                label: header.artworkLabel
                 collage: header.collage
                 gradientStart: header.gradientStart
                 gradientEnd: header.gradientEnd

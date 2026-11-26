@@ -36,7 +36,6 @@ Item {
             shadowLayers: Theme.shadowFullscreenArt
             source: App.playerBar.artworkUrl
             artworkId: App.playerBar.artworkId
-            label: App.playerBar.artworkLabel
         }
 
         Text {

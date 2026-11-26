@@ -44,7 +44,6 @@ class LocalArtistViewModel : public QObject {
     Q_PROPERTY(QString name READ name NOTIFY opened FINAL)
     Q_PROPERTY(QUrl artworkUrl READ artworkUrl NOTIFY opened FINAL)
     Q_PROPERTY(QString artworkId READ artworkId NOTIFY opened FINAL)
-    Q_PROPERTY(QString artworkLabel READ artworkLabel NOTIFY opened FINAL)
     // "12 songs · 3 albums".
     Q_PROPERTY(QString info READ info NOTIFY opened FINAL)
     Q_PROPERTY(lmp::ui::TrackListModel* topSongs READ topSongs CONSTANT FINAL)
@@ -79,7 +78,6 @@ public:
     [[nodiscard]] QString name() const { return m_name; }
     [[nodiscard]] QUrl artworkUrl() const { return m_artworkUrl; }
     [[nodiscard]] QString artworkId() const { return QStringLiteral("artist:") + m_name; }
-    [[nodiscard]] QString artworkLabel() const;
     [[nodiscard]] QString info() const;
     [[nodiscard]] TrackListModel* topSongs() { return &m_topSongs; }
     [[nodiscard]] bool showingAll() const { return m_showingAll; }

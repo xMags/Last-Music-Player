@@ -3,7 +3,6 @@
 #include "core/catalog/CatalogPresentation.h"
 
 #include "core/catalog/ChartArt.h"
-#include "core/model/ArtworkPlaceholder.h"
 #include "ui/images/ChartArtImageProvider.h"
 
 #include <QColor>
@@ -51,8 +50,6 @@ QVariant CatalogCardModel::data(const QModelIndex& index, int role) const
         return coverFor(item->artworkUrl);
     case ArtworkIdRole:
         return core::catalog::resourceTypeName(item->type) + QLatin1Char(':') + item->title;
-    case ArtworkLabelRole:
-        return core::ArtworkPlaceholder::tileLabelFor(item->title);
     case KindRole:
         return core::catalog::resourceTypeName(item->type);
     case RoundRole:
@@ -72,7 +69,6 @@ QHash<int, QByteArray> CatalogCardModel::roleNames() const
             {SubtitleRole, "subtitle"},
             {ArtworkUrlRole, "artworkUrl"},
             {ArtworkIdRole, "artworkId"},
-            {ArtworkLabelRole, "artworkLabel"},
             {KindRole, "kind"},
             {RoundRole, "round"}};
 }

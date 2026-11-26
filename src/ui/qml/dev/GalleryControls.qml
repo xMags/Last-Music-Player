@@ -49,7 +49,6 @@ Column {
             width: 120
             height: 120
             artworkId: "gallery-overlay"
-            label: "O"
             radius: Theme.radiusXl
 
             IconButton {

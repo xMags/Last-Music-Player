@@ -40,15 +40,15 @@ public:
 
     // `sceneRect`: the cover in window coordinates.
     Q_INVOKABLE void notePress(const QRectF& sceneRect, const QUrl& source, const QString& artworkId,
-                               const QString& label, bool round);
+                               bool round);
     // A collection header's cover appeared; flies to it after a fresh press.
     Q_INVOKABLE void headerShown(QObject* cover);
     Q_INVOKABLE void forget();
 
 signals:
     void landingChanged();
-    void flightWanted(const QRectF& from, const QUrl& source, const QString& artworkId, const QString& label,
-                      bool round, QObject* target);
+    void flightWanted(const QRectF& from, const QUrl& source, const QString& artworkId, bool round,
+                      QObject* target);
 
 private:
     struct Press {
@@ -56,7 +56,6 @@ private:
         QRectF rect;
         QUrl source;
         QString artworkId;
-        QString label;
         bool round = false;
     };
 

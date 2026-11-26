@@ -56,10 +56,10 @@ class ThemeConstants : public ThemeFullscreen {
     Q_PROPERTY(QVariantList shadowDialog READ shadowDialog CONSTANT FINAL)
     Q_PROPERTY(QVariantList shadowToast READ shadowToast CONSTANT FINAL)
 
-    // Cover placeholders: the letter, its soft shadow, and the light-to-dark
+    // Cover placeholders: the glyph, its soft shadow, and the light-to-dark
     // sheen laid over the gradient.
-    Q_PROPERTY(QColor artLabel READ artLabel CONSTANT FINAL)
-    Q_PROPERTY(QColor artLabelShadow READ artLabelShadow CONSTANT FINAL)
+    Q_PROPERTY(QColor artGlyph READ artGlyph CONSTANT FINAL)
+    Q_PROPERTY(QColor artGlyphShadow READ artGlyphShadow CONSTANT FINAL)
     Q_PROPERTY(QColor artSheenTop READ artSheenTop CONSTANT FINAL)
     Q_PROPERTY(QColor artSheenBottom READ artSheenBottom CONSTANT FINAL)
     // The close caption button under the pointer, and its glyph.
@@ -120,8 +120,8 @@ public:
     [[nodiscard]] static QColor overlayButtonHover();
     [[nodiscard]] static QColor onOverlay();
     [[nodiscard]] static QVariantList shadowPlayButton();
-    [[nodiscard]] static QColor artLabel();
-    [[nodiscard]] static QColor artLabelShadow();
+    [[nodiscard]] static QColor artGlyph();
+    [[nodiscard]] static QColor artGlyphShadow();
     [[nodiscard]] static QColor artSheenTop();
     [[nodiscard]] static QColor artSheenBottom();
     [[nodiscard]] static QColor swatchRing();

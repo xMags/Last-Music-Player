@@ -51,13 +51,4 @@ QString ArtworkPlaceholder::initialsFor(const QString& name)
     return initials.toUpper();
 }
 
-QString ArtworkPlaceholder::tileLabelFor(const QString& title)
-{
-    const QString trimmed = title.trimmed();
-    if (trimmed.isEmpty()) {
-        return QStringLiteral("M");
-    }
-    return firstCharacter(trimmed);
-}
-
 } // namespace lmp::core

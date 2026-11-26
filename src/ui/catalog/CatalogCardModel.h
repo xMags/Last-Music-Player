@@ -28,7 +28,6 @@ public:
         ArtworkUrlRole,
         // The placeholder's colour key and its letter.
         ArtworkIdRole,
-        ArtworkLabelRole,
         // "song", "album", "playlist" or "artist".
         KindRole,
         RoundRole,

@@ -58,7 +58,7 @@ T.AbstractButton {
                     radius: 12
                     source: tile.artworkUrl
                     artworkId: "category:" + tile.title
-                    label: ""
+                    bare: true
                 }
             }
         }

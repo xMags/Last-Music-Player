@@ -7,7 +7,6 @@
 #include "core/library/TrackActions.h"
 #include "core/model/CatalogSourceKey.h"
 #include "core/net/RemoteUrlPolicy.h"
-#include "core/model/ArtworkPlaceholder.h"
 #include "core/playback/PlayerController.h"
 #include "core/playback/QueueTrackIdentity.h"
 #include "ui/player/CoverSource.h"
@@ -143,11 +142,6 @@ QString PlayerBarViewModel::displayTitle() const
 QString PlayerBarViewModel::displayArtist() const
 {
     return hasTrack() ? artist() : core::AppIdentity::displayName();
-}
-
-QString PlayerBarViewModel::artworkLabel() const
-{
-    return core::ArtworkPlaceholder::tileLabelFor(title());
 }
 
 bool PlayerBarViewModel::playing() const

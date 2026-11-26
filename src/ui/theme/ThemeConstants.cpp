@@ -79,12 +79,12 @@ QVariantList ThemeConstants::shadowToast()
     return shadowLayers({{0, 14, 34, 0, rgba(0, 0, 0, 0.22f)}});
 }
 
-QColor ThemeConstants::artLabel()
+QColor ThemeConstants::artGlyph()
 {
     return rgba(255, 255, 255, 0.88f);
 }
 
-QColor ThemeConstants::artLabelShadow()
+QColor ThemeConstants::artGlyphShadow()
 {
     return rgba(0, 0, 0, 0.18f);
 }

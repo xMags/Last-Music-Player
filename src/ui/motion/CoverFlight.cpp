@@ -33,15 +33,13 @@ void CoverFlight::setLanding(QObject* item)
     emit landingChanged();
 }
 
-void CoverFlight::notePress(const QRectF& sceneRect, const QUrl& source, const QString& artworkId,
-                            const QString& label, bool round)
+void CoverFlight::notePress(const QRectF& sceneRect, const QUrl& source, const QString& artworkId, bool round)
 {
     if (sceneRect.width() < MinimumSide || sceneRect.height() < MinimumSide) {
         m_press.reset();
         return;
     }
-    m_press = Press{.at = m_now(), .rect = sceneRect, .source = source, .artworkId = artworkId, .label = label,
-                    .round = round};
+    m_press = Press{.at = m_now(), .rect = sceneRect, .source = source, .artworkId = artworkId, .round = round};
 }
 
 void CoverFlight::headerShown(QObject* cover)
@@ -54,7 +52,7 @@ void CoverFlight::headerShown(QObject* cover)
     if (m_now() - press.at > PressWindowMs) {
         return;
     }
-    emit flightWanted(press.rect, press.source, press.artworkId, press.label, press.round, cover);
+    emit flightWanted(press.rect, press.source, press.artworkId, press.round, cover);
 }
 
 void CoverFlight::forget()

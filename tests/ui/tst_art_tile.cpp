@@ -11,6 +11,7 @@
 #include <QSize>
 #include <QTest>
 #include <QtQml/qqmlextensionplugin.h>
+#include <QMetaObject>
 
 #include <memory>
 #include <vector>
@@ -93,6 +94,25 @@ ArtTile {
 }
 )";
 
+// The missing-picture tile's glyph, once the tile's loader has made it;
+// null while the loader is inactive.
+[[nodiscard]] QQuickItem* missingGlyph(QObject* missingTile)
+{
+    auto* item = missingTile->property("item").value<QQuickItem*>();
+    return item != nullptr ? item->findChild<QQuickItem*>(QStringLiteral("coverMissingGlyph")) : nullptr;
+}
+
+// Whether any text is drawn under `item`.
+[[nodiscard]] bool drawsText(const QQuickItem* item)
+{
+    for (const QQuickItem* child : item->findChildren<QQuickItem*>()) {
+        if (QByteArrayView(child->metaObject()->className()).startsWith("QQuickText")) {
+            return true;
+        }
+    }
+    return false;
+}
+
 [[nodiscard]] bool allSized(const std::vector<QSize>& sizes)
 {
     for (const QSize& size : sizes) {
@@ -154,7 +174,8 @@ private slots:
     }
 
     // Loading shows the skeleton block, a loaded picture neither placeholder,
-    // and no picture (none given, or one that fails) the lettered tile.
+    // and no picture (none given, or one that fails) the gradient tile with
+    // its glyph and no text.
     void placeholdersFollowThePicture()
     {
         QQmlEngine engine;
@@ -170,36 +191,53 @@ private slots:
         tile->setParentItem(window.contentItem());
         tile->setSize(QSizeF(100, 100));
         auto* skeleton = tile->findChild<QQuickItem*>(QStringLiteral("coverSkeleton"));
-        auto* letter = tile->findChild<QObject*>(QStringLiteral("coverLetterTile"));
+        auto* missing = tile->findChild<QObject*>(QStringLiteral("coverMissingTile"));
         QVERIFY(skeleton);
-        QVERIFY(letter);
-        const auto letterShown = [letter]() { return letter->property("active").toBool(); };
+        QVERIFY(missing);
+        const auto missingShown = [missing]() { return missing->property("active").toBool(); };
 
-        // No picture at all.
-        QVERIFY(letterShown());
+        // No picture at all: the gradient with the note, no text.
+        QVERIFY(missingShown());
         QVERIFY(!skeleton->isVisible());
+        QQuickItem* glyph = missingGlyph(missing);
+        QVERIFY(glyph);
+        QVERIFY(glyph->isVisible());
+        QVERIFY(glyph->property("source").toUrl().toString().startsWith(QStringLiteral("image://icon/music-note/")));
+        QVERIFY(!drawsText(missing->property("item").value<QQuickItem*>()));
+
+        // A round tile shows the person.
+        tile->setProperty("radius", 50);
+        QVERIFY(missingGlyph(missing)->property("source").toUrl().toString().startsWith(
+            QStringLiteral("image://icon/person/")));
+        tile->setProperty("radius", 8);
+
+        // A bare tile shows only the gradient.
+        tile->setProperty("bare", true);
+        QVERIFY(!missingGlyph(missing)->isVisible());
+        tile->setProperty("bare", false);
 
         // On its way.
         tile->setProperty("source", QUrl(QStringLiteral("image://gated/cover")));
         QTRY_VERIFY(skeleton->isVisible());
-        QVERIFY(!letterShown());
+        QVERIFY(!missingShown());
 
         // Loaded.
         provider->open();
         QTRY_VERIFY(tile->property("loaded").toBool());
         QTRY_VERIFY(!skeleton->isVisible());
-        QVERIFY(!letterShown());
+        QVERIFY(!missingShown());
 
         // A picture that cannot load.
         tile->setProperty("source", QUrl(QStringLiteral("image://gated/missing")));
-        QTRY_VERIFY(letterShown());
+        QTRY_VERIFY(missingShown());
         QVERIFY(!skeleton->isVisible());
         QVERIFY(!tile->property("loaded").toBool());
+        QTRY_VERIFY(missingGlyph(missing) != nullptr && missingGlyph(missing)->isVisible());
     }
 
     // While the owner is still loading, a tile with no picture yet shows the
-    // skeleton, not the lettered tile; once loading ends with no picture, the
-    // lettered tile shows.
+    // skeleton, not the gradient tile; once loading ends with no picture, the
+    // gradient tile shows.
     void aPendingTileWithoutAPictureShowsTheSkeleton()
     {
         QQmlEngine engine;
@@ -213,17 +251,17 @@ private slots:
         tile->setParentItem(window.contentItem());
         tile->setSize(QSizeF(100, 100));
         auto* skeleton = tile->findChild<QQuickItem*>(QStringLiteral("coverSkeleton"));
-        auto* letter = tile->findChild<QObject*>(QStringLiteral("coverLetterTile"));
+        auto* missing = tile->findChild<QObject*>(QStringLiteral("coverMissingTile"));
         QVERIFY(skeleton);
-        QVERIFY(letter);
+        QVERIFY(missing);
 
         tile->setProperty("pending", true);
         QTRY_VERIFY(skeleton->isVisible());
-        QVERIFY(!letter->property("active").toBool());
+        QVERIFY(!missing->property("active").toBool());
         QVERIFY(!tile->property("pictureMissing").toBool());
 
         tile->setProperty("pending", false);
-        QTRY_VERIFY(letter->property("active").toBool());
+        QTRY_VERIFY(missing->property("active").toBool());
         QVERIFY(!skeleton->isVisible());
     }
 };

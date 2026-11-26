@@ -167,7 +167,6 @@ void QueueListModelTest::rowsShowTheSong()
     QCOMPARE(queued.data(QueueListModel::ArtistLineRole).toString(), QStringLiteral("Artist · Queued"));
     QVERIFY(queued.data(QueueListModel::QueuedRole).toBool());
     QCOMPARE(queued.data(QueueListModel::DurationTextRole).toString(), QStringLiteral("3:20"));
-    QCOMPARE(queued.data(QueueListModel::ArtworkLabelRole).toString(), QStringLiteral("x"));
     QVERIFY(queued.data(QueueListModel::RowKeyRole).toString().endsWith(QStringLiteral("x.mp3#0")));
     // A local file without a picture address shows its embedded cover.
     QVERIFY(queued.data(QueueListModel::ArtworkUrlRole).toUrl().toString().startsWith(QStringLiteral("image://")));

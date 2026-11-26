@@ -89,7 +89,7 @@ Column {
                     visible: App.home.heroArtworkUrl.toString() === ""
                     radius: 0
                     artworkId: App.home.heroArtworkId
-                    label: ""
+                    bare: true
                 }
             }
 
@@ -133,7 +133,6 @@ Column {
                     shadowLayers: Theme.shadowHeroArt
                     source: App.home.heroArtworkUrl
                     artworkId: App.home.heroArtworkId
-                    label: App.home.heroArtworkLabel
                 }
             }
 

@@ -41,7 +41,6 @@ public:
         ArtistLineRole,
         ArtworkUrlRole,
         ArtworkIdRole,
-        ArtworkLabelRole,
         DurationTextRole,
         // In the user queue ("play next", "add to queue").
         QueuedRole,
@@ -77,7 +76,6 @@ private:
         QString artistLine;
         QUrl artworkUrl;
         QString artworkId;
-        QString artworkLabel;
         QString durationText;
         bool queued = false;
         QString remoteUrl;
