@@ -9,6 +9,8 @@
 
 #include <atomic>
 
+#include "ui/images/CoverWash.h"
+
 namespace lmp::core::remote {
 class ArtworkService;
 }
@@ -18,11 +20,13 @@ namespace lmp::ui {
 // Serves "image://artwork/<id>" (CoverSource::Remote): the picture at the
 // http(s) address the id names, fetched by core::remote::ArtworkService (the
 // account relay in Account mode, the address itself otherwise) and decoded
-// at the size the image asks for, on a worker thread. The engine owns the
-// provider once added; the service must outlive the engine.
+// at the size the image asks for, on a worker thread. With CoverOutput::Wash
+// (registered as "artwork-wash") it serves the picture's colour wash
+// instead. The engine owns the provider once added; the service must
+// outlive the engine.
 class ArtworkImageProvider final : public QQuickAsyncImageProvider {
 public:
-    explicit ArtworkImageProvider(core::remote::ArtworkService& service);
+    explicit ArtworkImageProvider(core::remote::ArtworkService& service, CoverOutput output = CoverOutput::Picture);
 
     [[nodiscard]] QQuickImageResponse* requestImageResponse(const QString& id, const QSize& requestedSize) override;
 
@@ -32,6 +36,7 @@ public:
 
 private:
     core::remote::ArtworkService& m_service;
+    CoverOutput m_output;
 };
 
 // One picture on its way. Lives on the service's thread and finishes there,
@@ -40,7 +45,7 @@ class ArtworkImageResponse final : public QQuickImageResponse {
     Q_OBJECT
 
 public:
-    ArtworkImageResponse(core::remote::ArtworkService& service, QString url, QSize requestedSize);
+    ArtworkImageResponse(core::remote::ArtworkService& service, QString url, QSize requestedSize, CoverOutput output);
 
     [[nodiscard]] QQuickTextureFactory* textureFactory() const override;
     [[nodiscard]] QString errorString() const override;
@@ -54,6 +59,7 @@ private:
     core::remote::ArtworkService& m_service;
     QString m_url;
     QSize m_requestedSize;
+    CoverOutput m_output;
     mutable QMutex m_lock;
     QImage m_image;
     QString m_error;

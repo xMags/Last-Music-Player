@@ -71,22 +71,17 @@ Column {
             anchors.margins: 1
             radius: 16 - 1
 
-            // The cover's colours, stretched, quiet under the field lines.
+            // The cover's colour wash (16 x 16, softened and saturated),
+            // stretched, quiet under the field lines.
             Item {
                 id: heroBackdrop
 
                 anchors.fill: parent
                 opacity: 0.55
 
-                Image {
+                CoverWash {
                     anchors.fill: parent
                     source: App.home.heroArtworkUrl
-                    sourceSize.width: 16
-                    sourceSize.height: 16
-                    fillMode: Image.Stretch
-                    smooth: true
-                    asynchronous: true
-                    visible: status === Image.Ready
                 }
 
                 ArtTile {

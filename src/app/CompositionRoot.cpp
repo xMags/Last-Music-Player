@@ -1185,6 +1185,11 @@ void CompositionRoot::attachEngine(QQmlEngine& engine)
                             std::make_unique<ui::EmbeddedCoverImageProvider>().release());
     engine.addImageProvider(QString(ui::CoverSource::RemoteProviderId),
                             std::make_unique<ui::ArtworkImageProvider>(m_artwork).release());
+    // Covers' colour washes, for CoverWash.qml: each provider's name + "-wash".
+    engine.addImageProvider(QString(ui::CoverSource::ProviderId) + QStringLiteral("-wash"),
+                            std::make_unique<ui::EmbeddedCoverImageProvider>(ui::CoverOutput::Wash).release());
+    engine.addImageProvider(QString(ui::CoverSource::RemoteProviderId) + QStringLiteral("-wash"),
+                            std::make_unique<ui::ArtworkImageProvider>(m_artwork, ui::CoverOutput::Wash).release());
     engine.addImageProvider(QStringLiteral("chartart"), std::make_unique<ui::ChartArtImageProvider>().release());
 
     m_reducedMotion = std::make_unique<platform::windows::WindowsReducedMotion>();

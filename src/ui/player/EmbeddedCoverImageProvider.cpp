@@ -6,8 +6,9 @@
 
 namespace lmp::ui {
 
-EmbeddedCoverImageProvider::EmbeddedCoverImageProvider()
+EmbeddedCoverImageProvider::EmbeddedCoverImageProvider(CoverOutput output)
     : QQuickImageProvider(QQuickImageProvider::Image, QQmlImageProviderBase::ForceAsynchronousImageLoading)
+    , m_output(output)
 {
 }
 
@@ -17,7 +18,8 @@ QImage EmbeddedCoverImageProvider::requestImage(const QString& id, QSize* size, 
     QImage image;
     if (path) {
         const CoverSource source{.kind = CoverSource::Kind::Embedded, .path = *path, .url = {}};
-        image = source.load(requestedSize);
+        image = m_output == CoverOutput::Wash ? coverWash(source.load(), {.size = coverWashSize(requestedSize)})
+                                              : source.load(requestedSize);
     }
     if (size != nullptr) {
         *size = image.size();

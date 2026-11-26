@@ -47,15 +47,14 @@ T.AbstractButton {
             radius: 8 - 1
             opacity: Theme.dark ? 0.5 : 0.42
 
-            Image {
+            // inset: -30px; filter: blur(30px) saturate(1.5). The wash is
+            // sized so its 1.2px blur stretches to 30px.
+            CoverWash {
                 anchors.fill: parent
+                anchors.margins: -30
                 visible: tile.kind !== "system"
                 source: tile.artworkUrl
-                sourceSize.width: 8
-                sourceSize.height: 8
-                fillMode: Image.Stretch
-                smooth: true
-                asynchronous: true
+                washSize: Qt.size(Math.max(2, Math.round(width * 1.2 / 30)), Math.max(2, Math.round(height * 1.2 / 30)))
             }
 
             Rectangle {
@@ -77,6 +76,12 @@ T.AbstractButton {
                 GradientStop { position: 0; color: "transparent" }
                 GradientStop { position: 1; color: Qt.alpha(Theme.bg, 0.55) }
             }
+        }
+
+        QuickTileField {
+            anchors.right: parent.right
+            width: parent.width * 0.55
+            height: parent.height
         }
 
         FocusRing {

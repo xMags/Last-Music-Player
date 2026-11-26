@@ -46,6 +46,7 @@ set(LMP_UI_QML_FILES
     qml/controls/AppSlider.qml
     qml/controls/AppSwitch.qml
     qml/controls/ArtTile.qml
+    qml/controls/CoverWash.qml
     qml/controls/BackdropBlur.qml
     qml/controls/BackLink.qml
     qml/controls/BoxShadow.qml
@@ -94,6 +95,7 @@ set(LMP_UI_QML_FILES
     qml/home/HomePage.qml
     qml/home/MixCard.qml
     qml/home/QuickTile.qml
+    qml/home/QuickTileField.qml
     qml/library/ArtistPage.qml
     qml/library/CollectionCard.qml
     qml/library/CollectionCover.qml
@@ -270,6 +272,8 @@ qt_add_qml_module(lmp_ui
         player/FullscreenPlayerViewModel.cpp
         player/FullscreenPlayerViewModel.h
         images/ArtworkImageProvider.cpp
+        images/CoverWash.cpp
+        images/CoverWash.h
         images/ChartArtImageProvider.cpp
         images/ChartArtImageProvider.h
         images/ArtworkImageProvider.h

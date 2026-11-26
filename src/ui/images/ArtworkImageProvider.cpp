@@ -15,15 +15,16 @@
 
 namespace lmp::ui {
 
-ArtworkImageProvider::ArtworkImageProvider(core::remote::ArtworkService& service)
+ArtworkImageProvider::ArtworkImageProvider(core::remote::ArtworkService& service, CoverOutput output)
     : m_service(service)
+    , m_output(output)
 {
 }
 
 QQuickImageResponse* ArtworkImageProvider::requestImageResponse(const QString& id, const QSize& requestedSize)
 {
     const std::optional<QString> url = CoverSource::remoteUrlFromProviderId(id);
-    return new ArtworkImageResponse(m_service, url.value_or(QString()), requestedSize);
+    return new ArtworkImageResponse(m_service, url.value_or(QString()), requestedSize, m_output);
 }
 
 QImage ArtworkImageProvider::decode(const QByteArray& bytes, QSize fit)
@@ -49,10 +50,12 @@ QImage ArtworkImageProvider::decode(const QByteArray& bytes, QSize fit)
     return image.scaled(covering, Qt::KeepAspectRatio, Qt::SmoothTransformation);
 }
 
-ArtworkImageResponse::ArtworkImageResponse(core::remote::ArtworkService& service, QString url, QSize requestedSize)
+ArtworkImageResponse::ArtworkImageResponse(core::remote::ArtworkService& service, QString url, QSize requestedSize,
+                                           CoverOutput output)
     : m_service(service)
     , m_url(std::move(url))
     , m_requestedSize(requestedSize)
+    , m_output(output)
 {
     // The engine asks on its image thread; the service answers on its own.
     // Posted rather than called: a response the engine deletes first never
@@ -81,7 +84,8 @@ void ArtworkImageResponse::start()
         return;
     }
     const QSize fit = m_requestedSize;
-    m_service.fetch(m_url).then(this, [this, fit](const core::Result<QByteArray>& bytes) {
+    const CoverOutput output = m_output;
+    m_service.fetch(m_url).then(this, [this, fit, output](const core::Result<QByteArray>& bytes) {
         if (!bytes) {
             deliver({}, QStringLiteral("picture could not be fetched"));
             return;
@@ -90,7 +94,12 @@ void ArtworkImageResponse::start()
             return; // finished by cancel(); no picture to decode for
         }
         // Decoding can take a while for a large picture: off this thread.
-        QtConcurrent::run([data = bytes.value(), fit]() { return ArtworkImageProvider::decode(data, fit); })
+        QtConcurrent::run([data = bytes.value(), fit, output]() {
+            if (output == CoverOutput::Wash) {
+                return coverWash(ArtworkImageProvider::decode(data, {}), {.size = coverWashSize(fit)});
+            }
+            return ArtworkImageProvider::decode(data, fit);
+        })
             .then(this, [this](const QImage& image) {
                 deliver(image, image.isNull() ? QStringLiteral("not a picture") : QString());
             });
