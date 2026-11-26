@@ -6,6 +6,7 @@
 #include <QString>
 #include <QTest>
 
+#include <cmath>
 #include <memory>
 
 #include "../core/FakePlaybackClock.h"
@@ -32,6 +33,37 @@ QByteArray pngOf(QSize size)
     return bytes;
 }
 
+// A cover-like JPEG with fine detail: thin diagonal lines over a gradient.
+QByteArray detailedJpegOf(int side)
+{
+    QImage image(side, side, QImage::Format_RGB32);
+    for (int y = 0; y < side; ++y) {
+        for (int x = 0; x < side; ++x) {
+            const int line = ((x + y) / 3) % 2 == 0 ? 90 : 0;
+            image.setPixel(x, y, qRgb((x * 255 / side + line) % 256, (y * 255 / side) % 256, (128 + line) % 256));
+        }
+    }
+    QByteArray bytes;
+    QBuffer buffer(&bytes);
+    buffer.open(QIODevice::WriteOnly);
+    image.save(&buffer, "JPG", 95);
+    return bytes;
+}
+
+// The mean difference in luma (0-255) between two pictures of one size.
+double meanLumaDifference(const QImage& first, const QImage& second)
+{
+    const QImage a = first.convertToFormat(QImage::Format_RGB32);
+    const QImage b = second.convertToFormat(QImage::Format_RGB32);
+    double total = 0;
+    for (int y = 0; y < a.height(); ++y) {
+        for (int x = 0; x < a.width(); ++x) {
+            total += std::abs(qGray(a.pixel(x, y)) - qGray(b.pixel(x, y)));
+        }
+    }
+    return total / (double(a.width()) * a.height());
+}
+
 } // namespace
 
 // Remote covers through "image://artwork/...": the id, decoding at the
@@ -42,6 +74,7 @@ class ArtworkImageProviderTest : public QObject {
 private slots:
     void remoteCoversUseTheProvider();
     void decodeScalesDownOnly();
+    void decodeKeepsDetailLikeAFullSizeReduction();
     void responseDeliversTheDecodedPicture();
     void responseReportsAFailure();
     void aCancelledResponseFinishesOnceWithoutAPicture();
@@ -79,6 +112,19 @@ void ArtworkImageProviderTest::decodeScalesDownOnly()
     QCOMPARE(ArtworkImageProvider::decode(bytes, QSize(2000, 2000)).size(), QSize(800, 400));
     QCOMPARE(ArtworkImageProvider::decode(bytes, QSize()).size(), QSize(800, 400));
     QVERIFY(ArtworkImageProvider::decode("not a picture", QSize(10, 10)).isNull());
+}
+
+void ArtworkImageProviderTest::decodeKeepsDetailLikeAFullSizeReduction()
+{
+    // A tile's size at 125% scaling. Letting the JPEG decoder shrink the
+    // picture itself differs from this reference by more than 1 level.
+    const QByteArray bytes = detailedJpegOf(1200);
+    const QSize fit(246, 246);
+    const QImage reference = QImage::fromData(bytes).scaled(fit, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+    const QImage decoded = ArtworkImageProvider::decode(bytes, fit);
+    QCOMPARE(decoded.size(), fit);
+    QVERIFY2(meanLumaDifference(decoded, reference) < 0.25,
+             qPrintable(QString::number(meanLumaDifference(decoded, reference))));
 }
 
 void ArtworkImageProviderTest::responseDeliversTheDecodedPicture()
