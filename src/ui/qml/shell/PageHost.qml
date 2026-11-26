@@ -104,6 +104,7 @@ Item {
 
         AppScrollBar.vertical: AppScrollBar {
             visible: !scroller.pageScrollsItself && size < 1
+            laneTopMargin: Theme.radius2xl
         }
 
         WheelScroll { flickable: scroller }

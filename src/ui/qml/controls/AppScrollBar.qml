@@ -7,9 +7,14 @@ import LastMusicPlayer
 T.ScrollBar {
     id: control
 
+    // Space above the lane, for a bar at the top of the content panel: its
+    // rounded corners (.content::-webkit-scrollbar-track { margin-top }).
+    property real laneTopMargin: 0
+
     implicitWidth: vertical ? 10 : Math.max(implicitBackgroundWidth, implicitContentWidth + leftPadding + rightPadding)
     implicitHeight: vertical ? Math.max(implicitBackgroundHeight, implicitContentHeight + topPadding + bottomPadding) : 10
     padding: 2
+    topPadding: padding + laneTopMargin
     visible: policy === T.ScrollBar.AlwaysOn || size < 1
     hoverEnabled: true
 

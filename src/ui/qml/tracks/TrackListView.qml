@@ -24,6 +24,9 @@ Item {
     property bool likes: true
     // Release rows: a "More" button in the heart's place.
     property bool moreButtons: false
+    // Set when the list fills the content panel, so its scroll bar clears
+    // the panel's rounded top corners (AppScrollBar.laneTopMargin).
+    property real scrollLaneTopMargin: 0
 
     // Switching between List and Grid: the new form's rows or cards fade in
     // one after another (the plan's fade in place of the cover glide).
@@ -96,6 +99,7 @@ Item {
                 parent: root
                 x: root.width - width
                 height: root.height
+                laneTopMargin: root.scrollLaneTopMargin
             }
 
             // Until the list is scrolled, it stays at its top while the
@@ -319,6 +323,7 @@ Item {
             model: root.model
             bottomMargin: root.bottomMargin
             scrollBarHost: root
+            scrollLaneTopMargin: root.scrollLaneTopMargin
             keyNavigationEnabled: true
             currentIndex: -1
 

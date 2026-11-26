@@ -751,6 +751,7 @@ Item {
         id: songs
 
         anchors.fill: parent
+        scrollLaneTopMargin: Theme.radius2xl
         visible: !App.offline.showsCards
         model: App.offline.songs
         grid: App.settings.trackView !== "list"

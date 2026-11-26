@@ -128,6 +128,7 @@ Item {
         id: songs
 
         anchors.fill: parent
+        scrollLaneTopMargin: Theme.radius2xl
         model: page.model.tracks
         grid: App.settings.trackView !== "list"
         sidePadding: page.gutter

@@ -205,6 +205,7 @@ Item {
         id: songs
 
         anchors.fill: parent
+        scrollLaneTopMargin: Theme.radius2xl
         visible: !page.model.showsCards
         model: page.model.tracks
         grid: App.settings.trackView !== "list"
@@ -235,6 +236,7 @@ Item {
         id: releaseTable
 
         anchors.fill: parent
+        scrollLaneTopMargin: Theme.radius2xl
         visible: page.releaseRows
         model: page.model.releases
         grid: false
