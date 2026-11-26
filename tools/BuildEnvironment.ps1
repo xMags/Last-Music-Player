@@ -99,5 +99,5 @@ function Invoke-Build {
 
 function Get-AppPath {
     param([ValidateSet('Debug', 'Release')][string]$Config = 'Debug')
-    return Join-Path (Get-RepoRoot) ".build\qt\bin\$Config\Last_Music_Player.exe"
+    return Join-Path (Get-RepoRoot) "x64\$Config\Last_Music_Player.exe"
 }
