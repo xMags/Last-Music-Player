@@ -364,6 +364,8 @@ qt_add_qml_module(lmp_ui
         shell/StagedBuild.h
         shell/SidebarListModels.cpp
         shell/SidebarListModels.h
+        shell/SidebarPlaylistRead.cpp
+        shell/SidebarPlaylistRead.h
         shell/SidebarViewModel.cpp
         shell/SidebarViewModel.h
         shell/WindowChromeViewModel.cpp

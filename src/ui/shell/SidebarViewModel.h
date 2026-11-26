@@ -2,13 +2,16 @@
 
 #include <QObject>
 #include <QString>
+
+#include <cstdint>
 #include <QtQml/qqmlregistration.h>
 
 #include "ui/navigation/Navigator.h"
 #include "ui/shell/SidebarListModels.h"
+#include "ui/shell/SidebarPlaylistRead.h"
 
 namespace lmp::core::db {
-class LibraryQueries;
+class DatabaseReader;
 } // namespace lmp::core::db
 
 namespace lmp::core {
@@ -41,7 +44,8 @@ class SidebarViewModel : public QObject {
 public:
     struct Parts {
         Navigator& navigator;
-        core::db::LibraryQueries& library;
+        // Reads the playlists off the GUI thread.
+        core::db::DatabaseReader& reader;
         core::CollectionActions& collections;
         core::TrackActions& actions;
     };
@@ -65,7 +69,9 @@ public:
     Q_INVOKABLE void openLiked();
     // "All playlists": Library's Playlists tab.
     Q_INVOKABLE void openAllPlaylists();
-    // Reads the playlists again.
+    // Reads the playlists again, on the reader. The list keeps what it shows
+    // until the answer comes; a request while a read is under way drops that
+    // read's answer and reads once more when it ends.
     void refreshPlaylists();
 
 
@@ -75,13 +81,19 @@ signals:
 
 private:
     void followNavigator();
+    void startPlaylistsRead();
+    void applyPlaylists(const SidebarPlaylistRead& read);
 
     Navigator& m_navigator;
-    core::db::LibraryQueries& m_library;
+    core::db::DatabaseReader& m_reader;
     core::TrackActions& m_actions;
     SidebarNavListModel m_navItems;
     SidebarPlaylistListModel m_playlists;
     int m_activeKind;
+    // The newest playlists read; an answer of an older one is dropped.
+    std::uint64_t m_playlistsGeneration = 0;
+    bool m_playlistsReading = false;
+    bool m_playlistsDirty = false;
 };
 
 } // namespace lmp::ui

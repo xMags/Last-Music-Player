@@ -442,7 +442,7 @@ lmp_add_test(tst_collection_view_model
     LIBS lmp_ui)
 
 lmp_add_test(tst_collection_editor
-    SOURCES ui/tst_collection_editor.cpp core/PlayerFixture.h core/FakeAudioPlayer.h core/FakePlaybackClock.h core/ModeServiceFixture.h core/AccountSessionFixture.h core/FakeCredentialStore.h core/FakeHttpTransport.h core/TempLibrary.h
+    SOURCES ui/tst_collection_editor.cpp core/PlayerFixture.h core/FakeAudioPlayer.h core/FakePlaybackClock.h core/ModeServiceFixture.h core/AccountSessionFixture.h core/FakeCredentialStore.h core/FakeHttpTransport.h core/TempLibrary.h core/InlineDatabaseReadRunner.h
     LIBS lmp_ui)
 
 lmp_add_test(tst_home_mix_builder

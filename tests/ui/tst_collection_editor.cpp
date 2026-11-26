@@ -5,9 +5,11 @@
 
 #include <memory>
 
+#include "../core/InlineDatabaseReadRunner.h"
 #include "../core/ModeServiceFixture.h"
 #include "../core/PlayerFixture.h"
 #include "core/db/CollectionRepository.h"
+#include "core/db/DatabaseReader.h"
 #include "core/db/GroupQueries.h"
 #include "core/db/LibraryQueries.h"
 #include "core/library/CollectionActions.h"
@@ -46,6 +48,7 @@ private slots:
     void closedGateRefusesAndKeepsThePrompt();
     void sidebarListsAtMostFifty();
     void songMenuMovesWithinThePlaylist();
+    void anOutOfDateSidebarReadIsDropped();
 
 private:
     [[nodiscard]] QString lastToast() const;
@@ -56,6 +59,8 @@ private:
     std::unique_ptr<lmp::test::ModeServiceFixture> m_modes;
     std::unique_ptr<lmp::core::PlayerController> m_controller;
     std::unique_ptr<lmp::core::db::LibraryQueries> m_queries;
+    lmp::test::InlineDatabaseReadRunner* m_runner = nullptr;
+    std::unique_ptr<lmp::core::db::DatabaseReader> m_reader;
     std::unique_ptr<lmp::core::db::CollectionRepository> m_collections;
     std::unique_ptr<lmp::core::db::GroupQueries> m_groups;
     std::unique_ptr<lmp::core::UserDataOperationGate> m_gate;
@@ -79,6 +84,9 @@ void CollectionEditorTest::init()
     m_controller = m_player->makeController();
     lmp::core::db::Database& database = m_player->library.database();
     m_queries = std::make_unique<lmp::core::db::LibraryQueries>(database);
+    auto runner = std::make_unique<lmp::test::InlineDatabaseReadRunner>(database);
+    m_runner = runner.get();
+    m_reader = std::make_unique<lmp::core::db::DatabaseReader>(std::move(runner));
     m_collections = std::make_unique<lmp::core::db::CollectionRepository>(database);
     m_groups = std::make_unique<lmp::core::db::GroupQueries>(database);
     m_gate = std::make_unique<lmp::core::UserDataOperationGate>();
@@ -90,7 +98,7 @@ void CollectionEditorTest::init()
     m_navigator = std::make_unique<Navigator>();
     m_toasts = std::make_unique<lmp::ui::ToastQueue>();
     m_sidebar = std::make_unique<lmp::ui::SidebarViewModel>(
-        lmp::ui::SidebarViewModel::Parts{*m_navigator, *m_queries, *m_collectionActions, *m_actions});
+        lmp::ui::SidebarViewModel::Parts{*m_navigator, *m_reader, *m_collectionActions, *m_actions});
     m_page = std::make_unique<lmp::ui::CollectionViewModel>(lmp::ui::CollectionViewModel::Parts{
         *m_queries, *m_actions, *m_collectionActions, *m_mixes, *m_controller, m_player->settings, *m_menu, *m_navigator});
     m_editor = std::make_unique<CollectionEditor>(*m_collectionActions, *m_navigator, *m_toasts);
@@ -106,6 +114,8 @@ void CollectionEditorTest::cleanup()
     m_editor.reset();
     m_page.reset();
     m_sidebar.reset();
+    m_reader.reset();
+    m_runner = nullptr;
     m_toasts.reset();
     m_navigator.reset();
     m_menu.reset();
@@ -130,6 +140,11 @@ QString CollectionEditorTest::lastToast() const
 
 QStringList CollectionEditorTest::sidebarNames() const
 {
+    // The sidebar reads on the reader: its answer, and the one more read a
+    // later change asks for, arrive on the next turns.
+    for (int turn = 0; turn < 3; ++turn) {
+        settle();
+    }
     QStringList names;
     lmp::ui::SidebarPlaylistListModel* model = m_sidebar->playlists();
     for (int row = 0; row < model->rowCount(); ++row) {
@@ -266,7 +281,7 @@ void CollectionEditorTest::sidebarListsAtMostFifty()
     for (int index = 0; index < 55; ++index) {
         QVERIFY(m_collectionActions->createPlaylist(QStringLiteral("P%1").arg(index)));
     }
-    QCOMPARE(m_sidebar->playlists()->count(), lmp::ui::SidebarViewModel::PlaylistLimit);
+    QTRY_COMPARE(m_sidebar->playlists()->count(), lmp::ui::SidebarViewModel::PlaylistLimit);
     m_sidebar->openPlaylist(0);
     QCOMPARE(m_navigator->current().kind(), Route::Kind::Collection);
     m_sidebar->openAllPlaylists();
@@ -307,6 +322,36 @@ void CollectionEditorTest::songMenuMovesWithinThePlaylist()
     m_page->setSort(static_cast<int>(m_page->sorts().indexOf(QStringLiteral("Title"))));
     m_page->prepareMenu(0);
     QVERIFY(!ids().contains(QString(lmp::ui::TrackMenuBuilder::MoveDown)));
+}
+
+// The sidebar keeps its list while a read is under way. Changes meanwhile
+// drop that read's answer and cause one more read, however many there were.
+void CollectionEditorTest::anOutOfDateSidebarReadIsDropped()
+{
+    QVERIFY(sidebarNames().isEmpty());
+    m_runner->holding = true;
+    const int before = m_runner->posted;
+    QVERIFY(m_collectionActions->createPlaylist(QStringLiteral("One")));
+    QCOMPARE(m_runner->posted, before + 1);
+    // Two more changes while that read is held: no read yet.
+    QVERIFY(m_collectionActions->createPlaylist(QStringLiteral("Two")));
+    QVERIFY(m_collectionActions->createPlaylist(QStringLiteral("Three")));
+    QCOMPARE(m_runner->posted, before + 1);
+
+    QSignalSpy inserted(m_sidebar->playlists(), &QAbstractItemModel::rowsInserted);
+    QSignalSpy reset(m_sidebar->playlists(), &QAbstractItemModel::modelReset);
+    m_runner->release();
+    settle();
+    // Its answer is dropped (the list still shows nothing) and one more read starts.
+    QCOMPARE(inserted.count() + reset.count(), 0);
+    QCOMPARE(m_sidebar->playlists()->count(), 0);
+    QCOMPARE(m_runner->posted, before + 2);
+
+    m_runner->holding = false;
+    m_runner->release();
+    settle();
+    QCOMPARE(m_sidebar->playlists()->count(), 3);
+    QCOMPARE(m_runner->posted, before + 2);
 }
 
 QTEST_MAIN(CollectionEditorTest)

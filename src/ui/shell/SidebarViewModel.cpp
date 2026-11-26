@@ -1,9 +1,8 @@
 #include "ui/shell/SidebarViewModel.h"
 #include "core/app/PerfLog.h"
 
-#include "core/db/LibraryQueries.h"
+#include "core/db/DatabaseReader.h"
 #include "core/library/CollectionActions.h"
-#include "core/library/DetailSortPolicy.h"
 #include "core/library/TrackActions.h"
 #include "ui/library/PlaylistCoverArt.h"
 #include "ui/navigation/Route.h"
@@ -30,7 +29,7 @@ QList<SidebarNavListModel::Item> mainViews()
 SidebarViewModel::SidebarViewModel(Parts parts, QObject* parent)
     : QObject(parent)
     , m_navigator(parts.navigator)
-    , m_library(parts.library)
+    , m_reader(parts.reader)
     , m_actions(parts.actions)
     , m_navItems(mainViews())
     , m_activeKind(static_cast<int>(Route::Kind::Home))
@@ -46,20 +45,44 @@ SidebarViewModel::SidebarViewModel(Parts parts, QObject* parent)
 
 void SidebarViewModel::refreshPlaylists()
 {
-    core::PerfScope perf("sidebar playlists read");
+    if (m_playlistsReading) {
+        // The read under way is out of date: its answer is dropped, and one
+        // more read starts when it ends.
+        ++m_playlistsGeneration;
+        m_playlistsDirty = true;
+        return;
+    }
+    startPlaylistsRead();
+}
+
+void SidebarViewModel::startPlaylistsRead()
+{
+    const std::uint64_t generation = ++m_playlistsGeneration;
+    m_playlistsReading = true;
+    const bool accountPlaylists = m_actions.accountPlaylistsActive();
+    m_reader
+        .read<SidebarPlaylistRead>([accountPlaylists](core::db::Database& database) {
+            return readSidebarPlaylists(database, accountPlaylists, PlaylistLimit, CoverSongLimit);
+        })
+        .then(this, [this, generation](const SidebarPlaylistRead& read) {
+            m_playlistsReading = false;
+            if (generation == m_playlistsGeneration) {
+                applyPlaylists(read);
+            }
+            if (m_playlistsDirty) {
+                m_playlistsDirty = false;
+                startPlaylistsRead();
+            }
+        });
+}
+
+void SidebarViewModel::applyPlaylists(const SidebarPlaylistRead& read)
+{
+    core::PerfScope perf("sidebar playlists applied");
     QList<SidebarPlaylistListModel::Item> items;
-    for (const core::Track& playlist : m_actions.playlists()) {
-        if (items.size() == PlaylistLimit) {
-            break;
-        }
-        // The first songs in the playlist's own order are enough to find
-        // four distinct covers in almost every playlist.
-        core::db::TrackQuery query;
-        query.groupKind = QStringLiteral("playlist");
-        query.groupKey = playlist.sourceUrl;
-        query.sort = core::detailSortQueryValue(core::DetailSort::Curated);
-        query.limit = CoverSongLimit;
-        const PlaylistCoverArt art = playlistCoverArt(m_library.loadTrackPage(query).tracks, true);
+    for (qsizetype index = 0; index < read.playlists.size() && index < read.songs.size(); ++index) {
+        const core::Track& playlist = read.playlists.at(index);
+        const PlaylistCoverArt art = playlistCoverArt(read.songs.at(index), true);
         items.append({.id = playlist.sourceUrl,
                       .name = playlist.title,
                       .coverStyle = art.style,
