@@ -181,6 +181,9 @@ public:
     void showViewForReview(const QString& view);
 
 private:
+    // A release's page straight from the provider (API key mode).
+    [[nodiscard]] QFuture<core::Result<core::catalog::Detail>>
+    providerAlbumDetail(const core::account::LibraryArtistIdentity& identity, const QString& artist);
     // The account library as the home model reads it, in Account mode only.
     [[nodiscard]] std::optional<core::home::HomeLibrary> accountHomeLibrary() const;
     // A call in the signed-in account's name; its body, or the failure. A

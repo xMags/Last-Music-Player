@@ -328,7 +328,15 @@ CompositionRoot::CompositionRoot()
                                        return core::catalog::parseProviderArtistDetail(answer.value(), identity);
                                    });
                            },
-                       .follows = &m_artistFollows})
+                       .follows = &m_artistFollows,
+                       .providerAlbum =
+                           [this](const core::account::LibraryArtistIdentity& identity, const QString& artist) {
+                               // As the album page loads it (m_catalogPage).
+                               if (!m_mode.capabilities().browseCatalogue && m_mode.capabilities().openOnlineAlbumPages) {
+                                   return providerAlbumDetail(identity, artist);
+                               }
+                               return m_catalog.providerAlbum(identity, artist);
+                           }})
     , m_lyricsService(
           [this](const core::lyrics::LyricsQuery& query) { return m_remote.lyrics(query); },
           [this]() { return m_mode.capabilities().showLyrics ? m_remote.scopeKey() : QString(); })
@@ -446,13 +454,7 @@ CompositionRoot::CompositionRoot()
                          },
                      .providerAlbum =
                          [this](const core::account::LibraryArtistIdentity& identity, const QString& artist) {
-                             return m_remote.albumDetail(identity, artist)
-                                 .then([identity](const core::Result<QByteArray>& answer) -> core::Result<core::catalog::Detail> {
-                                     if (!answer) {
-                                         return answer.failure();
-                                     }
-                                     return core::catalog::parseProviderAlbumDetail(answer.value(), identity);
-                                 });
+                             return providerAlbumDetail(identity, artist);
                          }})
     , m_collectionEditor(m_collectionActions, m_navigator, m_toasts)
     , m_catalogItemMenu({.catalog = m_catalog,
@@ -468,14 +470,7 @@ CompositionRoot::CompositionRoot()
                              },
                          .providerAlbum =
                              [this](const core::account::LibraryArtistIdentity& identity, const QString& artist) {
-                                 return m_remote.albumDetail(identity, artist)
-                                     .then([identity](const core::Result<QByteArray>& answer)
-                                               -> core::Result<core::catalog::Detail> {
-                                         if (!answer) {
-                                             return answer.failure();
-                                         }
-                                         return core::catalog::parseProviderAlbumDetail(answer.value(), identity);
-                                     });
+                                 return providerAlbumDetail(identity, artist);
                              }})
     , m_home({.library = m_library,
               .actions = m_trackActions,
@@ -925,6 +920,18 @@ CompositionRoot::CompositionRoot()
 void CompositionRoot::showWelcomeForReview()
 {
     m_welcome.open(false);
+}
+
+QFuture<core::Result<core::catalog::Detail>>
+CompositionRoot::providerAlbumDetail(const core::account::LibraryArtistIdentity& identity, const QString& artist)
+{
+    return m_remote.albumDetail(identity, artist)
+        .then([identity](const core::Result<QByteArray>& answer) -> core::Result<core::catalog::Detail> {
+            if (!answer) {
+                return answer.failure();
+            }
+            return core::catalog::parseProviderAlbumDetail(answer.value(), identity);
+        });
 }
 
 void CompositionRoot::showViewForReview(const QString& view)

@@ -1,5 +1,6 @@
 #include <QCoreApplication>
 #include <QObject>
+#include <QSignalSpy>
 #include <QString>
 #include <QTest>
 
@@ -28,6 +29,23 @@ using lmp::ui::Route;
 namespace {
 
 const QString kSongAlbumPath = QStringLiteral("/v1/music/catalog/songs/album");
+const QString kSinglesPath = QStringLiteral("/v1/music/catalog/artists/detail/view/singles");
+
+// A provider release page of `songs` songs.
+lmp::core::catalog::Detail releasePage(const QString& id, int songs)
+{
+    lmp::core::catalog::Detail detail;
+    detail.item.catalogId = id;
+    detail.item.type = lmp::core::catalog::ResourceType::Album;
+    for (int n = 1; n <= songs; ++n) {
+        lmp::core::Track track;
+        track.remoteId = id + QStringLiteral("-song-%1").arg(n);
+        track.title = QStringLiteral("Song %1").arg(n);
+        track.sourceUrl = QStringLiteral("https://music.example.test/") + track.remoteId;
+        detail.tracks.append(track);
+    }
+    return detail;
+}
 
 struct PageFixture {
     PageFixture()
@@ -59,9 +77,22 @@ struct PageFixture {
         , actions(lmp::core::TrackActions::Dependencies{*controller, player.tracks, collections, groups, modes.modes,
                                                          gate})
         , menu(actions)
-        , page({.catalog = catalog, .editor = editor, .actions = actions, .trackMenu = menu, .navigator = navigator})
+        , page({.catalog = catalog,
+                .editor = editor,
+                .actions = actions,
+                .trackMenu = menu,
+                .navigator = navigator,
+                .providerPages = [] { return true; },
+                .providerAlbum =
+                    [this](const lmp::core::account::LibraryArtistIdentity& identity, const QString&) {
+                        ++releaseLoads;
+                        return QtFuture::makeReadyValueFuture(
+                            lmp::core::Result<lmp::core::catalog::Detail>(releasePage(identity.catalogId, 1)));
+                    }})
     {
     }
+
+    int releaseLoads = 0;
 
     lmp::test::ModeServiceFixture modes;
     lmp::core::db::AccountOutboxRepository outbox;
@@ -89,7 +120,42 @@ class CatalogPageViewModelTest : public QObject {
 
 private slots:
     void aLateAlbumLookupLeavesTheNewPageAlone();
+    void aSingleOnTheSinglesPagePlaysItsSong();
 };
+
+void CatalogPageViewModelTest::aSingleOnTheSinglesPagePlaysItsSong()
+{
+    PageFixture fixture;
+    (void)fixture.modes.modes.start();
+    QVERIFY(fixture.modes.validate(QStringLiteral("owner-a")));
+    QVERIFY(fixture.modes.modes.setMode(lmp::core::mode::SourceMode::Account));
+    settle();
+    fixture.modes.session.transport.script(
+        kSinglesPath, FakeHttpTransport::ok(R"({"items":[{"catalogId":"one","name":"One","provider":"prov",)"
+                                            R"("releaseType":"single","sourceUrl":"https://music.example.test/one"}]})"));
+
+    // An artist's Singles & EPs in full, from the provider.
+    fixture.navigator.push(Route(Route::Kind::ArtistSection, {{QStringLiteral("section"), QStringLiteral("singles")},
+                                                              {QStringLiteral("title"), QStringLiteral("Singles & EPs")},
+                                                              {QStringLiteral("artistName"), QStringLiteral("Mira Sol")},
+                                                              {QStringLiteral("provider"), QStringLiteral("prov")},
+                                                              {QStringLiteral("name"), QStringLiteral("Mira Sol")}}));
+    QTRY_VERIFY(!fixture.page.loading());
+    QCOMPARE(fixture.page.cards()->items().size(), 1);
+    const qsizetype depth = fixture.navigator.depth();
+
+    // A click plays the single's one song; no page opens.
+    fixture.page.openCard(0);
+    QTRY_VERIFY(fixture.controller->currentTrack().has_value());
+    QCOMPARE(fixture.controller->currentTrack()->remoteId, QStringLiteral("one-song-1"));
+    QCOMPARE(fixture.navigator.depth(), depth);
+
+    // Its menu is the song's menu.
+    QSignalSpy looked(&fixture.page, &lmp::ui::CatalogPageViewModel::cardSongLooked);
+    QVERIFY(fixture.page.lookUpCardSong(0));
+    QTRY_COMPARE(looked.count(), 1);
+    QCOMPARE(looked.first().at(1).toBool(), true);
+}
 
 void CatalogPageViewModelTest::aLateAlbumLookupLeavesTheNewPageAlone()
 {

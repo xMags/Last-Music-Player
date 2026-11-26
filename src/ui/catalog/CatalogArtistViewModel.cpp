@@ -42,6 +42,7 @@ CatalogArtistViewModel::CatalogArtistViewModel(Parts parts, QObject* parent)
     , m_providerArtist(std::move(parts.providerArtist))
     , m_follows(parts.follows)
     , m_loader(parts.catalog)
+    , m_singleSongs({.catalog = parts.catalog, .providerAlbum = std::move(parts.providerAlbum)})
 {
     connect(&m_navigator, &Navigator::currentChanged, this, &CatalogArtistViewModel::followNavigator);
     if (m_follows != nullptr) {
@@ -60,6 +61,9 @@ bool CatalogArtistViewModel::handles(const Route& route)
 
 void CatalogArtistViewModel::followNavigator()
 {
+    // Another page (or this one again): a single still being looked up must
+    // neither play nor open its page now.
+    m_singleSongs.forget();
     if (handles(m_navigator.current())) {
         load(m_navigator.current(), false);
     }
@@ -225,10 +229,28 @@ void CatalogArtistViewModel::openSectionCard(const QString& key, int row)
         return;
     }
     if (item->track) {
+        m_singleSongs.forget();
         m_actions.play(*item->track, model->tracks());
         return;
     }
-    if (const std::optional<Route> route = routes::routeForItem(*item)) {
+    // A single plays as its one song; anything else opens its page.
+    if (SingleSongLookup::isCandidate(*item, key == QLatin1StringView("singles"))) {
+        const catalog::CatalogItem release = *item;
+        (void)m_singleSongs.lookUp(release, [this, release](const std::optional<core::Track>& song) {
+            if (song) {
+                m_actions.play(*song, {*song});
+                return;
+            }
+            openRelease(release);
+        });
+        return;
+    }
+    openRelease(*item);
+}
+
+void CatalogArtistViewModel::openRelease(const catalog::CatalogItem& item)
+{
+    if (const std::optional<Route> route = routes::routeForItem(item)) {
         m_navigator.push(*route);
     }
 }
@@ -263,6 +285,7 @@ void CatalogArtistViewModel::seeAllSection(const QString& key)
 
 void CatalogArtistViewModel::play()
 {
+    m_singleSongs.forget();
     for (const core::Track& track : m_allTopSongs) {
         if (m_actions.canPlay(track)) {
             m_actions.play(track, m_allTopSongs);
@@ -273,11 +296,13 @@ void CatalogArtistViewModel::play()
 
 void CatalogArtistViewModel::shuffle()
 {
+    m_singleSongs.forget();
     m_actions.shufflePlay(m_allTopSongs);
 }
 
 void CatalogArtistViewModel::playSong(int row)
 {
+    m_singleSongs.forget();
     if (row >= 0 && row < m_topSongs.count()) {
         m_actions.play(m_topSongs.trackAt(row), m_allTopSongs);
     }

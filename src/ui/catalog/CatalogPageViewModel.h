@@ -18,6 +18,7 @@
 #include "core/catalog/CatalogPaging.h"
 #include "core/catalog/CatalogPresentation.h"
 #include "ui/catalog/CatalogCardModel.h"
+#include "ui/catalog/SingleSongLookup.h"
 #include "ui/tracks/TrackListModel.h"
 
 namespace lmp::core {
@@ -143,6 +144,11 @@ public:
     Q_INVOKABLE void addAllToQueue();
     Q_INVOKABLE void prepareSongMenu(int row);
     Q_INVOKABLE void openCard(int row);
+    // A card's menu on an artist's Singles & EPs page: true when `row` is a
+    // single whose one song is being looked up; cardSongLooked() follows,
+    // with the song's menu prepared when there is one. False: open the
+    // card's own menu now.
+    Q_INVOKABLE bool lookUpCardSong(int row);
     Q_INVOKABLE void toggleSave();
     Q_INVOKABLE void share();
     // Downloads the songs on screen.
@@ -158,6 +164,10 @@ public:
 
 signals:
     void changed();
+    // After lookUpCardSong(row): `song` is true when the song's menu is
+    // prepared (TrackMenuController), false when the card's own menu should
+    // open instead.
+    void cardSongLooked(int row, bool song);
 
 private:
     // Replaces the current page with `next`, while it is still the page the
@@ -167,6 +177,8 @@ private:
     void load(const Route& route, bool force);
     void reset(const QString& kind);
     void showDetail(const core::catalog::Detail& detail, const QString& kind);
+    // Opens `item`'s own page.
+    void openRelease(const core::catalog::CatalogItem& item);
     void showItems(QList<core::catalog::CatalogItem> items);
     void fail(const QString& message);
     void startPager(QList<core::catalog::CatalogItem> items, std::optional<int> nextOffset, bool seed);
@@ -205,6 +217,7 @@ private:
     bool m_saving = false;
     TrackListModel m_tracks;
     CatalogCardModel m_cards;
+    SingleSongLookup m_singleSongs;
     TrackListModel m_releases;
     // A chart's or a long shelf's paging: which page loads next.
     std::optional<core::catalog::CatalogPager<core::catalog::CatalogItem>> m_pager;
@@ -214,6 +227,8 @@ private:
     // A catalogue artist's section in full, which pages.
     QString m_artistId;
     std::optional<core::catalog::ArtistSection> m_artistSection;
+    // The page is an artist's Singles & EPs in full.
+    bool m_singlesShelf = false;
 };
 
 } // namespace lmp::ui

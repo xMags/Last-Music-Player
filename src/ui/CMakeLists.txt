@@ -227,6 +227,8 @@ qt_add_qml_module(lmp_ui
         catalog/ArtistSectionListModel.h
         catalog/CatalogArtistViewModel.cpp
         catalog/CatalogArtistViewModel.h
+        catalog/SingleSongLookup.cpp
+        catalog/SingleSongLookup.h
         catalog/CatalogCardModel.cpp
         catalog/CatalogItemMenu.cpp
         catalog/CatalogItemMenu.h

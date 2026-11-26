@@ -251,12 +251,40 @@ Item {
         onMenuRequested: (row, at, fromKeyboard) => page.openItemMenu(row, releaseTable.mapToItem(page, at.x, at.y), fromKeyboard)
     }
 
-    // openCatalogItemMenu for a card or release row.
+    // A single's menu waiting for its one song (lookUpCardSong): the row and
+    // where the menu opens.
+    property var pendingSongMenu: null
+
+    // openCatalogItemMenu for a card or release row. A single on an artist's
+    // Singles & EPs page gets its song's menu once its one song is known.
     function openItemMenu(row: int, at: point, fromKeyboard: bool) {
+        if (page.model.lookUpCardSong(row)) {
+            page.pendingSongMenu = { row: row, x: at.x, y: at.y, keyboard: fromKeyboard }
+            return
+        }
+        page.openReleaseMenu(row, at, fromKeyboard)
+    }
+
+    function openReleaseMenu(row: int, at: point, fromKeyboard: bool) {
         if (!App.catalogItemMenu.prepare(page.model.cards, row))
             return
         itemMenu.openAt(at.x, at.y)
         itemMenu.keyboardActive = fromKeyboard
+    }
+
+    Connections {
+        target: page.model
+
+        function onCardSongLooked(row: int, song: bool) {
+            const pending = page.pendingSongMenu
+            if (!pending || pending.row !== row)
+                return
+            page.pendingSongMenu = null
+            if (song)
+                menus.open(page, pending.x, pending.y, pending.keyboard)
+            else
+                page.openReleaseMenu(row, Qt.point(pending.x, pending.y), pending.keyboard)
+        }
     }
 
     ActionMenu {

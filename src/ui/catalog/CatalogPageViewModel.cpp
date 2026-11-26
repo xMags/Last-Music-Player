@@ -65,6 +65,14 @@ CatalogPageViewModel::CatalogPageViewModel(Parts parts, QObject* parent)
     , m_providerPages(std::move(parts.providerPages))
     , m_providerAlbum(std::move(parts.providerAlbum))
     , m_download(std::move(parts.download))
+    , m_singleSongs({.catalog = parts.catalog,
+                     .providerAlbum =
+                         [this](const core::account::LibraryArtistIdentity& identity, const QString& artist) {
+                             // As load() opens a SourceAlbum route.
+                             return m_providerPages && m_providerPages() && m_providerAlbum
+                                 ? m_providerAlbum(identity, artist)
+                                 : m_catalog.providerAlbum(identity, artist);
+                         }})
 {
     connect(&m_navigator, &Navigator::currentChanged, this, &CatalogPageViewModel::followNavigator);
     // The release rows follow the cards.
@@ -113,6 +121,9 @@ bool CatalogPageViewModel::handles(const Route& route)
 
 void CatalogPageViewModel::followNavigator()
 {
+    // Another page (or this one again): a single still being looked up must
+    // neither play nor open its page now.
+    m_singleSongs.forget();
     const Route& current = m_navigator.current();
     if (handles(current)) {
         load(current, false);
@@ -150,6 +161,7 @@ void CatalogPageViewModel::reset(const QString& kind)
     m_byline.clear();
     m_infoSuffix.clear();
     m_shelfType = core::catalog::ResourceType::Unknown;
+    m_singlesShelf = false;
     m_description.clear();
     m_artworkUrl.clear();
     m_shareArtwork.clear();
@@ -361,6 +373,7 @@ void CatalogPageViewModel::load(const Route& route, bool force)
         }
         m_title = route.param(QStringLiteral("title"));
         m_eyebrow = route.param(QStringLiteral("artistName")).toUpper();
+        m_singlesShelf = *section == catalog::ArtistSection::Singles;
         emit changed();
         const auto show = [this, current](const core::Result<catalog::Shelf>& result) {
             if (!current()) {
@@ -687,12 +700,46 @@ void CatalogPageViewModel::openCard(int row)
         return;
     }
     if (item->track) {
+        m_singleSongs.forget();
         m_actions.play(*item->track, m_cards.tracks());
         return;
     }
-    if (const std::optional<Route> route = routes::routeForItem(*item)) {
+    // A single plays as its one song; anything else opens its page.
+    if (SingleSongLookup::isCandidate(*item, m_singlesShelf)) {
+        const catalog::CatalogItem release = *item;
+        (void)m_singleSongs.lookUp(release, [this, release](const std::optional<core::Track>& song) {
+            if (song) {
+                m_actions.play(*song, {*song});
+                return;
+            }
+            openRelease(release);
+        });
+        return;
+    }
+    openRelease(*item);
+}
+
+void CatalogPageViewModel::openRelease(const catalog::CatalogItem& item)
+{
+    if (const std::optional<Route> route = routes::routeForItem(item)) {
         m_navigator.push(*route);
     }
+}
+
+bool CatalogPageViewModel::lookUpCardSong(int row)
+{
+    const catalog::CatalogItem* item = m_cards.itemAt(row);
+    if (item == nullptr || !SingleSongLookup::isCandidate(*item, m_singlesShelf)) {
+        return false;
+    }
+    // A click on the same card while this loads takes its answer instead.
+    (void)m_singleSongs.lookUp(*item, [this, row](const std::optional<core::Track>& song) {
+        if (song) {
+            m_trackMenu.prepare(*song, {*song});
+        }
+        emit cardSongLooked(row, song.has_value());
+    });
+    return true;
 }
 
 void CatalogPageViewModel::openAlbumOf(const core::Track& track)

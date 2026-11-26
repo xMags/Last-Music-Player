@@ -18,6 +18,7 @@
 #include "core/catalog/CatalogModels.h"
 #include "ui/catalog/ArtistSectionListModel.h"
 #include "ui/catalog/CatalogCardModel.h"
+#include "ui/catalog/SingleSongLookup.h"
 #include "ui/tracks/TrackListModel.h"
 
 namespace lmp::core {
@@ -101,6 +102,10 @@ public:
         std::function<QFuture<core::Result<core::catalog::Detail>>(const core::account::LibraryArtistIdentity&)>
             providerArtist = {};
         core::ArtistFollowService* follows = nullptr;
+        // A release with a provider identity, loaded as its page loads it
+        // (provider or catalogue service, per mode); used to find a single's
+        // one song (SingleSongLookup).
+        SingleSongLookup::ProviderAlbum providerAlbum = {};
     };
 
     // Everything in `parts` outlives this object.
@@ -149,6 +154,8 @@ signals:
 
 private:
     void followNavigator();
+    // Opens `item`'s own page.
+    void openRelease(const core::catalog::CatalogItem& item);
     void load(const Route& route, bool force);
     void show(const core::catalog::ArtistPageResult& result);
     void readFollow();
@@ -171,6 +178,7 @@ private:
     bool m_fromProvider = false;
     ShareController* m_share = nullptr;
     core::catalog::ArtistPageLoader m_loader;
+    SingleSongLookup m_singleSongs;
 
     std::uint64_t m_request = 0;
     bool m_loading = false;
