@@ -100,8 +100,12 @@ T.AbstractButton {
         if (!row.playing || Motion.reduced || !row.visible)
             return
         band.active = true
+        // No band while the row itself is still being made (a row that
+        // comes into view already playing): the Loader waits for the row,
+        // and that song did not just start anyway.
         const sweep = band.item as RowSweep
-        sweep.play()
+        if (sweep !== null)
+            sweep.play()
     }
 
 
