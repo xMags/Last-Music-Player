@@ -29,8 +29,16 @@ Item {
     property real scrollLaneTopMargin: 0
 
     // Switching between List and Grid: the new form's rows or cards fade in
-    // one after another (the plan's fade in place of the cover glide).
-    onGridChanged: App.cascade.restart()
+    // one after another (the plan's fade in place of the cover glide), and
+    // the new form opens scrolled as far as the old one was, so the header
+    // and the switch in it stay where they were.
+    onGridChanged: {
+        if (!root.formReady)
+            return
+        root.startOffset = root.view !== null ? root.offsetOf(root.view) : 0
+        root.shownGrid = root.grid
+        App.cascade.restart()
+    }
     property Component header: null
     // Space below the last row, inside the scrolling area.
     property real bottomMargin: 32
@@ -70,13 +78,61 @@ Item {
     // The list or grid that scrolls, for keeping its position.
     readonly property Flickable view: form.item as Flickable
 
+    // The form on show. It follows `grid` in onGridChanged, not by binding,
+    // so the old form's offset is read before the Loader replaces it.
+    property bool shownGrid: false
+    property bool formReady: false
+    // How far below the header's top a new form opens, and stays while its
+    // header grows, until it is scrolled.
+    property real startOffset: 0
+    // Set while the form holds startOffset; cleared once it is scrolled.
+    property bool holdStart: true
+
+    Component.onCompleted: {
+        root.shownGrid = root.grid
+        root.formReady = true
+    }
+
+    // How far `flickable` is scrolled below the top of its header.
+    function offsetOf(flickable: Flickable): real {
+        return flickable.contentY - flickable.originY + flickable.topMargin
+    }
+
+    // Scrolls `flickable` to startOffset, or as far as its content reaches.
+    function placeAtStart(flickable: Flickable) {
+        const furthest = Math.max(0, flickable.contentHeight + flickable.topMargin + flickable.bottomMargin - flickable.height)
+        flickable.contentY = flickable.originY - flickable.topMargin + Math.min(root.startOffset, furthest)
+    }
+
+    // Shows the list from `offset` below its header's top, holding there
+    // while the header grows (a page switching to this list from another
+    // view of the same items).
+    function startAt(offset: real) {
+        root.startOffset = offset
+        const flickable = root.view
+        if (flickable === null)
+            return
+        root.holdStart = true
+        Qt.callLater(root.placeAtStart, flickable)
+    }
+
+    // A new route (another page in this list) opens at the top again.
+    Connections {
+        target: App.navigator
+
+        function onCurrentChanged() {
+            root.startOffset = 0
+        }
+    }
+
     Loader {
         id: form
 
         anchors.fill: parent
         anchors.leftMargin: root.sidePadding
         anchors.rightMargin: root.rightSidePadding
-        sourceComponent: root.grid ? gridForm : listForm
+        active: root.formReady
+        sourceComponent: root.shownGrid ? gridForm : listForm
     }
 
     Component {
@@ -102,20 +158,20 @@ Item {
                 laneTopMargin: root.scrollLaneTopMargin
             }
 
-            // Until the list is scrolled, it stays at its top while the
-            // header above grows (a page fills its header after the list
-            // exists; a ListView would otherwise keep its old offset and
-            // hide the header's top).
-            property bool keepTop: true
-            onMovementStarted: keepTop = false
+            // Until the list is scrolled, it stays at its start (the top,
+            // or where the other form was) while the header above grows (a
+            // page fills its header after the list exists; a ListView would
+            // otherwise keep its old offset and hide the header's top).
+            Component.onCompleted: root.holdStart = true
+            onMovementStarted: root.holdStart = false
 
             header: Column {
                 width: list.rowWidth
                 // Deferred: the header can grow while the list is still
                 // creating items, and repositioning then would re-enter it.
                 onHeightChanged: {
-                    if (list.keepTop)
-                        Qt.callLater(list.positionViewAtBeginning)
+                    if (root.holdStart)
+                        Qt.callLater(root.placeAtStart, list)
                 }
 
                 Loader {
@@ -327,15 +383,15 @@ Item {
             keyNavigationEnabled: true
             currentIndex: -1
 
-            property bool keepTop: true
-            onMovementStarted: keepTop = false
+            Component.onCompleted: root.holdStart = true
+            onMovementStarted: root.holdStart = false
 
             header: Loader {
                 width: cards.width
                 sourceComponent: root.header
                 onHeightChanged: {
-                    if (cards.keepTop)
-                        Qt.callLater(cards.positionViewAtBeginning)
+                    if (root.holdStart)
+                        Qt.callLater(root.placeAtStart, cards)
                 }
             }
 

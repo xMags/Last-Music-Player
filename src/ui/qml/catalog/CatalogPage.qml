@@ -229,8 +229,61 @@ Item {
         }
     }
 
-    // Releases in the List view: rows that open each release.
-    readonly property bool releaseRows: page.model.releaseList && App.settings.trackView === "list"
+    // Releases in the List view: rows that open each release. Set in
+    // updateReleaseRows, not by binding, so the view on show can hand its
+    // offset to the other one before the switch.
+    property bool releaseRows: false
+
+    Component.onCompleted: page.updateReleaseRows(false)
+
+    // `carry`: the List / Grid switch was pressed, so the other view opens
+    // as far down as this one was and the header stays where it was. A new
+    // page keeps each view's own start.
+    function updateReleaseRows(carry: bool) {
+        const rows = page.model.releaseList && App.settings.trackView === "list"
+        if (rows === page.releaseRows)
+            return
+        const from = page.currentView
+        const offset = from !== null ? from.contentY - from.originY + from.topMargin : 0
+        page.releaseRows = rows
+        if (!carry)
+            return
+        if (rows)
+            releaseTable.startAt(offset)
+        else
+            page.startCardsAt(offset)
+    }
+
+    Connections {
+        target: App.settings
+
+        function onPreferencesChanged() {
+            page.updateReleaseRows(true)
+        }
+    }
+
+    Connections {
+        target: page.model
+
+        function onChanged() {
+            page.updateReleaseRows(false)
+        }
+    }
+
+    // The cards' counterpart of TrackListView.startAt.
+    property real cardsStartOffset: 0
+    property bool cardsHoldStart: false
+
+    function startCardsAt(offset: real) {
+        page.cardsStartOffset = offset
+        page.cardsHoldStart = true
+        Qt.callLater(page.placeCards)
+    }
+
+    function placeCards() {
+        const furthest = Math.max(0, cardsView.contentHeight + cardsView.topMargin + cardsView.bottomMargin - cardsView.height)
+        cardsView.contentY = cardsView.originY - cardsView.topMargin + Math.min(page.cardsStartOffset, furthest)
+    }
 
     TrackListView {
         id: releaseTable
@@ -316,7 +369,12 @@ Item {
         header: Loader {
             width: cardsView.innerWidth
             sourceComponent: top
+            onHeightChanged: {
+                if (page.cardsHoldStart)
+                    Qt.callLater(page.placeCards)
+            }
         }
+        onMovementStarted: page.cardsHoldStart = false
         // .catalog-grid: repeat(auto-fill, minmax(150px, 1fr)), gap 28px 20px.
         // Each cell holds a card and the gaps after it, so the grid is 20px
         // wider than the page to take the last column's.
@@ -331,7 +389,15 @@ Item {
                 page.model.loadMore()
         }
 
-        AppScrollBar.vertical: AppScrollBar {}
+        // In the page's scroll lane at its right edge, clear of the panel's
+        // rounded top corner, as the songs' and release rows' bar is, so it
+        // stays put when the view switches.
+        AppScrollBar.vertical: AppScrollBar {
+            parent: page
+            x: page.width - width
+            height: page.height
+            laneTopMargin: Theme.radius2xl
+        }
 
         delegate: Item {
             id: cell
