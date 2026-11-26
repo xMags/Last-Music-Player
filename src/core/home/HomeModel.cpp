@@ -8,6 +8,9 @@
 #include <cmath>
 #include <functional>
 #include <limits>
+#include <type_traits>
+#include <utility>
+#include <vector>
 
 namespace lmp::core::home {
 
@@ -67,11 +70,14 @@ const QString kFromFollowed = QStringLiteral("From artists you follow");
     return timeValue(a) >= timeValue(b) ? a : b;
 }
 
-[[nodiscard]] QList<Track> uniqueTracks(const QList<Track>& tracks)
+// Appends the tracks of `tracks` whose id is not in `seen` yet, until `result`
+// holds `limit`; tracks without an id are left out.
+void appendUnique(QList<Track>& result, QSet<QString>& seen, const QList<Track>& tracks, qsizetype limit)
 {
-    QSet<QString> seen;
-    QList<Track> result;
     for (const Track& track : tracks) {
+        if (result.size() >= limit) {
+            return;
+        }
         const QString id = trackId(track);
         if (id.isEmpty() || seen.contains(id)) {
             continue;
@@ -79,16 +85,32 @@ const QString kFromFollowed = QStringLiteral("From artists you follow");
         seen.insert(id);
         result.append(track);
     }
+}
+
+// The first `limit` tracks, each id once.
+[[nodiscard]] QList<Track> uniqueTracks(const QList<Track>& tracks,
+                                        qsizetype limit = std::numeric_limits<qsizetype>::max())
+{
+    QSet<QString> seen;
+    QList<Track> result;
+    appendUnique(result, seen, tracks, limit);
     return result;
 }
 
+// A mix: the groups' tracks in order, each id once, up to the mix's length.
+// It stops as soon as the mix is full, since the later groups are often the
+// whole catalogue.
 [[nodiscard]] QList<Track> fillMix(std::initializer_list<QList<Track>> groups)
 {
-    QList<Track> all;
+    QSet<QString> seen;
+    QList<Track> result;
     for (const QList<Track>& group : groups) {
-        all += group;
+        appendUnique(result, seen, group, OnlineMixLength);
+        if (result.size() >= OnlineMixLength) {
+            break;
+        }
     }
-    return uniqueTracks(all).mid(0, OnlineMixLength);
+    return result;
 }
 
 [[nodiscard]] QList<Track> tracksByArtist(const QList<Track>& tracks, const QString& artist)
@@ -152,11 +174,47 @@ const QString kFromFollowed = QStringLiteral("From artists you follow");
     return catalog;
 }
 
-template <typename Compare>
-[[nodiscard]] QList<Track> sorted(QList<Track> tracks, Compare compare)
+// `tracks` stably sorted by `keyOf` of each track under `less`. Each key is
+// worked out once: the keys parse dates, which a comparison of whole tracks
+// would repeat for every pair compared (n log n parses per sort).
+template <typename KeyOf, typename Less>
+[[nodiscard]] QList<Track> sortedByKey(const QList<Track>& tracks, KeyOf keyOf, Less less)
 {
-    std::stable_sort(tracks.begin(), tracks.end(), compare);
-    return tracks;
+    using Key = std::invoke_result_t<KeyOf, const Track&>;
+    std::vector<std::pair<Key, qsizetype>> keyed;
+    keyed.reserve(static_cast<std::size_t>(tracks.size()));
+    for (qsizetype index = 0; index < tracks.size(); ++index) {
+        keyed.emplace_back(keyOf(tracks.at(index)), index);
+    }
+    std::stable_sort(keyed.begin(), keyed.end(),
+                     [&less](const std::pair<Key, qsizetype>& a, const std::pair<Key, qsizetype>& b) {
+                         return less(a.first, b.first);
+                     });
+    QList<Track> result;
+    result.reserve(tracks.size());
+    for (const std::pair<Key, qsizetype>& entry : keyed) {
+        result.append(tracks.at(entry.second));
+    }
+    return result;
+}
+
+// Most plays first, then the latest played.
+struct PlayKey {
+    int playCount = 0;
+    qint64 lastPlayed = 0;
+};
+
+[[nodiscard]] PlayKey playKey(const Track& track)
+{
+    return PlayKey{track.playCount, timeValue(track.lastPlayedAt)};
+}
+
+[[nodiscard]] bool morePlayed(const PlayKey& a, const PlayKey& b)
+{
+    if (a.playCount != b.playCount) {
+        return a.playCount > b.playCount;
+    }
+    return a.lastPlayed > b.lastPlayed;
 }
 
 } // namespace
@@ -239,8 +297,8 @@ HomeModel deriveHomeModel(const HomeLibrary& library)
     HomeModel model;
     const QList<Track> catalog = cloudCatalog(library);
     model.catalog = catalog;
-    model.listenAgain = uniqueTracks(library.history).mid(0, 27);
-    model.liked = uniqueTracks(library.liked).mid(0, 12);
+    model.listenAgain = uniqueTracks(library.history, 27);
+    model.liked = uniqueTracks(library.liked, 12);
     const QStringList topArtists = rankedValues(catalog, false);
     const QStringList topGenres = rankedValues(catalog, true);
     const auto artistAt = [&topArtists](int index) { return index < topArtists.size() ? topArtists.at(index) : QString(); };
@@ -312,37 +370,39 @@ HomeModel deriveHomeModel(const HomeLibrary& library)
     const QList<Track> daily5Seed = takeGenre(QStringLiteral("daily5"));
     const QList<Track> daily5 = takeDaily(fillMix({daily5Seed, tracksByArtist(catalog, artistAt(4)), unused(), catalog}));
 
-    const QList<Track> onRepeat = sorted(catalog, [](const Track& a, const Track& b) {
-        if (a.playCount != b.playCount) {
-            return a.playCount > b.playCount;
-        }
-        return timeValue(a.lastPlayedAt) > timeValue(b.lastPlayedAt);
-    });
+    const QList<Track> onRepeat = sortedByKey(catalog, playKey, morePlayed);
     QSet<QString> familiarGenres;
     for (const QString& genre : topGenres) {
         familiarGenres.insert(canonical(genre));
     }
-    const QList<Track> discover = sorted(catalog, [&familiarGenres](const Track& a, const Track& b) {
-        const bool aFamiliar = familiarGenres.contains(canonical(a.genre));
-        const bool bFamiliar = familiarGenres.contains(canonical(b.genre));
-        if (aFamiliar != bFamiliar) {
-            return !aFamiliar;
-        }
-        if (a.playCount != b.playCount) {
-            return a.playCount < b.playCount;
-        }
-        return addedTime(a) > addedTime(b);
-    });
-    const QList<Track> timeCapsule = sorted(catalog, [](const Track& a, const Track& b) {
-        const qint64 left = addedTime(a);
-        const qint64 right = addedTime(b);
+    // Unfamiliar genres first, then the least played, then the newest.
+    struct DiscoverKey {
+        bool familiar = false;
+        int playCount = 0;
+        qint64 added = 0;
+    };
+    const QList<Track> discover = sortedByKey(
+        catalog,
+        [&familiarGenres](const Track& track) {
+            return DiscoverKey{familiarGenres.contains(canonical(track.genre)), track.playCount, addedTime(track)};
+        },
+        [](const DiscoverKey& a, const DiscoverKey& b) {
+            if (a.familiar != b.familiar) {
+                return !a.familiar;
+            }
+            if (a.playCount != b.playCount) {
+                return a.playCount < b.playCount;
+            }
+            return a.added > b.added;
+        });
+    // The oldest added first; songs with no date last.
+    const QList<Track> timeCapsule = sortedByKey(catalog, addedTime, [](qint64 left, qint64 right) {
         if ((left == 0) != (right == 0)) {
             return left != 0;
         }
         return left < right;
     });
-    const QList<Track> fresh =
-        sorted(catalog, [](const Track& a, const Track& b) { return addedTime(a) > addedTime(b); });
+    const QList<Track> fresh = sortedByKey(catalog, addedTime, [](qint64 left, qint64 right) { return left > right; });
 
     const QHash<QString, QList<Track>> mixTracks{
         {QStringLiteral("daily1"), daily1},
@@ -370,12 +430,7 @@ HomeModel deriveHomeModel(const HomeLibrary& library)
     QList<Track> played;
     std::copy_if(catalog.cbegin(), catalog.cend(), std::back_inserter(played),
                  [](const Track& track) { return track.playCount > 0; });
-    model.mostPlayed = sorted(played, [](const Track& a, const Track& b) {
-                           if (a.playCount != b.playCount) {
-                               return a.playCount > b.playCount;
-                           }
-                           return timeValue(a.lastPlayedAt) > timeValue(b.lastPlayedAt);
-                       }).mid(0, 10);
+    model.mostPlayed = sortedByKey(played, playKey, morePlayed).mid(0, 10);
     for (const Track& track : fresh) {
         if (addedTime(track) > 0 && model.recentlyAdded.size() < 27) {
             model.recentlyAdded.append(track);
@@ -402,10 +457,9 @@ HomeLibrary homeLibraryFromSnapshot(const db::AccountLibrarySnapshot& snapshot)
             library.liked.append(track);
         }
     }
-    std::stable_sort(played.begin(), played.end(), [](const Track& a, const Track& b) {
-        return timeValue(a.lastPlayedAt) > timeValue(b.lastPlayedAt);
-    });
-    library.history = played;
+    library.history = sortedByKey(
+        played, [](const Track& track) { return timeValue(track.lastPlayedAt); },
+        [](qint64 left, qint64 right) { return left > right; });
     for (const db::AccountPlaylistSnapshot& playlist : snapshot.playlists) {
         for (const QString& id : playlist.remoteTrackIds) {
             const auto found = byId.constFind(id);
@@ -455,7 +509,7 @@ QList<Track> interleaveMixTracks(const QList<QList<Track>>& groups)
             }
         }
     }
-    return uniqueTracks(turns).mid(0, OnlineMixLength);
+    return uniqueTracks(turns, OnlineMixLength);
 }
 
 QList<Track> mergeHomeMixTracks(const QList<Track>& local, const QList<Track>& remote, bool prependRemote)

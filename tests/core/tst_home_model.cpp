@@ -87,6 +87,7 @@ private slots:
     void fillLabelsPadsWithUnseenFallbacks();
     void starterMixesDealFollowedArtists();
     void starterMixInterleavesSongs();
+    void sortsByPlaysDatesAndGenres();
 
     void builtInLayoutIsTodaysHome();
     void noLayoutGivesTheBuiltInOne();
@@ -98,6 +99,36 @@ private slots:
     void phoneFormPutsListenAgainFirst();
     void listedLayoutKeepsOnlyWhatWasNamed();
 };
+
+// Every date-ordered list, ties kept in library order.
+void HomeModelTest::sortsByPlaysDatesAndGenres()
+{
+    const auto song = [](const char* id, int plays, const char* lastPlayed, const char* added, const char* genre) {
+        Track result = track(QString::fromLatin1(id));
+        result.playCount = plays;
+        result.lastPlayedAt = QString::fromLatin1(lastPlayed);
+        result.addedAt = QString::fromLatin1(added);
+        result.genre = QString::fromLatin1(genre);
+        return result;
+    };
+    home::HomeLibrary library;
+    // c has no added date, so its last play stands in for it.
+    library.playlistTracks = {
+        song("a", 3, "2026-01-02T00:00:00Z", "2026-01-01T00:00:00Z", "Pop"),
+        song("b", 3, "2026-01-05T00:00:00Z", "2025-12-01T00:00:00Z", "Pop"),
+        song("c", 1, "2026-01-03T00:00:00Z", "", "Pop"),
+        song("d", 0, "", "", ""),
+        song("e", 3, "2026-01-05T00:00:00Z", "2026-01-01T00:00:00Z", ""),
+    };
+    const home::HomeModel model = home::deriveHomeModel(library);
+
+    QCOMPARE(ids(model.mostPlayed), QStringList({"b", "e", "a", "c"}));
+    QCOMPARE(ids(model.recentlyAdded), QStringList({"c", "a", "e", "b"}));
+    QCOMPARE(ids(mix(model, "repeat").tracks), QStringList({"b", "e", "a", "c", "d"}));
+    QCOMPARE(ids(mix(model, "fresh").tracks), QStringList({"c", "a", "e", "b", "d"}));
+    QCOMPARE(ids(mix(model, "timecapsule").tracks), QStringList({"b", "a", "e", "c", "d"}));
+    QCOMPARE(ids(mix(model, "discover").tracks), QStringList({"d", "e", "c", "a", "b"}));
+}
 
 void HomeModelTest::buildsShelvesAndNineMixes()
 {
