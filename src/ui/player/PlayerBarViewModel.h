@@ -27,8 +27,9 @@ namespace lmp::ui {
 // under the pointer; seekToRatio() follows the drag, as the design does.
 //
 // While another of the account's devices plays (`remote`), everything shown
-// is that device's song and state, and every control goes to it instead;
-// `playingOn` names it.
+// is that device's song and state, and every playback control goes to it
+// instead; `playingOn` names it. The heart and the download mark stay this
+// app's: the account's like and this PC's download of that song.
 class PlayerBarViewModel : public QObject {
     Q_OBJECT
     QML_ELEMENT

@@ -259,7 +259,7 @@ void PlayerBarViewModel::cycleRepeat()
 QString PlayerBarViewModel::downloadAddress() const
 {
     const core::Track* track = shownTrack();
-    if (track == nullptr || remote()) {
+    if (track == nullptr) {
         return {};
     }
     return core::net::isHttpUrl(track->sourceUrl) ? track->sourceUrl : QString();
@@ -279,8 +279,9 @@ bool PlayerBarViewModel::likedNow(const core::Track* track) const
     if (track == nullptr) {
         return false;
     }
-    // Another device's song is that device's to like: its own field says.
-    if (m_actions == nullptr || remote()) {
+    // Likes belong to the account, so another device's song is looked up
+    // here too: the devices do not send whether a song is liked.
+    if (m_actions == nullptr) {
         return track->liked;
     }
     return m_actions->isLiked(*track);
@@ -289,7 +290,7 @@ bool PlayerBarViewModel::likedNow(const core::Track* track) const
 void PlayerBarViewModel::toggleLike()
 {
     const core::Track* track = shownTrack();
-    if (track == nullptr || remote()) {
+    if (track == nullptr) {
         return;
     }
     if (m_actions == nullptr) {

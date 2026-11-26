@@ -150,9 +150,9 @@ RowLayout {
         Accessible.name: App.playerBar.liked ? qsTr("Remove from Liked Songs") : qsTr("Add to Liked Songs")
         id: likeButton
 
-        // The song of another device is not this PC's to like, keep or share.
+        // Likes are the account's, so another device's song is liked here too.
         opacity: block.idle ? 0 : 1
-        enabled: !block.idle && !App.playerBar.remote
+        enabled: !block.idle
         iconName: App.playerBar.liked ? "heart-fill" : "heart"
         active: App.playerBar.liked
         ToolTip.visible: hovered
@@ -190,7 +190,8 @@ RowLayout {
 
         visible: App.capabilities.downloadSongs
         opacity: block.idle ? 0 : 1
-        enabled: !block.idle && !App.playerBar.remote
+        // Another device's song can be downloaded to this PC as well.
+        enabled: !block.idle
         iconName: markState === "" ? "download" : ""
         Accessible.name: markState === "" ? qsTr("Download this song") : mark.label
         ToolTip.visible: hovered

@@ -365,7 +365,10 @@ CompositionRoot::CompositionRoot()
                  .trackMenu = m_trackMenu,
                  .toasts = m_toasts,
                  .picker = m_folderPicker,
-                 .currentTrack = [this]() { return m_player.currentTrack(); },
+                 .currentTrack =
+                     [this]() {
+                         return m_connectSync.isRemote() ? m_connectSync.remote().track : m_player.currentTrack();
+                     },
                  .canDownload = [this]() { return m_mode.capabilities().downloadSongs; },
                  .stableKey =
                      [this](const core::Track& track) {

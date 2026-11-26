@@ -120,7 +120,8 @@ public:
         TrackMenuController& trackMenu;
         ToastQueue& toasts;
         platform::IFolderPicker& picker;
-        // The song playing now, for the player bar's Download.
+        // The song the player bar shows (another device's while it plays),
+        // for the player bar's Download.
         std::function<std::optional<core::Track>()> currentTrack;
         // Whether songs can be downloaded now (Capabilities::downloadSongs).
         std::function<bool()> canDownload;
@@ -214,7 +215,7 @@ public:
     // Removes every download from this PC and says how it went in a toast.
     Q_INVOKABLE void removeAll();
     Q_INVOKABLE void chooseFolder();
-    // The player bar's Download: the song playing now.
+    // The player bar's Download: the song it shows.
     Q_INVOKABLE void downloadPlaying();
     // A collection's Download (its songs that can be downloaded).
     bool downloadTracks(const QString& title, const QString& subtitle, const QString& artworkUrl,

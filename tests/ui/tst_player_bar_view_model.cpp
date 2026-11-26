@@ -47,6 +47,7 @@ private slots:
     void aLocalSongWithoutArtworkShowsItsEmbeddedCover();
     void anotherDevicesSongIsShownAndControlled();
     void theHeartReadsAndWritesTheLibrary();
+    void anotherDevicesSongShowsItsLikeAndDownloadHere();
 
 private:
     void playSongs(const QStringList& names);
@@ -343,6 +344,57 @@ void PlayerBarViewModelTest::theHeartReadsAndWritesTheLibrary()
     QVERIFY(bar.liked());
     bar.refreshLiked();
     QVERIFY(!bar.liked());
+}
+
+void PlayerBarViewModelTest::anotherDevicesSongShowsItsLikeAndDownloadHere()
+{
+    lmp::test::ModeServiceFixture modes;
+    (void)modes.modes.start();
+    lmp::core::db::Database& database = m_fixture->library.database();
+    lmp::core::db::CollectionRepository collections(database);
+    lmp::core::db::GroupQueries groups(database);
+    lmp::core::UserDataOperationGate gate;
+    lmp::core::TrackActions actions(lmp::core::TrackActions::Dependencies{
+        *m_player, m_fixture->tracks, collections, groups, modes.modes, gate});
+    ConnectHarness harness(m_fixture->clock);
+    lmp::core::connect::ConnectSync sync(
+        {.client = *harness.client, .player = *m_player, .clock = m_fixture->clock, .castDeviceName = {}});
+    PlayerBarViewModel bar(*m_player, &sync, &actions);
+
+    Track song;
+    song.title = QStringLiteral("On The Phone");
+    song.artist = QStringLiteral("Someone");
+    song.sourceKind = QStringLiteral("remote");
+    song.remoteId = QStringLiteral("p1");
+    song.sourceUrl = QStringLiteral("https://music.example.test/t/p1");
+    // Liked here as the song arrives from the phone (an account song).
+    const Track arriving = lmp::core::connect::trackFromConnect(lmp::core::connect::connectTrackJson(song));
+    QCOMPARE(actions.toggleLike(arriving), std::optional<bool>(true));
+
+    // The devices do not send whether a song is liked: the phone's song
+    // arrives without it, and the heart still shows the like made here.
+    harness.client->start();
+    settle();
+    harness.socket().serverOpen();
+    const QJsonObject state{{"track", lmp::core::connect::connectTrackJson(song)},
+                            {"playing", true},
+                            {"positionSec", 30},
+                            {"durationSec", 120}};
+    harness.socket().serverSend(
+        {{"type", "welcome"},
+         {"epoch", 2},
+         {"devices", QJsonArray{QJsonObject{{"deviceId", "phone-0001"}, {"name", "Phone"}, {"kind", "android"}}}},
+         {"session", QJsonObject{{"activeDeviceId", "phone-0001"}, {"state", state}}}});
+    QVERIFY(bar.remote());
+    QVERIFY(bar.liked());
+
+    // Its download mark is this PC's download of the song.
+    QCOMPARE(bar.downloadAddress(), song.sourceUrl);
+
+    // The heart likes and unlikes it here.
+    bar.toggleLike();
+    QVERIFY(!bar.liked());
+    QVERIFY(!m_fixture->tracks.isLiked(lmp::core::catalogSourceKey(arriving)));
 }
 
 QTEST_GUILESS_MAIN(PlayerBarViewModelTest)
