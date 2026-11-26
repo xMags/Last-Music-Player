@@ -38,6 +38,27 @@ Item {
         restoreMode: Binding.RestoreNone
     }
 
+    // One picture filling the tile like Image.PreserveAspectCrop, with the
+    // tile's rounded corners (shaders/roundedcover.frag).
+    component CoverPicture: ShaderEffect {
+        required property Image picture
+
+        readonly property real itemAspect: width > 0 && height > 0 ? width / height : 1
+        readonly property real pictureAspect: picture.implicitWidth > 0 && picture.implicitHeight > 0
+            ? picture.implicitWidth / picture.implicitHeight : itemAspect
+
+        property Image source: picture
+        property size itemSize: Qt.size(width, height)
+        property real cornerRadius: Math.min(root.radius, width / 2, height / 2)
+        property size cropScale: pictureAspect > itemAspect ? Qt.size(itemAspect / pictureAspect, 1)
+                                                            : Qt.size(1, pictureAspect / itemAspect)
+
+        anchors.fill: parent
+        visible: picture.status === Image.Ready && picture.opacity > 0
+        opacity: picture.opacity
+        fragmentShader: "qrc:/qt/qml/LastMusicPlayer/shaders/roundedcover.frag.qsb"
+    }
+
     implicitWidth: 160
     implicitHeight: 160
 
@@ -87,6 +108,9 @@ Item {
         id: content
 
         anchors.fill: parent
+        // Hidden once the picture covers it, so its colours cannot show
+        // through the picture's soft edge.
+        visible: !root.loaded || current.opacity < 1
         layer.enabled: true
         // The mask's anti-aliased edge decides coverage: half coverage is the
         // edge, spread over the full soft band. With the defaults every
@@ -144,30 +168,37 @@ Item {
             }
         }
 
-        Image {
-            id: previous
+    }
 
-            anchors.fill: parent
-            asynchronous: true
-            fillMode: Image.PreserveAspectCrop
-        }
+    // The pictures load here but are drawn by CoverPicture, straight from
+    // their textures: inside the masked layer they were resampled twice when
+    // the tile did not sit on whole pixels, which blurred them.
+    Image {
+        id: previous
 
-        Image {
-            id: current
+        anchors.fill: parent
+        asynchronous: true
+        visible: false
+    }
 
-            anchors.fill: parent
-            asynchronous: true
-            fillMode: Image.PreserveAspectCrop
-            opacity: 0
+    Image {
+        id: current
 
-            onStatusChanged: {
-                if (status === Image.Ready)
-                    root.reveal()
-                else if (status === Image.Error)
-                    previous.source = ""
-            }
+        anchors.fill: parent
+        asynchronous: true
+        visible: false
+        opacity: 0
+
+        onStatusChanged: {
+            if (status === Image.Ready)
+                root.reveal()
+            else if (status === Image.Error)
+                previous.source = ""
         }
     }
+
+    CoverPicture { picture: previous }
+    CoverPicture { picture: current }
 
     Rectangle {
         id: mask

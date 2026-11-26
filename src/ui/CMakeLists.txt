@@ -408,6 +408,13 @@ target_include_directories(lmp_ui
 target_link_libraries(lmp_ui
     PUBLIC lmp_core Qt6::Concurrent Qt6::Gui Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::Svg)
 
+# Shaders, compiled to .qsb at build time. QML refers to them by their
+# resource path, qrc:/qt/qml/LastMusicPlayer/shaders/<name>.qsb.
+qt_add_shaders(lmp_ui "lmp_ui_shaders"
+    PREFIX "/qt/qml/LastMusicPlayer"
+    FILES
+        shaders/roundedcover.frag)
+
 # Drawn chart covers (ChartArtImageProvider), generated from the reference
 # recipe with their colours as placeholders.
 qt_add_resources(lmp_ui "chartart"
