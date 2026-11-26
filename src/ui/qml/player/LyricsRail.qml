@@ -1,25 +1,18 @@
 import QtQuick
-import QtQuick.Layouts
 import LastMusicPlayer
 
 // The Lyrics tab of the queue rail (views/queue.ts 160-172): the playing
-// song above its lyrics. While nothing plays, the idle panel shows instead.
+// song above its lyrics, scrolling away with them as one column, as the Up
+// Next tab's header does with the queue. While nothing plays, the idle panel
+// shows instead.
 Item {
     id: rail
 
-    ColumnLayout {
+    LyricsPanel {
         anchors.fill: parent
-        spacing: 0
         visible: App.queueRail.hasTrack
-
-        QueueNowPlayingHeader {
-            Layout.fillWidth: true
-        }
-
-        LyricsPanel {
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-            Layout.topMargin: 8
+        header: Component {
+            QueueNowPlayingHeader {}
         }
     }
 

@@ -11,10 +11,18 @@ import LastMusicPlayer
 // instrumental and a failed request show a centred notice, the failure with
 // "Try again". `fullscreen` gives the full-screen player's larger lines on
 // a dark panel.
+//
+// `header` (the rail's playing song) is the first thing in the one scrolling
+// area: the synced lines' list holds it as its header, and the other states
+// (loading, plain lyrics, a notice) as its footer, so one instance of it
+// scrolls away with whatever shows. Without one (the full-screen player) the
+// states sit in the panel as they always have.
 Item {
     id: panel
 
     property bool fullscreen: false
+    // Scrolls above the lyrics, with them; none by default.
+    property Component header: null
 
     // Whether the playing line scrolls into view; reading elsewhere stops it.
     property bool follow: true
@@ -55,49 +63,174 @@ Item {
         }
     }
 
-    // Loading: a few soft bars (.lm-skeleton-lyrics).
-    Column {
-        id: lineSkeleton
+    // What shows while there are no synced lines: the loading bars, the plain
+    // lyrics or a centred notice. `minimum` is the room it fills at least,
+    // so a notice is centred in it.
+    component StateBody: Item {
+        id: body
 
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.top: parent.top
-        anchors.topMargin: 8
-        spacing: 15
-        visible: panel.state === "loading"
+        property real minimum: 0
 
-        Repeater {
-            model: [1.0, 0.82, 0.94, 0.7, 0.88, 0.76]
+        implicitHeight: Math.max(body.minimum,
+                                 panel.state === "plain" ? plainText.implicitHeight + 28
+                                 : panel.state === "loading" ? bars.y + bars.height
+                                 : notice.implicitHeight)
 
-            Skeleton {
-                id: bar
+        // Loading: a few soft bars (.lm-skeleton-lyrics).
+        Column {
+            id: bars
 
-                required property real modelData
+            anchors.left: parent.left
+            anchors.right: parent.right
+            y: 8
+            spacing: 15
+            visible: panel.state === "loading"
 
-                width: panel.width * bar.modelData
-                height: panel.fullscreen ? 16 : 13
-                radius: height / 2
+            Repeater {
+                model: [1.0, 0.82, 0.94, 0.7, 0.88, 0.76]
+
+                Skeleton {
+                    id: bar
+
+                    required property real modelData
+
+                    width: body.width * bar.modelData
+                    height: panel.fullscreen ? 16 : 13
+                    radius: height / 2
+                }
+            }
+        }
+
+        // One band for the whole group of lines.
+        SkeletonSweep {
+            anchors.fill: bars
+            visible: bars.visible
+            bandColor: Theme.surface
+        }
+
+        // Plain lyrics.
+        Text {
+            id: plainText
+
+            y: panel.fullscreen ? 8 : 4
+            width: parent.width
+            visible: panel.state === "plain"
+            text: App.lyrics.plain
+            wrapMode: Text.Wrap
+            font.family: Theme.body.family
+            font.pixelSize: panel.fullscreen ? 20 : 14
+            lineHeight: panel.fullscreen ? 1.6 : 1.7
+            color: panel.plainColor
+        }
+
+        // A centred notice (.lyrics-state).
+        Column {
+            id: notice
+
+            anchors.centerIn: parent
+            width: Math.min(parent.width - 40, 280)
+            spacing: 10
+            visible: panel.state === "missing" || panel.state === "instrumental" || panel.state === "failed"
+                || panel.state === "unavailable"
+
+            Rectangle {
+                anchors.horizontalCenter: parent.horizontalCenter
+                width: 60
+                height: 60
+                radius: 30
+                color: Qt.alpha(panel.headingColor, 0.12)
+
+                Icon {
+                    anchors.centerIn: parent
+                    name: panel.state === "failed" ? "wifi-off" : "music-note"
+                    size: 26
+                    color: panel.headingColor
+                }
+            }
+
+            Item { width: 1; height: 6 }
+
+            Text {
+                width: parent.width
+                horizontalAlignment: Text.AlignHCenter
+                wrapMode: Text.Wrap
+                text: panel.state === "failed" ? qsTr("Lyrics didn't load")
+                    : panel.state === "unavailable" ? qsTr("Lyrics need an account")
+                    : panel.state === "instrumental" ? qsTr("Instrumental")
+                    : qsTr("No lyrics for this song")
+                font.family: Theme.body.family
+                font.pixelSize: 19
+                font.weight: Font.ExtraBold
+                color: panel.headingColor
+                Accessible.role: Accessible.StaticText
+            }
+
+            Text {
+                width: parent.width
+                horizontalAlignment: Text.AlignHCenter
+                wrapMode: Text.Wrap
+                text: panel.state === "failed" ? qsTr("Check your connection and try again.")
+                    : panel.state === "unavailable" ? qsTr("Sign in, or add an API key in Settings, to see lyrics.")
+                    : panel.state === "instrumental" ? qsTr("This song has no vocals. Enjoy the music.")
+                    : qsTr("We couldn't find lyrics for %1. Enjoy the music.").arg(App.lyrics.songTitle)
+                font.family: Theme.body.family
+                font.pixelSize: 14
+                lineHeight: 1.5
+                color: panel.detailColor
+            }
+
+            AppButton {
+                anchors.horizontalCenter: parent.horizontalCenter
+                visible: panel.state === "failed"
+                variant: AppButton.Accent
+                text: qsTr("Try again")
+                onClicked: App.lyrics.retry()
             }
         }
     }
 
-    // One band for the whole group of lines.
-    SkeletonSweep {
-        anchors.fill: lineSkeleton
-        visible: lineSkeleton.visible
-        bandColor: Theme.surface
+    // The scrolling header and the gap under it.
+    Component {
+        id: headerSlot
+
+        Item {
+            width: lines.width
+            implicitHeight: headerLoader.implicitHeight > 0 ? headerLoader.implicitHeight + 8 : 0
+            height: implicitHeight
+
+            Loader {
+                id: headerLoader
+
+                width: parent.width
+                sourceComponent: panel.header
+            }
+        }
     }
 
-    // Synced lines.
+    // Under the header, the state that is not synced lines.
+    Component {
+        id: stateFooter
+
+        StateBody {
+            width: lines.width
+            minimum: lines.height - lines.topMargin - lines.bottomMargin
+                - (lines.headerItem !== null ? lines.headerItem.height : 0)
+            height: implicitHeight
+        }
+    }
+
+    // Synced lines; with a header, every state (see above).
     ListView {
         id: lines
 
         anchors.fill: parent
-        visible: panel.state === "synced"
+        visible: panel.state === "synced" || panel.header !== null
         clip: true
         Accessible.role: Accessible.List
         Accessible.name: qsTr("Lyrics")
         model: panel.state === "synced" ? App.lyrics.lines : []
+        header: panel.header !== null ? headerSlot : null
+        footer: panel.header !== null && panel.state !== "synced" ? stateFooter : null
         boundsBehavior: Flickable.StopAtBounds
         // Room above the first line and below the last, so either can sit
         // in the middle.
@@ -192,92 +325,25 @@ Item {
         }
     }
 
-    // Plain lyrics.
+    // Without a header: the other states in the panel itself; plain lyrics
+    // scroll on their own.
     Flickable {
-        id: plainScroll
+        id: stateScroll
 
         anchors.fill: parent
-        visible: panel.state === "plain"
+        visible: panel.header === null && panel.state !== "synced"
         clip: true
-        contentHeight: plainText.implicitHeight + 28
+        contentHeight: stateBody.height
         boundsBehavior: Flickable.StopAtBounds
 
-        WheelScroll { flickable: plainScroll }
+        WheelScroll { flickable: stateScroll }
 
-        Text {
-            id: plainText
+        StateBody {
+            id: stateBody
 
-            y: panel.fullscreen ? 8 : 4
-            width: parent.width
-            text: App.lyrics.plain
-            wrapMode: Text.Wrap
-            font.family: Theme.body.family
-            font.pixelSize: panel.fullscreen ? 20 : 14
-            lineHeight: panel.fullscreen ? 1.6 : 1.7
-            color: panel.plainColor
-        }
-    }
-
-    // A centred notice (.lyrics-state).
-    Column {
-        anchors.centerIn: parent
-        width: Math.min(parent.width - 40, 280)
-        spacing: 10
-        visible: panel.state === "missing" || panel.state === "instrumental" || panel.state === "failed"
-            || panel.state === "unavailable"
-
-        Rectangle {
-            anchors.horizontalCenter: parent.horizontalCenter
-            width: 60
-            height: 60
-            radius: 30
-            color: Qt.alpha(panel.headingColor, 0.12)
-
-            Icon {
-                anchors.centerIn: parent
-                name: panel.state === "failed" ? "wifi-off" : "music-note"
-                size: 26
-                color: panel.headingColor
-            }
-        }
-
-        Item { width: 1; height: 6 }
-
-        Text {
-            width: parent.width
-            horizontalAlignment: Text.AlignHCenter
-            wrapMode: Text.Wrap
-            text: panel.state === "failed" ? qsTr("Lyrics didn't load")
-                : panel.state === "unavailable" ? qsTr("Lyrics need an account")
-                : panel.state === "instrumental" ? qsTr("Instrumental")
-                : qsTr("No lyrics for this song")
-            font.family: Theme.body.family
-            font.pixelSize: 19
-            font.weight: Font.ExtraBold
-            color: panel.headingColor
-            Accessible.role: Accessible.StaticText
-        }
-
-        Text {
-            width: parent.width
-            horizontalAlignment: Text.AlignHCenter
-            wrapMode: Text.Wrap
-            text: panel.state === "failed" ? qsTr("Check your connection and try again.")
-                : panel.state === "unavailable" ? qsTr("Sign in, or add an API key in Settings, to see lyrics.")
-                : panel.state === "instrumental" ? qsTr("This song has no vocals. Enjoy the music.")
-                : qsTr("We couldn't find lyrics for %1. Enjoy the music.").arg(App.lyrics.songTitle)
-            font.family: Theme.body.family
-            font.pixelSize: 14
-            lineHeight: 1.5
-            color: panel.detailColor
-        }
-
-        AppButton {
-            anchors.horizontalCenter: parent.horizontalCenter
-            visible: panel.state === "failed"
-            variant: AppButton.Accent
-            text: qsTr("Try again")
-            onClicked: App.lyrics.retry()
+            width: stateScroll.width
+            minimum: stateScroll.height
+            height: implicitHeight
         }
     }
 }
