@@ -7,6 +7,17 @@ function(lmp_add_test name)
     set_target_properties(${name} PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests")
     lmp_enable_strict_warnings(${name})
+    # Every test links the static core and UI libraries, so a full Debug PDB
+    # copies their whole debug info into each test (about 1 GB per test).
+    # FASTLINK PDBs reference the object files' debug info in the build tree
+    # instead; debugging a test still works while that build tree exists.
+    # Incremental linking is off as well: its .ilk databases cost about 35 MB
+    # per test, and a change to those libraries relinks every test in full.
+    if(MSVC)
+        target_link_options(${name} PRIVATE
+            "$<$<CONFIG:Debug>:/DEBUG:FASTLINK>"
+            "$<$<CONFIG:Debug>:/INCREMENTAL:NO>")
+    endif()
     add_test(NAME ${name} COMMAND ${name})
 endfunction()
 
