@@ -89,7 +89,8 @@ private slots:
     void modeChangeDropsEverything();
     void songsWithoutAPictureAreResolvedFirst();
     void outsideAccountModeTheAddressIsFetched();
-    void cacheStartsOverPastItsBudget();
+    void cacheDropsTheLeastRecentlyUsedPastItsBudget();
+    void aPictureLargerThanTheBudgetIsNotCached();
     void coverLinksLoadFromTheAccountService();
     void coversWaitForTheStoredSessionCheck();
     void aPictureOnDiskNeedsNoNetwork();
@@ -322,21 +323,43 @@ void ArtworkServiceTest::outsideAccountModeTheAddressIsFetched()
              FailureKind::NotFound);
 }
 
-void ArtworkServiceTest::cacheStartsOverPastItsBudget()
+void ArtworkServiceTest::cacheDropsTheLeastRecentlyUsedPastItsBudget()
 {
     ArtworkFixture fixture;
     QVERIFY(fixture.enterAccountMode());
-    const QByteArray big(40 * 1024 * 1024, 'x');
+    // Three of these do not fit the budget; two do.
+    const QByteArray third(static_cast<qsizetype>(ArtworkService::MaxCachedBytes / 3 + 1), 'x');
+    for (const int n : {1, 2}) {
+        (void)fixture.service.fetch(picture(n));
+        settle();
+        QVERIFY(fixture.answer(FakeHttpTransport::ok(third)));
+    }
+    // Using 1 again makes 2 the least recently used.
+    QVERIFY(fixture.service.fetch(picture(1)).isFinished());
+    (void)fixture.service.fetch(picture(3));
+    settle();
+    QVERIFY(fixture.answer(FakeHttpTransport::ok(third)));
+    QVERIFY(fixture.service.isCached(picture(1)));
+    QVERIFY(!fixture.service.isCached(picture(2)));
+    QVERIFY(fixture.service.isCached(picture(3)));
+    QCOMPARE(fixture.service.cachedBytes(), static_cast<std::size_t>(2 * third.size()));
+}
+
+void ArtworkServiceTest::aPictureLargerThanTheBudgetIsNotCached()
+{
+    ArtworkFixture fixture;
+    QVERIFY(fixture.enterAccountMode());
     (void)fixture.service.fetch(picture(1));
     settle();
-    QVERIFY(fixture.answer(FakeHttpTransport::ok(big)));
-    QVERIFY(fixture.service.isCached(picture(1)));
-    (void)fixture.service.fetch(picture(2));
+    QVERIFY(fixture.answer(FakeHttpTransport::ok(QByteArray(5, 'x'))));
+    const QByteArray huge(static_cast<qsizetype>(ArtworkService::MaxCachedBytes + 1), 'x');
+    QFuture<Result<QByteArray>> future = fixture.service.fetch(picture(2));
     settle();
-    QVERIFY(fixture.answer(FakeHttpTransport::ok(big)));
-    QVERIFY(!fixture.service.isCached(picture(1)));
-    QVERIFY(fixture.service.isCached(picture(2)));
-    QCOMPARE(fixture.service.cachedBytes(), static_cast<std::size_t>(big.size()));
+    QVERIFY(fixture.answer(FakeHttpTransport::ok(huge)));
+    // It still reaches the one who asked.
+    QCOMPARE(future.result().value().size(), huge.size());
+    QVERIFY(!fixture.service.isCached(picture(2)));
+    QVERIFY(fixture.service.isCached(picture(1)));
 }
 
 void ArtworkServiceTest::coverLinksLoadFromTheAccountService()

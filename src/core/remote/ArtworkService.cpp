@@ -258,8 +258,8 @@ QFuture<Result<QByteArray>> ArtworkService::fetch(const QString& artworkUrl, con
     }
 
     const QString key = keyFor(hasArtwork ? normalized : QString(), hasArtwork ? QString() : sourceUrl);
-    if (const auto cached = m_cache.constFind(key); cached != m_cache.constEnd()) {
-        return ready(Result<QByteArray>(cached.value()));
+    if (std::optional<QByteArray> bytes = cached(key)) {
+        return ready(Result<QByteArray>(*std::move(bytes)));
     }
 
     auto promise = std::make_shared<QPromise<Result<QByteArray>>>();
@@ -352,6 +352,7 @@ void ArtworkService::clear()
     }
     m_requests.clear();
     m_cache.clear();
+    m_cacheUse.clear();
     m_cacheBytes = 0;
     m_visibleQueue.clear();
     m_backfillQueue.clear();
@@ -618,19 +619,41 @@ QFuture<Result<QByteArray>> ArtworkService::download(const QString& url)
     });
 }
 
+std::optional<QByteArray> ArtworkService::cached(const QString& key)
+{
+    const auto found = m_cache.find(key);
+    if (found == m_cache.end()) {
+        return std::nullopt;
+    }
+    m_cacheUse.splice(m_cacheUse.begin(), m_cacheUse, found->use);
+    return found->bytes;
+}
+
 void ArtworkService::store(const QString& key, const QByteArray& bytes)
 {
+    if (const auto existing = m_cache.find(key); existing != m_cache.end()) {
+        m_cacheBytes -= static_cast<std::size_t>(existing->bytes.size());
+        m_cacheUse.erase(existing->use);
+        m_cache.erase(existing);
+    }
     const auto size = static_cast<std::size_t>(bytes.size());
-    // Past the budget everything goes and the cache starts over: a fixed
-    // memory bound without bookkeeping for decorative pictures.
-    if (m_cacheBytes + size > MaxCachedBytes) {
-        m_cache.clear();
-        m_cacheBytes = 0;
+    // A picture larger than the whole budget is only on disk.
+    if (size > MaxCachedBytes) {
+        return;
     }
-    if (const auto existing = m_cache.constFind(key); existing != m_cache.constEnd()) {
-        m_cacheBytes -= static_cast<std::size_t>(existing.value().size());
+    // The least recently used pictures make room.
+    while (m_cacheBytes + size > MaxCachedBytes && !m_cacheUse.empty()) {
+        const auto oldest = m_cache.find(m_cacheUse.back());
+        m_cacheBytes -= static_cast<std::size_t>(oldest->bytes.size());
+        m_cache.erase(oldest);
+        m_cacheUse.pop_back();
     }
-    m_cache.insert(key, bytes);
+    // Read in growing steps, a picture's buffer can be nearly twice its
+    // size; the kept copy holds the picture alone.
+    QByteArray kept = bytes;
+    kept.squeeze();
+    m_cacheUse.push_front(key);
+    m_cache.insert(key, CachedPicture{.bytes = std::move(kept), .use = m_cacheUse.begin()});
     m_cacheBytes += size;
 }
 

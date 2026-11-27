@@ -15,6 +15,7 @@
 #include <chrono>
 #include <cstdint>
 #include <deque>
+#include <list>
 #include <memory>
 #include <optional>
 #include <vector>
@@ -74,7 +75,9 @@ public:
     static constexpr int MaxActive = 6;
     static constexpr int MaxActiveBackfill = 2;
     static constexpr int MaxRuns = 5;
-    static constexpr std::size_t MaxCachedBytes = 64U * 1024U * 1024U;
+    // Pictures kept in memory, the most recently used first; older ones are
+    // read again from the disk cache. About 65 covers of average size.
+    static constexpr std::size_t MaxCachedBytes = 16U * 1024U * 1024U;
     static constexpr qint64 MaxPictureBytes = 12LL * 1024 * 1024;
     static constexpr std::array<std::chrono::milliseconds, 2> RetryDelays{std::chrono::milliseconds(500),
                                                                           std::chrono::milliseconds(1500)};
@@ -208,7 +211,14 @@ private:
 
     Dependencies m_deps;
     QHash<QString, Request> m_requests;
-    QHash<QString, QByteArray> m_cache;
+    struct CachedPicture {
+        QByteArray bytes;
+        std::list<QString>::iterator use; // its place in m_cacheUse
+    };
+    // Looks a picture up and marks it as just used.
+    [[nodiscard]] std::optional<QByteArray> cached(const QString& key);
+    QHash<QString, CachedPicture> m_cache;
+    std::list<QString> m_cacheUse; // keys, the most recently used first
     std::size_t m_cacheBytes = 0;
     std::deque<QString> m_visibleQueue;
     std::deque<QString> m_backfillQueue;
