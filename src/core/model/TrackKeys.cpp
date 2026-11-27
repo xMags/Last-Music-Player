@@ -117,6 +117,24 @@ QString streamCacheKey(const RemoteScopeKeyParts& scope, const Track& track)
     return remoteScopeCacheKey(scope) + QLatin1Char('\n') + track.sourceUrl;
 }
 
+QList<RemoteScopeKeyParts> localOnlyDownloadScopes(const QString& ownerId, const QString& providerPartition)
+{
+    QList<RemoteScopeKeyParts> scopes;
+    if (!ownerId.isEmpty()) {
+        RemoteScopeKeyParts account;
+        account.mode = mode::SourceMode::Account;
+        account.ownerId = ownerId;
+        scopes.append(account);
+    }
+    if (!providerPartition.isEmpty()) {
+        RemoteScopeKeyParts provider;
+        provider.mode = mode::SourceMode::ApiKey;
+        provider.cachePartition = providerPartition;
+        scopes.append(provider);
+    }
+    return scopes;
+}
+
 QString downloadStableKey(const RemoteScopeKeyParts& scope, const Track& track)
 {
     const QString trackKey = legacyCatalogSourceKey(track);

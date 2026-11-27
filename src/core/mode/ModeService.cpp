@@ -227,7 +227,15 @@ ApiKeyDisconnectOutcome ModeService::disconnectApiKey()
 
 std::optional<provider::ProviderConnection> ModeService::providerConnection() const
 {
-    if (m_mode != SourceMode::ApiKey || !m_providerConfigured) {
+    if (m_mode != SourceMode::ApiKey) {
+        return std::nullopt;
+    }
+    return savedProviderConnection();
+}
+
+std::optional<provider::ProviderConnection> ModeService::savedProviderConnection() const
+{
+    if (!m_providerConfigured) {
         return std::nullopt;
     }
     const Result<std::optional<QString>> key = m_secrets.readProviderApiKey();

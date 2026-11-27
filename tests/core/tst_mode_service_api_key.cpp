@@ -48,6 +48,7 @@ private slots:
     void newerConnectSupersedesOlder();
     void modeChangeSupersedesConnect();
     void disconnectFallsBackToLocalOnly();
+    void theSavedProviderOutlivesALocalOnlySwitch();
     void disconnectOutsideApiKeyKeepsTheMode();
     void failedKeyRemovalChangesNothing();
     void disconnectIsRefusedDuringCleanup();
@@ -217,6 +218,20 @@ void ModeServiceApiKeyTest::modeChangeSupersedesConnect()
     QCOMPARE(ModeServiceFixture::connectOutcome(pending), ApiKeyConnectOutcome::Superseded);
     QCOMPARE(fixture.storedKey(), QStringLiteral("<none>"));
     QCOMPARE(fixture.modes.mode(), SourceMode::LocalOnly);
+}
+
+void ModeServiceApiKeyTest::theSavedProviderOutlivesALocalOnlySwitch()
+{
+    ModeServiceFixture fixture;
+    fixture.storeProvider();
+    fixture.modes.start();
+    QVERIFY(fixture.modes.providerConnection().has_value());
+    QVERIFY(fixture.modes.setMode(SourceMode::LocalOnly));
+    // Nothing is sent outside API key mode, but its downloads can be found.
+    QVERIFY(!fixture.modes.providerConnection().has_value());
+    QVERIFY(fixture.modes.savedProviderConnection().has_value());
+    QCOMPARE(fixture.modes.disconnectApiKey(), ApiKeyDisconnectOutcome::Disconnected);
+    QVERIFY(!fixture.modes.savedProviderConnection().has_value());
 }
 
 void ModeServiceApiKeyTest::disconnectFallsBackToLocalOnly()

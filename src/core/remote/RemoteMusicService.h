@@ -8,6 +8,7 @@
 
 #include <QByteArray>
 #include <QFuture>
+#include <QList>
 #include <QString>
 
 #include <functional>
@@ -78,6 +79,9 @@ public:
     // (track_keys): the mode, its generation, the account session's
     // generation, and in API key mode the provider's cache partition.
     [[nodiscard]] track_keys::RemoteScopeKeyParts scopeKeyParts() const;
+    // In LocalOnly mode: the scopes of the signed-in account and the saved
+    // provider, whose downloads still play (track_keys::localOnlyDownloadScopes).
+    [[nodiscard]] QList<track_keys::RemoteScopeKeyParts> localOnlyDownloadScopes() const;
 
 private:
     // Which way a call goes, decided once when it starts.

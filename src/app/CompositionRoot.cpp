@@ -666,7 +666,20 @@ CompositionRoot::CompositionRoot()
                      [this]() { m_downloadArtwork.setExtraPictures(m_offline.artistPhotoUrls()); });
     m_downloadArtwork.setExtraPictures(m_offline.artistPhotoUrls());
     m_resolver.setDownloadLookup([this](const core::Track& track) {
-        return m_downloads.readyPath(core::track_keys::downloadStableKey(m_remote.scopeKeyParts(), track));
+        const core::track_keys::RemoteScopeKeyParts scope = m_remote.scopeKeyParts();
+        if (scope.mode != core::mode::SourceMode::LocalOnly || !track.isRemote()) {
+            return m_downloads.readyPath(core::track_keys::downloadStableKey(scope, track));
+        }
+        // A remote song has no download key of its own in LocalOnly mode,
+        // but what was downloaded through the account or the provider is a
+        // file on this PC and plays.
+        for (const core::track_keys::RemoteScopeKeyParts& offline : m_remote.localOnlyDownloadScopes()) {
+            if (const QString file = m_downloads.readyPath(core::track_keys::downloadStableKey(offline, track));
+                !file.isEmpty()) {
+                return file;
+            }
+        }
+        return QString();
     });
     const auto autoDownload = [this](const core::Track& track, const QString& reason) {
         if (!m_mode.capabilities().downloadSongs || !track.isRemote() || !track.sourceUrl.startsWith(QLatin1StringView("http"))) {

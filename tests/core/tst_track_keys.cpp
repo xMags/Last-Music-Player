@@ -48,6 +48,7 @@ private slots:
     void downloadKeys();
     void downloadKeysOutliveRunCounters();
     void earlierDownloadKeysStillMatch();
+    void localOnlyFindsTheAccountAndProviderDownloads();
 };
 
 void TrackKeysTest::scopeKeys()
@@ -126,6 +127,21 @@ void TrackKeysTest::earlierDownloadKeysStillMatch()
     QVERIFY(keys::downloadInScope(earlierApi, QStringLiteral("download|ApiKey:p1\n")));
     QVERIFY(!keys::downloadInScope(earlierApi, QStringLiteral("download|ApiKey:p2\n")));
     QVERIFY(!keys::downloadInScope(todayAccount, QString()));
+}
+
+void TrackKeysTest::localOnlyFindsTheAccountAndProviderDownloads()
+{
+    const QList<keys::RemoteScopeKeyParts> both = keys::localOnlyDownloadScopes(QStringLiteral("owner-a"), QStringLiteral("p1"));
+    QCOMPARE(both.size(), 2);
+    // The keys they make are the ones the songs were downloaded under.
+    QCOMPARE(keys::downloadStableKey(both.at(0), remoteSong()),
+             keys::downloadStableKey(scope(SourceMode::Account), remoteSong()));
+    QCOMPARE(keys::downloadStableKey(both.at(1), remoteSong()),
+             keys::downloadStableKey(scope(SourceMode::ApiKey), remoteSong()));
+
+    QCOMPARE(keys::localOnlyDownloadScopes(QString(), QStringLiteral("p1")).size(), 1);
+    QCOMPARE(keys::localOnlyDownloadScopes(QStringLiteral("owner-a"), QString()).size(), 1);
+    QVERIFY(keys::localOnlyDownloadScopes(QString(), QString()).isEmpty());
 }
 
 QTEST_GUILESS_MAIN(TrackKeysTest)

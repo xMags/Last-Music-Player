@@ -125,6 +125,10 @@ public:
     // outside a usable ApiKey mode or when the key cannot be read. The key
     // is never logged.
     [[nodiscard]] std::optional<provider::ProviderConnection> providerConnection() const;
+    // The saved address and key whatever the mode, for finding what was
+    // downloaded through them; nothing when none is set up or the key cannot
+    // be read. Never sends anything.
+    [[nodiscard]] std::optional<provider::ProviderConnection> savedProviderConnection() const;
 
     // Tests the address and key with the status call, then stores the key,
     // saves the address and enters ApiKey mode.

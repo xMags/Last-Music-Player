@@ -55,6 +55,13 @@ track_keys::RemoteScopeKeyParts RemoteMusicService::scopeKeyParts() const
     return parts;
 }
 
+QList<track_keys::RemoteScopeKeyParts> RemoteMusicService::localOnlyDownloadScopes() const
+{
+    const std::optional<provider::ProviderConnection> provider = m_deps.mode.savedProviderConnection();
+    return track_keys::localOnlyDownloadScopes(
+        m_deps.session.profile().id, provider ? apiKeyCachePartition(provider->baseUrl, provider->apiKey) : QString());
+}
+
 QString RemoteMusicService::scopeKey() const
 {
     const mode::RemoteScope scope = m_deps.mode.captureScope();

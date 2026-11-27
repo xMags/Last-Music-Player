@@ -3,6 +3,7 @@
 #include "core/mode/SourceMode.h"
 #include "core/model/Track.h"
 
+#include <QList>
 #include <QString>
 #include <QtGlobal>
 
@@ -51,6 +52,13 @@ struct RemoteScopeKeyParts {
 // those keys stay in Downloads.json as they were and are compared through
 // downloadMatchKey and downloadInScope.
 [[nodiscard]] QString downloadStableKey(const RemoteScopeKeyParts& scope, const Track& track);
+
+// The scopes whose finished downloads still play in LocalOnly mode, where
+// remote songs have no key of their own: the files are on this PC. The
+// account `ownerId` names (none while no account is known) and the saved
+// provider `providerPartition` names (none while none is set up).
+[[nodiscard]] QList<RemoteScopeKeyParts> localOnlyDownloadScopes(const QString& ownerId,
+                                                                 const QString& providerPartition);
 
 // What download keys are compared by: "download|<mode>[:<partition> in
 // ApiKey]" + a line break + the song's key, so an earlier key and today's
