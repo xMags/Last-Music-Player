@@ -1,9 +1,10 @@
 import QtQuick
 import LastMusicPlayer
 
-// Settings (views/settings.ts; views.css 1084-1171): one centred column up
-// to 720px wide with the page title, then one titled card per group, 30px
-// apart. Groups whose features arrive later add their own cards then.
+// Settings (views/settings.ts; views.css 1084-1171): one continuous, centred
+// column up to 720px wide with the page title, then the groups 44px apart:
+// source and account, playback and sound, library and downloads, look and
+// language, connections, privacy and data, and About.
 Item {
     id: page
 
@@ -48,7 +49,7 @@ Item {
         width: Math.min(page.width - 2 * 24, 720)
         anchors.horizontalCenter: parent.horizontalCenter
         y: 8
-        spacing: 30
+        spacing: 44
 
         Text {
             // padding-inline: 4px
@@ -60,122 +61,132 @@ Item {
             color: Theme.fg
         }
 
-        // The reference's sections, in its order.
-        AccountBlock {
-            id: accountCard
+        // The groups, from where music comes from down to About; each card
+        // keeps its own heading unless the group's title already names it.
+        SettingsGroup {
+            id: sourceGroup
 
             width: column.width
-            opacity: accountInView.inView ? 1 : 0
-            visible: App.source.accountShown
-            onSignInRequested: signIn.open()
+            opacity: sourceInView.inView ? 1 : 0
+            title: qsTr("Source and account")
+
+            SourceModeCards {
+                width: parent.width
+            }
+
+            AccountBlock {
+                width: parent.width
+                visible: App.source.accountShown
+                onSignInRequested: signIn.open()
+            }
+
+            ApiKeyForm {
+                width: parent.width
+                visible: App.source.apiKeyShown
+            }
+
+            SettingsProfileCard {
+                width: parent.width
+                visible: App.settings.displayNameShown
+            }
         }
 
-        SettingsPlaybackSection {
-            id: playbackCard
+        SettingsGroup {
+            id: playbackGroup
 
             width: column.width
             opacity: playbackInView.inView ? 1 : 0
+            title: qsTr("Playback and sound")
+
+            SettingsPlaybackSection {
+                width: parent.width
+            }
+
+            SettingsEqualizerCard {
+                width: parent.width
+            }
         }
 
-        SettingsLanguagesSection {
-            id: languagesCard
-
-            width: column.width
-            opacity: languagesInView.inView ? 1 : 0
-            visible: App.capabilities.chooseRegion
-        }
-
-        SettingsAppearanceCard {
-            id: appearanceCard
-
-            width: column.width
-            opacity: appearanceInView.inView ? 1 : 0
-        }
-
-        SettingsEqualizerCard {
-            id: equalizerCard
-
-            width: column.width
-            opacity: equalizerInView.inView ? 1 : 0
-        }
-
-        SettingsDownloadsCard {
-            id: downloadsCard
-
-            width: column.width
-            opacity: downloadsInView.inView ? 1 : 0
-            visible: App.capabilities.downloadSongs
-        }
-
-        SettingsIntegrationsSection {
-            id: integrationsCard
-
-            width: column.width
-            opacity: integrationsInView.inView ? 1 : 0
-        }
-
-        SettingsDataSection {
-            id: dataCard
-
-            width: column.width
-            opacity: dataInView.inView ? 1 : 0
-            visible: App.source.accountShown && App.source.signedIn
-        }
-
-        // The current app's own sections: where music comes from, the typed
-        // name outside Account mode, the local library and About.
-        SourceModeCards {
-            id: sourceModeCard
-
-            width: column.width
-            opacity: sourceModeInView.inView ? 1 : 0
-        }
-
-        ApiKeyForm {
-            id: apiKeyCard
-
-            width: column.width
-            opacity: apiKeyInView.inView ? 1 : 0
-            visible: App.source.apiKeyShown
-        }
-
-        SettingsProfileCard {
-            id: profileCard
-
-            width: column.width
-            opacity: profileInView.inView ? 1 : 0
-            visible: App.settings.displayNameShown
-        }
-
-        SettingsLibraryCard {
-            id: libraryCard
+        SettingsGroup {
+            id: libraryGroup
 
             width: column.width
             opacity: libraryInView.inView ? 1 : 0
+            title: qsTr("Library and downloads")
+
+            SettingsLibraryCard {
+                width: parent.width
+            }
+
+            SettingsDownloadsCard {
+                width: parent.width
+                visible: App.capabilities.downloadSongs
+            }
         }
 
-        SettingsAboutCard {
-            id: aboutCard
+        SettingsGroup {
+            id: lookGroup
+
+            width: column.width
+            opacity: lookInView.inView ? 1 : 0
+            title: qsTr("Look and language")
+
+            SettingsAppearanceCard {
+                width: parent.width
+            }
+
+            SettingsLanguagesSection {
+                width: parent.width
+                visible: App.capabilities.chooseRegion
+            }
+        }
+
+        SettingsGroup {
+            id: connectionsGroup
+
+            width: column.width
+            opacity: connectionsInView.inView ? 1 : 0
+            title: qsTr("Connections")
+
+            SettingsIntegrationsSection {
+                width: parent.width
+                title: ""
+            }
+        }
+
+        SettingsGroup {
+            id: dataGroup
+
+            width: column.width
+            opacity: dataInView.inView ? 1 : 0
+            title: qsTr("Privacy and data")
+
+            SettingsDataSection {
+                width: parent.width
+            }
+        }
+
+        SettingsGroup {
+            id: aboutGroup
 
             width: column.width
             opacity: aboutInView.inView ? 1 : 0
+            title: qsTr("About")
+
+            SettingsAboutCard {
+                width: parent.width
+            }
         }
 
-        // Each card is not drawn while it lies wholly outside the visible
-        // part of the page; the watches sit beside the cards, not inside
+        // Each group is not drawn while it lies wholly outside the visible
+        // part of the page; the watches sit beside the groups, not inside
         // them, so no card's own content changes.
-        InViewWatch { id: accountInView; target: accountCard }
-        InViewWatch { id: playbackInView; target: playbackCard }
-        InViewWatch { id: languagesInView; target: languagesCard }
-        InViewWatch { id: appearanceInView; target: appearanceCard }
-        InViewWatch { id: equalizerInView; target: equalizerCard }
-        InViewWatch { id: downloadsInView; target: downloadsCard }
-        InViewWatch { id: integrationsInView; target: integrationsCard }
-        InViewWatch { id: dataInView; target: dataCard }
-        InViewWatch { id: sourceModeInView; target: sourceModeCard }
-        InViewWatch { id: apiKeyInView; target: apiKeyCard }
-        InViewWatch { id: profileInView; target: profileCard }
-        InViewWatch { id: libraryInView; target: libraryCard }
-        InViewWatch { id: aboutInView; target: aboutCard }
+        InViewWatch { id: sourceInView; target: sourceGroup }
+        InViewWatch { id: playbackInView; target: playbackGroup }
+        InViewWatch { id: libraryInView; target: libraryGroup }
+        InViewWatch { id: lookInView; target: lookGroup }
+        InViewWatch { id: connectionsInView; target: connectionsGroup }
+        InViewWatch { id: dataInView; target: dataGroup }
+        InViewWatch { id: aboutInView; target: aboutGroup }
     }
 }

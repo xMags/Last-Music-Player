@@ -170,6 +170,7 @@ set(LMP_UI_QML_FILES
     qml/settings/SettingsPlaybackSection.qml
     qml/settings/SettingsIntegrationsSection.qml
     qml/settings/SettingsDataSection.qml
+    qml/settings/SettingsGroup.qml
     qml/settings/SettingsLanguagePill.qml
     qml/settings/SettingsLanguageOption.qml
     qml/settings/SettingsSwitchRow.qml

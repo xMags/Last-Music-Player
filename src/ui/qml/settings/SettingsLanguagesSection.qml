@@ -5,8 +5,9 @@ import QtQuick.Layouts
 import QtQuick.Templates as T
 import LastMusicPlayer
 
-// Languages (views/settings-languages.ts renderLanguageSettings; views.css
-// 1403-1570): which languages recommendations keep to. Under the mode
+// Region and languages (views/settings-languages.ts renderLanguageSettings;
+// views.css 1403-1570): the music region Browse shows, then which languages
+// recommendations keep to. Under the mode
 // switch a panel (a divider on top, padded 14px 20px 16px, parts 12px
 // apart): Automatic shows what was detected from listening and Detect
 // again; Choose the chosen languages as pills with Edit, which opens the
@@ -24,7 +25,18 @@ SettingsSection {
         && section.model.catalogError === "" && !section.model.catalogEmpty
 
     iconName: "music-note"
-    title: qsTr("Languages")
+    title: qsTr("Region and languages")
+
+    SettingsRow {
+        title: qsTr("Music region")
+        description: section.model.regionError !== "" ? section.model.regionError
+                                                      : qsTr("Charts, new releases and catalog in Browse")
+        descriptionError: section.model.regionError !== ""
+
+        SettingsRegionPicker {}
+    }
+
+    SettingsDivider {}
 
     SettingsRow {
         title: qsTr("Recommendation languages")

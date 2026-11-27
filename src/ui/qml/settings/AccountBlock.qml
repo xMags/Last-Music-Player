@@ -7,9 +7,10 @@ import LastMusicPlayer
 
 // The account (views/settings.ts render, .settings-hero; views.css
 // 1252-1289): a card without a heading, the avatar in an accent ring, the
-// name and the plan, Sign out (asked first), a sign-out error under it, then
-// the music region. Signed out, which the reference never shows, the same
-// card says why and offers Sign in, or Cancel while the browser is open.
+// name and the plan, Sign out (asked first), and a sign-out error under it.
+// Signed out, which the reference never shows, the same card says why and
+// offers Sign in, or Cancel while the browser is open. The music region is
+// with the languages (SettingsLanguagesSection).
 SettingsCard {
     id: card
 
@@ -188,20 +189,6 @@ SettingsCard {
             color: Theme.danger
             wrapMode: Text.Wrap
         }
-    }
-
-    SettingsDivider {
-        visible: App.capabilities.chooseRegion
-    }
-
-    SettingsRow {
-        visible: App.capabilities.chooseRegion
-        title: qsTr("Music region")
-        description: App.regionLanguages.regionError !== "" ? App.regionLanguages.regionError
-                                                            : qsTr("Charts, new releases and catalog in Browse")
-        descriptionError: App.regionLanguages.regionError !== ""
-
-        SettingsRegionPicker {}
     }
 
     SettingsConfirmDialog {

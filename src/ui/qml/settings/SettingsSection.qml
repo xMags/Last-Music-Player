@@ -17,8 +17,10 @@ Column {
 
     spacing: 12
 
+    // Left out when the group above already names the card.
     SettingsSectionHead {
         width: section.width
+        visible: section.title !== ""
         iconName: section.iconName
         title: section.title
         note: section.note
