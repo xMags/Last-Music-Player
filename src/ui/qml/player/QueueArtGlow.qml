@@ -29,8 +29,9 @@ Item {
 
         // Not while the window is minimised or in the tray.
         running: !Motion.reduced && glow.visible && glow.playing && Motion.windowShown
-        held: Motion.windowMoving
+        held: Motion.ambientHeld
         period: Motion.nowPlayingBreathe
+        stepInterval: Motion.ambientSlowStep
         // Paused, it holds where it is and goes on from there.
         resume: true
     }

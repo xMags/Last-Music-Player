@@ -110,17 +110,22 @@ class Motion : public QObject {
     Q_PROPERTY(int nowPlayingBreathe READ nowPlayingBreathe CONSTANT FINAL)
     Q_PROPERTY(qreal glowRestScale READ glowRestScale CONSTANT FINAL)
     Q_PROPERTY(qreal glowRestOpacity READ glowRestOpacity CONSTANT FINAL)
+    // Milliseconds between steps of the slowest endless motions (the hero
+    // field's breath, the playing glow, the ambient drift): about 30 a
+    // second, as they move well under a pixel a step (AmbientPhase).
+    Q_PROPERTY(int ambientSlowStep READ ambientSlowStep CONSTANT FINAL)
 
     Q_PROPERTY(bool reduced READ reduced WRITE setReduced NOTIFY reducedChanged FINAL)
     // False while the main window is minimised or hidden (closed to the
     // tray): animations that loop without end stop, so nothing ticks for a
     // window no one can see.
     Q_PROPERTY(bool windowShown READ windowShown WRITE setWindowShown NOTIFY windowShownChanged FINAL)
-    // True while the main window is being dragged to another place: the
-    // endless motions hold where they are (AmbientPhase.held), so no frame
-    // is drawn while the system moves the window. A resize redraws on every
-    // step anyway, so the motions go on then.
-    Q_PROPERTY(bool windowMoving READ windowMoving WRITE setWindowMoving NOTIFY windowMovingChanged FINAL)
+    // True while the endless motions hold where they are (AmbientPhase.held):
+    // while the main window is dragged to another place, so no frame is drawn
+    // while the system moves it (a resize redraws on every step anyway, so
+    // the motions go on then), and while another window is in front, so a
+    // player left open behind other work draws nothing.
+    Q_PROPERTY(bool ambientHeld READ ambientHeld NOTIFY ambientHeldChanged FINAL)
 
 public:
     explicit Motion(QObject* parent = nullptr);
@@ -193,13 +198,17 @@ public:
     [[nodiscard]] int nowPlayingBreathe() const { return 6500; }
     [[nodiscard]] qreal glowRestScale() const { return 0.96; }
     [[nodiscard]] qreal glowRestOpacity() const { return 0.7; }
+    [[nodiscard]] int ambientSlowStep() const { return 33; }
 
     [[nodiscard]] bool reduced() const { return m_reduced; }
     void setReduced(bool reduced);
     [[nodiscard]] bool windowShown() const { return m_windowShown; }
     void setWindowShown(bool shown);
-    [[nodiscard]] bool windowMoving() const { return m_windowMoving; }
+    [[nodiscard]] bool ambientHeld() const { return m_windowMoving || !m_windowActive; }
+    // The main window is being dragged to another place.
     void setWindowMoving(bool moving);
+    // The main window (or one of its popups) has the focus.
+    void setWindowActive(bool active);
 
     // A CSS cubic-bezier(x1, y1, x2, y2) timing function.
     [[nodiscard]] static QEasingCurve cubicBezier(qreal x1, qreal y1, qreal x2, qreal y2);
@@ -227,7 +236,7 @@ public:
 signals:
     void reducedChanged();
     void windowShownChanged();
-    void windowMovingChanged();
+    void ambientHeldChanged();
 
 private:
     // One of the glow's values over a breath, from `rest` to `peak` and back.
@@ -249,6 +258,7 @@ private:
     bool m_reduced = false;
     bool m_windowShown = true;
     bool m_windowMoving = false;
+    bool m_windowActive = true;
 };
 
 } // namespace lmp::ui

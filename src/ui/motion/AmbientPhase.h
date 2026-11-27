@@ -39,6 +39,9 @@ class AmbientPhase : public QObject {
     Q_PROPERTY(int period READ period WRITE setPeriod NOTIFY periodChanged FINAL)
     Q_PROPERTY(bool resume READ resume WRITE setResume NOTIFY resumeChanged FINAL)
     Q_PROPERTY(bool held READ held WRITE setHeld NOTIFY heldChanged FINAL)
+    // Milliseconds between steps. Each step redraws the window, so a slow
+    // motion that moves well under a pixel a step takes fewer of them.
+    Q_PROPERTY(int stepInterval READ stepInterval WRITE setStepInterval NOTIFY stepIntervalChanged FINAL)
     Q_PROPERTY(bool active READ active NOTIFY activeChanged FINAL)
     // 0 to 1 through the current loop, straight in time.
     Q_PROPERTY(qreal phase READ phase NOTIFY phaseChanged FINAL)
@@ -47,7 +50,7 @@ class AmbientPhase : public QObject {
     Q_PROPERTY(qreal elapsed READ elapsed NOTIFY phaseChanged FINAL)
 
 public:
-    // Time between steps: about 60 a second.
+    // Time between steps by default: about 60 a second.
     static constexpr int StepIntervalMs = 16;
 
     explicit AmbientPhase(QObject* parent = nullptr);
@@ -60,6 +63,9 @@ public:
     void setResume(bool resume);
     [[nodiscard]] bool held() const { return m_held; }
     void setHeld(bool held);
+    [[nodiscard]] int stepInterval() const { return m_timer.interval(); }
+    // Clamped to at least one millisecond.
+    void setStepInterval(int milliseconds);
     [[nodiscard]] bool active() const { return m_active; }
     [[nodiscard]] qreal phase() const;
     [[nodiscard]] qreal elapsed() const { return m_elapsedMs; }
@@ -76,6 +82,7 @@ signals:
     void periodChanged();
     void resumeChanged();
     void heldChanged();
+    void stepIntervalChanged();
     void activeChanged();
     void phaseChanged();
 

@@ -33,7 +33,7 @@ Item {
         id: clock
 
         running: !Motion.reduced && Motion.windowShown && root.visible && root.width > 0
-        held: Motion.windowMoving
+        held: Motion.ambientHeld
         period: Motion.skeletonSweep
     }
 

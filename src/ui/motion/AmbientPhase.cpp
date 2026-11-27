@@ -1,5 +1,6 @@
 #include "ui/motion/AmbientPhase.h"
 
+#include <algorithm>
 #include <cmath>
 #include <utility>
 
@@ -50,6 +51,18 @@ void AmbientPhase::setResume(bool resume)
     }
     m_resume = resume;
     emit resumeChanged();
+}
+
+void AmbientPhase::setStepInterval(int milliseconds)
+{
+    const int interval = std::max(1, milliseconds);
+    if (interval == m_timer.interval()) {
+        return;
+    }
+    // A running timer restarts with the new interval; steps read real time,
+    // so the motion keeps its pace.
+    m_timer.setInterval(interval);
+    emit stepIntervalChanged();
 }
 
 void AmbientPhase::setHeld(bool held)

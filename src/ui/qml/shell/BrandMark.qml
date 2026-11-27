@@ -53,7 +53,7 @@ Item {
         id: ripple
 
         running: mark.rippling && Motion.windowShown
-        held: Motion.windowMoving
+        held: Motion.ambientHeld
         period: Motion.logoRipple
     }
 

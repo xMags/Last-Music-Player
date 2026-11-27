@@ -47,8 +47,9 @@ Item {
         id: pulse
 
         running: field.running && field.visible && !Motion.reduced && Motion.windowShown
-        held: Motion.windowMoving
+        held: Motion.ambientHeld
         period: 6000
+        stepInterval: Motion.ambientSlowStep
     }
 
     Item {

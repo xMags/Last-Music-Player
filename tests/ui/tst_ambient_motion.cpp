@@ -196,6 +196,46 @@ private slots:
         QVERIFY(!phase.stepping());
     }
 
+    void aSlowerStepKeepsThePace()
+    {
+        ManualClock clock;
+        AmbientPhase phase;
+        clock.attach(phase);
+        QCOMPARE(phase.stepInterval(), AmbientPhase::StepIntervalMs);
+        phase.setPeriod(1000);
+        phase.setRunning(true);
+        QSignalSpy changes(&phase, &AmbientPhase::stepIntervalChanged);
+        phase.setStepInterval(33);
+        QCOMPARE(phase.stepInterval(), 33);
+        QCOMPARE(changes.count(), 1);
+        QVERIFY(phase.stepping());
+        // Fewer steps, same time: each lands where real time says.
+        clock.ms = 660;
+        phase.step();
+        QVERIFY(std::abs(phase.phase() - 0.66) < 1e-9);
+        // No interval below a millisecond.
+        phase.setStepInterval(0);
+        QCOMPARE(phase.stepInterval(), 1);
+    }
+
+    void theMotionsHoldWhileDraggedOrBehindAnotherWindow()
+    {
+        lmp::ui::Motion motion;
+        QSignalSpy changes(&motion, &lmp::ui::Motion::ambientHeldChanged);
+        QVERIFY(!motion.ambientHeld());
+        motion.setWindowMoving(true);
+        QVERIFY(motion.ambientHeld());
+        // Still held: one reason is enough, and no change is announced.
+        motion.setWindowActive(false);
+        QVERIFY(motion.ambientHeld());
+        motion.setWindowMoving(false);
+        QVERIFY(motion.ambientHeld());
+        QCOMPARE(changes.count(), 1);
+        motion.setWindowActive(true);
+        QVERIFY(!motion.ambientHeld());
+        QCOMPARE(changes.count(), 2);
+    }
+
     void aBounceHoldsDuringItsDelayThenGoesUpAndDown()
     {
         ManualClock clock;

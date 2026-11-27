@@ -26,8 +26,23 @@ void Motion::setWindowMoving(bool moving)
     if (moving == m_windowMoving) {
         return;
     }
+    const bool held = ambientHeld();
     m_windowMoving = moving;
-    emit windowMovingChanged();
+    if (ambientHeld() != held) {
+        emit ambientHeldChanged();
+    }
+}
+
+void Motion::setWindowActive(bool active)
+{
+    if (active == m_windowActive) {
+        return;
+    }
+    const bool held = ambientHeld();
+    m_windowActive = active;
+    if (ambientHeld() != held) {
+        emit ambientHeldChanged();
+    }
 }
 
 void Motion::setReduced(bool reduced)
