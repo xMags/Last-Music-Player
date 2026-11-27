@@ -10,6 +10,7 @@
 
 #include <QFuture>
 #include <QList>
+#include <QByteArray>
 #include <QJsonValue>
 #include <QObject>
 #include <QPromise>
@@ -188,6 +189,12 @@ private:
     int m_historyCount = 0;
     QJsonValue m_homeLayout = QJsonValue(QJsonValue::Undefined);
     QString m_homeLayoutOwner;
+    // The last pull that was stored (or found unchanged), for
+    // m_homeLayoutOwner: digests of the copy on this PC before it and of the
+    // library it built (accountLibraryFingerprint). A pull that finds both
+    // the same again stores nothing and tells no view.
+    QByteArray m_storedBefore;
+    QByteArray m_builtLast;
     quint64 m_preferenceRevision = 0;
     QString m_lastSafeError;
     // Set while preferences from the service are written to the settings, so

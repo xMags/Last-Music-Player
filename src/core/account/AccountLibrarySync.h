@@ -6,6 +6,7 @@
 #include "core/db/AccountRecords.h"
 #include "core/model/Track.h"
 
+#include <QByteArray>
 #include <QList>
 #include <QString>
 
@@ -51,5 +52,11 @@ struct AccountLibraryInputs {
 // A queued song the service does not know yet is added.
 [[nodiscard]] db::AccountLibrarySnapshot buildAccountLibrarySnapshot(const ParsedAccountLibrary& parsed,
                                                                      const AccountLibraryInputs& inputs);
+
+// A digest of everything a library copy holds, in order, except what
+// changes on every store whatever the library: the time of the sync, the
+// time the profile was written, and the songs' row ids (renumbered when the
+// copy is replaced). Equal digests mean the same library.
+[[nodiscard]] QByteArray accountLibraryFingerprint(const db::AccountLibrarySnapshot& library);
 
 } // namespace lmp::core::account

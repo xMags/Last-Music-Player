@@ -223,6 +223,9 @@ class MusicSyncServiceTest : public QObject {
 private slots:
     void snapshotLaysUnsentChangesOverTheLibrary();
     void libraryLaneStoresTheServiceLibrary();
+    void anUnchangedLibraryIsNotStoredAgain();
+    void aLocalChangeStoresTheLibraryAgain();
+    void theFingerprintSkipsOnlyWhatChangesOnEveryStore();
     void historyIsSentAndAcknowledged();
     void refusedPlayIsFoundBySplittingTheBatch();
     void passingHistoryFailureRetriesLater();
@@ -308,6 +311,89 @@ void MusicSyncServiceTest::libraryLaneStoresTheServiceLibrary()
     }
     QVERIFY(fixture.sync.lastSafeError().isEmpty());
     QVERIFY(!fixture.sync.isSyncing());
+}
+
+void MusicSyncServiceTest::anUnchangedLibraryIsNotStoredAgain()
+{
+    SyncFixture fixture;
+    QVERIFY(fixture.enterAccountMode());
+    fixture.transport.library = [] {
+        return answer(Result<ParsedAccountLibrary>(account::parseAccountLibrary(libraryBody())));
+    };
+    QSignalSpy changed(&fixture.sync, &MusicSyncService::libraryChanged);
+    // The first pulls store it: the copy on this PC was not yet one this
+    // run stored, then it is the one just stored.
+    QCOMPARE(fixture.run(fixture.sync.requestSync(Lane::Library)), std::optional<bool>(true));
+    QCOMPARE(fixture.run(fixture.sync.requestSync(Lane::Library)), std::optional<bool>(true));
+    QCOMPARE(changed.count(), 2);
+    // From then on the same library is found unchanged: nothing stored, no
+    // view told, the sync still counted.
+    QVERIFY(fixture.modes.accounts.saveAccountSyncState(
+        {.accountId = kOwner, .lastSuccessfulSyncUtc = QStringLiteral("2026-08-01T00:00:00Z")}));
+    QCOMPARE(fixture.run(fixture.sync.requestSync(Lane::Library)), std::optional<bool>(true));
+    QCOMPARE(fixture.run(fixture.sync.requestSync(Lane::Library)), std::optional<bool>(true));
+    QCOMPARE(changed.count(), 2);
+    QCOMPARE(fixture.sync.libraryRevision(), 2U);
+    QCOMPARE(fixture.modes.accounts.loadAccountSyncState(kOwner).lastSuccessfulSyncUtc,
+             QStringLiteral("2026-08-24T10:00:00Z"));
+    QCOMPARE(fixture.modes.accounts.loadAccountLibrary(kOwner)->tracks.size(), 2);
+    QVERIFY(fixture.sync.lastSafeError().isEmpty());
+}
+
+void MusicSyncServiceTest::aLocalChangeStoresTheLibraryAgain()
+{
+    SyncFixture fixture;
+    QVERIFY(fixture.enterAccountMode());
+    fixture.transport.library = [] {
+        return answer(Result<ParsedAccountLibrary>(account::parseAccountLibrary(libraryBody())));
+    };
+    QSignalSpy changed(&fixture.sync, &MusicSyncService::libraryChanged);
+    for (int pull = 0; pull < 3; ++pull) {
+        QCOMPARE(fixture.run(fixture.sync.requestSync(Lane::Library)), std::optional<bool>(true));
+    }
+    QCOMPARE(changed.count(), 2);
+    // A like written here (not yet sent): the copy differs, so it is
+    // replaced by the service's library again, as before.
+    const bool liked = fixture.modes.accounts.isAccountTrackLiked(kOwner, QStringLiteral("s1")).value_or(false);
+    QVERIFY(fixture.modes.accounts.updateAccountTrackLike(kOwner, QStringLiteral("s1"), !liked));
+    QCOMPARE(fixture.run(fixture.sync.requestSync(Lane::Library)), std::optional<bool>(true));
+    QCOMPARE(changed.count(), 3);
+    QCOMPARE(fixture.modes.accounts.isAccountTrackLiked(kOwner, QStringLiteral("s1")).value_or(false), liked);
+    // Cleared here: stored again too.
+    QVERIFY(fixture.modes.accounts.clearAccountData(kOwner, lmp::core::db::AccountDataClearMode::RestoreActiveContext));
+    QCOMPARE(fixture.run(fixture.sync.requestSync(Lane::Library)), std::optional<bool>(true));
+    QCOMPARE(changed.count(), 4);
+    QCOMPARE(fixture.modes.accounts.loadAccountLibrary(kOwner)->tracks.size(), 2);
+}
+
+void MusicSyncServiceTest::theFingerprintSkipsOnlyWhatChangesOnEveryStore()
+{
+    lmp::core::db::AccountLibrarySnapshot library;
+    library.profile.accountId = kOwner;
+    lmp::core::db::AccountTrackSnapshot song;
+    song.track.remoteId = QStringLiteral("s1");
+    song.track.title = QStringLiteral("One");
+    song.track.rowId = 7;
+    library.tracks.append(song);
+    const QByteArray print = account::accountLibraryFingerprint(library);
+
+    lmp::core::db::AccountLibrarySnapshot restored = library;
+    restored.synchronizedAtUtc = QStringLiteral("2026-08-24T10:00:00Z");
+    restored.profile.updatedAtUtc = QStringLiteral("2026-08-24T10:00:00Z");
+    restored.tracks[0].track.rowId = 99;
+    QCOMPARE(account::accountLibraryFingerprint(restored), print);
+
+    lmp::core::db::AccountLibrarySnapshot other = library;
+    other.tracks[0].track.liked = true;
+    QVERIFY(account::accountLibraryFingerprint(other) != print);
+    other = library;
+    other.tracks[0].playCount = 1;
+    QVERIFY(account::accountLibraryFingerprint(other) != print);
+    // A string's end is part of it: "ab" + "" is not "a" + "b".
+    other = library;
+    other.tracks[0].track.title = QStringLiteral("On");
+    other.tracks[0].track.artist = QStringLiteral("e");
+    QVERIFY(account::accountLibraryFingerprint(other) != print);
 }
 
 void MusicSyncServiceTest::historyIsSentAndAcknowledged()

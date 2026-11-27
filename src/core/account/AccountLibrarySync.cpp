@@ -5,10 +5,13 @@
 #include "core/net/ArtworkUrl.h"
 #include "core/net/RemoteUrlPolicy.h"
 
+#include <QCryptographicHash>
 #include <QHash>
 #include <QLatin1StringView>
 
 #include <algorithm>
+#include <bit>
+#include <cstdint>
 #include <utility>
 
 namespace lmp::core::account {
@@ -180,6 +183,96 @@ db::AccountLibrarySnapshot buildAccountLibrarySnapshot(const ParsedAccountLibrar
         snapshot.playlists.append(std::move(playlist));
     }
     return snapshot;
+}
+
+namespace {
+
+// Writes values into a digest so that no two different sequences read the
+// same: every string carries its length.
+class Digest {
+public:
+    void add(const QString& value)
+    {
+        add(static_cast<std::int64_t>(value.size()));
+        m_hash.addData(QByteArrayView(reinterpret_cast<const char*>(value.utf16()),
+                                      value.size() * static_cast<qsizetype>(sizeof(char16_t))));
+    }
+    void add(const QStringList& values)
+    {
+        add(static_cast<std::int64_t>(values.size()));
+        for (const QString& value : values) {
+            add(value);
+        }
+    }
+    void add(std::int64_t value) { m_hash.addData(QByteArrayView(reinterpret_cast<const char*>(&value), sizeof(value))); }
+    void add(int value) { add(static_cast<std::int64_t>(value)); }
+    void add(bool value) { add(static_cast<std::int64_t>(value ? 1 : 0)); }
+    void add(double value) { add(std::bit_cast<std::int64_t>(value)); }
+    [[nodiscard]] QByteArray result() const { return m_hash.result(); }
+
+private:
+    QCryptographicHash m_hash{QCryptographicHash::Sha256};
+};
+
+// Every field but rowId (see accountLibraryFingerprint). A new Track field
+// changes the size and stops the build here until it is added below (the
+// size is that of this compiler and platform).
+#if defined(_MSC_VER) && defined(_WIN64)
+static_assert(sizeof(Track) == 712, "Track changed: add the new field to addTrack, then update this size");
+#endif
+
+void addTrack(Digest& digest, const Track& track)
+{
+    for (const QString* text : {&track.title, &track.artist, &track.album, &track.genre, &track.durationText,
+                                &track.filePath, &track.artworkUrl, &track.sourceKind, &track.origin, &track.sourceTag,
+                                &track.sourceUrl, &track.sourceReference, &track.streamUrl, &track.sourceLabel,
+                                &track.quality, &track.remoteId, &track.catalogId, &track.albumCatalogId,
+                                &track.artistCatalogId, &track.primaryArtistName, &track.primaryArtistCatalogId,
+                                &track.dateAdded, &track.likedAt, &track.addedAt, &track.firstPlayedAt,
+                                &track.lastPlayedAt, &track.unavailableReason}) {
+        digest.add(*text);
+    }
+    digest.add(track.year);
+    digest.add(track.durationSeconds);
+    digest.add(track.dateAddedSortKey);
+    digest.add(track.playCount);
+    digest.add(track.resumePositionSeconds);
+    digest.add(track.liked);
+    digest.add(track.offline);
+    digest.add(track.inLibrary);
+    digest.add(track.followed);
+    digest.add(track.unavailable);
+    digest.add(track.index);
+    digest.add(track.trackCount);
+}
+
+} // namespace
+
+QByteArray accountLibraryFingerprint(const db::AccountLibrarySnapshot& library)
+{
+    Digest digest;
+    const db::AccountProfileSnapshot& profile = library.profile;
+    for (const QString* text :
+         {&profile.accountId, &profile.displayName, &profile.username, &profile.avatarUrl, &profile.planLabel}) {
+        digest.add(*text);
+    }
+    digest.add(static_cast<std::int64_t>(library.tracks.size()));
+    for (const db::AccountTrackSnapshot& entry : library.tracks) {
+        addTrack(digest, entry.track);
+        digest.add(static_cast<std::int64_t>(entry.playCount));
+        digest.add(entry.firstPlayedAtUtc);
+        digest.add(entry.lastPlayedAtUtc);
+        digest.add(entry.lastPositionSeconds);
+    }
+    digest.add(static_cast<std::int64_t>(library.playlists.size()));
+    for (const db::AccountPlaylistSnapshot& playlist : library.playlists) {
+        for (const QString* text :
+             {&playlist.playlistId, &playlist.name, &playlist.description, &playlist.sourceUrl, &playlist.updatedAtUtc}) {
+            digest.add(*text);
+        }
+        digest.add(playlist.remoteTrackIds);
+    }
+    return digest.result();
 }
 
 } // namespace lmp::core::account

@@ -515,6 +515,30 @@ QFuture<MusicSyncService::Outcome> MusicSyncService::pullLibrary()
             inputs.pendingLikes = m_deps.outbox.loadPendingLikes(owner, kAllRows, db::OutboxRows::All);
             inputs.pendingEvents = m_deps.outbox.loadPendingPlaybackEvents(owner, kAllRows, db::OutboxRows::All);
             const db::AccountLibrarySnapshot snapshot = buildAccountLibrarySnapshot(result.value(), inputs);
+            // Nothing changed on either side since the last pull (no play,
+            // like or clearing here, the same library and Home from the
+            // service): the copy on this PC is already this library, so
+            // only the sync time is written and no view reads it all again.
+            // Coming back to the window pulls every half minute or so.
+            const QByteArray storedBefore = inputs.existing ? accountLibraryFingerprint(*inputs.existing) : QByteArray();
+            const QByteArray built = accountLibraryFingerprint(snapshot);
+            if (isCurrent() && owner == m_homeLayoutOwner && !storedBefore.isEmpty() && storedBefore == m_storedBefore
+                && built == m_builtLast && result.value().homeLayout == m_homeLayout) {
+                db::AccountSyncState state = m_deps.accounts.loadAccountSyncState(owner);
+                state.accountId = owner;
+                state.lastSuccessfulSyncUtc = inputs.nowUtc;
+                state.lastSafeErrorCode.clear();
+                if (!m_deps.accounts.saveAccountSyncState(state)) {
+                    setSafeError(tr("Could not save the synchronized account library."));
+                    saveSyncError(QStringLiteral("cache-write"));
+                    return Outcome::Failed;
+                }
+                resetLaneFailure(Lane::Library);
+                if (perf.enabled()) {
+                    perf.done(QStringLiteral("unchanged, %1 songs").arg(snapshot.tracks.size()));
+                }
+                return Outcome::Succeeded;
+            }
             if (!isCurrent() || !m_deps.accounts.replaceAccountLibrary(owner, snapshot)) {
                 setSafeError(tr("Could not save the synchronized account library."));
                 saveSyncError(QStringLiteral("cache-write"));
@@ -523,6 +547,8 @@ QFuture<MusicSyncService::Outcome> MusicSyncService::pullLibrary()
             resetLaneFailure(Lane::Library);
             m_homeLayout = result.value().homeLayout;
             m_homeLayoutOwner = owner;
+            m_storedBefore = storedBefore;
+            m_builtLast = built;
             m_historyCount = static_cast<int>(std::count_if(
                 snapshot.tracks.cbegin(), snapshot.tracks.cend(),
                 [](const db::AccountTrackSnapshot& track) { return !track.lastPlayedAtUtc.isEmpty(); }));
