@@ -22,6 +22,12 @@ Item {
     visible: shown && search.matches
     implicitHeight: (joined ? 0 : 1) + topPadding + body.childrenRect.height + bottomPadding
 
+    SettingsRowLine {
+        row: block
+        visible: !block.joined && block.y > 0
+        danger: search.hostSection !== null && search.hostSection.danger
+    }
+
     SettingsSearchable {
         id: search
 

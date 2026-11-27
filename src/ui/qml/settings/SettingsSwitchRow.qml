@@ -25,6 +25,11 @@ T.AbstractButton {
 
     onClicked: row.changeRequested(!row.checked)
 
+    SettingsRowLine {
+        row: row
+        danger: search.hostSection !== null && search.hostSection.danger
+    }
+
     SettingsSearchable {
         id: search
 

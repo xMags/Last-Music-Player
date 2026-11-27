@@ -174,6 +174,7 @@ set(LMP_UI_QML_FILES
     qml/settings/SettingsGroup.qml
     qml/settings/SettingsBlock.qml
     qml/settings/SettingsChip.qml
+    qml/settings/SettingsRowLine.qml
     qml/settings/SettingsRowText.qml
     qml/settings/SettingsSearchable.qml
     qml/settings/SettingsSegmented.qml

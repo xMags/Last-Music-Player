@@ -3,9 +3,8 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import LastMusicPlayer
 
-// One card of Settings: a 12px-rounded surface, its parts stacked inside,
-// and a 1px line above every part but the first (and but a SettingsBlock
-// `joined` to the row above), across the whole card. A
+// One card of Settings: a 12px-rounded surface, its parts stacked inside;
+// each row draws the 1px line above itself (SettingsRowLine). A
 // danger card has a faint red wash and border. In the light theme, where
 // the card and the page are both near white, a card also has a 1px border
 // and the soft card shadow. `hasRows` says whether any part other than the
@@ -17,8 +16,8 @@ Item {
     // The card of what cannot be undone.
     property bool danger: false
 
-    readonly property var shownParts: column.visibleChildren.filter(item => item.height > 0)
-    readonly property bool hasRows: shownParts.some(item => item.objectName !== "settingsCardLabel")
+    // Read only while the page is searched (SettingsSection.visible).
+    readonly property bool hasRows: column.visibleChildren.some(item => item.height > 0 && item.objectName !== "settingsCardLabel")
 
     implicitHeight: column.implicitHeight
 
@@ -46,18 +45,4 @@ Item {
         width: parent.width
     }
 
-    Repeater {
-        model: card.shownParts
-
-        Rectangle {
-            required property Item modelData
-            required property int index
-
-            visible: index > 0 && !(modelData instanceof SettingsBlock && (modelData as SettingsBlock).joined)
-            y: modelData.y
-            width: card.width
-            height: 1
-            color: card.danger ? SettingsStyle.dangerLine : SettingsStyle.line
-        }
-    }
 }

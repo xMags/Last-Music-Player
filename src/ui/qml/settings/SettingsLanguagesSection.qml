@@ -258,6 +258,11 @@ SettingsSection {
                             readonly property int count: Math.max(1, Math.floor((span + 12) / (190 + 12)))
 
                             Layout.leftMargin: -8
+                            Layout.rightMargin: -8
+                            // Its width follows the editor's; asking for it
+                            // as a minimum widened the editor, which widened
+                            // this, without end.
+                            Layout.minimumWidth: 0
                             Layout.preferredWidth: span
                             columns: count
                             rowSpacing: 2

@@ -22,6 +22,11 @@ Item {
     visible: shown && search.matches
     implicitHeight: 1 + 14 + Math.max(44, layout.implicitHeight) + 14
 
+    SettingsRowLine {
+        row: row
+        danger: search.hostSection !== null && search.hostSection.danger
+    }
+
     SettingsSearchable {
         id: search
 
