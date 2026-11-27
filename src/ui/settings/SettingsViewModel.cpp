@@ -189,6 +189,21 @@ void SettingsViewModel::setTheme(const QString& theme)
     m_settings.setString(keys::Theme, stored);
 }
 
+QString SettingsViewModel::windowBackdrop() const
+{
+    return core::settings::storedBackdropChoice(
+        core::settings::backdropChoiceFromStored(m_settings.string(keys::WindowBackdrop)));
+}
+
+void SettingsViewModel::setWindowBackdrop(const QString& backdrop)
+{
+    const QString stored = core::settings::storedBackdropChoice(core::settings::backdropChoiceFromStored(backdrop));
+    if (m_settings.string(keys::WindowBackdrop) == stored) {
+        return;
+    }
+    m_settings.setString(keys::WindowBackdrop, stored);
+}
+
 int SettingsViewModel::accentIndex() const
 {
     return core::settings::accentChoiceFromStored(m_settings.string(keys::AccentColor));

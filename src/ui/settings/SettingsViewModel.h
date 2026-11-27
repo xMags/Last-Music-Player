@@ -33,6 +33,8 @@ class SettingsViewModel : public QObject {
 
     // "Light", "Dark" or "System": the stored strings.
     Q_PROPERTY(QString theme READ theme WRITE setTheme NOTIFY preferencesChanged FINAL)
+    // "Solid", "Mica" or "Acrylic": the stored strings.
+    Q_PROPERTY(QString windowBackdrop READ windowBackdrop WRITE setWindowBackdrop NOTIFY preferencesChanged FINAL)
     // 0 to 4 in the order of accentSeeds.
     Q_PROPERTY(int accentIndex READ accentIndex WRITE setAccentIndex NOTIFY preferencesChanged FINAL)
     // The seed colour and name of each accent choice.
@@ -81,6 +83,8 @@ public:
 
     [[nodiscard]] QString theme() const;
     void setTheme(const QString& theme);
+    [[nodiscard]] QString windowBackdrop() const;
+    void setWindowBackdrop(const QString& backdrop);
     [[nodiscard]] int accentIndex() const;
     void setAccentIndex(int index);
     [[nodiscard]] QVariantList accentSeeds() const;

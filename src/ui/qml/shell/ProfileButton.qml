@@ -44,6 +44,8 @@ T.AbstractButton {
                 color: Theme.neutral
 
                 AppText {
+
+                    onGlass: App.windowChrome.backdropActive
                     anchors.centerIn: parent
                     visible: picture.status !== Image.Ready
                     text: control.letter
@@ -88,6 +90,8 @@ T.AbstractButton {
                 width: Math.max(0, control.availableWidth - 40 - 12 - dots.width - 12)
 
                 AppText {
+
+                    onGlass: App.windowChrome.backdropActive
                     width: parent.width
                     text: control.name
                     font: Theme.profileName
@@ -96,6 +100,8 @@ T.AbstractButton {
                 }
 
                 AppText {
+
+                    onGlass: App.windowChrome.backdropActive
                     topPadding: 2
                     visible: control.plan !== ""
                     text: control.plan
@@ -106,6 +112,8 @@ T.AbstractButton {
         }
 
         AppText {
+
+            onGlass: App.windowChrome.backdropActive
             id: dots
 
             anchors.right: parent.right

@@ -42,6 +42,9 @@ int main(int argc, char* argv[])
     // is drawn from its outlines instead (AppText.qml). Must be set before
     // any window or text item exists.
     QQuickWindow::setTextRenderType(QQuickWindow::NativeTextRendering);
+    // A see-through surface when Settings asks for Mica or Acrylic. Before
+    // the window exists.
+    root.prepareWindowSurface();
     // Text without a theme font is hinted as the theme's fonts are
     // (TextStyles.cpp).
     QFont defaultFont = QGuiApplication::font();

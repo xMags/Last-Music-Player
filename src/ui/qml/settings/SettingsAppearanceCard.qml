@@ -5,7 +5,8 @@ import QtQuick.Layouts
 import LastMusicPlayer
 
 // Appearance: the theme (its words, then the three tiles across the card,
-// 12px apart), the accent swatches and the cover on the player bar.
+// 12px apart), the window background, the accent swatches and the cover on
+// the player bar.
 SettingsSection {
     title: qsTr("Appearance")
 
@@ -46,6 +47,21 @@ SettingsSection {
                 }
             }
         }
+    }
+
+    SettingsSelectRow {
+        // The stored strings, in the order of the choices.
+        readonly property var stored: ["Solid", "Mica", "Acrylic"]
+
+        title: qsTr("Window background")
+        segmented: true
+        description: App.windowChrome.backdropNeedsRestart ? qsTr("Restart Last Music Player to see it")
+            : App.settings.windowBackdrop === "Solid" ? qsTr("A plain sidebar and title bar")
+            : App.settings.windowBackdrop === "Mica" ? qsTr("The sidebar takes a soft tint of your wallpaper")
+            : qsTr("The sidebar shows a blur of what is behind the window")
+        choices: [qsTr("Solid"), qsTr("Mica"), qsTr("Acrylic")]
+        currentIndex: Math.max(0, stored.indexOf(App.settings.windowBackdrop))
+        onActivated: index => App.settings.windowBackdrop = stored[index]
     }
 
     SettingsRow {

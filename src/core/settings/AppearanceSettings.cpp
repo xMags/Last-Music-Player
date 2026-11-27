@@ -71,6 +71,30 @@ QString storedThemeChoice(ThemeChoice choice)
     return QStringLiteral("System");
 }
 
+BackdropChoice backdropChoiceFromStored(const QString& stored)
+{
+    if (stored == QLatin1StringView("Mica")) {
+        return BackdropChoice::Mica;
+    }
+    if (stored == QLatin1StringView("Acrylic")) {
+        return BackdropChoice::Acrylic;
+    }
+    return BackdropChoice::Solid;
+}
+
+QString storedBackdropChoice(BackdropChoice choice)
+{
+    switch (choice) {
+    case BackdropChoice::Mica:
+        return QStringLiteral("Mica");
+    case BackdropChoice::Acrylic:
+        return QStringLiteral("Acrylic");
+    case BackdropChoice::Solid:
+        break;
+    }
+    return QStringLiteral("Solid");
+}
+
 int accentChoiceFromStored(const QString& stored)
 {
     const QString rgb = rgbPart(stored);

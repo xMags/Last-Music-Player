@@ -30,6 +30,7 @@ constexpr DWORD kUseImmersiveDarkModeBefore20H1 = 19;
 constexpr DWORD kSystemBackdropType = 38;
 constexpr int kBackdropNone = 1;
 constexpr int kBackdropMica = 2;
+constexpr int kBackdropAcrylic = 3;
 
 // The top edge resizes the window over a grip at least this tall (in DIP).
 constexpr int kTopResizeGripDip = 6;
@@ -135,16 +136,30 @@ void WindowsWindowChrome::setDarkFrame(bool dark)
     }
 }
 
-bool WindowsWindowChrome::setBackdrop(bool enabled)
+bool WindowsWindowChrome::setBackdrop(WindowBackdrop backdrop)
 {
-    if (m_window == nullptr || enabled == m_backdrop) {
-        return m_backdrop;
+    if (m_window == nullptr || backdrop == m_backdrop) {
+        return backdropActive();
     }
     HWND window = asWindow(m_window);
-    const int type = enabled ? kBackdropMica : kBackdropNone;
+    const bool enabled = backdrop != WindowBackdrop::None;
+    int type = kBackdropNone;
+    if (backdrop == WindowBackdrop::Mica) {
+        type = kBackdropMica;
+    } else if (backdrop == WindowBackdrop::Acrylic) {
+        type = kBackdropAcrylic;
+    }
     const HRESULT applied = DwmSetWindowAttribute(window, kSystemBackdropType, &type, sizeof(type));
     if (enabled && FAILED(applied)) {
+        // Windows 10 and early Windows 11 have no system backdrop attribute.
         qCInfo(lcWindowChrome) << "No system backdrop on this version of Windows";
+        if (m_backdrop != WindowBackdrop::None) {
+            const int none = kBackdropNone;
+            DwmSetWindowAttribute(window, kSystemBackdropType, &none, sizeof(none));
+            DwmExtendFrameIntoClientArea(window, &kFrameMargins);
+            m_backdrop = WindowBackdrop::None;
+            notify();
+        }
         return false;
     }
     if (FAILED(DwmExtendFrameIntoClientArea(window, enabled ? &kBackdropMargins : &kFrameMargins))
@@ -152,11 +167,14 @@ bool WindowsWindowChrome::setBackdrop(bool enabled)
         qCWarning(lcWindowChrome) << "Could not extend the frame for the backdrop";
         const int none = kBackdropNone;
         DwmSetWindowAttribute(window, kSystemBackdropType, &none, sizeof(none));
+        DwmExtendFrameIntoClientArea(window, &kFrameMargins);
+        m_backdrop = WindowBackdrop::None;
+        notify();
         return false;
     }
-    m_backdrop = enabled;
+    m_backdrop = backdrop;
     notify();
-    return m_backdrop;
+    return backdropActive();
 }
 
 void WindowsWindowChrome::setDragStripHeight(qreal height)

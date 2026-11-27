@@ -5,6 +5,9 @@
 #include "core/settings/AppearanceSettings.h"
 
 using lmp::core::settings::accentChoiceFromStored;
+using lmp::core::settings::BackdropChoice;
+using lmp::core::settings::backdropChoiceFromStored;
+using lmp::core::settings::storedBackdropChoice;
 using lmp::core::settings::storedAccentChoice;
 using lmp::core::settings::storedThemeChoice;
 using lmp::core::settings::ThemeChoice;
@@ -23,6 +26,9 @@ private slots:
     void accentReadsBothColourSets();
     void accentWritesTheEarlierColours();
     void accentRoundTrips();
+    void backdropReadsTheExactNames_data();
+    void backdropReadsTheExactNames();
+    void backdropWritesTheStoredNames();
 };
 
 void AppearanceSettingsTest::themeReadsTheExactNames_data()
@@ -104,6 +110,32 @@ void AppearanceSettingsTest::accentRoundTrips()
     for (int index = 0; index < lmp::core::settings::AccentChoiceCount; ++index) {
         QCOMPARE(accentChoiceFromStored(storedAccentChoice(index)), index);
     }
+}
+
+void AppearanceSettingsTest::backdropReadsTheExactNames_data()
+{
+    QTest::addColumn<QString>("stored");
+    QTest::addColumn<BackdropChoice>("expected");
+    QTest::newRow("Solid") << QStringLiteral("Solid") << BackdropChoice::Solid;
+    QTest::newRow("Mica") << QStringLiteral("Mica") << BackdropChoice::Mica;
+    QTest::newRow("Acrylic") << QStringLiteral("Acrylic") << BackdropChoice::Acrylic;
+    QTest::newRow("missing") << QString() << BackdropChoice::Solid;
+    QTest::newRow("lower case") << QStringLiteral("acrylic") << BackdropChoice::Solid;
+    QTest::newRow("unknown") << QStringLiteral("Glass") << BackdropChoice::Solid;
+}
+
+void AppearanceSettingsTest::backdropReadsTheExactNames()
+{
+    QFETCH(QString, stored);
+    QFETCH(BackdropChoice, expected);
+    QCOMPARE(backdropChoiceFromStored(stored), expected);
+}
+
+void AppearanceSettingsTest::backdropWritesTheStoredNames()
+{
+    QCOMPARE(storedBackdropChoice(BackdropChoice::Solid), QStringLiteral("Solid"));
+    QCOMPARE(storedBackdropChoice(BackdropChoice::Mica), QStringLiteral("Mica"));
+    QCOMPARE(storedBackdropChoice(BackdropChoice::Acrylic), QStringLiteral("Acrylic"));
 }
 
 QTEST_GUILESS_MAIN(AppearanceSettingsTest)

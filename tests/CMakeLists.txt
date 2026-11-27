@@ -689,6 +689,10 @@ lmp_add_test(tst_backdrop_blur
     SOURCES ui/tst_backdrop_blur.cpp
     LIBS lmp_ui lmp_uiplugin Qt6::Quick)
 
+lmp_add_test(tst_window_chrome_view_model
+    SOURCES ui/tst_window_chrome_view_model.cpp
+    LIBS lmp_ui)
+
 lmp_add_test(tst_app_text
     SOURCES ui/tst_app_text.cpp
     LIBS lmp_ui lmp_uiplugin Qt6::Quick)

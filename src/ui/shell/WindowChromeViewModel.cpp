@@ -65,10 +65,27 @@ void WindowChromeViewModel::applyTheme(bool dark)
         return;
     }
     m_chrome->setDarkFrame(dark);
-    // The see-through backdrop frame stays off: it needs an alpha surface for
-    // the whole window and could not be confirmed to draw correctly, and an
-    // opaque frame is what the design shows whenever the backdrop is off.
-    m_chrome->setBackdrop(false);
+}
+
+void WindowChromeViewModel::setBackdropSupported(bool supported)
+{
+    m_backdropSupported = supported;
+}
+
+void WindowChromeViewModel::setBackdrop(platform::WindowBackdrop backdrop)
+{
+    if (!m_attached) {
+        return;
+    }
+    const bool wanted = backdrop != platform::WindowBackdrop::None;
+    const bool needsRestart = wanted && !m_backdropSupported;
+    if (needsRestart != m_backdropNeedsRestart) {
+        m_backdropNeedsRestart = needsRestart;
+        emit changed();
+    }
+    // On an opaque surface the see-through frame would show as plain white.
+    // The chrome reports any change through the state handler.
+    m_chrome->setBackdrop(needsRestart ? platform::WindowBackdrop::None : backdrop);
 }
 
 // The layout is reported while QML loads, before the window is attached, so

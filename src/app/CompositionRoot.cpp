@@ -26,6 +26,8 @@
 #include <QPointer>
 #include <QQmlApplicationEngine>
 #include <QQmlEngine>
+#include <QQuickWindow>
+#include <QSGRendererInterface>
 #include <QRandomGenerator>
 #include <QString>
 #include <QWindow>
@@ -40,6 +42,7 @@
 #include "core/async/Result.h"
 #include "core/mode/SourceChoice.h"
 #include "core/net/ArtworkUrl.h"
+#include "core/settings/AppearanceSettings.h"
 #include "core/settings/SettingKeys.h"
 #include "core/playback/QueueEngine.h"
 #include "platform/windows/WindowsAppIdentity.h"
@@ -52,6 +55,20 @@
 namespace lmp::app {
 
 namespace {
+
+// The system material the stored WindowBackdrop choice asks for.
+lmp::platform::WindowBackdrop windowBackdropFor(const QString& stored)
+{
+    switch (lmp::core::settings::backdropChoiceFromStored(stored)) {
+    case lmp::core::settings::BackdropChoice::Mica:
+        return lmp::platform::WindowBackdrop::Mica;
+    case lmp::core::settings::BackdropChoice::Acrylic:
+        return lmp::platform::WindowBackdrop::Acrylic;
+    case lmp::core::settings::BackdropChoice::Solid:
+        break;
+    }
+    return lmp::platform::WindowBackdrop::None;
+}
 
 Q_LOGGING_CATEGORY(lcComposition, "lmp.app.composition")
 
@@ -1277,6 +1294,20 @@ CompositionRoot::~CompositionRoot()
     m_downloads.shutdown();
 }
 
+void CompositionRoot::prepareWindowSurface()
+{
+    const bool seeThrough = windowBackdropFor(m_settings.string(core::settings::keys::WindowBackdrop))
+                            != platform::WindowBackdrop::None;
+    if (seeThrough) {
+        // Qt's Direct3D swap chains are opaque to Windows: transparent pixels
+        // show as white, not the backdrop. OpenGL hands Windows the alpha
+        // channel, so only a run that shows a backdrop draws with it.
+        QQuickWindow::setGraphicsApi(QSGRendererInterface::OpenGL);
+        QQuickWindow::setDefaultAlphaBuffer(true);
+    }
+    m_windowChromeViewModel.setBackdropSupported(seeThrough);
+}
+
 bool CompositionRoot::showMainWindow(QQmlApplicationEngine& engine)
 {
     const QList<QObject*> roots = engine.rootObjects();
@@ -1330,7 +1361,7 @@ bool CompositionRoot::showMainWindow(QQmlApplicationEngine& engine)
         qCWarning(lcComposition) << "The system media controls are not available";
     }
     if (m_theme) {
-        // The frame follows the theme: dark frame and backdrop in dark mode.
+        // The frame follows the theme: a dark frame in dark mode.
         m_windowChromeViewModel.applyTheme(m_theme->dark());
         QObject::connect(m_theme, &ui::ThemeColors::changed, &m_windowChromeViewModel,
                          [this]() {
@@ -1339,6 +1370,15 @@ bool CompositionRoot::showMainWindow(QQmlApplicationEngine& engine)
                              }
                          });
     }
+    // The material behind the sidebar and title strip, in either theme.
+    m_windowChromeViewModel.setBackdrop(windowBackdropFor(m_settings.string(core::settings::keys::WindowBackdrop)));
+    QObject::connect(&m_settings, &core::SettingsStore::changed, &m_windowChromeViewModel,
+                     [this](const QString& key) {
+                         if (key.isEmpty() || key == core::settings::keys::WindowBackdrop) {
+                             m_windowChromeViewModel.setBackdrop(
+                                 windowBackdropFor(m_settings.string(core::settings::keys::WindowBackdrop)));
+                         }
+                     });
     // The size and place it had when it last closed, in physical pixels;
     // the place only while a monitor still shows it.
     m_placementKeeper.attach(*window);

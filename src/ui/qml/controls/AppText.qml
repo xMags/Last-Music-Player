@@ -12,7 +12,12 @@ Text {
     // The size asked for, in pixels; a size in points is 4/3 px (Qt uses 96
     // logical dots per inch).
     readonly property real requestedPixelSize: appText.font.pixelSize > 0 ? appText.font.pixelSize : appText.font.pointSize * 4 / 3
-    readonly property bool drawsOutlines: appText.requestedPixelSize >= 15
+    // Set by text over the see-through window frame (the sidebar while a
+    // backdrop shows): ClearType blends its coloured edges with the colour
+    // under it, which there is the system backdrop it cannot see.
+    property bool onGlass: false
+    readonly property bool drawsOutlines: appText.onGlass
+        || appText.requestedPixelSize >= 15
         || (appText.requestedPixelSize >= 13 && appText.font.weight >= Font.DemiBold)
 
     renderType: appText.drawsOutlines ? Text.CurveRendering : Text.NativeRendering

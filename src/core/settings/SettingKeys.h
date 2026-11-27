@@ -17,6 +17,9 @@ inline constexpr QLatin1StringView Volume{"Volume"};
 inline constexpr QLatin1StringView Theme{"Theme"};
 // string "#AARRGGBB", default "#FF0097B2".
 inline constexpr QLatin1StringView AccentColor{"AccentColor"};
+// string "Solid", "Mica" or "Acrylic", default "Solid". The material behind
+// the window's sidebar and title strip.
+inline constexpr QLatin1StringView WindowBackdrop{"WindowBackdrop"};
 // bool, default true. Gapless preference.
 inline constexpr QLatin1StringView Gapless{"Gapless"};
 // bool, default false. Ask for lower quality streams on metered links.

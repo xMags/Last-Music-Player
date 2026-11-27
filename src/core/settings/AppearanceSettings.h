@@ -12,6 +12,14 @@ enum class ThemeChoice { System, Light, Dark };
 [[nodiscard]] ThemeChoice themeChoiceFromStored(const QString& stored);
 [[nodiscard]] QString storedThemeChoice(ThemeChoice choice);
 
+// The window background under the WindowBackdrop key: the strings "Solid",
+// "Mica" and "Acrylic", compared exactly. Anything else, including a missing
+// key, reads as Solid.
+enum class BackdropChoice { Solid, Mica, Acrylic };
+
+[[nodiscard]] BackdropChoice backdropChoiceFromStored(const QString& stored);
+[[nodiscard]] QString storedBackdropChoice(BackdropChoice choice);
+
 // The five accent choices, in the order of the picker: teal, purple, coral,
 // green, amber. Index 0, teal, is the default.
 inline constexpr int AccentChoiceCount = 5;

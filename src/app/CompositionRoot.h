@@ -170,6 +170,10 @@ public:
 
     // Takes over the frame of the main window the engine loaded, then shows
     // it. Returns false when there is no window to show.
+    // Chooses how the main window draws, before it is created: on a surface
+    // Windows can see through when the saved window background is Mica or
+    // Acrylic, else the default opaque one.
+    void prepareWindowSurface();
     [[nodiscard]] bool showMainWindow(QQmlApplicationEngine& engine);
 
     // Opens the welcome flow for review (the Debug build's --show-welcome).

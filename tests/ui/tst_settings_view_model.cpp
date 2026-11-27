@@ -72,6 +72,7 @@ QJsonObject SettingsViewModelTest::savedFile() const
 void SettingsViewModelTest::rowsStartAtTheEarlierDefaults()
 {
     QCOMPARE(m_model->theme(), QStringLiteral("System"));
+    QCOMPARE(m_model->windowBackdrop(), QStringLiteral("Solid"));
     QCOMPARE(m_model->accentIndex(), 0);
     QVERIFY(m_model->autoplay());
     QVERIFY(m_model->gapless());
@@ -152,6 +153,13 @@ void SettingsViewModelTest::unknownChoicesAreIgnored()
     // An unknown theme stores System, the earlier versions' reading of it.
     m_model->setTheme(QStringLiteral("Sepia"));
     QCOMPARE(savedFile().value(keys::Theme), QJsonValue(QStringLiteral("System")));
+
+    // An unknown window background stores Solid.
+    m_model->setWindowBackdrop(QStringLiteral("Acrylic"));
+    QCOMPARE(m_model->windowBackdrop(), QStringLiteral("Acrylic"));
+    QCOMPARE(savedFile().value(keys::WindowBackdrop), QJsonValue(QStringLiteral("Acrylic")));
+    m_model->setWindowBackdrop(QStringLiteral("Glass"));
+    QCOMPARE(savedFile().value(keys::WindowBackdrop), QJsonValue(QStringLiteral("Solid")));
 
     m_model->setAccentIndex(3);
     m_model->setAccentIndex(9);

@@ -7,6 +7,10 @@
 
 namespace lmp::platform {
 
+// The system material behind a see-through window frame. Mica is a soft tint
+// of the desktop wallpaper; Acrylic a blur of whatever is behind the window.
+enum class WindowBackdrop { None, Mica, Acrylic };
+
 // The frame of the main window when the application draws its own title
 // strip: the system caption is removed while resizing, dragging, snapping and
 // maximising keep their native behaviour. Rectangles and heights are in the
@@ -23,9 +27,11 @@ public:
 
     // A dark system frame, for the dark theme.
     virtual void setDarkFrame(bool dark) = 0;
-    // Asks for the system backdrop material behind the window. Returns whether
-    // it is now active; the window must then draw its frame see-through.
-    virtual bool setBackdrop(bool enabled) = 0;
+    // Asks for a system backdrop material behind the window (None for an
+    // opaque frame). Returns whether a backdrop is now active; the window must
+    // then draw its frame see-through. A material this version of Windows
+    // lacks leaves the frame opaque.
+    virtual bool setBackdrop(WindowBackdrop backdrop) = 0;
     [[nodiscard]] virtual bool backdropActive() const = 0;
 
     // The strip along the top edge that drags the window, and the three

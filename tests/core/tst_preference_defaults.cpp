@@ -50,6 +50,7 @@ void PreferenceDefaultsTest::writesTheEarlierDefaults()
     settings.setString(keys::ScanFormats, QStringLiteral(".wav"));
     settings.setString(keys::Theme, QStringLiteral("Dark"));
     settings.setString(keys::AccentColor, QStringLiteral("#FF6B8EFE"));
+    settings.setString(keys::WindowBackdrop, QStringLiteral("Acrylic"));
     settings.setString(keys::OutputDeviceId, QStringLiteral("device"));
     settings.setNumber(keys::eqBand(3), 4.5);
     settings.setNumber(keys::EqPreamp, -6.0);
@@ -66,6 +67,7 @@ void PreferenceDefaultsTest::writesTheEarlierDefaults()
     QCOMPARE(json.value(keys::ScanFormats), QJsonValue(QStringLiteral(".mp3,.flac")));
     QCOMPARE(json.value(keys::Theme), QJsonValue(QStringLiteral("System")));
     QCOMPARE(json.value(keys::AccentColor), QJsonValue(QStringLiteral("#FF0097B2")));
+    QCOMPARE(json.value(keys::WindowBackdrop), QJsonValue(QStringLiteral("Solid")));
     QCOMPARE(json.value(keys::OutputDeviceId), QJsonValue(QString()));
     for (int band = 0; band < keys::EqBandCount; ++band) {
         QCOMPARE(json.value(keys::eqBand(band)), QJsonValue(0.0));

@@ -40,6 +40,8 @@ Rectangle {
         }
 
         AppText {
+
+            onGlass: App.windowChrome.backdropActive
             anchors.verticalCenter: parent.verticalCenter
             visible: !sidebar.collapsed
             text: AppInfo.displayName
@@ -107,6 +109,8 @@ Rectangle {
                 visible: !sidebar.collapsed
 
                 AppText {
+
+                    onGlass: App.windowChrome.backdropActive
                     x: 4
                     y: 32 - 2
                     text: qsTr("Playlists")

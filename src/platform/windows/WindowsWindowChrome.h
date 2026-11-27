@@ -24,8 +24,8 @@ public:
 
     [[nodiscard]] bool attach(quintptr windowHandle) override;
     void setDarkFrame(bool dark) override;
-    bool setBackdrop(bool enabled) override;
-    [[nodiscard]] bool backdropActive() const override { return m_backdrop; }
+    bool setBackdrop(WindowBackdrop backdrop) override;
+    [[nodiscard]] bool backdropActive() const override { return m_backdrop != WindowBackdrop::None; }
     void setDragStripHeight(qreal height) override;
     void setCaptionButtons(const QRectF& minimize, const QRectF& maximize,
                            const QRectF& close) override;
@@ -71,7 +71,7 @@ private:
     QRectF m_maximizeButton;
     QRectF m_closeButton;
     bool m_active = true;
-    bool m_backdrop = false;
+    WindowBackdrop m_backdrop = WindowBackdrop::None;
     bool m_maximizeHovered = false;
     bool m_maximizePressed = false;
     bool m_inSizeMove = false; // inside the system's move or resize loop

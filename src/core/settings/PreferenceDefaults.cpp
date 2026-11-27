@@ -18,6 +18,7 @@ void resetPreferencesToDefaults(SettingsStore& store)
     store.setString(keys::ScanFormats, QStringLiteral(".mp3,.flac"));
     store.setString(keys::Theme, settings::storedThemeChoice(settings::ThemeChoice::System));
     store.setString(keys::AccentColor, settings::storedAccentChoice(0));
+    store.setString(keys::WindowBackdrop, settings::storedBackdropChoice(settings::BackdropChoice::Solid));
     store.setString(keys::OutputDeviceId, QString());
     for (int band = 0; band < keys::EqBandCount; ++band) {
         store.setNumber(keys::eqBand(band), 0.0);

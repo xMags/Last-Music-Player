@@ -49,6 +49,8 @@ T.AbstractButton {
             }
 
             AppText {
+
+                onGlass: App.windowChrome.backdropActive
                 anchors.verticalCenter: parent.verticalCenter
                 width: Math.min(implicitWidth, control.availableWidth - 20 - control.gap
                                 - (countPill.visible ? countPill.width + 8 : 0))
@@ -77,6 +79,8 @@ T.AbstractButton {
         Accessible.name: control.countLabel
 
         AppText {
+
+            onGlass: App.windowChrome.backdropActive
             id: countText
 
             anchors.centerIn: parent
