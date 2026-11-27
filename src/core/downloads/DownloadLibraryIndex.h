@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/db/TrackRepository.h"
 #include "core/library/UserDataOperationGate.h"
 #include "core/model/Track.h"
 
@@ -18,9 +19,6 @@ class ITagReader;
 namespace lmp::core {
 class DownloadManager;
 struct DownloadItem;
-namespace db {
-class TrackRepository;
-} // namespace db
 } // namespace lmp::core
 
 namespace lmp::core::downloads {
@@ -31,7 +29,8 @@ namespace lmp::core::downloads {
 // songs. Each row has the download's names, cover address and source
 // address (as the Offline page's rows do), the time it finished as its date
 // added, and its length from the file's tags; a file is read only when its
-// row does not know its length yet.
+// row does not know its length yet. Its like comes from the account or the
+// API key songs it was downloaded from (likeSourceOf).
 //
 // A change of the download list is written SettleMs later, and only when
 // what the rows would hold changed. While user data is being cleaned up the
@@ -64,12 +63,17 @@ public:
 
     // Writes the rows now and follows the download list from then on.
     void start();
-    // Writes the rows again even if the list did not change (the library
-    // was emptied).
+    // Writes the rows again even if the list did not change: the library
+    // was emptied, or the likes of the songs' sources may have changed.
     void reindex();
 
     // The song a finished download is in the library.
     [[nodiscard]] static Track trackFor(const DownloadItem& item, double durationSeconds);
+    // Where a download's like comes from, by the scope in its key:
+    // "download|Account:<owner>" the account (any account for a key from
+    // before keys named it), "download|ApiKey:..." the API key songs.
+    [[nodiscard]] static db::TrackRepository::DownloadedTrack downloadedFor(const DownloadItem& item,
+                                                                            double durationSeconds);
 
 signals:
     // The rows were written.
@@ -78,7 +82,7 @@ signals:
 private:
     void schedule(int delayMs);
     void run();
-    void write(const QList<Track>& songs, const QByteArray& signature);
+    void write(const QList<db::TrackRepository::DownloadedTrack>& songs, const QByteArray& signature);
 
     DownloadManager& m_downloads;
     platform::ITagReader& m_tags;

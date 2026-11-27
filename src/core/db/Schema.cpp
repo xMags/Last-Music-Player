@@ -92,6 +92,14 @@ constexpr char kCreatePlaylistTracksSql[] =
     "FOREIGN KEY (PlaylistId) REFERENCES Playlists(Id) ON DELETE CASCADE,"
     "FOREIGN KEY (TrackId) REFERENCES Tracks(Id) ON DELETE CASCADE);";
 
+// New in this app (earlier versions never had it): the like a downloaded
+// song's row last took from its source (TrackRepository::syncDownloadTracks),
+// by the row's source key.
+constexpr char kCreateDownloadLikesSql[] =
+    "CREATE TABLE IF NOT EXISTS DownloadLikes ("
+    "SourceKey TEXT PRIMARY KEY,"
+    "SourceLiked INTEGER NOT NULL);";
+
 // Version 1 to 2: new columns, a source key for every row, duplicates removed.
 constexpr const char* kVersion2Steps[] = {
     "ALTER TABLE Tracks ADD COLUMN SourceKey TEXT;",
@@ -294,7 +302,7 @@ Result<void> Schema::ensure(SqliteConnection& connection)
 Result<void> Schema::createTables(SqliteConnection& connection)
 {
     for (const char* sql : {kCreateTracksTableSql, kCreateAlbumsSql, kCreateAlbumTracksSql, kCreatePlaylistsSql,
-                            kCreatePlaylistTracksSql, account_schema::CreateTablesSql,
+                            kCreatePlaylistTracksSql, kCreateDownloadLikesSql, account_schema::CreateTablesSql,
                             account_schema::CreateFollowedArtistsSql}) {
         if (const Result<void> done = connection.exec(sql); !done) {
             return done;

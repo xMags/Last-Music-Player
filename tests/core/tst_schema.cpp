@@ -44,7 +44,8 @@ const QStringList kTables{
     QStringLiteral("AccountPlaylistTracks"), QStringLiteral("AccountPlaylists"),  QStringLiteral("AccountPreferences"),
     QStringLiteral("AccountProfiles"),       QStringLiteral("AccountSyncState"),  QStringLiteral("AccountTracks"),
     QStringLiteral("ActiveAccountContext"),  QStringLiteral("AlbumTracks"),       QStringLiteral("Albums"),
-    QStringLiteral("CatalogDiscoveryCache"), QStringLiteral("FollowedArtists"),   QStringLiteral("PendingLikes"),
+    QStringLiteral("CatalogDiscoveryCache"), QStringLiteral("DownloadLikes"),     QStringLiteral("FollowedArtists"),
+    QStringLiteral("PendingLikes"),
     QStringLiteral("PlaybackEvents"),        QStringLiteral("PlaylistTracks"),    QStringLiteral("Playlists"),
     QStringLiteral("Tracks"),
 };

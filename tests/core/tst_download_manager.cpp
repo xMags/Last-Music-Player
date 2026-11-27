@@ -180,6 +180,7 @@ private slots:
     void extrasOfAPlayingSongAreKeptAndWrittenOffline();
     void aFailedFetchKeepsNothingAndWaits();
     void downloadsBecomeSongsOfThisPc();
+    void aDownloadsKeyNamesWhereItsLikeComesFrom();
 };
 
 void DownloadManagerTest::removeAllDeletesFilesAndDropsTransfers()
@@ -840,6 +841,24 @@ void DownloadManagerTest::downloadsBecomeSongsOfThisPc()
     QCOMPARE(left.size(), 1);
     QCOMPARE(left.front().title, QStringLiteral("Two"));
     QCOMPARE(tags.reads.load(), 4);
+}
+
+void DownloadManagerTest::aDownloadsKeyNamesWhereItsLikeComesFrom()
+{
+    using Index = lmp::core::downloads::DownloadLibraryIndex;
+    using Source = lmp::core::db::TrackRepository::LikeSource;
+    lmp::core::DownloadItem item;
+    item.filePath = QStringLiteral("C:/Offline/a.m4a");
+    item.stableKey = QStringLiteral("download|Account:owner-a\nremote|account|https://x.test/a");
+    QCOMPARE(Index::downloadedFor(item, 0).likeSource, Source::Account);
+    QCOMPARE(Index::downloadedFor(item, 0).accountId, QStringLiteral("owner-a"));
+    item.stableKey = QStringLiteral("download|Account:3:7\nremote|account|https://x.test/a");
+    QCOMPARE(Index::downloadedFor(item, 0).likeSource, Source::Account);
+    QVERIFY(Index::downloadedFor(item, 0).accountId.isEmpty());
+    item.stableKey = QStringLiteral("download|ApiKey:p1\nremote|tag|https://x.test/a");
+    QCOMPARE(Index::downloadedFor(item, 0).likeSource, Source::Provider);
+    item.stableKey = QStringLiteral("local|c:/music/a.mp3");
+    QCOMPARE(Index::downloadedFor(item, 0).likeSource, Source::None);
 }
 
 QTEST_GUILESS_MAIN(DownloadManagerTest)

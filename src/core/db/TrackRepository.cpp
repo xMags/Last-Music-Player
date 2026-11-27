@@ -10,6 +10,8 @@
 #include <QLatin1StringView>
 
 #include <array>
+#include <optional>
+#include <utility>
 
 namespace lmp::core::db {
 
@@ -20,7 +22,7 @@ namespace tx = sql_transaction;
 constexpr QLatin1StringView kRemote{"remote"};
 
 // The tables a wipe empties, children before parents.
-constexpr std::array<const char*, 14> kClearAllSteps{
+constexpr std::array<const char*, 15> kClearAllSteps{
     "UPDATE ActiveAccountContext SET RemoteMode='LocalOnly', AccountId='' WHERE SingletonId=1;",
     "DELETE FROM AccountPlaylistTracks;",
     "DELETE FROM PlaybackEvents;",
@@ -30,6 +32,7 @@ constexpr std::array<const char*, 14> kClearAllSteps{
     "DELETE FROM AccountTracks;",
     "DELETE FROM AccountProfiles;",
     "DELETE FROM FollowedArtists;",
+    "DELETE FROM DownloadLikes;",
     "DELETE FROM AlbumTracks;",
     "DELETE FROM PlaylistTracks;",
     "DELETE FROM Albums;",
@@ -59,6 +62,91 @@ constexpr char kMergePlaybackStatsSql[] =
     "LastPlayedOrder=MAX(COALESCE(LastPlayedOrder,0), ?), "
     "LastPlayed=CASE WHEN ? > COALESCE(LastPlayedOrder,0) THEN datetime('now') ELSE LastPlayed END "
     "WHERE SourceKey=?;";
+
+// Carries the like of a downloaded song's source to its row (see
+// syncDownloadTracks). Its statements are prepared once per sync.
+class LikeCarry {
+public:
+    explicit LikeCarry(SqliteConnection& connection)
+        : m_connection(connection)
+    {
+    }
+
+    [[nodiscard]] Result<void> prepare()
+    {
+        // NULL when the source does not know the song.
+        for (auto& [slot, sql] : std::array<std::pair<std::optional<SqliteStatement>*, const char*>, 5>{{
+                 {&m_account, "SELECT MAX(IsLiked) FROM AccountTracks WHERE SourceUrl=?1 AND (?2='' OR AccountId=?2);"},
+                 {&m_provider, "SELECT MAX(IsLiked) FROM Tracks WHERE SourceKind='remote' AND SourceUrl=?1;"},
+                 {&m_carried, "SELECT SourceLiked FROM DownloadLikes WHERE SourceKey=?1;"},
+                 {&m_setLiked, "UPDATE Tracks SET IsLiked=?2 WHERE SourceKey=?1;"},
+                 {&m_remember, "INSERT INTO DownloadLikes (SourceKey, SourceLiked) VALUES (?1, ?2) "
+                               "ON CONFLICT(SourceKey) DO UPDATE SET SourceLiked=excluded.SourceLiked;"},
+             }}) {
+            Result<SqliteStatement> statement = m_connection.prepare(sql);
+            if (!statement) {
+                return statement.failure();
+            }
+            slot->emplace(std::move(statement.value()));
+        }
+        return Result<void>::success();
+    }
+
+    // The source's like reaches the row only when it changed since it last
+    // did, so a like changed on this PC meanwhile stays.
+    [[nodiscard]] Result<void> carry(const QString& key, const TrackRepository::DownloadedTrack& song)
+    {
+        if (song.likeSource == TrackRepository::LikeSource::None || song.track.sourceUrl.isEmpty()) {
+            return Result<void>::success();
+        }
+        SqliteStatement& source =
+            song.likeSource == TrackRepository::LikeSource::Account ? *m_account : *m_provider;
+        source.reset();
+        source.clearBindings();
+        source.bindText(1, song.track.sourceUrl);
+        if (song.likeSource == TrackRepository::LikeSource::Account) {
+            source.bindText(2, song.accountId);
+        }
+        const Result<bool> found = source.step();
+        if (!found) {
+            return found.failure();
+        }
+        if (!found.value() || source.columnIsNull(0)) {
+            return Result<void>::success();
+        }
+        const qint64 liked = source.columnInt64(0) != 0 ? 1 : 0;
+
+        SqliteStatement& carried = *m_carried;
+        carried.reset();
+        carried.clearBindings();
+        carried.bindText(1, key);
+        const Result<bool> known = carried.step();
+        if (!known) {
+            return known.failure();
+        }
+        if (known.value() && carried.columnInt64(0) == liked) {
+            return Result<void>::success();
+        }
+        for (SqliteStatement* write : {&*m_setLiked, &*m_remember}) {
+            write->reset();
+            write->clearBindings();
+            write->bindText(1, key);
+            write->bindInt64(2, liked);
+            if (const Result<void> ran = write->run(); !ran) {
+                return ran;
+            }
+        }
+        return Result<void>::success();
+    }
+
+private:
+    SqliteConnection& m_connection;
+    std::optional<SqliteStatement> m_account;
+    std::optional<SqliteStatement> m_provider;
+    std::optional<SqliteStatement> m_carried;
+    std::optional<SqliteStatement> m_setLiked;
+    std::optional<SqliteStatement> m_remember;
+};
 
 // An address a remote row may keep; anything else is stored empty.
 QString durableOrEmpty(const QString& sourceKind, const QString& url)
@@ -138,7 +226,7 @@ Result<void> TrackRepository::completeLocalScan(const QStringList& activeSourceK
     return Result<void>::success();
 }
 
-Result<void> TrackRepository::syncDownloadTracks(const QList<Track>& tracks)
+Result<void> TrackRepository::syncDownloadTracks(const QList<DownloadedTrack>& songs)
 {
     if (const Result<void> begun = m_connection.exec("BEGIN IMMEDIATE;"); !begun) {
         return begun;
@@ -151,12 +239,23 @@ Result<void> TrackRepository::syncDownloadTracks(const QList<Track>& tracks)
         return tx::rollbackWith(m_connection, cleared.failure());
     }
     const QByteArray sql = QByteArray(kUpsertTrackBody) + kUpsertDownloadCondition + ';';
-    for (const Track& track : tracks) {
+    LikeCarry likes(m_connection);
+    if (const Result<void> prepared = likes.prepare(); !prepared) {
+        return tx::rollbackWith(m_connection, prepared.failure());
+    }
+    for (const DownloadedTrack& song : songs) {
+        const QString key = catalogSourceKey(song.track);
         const Result<qint64> written =
-            upsertTrack(track, QStringLiteral("local"), QString(DownloadProvider), catalogSourceKey(track), true, sql);
+            upsertTrack(song.track, QStringLiteral("local"), QString(DownloadProvider), key, true, sql);
         // A song without a usable key is left out; a refused write undoes all.
-        if (!written && written.failure().kind != FailureKind::NotFound) {
+        if (!written) {
+            if (written.failure().kind == FailureKind::NotFound) {
+                continue;
+            }
             return tx::rollbackWith(m_connection, written.failure());
+        }
+        if (const Result<void> carried = likes.carry(key, song); !carried) {
+            return tx::rollbackWith(m_connection, carried.failure());
         }
     }
     if (const Result<void> committed = m_connection.exec("COMMIT;"); !committed) {

@@ -3,14 +3,18 @@
 #include "core/db/TrackRepository.h"
 #include "core/downloads/DownloadManager.h"
 #include "core/library/LibraryScanner.h"
+#include "core/mode/SourceMode.h"
 #include "core/model/CatalogSourceKey.h"
 #include "platform/ITagReader.h"
 
 #include <QCryptographicHash>
 #include <QDateTime>
 #include <QFileInfo>
+#include <QLatin1Char>
+#include <QLatin1StringView>
 #include <QLocale>
 #include <QMetaObject>
+#include <QStringList>
 
 #include <algorithm>
 #include <optional>
@@ -42,8 +46,8 @@ namespace {
 {
     QCryptographicHash hash(QCryptographicHash::Sha1);
     for (const DownloadItem& item : songs) {
-        for (const QString* field : {&item.filePath, &item.title, &item.artist, &item.album, &item.artworkUrl,
-                                     &item.sourceUrl, &item.provider}) {
+        for (const QString* field : {&item.filePath, &item.stableKey, &item.title, &item.artist, &item.album,
+                                     &item.artworkUrl, &item.sourceUrl, &item.provider}) {
             hash.addData(field->toUtf8());
             hash.addData(QByteArrayView("\x1f", 1));
         }
@@ -122,6 +126,28 @@ Track DownloadLibraryIndex::trackFor(const DownloadItem& item, double durationSe
     return track;
 }
 
+db::TrackRepository::DownloadedTrack DownloadLibraryIndex::downloadedFor(const DownloadItem& item,
+                                                                         double durationSeconds)
+{
+    db::TrackRepository::DownloadedTrack song;
+    song.track = trackFor(item, durationSeconds);
+    const QLatin1StringView prefix("download|");
+    const qsizetype end = item.stableKey.indexOf(QLatin1Char('\n'));
+    if (!item.stableKey.startsWith(prefix) || end < 0) {
+        return song;
+    }
+    const QStringList scope = item.stableKey.mid(prefix.size(), end - prefix.size()).split(QLatin1Char(':'));
+    const QString kind = scope.value(0);
+    if (kind == mode::sourceModeName(mode::SourceMode::Account)) {
+        song.likeSource = db::TrackRepository::LikeSource::Account;
+        // "Account:<owner>"; a key with run counters ("Account:3:7") names none.
+        song.accountId = scope.size() == 2 ? scope.at(1) : QString();
+    } else if (kind == mode::sourceModeName(mode::SourceMode::ApiKey)) {
+        song.likeSource = db::TrackRepository::LikeSource::Provider;
+    }
+    return song;
+}
+
 void DownloadLibraryIndex::run()
 {
     if (m_reading) {
@@ -136,18 +162,18 @@ void DownloadLibraryIndex::run()
 
     // Only files whose rows do not know their length are read.
     const QHash<QString, double> known = m_tracks.downloadTrackDurations();
-    QList<Track> tracks;
+    QList<db::TrackRepository::DownloadedTrack> tracks;
     tracks.reserve(songs.size());
     QList<qsizetype> unread;
     for (const DownloadItem& item : songs) {
-        Track track = trackFor(item, 0.0);
-        const double seconds = known.value(catalogSourceKey(track), 0.0);
+        db::TrackRepository::DownloadedTrack song = downloadedFor(item, 0.0);
+        const double seconds = known.value(catalogSourceKey(song.track), 0.0);
         if (seconds > 0.0) {
-            track = trackFor(item, seconds);
+            song.track = trackFor(item, seconds);
         } else {
             unread.append(tracks.size());
         }
-        tracks.append(std::move(track));
+        tracks.append(std::move(song));
     }
     if (unread.isEmpty()) {
         write(tracks, signature);
@@ -163,7 +189,7 @@ void DownloadLibraryIndex::run()
             // A file that cannot be read is listed without a length.
             const Result<platform::TrackTags> read = tags.read(item.filePath);
             if (read && read.value().durationSeconds > 0.0) {
-                tracks[index] = trackFor(item, read.value().durationSeconds);
+                tracks[index].track = trackFor(item, read.value().durationSeconds);
             }
         }
         QMetaObject::invokeMethod(
@@ -179,7 +205,8 @@ void DownloadLibraryIndex::run()
     });
 }
 
-void DownloadLibraryIndex::write(const QList<Track>& songs, const QByteArray& signature)
+void DownloadLibraryIndex::write(const QList<db::TrackRepository::DownloadedTrack>& songs,
+                                 const QByteArray& signature)
 {
     std::optional<UserDataOperationGate::Lease> lease = m_gate.tryEnter();
     if (!lease) {

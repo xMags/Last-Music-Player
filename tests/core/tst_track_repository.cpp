@@ -58,6 +58,8 @@ private slots:
     void clearAllUserDataEmptiesEverything();
     void downloadedSongsShowOnlyWhileTheSourceIsThisPc();
     void downloadedSongsFollowTheDownloadsNotTheScan();
+    void downloadedSongsTakeTheirSourcesLikes();
+    void aLikeChangedOnThisPcStaysUntilTheSourceChanges();
 };
 
 void TrackRepositoryTest::insertReturnsIdAndReadsBack()
@@ -319,12 +321,17 @@ void TrackRepositoryTest::clearAllUserDataEmptiesEverything()
 
 namespace {
 
-Track downloaded(const QString& title)
+TrackRepository::DownloadedTrack downloaded(const QString& title,
+                                            TrackRepository::LikeSource likeSource = TrackRepository::LikeSource::None,
+                                            const QString& accountId = {})
 {
-    Track track = localTrack(title);
-    track.filePath = QStringLiteral("C:/Offline/") + title + QStringLiteral(".m4a");
-    track.sourceUrl = QStringLiteral("https://music.example.test/") + title;
-    return track;
+    TrackRepository::DownloadedTrack song;
+    song.track = localTrack(title);
+    song.track.filePath = QStringLiteral("C:/Offline/") + title + QStringLiteral(".m4a");
+    song.track.sourceUrl = QStringLiteral("https://music.example.test/") + title;
+    song.likeSource = likeSource;
+    song.accountId = accountId;
+    return song;
 }
 
 } // namespace
@@ -376,7 +383,7 @@ void TrackRepositoryTest::downloadedSongsFollowTheDownloadsNotTheScan()
     QCOMPARE(library.number("SELECT IsLiked FROM Tracks WHERE Title='A';"), 1);
 
     // A file the music folder holds too stays the scan's song.
-    Track scanned = downloaded(QStringLiteral("A"));
+    Track scanned = downloaded(QStringLiteral("A")).track;
     scanned.sourceUrl.clear();
     scanned.title = QStringLiteral("Scanned A");
     QVERIFY(tracks.upsertLocalTrack(scanned, QStringLiteral("local|c:/offline/a.m4a")).isOk());
@@ -385,6 +392,91 @@ void TrackRepositoryTest::downloadedSongsFollowTheDownloadsNotTheScan()
              QStringLiteral("Scanned A"));
     QCOMPARE(library.text("SELECT Provider FROM Tracks WHERE SourceKey='local|c:/offline/a.m4a';"), QString());
     QCOMPARE(library.number("SELECT IsActive FROM Tracks WHERE SourceKey='local|c:/offline/a.m4a';"), 1);
+}
+
+void TrackRepositoryTest::downloadedSongsTakeTheirSourcesLikes()
+{
+    TempLibrary library;
+    QVERIFY(library.ok());
+    TrackRepository tracks(library.database());
+    QVERIFY(library.connection()
+                .exec("INSERT INTO AccountProfiles (AccountId) VALUES ('acc-a'), ('acc-b');"
+                      "INSERT INTO AccountTracks (AccountId, RemoteId, SourceUrl, IsLiked) VALUES "
+                      "('acc-a', 'r1', 'https://music.example.test/Liked', 1),"
+                      "('acc-a', 'r2', 'https://music.example.test/Plain', 0),"
+                      "('acc-b', 'r3', 'https://music.example.test/Other', 1);")
+                .isOk());
+    Track remote;
+    remote.title = QStringLiteral("Kept");
+    remote.sourceUrl = QStringLiteral("https://music.example.test/Kept");
+    QVERIFY(tracks.upsertRemoteTrack(remote, QStringLiteral("remote|provider|kept")).isOk());
+    QVERIFY(tracks.setLiked(QStringLiteral("remote|provider|kept"), true).isOk());
+
+    using Source = TrackRepository::LikeSource;
+    QVERIFY(tracks
+                .syncDownloadTracks({
+                    downloaded(QStringLiteral("Liked"), Source::Account, QStringLiteral("acc-a")),
+                    downloaded(QStringLiteral("Plain"), Source::Account, QStringLiteral("acc-a")),
+                    // Another account's like is not this one's.
+                    downloaded(QStringLiteral("Other"), Source::Account, QStringLiteral("acc-a")),
+                    // A key without its account: any account's song counts.
+                    downloaded(QStringLiteral("Other"), Source::Account),
+                    downloaded(QStringLiteral("Kept"), Source::Provider),
+                    // Nowhere to take it from.
+                    downloaded(QStringLiteral("Unknown"), Source::Account, QStringLiteral("acc-a")),
+                })
+                .isOk());
+    const auto liked = [&library](const char* title) {
+        return library.number(QByteArray("SELECT IsLiked FROM Tracks WHERE Provider='download' AND Title='")
+                                  .append(title)
+                                  .append("';")
+                                  .constData());
+    };
+    QCOMPARE(liked("Liked"), 1);
+    QCOMPARE(liked("Plain"), 0);
+    QCOMPARE(liked("Other"), 1);
+    QCOMPARE(liked("Kept"), 1);
+    QCOMPARE(liked("Unknown"), 0);
+    QCOMPARE(library.number("SELECT COUNT(*) FROM DownloadLikes;"), 4);
+
+    // Unliked on the account: carried too.
+    QVERIFY(library.connection().exec("UPDATE AccountTracks SET IsLiked=0 WHERE RemoteId='r1';").isOk());
+    QVERIFY(tracks.syncDownloadTracks({downloaded(QStringLiteral("Liked"), Source::Account, QStringLiteral("acc-a"))})
+                .isOk());
+    QCOMPARE(liked("Liked"), 0);
+
+    // Wiped with the rest of the user data.
+    QVERIFY(tracks.clearAllUserData().isOk());
+    QCOMPARE(library.number("SELECT COUNT(*) FROM DownloadLikes;"), 0);
+}
+
+void TrackRepositoryTest::aLikeChangedOnThisPcStaysUntilTheSourceChanges()
+{
+    TempLibrary library;
+    QVERIFY(library.ok());
+    TrackRepository tracks(library.database());
+    QVERIFY(library.connection()
+                .exec("INSERT INTO AccountProfiles (AccountId) VALUES ('acc-a');"
+                      "INSERT INTO AccountTracks (AccountId, RemoteId, SourceUrl, IsLiked) VALUES "
+                      "('acc-a', 'r1', 'https://music.example.test/Song', 1);")
+                .isOk());
+    const TrackRepository::DownloadedTrack song =
+        downloaded(QStringLiteral("Song"), TrackRepository::LikeSource::Account, QStringLiteral("acc-a"));
+    const QString key = QStringLiteral("local|c:/offline/song.m4a");
+    QVERIFY(tracks.syncDownloadTracks({song}).isOk());
+    QVERIFY(tracks.isLiked(key));
+
+    // Unliked offline: the next pass keeps that.
+    QVERIFY(tracks.setLiked(key, false).isOk());
+    QVERIFY(tracks.syncDownloadTracks({song}).isOk());
+    QVERIFY(!tracks.isLiked(key));
+
+    // The account unlikes and likes it again: that change arrives.
+    QVERIFY(library.connection().exec("UPDATE AccountTracks SET IsLiked=0;").isOk());
+    QVERIFY(tracks.syncDownloadTracks({song}).isOk());
+    QVERIFY(library.connection().exec("UPDATE AccountTracks SET IsLiked=1;").isOk());
+    QVERIFY(tracks.syncDownloadTracks({song}).isOk());
+    QVERIFY(tracks.isLiked(key));
 }
 
 QTEST_GUILESS_MAIN(TrackRepositoryTest)

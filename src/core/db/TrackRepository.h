@@ -33,6 +33,25 @@ public:
     // this PC (the EffectiveTracks view) and left alone by folder scans.
     static constexpr QLatin1StringView DownloadProvider{"download"};
 
+    // Where a downloaded song's like comes from.
+    enum class LikeSource {
+        // A song of this PC, or one whose source is not known.
+        None,
+        // The account's songs (AccountTracks), of `accountId` when known.
+        Account,
+        // The songs kept in API key mode (remote rows).
+        Provider,
+    };
+
+    // A finished download, as syncDownloadTracks writes it.
+    struct DownloadedTrack {
+        Track track;
+        LikeSource likeSource = LikeSource::None;
+        // Empty when the download does not name its account (any account's
+        // song then counts).
+        QString accountId;
+    };
+
     explicit TrackRepository(Database& database);
 
     // Removes every library, collection and account row, then truncates the
@@ -51,10 +70,16 @@ public:
     // Makes the downloaded songs' rows these songs (local rows with
     // DownloadProvider, keyed by catalogSourceKey): each is written and
     // active, every other downloaded song's row goes inactive. A row that a
-    // folder scan keeps active for the same file stays the scan's. Likes and
-    // plays stay on the rows. One transaction; a song without a usable key
-    // is left out.
-    [[nodiscard]] Result<void> syncDownloadTracks(const QList<Track>& tracks);
+    // folder scan keeps active for the same file stays the scan's. Plays
+    // stay on the rows.
+    //
+    // A song's like follows its source (matched by source address): when
+    // the source knows the song and its like differs from the one this
+    // last carried (DownloadLikes), the row takes it. A like changed on
+    // this PC in between therefore stays until the source's changes.
+    //
+    // One transaction; a song without a usable key is left out.
+    [[nodiscard]] Result<void> syncDownloadTracks(const QList<DownloadedTrack>& songs);
     // Downloaded songs' rows that know their length: source key to seconds.
     [[nodiscard]] QHash<QString, double> downloadTrackDurations();
 

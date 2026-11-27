@@ -1003,6 +1003,9 @@ CompositionRoot::CompositionRoot()
                              shown = m_mode.mode();
                              const bool thisPc = shown == core::mode::SourceMode::LocalOnly;
                              m_sidebar.setShowsOffline(!thisPc);
+                             // Likes made in the other mode reach the
+                             // downloads' rows.
+                             m_downloadIndex.reindex();
                              // The Offline page gives way to Library, which
                              // now lists the downloads (and stays the only
                              // page once the history starts over).
