@@ -1,7 +1,6 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
-import QtQuick.Effects
 import LastMusicPlayer
 
 // Clips its children to a rounded rectangle (CSS overflow: hidden on a box
@@ -23,23 +22,14 @@ Item {
 
         anchors.fill: parent
         layer.enabled: root.radius > 0
-        // The mask's anti-aliased edge decides coverage, as in ArtTile: half
-        // coverage is the edge, spread over the full soft band.
-        layer.effect: MultiEffect {
-            maskEnabled: true
-            maskSource: mask
-            maskThresholdMin: 0.5
-            maskSpreadAtMin: 1.0
+        // The corners are worked out in the shader (a one-pixel soft edge,
+        // as ArtTile's covers), so no mask layer of the same size is kept.
+        layer.effect: ShaderEffect {
+            readonly property size itemSize: Qt.size(width, height)
+            readonly property real cornerRadius: Math.min(root.radius, width / 2, height / 2)
+
+            fragmentShader: "qrc:/qt/qml/LastMusicPlayer/shaders/roundedclip.frag.qsb"
         }
         clip: root.radius <= 0
-    }
-
-    Rectangle {
-        id: mask
-
-        anchors.fill: parent
-        radius: root.radius
-        visible: false
-        layer.enabled: true
     }
 }

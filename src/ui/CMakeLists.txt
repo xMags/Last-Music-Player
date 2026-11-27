@@ -449,6 +449,7 @@ target_link_libraries(lmp_ui
 qt_add_shaders(lmp_ui "lmp_ui_shaders"
     PREFIX "/qt/qml/LastMusicPlayer"
     FILES
+        shaders/roundedclip.frag
         shaders/roundedcover.frag)
 
 # Drawn chart covers (ChartArtImageProvider), generated from the reference
