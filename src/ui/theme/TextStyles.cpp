@@ -79,9 +79,9 @@ FontFamilies FontFamilies::resolve()
 {
     return FontFamilies{
         // The classic Segoe UI: a face of its own for each weight (Light to
-        // Black), hinted for grey, pixel-snapped text. Segoe UI Variable,
-        // under the FreeType engine (main.cpp), drew 600 as Bold or Regular
-        // and broke the thin joins of h, n and m.
+        // Black), well hinted for small, pixel-snapped text. Segoe UI
+        // Variable, under the FreeType engine once used, drew 600 as Bold or
+        // Regular and broke the thin joins of h, n and m.
         .text = FontLoader::firstAvailableFamily({QStringLiteral("Segoe UI")}),
         .display = FontLoader::firstAvailableFamily({QStringLiteral("Segoe UI")}),
         .expressive = FontLoader::firstAvailableFamily(

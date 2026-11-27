@@ -17,26 +17,7 @@ Q_IMPORT_QML_PLUGIN(LastMusicPlayerPlugin)
 
 int main(int argc, char* argv[])
 {
-    // FreeType draws the text: hinted to the pixel grid like the system's
-    // rasteriser, but with grey anti-aliasing, as Windows 11's own app UI
-    // uses. Qt Quick asks DirectWrite (the default engine) for ClearType
-    // glyphs whatever the font says, and ClearType's coloured edges read as
-    // a misprinted second copy over tinted and translucent surfaces; outline
-    // (curve) rendering is grey but unhinted, so soft at 125% and 150%.
-    // Only when nothing else chose the platform (tests run it offscreen),
-    // and not passed on to programs this app starts.
-    const bool choosePlatform = !qEnvironmentVariableIsSet("QT_QPA_PLATFORM");
-    if (choosePlatform) {
-        qputenv("QT_QPA_PLATFORM", "windows:fontengine=freetype");
-    }
-    // The UI font is the classic Segoe UI, not Segoe UI Variable: FreeType
-    // here does not apply the variable font's weight axis (600 came out as
-    // its Bold or Regular) and its hints are written for DirectWrite, so thin
-    // joins fell between pixels and h, n and m looked broken (TextStyles.cpp).
     QGuiApplication app(argc, argv);
-    if (choosePlatform) {
-        qunsetenv("QT_QPA_PLATFORM");
-    }
     QCoreApplication::setApplicationName(lmp::core::AppIdentity::displayName());
     QCoreApplication::setApplicationVersion(lmp::core::AppIdentity::version());
 
@@ -53,10 +34,12 @@ int main(int argc, char* argv[])
 
     lmp::app::CompositionRoot root;
 
-    // Text drawn by the font engine (FreeType, above), hinted to the pixel
-    // grid. Qt Quick's default (distance fields) looks soft at normal sizes,
-    // more so at fractional display scaling. Must be set before any window
-    // or text item exists.
+    // Text drawn by Windows' own rasteriser (DirectWrite, ClearType), hinted
+    // to the pixel grid as in other Windows apps. The alternatives each fell
+    // short at 125% and 150%: distance fields and outline (curve) rendering
+    // look soft, FreeType drew thin, pale strokes, and grey DirectWrite
+    // glyphs (a styled Text) came out heavy and crowded in bold. Must be set
+    // before any window or text item exists.
     QQuickWindow::setTextRenderType(QQuickWindow::NativeTextRendering);
     // Text without a theme font is hinted as the theme's fonts are
     // (TextStyles.cpp).
