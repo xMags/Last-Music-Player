@@ -283,7 +283,15 @@ Item {
         }
     }
 
-    CoverPicture { picture: previous }
+    // The old picture is drawn only while the new one fades in over it.
+    Loader {
+        anchors.fill: parent
+        active: previous.source.toString() !== ""
+
+        sourceComponent: Component {
+            CoverPicture { picture: previous }
+        }
+    }
     CoverPicture { picture: current }
 
     NumberAnimation {
