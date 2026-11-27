@@ -131,7 +131,7 @@ Item {
             color: Qt.rgba(1, 1, 1, 0xD9 / 255)
         }
 
-        Text {
+        AppText {
             text: qsTr("genre")
             font: Theme.genreLabel
             color: tile.ink

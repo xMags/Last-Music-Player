@@ -35,7 +35,7 @@ Item {
             color: Theme.accentColor
         }
 
-        Text {
+        AppText {
             text: link.text
             font: Theme.collectionBack
             color: Theme.accentColor

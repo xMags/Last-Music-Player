@@ -87,7 +87,7 @@ SettingsSection {
                 color: App.source.providerConnected ? Theme.sourceReady : SettingsStyle.off
             }
 
-            Text {
+            AppText {
                 Layout.fillWidth: true
                 text: App.source.apiKeyStatus !== "" ? App.source.apiKeyStatus
                     : App.source.providerConnected ? qsTr("Connected") : qsTr("Not connected")

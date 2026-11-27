@@ -28,7 +28,7 @@ Rectangle {
         anchors.verticalCenter: parent.verticalCenter
         spacing: 6
 
-        Text {
+        AppText {
             anchors.verticalCenter: parent.verticalCenter
             text: pill.language.name
             font: Theme.settingsLanguageText
@@ -37,7 +37,7 @@ Rectangle {
             color: Theme.fg
         }
 
-        Text {
+        AppText {
             anchors.verticalCenter: parent.verticalCenter
             visible: pill.language.nativeName !== ""
             text: pill.language.nativeName

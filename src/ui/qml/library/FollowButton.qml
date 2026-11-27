@@ -86,7 +86,7 @@ T.Button {
         }
         }
 
-        Text {
+        AppText {
             anchors.verticalCenter: parent.verticalCenter
             text: control.text
             font: control.font

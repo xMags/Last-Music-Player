@@ -20,7 +20,7 @@ T.AbstractButton {
         cursorShape: Qt.PointingHandCursor
     }
 
-    contentItem: Text {
+    contentItem: AppText {
         id: label
 
         text: link.text

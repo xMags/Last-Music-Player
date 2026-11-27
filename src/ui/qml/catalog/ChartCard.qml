@@ -106,7 +106,7 @@ T.AbstractButton {
                     }
                 }
 
-                Text {
+                AppText {
                     anchors.verticalCenter: parent.verticalCenter
                     text: card.kindLabel.toUpperCase()
                     font.pixelSize: 9
@@ -134,7 +134,7 @@ T.AbstractButton {
                     cornerRadius: parent.radius
                 }
 
-                Text {
+                AppText {
                     id: pillText
 
                     anchors.centerIn: parent
@@ -146,7 +146,7 @@ T.AbstractButton {
                 }
             }
 
-            Text {
+            AppText {
                 width: parent.width
                 text: card.name
                 font.family: card.drawn ? Theme.fontDisplay : font.family
@@ -160,7 +160,7 @@ T.AbstractButton {
                 color: "white"
             }
 
-            Text {
+            AppText {
                 width: parent.width
                 visible: card.cardSubtitle !== ""
                 text: card.cardSubtitle

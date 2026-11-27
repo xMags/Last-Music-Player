@@ -127,7 +127,7 @@ T.AbstractButton {
             }
         }
 
-        Text {
+        AppText {
             x: art.width + 14
             width: parent.width - x - 14
             anchors.verticalCenter: parent.verticalCenter

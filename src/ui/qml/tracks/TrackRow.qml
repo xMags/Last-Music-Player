@@ -198,7 +198,7 @@ T.AbstractButton {
                         Layout.fillWidth: true
                         spacing: 6
 
-                        Text {
+                        AppText {
                             // Rounded up: a width snapped down would elide a title that fits.
                             Layout.fillWidth: true
                             Layout.maximumWidth: Math.ceil(implicitWidth)
@@ -217,7 +217,7 @@ T.AbstractButton {
                         Item { Layout.fillWidth: true }
                     }
 
-                    Text {
+                    AppText {
                         Layout.fillWidth: true
                         text: row.unavailable ? row.unavailableReason : row.artist
                         font: Theme.trackArtist
@@ -229,7 +229,7 @@ T.AbstractButton {
                 }
             }
 
-            Text {
+            AppText {
                 Layout.preferredWidth: 200
                 visible: row.albumShown
                 text: row.album
@@ -238,7 +238,7 @@ T.AbstractButton {
                 elide: Text.ElideRight
             }
 
-            Text {
+            AppText {
                 // The 60px time column (grid-template-columns: 40px 1fr 200px 60px 40px).
                 Layout.preferredWidth: 60
                 horizontalAlignment: Text.AlignRight

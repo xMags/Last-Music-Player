@@ -34,7 +34,7 @@ T.AbstractButton {
         }
     }
 
-    contentItem: Text {
+    contentItem: AppText {
         id: label
 
         text: chip.text

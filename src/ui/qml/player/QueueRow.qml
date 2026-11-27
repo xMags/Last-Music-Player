@@ -142,7 +142,7 @@ Item {
                 width: parent.width
                 spacing: 6
 
-                Text {
+                AppText {
                     width: Math.min(implicitWidth, parent.width - (queueMark.visible ? queueMark.width + 6 : 0))
                     text: row.title
                     font: Theme.trackTitle
@@ -160,7 +160,7 @@ Item {
                 }
             }
 
-            Text {
+            AppText {
                 width: parent.width
                 text: row.artistLine
                 font: Theme.trackArtist
@@ -171,7 +171,7 @@ Item {
             }
         }
 
-        Text {
+        AppText {
             text: row.durationText
             font: Theme.queueDuration
             color: row.subColor

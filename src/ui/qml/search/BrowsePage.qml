@@ -102,7 +102,7 @@ Item {
 
             // .search-minimum-hint: one character typed. 14px, the secondary
             // colour, margin 0 4px 14px.
-            Text {
+            AppText {
                 x: 4
                 visible: App.search.query.trim().length === 1
                 bottomPadding: 14
@@ -160,7 +160,7 @@ Item {
                 color: Theme.accentColor
             }
 
-            Text {
+            AppText {
                 width: parent.width
                 topPadding: 16
                 horizontalAlignment: Text.AlignHCenter
@@ -171,7 +171,7 @@ Item {
                 wrapMode: Text.Wrap
             }
 
-            Text {
+            AppText {
                 width: Math.min(360, parent.width - 40)
                 anchors.horizontalCenter: parent.horizontalCenter
                 topPadding: 6

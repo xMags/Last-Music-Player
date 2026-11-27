@@ -24,7 +24,7 @@ Item {
         width: rowText.width
         spacing: 2
 
-        Text {
+        AppText {
             width: words.width
             text: rowText.title
             font.family: SettingsStyle.family
@@ -34,7 +34,7 @@ Item {
             elide: Text.ElideRight
         }
 
-        Text {
+        AppText {
             width: words.width
             visible: rowText.description !== ""
             text: rowText.description

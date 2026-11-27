@@ -38,8 +38,9 @@ int main(int argc, char* argv[])
     // to the pixel grid as in other Windows apps. The alternatives each fell
     // short at 125% and 150%: distance fields and outline (curve) rendering
     // look soft, FreeType drew thin, pale strokes, and grey DirectWrite
-    // glyphs (a styled Text) came out heavy and crowded in bold. Must be set
-    // before any window or text item exists.
+    // glyphs (a styled Text) came out heavy and crowded in bold. Large text
+    // is drawn from its outlines instead (AppText.qml). Must be set before
+    // any window or text item exists.
     QQuickWindow::setTextRenderType(QQuickWindow::NativeTextRendering);
     // Text without a theme font is hinted as the theme's fonts are
     // (TextStyles.cpp).

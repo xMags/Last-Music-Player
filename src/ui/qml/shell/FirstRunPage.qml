@@ -51,7 +51,7 @@ Item {
                 Layout.fillWidth: true
                 spacing: 8
 
-                Text {
+                AppText {
                     Layout.fillWidth: true
                     horizontalAlignment: Text.AlignHCenter
                     text: qsTr("Choose your music source")
@@ -62,7 +62,7 @@ Item {
                     wrapMode: Text.Wrap
                 }
 
-                Text {
+                AppText {
                     Layout.fillWidth: true
                     horizontalAlignment: Text.AlignHCenter
                     text: qsTr("You can change it any time in Settings.")

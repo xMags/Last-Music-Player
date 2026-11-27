@@ -100,7 +100,7 @@ T.AbstractButton {
             spacing: 8
             opacity: option.faded ? 0.45 : 1
 
-            Text {
+            AppText {
                 text: option.language.name
                 font: Theme.settingsLanguageText
                 lineHeight: Theme.lineHeightSettingsLanguageText
@@ -108,7 +108,7 @@ T.AbstractButton {
                 color: Theme.fg
             }
 
-            Text {
+            AppText {
                 visible: option.language.nativeName !== ""
                 height: Theme.lineHeightSettingsLanguageText
                 verticalAlignment: Text.AlignBottom

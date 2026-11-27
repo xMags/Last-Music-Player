@@ -25,7 +25,7 @@ T.ComboBox {
         cursorShape: Qt.PointingHandCursor
     }
 
-    contentItem: Text {
+    contentItem: AppText {
         text: control.displayText
         font: control.font
         color: Theme.fg
@@ -78,7 +78,7 @@ T.ComboBox {
         contentItem: Item {
             implicitWidth: optionLabel.implicitWidth + 10 + tick.implicitWidth
 
-            Text {
+            AppText {
                 id: optionLabel
 
                 anchors.left: parent.left

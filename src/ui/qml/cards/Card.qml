@@ -150,7 +150,7 @@ T.AbstractButton {
             }
         }
 
-        Text {
+        AppText {
             id: nameText
 
             y: cover.height + 12
@@ -172,7 +172,7 @@ T.AbstractButton {
             remoteUrl: card.remoteUrl
         }
 
-        Text {
+        AppText {
             id: metaText
 
             y: nameText.y + nameText.height
@@ -187,7 +187,7 @@ T.AbstractButton {
             elide: Text.ElideRight
         }
 
-        Text {
+        AppText {
             y: metaText.y + metaText.height + 2
             width: card.width
             visible: card.dateText !== ""

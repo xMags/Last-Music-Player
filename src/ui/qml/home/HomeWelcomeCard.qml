@@ -63,7 +63,7 @@ Item {
                 color: Theme.accentColor
             }
 
-            Text {
+            AppText {
                 anchors.verticalCenter: parent.verticalCenter
                 text: qsTr("Getting started").toUpperCase()
                 font: Theme.welcomeEyebrow
@@ -71,7 +71,7 @@ Item {
             }
         }
 
-        Text {
+        AppText {
             width: parent.width
             text: qsTr("Your music starts here")
             font: Theme.welcomeTitle
@@ -81,7 +81,7 @@ Item {
             wrapMode: Text.Wrap
         }
 
-        Text {
+        AppText {
             width: parent.width
             text: qsTr("Play or like a few songs. Last Music turns them into mixes made for you, and keeps your recent songs here.")
             font: Theme.welcomeText
@@ -142,7 +142,7 @@ Item {
                 color: welcomeButton.primary ? Theme.accentInk : Theme.fg
             }
 
-            Text {
+            AppText {
                 anchors.verticalCenter: parent.verticalCenter
                 text: welcomeButton.text
                 font: Theme.welcomeButton

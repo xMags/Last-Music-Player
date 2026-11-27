@@ -65,7 +65,7 @@ Rectangle {
                     }
                 }
 
-                contentItem: Text {
+                contentItem: AppText {
                     id: label
 
                     text: String(choice.modelData)

@@ -75,7 +75,7 @@ Item {
                 width: parent.width
                 height: Math.max(titleText.implicitHeight, buttons.implicitHeight)
 
-                Text {
+                AppText {
                     id: titleText
 
                     anchors.bottom: parent.bottom
@@ -281,7 +281,7 @@ Item {
                     spacing: 12
                     topPadding: 8
 
-                    Text {
+                    AppText {
                         visible: App.accountArtists.status !== ""
                         text: App.accountArtists.status
                         color: Theme.fgSecondary
@@ -361,7 +361,7 @@ Item {
                             border.width: 1
                             border.color: Theme.stroke
 
-                            Text {
+                            AppText {
                                 id: countLabel
 
                                 anchors.centerIn: parent

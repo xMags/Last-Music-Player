@@ -44,12 +44,12 @@ Column {
                 Column {
                     anchors.verticalCenter: parent.verticalCenter
 
-                    Text {
+                    AppText {
                         text: swatch.name
                         font: Theme.trackTitle
                         color: Theme.fg
                     }
-                    Text {
+                    AppText {
                         text: swatch.value.toString()
                         font: Theme.trackArtist
                         color: Theme.fgTertiary
@@ -81,14 +81,14 @@ Column {
 
                 spacing: 24
 
-                Text {
+                AppText {
                     width: 220
                     anchors.verticalCenter: parent.verticalCenter
                     text: style.name
                     font: Theme.trackArtist
                     color: Theme.fgTertiary
                 }
-                Text {
+                AppText {
                     text: qsTr("Music for every moment")
                     font: style.value
                     color: Theme.fg

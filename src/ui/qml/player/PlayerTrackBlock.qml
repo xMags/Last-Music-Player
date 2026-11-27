@@ -80,7 +80,7 @@ RowLayout {
             width: parent.width
             transform: Translate { id: metaShift }
 
-            Text {
+            AppText {
                 width: parent.width
                 text: App.playerBar.displayTitle
                 font: Theme.playerBarTitle
@@ -90,7 +90,7 @@ RowLayout {
                 elide: Text.ElideRight
             }
 
-            Text {
+            AppText {
                 width: parent.width
                 topPadding: 2
                 text: App.playerBar.displayArtist
@@ -102,7 +102,7 @@ RowLayout {
             }
 
             // While another of the account's devices plays.
-            Text {
+            AppText {
                 width: parent.width
                 visible: App.playerBar.remote
                 topPadding: 2
@@ -121,7 +121,7 @@ RowLayout {
             visible: songChange.running
             transform: Translate { id: ghostShift }
 
-            Text {
+            AppText {
                 width: parent.width
                 text: App.playerBar.previousTitle
                 font: Theme.playerBarTitle
@@ -131,7 +131,7 @@ RowLayout {
                 elide: Text.ElideRight
             }
 
-            Text {
+            AppText {
                 width: parent.width
                 topPadding: 2
                 text: App.playerBar.previousArtist

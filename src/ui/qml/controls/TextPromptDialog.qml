@@ -115,7 +115,7 @@ T.Popup {
             anchors.fill: parent
             spacing: 0
 
-            Text {
+            AppText {
                 Layout.fillWidth: true
                 text: dialog.title
                 font: Theme.modalTitle
@@ -125,7 +125,7 @@ T.Popup {
                 wrapMode: Text.Wrap
             }
 
-            Text {
+            AppText {
                 Layout.fillWidth: true
                 Layout.topMargin: 6
                 visible: dialog.description !== ""
@@ -137,7 +137,7 @@ T.Popup {
                 wrapMode: Text.Wrap
             }
 
-            Text {
+            AppText {
                 Layout.fillWidth: true
                 Layout.topMargin: 16
                 Layout.bottomMargin: 7
@@ -156,7 +156,7 @@ T.Popup {
                 onAccepted: dialog.submit()
             }
 
-            Text {
+            AppText {
                 Layout.fillWidth: true
                 Layout.topMargin: 10
                 visible: dialog.errorText !== ""

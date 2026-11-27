@@ -176,7 +176,7 @@ Item {
             anchors.centerIn: parent
             spacing: 8
 
-            Text {
+            AppText {
                 Layout.rightMargin: 6
                 text: qsTr("%1 selected").arg(page.model.selectedCount)
                 font: Theme.collectionInfoStrong

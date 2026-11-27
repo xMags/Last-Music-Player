@@ -86,7 +86,7 @@ T.AbstractButton {
                 Layout.minimumWidth: 0
                 spacing: 10
 
-                Text {
+                AppText {
                     Layout.fillWidth: true
                     Layout.topMargin: 4
                     text: App.search.topTitle
@@ -111,7 +111,7 @@ T.AbstractButton {
                         radius: height / 2
                         color: Qt.rgba(0, 0, 0, 0.32)
 
-                        Text {
+                        AppText {
                             id: kind
 
                             anchors.centerIn: parent
@@ -121,7 +121,7 @@ T.AbstractButton {
                         }
                     }
 
-                    Text {
+                    AppText {
                         Layout.fillWidth: true
                         visible: App.search.topDetail !== ""
                         text: App.search.topDetail

@@ -78,7 +78,7 @@ Item {
                     color: App.home.greetingTime === "moon" ? Theme.accentColor : "#D4A03C"
                 }
 
-                Text {
+                AppText {
                     anchors.verticalCenter: parent.verticalCenter
                     text: App.home.salutation
                     font: Theme.homeLabel
@@ -87,7 +87,7 @@ Item {
                 }
             }
 
-            Text {
+            AppText {
                 width: parent.width
                 topPadding: 2
                 text: App.profile.name

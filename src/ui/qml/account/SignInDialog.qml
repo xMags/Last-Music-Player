@@ -305,7 +305,7 @@ T.Popup {
                                             anchors.centerIn: parent
                                             spacing: 7
 
-                                            Text {
+                                            AppText {
                                                 anchors.horizontalCenter: parent.horizontalCenter
                                                 text: "LAST MUSIC"
                                                 font: Theme.signInRecordName
@@ -320,7 +320,7 @@ T.Popup {
                                                 color: dialog.ground
                                             }
 
-                                            Text {
+                                            AppText {
                                                 anchors.horizontalCenter: parent.horizontalCenter
                                                 text: "VOL. 01 · 33⅓"
                                                 font: Theme.signInRecordVol
@@ -532,21 +532,21 @@ T.Popup {
                             RowLayout {
                                 Layout.fillWidth: true
 
-                                Text {
+                                AppText {
                                     Layout.fillWidth: true
                                     text: "VOL. 01"
                                     font: Theme.signInMeta
                                     color: dialog.label
                                 }
 
-                                Text {
+                                AppText {
                                     text: "LOSSLESS"
                                     font: Theme.signInMeta
                                     color: dialog.label
                                 }
                             }
 
-                            Text {
+                            AppText {
                                 Layout.fillWidth: true
                                 Layout.topMargin: dialog.compact ? 26 : 40
                                 text: "LAST <font color=\"" + dialog.accent + "\">MUSIC</font>"
@@ -559,7 +559,7 @@ T.Popup {
                                 minimumPixelSize: 28
                             }
 
-                            Text {
+                            AppText {
                                 Layout.fillWidth: true
                                 Layout.topMargin: dialog.compact ? 12 : 14
                                 text: qsTr("Your library, synced across every platform.")
@@ -625,7 +625,7 @@ T.Popup {
                                                 }
                                             }
 
-                                            Text {
+                                            AppText {
                                                 text: platform.modelData.name
                                                 font.family: Theme.signInPlatform.family
                                                 font.weight: Theme.signInPlatform.weight
@@ -761,7 +761,7 @@ T.Popup {
                                         color: "#FF9F87"
                                     }
 
-                                    Text {
+                                    AppText {
                                         Layout.fillWidth: true
                                         text: App.source.signInError
                                         font: Theme.signInError
@@ -831,7 +831,7 @@ T.Popup {
                                             smooth: true
                                         }
 
-                                        Text {
+                                        AppText {
                                             anchors.verticalCenter: parent.verticalCenter
                                             text: submit.text
                                             font: Theme.signInButton
@@ -892,14 +892,14 @@ T.Popup {
                                     }
                                 }
 
-                                Text {
+                                AppText {
                                     Layout.fillWidth: true
                                     text: dialog.waiting ? qsTr("WAITING ON BROWSER") : qsTr("INVITE ONLY")
                                     font: Theme.signInLabel
                                     color: dialog.label
                                 }
 
-                                Text {
+                                AppText {
                                     text: "© LAST PROJECTS 2026"
                                     font: Theme.signInLabel
                                     color: dialog.label
@@ -911,7 +911,7 @@ T.Popup {
             }
 
             // .auth-help: 14px at 1.55, muted, at most 460px.
-            Text {
+            AppText {
                 anchors.horizontalCenter: parent.horizontalCenter
                 width: Math.min(460, dialog.width - 48)
                 horizontalAlignment: Text.AlignHCenter

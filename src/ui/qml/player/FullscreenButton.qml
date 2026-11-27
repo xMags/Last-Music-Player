@@ -38,7 +38,7 @@ T.Button {
             }
         }
 
-        Text {
+        AppText {
             anchors.top: parent.top
             anchors.right: parent.right
             anchors.topMargin: 7

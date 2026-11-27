@@ -36,7 +36,7 @@ SettingsSection {
                     radius: 24
                     color: SettingsStyle.quiet
 
-                    Text {
+                    AppText {
                         anchors.centerIn: parent
                         visible: picture.status !== Image.Ready
                         text: card.signedIn ? App.profile.name.charAt(0).toUpperCase() : "?"
@@ -122,7 +122,7 @@ SettingsSection {
         shown: card.signedIn && App.source.signOutError !== ""
         joined: true
 
-        Text {
+        AppText {
             width: parent.width
             text: App.source.signOutError
             font.family: SettingsStyle.family

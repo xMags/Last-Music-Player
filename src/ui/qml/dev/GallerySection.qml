@@ -10,7 +10,7 @@ Column {
 
     spacing: 16
 
-    Text {
+    AppText {
         text: section.title
         font: Theme.sectionTitle
         lineHeight: Theme.lineHeightSectionTitle

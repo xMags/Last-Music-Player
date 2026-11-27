@@ -48,7 +48,7 @@ T.AbstractButton {
                 sourceComponent: control.leading
             }
 
-            Text {
+            AppText {
                 anchors.verticalCenter: parent.verticalCenter
                 width: Math.min(implicitWidth, control.availableWidth - 20 - control.gap
                                 - (countPill.visible ? countPill.width + 8 : 0))
@@ -76,7 +76,7 @@ T.AbstractButton {
         color: Theme.accentSoft2
         Accessible.name: control.countLabel
 
-        Text {
+        AppText {
             id: countText
 
             anchors.centerIn: parent

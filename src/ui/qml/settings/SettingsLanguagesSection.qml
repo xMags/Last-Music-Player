@@ -96,7 +96,7 @@ SettingsSection {
             }
 
             // .settings-language-updated: 12px, the secondary colour.
-            Text {
+            AppText {
                 Layout.fillWidth: true
                 visible: section.automatic && section.model.detected.length > 0 && section.model.detectedAgo !== ""
                 text: qsTr("Updated %1").arg(section.model.detectedAgo)
@@ -238,7 +238,7 @@ SettingsSection {
                         Layout.fillWidth: true
                         spacing: 6
 
-                        Text {
+                        AppText {
                             Layout.fillWidth: true
                             text: group.modelData.label.toUpperCase()
                             font: Theme.settingsLanguageGroup
@@ -283,7 +283,7 @@ SettingsSection {
                 }
 
                 // .settings-language-empty: 13px, the tertiary colour.
-                Text {
+                AppText {
                     Layout.fillWidth: true
                     visible: section.model.groups.length === 0
                     text: qsTr("No languages match")
@@ -303,7 +303,7 @@ SettingsSection {
                     Layout.fillWidth: true
                     spacing: 16
 
-                    Text {
+                    AppText {
                         text: section.model.countText
                         font: Theme.settingsRowDescription
                         lineHeight: Theme.lineHeightSettingsRowDescription
@@ -311,7 +311,7 @@ SettingsSection {
                         color: Theme.fgTertiary
                     }
 
-                    Text {
+                    AppText {
                         width: Math.max(implicitWidth, parent.width - x)
                         horizontalAlignment: Text.AlignRight
                         text: qsTr("Changes save as you tick")
@@ -365,7 +365,7 @@ SettingsSection {
             visible: parent.busy
         }
 
-        Text {
+        AppText {
             id: leadText
 
             Layout.fillWidth: true
@@ -399,7 +399,7 @@ SettingsSection {
     }
 
     // .settings-language-hint: 12px/17px, the tertiary or danger colour.
-    component Hint: Text {
+    component Hint: AppText {
         property bool error: false
 
         font: Theme.settingsRowDescription

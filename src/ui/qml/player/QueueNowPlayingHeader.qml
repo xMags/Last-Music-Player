@@ -45,7 +45,7 @@ ColumnLayout {
         }
     }
 
-    Text {
+    AppText {
         Layout.fillWidth: true
         Layout.bottomMargin: 4
         text: App.playerBar.title
@@ -56,7 +56,7 @@ ColumnLayout {
         elide: Text.ElideRight
     }
 
-    Text {
+    AppText {
         Layout.fillWidth: true
         Layout.bottomMargin: 22
         text: App.playerBar.artist

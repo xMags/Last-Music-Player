@@ -14,7 +14,7 @@ Item {
     height: text === "" ? 0 : 20 + tierText.implicitHeight + below
     visible: text !== ""
 
-    Text {
+    AppText {
         id: tierText
 
         y: 20

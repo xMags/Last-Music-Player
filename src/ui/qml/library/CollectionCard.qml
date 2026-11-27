@@ -58,7 +58,7 @@ Card {
             startColor: card.gradientStart
             endColor: card.gradientEnd
 
-            Text {
+            AppText {
                 x: 12
                 y: 10
                 text: card.badge

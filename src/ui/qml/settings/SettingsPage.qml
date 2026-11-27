@@ -70,7 +70,7 @@ Item {
             width: column.width
             spacing: 16
 
-            Text {
+            AppText {
                 Layout.fillWidth: true
                 text: qsTr("Settings")
                 font.family: SettingsStyle.family
@@ -124,7 +124,7 @@ Item {
                             searchInput.text = ""
                         }
 
-                        Text {
+                        AppText {
                             anchors.fill: parent
                             visible: searchInput.text === ""
                             text: qsTr("Search settings")
@@ -295,7 +295,7 @@ Item {
         }
 
         // A search that matches nothing.
-        Text {
+        AppText {
             width: column.width
             visible: SettingsStyle.needle !== "" && !groups.visibleChildren.some(item => item.height > 0)
             text: qsTr("No settings match “%1”.").arg(SettingsStyle.query.trim())

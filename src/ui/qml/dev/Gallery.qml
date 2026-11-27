@@ -35,7 +35,7 @@ Rectangle {
             Row {
                 spacing: 24
 
-                Text {
+                AppText {
                     anchors.verticalCenter: parent.verticalCenter
                     text: qsTr("Design gallery")
                     font: Theme.settingsHeading

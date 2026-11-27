@@ -49,7 +49,7 @@ T.Button {
             visible: control.iconName !== ""
         }
 
-        Text {
+        AppText {
             id: label
 
             anchors.verticalCenter: parent.verticalCenter

@@ -40,7 +40,7 @@ Item {
         y: 18
         width: parent.width - 20 - 16
 
-        Text {
+        AppText {
             Layout.fillWidth: true
             text: qsTr("Connect")
             font: Theme.connectTitle
@@ -108,7 +108,7 @@ Item {
                         Layout.minimumWidth: 0
                         spacing: 2
 
-                        Text {
+                        AppText {
                             width: parent.width
                             text: App.cast.current.name !== undefined ? App.cast.current.name : ""
                             font: Theme.connectCurrentName
@@ -116,7 +116,7 @@ Item {
                             elide: Text.ElideRight
                         }
 
-                        Text {
+                        AppText {
                             width: parent.width
                             visible: text !== ""
                             text: App.cast.current.detail !== undefined ? App.cast.current.detail : ""
@@ -138,7 +138,7 @@ Item {
 
                         HoverHandler { cursorShape: Qt.PointingHandCursor }
 
-                        contentItem: Text {
+                        contentItem: AppText {
                             id: stopLabel
 
                             text: qsTr("Stop")
@@ -191,7 +191,7 @@ Item {
                     color: Theme.mixSrgb(Theme.fg, "transparent", 0.09)
                 }
 
-                Text {
+                AppText {
                     id: sectionLabel
 
                     x: 16
@@ -289,7 +289,7 @@ Item {
                     Layout.minimumWidth: 0
                     spacing: 2
 
-                    Text {
+                    AppText {
                         width: parent.width
                         text: deviceRow.row.name
                         font: Theme.connectRowName
@@ -297,7 +297,7 @@ Item {
                         elide: Text.ElideRight
                     }
 
-                    Text {
+                    AppText {
                         width: parent.width
                         visible: text !== ""
                         text: deviceRow.row.detail
@@ -334,7 +334,7 @@ Item {
         visible: text !== ""
         implicitHeight: noteText.implicitHeight + 16
 
-        Text {
+        AppText {
             id: noteText
 
             x: 16
@@ -372,7 +372,7 @@ Item {
             HoverHandler { cursorShape: Qt.PointingHandCursor }
 
             contentItem: Item {
-                Text {
+                AppText {
                     x: 16
                     anchors.verticalCenter: parent.verticalCenter
                     width: parent.width - 32 - 16
@@ -409,7 +409,7 @@ Item {
             }
         }
 
-        Text {
+        AppText {
             x: 16
             width: helpRow.width - 32
             visible: helpRow.open

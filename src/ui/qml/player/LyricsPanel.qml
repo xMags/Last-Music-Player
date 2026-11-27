@@ -109,7 +109,7 @@ Item {
         }
 
         // Plain lyrics.
-        Text {
+        AppText {
             id: plainText
 
             y: panel.fullscreen ? 8 : 4
@@ -150,7 +150,7 @@ Item {
 
             Item { width: 1; height: 6 }
 
-            Text {
+            AppText {
                 width: parent.width
                 horizontalAlignment: Text.AlignHCenter
                 wrapMode: Text.Wrap
@@ -165,7 +165,7 @@ Item {
                 Accessible.role: Accessible.StaticText
             }
 
-            Text {
+            AppText {
                 width: parent.width
                 horizontalAlignment: Text.AlignHCenter
                 wrapMode: Text.Wrap
@@ -273,7 +273,7 @@ Item {
             radius: panel.fullscreen ? 10 : 6
             color: hover.hovered ? (panel.fullscreen ? Theme.fullscreenRowHover : Theme.hover) : "transparent"
 
-            Text {
+            AppText {
                 id: label
 
                 x: panel.fullscreen ? 10 : 8

@@ -63,7 +63,7 @@ Column {
                 color: Theme.fgSecondary
             }
 
-            Text {
+            AppText {
                 id: label
 
                 anchors.verticalCenter: parent.verticalCenter

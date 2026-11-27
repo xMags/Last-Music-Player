@@ -41,7 +41,7 @@ Item {
         anchors.rightMargin: 16
         spacing: 16
 
-        Text {
+        AppText {
             id: message
 
             anchors.verticalCenter: parent.verticalCenter
@@ -67,7 +67,7 @@ Item {
                 cursorShape: Qt.PointingHandCursor
             }
 
-            contentItem: Text {
+            contentItem: AppText {
                 id: actionText
 
                 text: root.actionLabel

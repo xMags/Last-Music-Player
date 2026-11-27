@@ -94,7 +94,7 @@ RowLayout {
                             Layout.fillWidth: true
                         }
 
-                        Text {
+                        AppText {
                             visible: sourceCard.modelData.selected
                             text: qsTr("IN USE")
                             font.family: SettingsStyle.family
@@ -104,7 +104,7 @@ RowLayout {
                         }
                     }
 
-                    Text {
+                    AppText {
                         Layout.fillWidth: true
                         text: sourceCard.modelData.title
                         font.family: SettingsStyle.family
@@ -114,7 +114,7 @@ RowLayout {
                         elide: Text.ElideRight
                     }
 
-                    Text {
+                    AppText {
                         Layout.fillWidth: true
                         text: sourceCard.modelData.description
                         font.family: SettingsStyle.family
@@ -140,7 +140,7 @@ RowLayout {
                             color: sourceCard.modelData.statusReady ? Theme.sourceReady : SettingsStyle.off
                         }
 
-                        Text {
+                        AppText {
                             Layout.fillWidth: true
                             text: sourceCard.modelData.status
                             font.family: SettingsStyle.family

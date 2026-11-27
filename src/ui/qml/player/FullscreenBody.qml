@@ -38,7 +38,7 @@ Item {
             artworkId: App.playerBar.artworkId
         }
 
-        Text {
+        AppText {
             Layout.fillWidth: true
             text: App.playerBar.displayTitle
             font: Theme.fullScreenTitle
@@ -49,7 +49,7 @@ Item {
             wrapMode: Text.WrapAtWordBoundaryOrAnywhere
         }
 
-        Text {
+        AppText {
             Layout.fillWidth: true
             text: App.playerBar.displayArtist
             font: Theme.fullscreenArtist
@@ -60,7 +60,7 @@ Item {
             wrapMode: Text.WrapAtWordBoundaryOrAnywhere
         }
 
-        Text {
+        AppText {
             Layout.fillWidth: true
             Layout.topMargin: 4
             visible: text !== ""
@@ -77,7 +77,7 @@ Item {
             Layout.topMargin: 18
             spacing: 12
 
-            Text {
+            AppText {
                 text: App.playerBar.elapsedText
                 font: Theme.fullscreenTime
                 color: Theme.fullscreenTimeText
@@ -98,7 +98,7 @@ Item {
                 onMoved: App.playerBar.seekToRatio(seek.value)
             }
 
-            Text {
+            AppText {
                 text: App.playerBar.totalText
                 font: Theme.fullscreenTime
                 color: Theme.fullscreenTimeText

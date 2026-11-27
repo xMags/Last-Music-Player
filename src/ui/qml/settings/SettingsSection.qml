@@ -53,7 +53,7 @@ Column {
             visible: section.title !== ""
             implicitHeight: visible ? label.y + label.implicitHeight + (note.visible ? 2 + note.implicitHeight : 0) + 6 : 0
 
-            Text {
+            AppText {
                 id: label
 
                 x: 20
@@ -70,7 +70,7 @@ Column {
                 Accessible.name: section.title
             }
 
-            Text {
+            AppText {
                 id: note
 
                 x: 20
@@ -87,7 +87,7 @@ Column {
     }
 
     // margin: 0 4px
-    Text {
+    AppText {
         x: 4
         width: section.width - 2 * 4
         visible: section.feedback !== ""

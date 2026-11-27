@@ -45,7 +45,7 @@ T.Button {
         implicitWidth: label.implicitWidth + 8 + chevron.width
         implicitHeight: label.implicitHeight
 
-        Text {
+        AppText {
             id: label
 
             anchors.left: parent.left
@@ -236,7 +236,7 @@ T.Button {
                     visible: App.regionLanguages.regionsLoading
                 }
 
-                Text {
+                AppText {
                     width: parent.width - 16
                     x: 8
                     text: App.regionLanguages.regionsLoading ? qsTr("Loading music regions…")
@@ -301,7 +301,7 @@ T.Button {
                         cursorShape: Qt.PointingHandCursor
                     }
 
-                    contentItem: Text {
+                    contentItem: AppText {
                         text: option.text
                         font: option.font
                         color: Theme.fg
@@ -332,7 +332,7 @@ T.Button {
                 }
             }
 
-            Text {
+            AppText {
                 width: parent.width
                 visible: App.regionLanguages.hasRegions && list.count === 0
                 topPadding: 26

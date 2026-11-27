@@ -27,7 +27,7 @@ RowLayout {
         textColor: header.labelColor
     }
 
-    Text {
+    AppText {
         visible: App.queueRail.autoplayStatus !== ""
         text: App.queueRail.autoplayStatus
         font: Theme.queueStatus
@@ -47,7 +47,7 @@ RowLayout {
         // Clears at once, as the reference does (only its phone sheet asks).
         onClicked: App.queueRail.clearUpcoming()
 
-        contentItem: Text {
+        contentItem: AppText {
             id: clearLabel
 
             text: qsTr("Clear")

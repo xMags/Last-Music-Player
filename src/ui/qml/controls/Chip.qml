@@ -25,7 +25,7 @@ T.Button {
         cursorShape: Qt.PointingHandCursor
     }
 
-    contentItem: Text {
+    contentItem: AppText {
         id: label
 
         text: control.text

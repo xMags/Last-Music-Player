@@ -32,7 +32,7 @@ GallerySection {
                 color: Theme.fg
             }
 
-            Text {
+            AppText {
                 width: parent.width
                 horizontalAlignment: Text.AlignHCenter
                 text: cell.modelData

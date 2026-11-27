@@ -14,7 +14,7 @@ RowLayout {
 
     spacing: 12
 
-    Text {
+    AppText {
         text: label.text
         font: Theme.sidebarSectionLabel
         lineHeight: Theme.lineHeightSidebarSectionLabel

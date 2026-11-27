@@ -48,6 +48,7 @@ set(LMP_UI_QML_FILES
     qml/controls/AppRectangularShadow.qml
     qml/controls/AppScrollBar.qml
     qml/controls/AppSelect.qml
+    qml/controls/AppText.qml
     qml/controls/AppSlider.qml
     qml/controls/AppSwitch.qml
     qml/controls/ArtTile.qml

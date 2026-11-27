@@ -96,7 +96,7 @@ T.AbstractButton {
     }
 
     contentItem: Item {
-        Text {
+        AppText {
             x: 14
             y: 14
             width: parent.width - 28 - 30
@@ -107,7 +107,7 @@ T.AbstractButton {
             elide: Text.ElideRight
         }
 
-        Text {
+        AppText {
             x: 14
             width: parent.width - 28
             anchors.bottom: parent.bottom

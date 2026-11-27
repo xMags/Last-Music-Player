@@ -18,7 +18,7 @@ RowLayout {
 
     spacing: 14
 
-    Text {
+    AppText {
         // Whole pixels, rounded up: the layout snaps widths down, and a title
         // a fraction of a pixel short of its text would elide ("Your mix…").
         Layout.minimumWidth: 0
@@ -45,7 +45,7 @@ RowLayout {
         border.width: 1
         border.color: Theme.stroke
 
-        Text {
+        AppText {
             id: pillText
 
             anchors.centerIn: parent

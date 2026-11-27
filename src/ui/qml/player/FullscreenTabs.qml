@@ -46,7 +46,7 @@ Rectangle {
             cursorShape: Qt.PointingHandCursor
         }
 
-        contentItem: Text {
+        contentItem: AppText {
             id: caption
 
             text: tab.label

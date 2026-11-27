@@ -87,7 +87,7 @@ T.Popup {
             width: parent.width - 48
             spacing: 10
 
-            Text {
+            AppText {
                 Layout.fillWidth: true
                 text: dialog.title
                 font: Theme.modalTitle
@@ -95,7 +95,7 @@ T.Popup {
                 wrapMode: Text.Wrap
             }
 
-            Text {
+            AppText {
                 Layout.fillWidth: true
                 visible: dialog.description !== ""
                 text: dialog.description
@@ -161,7 +161,7 @@ T.Popup {
                         cursorShape: Qt.PointingHandCursor
                     }
 
-                    contentItem: Text {
+                    contentItem: AppText {
                         text: confirmButton.text
                         font: confirmButton.font
                         color: Theme.dangerConfirmInk

@@ -102,7 +102,7 @@ SettingsSection {
                             }
                         }
 
-                        Text {
+                        AppText {
                             Layout.fillWidth: true
                             horizontalAlignment: Text.AlignHCenter
                             text: band.modelData.label
@@ -119,7 +119,7 @@ SettingsSection {
                 Layout.fillWidth: true
                 spacing: 16
 
-                Text {
+                AppText {
                     Layout.preferredWidth: 64
                     text: qsTr("Preamp")
                     font.family: SettingsStyle.family
@@ -140,7 +140,7 @@ SettingsSection {
                     onMoved: App.equalizer.setPreamp(preamp.value)
                 }
 
-                Text {
+                AppText {
                     Layout.preferredWidth: 44
                     horizontalAlignment: Text.AlignRight
                     text: App.equalizer.preampText

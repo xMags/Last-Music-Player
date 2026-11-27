@@ -20,7 +20,7 @@ Item {
             glyph.active = true
     }
 
-    Text {
+    AppText {
         anchors.centerIn: parent
         visible: !cell.playing && !(cell.hovered && !cell.unavailable)
         text: cell.number

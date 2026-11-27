@@ -67,7 +67,7 @@ T.AbstractButton {
             }
         }
 
-        Text {
+        AppText {
             id: label
 
             x: 10

@@ -30,7 +30,7 @@ Rectangle {
         radius: box.radius
     }
 
-    Text {
+    AppText {
         id: message
 
         x: box.pad

@@ -15,7 +15,7 @@ Item {
 
     implicitHeight: label.implicitHeight + 10
 
-    Text {
+    AppText {
         id: label
 
         text: head.text
@@ -40,7 +40,7 @@ Item {
         width: head.linkText !== "" ? link.implicitWidth : countText.implicitWidth
         height: label.height
 
-        Text {
+        AppText {
             id: countText
 
             anchors.right: parent.right

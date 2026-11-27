@@ -86,7 +86,7 @@ Column {
                 color: Theme.accentColor
             }
 
-            Text {
+            AppText {
                 text: header.backLabel
                 font: Theme.collectionBack
                 color: Theme.accentColor
@@ -233,14 +233,14 @@ Column {
             height: card.artSize
             spacing: 6
 
-            Text {
+            AppText {
                 Layout.fillWidth: true
                 text: header.eyebrow
                 font: Theme.collectionEyebrow
                 color: Theme.fgSecondary
             }
 
-            Text {
+            AppText {
                 Layout.fillWidth: true
                 text: header.title
                 // clamp(26px, 5.4cqi, 44px) of the card.
@@ -257,7 +257,7 @@ Column {
             // they take a click ("Read more"), opening the full notes in
             // place and closing them again ("Show less"). The text colour
             // on hover then.
-            Text {
+            AppText {
                 id: notes
 
                 property bool expanded: false
@@ -308,14 +308,14 @@ Column {
                 clip: true
                 visible: header.info !== "" || header.byline !== ""
 
-                Text {
+                AppText {
                     visible: header.byline !== ""
                     text: header.byline
                     font: Theme.collectionInfoStrong
                     color: Theme.fg
                 }
 
-                Text {
+                AppText {
                     text: (header.byline !== "" && header.info !== "" ? " · " : "") + header.info
                     font: Theme.collectionInfo
                     color: Theme.fgSecondary

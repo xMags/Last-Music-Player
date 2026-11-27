@@ -43,7 +43,7 @@ T.AbstractButton {
                 radius: 20
                 color: Theme.neutral
 
-                Text {
+                AppText {
                     anchors.centerIn: parent
                     visible: picture.status !== Image.Ready
                     text: control.letter
@@ -87,7 +87,7 @@ T.AbstractButton {
                 visible: !control.collapsed
                 width: Math.max(0, control.availableWidth - 40 - 12 - dots.width - 12)
 
-                Text {
+                AppText {
                     width: parent.width
                     text: control.name
                     font: Theme.profileName
@@ -95,7 +95,7 @@ T.AbstractButton {
                     elide: Text.ElideRight
                 }
 
-                Text {
+                AppText {
                     topPadding: 2
                     visible: control.plan !== ""
                     text: control.plan
@@ -105,7 +105,7 @@ T.AbstractButton {
             }
         }
 
-        Text {
+        AppText {
             id: dots
 
             anchors.right: parent.right

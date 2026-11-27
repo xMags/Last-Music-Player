@@ -60,13 +60,13 @@ Column {
             topPadding: 8
             bottomPadding: 8
 
-            Text {
+            AppText {
                 text: qsTr("ARTIST")
                 font: Theme.eyebrow
                 color: Theme.fgSecondary
             }
 
-            Text {
+            AppText {
                 width: parent.width
                 topPadding: 8
                 text: hero.model.name
@@ -79,7 +79,7 @@ Column {
                 maximumLineCount: 1
             }
 
-            Text {
+            AppText {
                 width: parent.width
                 visible: hero.model.subtitle !== ""
                 topPadding: 8
@@ -89,7 +89,7 @@ Column {
                 elide: Text.ElideRight
             }
 
-            Text {
+            AppText {
                 width: parent.width
                 visible: hero.model.info !== ""
                 topPadding: 9
@@ -101,7 +101,7 @@ Column {
 
             // .catalog-description: 14px above, at most 760px, 13.5px at
             // 1.55; three lines until Read more.
-            Text {
+            AppText {
                 id: notes
 
                 property bool expanded: false

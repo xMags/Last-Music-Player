@@ -33,7 +33,7 @@ GallerySection {
         }
     }
 
-    Text {
+    AppText {
         text: root.model.lastAction === "" ? qsTr("Nothing picked yet") : qsTr("Last: %1").arg(root.model.lastAction)
         font: Theme.body
         color: Theme.fgSecondary

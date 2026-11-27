@@ -31,7 +31,7 @@ T.AbstractButton {
                 color: "white"
             }
 
-            Text {
+            AppText {
                 text: control.text
                 font: Theme.collectionPlay
                 color: "white"

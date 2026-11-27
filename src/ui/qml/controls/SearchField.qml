@@ -104,7 +104,7 @@ FocusScope {
                 root.submitted(text)
             }
 
-            Text {
+            AppText {
                 anchors.fill: parent
                 verticalAlignment: Text.AlignVCenter
                 text: root.placeholderText
@@ -125,7 +125,7 @@ FocusScope {
             border.width: 1
             border.color: Theme.strokeStrong
 
-            Text {
+            AppText {
                 id: hint
 
                 anchors.centerIn: parent

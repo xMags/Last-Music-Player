@@ -23,7 +23,7 @@ Column {
         width: group.width
         spacing: 6
 
-        Text {
+        AppText {
             width: parent.width
             text: group.title
             font.family: SettingsStyle.family
@@ -35,7 +35,7 @@ Column {
             Accessible.name: group.title
         }
 
-        Text {
+        AppText {
             width: parent.width
             visible: group.note !== ""
             text: group.note

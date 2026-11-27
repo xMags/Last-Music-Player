@@ -60,7 +60,7 @@ Column {
                 color: Theme.fgTertiary
             }
 
-            Text {
+            AppText {
                 Layout.fillWidth: true
                 text: App.home.catalogError
                 font: Theme.viewSubtitle
@@ -82,7 +82,7 @@ Column {
         topPadding: 7
         spacing: 0
 
-        Text {
+        AppText {
             text: qsTr("Showing cached charts. ")
             font: Theme.refreshStatus
             color: Theme.fgTertiary
@@ -113,7 +113,7 @@ Column {
             cursorShape: Qt.PointingHandCursor
         }
 
-        contentItem: Text {
+        contentItem: AppText {
             text: noticeButton.text
             font: noticeButton.font
             color: Theme.fg

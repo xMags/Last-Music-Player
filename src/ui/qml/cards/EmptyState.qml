@@ -28,7 +28,7 @@ ColumnLayout {
         color: state.error ? Theme.danger : Theme.accentColor
     }
 
-    Text {
+    AppText {
         Layout.alignment: Qt.AlignHCenter
         Layout.topMargin: 16
         Layout.maximumWidth: 420
@@ -40,7 +40,7 @@ ColumnLayout {
         wrapMode: Text.Wrap
     }
 
-    Text {
+    AppText {
         Layout.alignment: Qt.AlignHCenter
         Layout.topMargin: 6
         Layout.maximumWidth: 360

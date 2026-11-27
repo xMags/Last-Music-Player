@@ -63,7 +63,7 @@ T.Button {
                 color: label.color
             }
 
-            Text {
+            AppText {
                 id: label
 
                 anchors.verticalCenter: parent.verticalCenter

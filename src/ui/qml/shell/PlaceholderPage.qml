@@ -10,7 +10,7 @@ Item {
 
     implicitHeight: heading.implicitHeight + 2 * 32
 
-    Text {
+    AppText {
         id: heading
 
         x: 32

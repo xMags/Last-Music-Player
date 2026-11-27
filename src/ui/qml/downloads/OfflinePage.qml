@@ -79,7 +79,7 @@ Item {
                         Layout.fillWidth: true
                         spacing: 0
 
-                        Text {
+                        AppText {
                             width: parent.width
                             text: qsTr("Downloads")
                             font: Theme.viewTitle
@@ -88,7 +88,7 @@ Item {
                         }
 
                         // .offline-summary: 6px under the title, 13px, tertiary.
-                        Text {
+                        AppText {
                             visible: App.offline.summary !== ""
                             topPadding: 6
                             text: App.offline.summary
@@ -131,7 +131,7 @@ Item {
                             color: Theme.accentColor
                         }
 
-                        Text {
+                        AppText {
                             anchors.verticalCenter: parent.verticalCenter
                             text: qsTr("You're offline. Downloaded songs still play.")
                             font: Theme.viewSubtitle
@@ -240,7 +240,7 @@ Item {
                         }
                     }
 
-                    Text {
+                    AppText {
                         width: parent.width - 48
                         anchors.horizontalCenter: parent.horizontalCenter
                         horizontalAlignment: Text.AlignHCenter
@@ -250,7 +250,7 @@ Item {
                         color: Theme.fg
                     }
 
-                    Text {
+                    AppText {
                         width: parent.width - 48
                         anchors.horizontalCenter: parent.horizontalCenter
                         horizontalAlignment: Text.AlignHCenter
@@ -363,7 +363,7 @@ Item {
                             width: parent.width
                             spacing: 10
 
-                            Text {
+                            AppText {
                                 width: Math.min(implicitWidth, parent.width - (speed.visible ? speed.implicitWidth + 10 : 0))
                                 text: App.offline.pendingTitle
                                 font: Theme.stripTitle
@@ -371,7 +371,7 @@ Item {
                                 elide: Text.ElideRight
                             }
 
-                            Text {
+                            AppText {
                                 id: speed
 
                                 anchors.baseline: parent.children[0].baseline
@@ -382,7 +382,7 @@ Item {
                             }
                         }
 
-                        Text {
+                        AppText {
                             width: parent.width
                             text: App.offline.pendingDetail
                             font: Theme.stripMeta
@@ -441,7 +441,7 @@ Item {
 
                             spacing: 4
 
-                            Text {
+                            AppText {
                                 anchors.verticalCenter: parent.verticalCenter
                                 text: toggle.text
                                 font: Theme.stripToggle
@@ -528,7 +528,7 @@ Item {
                 Layout.fillWidth: true
                 Layout.minimumWidth: 0
 
-                Text {
+                AppText {
                     width: parent.width
                     text: row.modelData.title
                     font: Theme.stripTitle
@@ -536,7 +536,7 @@ Item {
                     elide: Text.ElideRight
                 }
 
-                Text {
+                AppText {
                     width: parent.width
                     text: row.modelData.artist
                     font: Theme.stripMeta
@@ -561,7 +561,7 @@ Item {
                     Accessible.name: qsTr("Downloading %1").arg(row.modelData.title)
                 }
 
-                Text {
+                AppText {
                     visible: row.modelData.state === "progress" || row.modelData.state === "receiving"
                     Layout.minimumWidth: 32
                     horizontalAlignment: Text.AlignRight
@@ -570,7 +570,7 @@ Item {
                     color: Theme.accentColor
                 }
 
-                Text {
+                AppText {
                     Layout.fillWidth: true
                     visible: row.modelData.state !== "progress" && row.modelData.state !== "receiving"
                     text: row.failed ? qsTr("Failed")
@@ -682,7 +682,7 @@ Item {
                 color: Theme.accentColor
             }
 
-            Text {
+            AppText {
                 anchors.verticalCenter: parent.verticalCenter
                 text: pill.text
                 font: Theme.stripAction

@@ -93,7 +93,7 @@ Rectangle {
                 cursorShape: Qt.PointingHandCursor
             }
 
-            contentItem: Text {
+            contentItem: AppText {
                 id: label
 
                 text: segment.text

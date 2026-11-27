@@ -74,7 +74,7 @@ ColumnLayout {
             onClicked: App.playerBar.cycleRepeat()
 
             // Repeat one: a small "1" over the glyph.
-            Text {
+            AppText {
                 anchors.centerIn: parent
                 topPadding: 1
                 visible: App.playerBar.repeatMode === 2
@@ -92,7 +92,7 @@ ColumnLayout {
         opacity: transport.idle ? 0 : 1
         enabled: !transport.idle
 
-        Text {
+        AppText {
             Layout.minimumWidth: 32
             horizontalAlignment: Text.AlignHCenter
             text: App.playerBar.elapsedText
@@ -111,7 +111,7 @@ ColumnLayout {
             onMoved: App.playerBar.seekToRatio(seek.value)
         }
 
-        Text {
+        AppText {
             Layout.minimumWidth: 32
             horizontalAlignment: Text.AlignHCenter
             text: App.playerBar.totalText

@@ -16,7 +16,7 @@ Rectangle {
     border.width: 1
     border.color: Theme.stroke
 
-    Text {
+    AppText {
         id: label
 
         anchors.centerIn: parent

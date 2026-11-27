@@ -104,7 +104,7 @@ Rectangle {
                 size: 28
             }
 
-            Text {
+            AppText {
                 anchors.verticalCenter: parent.verticalCenter
                 text: qsTr("Last Music")
                 font: Theme.welcomeBrand
@@ -231,7 +231,7 @@ Rectangle {
                     Column {
                         anchors.verticalCenter: parent.verticalCenter
 
-                        Text {
+                        AppText {
                             width: 150
                             text: App.profile.name
                             font: Theme.welcomeAccountName
@@ -239,7 +239,7 @@ Rectangle {
                             elide: Text.ElideRight
                         }
 
-                        Text {
+                        AppText {
                             text: qsTr("Signed in")
                             font: Theme.connectDetail
                             color: Theme.fgSecondary
@@ -299,7 +299,7 @@ Rectangle {
                     radius: height / 2
                     color: Theme.accentSoft
 
-                    Text {
+                    AppText {
                         id: eyebrowText
 
                         anchors.centerIn: parent
@@ -309,7 +309,7 @@ Rectangle {
                     }
                 }
 
-                Text {
+                AppText {
                     width: parent.width
                     horizontalAlignment: Text.AlignHCenter
                     text: App.welcome.title
@@ -324,7 +324,7 @@ Rectangle {
                     wrapMode: Text.Wrap
                 }
 
-                Text {
+                AppText {
                     anchors.horizontalCenter: parent.horizontalCenter
                     width: Math.min(540, parent.width)
                     horizontalAlignment: Text.AlignHCenter
@@ -360,7 +360,7 @@ Rectangle {
 
                         anchors.verticalCenter: parent.verticalCenter
 
-                        Text {
+                        AppText {
                             anchors.verticalCenter: parent.verticalCenter
                             leftPadding: 16
                             rightPadding: 4
@@ -409,7 +409,7 @@ Rectangle {
                     onRetry: App.welcome.reloadLanguages()
                 }
 
-                Text {
+                AppText {
                     width: parent.width
                     visible: App.welcome.languagesLoading
                     horizontalAlignment: Text.AlignHCenter
@@ -418,7 +418,7 @@ Rectangle {
                     color: Theme.fgSecondary
                 }
 
-                Text {
+                AppText {
                     width: parent.width
                     visible: !App.welcome.languagesLoading && !App.welcome.languagesFailed
                              && App.welcome.languageGroups.length === 0 && App.welcome.languageQuery.trim() !== ""
@@ -481,7 +481,7 @@ Rectangle {
                                 color: Theme.accentColor
                             }
 
-                            Text {
+                            AppText {
                                 Layout.fillWidth: true
                                 text: App.welcome.notice
                                 font: Theme.welcomeNotice
@@ -497,7 +497,7 @@ Rectangle {
                 readonly property bool searching: App.welcome.artistQuery.trim() !== ""
                 readonly property var shown: searching ? App.welcome.searchResults : App.welcome.artists
 
-                Text {
+                AppText {
                     width: parent.width
                     visible: artistsStep.searching && (App.welcome.searchStatus === "error"
                              || (App.welcome.searchStatus === "ready" && App.welcome.searchResults.length === 0))
@@ -510,7 +510,7 @@ Rectangle {
                     color: Theme.fgSecondary
                 }
 
-                Text {
+                AppText {
                     width: parent.width
                     visible: (artistsStep.searching && App.welcome.searchStatus === "loading")
                              || (!artistsStep.searching && App.welcome.busy && App.welcome.artists.length === 0)
@@ -610,7 +610,7 @@ Rectangle {
                         border.width: 2.5
                         border.color: Theme.surface
 
-                        Text {
+                        AppText {
                             anchors.centerIn: parent
                             text: "+" + App.welcome.trayMore
                             font: Theme.welcomeTrayMore
@@ -655,7 +655,7 @@ Rectangle {
                     }
                 }
 
-                Text {
+                AppText {
                     Layout.fillWidth: true
                     text: App.welcome.hint
                     font: Theme.welcomeHint
@@ -683,7 +683,7 @@ Rectangle {
                             anchors.centerIn: parent
                             spacing: 6
 
-                            Text {
+                            AppText {
                                 anchors.verticalCenter: parent.verticalCenter
                                 text: App.welcome.nextLabel
                                 font: Theme.welcomeNext
@@ -742,7 +742,7 @@ Rectangle {
                 z: -1
             }
 
-            Text {
+            AppText {
                 anchors.centerIn: parent
                 visible: mark.state_ !== "done"
                 text: mark.number
@@ -759,7 +759,7 @@ Rectangle {
             }
         }
 
-        Text {
+        AppText {
             anchors.verticalCenter: parent.verticalCenter
             text: mark.label
             font: Theme.welcomeStepLabel
@@ -819,7 +819,7 @@ Rectangle {
             onTextEdited: search.edited(text)
             background: Item {}
 
-            Text {
+            AppText {
                 anchors.verticalCenter: parent.verticalCenter
                 visible: field.text === "" && !field.preeditText
                 text: search.placeholder
@@ -855,7 +855,7 @@ Rectangle {
                 width: parent.width
                 spacing: 14
 
-                Text {
+                AppText {
                     text: String(languageGroup.group.label).toUpperCase()
                     font: Theme.welcomeGroupTitle
                     color: languageGroup.suggested ? Theme.accentColor : Theme.fgTertiary
@@ -940,14 +940,14 @@ Rectangle {
                     }
                 }
 
-                Text {
+                AppText {
                     anchors.verticalCenter: parent.verticalCenter
                     text: chip.language.name
                     font: Theme.welcomeChip
                     color: chip.chosen ? Theme.accentColor : Theme.fg
                 }
 
-                Text {
+                AppText {
                     anchors.verticalCenter: parent.verticalCenter
                     visible: chip.language.nativeName !== ""
                     text: chip.language.nativeName
@@ -1065,7 +1065,7 @@ Rectangle {
                 }
             }
 
-            Text {
+            AppText {
                 id: nameText
 
                 y: 8 + card.artSize + 12
@@ -1097,7 +1097,7 @@ Rectangle {
         topPadding: 28
         bottomPadding: 28
 
-        Text {
+        AppText {
             anchors.verticalCenter: parent.verticalCenter
             text: state.text
             font: Theme.welcomeNotice
@@ -1122,7 +1122,7 @@ Rectangle {
         color: Theme.accentFill
         border.width: 0
 
-        Text {
+        AppText {
             anchors.centerIn: parent
             text: App.profile.initials
             font: Theme.welcomeBrand

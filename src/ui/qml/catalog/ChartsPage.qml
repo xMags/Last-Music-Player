@@ -41,14 +41,14 @@ Column {
         topPadding: 18
         bottomPadding: 22
 
-        Text {
+        AppText {
             bottomPadding: 4
             text: qsTr("CHARTS")
             font: Theme.eyebrow
             color: Theme.fgSecondary
         }
 
-        Text {
+        AppText {
             width: parent.width
             text: App.home.chartsTitle(page.rowKey)
             font: Theme.viewTitle

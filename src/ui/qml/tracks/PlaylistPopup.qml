@@ -82,7 +82,7 @@ T.Popup {
 
         // .playlist-menu-label: padded 4px 10px 6px, 10px 700, 0.08em,
         // upper case, tertiary.
-        Text {
+        AppText {
             leftPadding: 10
             topPadding: 4
             bottomPadding: 6
@@ -149,7 +149,7 @@ T.Popup {
                         cursorShape: Qt.PointingHandCursor
                     }
 
-                    contentItem: Text {
+                    contentItem: AppText {
                         id: createLabel
 
                         text: create.text
@@ -207,7 +207,7 @@ T.Popup {
                 contentItem: RowLayout {
                     spacing: 8
 
-                    Text {
+                    AppText {
                         Layout.fillWidth: true
                         Layout.minimumWidth: 0
                         text: choice.modelData.title
@@ -216,7 +216,7 @@ T.Popup {
                         elide: Text.ElideRight
                     }
 
-                    Text {
+                    AppText {
                         text: choice.modelData.count
                         font: Theme.playlistMenuCount
                         color: Theme.fgTertiary

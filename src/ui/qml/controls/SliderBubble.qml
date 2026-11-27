@@ -44,7 +44,7 @@ Item {
         radius: Theme.radiusSm
         color: Theme.fg
 
-        Text {
+        AppText {
             id: label
 
             anchors.centerIn: parent

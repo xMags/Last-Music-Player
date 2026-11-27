@@ -39,7 +39,7 @@ Rectangle {
             playing: App.playerBar.playing
         }
 
-        Text {
+        AppText {
             anchors.verticalCenter: parent.verticalCenter
             visible: !sidebar.collapsed
             text: AppInfo.displayName
@@ -106,7 +106,7 @@ Rectangle {
                 height: (32 - 2) + 16 + (10 - 2)
                 visible: !sidebar.collapsed
 
-                Text {
+                AppText {
                     x: 4
                     y: 32 - 2
                     text: qsTr("Playlists")

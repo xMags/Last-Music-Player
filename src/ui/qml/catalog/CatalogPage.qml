@@ -77,7 +77,7 @@ Item {
                         topPadding: 18
                         bottomPadding: 22
 
-                        Text {
+                        AppText {
                             visible: page.model.eyebrow !== ""
                             bottomPadding: 4
                             text: page.model.eyebrow
@@ -85,7 +85,7 @@ Item {
                             color: Theme.fgSecondary
                         }
 
-                        Text {
+                        AppText {
                             width: parent.width
                             text: page.model.title
                             font: Theme.viewTitle
@@ -94,7 +94,7 @@ Item {
                         }
 
                         // .h-sub: 13px tertiary, 6px under.
-                        Text {
+                        AppText {
                             visible: page.model.info !== ""
                             topPadding: 6
                             text: page.model.info
@@ -178,7 +178,7 @@ Item {
                 }
             }
 
-            Text {
+            AppText {
                 width: parent.width
                 visible: page.model.finding
                 text: qsTr("Finding the album…")
@@ -434,7 +434,7 @@ Item {
             width: cardsView.innerWidth
             height: 64
 
-            Text {
+            AppText {
                 anchors.centerIn: parent
                 visible: App.catalogPage.pagingState === "loading" || App.catalogPage.pagingState === "failed"
                 text: App.catalogPage.pagingState === "failed" ? qsTr("Could not load more. Scroll to try again.")

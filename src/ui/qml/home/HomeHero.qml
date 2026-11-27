@@ -143,13 +143,13 @@ Column {
                 Layout.bottomMargin: 4
                 spacing: 0
 
-                Text {
+                AppText {
                     text: qsTr("JUMP BACK IN")
                     font: Theme.collectionEyebrow
                     color: Theme.fgSecondary
                 }
 
-                Text {
+                AppText {
                     Layout.fillWidth: true
                     Layout.topMargin: 8
                     text: App.home.heroTitle
@@ -162,7 +162,7 @@ Column {
                     elide: Text.ElideRight
                 }
 
-                Text {
+                AppText {
                     Layout.fillWidth: true
                     Layout.topMargin: 6
                     text: App.home.heroArtist
