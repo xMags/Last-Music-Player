@@ -34,7 +34,7 @@ T.Button {
     focusPolicy: Qt.StrongFocus
     opacity: enabled ? 1 : Theme.disabledOpacity
     font.family: SettingsStyle.family
-    font.pointSize: control.small ? 9.375 : 10.125
+    font.pixelSize: control.small ? 12 : 13
     font.weight: control.primary ? Font.DemiBold : Font.Normal
 
     HoverHandler {

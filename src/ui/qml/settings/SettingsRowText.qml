@@ -39,8 +39,8 @@ Item {
             visible: rowText.description !== ""
             text: rowText.description
             font.family: SettingsStyle.family
-            font.pointSize: 9.375
-            lineHeight: 17.5
+            font.pixelSize: 12
+            lineHeight: 17
             lineHeightMode: Text.FixedHeight
             color: rowText.descriptionError ? Theme.danger : SettingsStyle.description
             wrapMode: Text.Wrap

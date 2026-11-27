@@ -39,7 +39,7 @@ T.AbstractButton {
 
         text: chip.text
         font.family: SettingsStyle.family
-        font.pointSize: 9.375
+        font.pixelSize: 12
         color: chip.selected ? SettingsStyle.chipText : SettingsStyle.description
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter

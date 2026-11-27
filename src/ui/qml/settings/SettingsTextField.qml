@@ -13,7 +13,7 @@ T.TextField {
     rightPadding: 12
     verticalAlignment: TextInput.AlignVCenter
     font.family: SettingsStyle.family
-    font.pointSize: 10.125
+    font.pixelSize: 13
     color: SettingsStyle.title
     placeholderTextColor: SettingsStyle.description
     selectionColor: Theme.accentSoft

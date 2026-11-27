@@ -40,7 +40,7 @@ Column {
             visible: group.note !== ""
             text: group.note
             font.family: SettingsStyle.family
-            font.pointSize: 10.125
+            font.pixelSize: 13
             color: SettingsStyle.description
             wrapMode: Text.Wrap
         }

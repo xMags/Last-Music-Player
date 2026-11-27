@@ -126,7 +126,7 @@ SettingsSection {
             width: parent.width
             text: App.source.signOutError
             font.family: SettingsStyle.family
-            font.pointSize: 9.375
+            font.pixelSize: 12
             color: Theme.danger
             wrapMode: Text.Wrap
         }

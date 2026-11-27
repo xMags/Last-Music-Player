@@ -79,7 +79,7 @@ Column {
                 visible: section.note !== ""
                 text: section.note
                 font.family: SettingsStyle.family
-                font.pointSize: 9.375
+                font.pixelSize: 12
                 color: SettingsStyle.description
                 wrapMode: Text.Wrap
             }

@@ -98,7 +98,7 @@ RowLayout {
                             visible: sourceCard.modelData.selected
                             text: qsTr("IN USE")
                             font.family: SettingsStyle.family
-                            font.pointSize: 8.625
+                            font.pixelSize: 11
                             font.weight: Font.DemiBold
                             color: Theme.accentColor
                         }
@@ -118,8 +118,8 @@ RowLayout {
                         Layout.fillWidth: true
                         text: sourceCard.modelData.description
                         font.family: SettingsStyle.family
-                        font.pointSize: 9.375
-                        lineHeight: 17.5
+                        font.pixelSize: 12
+                        lineHeight: 17
                         lineHeightMode: Text.FixedHeight
                         color: SettingsStyle.description
                         wrapMode: Text.Wrap

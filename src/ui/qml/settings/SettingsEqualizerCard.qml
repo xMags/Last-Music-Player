@@ -145,7 +145,7 @@ SettingsSection {
                     horizontalAlignment: Text.AlignRight
                     text: App.equalizer.preampText
                     font.family: SettingsStyle.family
-                    font.pointSize: 9.375
+                    font.pixelSize: 12
                     color: SettingsStyle.description
                 }
 

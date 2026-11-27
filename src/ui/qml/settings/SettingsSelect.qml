@@ -10,7 +10,7 @@ AppSelect {
 
     implicitWidth: Math.min(280, Math.max(200, implicitContentWidth + leftPadding + rightPadding))
     implicitHeight: 36
-    font: Qt.font({ family: SettingsStyle.family, pointSize: 10.125 })
+    font: Qt.font({ family: SettingsStyle.family, pixelSize: 13 })
 
     background: Rectangle {
         implicitWidth: 200
