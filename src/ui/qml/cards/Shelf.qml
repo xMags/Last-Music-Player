@@ -10,7 +10,9 @@ import LastMusicPlayer
 // arrows scroll it; a page of cards per arrow. The row runs edge to edge:
 // it reaches through the page's side gutter (`bleed`), so cards clip at the
 // panel's edge rather than in the middle of the gutter, and a matching
-// margin keeps the first card under the heading at rest.
+// margin keeps the first card under the heading at rest. Above the cards the
+// row is clipped `overhang` higher, so a card that grows on hover (a chart
+// card) rises whole instead of losing its top edge.
 Column {
     id: shelf
 
@@ -30,6 +32,9 @@ Column {
     property int cardHeight: cardWidth + 12 + 22 + 18
     // How far the row reaches past each side: the page's gutter.
     property real bleed: Theme.contentGutter
+    // Room above the cards inside the clip, past a hover zoom of 1.045
+    // (4px on a 184px card) and into the 16px under the heading.
+    readonly property int overhang: 8
 
     signal linkClicked()
 
@@ -67,37 +72,45 @@ Column {
             }
         }
 
-        ListView {
-            id: row
-
-            model: shelf.cardsBuilt ? shelf.model : null
+        // The clip: the row's width, and `overhang` taller at the top.
+        Item {
             x: -shelf.bleed
-            width: parent.width + 2 * shelf.bleed
-            height: parent.height
-            leftMargin: shelf.bleed
-            rightMargin: shelf.bleed
-            orientation: ListView.Horizontal
-            spacing: shelf.cardSpacing
-            boundsBehavior: Flickable.StopAtBounds
+            y: -shelf.overhang
+            width: viewport.width + 2 * shelf.bleed
+            height: viewport.height + shelf.overhang
             clip: true
-            reuseItems: true
 
-            Behavior on contentX {
-                id: glide
+            ListView {
+                id: row
 
-                enabled: false
-                NumberAnimation { duration: Motion.page; easing: Motion.water }
-            }
+                model: shelf.cardsBuilt ? shelf.model : null
+                y: shelf.overhang
+                width: parent.width
+                height: viewport.height
+                leftMargin: shelf.bleed
+                rightMargin: shelf.bleed
+                orientation: ListView.Horizontal
+                spacing: shelf.cardSpacing
+                boundsBehavior: Flickable.StopAtBounds
+                reuseItems: true
 
-            function scrollPage(direction) {
-                // scrollBy(clientWidth * 0.85), as carousel.ts steps.
-                const page = width * 0.85
-                const first = originX - leftMargin
-                const last = originX + contentWidth + rightMargin - width
-                const target = Math.max(first, Math.min(contentX + direction * page, last))
-                glide.enabled = !Motion.reduced
-                contentX = target
-                glide.enabled = false
+                Behavior on contentX {
+                    id: glide
+
+                    enabled: false
+                    NumberAnimation { duration: Motion.page; easing: Motion.water }
+                }
+
+                function scrollPage(direction) {
+                    // scrollBy(clientWidth * 0.85), as carousel.ts steps.
+                    const page = width * 0.85
+                    const first = originX - leftMargin
+                    const last = originX + contentWidth + rightMargin - width
+                    const target = Math.max(first, Math.min(contentX + direction * page, last))
+                    glide.enabled = !Motion.reduced
+                    contentX = target
+                    glide.enabled = false
+                }
             }
         }
 
