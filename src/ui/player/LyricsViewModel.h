@@ -6,7 +6,11 @@
 #include <QTimer>
 #include <QtQml/qqmlregistration.h>
 
+#include <QFuture>
+
 #include <cstdint>
+#include <functional>
+#include <optional>
 
 #include "core/lyrics/LyricsService.h"
 
@@ -44,8 +48,14 @@ public:
     static constexpr int DebounceMs = 350;
     static constexpr qint64 LeadMs = 400;
 
-    // Both outlive the view model.
-    LyricsViewModel(core::PlayerController& player, core::lyrics::LyricsService& lyrics, QObject* parent = nullptr);
+    // The lyrics saved with a song on this PC (a download's), read off the
+    // GUI thread; empty when it has none.
+    using SavedLyrics = std::function<QFuture<std::optional<core::lyrics::LyricsResult>>(const core::Track&)>;
+
+    // Both outlive the view model. Saved lyrics, when given, come first:
+    // they need no network and show in Offline mode too.
+    LyricsViewModel(core::PlayerController& player, core::lyrics::LyricsService& lyrics, SavedLyrics saved = {},
+                    QObject* parent = nullptr);
 
     [[nodiscard]] QString state() const { return m_state; }
     [[nodiscard]] QStringList lines() const;
@@ -65,12 +75,14 @@ signals:
 private:
     void onTrackChanged();
     void load();
+    void loadOnline(const core::Track& track, std::uint64_t request, const QString& key);
     void show(const core::lyrics::LyricsResult& result);
     void followPosition();
     void setState(const QString& state);
 
     core::PlayerController& m_player;
     core::lyrics::LyricsService& m_lyrics;
+    SavedLyrics m_saved;
     QTimer m_debounce;
     std::uint64_t m_request = 0;
     // The song shown, by its lyrics key; and the one whose request failed.

@@ -85,6 +85,8 @@ qt_add_library(lmp_core STATIC
     catalog/CatalogService.h
     catalog/CatalogValues.cpp
     catalog/CatalogValues.h
+    lyrics/LrcText.cpp
+    lyrics/LrcText.h
     lyrics/LyricsService.cpp
     lyrics/LyricsService.h
     catalog/ChartArt.cpp
@@ -150,12 +152,16 @@ qt_add_library(lmp_core STATIC
     db/TrackSchema.h
     downloads/DownloadArtworkKeeper.cpp
     downloads/DownloadArtworkKeeper.h
+    downloads/DownloadExtrasService.cpp
+    downloads/DownloadExtrasService.h
     downloads/DownloadManager.cpp
     downloads/DownloadManager.h
     downloads/DownloadPolicy.cpp
     downloads/DownloadPolicy.h
     downloads/OfflineCollections.cpp
     downloads/OfflineCollections.h
+    downloads/SongFileExtras.cpp
+    downloads/SongFileExtras.h
     cast/CastAudioPlayer.cpp
     cast/CastAudioPlayer.h
     cast/CastController.cpp
@@ -388,7 +394,7 @@ target_include_directories(lmp_core
     PRIVATE "${CMAKE_BINARY_DIR}/generated")
 
 target_link_libraries(lmp_core PUBLIC Qt6::Core Qt6::Concurrent Qt6::Network Qt6::WebSockets)
-target_link_libraries(lmp_core PRIVATE lmp_sqlite)
+target_link_libraries(lmp_core PRIVATE lmp_sqlite lmp_taglib)
 
 target_compile_definitions(lmp_core PRIVATE
     LMP_VERSION_STRING="${PROJECT_VERSION}")

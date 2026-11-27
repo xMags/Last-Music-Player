@@ -13,6 +13,7 @@
 #include "ui/images/ChartArtImageProvider.h"
 
 #include <QCoreApplication>
+#include <QtConcurrentRun>
 #include <QJsonObject>
 #include <QJsonDocument>
 #include <QDate>
@@ -38,6 +39,7 @@
 #include "core/app/AppIdentity.h"
 #include "core/async/Result.h"
 #include "core/mode/SourceChoice.h"
+#include "core/net/ArtworkUrl.h"
 #include "core/settings/SettingKeys.h"
 #include "core/playback/QueueEngine.h"
 #include "platform/windows/WindowsAppIdentity.h"
@@ -52,6 +54,20 @@ namespace lmp::app {
 namespace {
 
 Q_LOGGING_CATEGORY(lcComposition, "lmp.app.composition")
+
+// A finished download as the song its lyrics are asked for.
+[[nodiscard]] core::Track downloadedSong(const core::DownloadItem& item)
+{
+    core::Track track;
+    track.title = item.title;
+    track.artist = item.artist;
+    track.album = item.album;
+    track.artworkUrl = item.artworkUrl;
+    track.sourceKind = QStringLiteral("remote");
+    track.sourceUrl = item.sourceUrl;
+    track.sourceTag = item.provider;
+    return track;
+}
 
 // Opens the library database on this (the GUI) thread, its owner. A failure
 // is logged and the app runs on without it: songs still play, but plays and
@@ -340,6 +356,29 @@ CompositionRoot::CompositionRoot()
     , m_lyricsService(
           [this](const core::lyrics::LyricsQuery& query) { return m_remote.lyrics(query); },
           [this]() { return m_mode.capabilities().showLyrics ? m_remote.scopeKey() : QString(); })
+    , m_downloadExtras({.downloads = m_downloads,
+                        .canFetch =
+                            [this](const core::DownloadItem& item) {
+                                // An account cover link loads only in Account mode.
+                                const bool coverReachable = core::net::accountCoverLinkPath(item.artworkUrl).isEmpty()
+                                    || m_mode.accountSelected();
+                                return m_network.online() && m_lyricsService.available() && coverReachable;
+                            },
+                        .cover =
+                            [this](const core::DownloadItem& item) {
+                                return m_artwork.fetch(item.artworkUrl, item.sourceUrl,
+                                                       core::remote::ArtworkService::Priority::Backfill);
+                            },
+                        .lyrics =
+                            [this](const core::DownloadItem& item) {
+                                return m_lyricsService.lyricsFor(downloadedSong(item));
+                            },
+                        .inUse =
+                            [this](const QString& filePath) {
+                                const std::optional<core::Track>& current = m_player.currentTrack();
+                                return current && m_resolver.localFile(*current) == filePath;
+                            },
+                        .write = {}})
     , m_autoplayQueue(m_player)
     , m_autoplay(m_autoplayQueue,
                  {.related =
@@ -369,7 +408,14 @@ CompositionRoot::CompositionRoot()
                     .gate = m_userDataGate,
                     .accountEditor = &m_accountEditor,
                     .toAccount = [this]() { return m_mode.capabilities().editServerPlaylists; }})
-    , m_lyrics(m_player, m_lyricsService)
+    , m_lyrics(m_player, m_lyricsService,
+               [this](const core::Track& track) {
+                   const QString file = m_resolver.localFile(track);
+                   if (file.isEmpty()) {
+                       return QtFuture::makeReadyValueFuture(std::optional<core::lyrics::LyricsResult>());
+                   }
+                   return QtConcurrent::run([file]() { return core::downloads::readSavedLyrics(file); });
+               })
     , m_offlineArtistPhotos(m_catalog, m_paths.pictureCacheFolder() + QStringLiteral("/artist-photos.json"))
     , m_offline({.downloads = m_downloads,
                  .actions = m_trackActions,
@@ -662,6 +708,12 @@ CompositionRoot::CompositionRoot()
     // The covers of what is downloaded, and its artists' photos, stay on
     // disk for offline use.
     m_downloadArtwork.start();
+    // A file is left alone while it plays; the source decides what can be asked.
+    QObject::connect(&m_player, &core::PlayerController::currentTrackChanged, &m_downloadExtras,
+                     [this]() { m_downloadExtras.refresh(); });
+    QObject::connect(&m_mode, &core::mode::ModeService::changed, &m_downloadExtras,
+                     [this]() { m_downloadExtras.refresh(); });
+    m_downloadExtras.start();
     QObject::connect(&m_offline, &ui::OfflineViewModel::changed, &m_downloadArtwork,
                      [this]() { m_downloadArtwork.setExtraPictures(m_offline.artistPhotoUrls()); });
     m_downloadArtwork.setExtraPictures(m_offline.artistPhotoUrls());

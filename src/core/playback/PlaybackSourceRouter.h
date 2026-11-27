@@ -40,6 +40,9 @@ public:
     // or a downloaded one always, a remote song while a remote source
     // (Account or API key) is chosen. Asks nothing of the network.
     [[nodiscard]] bool canPlay(const Track& track) const;
+    // The file on this PC `track` plays from: its own, or its finished
+    // download; empty when it streams (or cannot play).
+    [[nodiscard]] QString localFile(const Track& track) const;
 
     [[nodiscard]] QFuture<Result<QUrl>> resolve(const Track& track) override;
     [[nodiscard]] QFuture<Result<QUrl>> refresh(const Track& track) override;

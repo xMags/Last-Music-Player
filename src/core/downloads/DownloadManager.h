@@ -50,6 +50,9 @@ struct DownloadItem {
     std::uint64_t bytesTotal = 0;
     std::uint64_t bytesPerSecond = 0;
     qint64 finishedAtUnix = 0;
+    // Which round of extras (cover, lyrics, names) was written into the
+    // finished file; 0 for none yet (DownloadExtrasService).
+    int extrasVersion = 0;
 };
 
 struct DownloadJob {
@@ -217,6 +220,11 @@ public:
     [[nodiscard]] DownloadSnapshot snapshot() const;
     // The finished file for `stableKey`, or empty.
     [[nodiscard]] QString readyPath(const QString& stableKey) const;
+    // Every finished song with its file, cleared jobs included.
+    [[nodiscard]] QList<DownloadItem> finishedSongs() const;
+    // Notes that `version` of the extras is in the finished file at
+    // `filePath` (for every song listed with it), and its new size.
+    void setExtrasWritten(const QString& filePath, int version);
     [[nodiscard]] int running() const { return m_running; }
 
     // A file name made safe as the earlier versions did it: control

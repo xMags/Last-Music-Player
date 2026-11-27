@@ -1,4 +1,5 @@
 #include "core/lyrics/LyricsService.h"
+#include "core/lyrics/LrcText.h"
 
 #include <QtTest/QtTest>
 
@@ -42,6 +43,9 @@ private slots:
     void failuresAreNotKept();
     void cacheKeepsTheLast32();
     void noScopeIsUnavailable();
+    void lrcTextRoundTrips();
+    void lrcReadsEveryTimeTagAndSkipsTheRest();
+    void savedTextIsSyncedOrPlain();
 };
 
 void LyricsServiceTest::parsesAndSortsSyncedLines()
@@ -199,6 +203,44 @@ void LyricsServiceTest::noScopeIsUnavailable()
     answer.waitForFinished();
     QVERIFY(!answer.result());
     QCOMPARE(calls, 0);
+}
+
+void LyricsServiceTest::lrcTextRoundTrips()
+{
+    const QList<lyrics::LyricLine> lines{{0, QStringLiteral("first")}, {61230, QStringLiteral("two\nlines")},
+                                         {6000000, QStringLiteral("late")}};
+    const QString text = lyrics::formatLrc(lines);
+    QCOMPARE(text, QStringLiteral("[00:00.00]first\n[01:01.23]two lines\n[100:00.00]late\n"));
+    const QList<lyrics::LyricLine> read = lyrics::parseLrc(text);
+    QCOMPARE(read.size(), 3);
+    QCOMPARE(read.at(1).timeMs, 61230);
+    QCOMPARE(read.at(1).text, QStringLiteral("two lines"));
+    QCOMPARE(read.at(2).timeMs, 6000000);
+    QVERIFY(lyrics::formatLrc({}).isEmpty());
+}
+
+void LyricsServiceTest::lrcReadsEveryTimeTagAndSkipsTheRest()
+{
+    const QList<lyrics::LyricLine> read = lyrics::parseLrc(
+        QStringLiteral("[ar:Someone]\r\n[00:05.5]half\r\n[00:02][00:09.005]twice\r\nno time\r\n[0x:10]bad\r\n"));
+    QCOMPARE(read.size(), 3);
+    QCOMPARE(read.at(0).timeMs, 2000);
+    QCOMPARE(read.at(0).text, QStringLiteral("twice"));
+    QCOMPARE(read.at(1).timeMs, 5500);
+    QCOMPARE(read.at(2).timeMs, 9005);
+}
+
+void LyricsServiceTest::savedTextIsSyncedOrPlain()
+{
+    const lyrics::LyricsResult synced = lyrics::lyricsFromSavedText(QStringLiteral("[00:01.00]a\n[00:02.00]b\n"));
+    QVERIFY(synced.found);
+    QCOMPARE(synced.synced.size(), 2);
+    QCOMPARE(synced.plain, QStringLiteral("a\nb"));
+    const lyrics::LyricsResult plain = lyrics::lyricsFromSavedText(QStringLiteral("  just words\n"));
+    QVERIFY(plain.found);
+    QVERIFY(plain.synced.isEmpty());
+    QCOMPARE(plain.plain, QStringLiteral("just words"));
+    QVERIFY(!lyrics::lyricsFromSavedText(QStringLiteral(" \n ")).found);
 }
 
 QTEST_GUILESS_MAIN(LyricsServiceTest)

@@ -39,6 +39,7 @@
 #include "core/library/CollectionActions.h"
 #include "core/library/HomeMixService.h"
 #include "core/downloads/DownloadArtworkKeeper.h"
+#include "core/downloads/DownloadExtrasService.h"
 #include "core/downloads/DownloadManager.h"
 #include "core/downloads/HttpDownloadFetcher.h"
 #include "core/library/LibraryScanner.h"
@@ -343,6 +344,8 @@ private:
     ui::CatalogArtistViewModel m_catalogArtist;
     // Lyrics of the playing song, asked for in the account's scope.
     core::lyrics::LyricsService m_lyricsService;
+    // Each download's cover, lyrics and names, written into its file.
+    core::downloads::DownloadExtrasService m_downloadExtras;
     // Autoplay's top-up and "Start mix", over the player's queue.
     core::PlayerAutoplayQueue m_autoplayQueue;
     core::AutoplayService m_autoplay;

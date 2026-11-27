@@ -1,5 +1,6 @@
 #include "core/downloads/DownloadManager.h"
 
+#include "core/downloads/SongFileExtras.h"
 #include "core/model/TrackKeys.h"
 #include "core/settings/SettingKeys.h"
 #include "core/settings/SettingsStore.h"
@@ -94,6 +95,17 @@ Q_LOGGING_CATEGORY(lcDownloads, "lmp.downloads")
     return QDir(root).filePath(QStringLiteral(".lmp-part-") + itemId);
 }
 
+// Deletes a finished song and the lyrics file saved beside it. False when
+// the song's file is there and cannot be deleted (it is playing, say).
+[[nodiscard]] bool removeSongFiles(const QString& filePath)
+{
+    if (QFileInfo::exists(filePath) && !QFile::remove(filePath)) {
+        return false;
+    }
+    QFile::remove(downloads::lrcPathFor(filePath));
+    return true;
+}
+
 } // namespace
 
 QString DownloadManager::sanitizeFileName(QString value)
@@ -177,6 +189,41 @@ DownloadJob* DownloadManager::findJob(const QString& jobId)
         }
     }
     return nullptr;
+}
+
+QList<DownloadItem> DownloadManager::finishedSongs() const
+{
+    QList<DownloadItem> songs;
+    for (const DownloadJob& job : m_jobs) {
+        for (const DownloadItem& item : job.items) {
+            if (item.state == DownloadItemState::Completed && !item.filePath.isEmpty()) {
+                songs.append(item);
+            }
+        }
+    }
+    return songs;
+}
+
+void DownloadManager::setExtrasWritten(const QString& filePath, int version)
+{
+    bool changed = false;
+    for (DownloadJob& job : m_jobs) {
+        for (DownloadItem& item : job.items) {
+            if (item.state != DownloadItemState::Completed || item.filePath != filePath) {
+                continue;
+            }
+            item.extrasVersion = version;
+            item.bytesDownloaded = static_cast<std::uint64_t>(QFileInfo(filePath).size());
+            item.bytesTotal = item.bytesDownloaded;
+            changed = true;
+        }
+    }
+    if (!changed) {
+        return;
+    }
+    refreshUsage();
+    save();
+    touch();
 }
 
 DownloadItem* DownloadManager::findItem(const QString& jobId, const QString& itemId)
@@ -416,8 +463,7 @@ bool DownloadManager::removeAllDownloads()
                 QFile::remove(partPathFor(m_root, item.id));
                 continue;
             }
-            const bool stuck = kept.contains(item.filePath)
-                || (QFileInfo::exists(item.filePath) && !QFile::remove(item.filePath));
+            const bool stuck = kept.contains(item.filePath) || !removeSongFiles(item.filePath);
             if (stuck) {
                 kept.insert(item.filePath);
                 stay.append(item);
@@ -462,7 +508,7 @@ bool DownloadManager::removeSong(const QString& stableKey)
                 QFile::remove(partPathFor(m_root, item.id));
                 continue;
             }
-            if (QFileInfo::exists(item.filePath) && !QFile::remove(item.filePath)) {
+            if (!removeSongFiles(item.filePath)) {
                 // Playing, say: it stays listed.
                 stay.append(item);
                 removed = false;
@@ -1042,6 +1088,7 @@ DownloadManager::LoadOutcome DownloadManager::readState(QList<DownloadJob>& jobs
             item.bytesDownloaded = jsonCount(source, QLatin1StringView("bytesDownloaded"));
             item.bytesTotal = jsonCount(source, QLatin1StringView("bytesTotal"));
             item.finishedAtUnix = static_cast<qint64>(jsonCount(source, QLatin1StringView("finishedAt")));
+            item.extrasVersion = static_cast<int>(jsonCount(source, QLatin1StringView("extras")));
             if (!item.id.isEmpty()) {
                 job.items.append(item);
             }
@@ -1079,6 +1126,7 @@ void DownloadManager::save()
                 {QStringLiteral("bytesDownloaded"), static_cast<double>(item.bytesDownloaded)},
                 {QStringLiteral("bytesTotal"), static_cast<double>(item.bytesTotal)},
                 {QStringLiteral("finishedAt"), static_cast<double>(item.finishedAtUnix)},
+                {QStringLiteral("extras"), item.extrasVersion},
             });
         }
         jobs.append(QJsonObject{{QStringLiteral("id"), source.id},

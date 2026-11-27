@@ -4,15 +4,18 @@
 #include "core/playback/PlayerController.h"
 
 #include <cmath>
+#include <utility>
 
 namespace lmp::ui {
 
 namespace lyrics = core::lyrics;
 
-LyricsViewModel::LyricsViewModel(core::PlayerController& player, lyrics::LyricsService& service, QObject* parent)
+LyricsViewModel::LyricsViewModel(core::PlayerController& player, lyrics::LyricsService& service, SavedLyrics saved,
+                                 QObject* parent)
     : QObject(parent)
     , m_player(player)
     , m_lyrics(service)
+    , m_saved(std::move(saved))
 {
     m_debounce.setSingleShot(true);
     m_debounce.setInterval(DebounceMs);
@@ -53,7 +56,7 @@ void LyricsViewModel::onTrackChanged()
     m_songKey = key;
     m_songTitle = core::displayTitle(track->title);
     m_result = {};
-    if (!m_lyrics.available()) {
+    if (!m_lyrics.available() && !m_saved) {
         setState(QStringLiteral("unavailable"));
         return;
     }
@@ -73,7 +76,30 @@ void LyricsViewModel::load()
     }
     const std::uint64_t request = ++m_request;
     const QString key = m_songKey;
-    m_lyrics.lyricsFor(*track).then(this, [this, request, key](const core::Result<lyrics::LyricsResult>& answer) {
+    if (!m_saved) {
+        loadOnline(*track, request, key);
+        return;
+    }
+    const core::Track song = *track;
+    m_saved(song).then(this, [this, request, key, song](const std::optional<lyrics::LyricsResult>& saved) {
+        if (request != m_request || key != m_songKey) {
+            return;
+        }
+        if (saved && saved->found) {
+            show(*saved);
+            return;
+        }
+        loadOnline(song, request, key);
+    });
+}
+
+void LyricsViewModel::loadOnline(const core::Track& track, std::uint64_t request, const QString& key)
+{
+    if (!m_lyrics.available()) {
+        setState(QStringLiteral("unavailable"));
+        return;
+    }
+    m_lyrics.lyricsFor(track).then(this, [this, request, key](const core::Result<lyrics::LyricsResult>& answer) {
         if (request != m_request || key != m_songKey) {
             return;
         }
@@ -129,7 +155,7 @@ void LyricsViewModel::seekToLine(int index)
 
 void LyricsViewModel::retry()
 {
-    if (!m_player.currentTrack() || !m_lyrics.available()) {
+    if (!m_player.currentTrack() || (!m_lyrics.available() && !m_saved)) {
         return;
     }
     m_failedKey.clear();

@@ -21,7 +21,9 @@
 #include <memory>
 #include <vector>
 
+#include "core/downloads/DownloadExtrasService.h"
 #include "core/downloads/DownloadManager.h"
+#include "core/downloads/SongFileExtras.h"
 #include "core/settings/SettingKeys.h"
 #include "core/settings/SettingsStore.h"
 
@@ -168,6 +170,8 @@ private slots:
     void aPartWithoutAValidatorStartsOver();
     void aRangePastTheEndStartsOverOnce();
     void earlierKeysAreStillFound();
+    void extrasAreWrittenOnceForEverySong();
+    void extrasWaitForTheSourceAndThePlayingFile();
 };
 
 void DownloadManagerTest::removeAllDeletesFilesAndDropsTransfers()
@@ -418,9 +422,14 @@ void DownloadManagerTest::oneSongIsRemovedEverywhere()
     QTRY_COMPARE(fixture.stateOf(QStringLiteral("One")), DownloadItemState::Completed);
     const QString file = fixture.manager.readyPath(fixture.scope + QStringLiteral("One"));
     QVERIFY(QFileInfo::exists(file));
+    // Its saved lyrics go with it.
+    QFile lrc(lmp::core::downloads::lrcPathFor(file));
+    QVERIFY(lrc.open(QIODevice::WriteOnly));
+    lrc.close();
 
     QVERIFY(fixture.manager.removeSong(fixture.scope + QStringLiteral("One")));
     QVERIFY(!QFileInfo::exists(file));
+    QVERIFY(!QFileInfo::exists(lmp::core::downloads::lrcPathFor(file)));
     QVERIFY(fixture.manager.readyPath(fixture.scope + QStringLiteral("One")).isEmpty());
     QCOMPARE(fixture.manager.snapshot().jobs.first().job.items.size(), 1);
     // The last song gone, its job goes too; an unknown song changes nothing.
@@ -623,6 +632,125 @@ void DownloadManagerTest::aRangePastTheEndStartsOverOnce()
     // A second 416 is a failure like any other.
     fixture.fetcher.failOldest(416);
     QTRY_COMPARE(fixture.stateOf(QStringLiteral("One")), DownloadItemState::Failed);
+}
+
+namespace {
+
+// The extras service over the fixture's list, with fakes for the network
+// and the file work.
+struct ExtrasFixture {
+    explicit ExtrasFixture(Fixture& downloads)
+        : service({.downloads = downloads.manager,
+                   .canFetch = [this](const lmp::core::DownloadItem&) { return online; },
+                   .cover =
+                       [this](const lmp::core::DownloadItem& item) {
+                           ++coverAsks;
+                           return QtFuture::makeReadyValueFuture(
+                               coverFails ? Result<QByteArray>(lmp::core::Failure::of(lmp::core::FailureKind::Network))
+                                          : Result<QByteArray>(QByteArray("cover of ") + item.title.toUtf8()));
+                       },
+                   .lyrics =
+                       [](const lmp::core::DownloadItem&) {
+                           lmp::core::lyrics::LyricsResult words;
+                           words.found = true;
+                           words.plain = QStringLiteral("la la");
+                           return QtFuture::makeReadyValueFuture(Result<lmp::core::lyrics::LyricsResult>(words));
+                       },
+                   .inUse = [this](const QString& path) { return path == playing; },
+                   .write =
+                       [this](const QString& path, const lmp::core::downloads::SongFileExtras& extras) {
+                           written.append(QFileInfo(path).fileName().section(QLatin1Char('-'), 0, 0));
+                           lastExtras = extras;
+                           return QtFuture::makeReadyValueFuture(Result<void>::success());
+                       },
+                   .stepGapMs = 1})
+    {
+    }
+
+    bool online = true;
+    bool coverFails = false;
+    int coverAsks = 0;
+    QString playing;
+    QStringList written;
+    lmp::core::downloads::SongFileExtras lastExtras;
+    lmp::core::downloads::DownloadExtrasService service;
+};
+
+void finishSongs(Fixture& fixture, const QStringList& titles)
+{
+    QList<DownloadTrackRequest> songs;
+    for (const QString& title : titles) {
+        DownloadTrackRequest song = fixture.song(title);
+        song.artworkUrl = QStringLiteral("https://art.example.test/") + title;
+        songs.append(song);
+    }
+    QVERIFY(fixture.manager.enqueue(QStringLiteral("Job"), {}, {}, songs));
+    for (const QString& title : titles) {
+        QTRY_VERIFY(!fixture.fetcher.pending.empty());
+        fixture.fetcher.finish(title.toUtf8());
+        QTRY_COMPARE(fixture.stateOf(title), DownloadItemState::Completed);
+    }
+}
+
+} // namespace
+
+void DownloadManagerTest::extrasAreWrittenOnceForEverySong()
+{
+    Fixture fixture;
+    fixture.manager.initialize();
+    finishSongs(fixture, {QStringLiteral("One"), QStringLiteral("Two")});
+    ExtrasFixture extras(fixture);
+    extras.service.start();
+    QTRY_COMPARE(extras.written.size(), 2);
+    QCOMPARE(extras.lastExtras.plainLyrics, QStringLiteral("la la"));
+    QVERIFY(extras.lastExtras.cover.startsWith("cover of "));
+    for (const lmp::core::DownloadItem& item : fixture.manager.finishedSongs()) {
+        QCOMPARE(item.extrasVersion, lmp::core::downloads::DownloadExtrasService::CurrentVersion);
+    }
+    // Remembered: nothing is written again, in this run or the next.
+    QTest::qWait(50);
+    QCOMPARE(extras.written.size(), 2);
+    DownloadManager reread({.settings = fixture.settings,
+                            .gate = fixture.gate,
+                            .fetcher = fixture.fetcher,
+                            .stateFile = fixture.folder.filePath(QStringLiteral("Downloads.json")),
+                            .defaultFolder = fixture.folder.filePath(QStringLiteral("Offline")),
+                            .resolve = {},
+                            .scopePrefix = [&fixture]() { return fixture.scope; },
+                            .metered = []() { return false; },
+                            .onBattery = []() { return false; }});
+    reread.initialize();
+    QCOMPARE(reread.finishedSongs().size(), 2);
+    for (const lmp::core::DownloadItem& item : reread.finishedSongs()) {
+        QCOMPARE(item.extrasVersion, lmp::core::downloads::DownloadExtrasService::CurrentVersion);
+    }
+}
+
+void DownloadManagerTest::extrasWaitForTheSourceAndThePlayingFile()
+{
+    Fixture fixture;
+    fixture.manager.initialize();
+    finishSongs(fixture, {QStringLiteral("One"), QStringLiteral("Two")});
+    ExtrasFixture extras(fixture);
+    extras.online = false;
+    extras.playing = fixture.manager.readyPath(fixture.scope + QStringLiteral("Two"));
+    extras.service.start();
+    QTest::qWait(50);
+    QVERIFY(extras.written.isEmpty());
+    QCOMPARE(extras.coverAsks, 0);
+
+    // Back online: the song that is not playing gets its extras.
+    extras.online = true;
+    extras.service.refresh();
+    QTRY_COMPARE(extras.written, QStringList({QStringLiteral("One")}));
+    // A failed fetch is not taken for "no cover": the song waits for a retry.
+    extras.coverFails = true;
+    extras.playing.clear();
+    extras.service.refresh();
+    QTRY_COMPARE(extras.coverAsks, 2);
+    QTest::qWait(50);
+    QCOMPARE(extras.written.size(), 1);
+    QCOMPARE(extras.coverAsks, 2);
 }
 
 QTEST_GUILESS_MAIN(DownloadManagerTest)
