@@ -2,6 +2,7 @@
 
 #include <QDeadlineTimer>
 #include <QLoggingCategory>
+#include <QSet>
 #include <QtConcurrentRun>
 
 #include <algorithm>
@@ -47,6 +48,12 @@ void DownloadExtrasService::start()
         return;
     }
     m_started = true;
+    // What was kept for songs deleted since goes.
+    QSet<QString> songs;
+    for (const DownloadItem& item : m_deps.downloads.finishedSongs()) {
+        songs.insert(item.filePath);
+    }
+    m_deps.pending.keepOnly(songs);
     connect(&m_deps.downloads, &DownloadManager::changed, this, &DownloadExtrasService::refresh);
     schedule(m_deps.stepGapMs);
 }
@@ -74,7 +81,10 @@ void DownloadExtrasService::step()
     if (busy()) {
         return;
     }
+    // A song whose extras are already fetched waits only for its file to be
+    // free; one without them waits for its source as well.
     std::optional<DownloadItem> next;
+    bool nextFetched = false;
     qint64 earliestRetry = std::numeric_limits<qint64>::max();
     for (const DownloadItem& item : m_deps.downloads.finishedSongs()) {
         if (item.extrasVersion >= CurrentVersion) {
@@ -84,11 +94,14 @@ void DownloadExtrasService::step()
             earliestRetry = std::min(earliestRetry, m_retryAt.value(item.filePath));
             continue;
         }
-        if (!m_deps.canFetch(item) || (m_deps.inUse && m_deps.inUse(item.filePath))) {
+        const bool fetched = m_deps.pending.contains(item.filePath);
+        const bool ready = fetched ? !(m_deps.inUse && m_deps.inUse(item.filePath)) : m_deps.canFetch(item);
+        if (!ready) {
             continue; // asked again on refresh()
         }
         if (!next || item.finishedAtUnix > next->finishedAtUnix) {
             next = item;
+            nextFetched = fetched;
         }
     }
     if (!next) {
@@ -99,6 +112,10 @@ void DownloadExtrasService::step()
     }
     m_current = next->filePath;
     const DownloadItem item = *next;
+    if (nextFetched) {
+        writePending(item.filePath);
+        return;
+    }
     if (item.artworkUrl.isEmpty()) {
         fetchLyrics(item, {});
         return;
@@ -121,17 +138,12 @@ void DownloadExtrasService::fetchLyrics(const DownloadItem& item, const QByteArr
             finish(item.filePath, false);
             return;
         }
-        write(item, cover, words ? words.value() : lyrics::LyricsResult{});
+        keep(item, cover, words ? words.value() : lyrics::LyricsResult{});
     });
 }
 
-void DownloadExtrasService::write(const DownloadItem& item, const QByteArray& cover, const lyrics::LyricsResult& words)
+void DownloadExtrasService::keep(const DownloadItem& item, const QByteArray& cover, const lyrics::LyricsResult& words)
 {
-    // The song may have started playing while its extras were fetched.
-    if (m_deps.inUse && m_deps.inUse(item.filePath)) {
-        finish(item.filePath, false);
-        return;
-    }
     SongFileExtras extras;
     extras.title = item.title;
     extras.artist = item.artist;
@@ -141,18 +153,49 @@ void DownloadExtrasService::write(const DownloadItem& item, const QByteArray& co
         extras.plainLyrics = words.plain;
         extras.syncedLyrics = words.synced;
     }
-    const QString filePath = item.filePath;
-    m_deps.write(filePath, extras).then(this, [this, filePath](const Result<void>& outcome) {
+    // Kept first: the lyrics show, and the file can take them later, without
+    // asking the network again.
+    if (!m_deps.pending.save(item.filePath, extras)) {
+        qCWarning(lcExtras) << "fetched extras could not be kept";
+        finish(item.filePath, false);
+        return;
+    }
+    emit kept(item.filePath);
+    if (m_deps.inUse && m_deps.inUse(item.filePath)) {
+        // Written once the song is no longer open (refresh()).
+        finish(item.filePath, true);
+        return;
+    }
+    writePending(item.filePath);
+}
+
+void DownloadExtrasService::writePending(const QString& filePath)
+{
+    const std::optional<SongFileExtras> extras = m_deps.pending.load(filePath);
+    if (!extras) {
+        // Unreadable: fetched again.
+        m_deps.pending.remove(filePath);
+        finish(filePath, false);
+        return;
+    }
+    m_deps.write(filePath, *extras).then(this, [this, filePath](const Result<void>& outcome) {
         if (!outcome) {
             qCDebug(lcExtras) << "extras not written:" << outcome.failure().detail;
-            // A file that cannot hold tags never will; one in use may later.
-            const bool never = outcome.failure().kind == FailureKind::NotAvailable;
-            if (never) {
-                m_deps.downloads.setExtrasWritten(filePath, CurrentVersion);
+            const FailureKind kind = outcome.failure().kind;
+            // A file that cannot hold tags never will, and one that is gone
+            // needs nothing; one in use may take them later.
+            if (kind == FailureKind::NotAvailable || kind == FailureKind::NotFound) {
+                m_deps.pending.remove(filePath);
+                if (kind == FailureKind::NotAvailable) {
+                    m_deps.downloads.setExtrasWritten(filePath, CurrentVersion);
+                }
+                finish(filePath, true);
+                return;
             }
-            finish(filePath, never || outcome.failure().kind == FailureKind::NotFound);
+            finish(filePath, false);
             return;
         }
+        m_deps.pending.remove(filePath);
         m_deps.downloads.setExtrasWritten(filePath, CurrentVersion);
         emit written(filePath);
         finish(filePath, true);

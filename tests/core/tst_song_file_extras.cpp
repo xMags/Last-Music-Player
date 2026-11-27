@@ -15,6 +15,7 @@
 #include <tpropertymap.h>
 #include <tvariant.h>
 
+#include "core/downloads/PendingExtrasStore.h"
 #include "core/downloads/SongFileExtras.h"
 
 namespace downloads = lmp::core::downloads;
@@ -116,6 +117,7 @@ private slots:
     void plainLyricsAloneAreReadFromTheTag();
     void filesThatCannotHoldTagsAreLeftAlone();
     void aRealDownloadStaysPlayable();
+    void keptExtrasRoundTripAndAreSwept();
 };
 
 void SongFileExtrasTest::writesEverythingIntoAnM4a()
@@ -214,6 +216,31 @@ void SongFileExtrasTest::aRealDownloadStaysPlayable()
     QCOMPARE(after.audioProperties()->lengthInMilliseconds(), before);
     QCOMPARE(after.complexProperties("PICTURE").size(), 1U);
     QCOMPARE(text(after.properties(), "LYRICS"), QStringLiteral("one\ntwo"));
+}
+
+void SongFileExtrasTest::keptExtrasRoundTripAndAreSwept()
+{
+    QTemporaryDir folder;
+    const downloads::PendingExtrasStore store(folder.filePath(QStringLiteral("kept")));
+    const QString song = folder.filePath(QStringLiteral("song.m4a"));
+    const QString other = folder.filePath(QStringLiteral("other.m4a"));
+    QVERIFY(!store.contains(song));
+    QVERIFY(!store.load(song));
+    QVERIFY(store.save(song, everything()));
+    QVERIFY(store.save(other, everything()));
+    const std::optional<downloads::SongFileExtras> kept = store.load(song);
+    QVERIFY(kept);
+    QCOMPARE(kept->title, everything().title);
+    QCOMPARE(kept->cover, jpeg());
+    QCOMPARE(kept->plainLyrics, QStringLiteral("one\ntwo"));
+    QCOMPARE(kept->syncedLyrics.size(), 2);
+    QCOMPARE(kept->syncedLyrics.at(1).timeMs, 2500);
+
+    store.keepOnly({song});
+    QVERIFY(store.contains(song));
+    QVERIFY(!store.contains(other));
+    store.remove(song);
+    QVERIFY(!store.contains(song));
 }
 
 QTEST_GUILESS_MAIN(SongFileExtrasTest)

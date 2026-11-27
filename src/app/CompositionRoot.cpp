@@ -356,7 +356,9 @@ CompositionRoot::CompositionRoot()
     , m_lyricsService(
           [this](const core::lyrics::LyricsQuery& query) { return m_remote.lyrics(query); },
           [this]() { return m_mode.capabilities().showLyrics ? m_remote.scopeKey() : QString(); })
+    , m_pendingExtras(m_paths.downloadExtrasFolder())
     , m_downloadExtras({.downloads = m_downloads,
+                        .pending = m_pendingExtras,
                         .canFetch =
                             [this](const core::DownloadItem& item) {
                                 // An account cover link loads only in Account mode.
@@ -375,8 +377,10 @@ CompositionRoot::CompositionRoot()
                             },
                         .inUse =
                             [this](const QString& filePath) {
+                                // The song shown at launch is not opened until it plays.
                                 const std::optional<core::Track>& current = m_player.currentTrack();
-                                return current && m_resolver.localFile(*current) == filePath;
+                                return current && m_player.state() != core::PlayerController::State::Idle
+                                    && m_resolver.localFile(*current) == filePath;
                             },
                         .write = {}})
     , m_autoplayQueue(m_player)
@@ -414,7 +418,23 @@ CompositionRoot::CompositionRoot()
                    if (file.isEmpty()) {
                        return QtFuture::makeReadyValueFuture(std::optional<core::lyrics::LyricsResult>());
                    }
-                   return QtConcurrent::run([file]() { return core::downloads::readSavedLyrics(file); });
+                   const core::downloads::PendingExtrasStore* pending = &m_pendingExtras;
+                   return QtConcurrent::run([file, pending]() -> std::optional<core::lyrics::LyricsResult> {
+                       if (std::optional<core::lyrics::LyricsResult> saved = core::downloads::readSavedLyrics(file)) {
+                           return saved;
+                       }
+                       // Fetched for a download whose file could not take them yet.
+                       const std::optional<core::downloads::SongFileExtras> kept = pending->load(file);
+                       if (!kept || (kept->plainLyrics.trimmed().isEmpty() && kept->syncedLyrics.isEmpty())) {
+                           return std::nullopt;
+                       }
+                       core::lyrics::LyricsResult words;
+                       words.found = true;
+                       words.source = QStringLiteral("saved");
+                       words.plain = kept->plainLyrics;
+                       words.synced = kept->syncedLyrics;
+                       return words;
+                   });
                })
     , m_offlineArtistPhotos(m_catalog, m_paths.pictureCacheFolder() + QStringLiteral("/artist-photos.json"))
     , m_offline({.downloads = m_downloads,
@@ -713,6 +733,13 @@ CompositionRoot::CompositionRoot()
                      [this]() { m_downloadExtras.refresh(); });
     QObject::connect(&m_mode, &core::mode::ModeService::changed, &m_downloadExtras,
                      [this]() { m_downloadExtras.refresh(); });
+    QObject::connect(&m_downloadExtras, &core::downloads::DownloadExtrasService::kept, &m_lyrics,
+                     [this](const QString& filePath) {
+                         const std::optional<core::Track>& current = m_player.currentTrack();
+                         if (current && m_resolver.localFile(*current) == filePath) {
+                             m_lyrics.reload();
+                         }
+                     });
     m_downloadExtras.start();
     QObject::connect(&m_offline, &ui::OfflineViewModel::changed, &m_downloadArtwork,
                      [this]() { m_downloadArtwork.setExtraPictures(m_offline.artistPhotoUrls()); });

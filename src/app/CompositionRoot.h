@@ -344,7 +344,9 @@ private:
     ui::CatalogArtistViewModel m_catalogArtist;
     // Lyrics of the playing song, asked for in the account's scope.
     core::lyrics::LyricsService m_lyricsService;
-    // Each download's cover, lyrics and names, written into its file.
+    // Each download's cover, lyrics and names: kept once fetched, then
+    // written into its file.
+    core::downloads::PendingExtrasStore m_pendingExtras;
     core::downloads::DownloadExtrasService m_downloadExtras;
     // Autoplay's top-up and "Start mix", over the player's queue.
     core::PlayerAutoplayQueue m_autoplayQueue;

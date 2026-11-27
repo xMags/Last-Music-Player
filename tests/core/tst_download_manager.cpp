@@ -23,6 +23,7 @@
 
 #include "core/downloads/DownloadExtrasService.h"
 #include "core/downloads/DownloadManager.h"
+#include "core/downloads/PendingExtrasStore.h"
 #include "core/downloads/SongFileExtras.h"
 #include "core/settings/SettingKeys.h"
 #include "core/settings/SettingsStore.h"
@@ -171,7 +172,8 @@ private slots:
     void aRangePastTheEndStartsOverOnce();
     void earlierKeysAreStillFound();
     void extrasAreWrittenOnceForEverySong();
-    void extrasWaitForTheSourceAndThePlayingFile();
+    void extrasOfAPlayingSongAreKeptAndWrittenOffline();
+    void aFailedFetchKeepsNothingAndWaits();
 };
 
 void DownloadManagerTest::removeAllDeletesFilesAndDropsTransfers()
@@ -640,7 +642,9 @@ namespace {
 // and the file work.
 struct ExtrasFixture {
     explicit ExtrasFixture(Fixture& downloads)
-        : service({.downloads = downloads.manager,
+        : pending(keptFolder.path())
+        , service({.downloads = downloads.manager,
+                   .pending = pending,
                    .canFetch = [this](const lmp::core::DownloadItem&) { return online; },
                    .cover =
                        [this](const lmp::core::DownloadItem& item) {
@@ -673,6 +677,8 @@ struct ExtrasFixture {
     QString playing;
     QStringList written;
     lmp::core::downloads::SongFileExtras lastExtras;
+    QTemporaryDir keptFolder;
+    lmp::core::downloads::PendingExtrasStore pending;
     lmp::core::downloads::DownloadExtrasService service;
 };
 
@@ -726,31 +732,58 @@ void DownloadManagerTest::extrasAreWrittenOnceForEverySong()
     }
 }
 
-void DownloadManagerTest::extrasWaitForTheSourceAndThePlayingFile()
+void DownloadManagerTest::extrasOfAPlayingSongAreKeptAndWrittenOffline()
 {
     Fixture fixture;
     fixture.manager.initialize();
     finishSongs(fixture, {QStringLiteral("One"), QStringLiteral("Two")});
+    const QString two = fixture.manager.readyPath(fixture.scope + QStringLiteral("Two"));
     ExtrasFixture extras(fixture);
     extras.online = false;
-    extras.playing = fixture.manager.readyPath(fixture.scope + QStringLiteral("Two"));
+    extras.playing = two;
     extras.service.start();
     QTest::qWait(50);
     QVERIFY(extras.written.isEmpty());
     QCOMPARE(extras.coverAsks, 0);
 
-    // Back online: the song that is not playing gets its extras.
+    // Online: both are fetched; the playing one is only kept.
     extras.online = true;
     extras.service.refresh();
+    QTRY_COMPARE(extras.coverAsks, 2);
     QTRY_COMPARE(extras.written, QStringList({QStringLiteral("One")}));
-    // A failed fetch is not taken for "no cover": the song waits for a retry.
-    extras.coverFails = true;
+    QVERIFY(extras.pending.contains(two));
+    QCOMPARE(extras.pending.load(two)->plainLyrics, QStringLiteral("la la"));
+
+    // Offline again, and the song stops: its file takes what was kept,
+    // without asking the network.
+    extras.online = false;
     extras.playing.clear();
     extras.service.refresh();
-    QTRY_COMPARE(extras.coverAsks, 2);
-    QTest::qWait(50);
-    QCOMPARE(extras.written.size(), 1);
+    QTRY_COMPARE(extras.written.size(), 2);
     QCOMPARE(extras.coverAsks, 2);
+    QCOMPARE(extras.lastExtras.plainLyrics, QStringLiteral("la la"));
+    QVERIFY(!extras.pending.contains(two));
+    for (const lmp::core::DownloadItem& item : fixture.manager.finishedSongs()) {
+        QCOMPARE(item.extrasVersion, lmp::core::downloads::DownloadExtrasService::CurrentVersion);
+    }
+}
+
+void DownloadManagerTest::aFailedFetchKeepsNothingAndWaits()
+{
+    Fixture fixture;
+    fixture.manager.initialize();
+    finishSongs(fixture, {QStringLiteral("One")});
+    const QString one = fixture.manager.readyPath(fixture.scope + QStringLiteral("One"));
+    ExtrasFixture extras(fixture);
+    extras.coverFails = true;
+    extras.service.start();
+    QTRY_COMPARE(extras.coverAsks, 1);
+    QTest::qWait(50);
+    // Not taken for "no cover": nothing kept or written, and not asked again
+    // before the retry time.
+    QCOMPARE(extras.coverAsks, 1);
+    QVERIFY(extras.written.isEmpty());
+    QVERIFY(!extras.pending.contains(one));
 }
 
 QTEST_GUILESS_MAIN(DownloadManagerTest)

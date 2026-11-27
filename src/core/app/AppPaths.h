@@ -42,6 +42,9 @@ public:
     [[nodiscard]] QString streamCacheFolder() const;
     // picture-cache: covers and artist photos shown, and those downloads keep.
     [[nodiscard]] QString pictureCacheFolder() const;
+    // download-extras: covers and lyrics fetched for downloads whose files
+    // could not take them yet.
+    [[nodiscard]] QString downloadExtrasFolder() const;
 
 private:
     [[nodiscard]] QString child(const QString& name) const;

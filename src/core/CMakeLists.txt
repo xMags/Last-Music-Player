@@ -160,6 +160,8 @@ qt_add_library(lmp_core STATIC
     downloads/DownloadPolicy.h
     downloads/OfflineCollections.cpp
     downloads/OfflineCollections.h
+    downloads/PendingExtrasStore.cpp
+    downloads/PendingExtrasStore.h
     downloads/SongFileExtras.cpp
     downloads/SongFileExtras.h
     cast/CastAudioPlayer.cpp

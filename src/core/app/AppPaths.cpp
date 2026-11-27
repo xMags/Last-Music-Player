@@ -80,6 +80,11 @@ QString AppPaths::pictureCacheFolder() const
     return child(QStringLiteral("picture-cache"));
 }
 
+QString AppPaths::downloadExtrasFolder() const
+{
+    return child(QStringLiteral("download-extras"));
+}
+
 QString AppPaths::child(const QString& name) const
 {
     return QDir(m_root).filePath(name);
