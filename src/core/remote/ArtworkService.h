@@ -10,6 +10,7 @@
 #include <QObject>
 #include <QPromise>
 #include <QString>
+#include <QStringList>
 
 #include <array>
 #include <chrono>
@@ -166,6 +167,11 @@ private:
         bool probing = false;
         // Where it is written on disk once fetched; empty: not written.
         QString diskKey;
+        // Read-only places looked in next, before the network: the covers the
+        // signed-in account keeps for its downloads, outside Account mode.
+        QStringList moreDiskKeys;
+        // Only on disk: a miss fails instead of going to the network.
+        bool diskOnly = false;
         int runs = 0;
         std::vector<Promise> waiters;
     };
@@ -190,6 +196,11 @@ private:
     [[nodiscard]] QString requestKey(const QString& artworkUrl, const QString& sourceUrl) const;
     // Whose pictures the disk holds now: the account, or the open web.
     [[nodiscard]] QString diskScope() const;
+    // Outside Account mode, the signed-in account's disk scope, whose kept
+    // covers (of its downloads) are read but never written; empty in
+    // Account mode, while signed out, or without a disk cache.
+    [[nodiscard]] QString accountKeptScope() const;
+    void probeDisk(const QString& key, quint64 id, const QString& diskKey);
     void onProbe(const QString& key, quint64 id, const std::optional<QByteArray>& bytes);
     void startRequests();
     void startRun(const QString& key, Priority slot);

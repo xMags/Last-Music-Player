@@ -168,6 +168,15 @@ QString ArtworkService::diskScope() const
     return owner.isEmpty() ? QString() : QStringLiteral("account|") + owner;
 }
 
+QString ArtworkService::accountKeptScope() const
+{
+    if (m_deps.disk == nullptr || m_deps.mode.mode() == mode::SourceMode::Account) {
+        return {};
+    }
+    const QString owner = m_deps.session.profile().id;
+    return owner.isEmpty() ? QString() : QStringLiteral("account|") + owner;
+}
+
 QString ArtworkService::diskKey(const QString& artworkUrl, const QString& sourceUrl) const
 {
     return ArtworkDiskCache::fileKey(diskScope(), requestKey(artworkUrl, sourceUrl));
@@ -225,6 +234,13 @@ void ArtworkService::keepOnly(const QList<QString>& artworkUrls)
     m_deps.disk->releaseAllExcept(scope, keys);
 }
 
+void ArtworkService::probeDisk(const QString& key, quint64 id, const QString& diskKey)
+{
+    m_deps.disk->read(diskKey).then(this, [this, key, id](const std::optional<QByteArray>& bytes) {
+        onProbe(key, id, bytes);
+    });
+}
+
 void ArtworkService::onProbe(const QString& key, quint64 id, const std::optional<QByteArray>& bytes)
 {
     const auto found = m_requests.find(key);
@@ -236,6 +252,15 @@ void ArtworkService::onProbe(const QString& key, quint64 id, const std::optional
         qCDebug(lcPerf) << "cover read from disk:" << bytes->size() << "bytes";
         store(key, *bytes);
         settle(request.waiters, *bytes);
+        return;
+    }
+    if (!found->moreDiskKeys.isEmpty()) {
+        probeDisk(key, id, found->moreDiskKeys.takeFirst());
+        return;
+    }
+    if (found->diskOnly) {
+        Request request = m_requests.take(key);
+        settle(request.waiters, Failure::of(FailureKind::NotFound, QStringLiteral("picture is not on this PC")));
         return;
     }
     // Not on disk: to the network, at the priority it holds now.
@@ -250,8 +275,14 @@ QFuture<Result<QByteArray>> ArtworkService::fetch(const QString& artworkUrl, con
     const bool accountMode = m_deps.mode.mode() == mode::SourceMode::Account;
     const QString coverLink = net::accountCoverLinkPath(artworkUrl);
     const QString normalized = pictureAddress(artworkUrl);
-    // A cover link loads from the account service only.
-    const bool hasArtwork = coverLink.isEmpty() ? !normalized.isEmpty() && net::isHttpUrl(normalized) : accountMode;
+    // The covers the signed-in account kept for its downloads stay readable
+    // in the other modes: they are files on this PC.
+    const QString accountKept = accountKeptScope();
+    // A cover link loads from the account service only; elsewhere it can
+    // only be one of those kept covers.
+    const bool diskOnly = !coverLink.isEmpty() && !accountMode && !accountKept.isEmpty();
+    const bool hasArtwork =
+        coverLink.isEmpty() ? !normalized.isEmpty() && net::isHttpUrl(normalized) : accountMode || diskOnly;
     const bool canResolve = normalized.isEmpty() && net::isHttpUrl(sourceUrl) && accountMode;
     if (!hasArtwork && !canResolve) {
         return ready(Result<QByteArray>(Failure::of(FailureKind::NotFound, QStringLiteral("no picture address"))));
@@ -289,15 +320,22 @@ QFuture<Result<QByteArray>> ArtworkService::fetch(const QString& artworkUrl, con
     request.priority = priority;
     request.waiters.push_back(std::move(promise));
     // The disk first: a picture shown before needs no network.
-    request.diskKey = ArtworkDiskCache::fileKey(diskScope(), key);
-    if (!request.diskKey.isEmpty()) {
+    request.diskOnly = diskOnly;
+    if (!diskOnly) {
+        request.diskKey = ArtworkDiskCache::fileKey(diskScope(), key);
+    }
+    if (const QString kept = ArtworkDiskCache::fileKey(accountKept, key); !kept.isEmpty()) {
+        request.moreDiskKeys.append(kept);
+    }
+    QString firstProbe = request.diskKey;
+    if (firstProbe.isEmpty() && !request.moreDiskKeys.isEmpty()) {
+        firstProbe = request.moreDiskKeys.takeFirst();
+    }
+    if (!firstProbe.isEmpty()) {
         request.probing = true;
         const quint64 id = request.id;
-        const QString diskKey = request.diskKey;
         m_requests.insert(key, std::move(request));
-        m_deps.disk->read(diskKey).then(this, [this, key, id](const std::optional<QByteArray>& bytes) {
-            onProbe(key, id, bytes);
-        });
+        probeDisk(key, id, firstProbe);
         return future;
     }
     m_requests.insert(key, std::move(request));

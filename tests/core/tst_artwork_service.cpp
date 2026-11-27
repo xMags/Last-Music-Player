@@ -94,6 +94,7 @@ private slots:
     void coverLinksLoadFromTheAccountService();
     void coversWaitForTheStoredSessionCheck();
     void aPictureOnDiskNeedsNoNetwork();
+    void anAccountsKeptCoversShowInOtherModesFromDiskOnly();
     void keptPicturesSurviveTheMemoryCache();
 };
 
@@ -454,6 +455,34 @@ void ArtworkServiceTest::aPictureOnDiskNeedsNoNetwork()
     QTRY_VERIFY(again.isFinished());
     QCOMPARE(again.result().value(), QByteArray("direct"));
     QVERIFY(next.modes.session.transport.requests.isEmpty());
+}
+
+void ArtworkServiceTest::anAccountsKeptCoversShowInOtherModesFromDiskOnly()
+{
+    const QString link = QStringLiteral("/v1/music/art/AbCdEfGhIjKlMnOpQrSt_-");
+    const QString other = QStringLiteral("/v1/music/art/ZyXwVuTsRqPoNmLkJiHg_-");
+    QTemporaryDir folder;
+    lmp::core::remote::ArtworkDiskCache disk(folder.path());
+    ArtworkFixture fixture(&disk);
+    QVERIFY(fixture.enterAccountMode());
+    settle();
+    // A downloaded song's cover, kept for the account.
+    fixture.modes.session.transport.script(link, FakeHttpTransport::ok("cover"));
+    const QFuture<bool> kept = fixture.service.keep(link);
+    QTRY_VERIFY(kept.isFinished());
+    QVERIFY(kept.result());
+
+    QVERIFY(fixture.modes.modes.setMode(lmp::core::mode::SourceMode::LocalOnly));
+    settle();
+    const qsizetype sent = fixture.modes.session.transport.requests.size();
+    const QFuture<Result<QByteArray>> shown = fixture.service.fetch(link);
+    QTRY_VERIFY(shown.isFinished());
+    QCOMPARE(shown.result().value(), QByteArray("cover"));
+    // A cover it never kept is not asked of the account service.
+    const QFuture<Result<QByteArray>> missing = fixture.service.fetch(other);
+    QTRY_VERIFY(missing.isFinished());
+    QCOMPARE(missing.result().failure().kind, FailureKind::NotFound);
+    QCOMPARE(fixture.modes.session.transport.requests.size(), sent);
 }
 
 void ArtworkServiceTest::keptPicturesSurviveTheMemoryCache()
