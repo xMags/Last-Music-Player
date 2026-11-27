@@ -55,10 +55,12 @@ TextStyle makeTextStyle(const TextStyleSpec& unscaled)
         font.setPointSizeF(spec.pixelSize * 0.75);
     }
     font.setWeight(static_cast<QFont::Weight>(spec.weight));
-    // Heights snap to the pixel grid, so horizontal strokes and baselines
-    // stay sharp at 125% and 150%; widths keep the font's design, so text
-    // measures as the design does. Full hinting widened and thickened it.
-    font.setHintingPreference(QFont::PreferVerticalHinting);
+    // The font's own hints in full (FreeType's interpreter 35, main.cpp), as
+    // Windows draws its UI text: stems and joins snap to whole pixels both
+    // ways, so text stays sharp at 125% and 150%. Vertical-only hinting left
+    // upright strokes between pixels: soft, and the thin shoulder of h, n
+    // and m at semibold faded until the letter looked broken.
+    font.setHintingPreference(QFont::PreferFullHinting);
     // Segoe UI Variable keeps every weight in one variable font, and the font
     // matcher only offers its Regular and Bold faces: weight 600 came out
     // Bold and 500 Regular. Setting the weight axis draws the exact weight;

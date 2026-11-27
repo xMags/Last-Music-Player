@@ -29,6 +29,17 @@ int main(int argc, char* argv[])
     if (choosePlatform) {
         qputenv("QT_QPA_PLATFORM", "windows:fontengine=freetype");
     }
+    // FreeType's TrueType interpreter 35 runs a font's hints in full, as
+    // Windows does, so stems and joins land on whole pixels; the default
+    // interpreter (40) ignores the horizontal hints, and a thin join that
+    // falls between two pixel columns (the shoulder of h, n and m in
+    // Segoe UI Variable) was drawn so faint that the letter looked broken.
+    // FreeType reads this whenever a thread starts its library (Qt starts
+    // one per thread, the scene graph's render thread included), so it stays
+    // set; text styles ask for full hinting (TextStyles.cpp).
+    if (!qEnvironmentVariableIsSet("FREETYPE_PROPERTIES")) {
+        qputenv("FREETYPE_PROPERTIES", "truetype:interpreter-version=35");
+    }
     QGuiApplication app(argc, argv);
     if (choosePlatform) {
         qunsetenv("QT_QPA_PLATFORM");
@@ -57,7 +68,7 @@ int main(int argc, char* argv[])
     // Text without a theme font is hinted as the theme's fonts are
     // (TextStyles.cpp).
     QFont defaultFont = QGuiApplication::font();
-    defaultFont.setHintingPreference(QFont::PreferVerticalHinting);
+    defaultFont.setHintingPreference(QFont::PreferFullHinting);
     QGuiApplication::setFont(defaultFont);
 
     // Declared after the root so it is destroyed first: QML never outlives
