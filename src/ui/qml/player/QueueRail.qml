@@ -29,9 +29,15 @@ Item {
         }
     }
 
-    QueueIdlePanel {
+    // Made only while nothing plays.
+    Loader {
         anchors.fill: parent
         anchors.bottomMargin: 16
-        visible: !App.queueRail.hasTrack
+        active: !App.queueRail.hasTrack
+        visible: active
+
+        sourceComponent: Component {
+            QueueIdlePanel {}
+        }
     }
 }

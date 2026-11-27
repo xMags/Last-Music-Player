@@ -149,16 +149,30 @@ Item {
             }
         }
 
-        // The rail as a column of the layout.
+        // The one rail: a column of the layout, or over the content in
+        // narrower windows (moved into overlayRail). A single instance, as
+        // only one of the two places ever shows it.
         RightRail {
-            id: dockedRail
+            id: rail
 
-            x: shell.width - width
-            y: shell.titleHeight
-            width: App.layout.railWidth
-            height: shell.bodyHeight - y
-            visible: shell.railInColumn
+            readonly property bool overlaid: !App.layout.railDocked
+
+            parent: overlaid ? overlayRail : page
+            x: overlaid ? 0 : shell.width - width
+            y: overlaid ? 0 : shell.titleHeight
+            width: overlaid ? overlayRail.width : App.layout.railWidth
+            height: overlaid ? overlayRail.height : shell.bodyHeight - y
+            // Over the content, overlayRail shows and hides it.
+            visible: overlaid || shell.railInColumn
             tab: App.layout.railTab
+
+            // border-left: 1px solid divider, over the content only.
+            Rectangle {
+                visible: rail.overlaid
+                width: 1
+                height: parent.height
+                color: Theme.divider
+            }
         }
 
         // The rail over the content in narrower windows: from the top of the
@@ -182,18 +196,6 @@ Item {
                 offset.x: -12
                 blur: 36
                 color: Theme.railShadow
-            }
-
-            RightRail {
-                anchors.fill: parent
-                tab: App.layout.railTab
-    
-                // border-left: 1px solid divider
-                Rectangle {
-                    width: 1
-                    height: parent.height
-                    color: Theme.divider
-                }
             }
         }
 

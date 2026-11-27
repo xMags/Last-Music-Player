@@ -9,19 +9,26 @@ Rectangle {
 
     // 0: Up Next, 1: Lyrics.
     // Shown from App.layout.railTab; a press writes there, never here, so
-    // the docked and the overlay rail keep following the shared setting.
+    // the rail keeps following the shared setting.
     property int tab: 0
 
     color: Theme.surface
 
     // padding: 8px 0 16px; the tab strip has margin 0 24px 24px.
     // Connect holds the column in place of the tabs while it is open.
-    ConnectPanel {
+    // Made only while open: it is rarely shown.
+    Loader {
         anchors.fill: parent
         anchors.topMargin: 8
         anchors.bottomMargin: 16
-        visible: App.layout.connectOpen
-        onCloseRequested: App.layout.closeConnect()
+        active: App.layout.connectOpen
+        visible: active
+
+        sourceComponent: Component {
+            ConnectPanel {
+                onCloseRequested: App.layout.closeConnect()
+            }
+        }
     }
 
     SegmentedControl {
@@ -60,9 +67,15 @@ Rectangle {
             visible: rail.tab === 0
         }
 
-        LyricsRail {
+        // Made only while its tab is chosen.
+        Loader {
             anchors.fill: parent
-            visible: rail.tab === 1
+            active: rail.tab === 1
+            visible: active
+
+            sourceComponent: Component {
+                LyricsRail {}
+            }
         }
     }
 }
