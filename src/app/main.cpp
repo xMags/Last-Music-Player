@@ -113,6 +113,19 @@ int main(int argc, char* argv[])
             });
         });
     }
+    // For reviewing a page further down: scrolls it by that many pixels once
+    // the page is open (after --open-view), before --grab saves it.
+    if (const qsizetype at = QCoreApplication::arguments().indexOf(QStringLiteral("--scroll"));
+        at >= 0 && at + 1 < QCoreApplication::arguments().size()) {
+        const qreal offset = QCoreApplication::arguments().at(at + 1).toDouble();
+        QTimer::singleShot(8000, &app, [&engine, offset]() {
+            const QList<QObject*> roots = engine.rootObjects();
+            QObject* scroller = roots.isEmpty() ? nullptr : roots.constFirst()->findChild<QObject*>(QStringLiteral("pageScroller"));
+            if (scroller != nullptr) {
+                scroller->setProperty("contentY", offset);
+            }
+        });
+    }
     // For reviewing a search: the search box has no accessible role yet.
     if (const qsizetype at = QCoreApplication::arguments().indexOf(QStringLiteral("--search"));
         at >= 0 && at + 1 < QCoreApplication::arguments().size()) {

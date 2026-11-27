@@ -88,6 +88,9 @@ Item {
     Flickable {
         id: scroller
 
+        // Found by name for review grabs (main.cpp --scroll).
+        objectName: "pageScroller"
+
         anchors.fill: parent
         readonly property bool pageScrollsItself: host.scrollsItself(App.navigator.currentKind)
 
