@@ -30,6 +30,17 @@ bool PlaybackSourceRouter::playsFromDisk(const Track& track)
     return !track.filePath.isEmpty() && !net::isHttpUrl(track.filePath) && QFileInfo(track.filePath).isFile();
 }
 
+bool PlaybackSourceRouter::canPlay(const Track& track) const
+{
+    if (!isRemote(track) || playsFromDisk(track)) {
+        return true;
+    }
+    if (m_downloaded && !m_downloaded(track).isEmpty()) {
+        return true;
+    }
+    return m_mode.accountSelected() || m_mode.apiKeySelected();
+}
+
 TrackSourceResolver* PlaybackSourceRouter::remoteResolver(Result<QUrl>& refusal) const
 {
     if (m_mode.accountSelected()) {

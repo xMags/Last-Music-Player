@@ -100,6 +100,36 @@ QueueEngine QueueEngine::commitVisibleOrder(const QList<Track>& visibleTracks) c
     return rebuilt;
 }
 
+QueueEngine QueueEngine::withoutTracks(const std::function<bool(const Track&)>& drop) const
+{
+    QueueState next = m_state;
+    next.userQueue.removeIf(drop);
+
+    // Where each context song lands once the dropped ones are gone; -1 for a
+    // dropped song.
+    const qsizetype size = m_state.contextQueue.size();
+    QList<qsizetype> landing(size, -1);
+    next.contextQueue.clear();
+    for (qsizetype index = 0; index < size; ++index) {
+        const Track& track = m_state.contextQueue.at(index);
+        if (index == m_state.contextIndex || !drop(track)) {
+            landing[index] = next.contextQueue.size();
+            next.contextQueue.append(track);
+        }
+    }
+    next.contextIndex = isQueueIndexInRange(m_state.contextIndex, size) ? landing.at(m_state.contextIndex) : -1;
+    next.shuffleOrder.clear();
+    for (const qsizetype index : m_state.shuffleOrder) {
+        if (isQueueIndexInRange(index, size) && landing.at(index) >= 0) {
+            next.shuffleOrder.append(landing.at(index));
+        }
+    }
+    if (next == m_state) {
+        return *this;
+    }
+    return fromState(std::move(next));
+}
+
 QList<Track> QueueEngine::mergeRemoteUpcoming(const QList<Track>& visible, const QList<Track>& desired,
                                               const QSet<QString>& seenIdentities)
 {

@@ -18,6 +18,7 @@
 #include <QUrl>
 
 #include <chrono>
+#include <functional>
 #include <memory>
 #include <optional>
 
@@ -128,6 +129,18 @@ public:
     // (or a broken one about to be skipped) does not start. The song stays
     // current, so Play continues it here.
     void pauseForOtherDevice();
+    // What removeTracks took away.
+    struct Removal {
+        // The current song was one of them: everything was reset (reset()).
+        bool stoppedCurrent = false;
+        // How many songs left the visible queue (or, with stoppedCurrent,
+        // the songs `drop` picked there before the reset).
+        qsizetype removedFromQueue = 0;
+    };
+    // Takes the songs `drop` picks out of the player: the queue (played
+    // songs too) and the way back. When the current song is one of them
+    // nothing is left to resume, so everything is reset as by reset().
+    Removal removeTracks(const std::function<bool(const Track&)>& drop);
     // Forgets everything ("Delete all data"): stops the song, empties the
     // queue and the way back, and shows no song. Shuffle, repeat and the
     // volume stay as they are.

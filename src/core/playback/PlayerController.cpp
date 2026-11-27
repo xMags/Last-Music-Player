@@ -349,6 +349,24 @@ void PlayerController::pauseForOtherDevice()
     }
 }
 
+PlayerController::Removal PlayerController::removeTracks(const std::function<bool(const Track&)>& drop)
+{
+    Removal removal;
+    for (const QueueEntry& entry : m_queue.visibleQueue()) {
+        if (drop(entry.track)) {
+            ++removal.removedFromQueue;
+        }
+    }
+    if (m_current && drop(*m_current)) {
+        removal.stoppedCurrent = true;
+        reset();
+        return removal;
+    }
+    m_backHistory.forget(drop);
+    applyQueue(m_queue.withoutTracks(drop));
+    return removal;
+}
+
 void PlayerController::reset()
 {
     // A load still on its way must not bring a song back.

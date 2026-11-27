@@ -22,7 +22,7 @@ class Navigator : public QObject {
     Q_PROPERTY(lmp::ui::Route current READ current NOTIFY currentChanged FINAL)
     Q_PROPERTY(int currentKind READ currentKind NOTIFY currentChanged FINAL)
     Q_PROPERTY(QString currentTitle READ currentTitle NOTIFY currentChanged FINAL)
-    Q_PROPERTY(bool canGoBack READ canGoBack NOTIFY currentChanged FINAL)
+    Q_PROPERTY(bool canGoBack READ canGoBack NOTIFY historyChanged FINAL)
     Q_PROPERTY(bool returning READ returning NOTIFY currentChanged FINAL)
     Q_PROPERTY(qreal currentScrollOffset READ currentScrollOffset NOTIFY currentChanged FINAL)
     // How far the entry returned to with Back was scrolled when it was left,
@@ -63,6 +63,11 @@ public:
     Q_INVOKABLE void back();
     // Opens a main view (the sidebar's items).
     Q_INVOKABLE void openView(int kind);
+    // Forgets the pages behind the current one, for a change of music
+    // source: they showed the old source. A main view stays as it is,
+    // scrolled where it was (it follows the source itself); any other page
+    // gives way to Home.
+    void startOver();
     // Changes a parameter of the current entry in place (a page's tab), so
     // Back to this entry brings it back; the page is not shown again.
     Q_INVOKABLE void setCurrentParam(const QString& name, const QString& value);
@@ -80,6 +85,8 @@ public:
 signals:
     void currentChanged();
     void currentPageChanged();
+    // The number of pages in the history changed (canGoBack may differ).
+    void historyChanged();
 
 private:
     struct Entry {

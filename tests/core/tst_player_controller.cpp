@@ -49,6 +49,8 @@ private slots:
     void backHistoryKeepsTheLatestFifty();
     void seekMovesAndClampsToTheDuration();
     void clearUpcomingEmptiesTheVisibleQueue();
+    void removeTracksTakesSongsOutOfTheQueueAndTheWayBack();
+    void removeTracksResetsWhenTheCurrentSongGoes();
     void visibleQueueEditsChangeTheQueueOnly();
     void endOfSongAdvancesAndStopsAtTheEnd();
     void repeatOneReplaysOnAutomaticAdvanceOnly();
@@ -320,6 +322,49 @@ void PlayerControllerTest::clearUpcomingEmptiesTheVisibleQueue()
     QVERIFY(player->visibleQueue().isEmpty());
     QCOMPARE(player->currentTrack()->title, QStringLiteral("a"));
     QCOMPARE(player->state(), PlayerController::State::Playing);
+}
+
+void PlayerControllerTest::removeTracksTakesSongsOutOfTheQueueAndTheWayBack()
+{
+    PlayerFixture fixture;
+    QVERIFY(fixture.ok());
+    auto player = fixture.makeController();
+    startPlaying(fixture, *player, QStringLiteral("a"), {"a", "b", "c", "d"});
+    player->next();
+    settle();
+    fixture.audio.start();
+    player->addToQueue(fixture.songs({"x"}));
+    QCOMPARE(visibleTitles(*player), QStringList({"x", "c", "d"}));
+
+    const QStringList gone{"a", "c", "x"};
+    const PlayerController::Removal removal =
+        player->removeTracks([&gone](const Track& song) { return gone.contains(song.title); });
+    QVERIFY(!removal.stoppedCurrent);
+    QCOMPARE(removal.removedFromQueue, 2);
+    QCOMPARE(visibleTitles(*player), QStringList({"d"}));
+    QCOMPARE(player->currentTrack()->title, QStringLiteral("b"));
+    QCOMPARE(player->state(), PlayerController::State::Playing);
+
+    // The way back no longer leads to a, which was played before b.
+    player->previous();
+    settle();
+    QVERIFY(lastOpenedTitle(fixture.audio) != QStringLiteral("a"));
+}
+
+void PlayerControllerTest::removeTracksResetsWhenTheCurrentSongGoes()
+{
+    PlayerFixture fixture;
+    QVERIFY(fixture.ok());
+    auto player = fixture.makeController();
+    startPlaying(fixture, *player, QStringLiteral("a"), {"a", "b", "c"});
+
+    const PlayerController::Removal removal =
+        player->removeTracks([](const Track& song) { return song.title != QStringLiteral("c"); });
+    QVERIFY(removal.stoppedCurrent);
+    QCOMPARE(removal.removedFromQueue, 1);
+    QVERIFY(!player->currentTrack());
+    QVERIFY(player->visibleQueue().isEmpty());
+    QCOMPARE(player->state(), PlayerController::State::Idle);
 }
 
 void PlayerControllerTest::visibleQueueEditsChangeTheQueueOnly()

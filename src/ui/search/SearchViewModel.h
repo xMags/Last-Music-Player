@@ -162,6 +162,9 @@ public:
     Q_INVOKABLE void clearRecents();
     // Reads the category tiles again (the page opens).
     Q_INVOKABLE void refreshLanding();
+    // The music source changed: the landing, and the results shown, are made
+    // again from the new source (the search is not recorded again).
+    void reloadForSource();
     // A category tile: a genre of the library opens its page; a shortcut searches.
     Q_INVOKABLE void openCategory(int row);
     Q_INVOKABLE void openTop();

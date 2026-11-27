@@ -23,6 +23,16 @@ void PlaybackBackHistory::remember(const std::optional<Track>& playing, const Qu
     }
 }
 
+void PlaybackBackHistory::forget(const std::function<bool(const Track&)>& drop)
+{
+    m_entries.removeIf([&drop](const Entry& entry) { return drop(entry.track); });
+    for (Entry& entry : m_entries) {
+        if (entry.replayTrack && drop(*entry.replayTrack)) {
+            entry.replayTrack.reset();
+        }
+    }
+}
+
 std::optional<PlaybackBackHistory::Restored> PlaybackBackHistory::restorePrevious(const QueueEngine& queue)
 {
     if (m_entries.isEmpty()) {

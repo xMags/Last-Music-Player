@@ -200,6 +200,9 @@ private:
     // loop: a confirmed session announces the mode and the account, and a
     // sync the library, one after another, and each used to rebuild them.
     void refreshLibraryViewsSoon();
+    // After a change of music source: forgets the pages and results of the
+    // old one, and takes songs that cannot play any more out of the player.
+    void leaveOldSource();
     void refreshMixesSoon();
     void runDueViewRefresh();
 

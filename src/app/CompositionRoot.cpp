@@ -856,16 +856,7 @@ CompositionRoot::CompositionRoot()
                          const auto isAccountSong = [](const core::Track& track) {
                              return track.origin == QLatin1StringView("account");
                          };
-                         if (m_player.currentTrack() && isAccountSong(*m_player.currentTrack())) {
-                             m_player.reset();
-                         } else {
-                             const QList<core::QueueEntry> upcoming = m_player.visibleQueue();
-                             for (qsizetype index = upcoming.size() - 1; index >= 0; --index) {
-                                 if (isAccountSong(upcoming.at(index).track)) {
-                                     m_player.removeVisibleEntry(index);
-                                 }
-                             }
-                         }
+                         m_player.removeTracks(isAccountSong);
                          refreshLibraryViews();
                      });
     QObject::connect(&m_signOut, &core::account::AccountDataLifecycleService::signOutFinished, &m_toasts,
@@ -905,6 +896,7 @@ CompositionRoot::CompositionRoot()
                      [this, shown = m_mode.mode()]() mutable {
                          if (m_mode.mode() != shown) {
                              shown = m_mode.mode();
+                             leaveOldSource();
                              refreshLibraryViewsSoon();
                          }
                      });
@@ -1105,6 +1097,25 @@ void CompositionRoot::refreshLibraryViews()
     m_sidebar.refreshPlaylists();
     m_libraryPage.refresh();
     m_home.refresh();
+}
+
+void CompositionRoot::leaveOldSource()
+{
+    // Pages behind the current one, and search results, showed the old source.
+    m_navigator.startOver();
+    m_search.reloadForSource();
+    // Songs only the old source could play would fail when reached. Remote
+    // sources play each other's songs from their links, so only a switch to
+    // this PC's files leaves any behind.
+    const core::PlayerController::Removal removal =
+        m_player.removeTracks([this](const core::Track& track) { return !m_resolver.canPlay(track); });
+    if (removal.stoppedCurrent) {
+        m_toasts.show(QCoreApplication::translate("SourceSwitch", "Playback stopped. Online songs can't play offline."));
+    } else if (removal.removedFromQueue > 0) {
+        m_toasts.show(QCoreApplication::translate(
+            "SourceSwitch", "Removed %n online song(s) from the queue. They can't play offline.", nullptr,
+            static_cast<int>(removal.removedFromQueue)));
+    }
 }
 
 void CompositionRoot::refreshLibraryViewsSoon()

@@ -471,6 +471,16 @@ void SearchViewModel::clearRecents()
     emit recentSearchesChanged();
 }
 
+void SearchViewModel::reloadForSource()
+{
+    refreshLanding();
+    if (m_state == QLatin1StringView("landing")) {
+        return;
+    }
+    m_typing.stop();
+    run();
+}
+
 void SearchViewModel::refreshLanding()
 {
     if (const std::optional<core::home::HomeLibrary> account = m_accountLibrary ? m_accountLibrary() : std::nullopt) {

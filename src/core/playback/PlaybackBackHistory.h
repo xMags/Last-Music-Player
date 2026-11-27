@@ -7,6 +7,7 @@
 #include <QString>
 #include <QtGlobal>
 
+#include <functional>
 #include <optional>
 
 namespace lmp::core {
@@ -36,6 +37,9 @@ public:
     // Takes the newest entry and applies it to `queue`; empty when there is none.
     [[nodiscard]] std::optional<Restored> restorePrevious(const QueueEngine& queue);
 
+    // Forgets every step back to a song `drop` picks, and the user queue
+    // song a step would put back when `drop` picks that one.
+    void forget(const std::function<bool(const Track&)>& drop);
     void clear() noexcept { m_entries.clear(); }
     [[nodiscard]] qsizetype size() const noexcept { return m_entries.size(); }
 

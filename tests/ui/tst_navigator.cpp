@@ -26,6 +26,8 @@ private slots:
     void theReturnOffsetOutlivesAReload();
     void pageViewModelBelongsToItsEntry();
     void openViewOnlyOpensMainViews();
+    void startingOverKeepsAMainViewInPlace();
+    void startingOverLeavesASourcePageForHome();
 
     void catalogDetailNeedsAKnownTypeAndAnId();
     void chartRulesFollowTheScope();
@@ -112,6 +114,47 @@ void NavigatorTest::openViewOnlyOpensMainViews()
     QCOMPARE(navigator.current().kind(), Route::Kind::Settings);
     navigator.openView(static_cast<int>(Route::Kind::Chart));
     QCOMPARE(navigator.current().kind(), Route::Kind::Settings);
+}
+
+void NavigatorTest::startingOverKeepsAMainViewInPlace()
+{
+    Navigator navigator;
+    navigator.push(Route(Route::Kind::CatalogDetail));
+    QPointer<QObject> old = new QObject();
+    navigator.setCurrentPage(old);
+    navigator.push(Route(Route::Kind::Settings));
+    navigator.setCurrentScrollOffset(300);
+    QSignalSpy changed(&navigator, &Navigator::currentChanged);
+    QSignalSpy history(&navigator, &Navigator::historyChanged);
+
+    navigator.startOver();
+    QCOMPARE(navigator.current().kind(), Route::Kind::Settings);
+    QCOMPARE(navigator.depth(), 1);
+    QVERIFY(!navigator.canGoBack());
+    QCOMPARE(navigator.currentScrollOffset(), 300.0);
+    QCOMPARE(changed.count(), 0); // the page on screen is not shown again
+    QCOMPARE(history.count(), 1);
+    QTRY_VERIFY(old.isNull());
+
+    navigator.startOver(); // nothing behind it: nothing changes
+    QCOMPARE(history.count(), 1);
+}
+
+void NavigatorTest::startingOverLeavesASourcePageForHome()
+{
+    Navigator navigator;
+    navigator.push(Route(Route::Kind::Library));
+    navigator.push(Route(Route::Kind::Chart));
+    QPointer<QObject> page = new QObject();
+    navigator.setCurrentPage(page);
+    QSignalSpy changed(&navigator, &Navigator::currentChanged);
+
+    navigator.startOver();
+    QCOMPARE(navigator.current().kind(), Route::Kind::Home);
+    QCOMPARE(navigator.depth(), 1);
+    QVERIFY(!navigator.returning());
+    QCOMPARE(changed.count(), 1);
+    QTRY_VERIFY(page.isNull());
 }
 
 void NavigatorTest::catalogDetailNeedsAKnownTypeAndAnId()

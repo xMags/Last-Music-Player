@@ -10,6 +10,7 @@
 #include <QString>
 #include <QtGlobal>
 
+#include <functional>
 #include <optional>
 
 namespace lmp::core {
@@ -89,6 +90,11 @@ public:
     // current song. Played songs stay before it unless repeat-all is on or
     // they were moved. A shuffled queue keeps the new order as its play order.
     [[nodiscard]] QueueEngine commitVisibleOrder(const QList<Track>& visibleTracks) const;
+    // Leaves out every song `drop` picks, from the user queue and from the
+    // whole context, played songs included. The current context song always
+    // stays (a caller that cannot keep it stops it instead). The rest keep
+    // their order, a shuffled context its play order.
+    [[nodiscard]] QueueEngine withoutTracks(const std::function<bool(const Track&)>& drop) const;
 
     // Up Next after another device's "set upcoming", for a queue that device
     // saw only part of. `seenIdentities` (queueTrackIdentity) are the songs of

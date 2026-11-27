@@ -116,6 +116,8 @@ class QueueEngineTest : public QObject {
     Q_OBJECT
 
 private slots:
+    void withoutTracksDropsEverywhereButTheCurrentSong();
+    void withoutTracksKeepsTheShuffledPlayOrder();
     // One slot per case of the original suite, in its order.
     void explicitQueuePlaysBeforePlaybackContextAndSurvivesContextChanges();
     void naturalEndStopsWhenRepeatIsOffWhileManualNextWraps();
@@ -490,6 +492,37 @@ void QueueEngineTest::shuffledEditsKeepWhatWasPlayedInPlayOrder()
     // Clearing what is upcoming keeps the same played songs.
     QCOMPARE(ids(core.commitVisibleOrder({}).state().contextQueue),
              QStringList({QStringLiteral("b"), QStringLiteral("d"), QStringLiteral("c")}));
+}
+
+void QueueEngineTest::withoutTracksDropsEverywhereButTheCurrentSong()
+{
+    const QueueEngine queue = QueueEngine::create(
+        tracks({QStringLiteral("a"), QStringLiteral("b"), QStringLiteral("c"), QStringLiteral("d"), QStringLiteral("e")}),
+        2, tracks({QStringLiteral("x"), QStringLiteral("y")}));
+    const QSet<QString> dropped{QStringLiteral("a"), QStringLiteral("c"), QStringLiteral("d"), QStringLiteral("y")};
+    const auto drop = [&dropped](const Track& song) { return dropped.contains(song.remoteId); };
+
+    const QueueEngine kept = queue.withoutTracks(drop);
+    QCOMPARE(ids(kept.visibleQueue()), QStringList({"x", "e"}));
+    QCOMPARE(kept.currentContextTrack()->remoteId, QStringLiteral("c")); // the current song stays
+    QCOMPARE(kept.state().contextQueue.size(), 3);                       // b, c, e: the played a went too
+    QCOMPARE(kept.state().contextIndex, 1);
+
+    QCOMPARE(queue.withoutTracks([](const Track&) { return false; }), queue);
+}
+
+void QueueEngineTest::withoutTracksKeepsTheShuffledPlayOrder()
+{
+    const QueueEngine queue = QueueEngine::create(numberedTracks(8), 3, {}, Shuffle::On);
+    const auto odd = [](const Track& song) { return song.remoteId.back().digitValue() % 2 == 1 && song.remoteId != QStringLiteral("t3"); };
+
+    QStringList expected = ids(queue.visibleQueue());
+    expected.removeIf([](const QString& id) { return id.back().digitValue() % 2 == 1; });
+    const QueueEngine kept = queue.withoutTracks(odd);
+    QCOMPARE(ids(kept.visibleQueue()), expected);
+    QVERIFY(kept.state().shuffle);
+    QCOMPARE(kept.state().shuffleOrder.size(), kept.state().contextQueue.size());
+    QCOMPARE(kept.currentContextTrack()->remoteId, QStringLiteral("t3"));
 }
 
 QTEST_GUILESS_MAIN(QueueEngineTest)

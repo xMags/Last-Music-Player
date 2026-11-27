@@ -36,6 +36,11 @@ public:
     // file while it is there.
     [[nodiscard]] static bool playsFromDisk(const Track& track);
 
+    // Whether `track` can play with the current source: a song of this PC
+    // or a downloaded one always, a remote song while a remote source
+    // (Account or API key) is chosen. Asks nothing of the network.
+    [[nodiscard]] bool canPlay(const Track& track) const;
+
     [[nodiscard]] QFuture<Result<QUrl>> resolve(const Track& track) override;
     [[nodiscard]] QFuture<Result<QUrl>> refresh(const Track& track) override;
 

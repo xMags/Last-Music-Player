@@ -39,7 +39,7 @@ void Navigator::push(const Route& route)
     m_entries.append(Entry{route, 0, {}});
     m_returning = false;
     emit currentChanged();
-    emit currentPageChanged();
+    emit currentPageChanged();    emit historyChanged();
 }
 
 void Navigator::replace(const Route& route)
@@ -62,7 +62,7 @@ void Navigator::back()
     m_returning = true;
     m_returnOffset = m_entries.constLast().scrollOffset;
     emit currentChanged();
-    emit currentPageChanged();
+    emit currentPageChanged();    emit historyChanged();
 }
 
 void Navigator::openView(int kind)
@@ -73,6 +73,29 @@ void Navigator::openView(int kind)
         return;
     }
     push(route);
+}
+
+void Navigator::startOver()
+{
+    const bool keepCurrent = current().isMainView();
+    if (keepCurrent && m_entries.size() == 1) {
+        return;
+    }
+    const qsizetype kept = keepCurrent ? m_entries.size() - 1 : m_entries.size();
+    for (qsizetype index = 0; index < kept; ++index) {
+        releasePage(m_entries[index]);
+    }
+    m_entries.remove(0, kept);
+    if (keepCurrent) {
+        // The page on screen is unchanged: it is not shown again.
+        emit historyChanged();
+        return;
+    }
+    m_entries.append(Entry{Route(Route::Kind::Home), 0, {}});
+    m_returning = false;
+    emit currentChanged();
+    emit currentPageChanged();
+    emit historyChanged();
 }
 
 QString Navigator::currentFocusName() const
