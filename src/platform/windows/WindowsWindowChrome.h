@@ -36,6 +36,7 @@ public:
     [[nodiscard]] bool active() const override { return m_active; }
     [[nodiscard]] bool maximizeHovered() const override { return m_maximizeHovered; }
     [[nodiscard]] bool maximizePressed() const override { return m_maximizePressed; }
+    [[nodiscard]] bool moving() const override { return m_moving; }
     void setStateHandler(StateHandler handler) override;
 
     bool nativeEventFilter(const QByteArray& eventType, void* message,
@@ -48,6 +49,7 @@ private:
     bool onNonClientButton(unsigned int message, quintptr hit, qintptr* result);
     void onNonClientMove(quintptr hit);
     void setMaximizeState(bool hovered, bool pressed);
+    void setMoving(bool moving);
     void notify();
 
     [[nodiscard]] qreal scale() const;
@@ -63,6 +65,7 @@ private:
     bool m_backdrop = false;
     bool m_maximizeHovered = false;
     bool m_maximizePressed = false;
+    bool m_moving = false; // inside the system's move or resize loop
     StateHandler m_handler;
 };
 

@@ -52,6 +52,7 @@ Item {
         id: driftClock
 
         running: panel.playing && !Motion.reduced && panel.visible && Motion.windowShown
+        held: Motion.windowMoving
         period: Motion.ambientDrift * 2
     }
 

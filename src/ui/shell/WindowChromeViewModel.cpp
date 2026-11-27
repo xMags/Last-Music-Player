@@ -54,6 +54,11 @@ bool WindowChromeViewModel::maximizePressed() const
     return m_attached && m_chrome->maximizePressed();
 }
 
+bool WindowChromeViewModel::moving() const
+{
+    return m_attached && m_chrome->moving();
+}
+
 void WindowChromeViewModel::applyTheme(bool dark)
 {
     if (!m_attached) {

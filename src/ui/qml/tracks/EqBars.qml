@@ -21,6 +21,7 @@ Row {
         id: beat
 
         running: bars.running && bars.visible && !Motion.reduced && Motion.windowShown
+        held: Motion.windowMoving
         period: 900
     }
 

@@ -52,6 +52,25 @@ void AmbientPhase::setResume(bool resume)
     emit resumeChanged();
 }
 
+void AmbientPhase::setHeld(bool held)
+{
+    if (held == m_held) {
+        return;
+    }
+    m_held = held;
+    emit heldChanged();
+    if (!m_active) {
+        return;
+    }
+    if (m_held) {
+        m_timer.stop();
+        return;
+    }
+    // The held time does not count: the motion goes on from where it stopped.
+    m_startNs = nowNs() - static_cast<qint64>(m_elapsedMs * NsPerMs);
+    m_timer.start();
+}
+
 qreal AmbientPhase::phase() const
 {
     if (m_period <= 0) {
@@ -67,7 +86,7 @@ void AmbientPhase::setClock(std::function<qint64()> nowNs)
 
 void AmbientPhase::step()
 {
-    if (!m_active) {
+    if (!m_active || m_held) {
         return;
     }
     const qreal elapsedMs = static_cast<qreal>(nowNs() - m_startNs) / NsPerMs;
@@ -102,7 +121,9 @@ void AmbientPhase::updateActive()
     }
     m_startNs = nowNs() - static_cast<qint64>(m_elapsedMs * NsPerMs);
     m_active = true;
-    m_timer.start();
+    if (!m_held) {
+        m_timer.start();
+    }
     emit activeChanged();
 }
 

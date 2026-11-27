@@ -23,6 +23,8 @@ class WindowChromeViewModel : public QObject {
     Q_PROPERTY(bool backdropActive READ backdropActive NOTIFY changed FINAL)
     Q_PROPERTY(bool maximizeHovered READ maximizeHovered NOTIFY changed FINAL)
     Q_PROPERTY(bool maximizePressed READ maximizePressed NOTIFY changed FINAL)
+    // The user is dragging or resizing the window.
+    Q_PROPERTY(bool moving READ moving NOTIFY changed FINAL)
 
 public:
     explicit WindowChromeViewModel(platform::IWindowChrome* chrome, QObject* parent = nullptr);
@@ -40,6 +42,7 @@ public:
     [[nodiscard]] bool backdropActive() const;
     [[nodiscard]] bool maximizeHovered() const;
     [[nodiscard]] bool maximizePressed() const;
+    [[nodiscard]] bool moving() const;
 
     // Applies the dark system frame in dark theme. The backdrop stays off.
     Q_INVOKABLE void applyTheme(bool dark);

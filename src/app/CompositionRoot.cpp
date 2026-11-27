@@ -1180,6 +1180,13 @@ bool CompositionRoot::showMainWindow(QQmlApplicationEngine& engine)
             m_motion->setWindowShown(visibility != QWindow::Minimized && visibility != QWindow::Hidden);
         }
     });
+    // The endless motions hold while the window is dragged or resized.
+    QObject::connect(&m_windowChromeViewModel, &ui::WindowChromeViewModel::changed, &m_windowChromeViewModel,
+                     [this]() {
+                         if (m_motion) {
+                             m_motion->setWindowMoving(m_windowChromeViewModel.moving());
+                         }
+                     });
     // Presses, for where the queue arc starts.
     window->installEventFilter(&m_effects);
     // The system routes the media keys to the session of this window.

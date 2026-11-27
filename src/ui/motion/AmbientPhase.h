@@ -23,6 +23,12 @@ namespace lmp::ui {
 // while `active` is still false, before activeChanged, so a listener reacting
 // to the start already sees the new time.
 //
+// `held` freezes a motion that is under way without stopping it: the timer
+// pauses, the values hold and `active` stays true, and on release the motion
+// goes on from where it was held (the held time does not count). It is for
+// short pauses the motion should not visibly restart after, such as while
+// the window is being dragged.
+//
 // GUI thread only.
 class AmbientPhase : public QObject {
     Q_OBJECT
@@ -32,6 +38,7 @@ class AmbientPhase : public QObject {
     // One loop in milliseconds.
     Q_PROPERTY(int period READ period WRITE setPeriod NOTIFY periodChanged FINAL)
     Q_PROPERTY(bool resume READ resume WRITE setResume NOTIFY resumeChanged FINAL)
+    Q_PROPERTY(bool held READ held WRITE setHeld NOTIFY heldChanged FINAL)
     Q_PROPERTY(bool active READ active NOTIFY activeChanged FINAL)
     // 0 to 1 through the current loop, straight in time.
     Q_PROPERTY(qreal phase READ phase NOTIFY phaseChanged FINAL)
@@ -51,6 +58,8 @@ public:
     void setPeriod(int period);
     [[nodiscard]] bool resume() const { return m_resume; }
     void setResume(bool resume);
+    [[nodiscard]] bool held() const { return m_held; }
+    void setHeld(bool held);
     [[nodiscard]] bool active() const { return m_active; }
     [[nodiscard]] qreal phase() const;
     [[nodiscard]] qreal elapsed() const { return m_elapsedMs; }
@@ -66,6 +75,7 @@ signals:
     void runningChanged();
     void periodChanged();
     void resumeChanged();
+    void heldChanged();
     void activeChanged();
     void phaseChanged();
 
@@ -82,6 +92,7 @@ private:
     int m_period = 0;
     bool m_running = false;
     bool m_resume = false;
+    bool m_held = false;
     bool m_active = false;
 };
 

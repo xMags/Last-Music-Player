@@ -44,6 +44,9 @@ public:
     // layouts); these say whether the pointer is over it and pressing it.
     [[nodiscard]] virtual bool maximizeHovered() const = 0;
     [[nodiscard]] virtual bool maximizePressed() const = 0;
+    // True while the user drags or resizes the window, from the start of the
+    // move or resize to its end.
+    [[nodiscard]] virtual bool moving() const = 0;
 
     // Called on the window's thread after any of the states above changes.
     virtual void setStateHandler(StateHandler handler) = 0;

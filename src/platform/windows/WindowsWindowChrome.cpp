@@ -203,6 +203,14 @@ bool WindowsWindowChrome::nativeEventFilter(const QByteArray& eventType, void* m
     case WM_SIZE:
         notify();
         return false;
+    // The system runs its own message loop while the window is dragged or
+    // resized. Every frame the scene graph draws then makes the GUI thread
+    // wait for the render thread, and that loop with it, so the window
+    // follows the pointer in jerks.
+    case WM_ENTERSIZEMOVE:
+    case WM_EXITSIZEMOVE:
+        setMoving(msg->message == WM_ENTERSIZEMOVE);
+        return false;
     default:
         return false;
     }
@@ -295,6 +303,15 @@ void WindowsWindowChrome::setMaximizeState(bool hovered, bool pressed)
     }
     m_maximizeHovered = hovered;
     m_maximizePressed = pressed;
+    notify();
+}
+
+void WindowsWindowChrome::setMoving(bool moving)
+{
+    if (moving == m_moving) {
+        return;
+    }
+    m_moving = moving;
     notify();
 }
 

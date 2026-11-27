@@ -21,6 +21,15 @@ void Motion::setWindowShown(bool shown)
     emit windowShownChanged();
 }
 
+void Motion::setWindowMoving(bool moving)
+{
+    if (moving == m_windowMoving) {
+        return;
+    }
+    m_windowMoving = moving;
+    emit windowMovingChanged();
+}
+
 void Motion::setReduced(bool reduced)
 {
     if (reduced == m_reduced) {

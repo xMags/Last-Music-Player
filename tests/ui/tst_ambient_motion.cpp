@@ -142,6 +142,60 @@ private slots:
         QVERIFY(std::abs(phase.phase() - 0.7) < 1e-9);
     }
 
+    void aHeldPhaseFreezesAndGoesOnWhereItWasHeld()
+    {
+        ManualClock clock;
+        AmbientPhase phase;
+        clock.attach(phase);
+        phase.setPeriod(1000);
+        phase.setRunning(true);
+        clock.ms = 300;
+        phase.step();
+
+        QSignalSpy activeChanges(&phase, &AmbientPhase::activeChanged);
+        phase.setHeld(true);
+        // Still under way, but nothing steps it.
+        QVERIFY(phase.active());
+        QVERIFY(!phase.stepping());
+        clock.ms = 5000;
+        phase.step();
+        QCOMPARE(phase.phase(), 0.3);
+
+        // Released, it neither restarts nor jumps by the held time, even
+        // without `resume`.
+        phase.setHeld(false);
+        QVERIFY(phase.stepping());
+        QCOMPARE(phase.phase(), 0.3);
+        clock.ms = 5200;
+        phase.step();
+        QVERIFY(std::abs(phase.phase() - 0.5) < 1e-9);
+        QCOMPARE(activeChanges.count(), 0);
+    }
+
+    void aPhaseStartedWhileHeldWaitsForTheRelease()
+    {
+        ManualClock clock;
+        AmbientPhase phase;
+        clock.attach(phase);
+        phase.setPeriod(1000);
+        phase.setHeld(true);
+        phase.setRunning(true);
+        QVERIFY(phase.active());
+        QVERIFY(!phase.stepping());
+        clock.ms = 800;
+        phase.setHeld(false);
+        QCOMPARE(phase.phase(), 0.0);
+        clock.ms = 900;
+        phase.step();
+        QVERIFY(std::abs(phase.phase() - 0.1) < 1e-9);
+        // Stopping while held still stops.
+        phase.setHeld(true);
+        phase.setRunning(false);
+        QVERIFY(!phase.active());
+        phase.setHeld(false);
+        QVERIFY(!phase.stepping());
+    }
+
     void aBounceHoldsDuringItsDelayThenGoesUpAndDown()
     {
         ManualClock clock;
