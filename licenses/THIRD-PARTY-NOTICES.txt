@@ -110,6 +110,23 @@ See licenses/third-party/SQLite-Public-Domain.txt and:
   https://www.sqlite.org/copyright.html
 
 
+TagLib 2.3.2
+------------
+
+Copyright (C) Scott Wheeler and the TagLib contributors.
+
+Downloaded songs get their cover, lyrics and names written into the file with
+TagLib, which is compiled into the application. TagLib is offered under the
+GNU Lesser General Public License version 2.1 or the Mozilla Public License
+1.1; Last Music Player uses it under the LGPL-2.1. See
+licenses/third-party/taglib/COPYING.LGPL (and COPYING.MPL). Its source code,
+as built, is in ThirdParty/taglib/upstream/ of the Last Music Player source,
+and upstream at https://taglib.org/ and https://github.com/taglib/taglib.
+
+TagLib includes utfcpp 4.2.0 by Nemanja Trifunovic, under the Boost Software
+License 1.0: licenses/third-party/taglib/utfcpp-LICENSE.txt.
+
+
 Inno Setup
 ----------
 

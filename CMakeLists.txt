@@ -18,6 +18,7 @@ include(CompilerWarnings)
 include(PrivateConfig)
 
 add_subdirectory(ThirdParty/sqlite)
+add_subdirectory(ThirdParty/taglib)
 add_subdirectory(src/core)
 add_subdirectory(src/platform/windows)
 add_subdirectory(src/ui)
