@@ -2,7 +2,7 @@ import QtQuick
 import LastMusicPlayer
 
 // Settings (views/settings.ts; views.css 1084-1171): one continuous, centred
-// column up to 720px wide with the page title, then the groups 44px apart:
+// column up to 720px wide with the page title, then the groups 36px apart:
 // source and account, playback and sound, library and downloads, look and
 // language, connections, privacy and data, and About.
 Item {
@@ -49,7 +49,7 @@ Item {
         width: Math.min(page.width - 2 * 24, 720)
         anchors.horizontalCenter: parent.horizontalCenter
         y: 8
-        spacing: 44
+        spacing: 36
 
         Text {
             // padding-inline: 4px
@@ -160,7 +160,6 @@ Item {
             width: column.width
             opacity: dataInView.inView ? 1 : 0
             title: qsTr("Privacy and data")
-            note: qsTr("Everything that removes something, in one place, mildest first.")
 
             SettingsDataSection {
                 width: parent.width

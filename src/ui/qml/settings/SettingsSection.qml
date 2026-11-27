@@ -31,7 +31,7 @@ Column {
         Item {
             width: parent ? parent.width : 0
             visible: section.title !== ""
-            implicitHeight: visible ? label.y + label.implicitHeight + (note.visible ? 2 + note.implicitHeight : 0) + 6 : 0
+            implicitHeight: visible ? Math.round(label.y + label.implicitHeight + (note.visible ? 2 + note.implicitHeight : 0) + 6) : 0
 
             Text {
                 id: label
@@ -43,7 +43,6 @@ Column {
                 font.family: Theme.settingsRowTitle.family
                 font.pixelSize: 12
                 font.weight: Font.DemiBold
-                font.letterSpacing: 0.6
                 font.capitalization: Font.AllUppercase
                 color: section.danger ? Theme.danger : Theme.fgTertiary
                 elide: Text.ElideRight
@@ -55,7 +54,7 @@ Column {
                 id: note
 
                 x: 20
-                y: label.y + label.implicitHeight + 2
+                y: Math.round(label.y + label.implicitHeight + 2)
                 width: parent.width - 2 * 20
                 visible: section.note !== ""
                 text: section.note

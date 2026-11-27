@@ -2,7 +2,7 @@ import QtQuick
 import LastMusicPlayer
 
 // One group of the Settings page: its title (and a line under it), then its
-// cards stacked 20px apart. The page lists the groups from the music source
+// cards stacked 16px apart. The page lists the groups from the music source
 // down to About.
 Column {
     id: group
@@ -47,6 +47,6 @@ Column {
         id: stack
 
         width: group.width
-        spacing: 20
+        spacing: 16
     }
 }
