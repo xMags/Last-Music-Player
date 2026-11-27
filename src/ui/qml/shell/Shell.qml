@@ -157,6 +157,8 @@ Item {
 
             readonly property bool overlaid: !App.layout.railDocked
 
+            // Over the content it keeps its own face.
+            solid: overlaid
             parent: overlaid ? overlayRail : page
             x: overlaid ? 0 : shell.width - width
             y: overlaid ? 0 : shell.titleHeight

@@ -4,15 +4,13 @@ import LastMusicPlayer
 // The queue rail (index.html 98-105; styles.css 1176-1221): the "Up Next" /
 // "Lyrics" tab strip and the area below it: the Up Next list, or lyrics
 // once they exist. The shell places it as a column or over the content.
-Rectangle {
+GlassSurface {
     id: rail
 
     // 0: Up Next, 1: Lyrics.
     // Shown from App.layout.railTab; a press writes there, never here, so
     // the rail keeps following the shared setting.
     property int tab: 0
-
-    color: Theme.surface
 
     // padding: 8px 0 16px; the tab strip has margin 0 24px 24px.
     // Connect holds the column in place of the tabs while it is open.

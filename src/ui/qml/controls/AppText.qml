@@ -1,4 +1,5 @@
 import QtQuick
+import LastMusicPlayer
 
 // The text item of the whole app. Small text is drawn by Windows' own
 // rasteriser (ClearType, main.cpp), the most legible at small sizes. Windows
@@ -12,13 +13,21 @@ Text {
     // The size asked for, in pixels; a size in points is 4/3 px (Qt uses 96
     // logical dots per inch).
     readonly property real requestedPixelSize: appText.font.pixelSize > 0 ? appText.font.pixelSize : appText.font.pointSize * 4 / 3
-    // Set by text over the see-through window frame (the sidebar while a
-    // backdrop shows): ClearType blends its coloured edges with the colour
-    // under it, which there is the system backdrop it cannot see.
-    property bool onGlass: false
+    // Inside a see-through GlassSurface (the sidebar, rail or player bar
+    // while a backdrop shows): ClearType blends its coloured edges with the
+    // colour under it, which there is the system backdrop it cannot see.
+    readonly property bool onGlass: appText.insideSeeThroughGlass()
     readonly property bool drawsOutlines: appText.onGlass
         || appText.requestedPixelSize >= 15
         || (appText.requestedPixelSize >= 13 && appText.font.weight >= Font.DemiBold)
 
     renderType: appText.drawsOutlines ? Text.CurveRendering : Text.NativeRendering
+
+    function insideSeeThroughGlass(): bool {
+        for (let item = appText.parent; item; item = item.parent) {
+            if (item instanceof GlassSurface)
+                return (item as GlassSurface).seeThrough
+        }
+        return false
+    }
 }

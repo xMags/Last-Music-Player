@@ -9,7 +9,7 @@ import LastMusicPlayer
 // navigation, the playlists section and the profile card. At 899px and below
 // it is a 64px icon rail: labels, the section title and the profile text hide
 // and the rows centre their icons.
-Rectangle {
+GlassSurface {
     id: sidebar
 
     readonly property bool collapsed: App.layout.sidebarCollapsed
@@ -22,7 +22,6 @@ Rectangle {
     readonly property bool overflowing: playlistCount > fitting
     readonly property int shownPlaylists: overflowing ? Math.max(0, fitting - 1) : playlistCount
 
-    color: App.windowChrome.backdropActive ? "transparent" : Theme.surface
 
     // The brand row: 56px high, padding 0 16px; centred when collapsed.
     Row {
@@ -40,8 +39,6 @@ Rectangle {
         }
 
         AppText {
-
-            onGlass: App.windowChrome.backdropActive
             anchors.verticalCenter: parent.verticalCenter
             visible: !sidebar.collapsed
             text: AppInfo.displayName
@@ -109,8 +106,6 @@ Rectangle {
                 visible: !sidebar.collapsed
 
                 AppText {
-
-                    onGlass: App.windowChrome.backdropActive
                     x: 4
                     y: 32 - 2
                     text: qsTr("Playlists")

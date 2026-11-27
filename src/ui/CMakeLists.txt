@@ -192,6 +192,7 @@ set(LMP_UI_QML_FILES
     qml/shell/BrandMark.qml
     qml/shell/ContentPanel.qml
     qml/shell/FirstRunPage.qml
+    qml/shell/GlassSurface.qml
     qml/shell/InViewWatch.qml
     qml/shell/CaptionButton.qml
     qml/shell/CaptionGlyph.qml

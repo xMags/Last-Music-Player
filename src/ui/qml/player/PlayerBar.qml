@@ -10,7 +10,7 @@ import LastMusicPlayer
 // columns become (180px or more, 1 part), (240px or more, 1.5 parts), 230px.
 // With no song loaded the seek row and the like and share buttons hide and
 // skipping is greyed out.
-Rectangle {
+GlassSurface {
     id: bar
 
     readonly property bool idle: !App.playerBar.hasTrack
@@ -18,8 +18,6 @@ Rectangle {
     readonly property real inner: width - 2 * 24 - 2 * 20
     readonly property real sideWidth: narrow ? 230 : 300
     readonly property real leftWidth: narrow ? Math.max(180, (inner - 230) / 2.5) : 300
-
-    color: Theme.surface
 
     // border-top: 1px solid divider
     Rectangle {
