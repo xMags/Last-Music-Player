@@ -9,6 +9,7 @@
 
 #include <windows.h>
 #include <dwmapi.h>
+#include <commctrl.h>
 
 namespace lmp::platform::windows {
 
@@ -33,6 +34,9 @@ constexpr int kBackdropMica = 2;
 // The top edge resizes the window over a grip at least this tall (in DIP).
 constexpr int kTopResizeGripDip = 6;
 
+// Identifies this class's subclass of the window procedure.
+constexpr UINT_PTR kSubclassId = 1;
+
 HWND asWindow(void* handle)
 {
     return static_cast<HWND>(handle);
@@ -48,6 +52,35 @@ int signedHigh(qintptr value)
     return static_cast<short>(HIWORD(static_cast<DWORD_PTR>(value)));
 }
 
+// Sees the window's messages ahead of Qt. Qt passes no WM_PAINT, WM_MOVING
+// or WM_SIZING to native event filters, so these are handled here.
+LRESULT CALLBACK chromeSubclass(HWND window, UINT message, WPARAM wparam, LPARAM lparam, UINT_PTR id,
+                                DWORD_PTR data)
+{
+    // The reference data is the chrome that installed the subclass.
+    auto* chrome = reinterpret_cast<WindowsWindowChrome*>(data);
+    switch (message) {
+    case WM_PAINT:
+        if (chrome->skipsPaint()) {
+            ValidateRect(window, nullptr);
+            return 0;
+        }
+        break;
+    case WM_MOVING:
+        chrome->onMoving();
+        break;
+    case WM_SIZING:
+        chrome->onSizing();
+        break;
+    default:
+        break;
+    }
+    if (message == WM_NCDESTROY) {
+        RemoveWindowSubclass(window, chromeSubclass, id);
+    }
+    return DefSubclassProc(window, message, wparam, lparam);
+}
+
 } // namespace
 
 WindowsWindowChrome::WindowsWindowChrome()
@@ -60,6 +93,9 @@ WindowsWindowChrome::~WindowsWindowChrome()
     if (QCoreApplication* app = QCoreApplication::instance()) {
         app->removeNativeEventFilter(this);
     }
+    if (m_window != nullptr && IsWindow(asWindow(m_window))) {
+        RemoveWindowSubclass(asWindow(m_window), chromeSubclass, kSubclassId);
+    }
 }
 
 bool WindowsWindowChrome::attach(quintptr windowHandle)
@@ -69,6 +105,9 @@ bool WindowsWindowChrome::attach(quintptr windowHandle)
         return false;
     }
     m_window = window;
+    if (SetWindowSubclass(window, chromeSubclass, kSubclassId, reinterpret_cast<DWORD_PTR>(this)) == FALSE) {
+        qCWarning(lcWindowChrome) << "Could not watch the window's paint messages; dragging may stutter";
+    }
     if (FAILED(DwmExtendFrameIntoClientArea(window, &kFrameMargins))) {
         qCWarning(lcWindowChrome) << "Could not extend the frame into the client area";
     }
@@ -203,13 +242,13 @@ bool WindowsWindowChrome::nativeEventFilter(const QByteArray& eventType, void* m
     case WM_SIZE:
         notify();
         return false;
-    // The system runs its own message loop while the window is dragged or
-    // resized. Every frame the scene graph draws then makes the GUI thread
-    // wait for the render thread, and that loop with it, so the window
-    // follows the pointer in jerks.
+    // The system runs its own message loop, on this thread, while the
+    // window is dragged or resized.
     case WM_ENTERSIZEMOVE:
+        onEnterSizeMove();
+        return false;
     case WM_EXITSIZEMOVE:
-        setMoving(msg->message == WM_ENTERSIZEMOVE);
+        onExitSizeMove();
         return false;
     default:
         return false;
@@ -313,6 +352,74 @@ void WindowsWindowChrome::setMoving(bool moving)
     }
     m_moving = moving;
     notify();
+}
+
+bool WindowsWindowChrome::skipsPaint()
+{
+    if (!m_moving || m_window == nullptr) {
+        return false;
+    }
+    RECT client{};
+    GetClientRect(asWindow(m_window), &client);
+    // A move that resizes after all (onto a monitor of another scale) needs
+    // new pixels from then on.
+    if (client.right != m_moveStartWidth || client.bottom != m_moveStartHeight) {
+        onSizing();
+        return false;
+    }
+    m_paintSkipped = true;
+    return true;
+}
+
+void WindowsWindowChrome::onMoving()
+{
+    if (m_inSizeMove && !m_resizing) {
+        setMoving(true);
+    }
+}
+
+void WindowsWindowChrome::onSizing()
+{
+    if (!m_inSizeMove) {
+        return;
+    }
+    // A resize, which redraws on every step anyway: neither the paint skip
+    // nor the held motions apply for the rest of it.
+    m_resizing = true;
+    setMoving(false);
+}
+
+// While the window is dragged, Windows asks it to repaint strips of itself
+// hundreds of times a second. Qt answers every WM_PAINT with a full frame
+// drawn while the GUI thread waits, and the system's drag loop runs on that
+// same thread, so the window trailed the pointer in jerks. A move changes
+// none of the window's pixels and the swap chain still holds the last
+// frame, so these paints are skipped while the size stays the same.
+//
+// The loop starts the same way for a move and a resize; the first WM_MOVING
+// or WM_SIZING says which it is.
+void WindowsWindowChrome::onEnterSizeMove()
+{
+    RECT client{};
+    GetClientRect(asWindow(m_window), &client);
+    m_moveStartWidth = client.right;
+    m_moveStartHeight = client.bottom;
+    m_paintSkipped = false;
+    m_resizing = false;
+    m_inSizeMove = true;
+}
+
+void WindowsWindowChrome::onExitSizeMove()
+{
+    m_inSizeMove = false;
+    m_resizing = false;
+    setMoving(false);
+    // One full frame afterwards, in case something the skipped paints
+    // covered did need drawing.
+    if (m_paintSkipped) {
+        m_paintSkipped = false;
+        InvalidateRect(asWindow(m_window), nullptr, FALSE);
+    }
 }
 
 void WindowsWindowChrome::notify()

@@ -116,9 +116,10 @@ class Motion : public QObject {
     // tray): animations that loop without end stop, so nothing ticks for a
     // window no one can see.
     Q_PROPERTY(bool windowShown READ windowShown WRITE setWindowShown NOTIFY windowShownChanged FINAL)
-    // True while the main window is being dragged or resized: the endless
-    // motions hold where they are (AmbientPhase.held), so no frame is drawn
-    // while the system moves the window.
+    // True while the main window is being dragged to another place: the
+    // endless motions hold where they are (AmbientPhase.held), so no frame
+    // is drawn while the system moves the window. A resize redraws on every
+    // step anyway, so the motions go on then.
     Q_PROPERTY(bool windowMoving READ windowMoving WRITE setWindowMoving NOTIFY windowMovingChanged FINAL)
 
 public:

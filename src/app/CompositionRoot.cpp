@@ -1180,7 +1180,7 @@ bool CompositionRoot::showMainWindow(QQmlApplicationEngine& engine)
             m_motion->setWindowShown(visibility != QWindow::Minimized && visibility != QWindow::Hidden);
         }
     });
-    // The endless motions hold while the window is dragged or resized.
+    // The endless motions hold while the window is dragged to another place.
     QObject::connect(&m_windowChromeViewModel, &ui::WindowChromeViewModel::changed, &m_windowChromeViewModel,
                      [this]() {
                          if (m_motion) {

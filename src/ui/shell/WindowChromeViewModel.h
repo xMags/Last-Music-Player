@@ -23,7 +23,7 @@ class WindowChromeViewModel : public QObject {
     Q_PROPERTY(bool backdropActive READ backdropActive NOTIFY changed FINAL)
     Q_PROPERTY(bool maximizeHovered READ maximizeHovered NOTIFY changed FINAL)
     Q_PROPERTY(bool maximizePressed READ maximizePressed NOTIFY changed FINAL)
-    // The user is dragging or resizing the window.
+    // The user is dragging the window to another place (not resizing it).
     Q_PROPERTY(bool moving READ moving NOTIFY changed FINAL)
 
 public:

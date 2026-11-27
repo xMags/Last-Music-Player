@@ -42,6 +42,13 @@ public:
     bool nativeEventFilter(const QByteArray& eventType, void* message,
                            qintptr* result) override;
 
+    // For the window procedure subclass, which sees messages Qt keeps from
+    // native event filters. skipsPaint() says whether to skip a WM_PAINT:
+    // true while the window is dragged without changing size.
+    [[nodiscard]] bool skipsPaint();
+    void onMoving();
+    void onSizing();
+
 private:
     // Each handler returns true when it produced the message's result.
     bool onCalcSize(quintptr wparam, qintptr lparam, qintptr* result);
@@ -50,6 +57,8 @@ private:
     void onNonClientMove(quintptr hit);
     void setMaximizeState(bool hovered, bool pressed);
     void setMoving(bool moving);
+    void onEnterSizeMove();
+    void onExitSizeMove();
     void notify();
 
     [[nodiscard]] qreal scale() const;
@@ -65,7 +74,13 @@ private:
     bool m_backdrop = false;
     bool m_maximizeHovered = false;
     bool m_maximizePressed = false;
-    bool m_moving = false; // inside the system's move or resize loop
+    bool m_inSizeMove = false; // inside the system's move or resize loop
+    bool m_resizing = false;   // that loop is resizing the window
+    bool m_moving = false;     // that loop is moving the window, not resizing it
+    // The client size when the move or resize began, in physical pixels.
+    long m_moveStartWidth = 0;
+    long m_moveStartHeight = 0;
+    bool m_paintSkipped = false; // a paint was skipped during this move
     StateHandler m_handler;
 };
 
