@@ -76,6 +76,11 @@ CollectionCardModel::Card CollectionCardModel::cardAt(int row) const
 
 void CollectionCardModel::setCards(QList<Card> cards)
 {
+    // The same cards again (a refresh that found nothing new) keep the
+    // views' items instead of all of them being made again.
+    if (cards == m_cards) {
+        return;
+    }
     beginResetModel();
     m_cards = std::move(cards);
     endResetModel();

@@ -183,6 +183,10 @@ const core::catalog::ChartDescriptor* ChartCardModel::chartAt(int row) const
 
 void ChartCardModel::setCharts(QList<core::catalog::ChartDescriptor> charts)
 {
+    // The same charts again keep their cards (see CollectionCardModel).
+    if (charts == m_charts) {
+        return;
+    }
     const bool countChange = charts.size() != m_charts.size();
     beginResetModel();
     m_charts = std::move(charts);

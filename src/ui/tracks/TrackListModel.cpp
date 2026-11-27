@@ -106,6 +106,11 @@ void TrackListModel::fetchMore(const QModelIndex& parent)
 
 void TrackListModel::setTracks(QList<core::Track> tracks)
 {
+    // The same songs again (a refresh that found nothing new) keep the
+    // views' rows; with nothing selected, a reset would change nothing else.
+    if (!m_source && m_selected.isEmpty() && tracks == m_tracks) {
+        return;
+    }
     beginResetModel();
     m_source.reset();
     m_selected.clear();

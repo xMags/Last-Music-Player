@@ -100,6 +100,8 @@ struct ChartDescriptor {
     QString regionName;
     // A cover link or an absolute http(s) address; empty when none.
     QString artworkUrl;
+
+    friend bool operator==(const ChartDescriptor&, const ChartDescriptor&) = default;
 };
 
 struct CityChartGroup {

@@ -42,6 +42,8 @@ public:
         QString badge;
         // An account artist the listener follows (the heart on its cover).
         bool followed = false;
+
+        friend bool operator==(const Card&, const Card&) = default;
     };
 
     enum Role {
