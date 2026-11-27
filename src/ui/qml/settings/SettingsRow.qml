@@ -2,10 +2,10 @@ import QtQuick
 import QtQuick.Layouts
 import LastMusicPlayer
 
-// One setting on one line (.settings-row, views.css 1150-1166): title and
-// description on the left, the control on the right; at least 64px tall,
-// padded 12px by 20px, 16px between text and control. The control is the
-// row's child.
+// One setting on one line: title and description on the left, the control
+// on the right, 16px between them; padded 14px by 20px round a body at
+// least 44px tall, under the card's 1px line. The control is the row's
+// child. `shown` is the row's own condition; a search may hide it too.
 Item {
     id: row
 
@@ -13,46 +13,38 @@ Item {
     property string description: ""
     // The description in the danger colour, for a failed load or save.
     property bool descriptionError: false
-    // The title in the danger colour (.settings-row-danger).
+    // The title in the danger colour.
     property bool titleDanger: false
+    property bool shown: true
     default property alias control: controlSlot.data
 
     width: parent ? parent.width : 0
-    implicitHeight: Math.max(64, layout.implicitHeight + 2 * 12)
+    visible: shown && search.matches
+    implicitHeight: 1 + 14 + Math.max(44, layout.implicitHeight) + 14
+
+    SettingsSearchable {
+        id: search
+
+        row: row
+        searchText: row.title + "\n" + row.description
+    }
 
     RowLayout {
         id: layout
 
-        anchors.fill: parent
-        anchors.leftMargin: 20
-        anchors.rightMargin: 20
+        x: 20
+        y: 15
+        width: parent.width - 2 * 20
+        height: Math.max(44, implicitHeight)
         spacing: 16
 
-        ColumnLayout {
+        SettingsRowText {
             Layout.fillWidth: true
             Layout.alignment: Qt.AlignVCenter
-            spacing: 3
-
-            Text {
-                Layout.fillWidth: true
-                text: row.title
-                font: Theme.settingsRowTitle
-                lineHeight: Theme.lineHeightSettingsRowTitle
-                lineHeightMode: Text.FixedHeight
-                color: row.titleDanger ? Theme.danger : Theme.fg
-                elide: Text.ElideRight
-            }
-
-            Text {
-                Layout.fillWidth: true
-                visible: row.description !== ""
-                text: row.description
-                font: Theme.settingsRowDescription
-                lineHeight: Theme.lineHeightSettingsRowDescription
-                lineHeightMode: Text.FixedHeight
-                color: row.descriptionError ? Theme.danger : Theme.fgTertiary
-                wrapMode: Text.Wrap
-            }
+            title: row.title
+            description: row.description
+            titleDanger: row.titleDanger
+            descriptionError: row.descriptionError
         }
 
         Item {

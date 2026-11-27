@@ -2,17 +2,15 @@ import QtQuick
 import QtQuick.Layouts
 import LastMusicPlayer
 
-// The API key source's connection (MainWindow.xaml SettingsApiKeyCard): the
-// provider's address and a key, Connect, which tests them before anything is
-// stored, and Disconnect, which removes both. The key field is never filled
-// from the stored key, and is cleared once a key is connected. The result of
-// the last action shows under the buttons.
+// The API key source's connection: the provider's address and a key, then
+// the state (a green dot once connected, or how the last try went) with
+// Disconnect and Connect, which tests them before anything is stored. The
+// key field is never filled from the stored key, and is cleared once a key
+// is connected.
 SettingsSection {
     id: section
 
-    iconName: "lock"
     title: qsTr("Provider connection")
-    note: App.source.providerConnected ? qsTr("Connected") : qsTr("Not connected")
 
     // The address as stored. The field is an edit buffer, not bound to it:
     // the source's signal fires on any mode or connection change (the
@@ -45,83 +43,73 @@ SettingsSection {
         title: qsTr("Provider URL")
         description: qsTr("The address of your provider")
 
-        PromptTextField {
+        SettingsTextField {
             id: urlField
 
-            width: 280
+            width: 340
             enabled: !App.source.connecting
-            placeholderText: "http://127.0.0.1:4527"
+            placeholderText: "https://"
             inputMethodHints: Qt.ImhUrlCharactersOnly | Qt.ImhNoAutoUppercase
+            Accessible.name: qsTr("Provider URL")
             onAccepted: keyField.forceActiveFocus()
         }
     }
 
-    SettingsDivider {}
-
     SettingsRow {
         title: qsTr("API key")
-        description: App.source.providerConnected ? qsTr("A key is stored. Enter a new one to replace it.") : qsTr("Kept in Windows Credential Manager")
+        description: App.source.providerConnected ? qsTr("A key is stored. Enter a new one to replace it.")
+                                                  : qsTr("Kept in Windows Credential Manager")
 
-        PromptTextField {
+        SettingsTextField {
             id: keyField
 
-            width: 280
+            width: 340
             enabled: !App.source.connecting
             echoMode: TextInput.Password
             placeholderText: qsTr("Enter a new API key")
+            Accessible.name: qsTr("API key")
             onAccepted: App.source.connectProvider(urlField.text, keyField.text)
         }
     }
 
-    SettingsDivider {}
+    SettingsBlock {
+        keywords: qsTr("Connect") + "\n" + qsTr("Disconnect")
 
-    Item {
-        width: parent ? parent.width : 0
-        implicitHeight: actions.implicitHeight + 2 * 16
-
-        ColumnLayout {
-            id: actions
-
-            x: 20
-            y: 16
-            width: parent.width - 2 * 20
+        RowLayout {
+            width: parent.width
+            height: Math.max(44, implicitHeight)
             spacing: 10
 
-            RowLayout {
-                spacing: 10
-
-                AppButton {
-                    text: qsTr("Connect")
-                    iconName: "link"
-                    variant: AppButton.Accent
-                    enabled: !App.source.connecting
-                    onClicked: App.source.connectProvider(urlField.text, keyField.text)
-                }
-
-                AppButton {
-                    text: qsTr("Disconnect")
-                    enabled: App.source.providerConnected && !App.source.connecting
-                    onClicked: App.source.disconnectProvider()
-                }
-
-                Text {
-                    Layout.fillWidth: true
-                    Layout.leftMargin: 6
-                    text: App.source.apiKeyStatus !== "" ? App.source.apiKeyStatus : qsTr("Ready")
-                    font: Theme.settingsRowDescription
-                    color: Theme.fgSecondary
-                    elide: Text.ElideRight
-                }
+            Rectangle {
+                Layout.preferredWidth: 8
+                Layout.preferredHeight: 8
+                radius: 4
+                color: App.source.providerConnected ? Theme.sourceReady : SettingsStyle.off
             }
 
             Text {
                 Layout.fillWidth: true
-                text: qsTr("Your provider decides how identifiers resolve, how auth works and where audio comes from. See docs/PROVIDER_API.md.")
-                font: Theme.settingsRowDescription
-                lineHeight: Theme.lineHeightSettingsRowDescription
-                lineHeightMode: Text.FixedHeight
-                color: Theme.fgTertiary
-                wrapMode: Text.Wrap
+                text: App.source.apiKeyStatus !== "" ? App.source.apiKeyStatus
+                    : App.source.providerConnected ? qsTr("Connected") : qsTr("Not connected")
+                font.family: SettingsStyle.family
+                font.pixelSize: 12
+                color: SettingsStyle.description
+                elide: Text.ElideRight
+            }
+
+            SettingsButton {
+                visible: App.source.providerConnected
+                enabled: !App.source.connecting
+                text: qsTr("Disconnect")
+                onClicked: App.source.disconnectProvider()
+            }
+
+            SettingsButton {
+                primary: true
+                enabled: !App.source.connecting
+                working: App.source.connecting
+                text: qsTr("Connect")
+                onClicked: App.source.connectProvider(urlField.text, keyField.text)
             }
         }
     }

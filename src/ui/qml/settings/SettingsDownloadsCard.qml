@@ -1,14 +1,10 @@
 import QtQuick
 import LastMusicPlayer
 
-// Downloads (views/settings-desktop.ts renderDesktopDownloads): what is on
-// this PC with Open, the folder, then what is kept and when it downloads.
-// Removing them all is in Privacy and data. Shown where songs can be
-// downloaded.
+// Downloads: what is on this PC with Open, the folder, then what is kept and
+// when it downloads. Removing them all is in Privacy and data. Shown where
+// songs can be downloaded.
 SettingsSection {
-    id: section
-
-    iconName: "download"
     title: qsTr("Downloads")
 
     SettingsRow {
@@ -21,8 +17,6 @@ SettingsSection {
         }
     }
 
-    SettingsDivider {}
-
     SettingsRow {
         title: qsTr("Download folder")
         description: App.offline.folder
@@ -33,8 +27,6 @@ SettingsSection {
         }
     }
 
-    SettingsDivider {}
-
     SettingsSwitchRow {
         title: qsTr("Download Liked Songs")
         description: App.offline.autoLiked ? qsTr("On · every song you like is kept on this PC")
@@ -43,8 +35,6 @@ SettingsSection {
         onChangeRequested: value => App.offline.autoLiked = value
     }
 
-    SettingsDivider {}
-
     SettingsSwitchRow {
         title: qsTr("Keep recently played songs")
         description: qsTr("Songs you play are saved on this PC for later.")
@@ -52,16 +42,12 @@ SettingsSection {
         onChangeRequested: value => App.offline.keepRecent = value
     }
 
-    SettingsDivider {}
-
     SettingsSwitchRow {
         title: qsTr("Download only on Wi-Fi")
         description: qsTr("Wait for a connection that does not count against a data plan.")
         checked: App.offline.avoidMetered
         onChangeRequested: value => App.offline.avoidMetered = value
     }
-
-    SettingsDivider {}
 
     SettingsSwitchRow {
         title: qsTr("Download on battery")

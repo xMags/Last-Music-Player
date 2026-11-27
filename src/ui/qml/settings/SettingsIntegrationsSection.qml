@@ -14,11 +14,11 @@ Column {
 
     SettingsSection {
         width: section.width
-        visible: App.presenceAvailable
+        shown: App.presenceAvailable
         title: qsTr("Discord")
 
         SettingsSwitchRow {
-            visible: App.presenceAvailable
+            shown: App.presenceAvailable
             title: qsTr("Discord Rich Presence")
             description: !App.settings.discordPresence ? qsTr("Show what you're listening to. Needs Discord running.")
                 : App.settings.discordSnoozed ? qsTr("Sharing paused until %1").arg(App.settings.discordSnoozeEnd)
@@ -27,13 +27,11 @@ Column {
             onChangeRequested: value => App.settings.discordPresence = value
         }
 
-        SettingsDivider {
-            visible: section.discordOn
-        }
 
         SettingsSelectRow {
-            visible: section.discordOn
+            shown: section.discordOn
             title: qsTr("Show on Discord")
+            segmented: true
             description: App.settings.discordShowSong ? qsTr("The song, artist and cover")
                                                       : qsTr("Only that you are listening, never which song")
             choices: [qsTr("Song and artist"), qsTr("Only that I'm listening")]
@@ -41,12 +39,9 @@ Column {
             onActivated: index => App.settings.discordShowSong = index === 0
         }
 
-        SettingsDivider {
-            visible: section.discordOn
-        }
 
         SettingsSelectRow {
-            visible: section.discordOn
+            shown: section.discordOn
             title: qsTr("Card layout")
             description: App.settings.discordShowSong ? qsTr("How the song is laid out on your profile")
                                                       : qsTr("Not used while the song is kept private")
@@ -56,12 +51,9 @@ Column {
             onActivated: index => App.settings.discordLayout = index
         }
 
-        SettingsDivider {
-            visible: section.discordOn
-        }
 
         SettingsSelectRow {
-            visible: section.discordOn
+            shown: section.discordOn
             title: qsTr("When paused")
             description: qsTr("What your profile shows while the music is paused")
             choices: App.settings.discordWhenPausedChoices
@@ -69,12 +61,9 @@ Column {
             onActivated: index => App.settings.discordWhenPaused = index
         }
 
-        SettingsDivider {
-            visible: section.discordOn
-        }
 
         SettingsSwitchRow {
-            visible: section.discordOn
+            shown: section.discordOn
             title: qsTr("Show Cast device")
             description: App.settings.discordShowCastDevice ? qsTr("Adds the speaker or TV you are casting to")
                                                             : qsTr("Casting looks the same as playing here")
@@ -82,12 +71,9 @@ Column {
             onChangeRequested: value => App.settings.discordShowCastDevice = value
         }
 
-        SettingsDivider {
-            visible: section.discordOn
-        }
 
         SettingsRow {
-            visible: section.discordOn
+            shown: section.discordOn
             title: qsTr("Pause sharing")
             description: App.settings.discordSnoozed ? qsTr("Nothing is shared until %1").arg(App.settings.discordSnoozeEnd)
                                                      : qsTr("Hide your listening from Discord for an hour")

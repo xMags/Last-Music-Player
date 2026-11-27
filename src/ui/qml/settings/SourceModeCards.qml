@@ -5,177 +5,148 @@ import QtQuick.Layouts
 import QtQuick.Templates as T
 import LastMusicPlayer
 
-// The three music sources, from the current app (MainWindow.xaml 1584-1700)
-// drawn in the Settings card style: an accent-tinted icon chip, the name and
-// a badge (ACTIVE in the accent with a tick, else READY or SET UP), a line
-// about the source and its status beside a dot that is green when the
-// source is ready. The active card has an accent border. Picking a card asks
-// App.source to switch. The Settings group above names them.
-Column {
+// The three music sources, side by side and 12px apart: each a card padded
+// 18px with 12px corners and a 1px border, its icon with IN USE across from
+// it on the source in use, the name (15px semibold), a line about the
+// source and its status beside a dot that is green when the source is
+// ready. The source in use has an accent border on a faint accent face.
+// Picking a card asks App.source to switch. The Settings group above names
+// them; a search shows them when one of them matches.
+RowLayout {
     id: root
 
+    readonly property string searchText: {
+        let words = qsTr("Music source")
+        for (const card of App.source.cards)
+            words += "\n" + card.title + "\n" + card.description
+        return words
+    }
+
+    visible: SettingsStyle.matches(root.searchText)
     spacing: 12
 
-    RowLayout {
-        width: root.width
-        spacing: 12
+    Repeater {
+        model: App.source.cards
 
-        Repeater {
-            model: App.source.cards
+        T.AbstractButton {
+            id: sourceCard
 
-            T.AbstractButton {
-                id: sourceCard
+            required property var modelData
 
-                required property var modelData
+            Layout.fillWidth: true
+            Layout.preferredWidth: 1
+            Layout.fillHeight: true
+            implicitHeight: body.implicitHeight + 2 * 18
+            enabled: modelData.enabled
+            opacity: enabled ? 1 : 0.5
+            hoverEnabled: true
+            focusPolicy: Qt.StrongFocus
+            Accessible.role: Accessible.RadioButton
+            Accessible.name: modelData.title
+            Accessible.checked: modelData.selected
 
-                Layout.fillWidth: true
-                Layout.preferredWidth: 1
-                Layout.fillHeight: true
-                implicitHeight: body.implicitHeight + 2 * 16
-                enabled: modelData.enabled
-                opacity: enabled ? 1 : 0.5
-                hoverEnabled: true
-                focusPolicy: Qt.StrongFocus
-                Accessible.role: Accessible.RadioButton
-                Accessible.name: modelData.title
-                Accessible.checked: modelData.selected
+            onClicked: App.source.choose(modelData.mode)
 
-                onClicked: App.source.choose(modelData.mode)
+            HoverHandler {
+                cursorShape: sourceCard.enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+            }
 
-                HoverHandler {
-                    cursorShape: sourceCard.enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+            background: Rectangle {
+                radius: 12
+                color: sourceCard.modelData.selected ? SettingsStyle.chosenFill : SettingsStyle.card
+                border.width: 1
+                border.color: sourceCard.modelData.selected ? Theme.accentColor
+                    : (sourceCard.hovered ? SettingsStyle.quietHover : SettingsStyle.quiet)
+
+                Behavior on border.color {
+                    enabled: !Motion.reduced
+                    ColorAnimation { duration: Motion.chipFade; easing: Motion.ease }
                 }
 
-                background: Item {
-                    BoxShadow {
-                        anchors.fill: surface
-                        layers: Theme.shadowCard
-                        radius: surface.radius
-                    }
+                FocusRing {
+                    shown: sourceCard.visualFocus
+                    controlRadius: 12
+                }
+            }
 
-                    Rectangle {
-                        id: surface
+            contentItem: Item {
+                ColumnLayout {
+                    id: body
 
-                        anchors.fill: parent
-                        radius: Theme.radiusLg
-                        color: sourceCard.hovered && !sourceCard.modelData.selected ? Theme.mixSrgb(Theme.rowHover, Theme.surface, 0.6) : Theme.surface
-                        border.width: sourceCard.modelData.selected ? 2 : 1
-                        border.color: sourceCard.modelData.selected ? Theme.accentColor : Theme.stroke
+                    x: 18
+                    y: 18
+                    width: parent.width - 2 * 18
+                    // The full card, so the status lines of all three line
+                    // up at the bottom.
+                    height: Math.max(implicitHeight, parent.height - 2 * 18)
+                    spacing: 10
 
-                        Behavior on border.color {
-                            enabled: !Motion.reduced
-                            ColorAnimation { duration: Motion.chipFade; easing: Motion.ease }
+                    RowLayout {
+                        Layout.fillWidth: true
+
+                        Icon {
+                            name: sourceCard.modelData.iconName
+                            size: 22
+                            color: SettingsStyle.title
+                        }
+
+                        Item {
+                            Layout.fillWidth: true
+                        }
+
+                        Text {
+                            visible: sourceCard.modelData.selected
+                            text: qsTr("IN USE")
+                            font.family: SettingsStyle.family
+                            font.pointSize: 8.625
+                            font.weight: Font.DemiBold
+                            color: Theme.accentColor
                         }
                     }
 
-                    FocusRing {
-                        shown: sourceCard.visualFocus
-                        controlRadius: Theme.radiusLg
+                    Text {
+                        Layout.fillWidth: true
+                        text: sourceCard.modelData.title
+                        font.family: SettingsStyle.family
+                        font.pixelSize: 15
+                        font.weight: Font.DemiBold
+                        color: SettingsStyle.title
+                        elide: Text.ElideRight
                     }
-                }
 
-                contentItem: Item {
-                    ColumnLayout {
-                        id: body
+                    Text {
+                        Layout.fillWidth: true
+                        text: sourceCard.modelData.description
+                        font.family: SettingsStyle.family
+                        font.pointSize: 9.375
+                        lineHeight: 17.5
+                        lineHeightMode: Text.FixedHeight
+                        color: SettingsStyle.description
+                        wrapMode: Text.Wrap
+                    }
 
-                        x: 16
-                        y: 16
-                        width: parent.width - 2 * 16
-                        // The full card, so the status lines of all three
-                        // line up at the bottom.
-                        height: Math.max(implicitHeight, parent.height - 2 * 16)
-                        spacing: 10
+                    Item {
+                        Layout.fillHeight: true
+                    }
 
-                        RowLayout {
-                            Layout.fillWidth: true
-                            spacing: 12
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 6
 
-                            Rectangle {
-                                Layout.preferredWidth: 40
-                                Layout.preferredHeight: 40
-                                radius: 10
-                                color: Theme.accentSoft
-
-                                Icon {
-                                    anchors.centerIn: parent
-                                    name: sourceCard.modelData.iconName
-                                    size: 18
-                                    color: Theme.accentColor
-                                }
-                            }
-
-                            Text {
-                                Layout.fillWidth: true
-                                text: sourceCard.modelData.title
-                                font: Theme.settingsSection
-                                color: Theme.fg
-                                elide: Text.ElideRight
-                            }
-
-                            Rectangle {
-                                Layout.preferredHeight: 22
-                                Layout.preferredWidth: badge.implicitWidth + 2 * 9 + (tick.visible ? tick.width + 4 : 0)
-                                radius: height / 2
-                                color: sourceCard.modelData.selected ? Theme.accentColor : Theme.stroke
-
-                                Row {
-                                    anchors.centerIn: parent
-                                    spacing: 4
-
-                                    Icon {
-                                        id: tick
-
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        visible: sourceCard.modelData.selected
-                                        name: "check"
-                                        size: 12
-                                        color: Theme.accentInk
-                                    }
-
-                                    Text {
-                                        id: badge
-
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        text: sourceCard.modelData.badge
-                                        font: Theme.profileTier
-                                        color: sourceCard.modelData.selected ? Theme.accentInk : Theme.fgSecondary
-                                    }
-                                }
-                            }
+                        Rectangle {
+                            Layout.preferredWidth: 8
+                            Layout.preferredHeight: 8
+                            radius: 4
+                            color: sourceCard.modelData.statusReady ? Theme.sourceReady : SettingsStyle.off
                         }
 
                         Text {
                             Layout.fillWidth: true
-                            text: sourceCard.modelData.description
-                            font: Theme.settingsRowDescription
-                            lineHeight: Theme.lineHeightSettingsRowDescription
-                            lineHeightMode: Text.FixedHeight
-                            color: Theme.fgSecondary
-                            wrapMode: Text.Wrap
-                        }
-
-                        Item {
-                            Layout.fillHeight: true
-                        }
-
-                        RowLayout {
-                            Layout.fillWidth: true
-                            spacing: 8
-
-                            Rectangle {
-                                Layout.preferredWidth: 8
-                                Layout.preferredHeight: 8
-                                radius: 4
-                                color: sourceCard.modelData.statusReady ? Theme.sourceReady : Theme.fgDisabled
-                            }
-
-                            Text {
-                                Layout.fillWidth: true
-                                text: sourceCard.modelData.status
-                                font: Theme.settingsRowDescription
-                                color: Theme.fgTertiary
-                                elide: Text.ElideRight
-                            }
+                            text: sourceCard.modelData.status
+                            font.family: SettingsStyle.family
+                            font.pixelSize: 12
+                            color: SettingsStyle.description
+                            elide: Text.ElideRight
                         }
                     }
                 }

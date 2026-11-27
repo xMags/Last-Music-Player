@@ -1,31 +1,35 @@
 import QtQuick
 import LastMusicPlayer
 
-// One group of the Settings page: its title (and a line under it), then its
-// cards stacked 16px apart. The page lists the groups from the music source
-// down to About.
+// One group of the Settings page: its 20px title (and a line under it),
+// then its cards, 20px apart. While the page is searched the group shows
+// all its cards when its title matches, else only the cards that match,
+// and hides when none does.
 Column {
     id: group
 
     property string title: ""
     property string note: ""
+    property bool shown: true
     default property alias cards: stack.data
 
-    spacing: 16
+    // Read by the cards inside (SettingsSection.hostGroup).
+    readonly property bool groupSearchForced: SettingsStyle.needle === "" || SettingsStyle.matches(group.title)
 
-    // padding-inline: 4px, as the cards' rows.
+    visible: shown && (SettingsStyle.needle === "" || stack.visibleChildren.some(item => item.height > 0))
+    spacing: 20
+
     Column {
-        x: 4
-        width: group.width - 2 * 4
-        spacing: 4
+        width: group.width
+        spacing: 6
 
         Text {
             width: parent.width
             text: group.title
-            font.family: Theme.settingsSection.family
+            font.family: SettingsStyle.family
             font.pixelSize: 20
             font.weight: Font.DemiBold
-            color: Theme.fg
+            color: SettingsStyle.title
             elide: Text.ElideRight
             Accessible.role: Accessible.Heading
             Accessible.name: group.title
@@ -35,10 +39,9 @@ Column {
             width: parent.width
             visible: group.note !== ""
             text: group.note
-            font: Theme.settingsRowDescription
-            lineHeight: Theme.lineHeightSettingsRowDescription
-            lineHeightMode: Text.FixedHeight
-            color: Theme.fgTertiary
+            font.family: SettingsStyle.family
+            font.pointSize: 10.125
+            color: SettingsStyle.description
             wrapMode: Text.Wrap
         }
     }
@@ -47,6 +50,6 @@ Column {
         id: stack
 
         width: group.width
-        spacing: 16
+        spacing: 20
     }
 }

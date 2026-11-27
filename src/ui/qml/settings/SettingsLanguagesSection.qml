@@ -8,8 +8,7 @@ import LastMusicPlayer
 // Region and languages (views/settings-languages.ts renderLanguageSettings;
 // views.css 1403-1570): the music region Browse shows, then which languages
 // recommendations keep to. Under the mode
-// switch a panel (a divider on top, padded 14px 20px 16px, parts 12px
-// apart): Automatic shows what was detected from listening and Detect
+// choice, in the same row, a panel (parts 12px apart): Automatic shows what was detected from listening and Detect
 // again; Choose the chosen languages as pills with Edit, which opens the
 // checklist (saved as it is ticked); Off says every language is included.
 // Then "Tune your recommendations" opens the welcome flow.
@@ -33,17 +32,32 @@ SettingsSection {
                                                       : qsTr("Charts, new releases and catalog in Browse")
         descriptionError: section.model.regionError !== ""
 
-        SettingsRegionPicker {}
-    }
+        // The region list, in the Settings dropdown's box.
+        SettingsRegionPicker {
+            id: regionPicker
 
-    SettingsDivider {}
+            implicitHeight: 36
+            implicitWidth: Math.max(200, implicitContentWidth + leftPadding + rightPadding)
+            background: Rectangle {
+                implicitHeight: 36
+                radius: 8
+                color: regionPicker.hovered ? SettingsStyle.controlHover : SettingsStyle.control
+                border.width: 1
+                border.color: SettingsStyle.controlBorder
+
+                FocusRing {
+                    shown: regionPicker.visualFocus
+                    controlRadius: 8
+                }
+            }
+        }
+    }
 
     SettingsRow {
         title: qsTr("Recommendation languages")
         description: qsTr("Autoplay, Home and similar artists keep to these. Search, charts, your library and playlists still show everything.")
 
-        SegmentedControl {
-            compact: true
+        SettingsSegmented {
             choices: [qsTr("Automatic"), qsTr("Choose"), qsTr("Off")]
             currentIndex: section.modes.indexOf(section.model.mode)
             Accessible.name: qsTr("Recommendation languages")
@@ -51,23 +65,16 @@ SettingsSection {
         }
     }
 
-    // .settings-language-panel
-    Item {
-        width: parent ? parent.width : 0
-        implicitHeight: panel.implicitHeight + 1 + 14 + 16
-
-        Rectangle {
-            width: parent.width
-            height: 1
-            color: Theme.divider
-        }
+    // Under the choice, part of its row: what was detected, the chosen
+    // languages, or that every language is included.
+    SettingsBlock {
+        joined: true
+        keywords: qsTr("Recommendation languages")
 
         ColumnLayout {
             id: panel
 
-            x: 20
-            y: 1 + 14
-            width: parent.width - 2 * 20
+            width: parent.width
             spacing: 12
 
             // --- Automatic ---------------------------------------------
@@ -104,6 +111,7 @@ SettingsSection {
                 spacing: 12
 
                 SettingsButton {
+                    link: true
                     small: true
                     working: section.model.detecting
                     // aria-disabled while it runs: faded, but still focusable.

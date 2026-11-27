@@ -2,32 +2,40 @@ import QtQuick
 import QtQuick.Templates as T
 import LastMusicPlayer
 
-// The button of Settings (.settings-button, views.css 1174-1206): 32px high,
-// padded 16px, a 1px strong stroke on the alternate surface, 13px semibold
-// text; hover fills with the hover colour, a press with the row hover colour.
-// Small is 28px high, padded 12px, 12px text. Danger has a faint danger
-// border on the surface and danger text. While `working` the label follows a
-// spinner, as the reference's "Working…" buttons do.
+// The button of Settings: 36px high, padded 16px, 8px corners, a 1px border
+// round a face a shade off the card, 13.5px text; hover lightens the face.
+// `primary` is filled with the accent and dark semibold text; `danger` has a
+// red border, a faint red face and red text; `link` is the accent text
+// alone. Small is 28px high, padded 12px. While `working` the label follows
+// a spinner.
 T.Button {
     id: control
 
     property bool small: false
+    property bool primary: false
     property bool danger: false
+    property bool link: false
     property bool working: false
     // Optional icon after the text (an outbound link's arrow), by Icons name.
     property string trailingIconName: ""
 
     readonly property bool lit: enabled && (hovered || down)
+    readonly property color ink: control.primary ? Theme.accentInk
+        : control.danger ? SettingsStyle.dangerText
+        : control.link ? Theme.accentColor
+        : SettingsStyle.title
 
-    implicitHeight: small ? 28 : 32
+    implicitHeight: small ? 28 : 36
     implicitWidth: implicitContentWidth + leftPadding + rightPadding
-    leftPadding: small ? 12 : 16
-    rightPadding: small ? 12 : 16
+    leftPadding: link ? 0 : (small ? 12 : 16)
+    rightPadding: link ? 0 : (small ? 12 : 16)
     spacing: 8
     hoverEnabled: true
     focusPolicy: Qt.StrongFocus
     opacity: enabled ? 1 : Theme.disabledOpacity
-    font: small ? Theme.settingsButtonSmallLabel : Theme.settingsButtonLabel
+    font.family: SettingsStyle.family
+    font.pointSize: control.small ? 9.375 : 10.125
+    font.weight: control.primary ? Font.DemiBold : Font.Normal
 
     HoverHandler {
         cursorShape: control.enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
@@ -42,12 +50,10 @@ T.Button {
         }
 
         Text {
-            id: label
-
             anchors.verticalCenter: parent.verticalCenter
             text: control.text
             font: control.font
-            color: control.danger ? Theme.danger : Theme.fg
+            color: control.link && control.lit ? Theme.mixSrgb(Theme.accentColor, Theme.fg, 0.75) : control.ink
         }
 
         Icon {
@@ -55,27 +61,34 @@ T.Button {
             visible: control.trailingIconName !== ""
             name: control.trailingIconName
             size: 13
-            color: label.color
+            color: control.ink
         }
     }
 
-    background: ButtonSurface {
-        id: surface
-
+    background: Rectangle {
         implicitHeight: control.implicitHeight
-        radius: Theme.radiusSm
+        radius: 8
+        visible: !control.link
         border.width: 1
-        border.color: control.danger ? Theme.mixSrgb(Theme.danger, "transparent", 0.32) : Theme.strokeStrong
+        border.color: control.primary ? Theme.accentColor
+            : control.danger ? SettingsStyle.dangerButtonBorder
+            : SettingsStyle.controlBorder
         color: {
+            if (control.primary)
+                return control.lit ? Theme.mixSrgb(Theme.accentColor, Theme.fg, 0.9) : Theme.accentColor
             if (control.danger)
-                return control.lit ? Theme.mixSrgb(Theme.danger, Theme.surface, 0.08) : Theme.surface
-            if (control.enabled && control.down)
-                return Theme.rowHover
-            return control.lit ? Theme.hover : Theme.surfaceAlt
+                return control.lit ? Theme.mixSrgb(Theme.danger, Theme.surface, 0.1) : SettingsStyle.dangerButton
+            return control.lit ? SettingsStyle.controlHover : SettingsStyle.control
         }
-        fadeDuration: Motion.settingsFade
-        fadeEasing: Motion.ease
-        rippleEnabled: control.enabled
-        focusShown: control.visualFocus
+
+        Behavior on color {
+            enabled: !Motion.reduced
+            ColorAnimation { duration: Motion.settingsFade; easing: Motion.ease }
+        }
+
+        FocusRing {
+            shown: control.visualFocus
+            controlRadius: 8
+        }
     }
 }

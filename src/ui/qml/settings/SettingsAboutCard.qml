@@ -2,70 +2,43 @@ import QtQuick
 import QtQuick.Layouts
 import LastMusicPlayer
 
-// About: the app's mark, name and version with a count of the library, then
-// the licences (not written yet, so the button waits). What removes data is
-// in Privacy and data.
+// About: the app's mark (a note on a 56px tile tinted by the accent), its
+// name and version, then the licences (not written yet, so the button
+// waits). What removes data is in Privacy and data.
 SettingsSection {
     id: section
 
-    iconName: "info"
-
-    Item {
-        width: parent ? parent.width : 0
-        implicitHeight: layout.implicitHeight + 2 * 20
+    SettingsBlock {
+        keywords: AppInfo.displayName + "\n" + qsTr("Version") + "\n" + qsTr("About")
 
         RowLayout {
-            id: layout
+            width: parent.width
+            spacing: 16
 
-            x: 20
-            y: 20
-            width: parent.width - 2 * 20
-            spacing: 14
-
-            // The app's mark: a note on the teal brand gradient.
             Rectangle {
-                Layout.preferredWidth: 48
-                Layout.preferredHeight: 48
-                radius: 12
-                gradient: Gradient {
-                    orientation: Gradient.Horizontal
-                    GradientStop { position: 0; color: Theme.brandLogoStart }
-                    GradientStop { position: 1; color: Theme.brandLogoEnd }
-                }
+                Layout.preferredWidth: 56
+                Layout.preferredHeight: 56
+                radius: 14
+                color: SettingsStyle.chosenFill
 
                 Icon {
                     anchors.centerIn: parent
                     name: "music-note"
-                    size: 24
-                    color: "white"
+                    size: 28
+                    color: Theme.accentColor
                 }
             }
 
-            ColumnLayout {
+            SettingsRowText {
                 Layout.fillWidth: true
-                spacing: 2
-
-                Text {
-                    Layout.fillWidth: true
-                    text: App.settingsAbout.title
-                    font: Theme.settingsRowTitle
-                    color: Theme.fg
-                    elide: Text.ElideRight
-                }
-
-                Text {
-                    Layout.fillWidth: true
-                    visible: text !== ""
-                    text: App.settingsAbout.libraryLine
-                    font: Theme.settingsRowDescription
-                    color: Theme.fgTertiary
-                    elide: Text.ElideRight
-                }
+                Layout.alignment: Qt.AlignVCenter
+                title: AppInfo.displayName
+                titleSize: 16
+                titleStrong: true
+                description: qsTr("Version %1").arg(AppInfo.version)
             }
         }
     }
-
-    SettingsDivider {}
 
     SettingsRow {
         title: qsTr("Licenses and credits")

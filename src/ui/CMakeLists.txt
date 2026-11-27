@@ -21,6 +21,9 @@ set_source_files_properties("${CMAKE_SOURCE_DIR}/Assets/SignInServiceMark.png"
 set_source_files_properties("${CMAKE_SOURCE_DIR}/Assets/LibraryStripeOverlay.svg"
     PROPERTIES QT_RESOURCE_ALIAS "library/LibraryStripeOverlay.svg")
 
+# The Settings page's look and search, shared by all its parts.
+set_source_files_properties(qml/settings/SettingsStyle.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
+
 # Every QML file of the module. File names are unique: each is a type name.
 set(LMP_UI_QML_FILES
     qml/Main.qml
@@ -151,7 +154,6 @@ set(LMP_UI_QML_FILES
     qml/settings/SettingsAboutCard.qml
     qml/settings/SettingsAppearanceCard.qml
     qml/settings/SettingsCard.qml
-    qml/settings/SettingsDivider.qml
     qml/settings/SettingsDownloadsCard.qml
     qml/settings/SettingsEqualizerCard.qml
     qml/settings/HistoryImportDialog.qml
@@ -161,7 +163,6 @@ set(LMP_UI_QML_FILES
     qml/settings/SettingsProfileCard.qml
     qml/settings/SettingsRow.qml
     qml/settings/SettingsSection.qml
-    qml/settings/SettingsSectionHead.qml
     qml/settings/SettingsSelectRow.qml
     qml/settings/SettingsButton.qml
     qml/settings/SettingsSpinner.qml
@@ -171,6 +172,16 @@ set(LMP_UI_QML_FILES
     qml/settings/SettingsIntegrationsSection.qml
     qml/settings/SettingsDataSection.qml
     qml/settings/SettingsGroup.qml
+    qml/settings/SettingsBlock.qml
+    qml/settings/SettingsChip.qml
+    qml/settings/SettingsRowText.qml
+    qml/settings/SettingsSearchable.qml
+    qml/settings/SettingsSegmented.qml
+    qml/settings/SettingsSelect.qml
+    qml/settings/SettingsStyle.qml
+    qml/settings/SettingsSwatch.qml
+    qml/settings/SettingsSwitch.qml
+    qml/settings/SettingsTextField.qml
     qml/settings/SettingsLanguagePill.qml
     qml/settings/SettingsLanguageOption.qml
     qml/settings/SettingsSwitchRow.qml

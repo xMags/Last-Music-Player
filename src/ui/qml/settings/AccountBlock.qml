@@ -5,149 +5,94 @@ import QtQuick.Effects
 import QtQuick.Layouts
 import LastMusicPlayer
 
-// The account (views/settings.ts render; views.css 1252-1289): a card
-// labelled Account, the avatar in an accent ring, the
-// name and the plan, Sign out (asked first), and a sign-out error under it.
-// Signed out, which the reference never shows, the same card says why and
-// offers Sign in, or Cancel while the browser is open. The music region is
-// with the languages (SettingsLanguagesSection).
+// The account: a card labelled Account with one row, the 48px avatar (the
+// picture, or the name's first letter on a grey disc), the name in semibold
+// and "Signed in as @username" with the plan under it, and Sign out (asked
+// first), a sign-out error under the row. Signed out, the same row says why
+// and offers Sign in, or Cancel while the browser is open.
 SettingsSection {
     id: card
-
-    title: qsTr("Account")
 
     signal signInRequested()
 
     readonly property bool signedIn: App.source.signedIn
 
-    // .settings-hero-main: 20px padding, 16px between the parts.
-    Item {
-        width: parent ? parent.width : 0
-        implicitHeight: main.implicitHeight + 2 * 20
+    title: qsTr("Account")
+
+    SettingsBlock {
+        keywords: qsTr("Account") + "\n" + qsTr("Sign out") + "\n" + qsTr("Sign in") + "\n" + App.profile.name
 
         RowLayout {
-            id: main
-
-            x: 20
-            y: 20
-            width: parent.width - 2 * 20
+            width: parent.width
+            height: Math.max(44, implicitHeight)
             spacing: 16
 
-            // .settings-avatar: a 2px ring of the accent fading out at
-            // 135 degrees, then a 2px surface border round the picture or
-            // the name's first letter.
             Item {
-                Layout.preferredWidth: 56
-                Layout.preferredHeight: 56
-
-                // linear-gradient(135deg, ...) on the 56px square runs along
-                // its 79px diagonal, so across the circle it goes from 14.6%
-                // to 85.4% of the way: the circle turned 45 degrees with a
-                // horizontal gradient between those two mixes is the same.
-                Rectangle {
-                    id: ring
-
-                    readonly property color from: Theme.accentColor
-                    readonly property color to: Theme.mixSrgb(Theme.accentFill, "transparent", 0.25)
-
-                    anchors.fill: parent
-                    radius: width / 2
-                    rotation: 45
-                    gradient: Gradient {
-                        orientation: Gradient.Horizontal
-                        GradientStop { position: 0; color: Theme.mixSrgb(ring.from, ring.to, 0.8536) }
-                        GradientStop { position: 1; color: Theme.mixSrgb(ring.from, ring.to, 0.1464) }
-                    }
-                }
+                Layout.preferredWidth: 48
+                Layout.preferredHeight: 48
 
                 Rectangle {
-                    id: face
-
                     anchors.fill: parent
-                    anchors.margins: 2
-                    radius: width / 2
-                    color: Theme.neutral
-                    border.width: 2
-                    border.color: Theme.surface
+                    radius: 24
+                    color: SettingsStyle.quiet
 
                     Text {
                         anchors.centerIn: parent
                         visible: picture.status !== Image.Ready
-                        text: App.profile.name.charAt(0).toUpperCase()
-                        font: Theme.settingsAvatarLetter
-                        color: Theme.fg
+                        text: card.signedIn ? App.profile.name.charAt(0).toUpperCase() : "?"
+                        font.family: SettingsStyle.family
+                        font.pixelSize: 18
+                        font.weight: Font.Bold
+                        color: SettingsStyle.title
                     }
+                }
 
-                    // object-fit: cover, cut to the circle inside the border.
-                    Image {
-                        id: picture
+                // object-fit: cover, cut to the circle.
+                Image {
+                    id: picture
 
-                        anchors.fill: parent
-                        anchors.margins: 2
-                        visible: status === Image.Ready
-                        source: card.signedIn ? App.profile.avatarUrl : ""
-                        sourceSize.width: 104
-                        sourceSize.height: 104
-                        fillMode: Image.PreserveAspectCrop
-                        asynchronous: true
-                        cache: true
-                        layer.enabled: visible
-                        layer.effect: MultiEffect {
-                            maskEnabled: true
-                            maskSource: circle
-                            maskThresholdMin: 0.5
-                            maskSpreadAtMin: 1.0
-                        }
+                    anchors.fill: parent
+                    visible: status === Image.Ready
+                    source: card.signedIn ? App.profile.avatarUrl : ""
+                    sourceSize.width: 96
+                    sourceSize.height: 96
+                    fillMode: Image.PreserveAspectCrop
+                    asynchronous: true
+                    cache: true
+                    layer.enabled: visible
+                    layer.effect: MultiEffect {
+                        maskEnabled: true
+                        maskSource: circle
+                        maskThresholdMin: 0.5
+                        maskSpreadAtMin: 1.0
                     }
+                }
 
-                    Rectangle {
-                        id: circle
+                Rectangle {
+                    id: circle
 
-                        anchors.fill: picture
-                        radius: width / 2
-                        visible: false
-                        layer.enabled: true
-                    }
+                    anchors.fill: parent
+                    radius: width / 2
+                    visible: false
+                    layer.enabled: true
                 }
             }
 
-            // .settings-hero-copy: the name, then the plan, 3px apart.
-            ColumnLayout {
+            SettingsRowText {
                 Layout.fillWidth: true
-                spacing: 3
-
-                Text {
-                    Layout.fillWidth: true
-                    text: card.signedIn ? App.profile.name : qsTr("Not signed in")
-                    font: Theme.settingsHeroName
-                    lineHeight: Theme.lineHeightSettingsHeroName
-                    lineHeightMode: Text.FixedHeight
-                    color: Theme.fg
-                    elide: Text.ElideRight
+                Layout.alignment: Qt.AlignVCenter
+                title: card.signedIn ? App.profile.name : qsTr("Not signed in")
+                titleStrong: true
+                description: {
+                    if (!card.signedIn)
+                        return App.source.accountStatus
+                    const parts = [App.source.accountUsername !== "" ? qsTr("Signed in as %1").arg(App.source.accountUsername)
+                                                                     : qsTr("Signed in")]
+                    if (App.profile.plan !== "")
+                        parts.push(App.profile.plan)
+                    return parts.join(" · ")
                 }
-
-                Text {
-                    Layout.fillWidth: true
-                    visible: card.signedIn && App.profile.plan !== ""
-                    text: App.profile.plan
-                    font: Theme.settingsTier
-                    lineHeight: Theme.lineHeightSettingsTier
-                    lineHeightMode: Text.FixedHeight
-                    color: Theme.accentColor
-                    elide: Text.ElideRight
-                }
-
-                // Signed out: why, in the row description style.
-                Text {
-                    Layout.fillWidth: true
-                    visible: !card.signedIn && App.source.accountStatus !== ""
-                    text: App.source.accountStatus
-                    font: Theme.settingsRowDescription
-                    lineHeight: Theme.lineHeightSettingsRowDescription
-                    lineHeightMode: Text.FixedHeight
-                    color: App.source.accountStatusError ? Theme.danger : Theme.fgTertiary
-                    wrapMode: Text.Wrap
-                }
+                descriptionError: !card.signedIn && App.source.accountStatusError
             }
 
             SettingsButton {
@@ -160,6 +105,7 @@ SettingsSection {
 
             SettingsButton {
                 visible: !card.signedIn && !App.source.signingIn
+                primary: true
                 text: qsTr("Sign in")
                 onClicked: card.signInRequested()
             }
@@ -172,20 +118,15 @@ SettingsSection {
         }
     }
 
-    // .settings-hero-error: margin -8px 20px 14px, 12px, the danger colour.
-    Item {
-        width: parent ? parent.width : 0
-        visible: card.signedIn && App.source.signOutError !== ""
-        implicitHeight: visible ? heroError.implicitHeight - 8 + 14 : 0
+    SettingsBlock {
+        shown: card.signedIn && App.source.signOutError !== ""
+        joined: true
 
         Text {
-            id: heroError
-
-            x: 20
-            y: -8
-            width: parent.width - 2 * 20
+            width: parent.width
             text: App.source.signOutError
-            font: Theme.settingsRowDescription
+            font.family: SettingsStyle.family
+            font.pointSize: 9.375
             color: Theme.danger
             wrapMode: Text.Wrap
         }

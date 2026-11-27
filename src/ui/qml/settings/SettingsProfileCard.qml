@@ -9,7 +9,6 @@ import LastMusicPlayer
 SettingsSection {
     id: section
 
-    iconName: "person"
     title: qsTr("Profile")
 
     // The name as last saved. The field is an edit buffer, not bound to the
@@ -41,20 +40,18 @@ SettingsSection {
         RowLayout {
             spacing: 8
 
-            PromptTextField {
+            SettingsTextField {
                 id: field
 
-                Layout.preferredWidth: 220
+                Layout.preferredWidth: 240
                 maximumLength: 40
                 placeholderText: qsTr("Listener")
+                Accessible.name: qsTr("Display name")
                 onAccepted: section.save()
             }
 
-            AppButton {
-                id: save
-
+            SettingsButton {
                 text: qsTr("Save")
-                variant: AppButton.Accent
                 enabled: App.settings.isDisplayNameEdit(field.text)
                 onClicked: section.save()
             }

@@ -4,141 +4,132 @@ import QtQuick
 import QtQuick.Layouts
 import LastMusicPlayer
 
-// Library, from the current app (MainWindow.xaml 1786-1852): the music folder
-// with Change, Open and Scan now; while a scan runs, its progress and Cancel;
-// then the file format chips. A new folder is scanned at once.
+// Music folder: the folder with Open and Change (a new folder is scanned at
+// once); the file formats scanned, as pills, with Edit to tick them on and
+// off; and Scan now, which turns into Cancel while a scan runs, with its
+// progress under the row.
 SettingsSection {
     id: section
 
-    iconName: "library"
+    property bool editingFormats: false
+
     title: qsTr("Music folder")
 
     SettingsRow {
-        title: qsTr("Music folder")
+        title: qsTr("Folder")
         description: App.librarySettings.folder !== "" ? App.librarySettings.folder : qsTr("No folder selected")
 
         Row {
             spacing: 8
 
-            AppButton {
-                text: qsTr("Change")
-                enabled: !App.librarySettings.scanning
-                onClicked: App.librarySettings.changeFolder()
-            }
-
-            AppButton {
+            SettingsButton {
                 text: qsTr("Open")
                 enabled: App.librarySettings.folder !== ""
                 onClicked: App.librarySettings.openFolder()
             }
 
-            AppButton {
-                text: qsTr("Scan now")
-                iconName: "history"
-                variant: AppButton.Accent
-                enabled: App.librarySettings.folder !== "" && !App.librarySettings.scanning
-                onClicked: App.librarySettings.scan()
+            SettingsButton {
+                text: qsTr("Change")
+                enabled: !App.librarySettings.scanning
+                onClicked: App.librarySettings.changeFolder()
             }
         }
     }
 
-    // The scan's progress, or how the last one ended.
-    Item {
-        width: parent ? parent.width : 0
-        visible: App.librarySettings.scanStatus !== ""
-        implicitHeight: visible ? status.implicitHeight + 2 * 12 : 0
+    SettingsRow {
+        title: qsTr("File formats")
+        description: section.editingFormats ? qsTr("Tick the formats to include.") : qsTr("Included when scanning.")
 
-        ColumnLayout {
-            id: status
+        RowLayout {
+            spacing: 16
 
-            x: 20
-            y: 12
-            width: parent.width - 2 * 20
-            spacing: 8
-
-            RowLayout {
-                Layout.fillWidth: true
-                spacing: 12
-
-                Text {
-                    Layout.fillWidth: true
-                    text: App.librarySettings.scanStatus
-                    font: Theme.settingsRowDescription
-                    color: Theme.fgSecondary
-                    elide: Text.ElideRight
-                }
-
-                AppButton {
-                    visible: App.librarySettings.scanning
-                    enabled: App.librarySettings.canCancel
-                    text: qsTr("Cancel")
-                    onClicked: App.librarySettings.cancelScan()
-                }
-            }
-
-            // A thin bar under the status while files are read.
-            Rectangle {
-                Layout.fillWidth: true
-                Layout.preferredHeight: 3
-                visible: App.librarySettings.scanning
-                radius: 1.5
-                color: Theme.sliderTrack
-
-                Rectangle {
-                    width: parent.width * Math.max(0, App.librarySettings.scanProgress)
-                    height: parent.height
-                    radius: parent.radius
-                    color: Theme.accentColor
-                }
-            }
-        }
-    }
-
-    SettingsDivider {}
-
-    Item {
-        width: parent ? parent.width : 0
-        implicitHeight: formats.implicitHeight + 2 * 14
-
-        ColumnLayout {
-            id: formats
-
-            x: 20
-            y: 14
-            width: parent.width - 2 * 20
-            spacing: 10
-
-            ColumnLayout {
-                spacing: 3
-
-                Text {
-                    text: qsTr("File formats")
-                    font: Theme.settingsRowTitle
-                    color: Theme.fg
-                }
-
-                Text {
-                    text: qsTr("Included when scanning.")
-                    font: Theme.settingsRowDescription
-                    color: Theme.fgTertiary
-                }
-            }
-
-            Flow {
-                Layout.fillWidth: true
-                spacing: 8
+            Row {
+                visible: !section.editingFormats
+                spacing: 6
 
                 Repeater {
-                    model: App.librarySettings.formats
+                    model: App.librarySettings.formats.filter(format => format.checked)
 
-                    Chip {
+                    SettingsChip {
                         required property var modelData
 
                         text: modelData.label
-                        selected: modelData.checked
-                        onClicked: App.librarySettings.toggleFormat(modelData.extension)
                     }
                 }
+            }
+
+            SettingsButton {
+                text: section.editingFormats ? qsTr("Done") : qsTr("Edit")
+                onClicked: section.editingFormats = !section.editingFormats
+            }
+        }
+    }
+
+    // Every format while editing: a pill is in when filled.
+    SettingsBlock {
+        shown: section.editingFormats
+        joined: true
+
+        Flow {
+            width: parent.width
+            spacing: 6
+
+            Repeater {
+                model: App.librarySettings.formats
+
+                SettingsChip {
+                    required property var modelData
+
+                    toggles: true
+                    text: modelData.label
+                    selected: modelData.checked
+                    Accessible.name: modelData.label
+                    onClicked: App.librarySettings.toggleFormat(modelData.extension)
+                }
+            }
+        }
+    }
+
+    SettingsRow {
+        title: qsTr("Scan for new songs")
+        description: App.librarySettings.scanStatus !== "" ? App.librarySettings.scanStatus
+                                                           : qsTr("Finds songs added to the folder since the last scan.")
+
+        // One of the two at a time; the Row sizes to it.
+        Row {
+            SettingsButton {
+                visible: !App.librarySettings.scanning
+                primary: true
+                text: qsTr("Scan now")
+                enabled: App.librarySettings.folder !== ""
+                onClicked: App.librarySettings.scan()
+            }
+
+            SettingsButton {
+                visible: App.librarySettings.scanning
+                enabled: App.librarySettings.canCancel
+                text: qsTr("Cancel")
+                onClicked: App.librarySettings.cancelScan()
+            }
+        }
+    }
+
+    // A thin bar under the scan row while files are read.
+    SettingsBlock {
+        shown: App.librarySettings.scanning
+        joined: true
+
+        Rectangle {
+            width: parent.width
+            height: 4
+            radius: 2
+            color: SettingsStyle.controlBorder
+
+            Rectangle {
+                width: parent.width * Math.max(0, App.librarySettings.scanProgress)
+                height: parent.height
+                radius: parent.radius
+                color: Theme.accentColor
             }
         }
     }

@@ -1,36 +1,33 @@
 import QtQuick
-import QtQuick.Shapes
 import QtQuick.Templates as T
 import LastMusicPlayer
 
-// One theme choice (.settings-theme-tile, views.css 1293-1334): a 76px tile
-// with a small drawing of the window in that theme (a sidebar strip, two grey
-// lines and an accent line) over its label. Selected, the border turns to the
-// accent and doubles. `mode` is "light", "dark" or "system".
+// One theme choice: a tile padded 10px with 10px corners, a 64px preview of
+// the window in that theme (light, dark, or half of each for System) over
+// its 13px label, 10px apart. Selected, the border turns to the accent.
+// `mode` is "light", "dark" or "system".
 T.AbstractButton {
     id: tile
 
     required property string mode
     property bool selected: false
 
-    // The preview's fixed colours (views.css 1326-1334).
-    readonly property color previewSidebar: mode === "light" ? "#EDEDF2" : (mode === "dark" ? "#1B1B1B" : Qt.rgba(120 / 255, 120 / 255, 130 / 255, 0.35))
-    readonly property color previewLine: mode === "light" ? Qt.rgba(0, 0, 0, 0.22) : (mode === "dark" ? Qt.rgba(1, 1, 1, 0.3) : Qt.rgba(120 / 255, 120 / 255, 130 / 255, 0.75))
-
-    implicitWidth: 76
-    implicitHeight: 5 + 40 + 5 + label.implicitHeight + 6
+    implicitWidth: 140
+    implicitHeight: 10 + 64 + 10 + label.implicitHeight + 10
     hoverEnabled: true
     focusPolicy: Qt.StrongFocus
+    Accessible.role: Accessible.RadioButton
+    Accessible.checked: tile.selected
 
     HoverHandler {
         cursorShape: Qt.PointingHandCursor
     }
 
     background: Rectangle {
-        radius: 9
-        color: "transparent"
-        border.width: tile.selected ? 2 : 1
-        border.color: tile.selected ? Theme.accentColor : (tile.hovered ? Theme.fgTertiary : Theme.strokeStrong)
+        radius: 10
+        color: SettingsStyle.tile
+        border.width: 1
+        border.color: tile.selected ? Theme.accentColor : (tile.hovered ? SettingsStyle.quietHover : SettingsStyle.quiet)
 
         Behavior on border.color {
             enabled: !Motion.reduced
@@ -39,74 +36,46 @@ T.AbstractButton {
 
         FocusRing {
             shown: tile.visualFocus
-            controlRadius: 9
+            controlRadius: 10
         }
     }
 
     contentItem: Item {
-        // The sidebar strip and the dark half reach the corners: cut to them.
-        RoundedClip {
+        Rectangle {
             id: preview
 
-            x: 5
-            y: 5
-            width: parent.width - 2 * 5
-            height: 40
-            radius: 5
+            x: 10
+            y: 10
+            width: parent.width - 2 * 10
+            height: 64
+            radius: 6
+            color: tile.mode === "dark" ? "#202020" : "#F3F3F3"
+            border.width: 1
+            border.color: tile.mode === "light" ? "#DDDDDD" : "#3A3A3A"
 
+            // System: the right half dark (linear-gradient(90deg, light 50%,
+            // dark 50%)), inside the border and its right corners.
             Rectangle {
-                anchors.fill: parent
-                color: tile.mode === "dark" ? "#232323" : "#F7F7FA"
-            }
-
-            // The system tile is light, then dark past a line through the
-            // middle at 45 degrees (linear-gradient(135deg, light 50%, dark 50%)):
-            // the dark side is where x + y passes the centre's x + y.
-            Shape {
-                anchors.fill: parent
                 visible: tile.mode === "system"
-                preferredRendererType: Shape.CurveRenderer
-
-                ShapePath {
-                    id: darkSide
-
-                    readonly property real split: (preview.width + preview.height) / 2
-
-                    strokeColor: "transparent"
-                    fillColor: "#232323"
-                    startX: darkSide.split; startY: 0
-                    PathLine { x: preview.width; y: 0 }
-                    PathLine { x: preview.width; y: preview.height }
-                    PathLine { x: darkSide.split - preview.height; y: preview.height }
-                }
-            }
-
-            Rectangle {
-                width: 16
-                height: parent.height
-                color: tile.previewSidebar
-            }
-
-            Column {
-                x: 16 + 5
-                y: 6
-                width: parent.width - x
-                spacing: 4
-
-                Rectangle { width: parent.width * 0.7; height: 4; radius: 2; color: tile.previewLine }
-                Rectangle { width: parent.width * 0.45; height: 4; radius: 2; color: tile.previewLine }
-                Rectangle { width: parent.width * 0.55; height: 4; radius: 2; color: Theme.accentFill }
+                x: parent.width / 2
+                y: 1
+                width: parent.width / 2 - 1
+                height: parent.height - 2
+                color: "#202020"
+                topRightRadius: preview.radius - 1
+                bottomRightRadius: preview.radius - 1
             }
         }
 
         Text {
             id: label
 
-            anchors.horizontalCenter: parent.horizontalCenter
-            y: preview.y + preview.height + 5
+            x: 10
+            y: preview.y + preview.height + 10
             text: tile.text
-            font: Theme.settingsTileLabel
-            color: tile.selected ? Theme.fg : Theme.fgSecondary
+            font.family: SettingsStyle.family
+            font.pixelSize: 13
+            color: SettingsStyle.title
         }
     }
 }

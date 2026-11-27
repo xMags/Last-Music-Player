@@ -3,78 +3,61 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import LastMusicPlayer
 
-// One card of Settings (.settings-card, views.css 1138-1147): a rounded
-// surface with a thin border and a soft shadow, its rows stacked inside.
-// Children go into the column; put a SettingsDivider between two rows.
+// One card of Settings: a 12px-rounded surface, its parts stacked inside,
+// and a 1px line above every part but the first (and but a SettingsBlock
+// `joined` to the row above), across the whole card. A
+// danger card has a faint red wash and border. In the light theme, where
+// the card and the page are both near white, a card also has a 1px border
+// and the soft card shadow. `hasRows` says whether any part other than the
+// label shows (a search can hide them all).
 Item {
     id: card
 
     default property alias rows: column.data
-    // The account hero (.settings-hero, views.css 1252-1259): the surface
-    // fades down to the alternate surface, under a 1px accent highlight
-    // along the top that fades out to both sides.
-    property bool hero: false
-    // The card of what cannot be undone: a faint red wash and border.
+    // The card of what cannot be undone.
     property bool danger: false
 
-    implicitHeight: column.implicitHeight + 2
+    readonly property var shownParts: column.visibleChildren.filter(item => item.height > 0)
+    readonly property bool hasRows: shownParts.some(item => item.objectName !== "settingsCardLabel")
+
+    implicitHeight: column.implicitHeight
 
     BoxShadow {
-        anchors.fill: surface
-        layers: Theme.shadowCard
-        radius: surface.radius
-    }
-
-    Rectangle {
-        id: surface
-
         anchors.fill: parent
-        radius: Theme.radiusLg
-        color: card.danger ? Theme.mixSrgb(Theme.danger, Theme.surface, 0.05) : Theme.surface
-        gradient: card.hero ? heroFill : null
-        border.width: 1
-        border.color: card.danger ? Theme.mixSrgb(Theme.danger, "transparent", 0.35) : Theme.stroke
+        visible: !Theme.dark && !card.danger
+        radius: 12
+        layers: Theme.shadowCard
     }
 
-    Gradient {
-        id: heroFill
-
-        GradientStop { position: 0; color: Theme.surface }
-        GradientStop { position: 1; color: Theme.surfaceAlt }
-    }
-
-    // ::before: inset 0 0 auto inside the border, 1px high.
     Rectangle {
-        id: heroGlow
-
-        // CSS fades to transparent in premultiplied colour; the same hue at
-        // zero alpha keeps Qt's gradient from greying the ends.
-        readonly property color glow: Theme.mixSrgb(Theme.accentFill, "transparent", 0.6)
-
-        visible: card.hero
-        x: 1
-        y: 1
-        width: parent.width - 2
-        height: 1
-        gradient: Gradient {
-            orientation: Gradient.Horizontal
-            GradientStop { position: 0; color: Qt.alpha(heroGlow.glow, 0) }
-            GradientStop { position: 0.5; color: heroGlow.glow }
-            GradientStop { position: 1; color: Qt.alpha(heroGlow.glow, 0) }
-        }
+        anchors.fill: parent
+        radius: 12
+        color: card.danger ? SettingsStyle.dangerFill : SettingsStyle.card
+        border.width: card.danger || !Theme.dark ? 1 : 0
+        border.color: card.danger ? SettingsStyle.dangerBorder : Theme.stroke
     }
 
     // The rows draw straight into the window, never through a layer: text
-    // in a layer loses its pixel-grid hinting and looks blurred. A row that
-    // fills its background (SettingsSwitchRow) rounds its own corners when it
-    // is the first or last one here, which is what overflow: hidden gave.
+    // in a layer loses its pixel-grid hinting and looks blurred.
     Column {
         id: column
 
         objectName: "settingsCardRows"
-        // Inside the 1px border, as a box's content is.
-        x: 1
-        y: 1
-        width: parent.width - 2
+        width: parent.width
+    }
+
+    Repeater {
+        model: card.shownParts
+
+        Rectangle {
+            required property Item modelData
+            required property int index
+
+            visible: index > 0 && !(modelData instanceof SettingsBlock && (modelData as SettingsBlock).joined)
+            y: modelData.y
+            width: card.width
+            height: 1
+            color: card.danger ? SettingsStyle.dangerLine : SettingsStyle.line
+        }
     }
 }

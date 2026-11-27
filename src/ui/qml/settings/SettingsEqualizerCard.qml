@@ -4,117 +4,80 @@ import QtQuick
 import QtQuick.Layouts
 import LastMusicPlayer
 
-// Sound (views/settings-desktop.ts renderDesktopSound; views.css 1380-1401):
-// the equalizer row with its preset, switch and expander, and under it the
-// ten bands and the preamp. Shown disabled, with the reason, because this
-// version's audio engine cannot apply it (App.equalizer.applies is false);
-// only the expander works, so the saved values can be seen.
+// Sound: the equalizer row with its preset and switch, then the ten bands
+// (a 96px track each, the knob at the band's gain, the band under it) and
+// the preamp with Reset. Shown disabled, with the reason, while this
+// version's audio engine cannot apply it (App.equalizer.applies is false),
+// so the saved values can still be seen.
 SettingsSection {
     id: section
 
-    property bool panelOpen: false
-
-    iconName: "eq"
     title: qsTr("Sound")
 
     SettingsRow {
         title: qsTr("Equalizer")
-        description: App.equalizer.unavailableReason
+        description: App.equalizer.unavailableReason !== "" ? App.equalizer.unavailableReason
+                                                            : qsTr("Shape the sound with a preset or the bands")
 
         Row {
-            spacing: 12
+            spacing: 16
 
-            AppSelect {
+            SettingsSelect {
                 anchors.verticalCenter: parent.verticalCenter
                 enabled: App.equalizer.applies
-                implicitWidth: Math.max(180, implicitContentWidth + leftPadding + rightPadding)
+                implicitWidth: Math.max(160, implicitContentWidth + leftPadding + rightPadding)
                 model: App.equalizer.presetNames
                 currentIndex: App.equalizer.presetIndex
                 onActivated: index => App.equalizer.choosePreset(index)
                 Accessible.name: qsTr("Equalizer preset")
             }
 
-            AppSwitch {
+            SettingsSwitch {
                 anchors.verticalCenter: parent.verticalCenter
                 enabled: App.equalizer.applies
                 checked: false
                 Accessible.name: qsTr("Equalizer")
             }
-
-            IconButton {
-                anchors.verticalCenter: parent.verticalCenter
-                iconName: "chevron"
-                shape: IconButton.Square
-                rotation: section.panelOpen ? -90 : 90
-                Accessible.name: section.panelOpen ? qsTr("Hide equalizer bands") : qsTr("Show equalizer bands")
-                onClicked: section.panelOpen = !section.panelOpen
-
-                Behavior on rotation {
-                    enabled: !Motion.reduced
-                    NumberAnimation { duration: 200; easing: Motion.ease }
-                }
-            }
         }
     }
 
-    // .settings-eq-panel: 20px 24px 18px, a divider on top, 18px between parts.
-    Rectangle {
-        width: parent ? parent.width : 0
-        height: panel.implicitHeight + 38
-        visible: section.panelOpen
-        color: Qt.alpha(Theme.neutral, 0.4)
-        radius: Theme.radiusLg
-
-        Rectangle {
-            width: parent.width
-            height: 1
-            color: Theme.divider
-        }
+    SettingsBlock {
+        keywords: qsTr("Equalizer") + "\n" + qsTr("Preamp")
+        topPadding: 14
+        bottomPadding: 20
 
         ColumnLayout {
-            id: panel
-
+            width: parent.width
             enabled: App.equalizer.applies
             opacity: enabled ? 1 : Theme.disabledOpacity
-            x: 24
-            y: 20
-            width: parent.width - 48
             spacing: 18
 
-            // .eq-bands: ten equal columns, 4px apart.
-            Row {
-                id: bandRow
-
+            // The bands, spread across with 8px at the ends.
+            RowLayout {
                 Layout.fillWidth: true
-                spacing: 4
+                Layout.leftMargin: 8
+                Layout.rightMargin: 8
+                spacing: 0
 
                 Repeater {
                     model: App.equalizer.bands
 
-                    // .eq-band: value, a 120px vertical slider, the label.
                     ColumnLayout {
                         id: band
 
                         required property var modelData
                         required property int index
 
-                        width: (bandRow.width - 9 * bandRow.spacing) / 10
+                        Layout.fillWidth: true
                         spacing: 8
 
-                        Text {
-                            Layout.alignment: Qt.AlignHCenter
-                            text: band.modelData.valueText
-                            font.pixelSize: 11
-                            font.features: { "tnum": 1 }
-                            color: Theme.fgSecondary
-                        }
-
-                        // The track and the level from 0 dB, drawn: the
-                        // slider cannot be moved in this version.
+                        // The track, and the knob at the gain (-12 to +12 dB).
+                        // Both fill the band's width, so the bands share the
+                        // row (a layout grows no wider than its parts allow).
                         Item {
-                            Layout.alignment: Qt.AlignHCenter
-                            implicitWidth: 24
-                            implicitHeight: 120
+                            Layout.fillWidth: true
+                            implicitWidth: 16
+                            implicitHeight: 96
                             Accessible.role: Accessible.Slider
                             Accessible.name: band.modelData.label
                             Accessible.description: band.modelData.valueText
@@ -126,47 +89,42 @@ SettingsSection {
                                 width: 4
                                 height: parent.height
                                 radius: 2
-                                color: Theme.sliderTrack
+                                color: SettingsStyle.controlBorder
                             }
 
                             Rectangle {
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                width: 4
-                                radius: 2
+                                width: 16
+                                height: 16
+                                radius: 8
                                 color: Theme.accentColor
-                                y: Math.min(parent.height * (1 - parent.ratio), parent.height / 2)
-                                height: Math.abs(parent.height * (parent.ratio - 0.5))
-                            }
-
-                            Rectangle {
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                width: 12
-                                height: 12
-                                radius: 6
-                                color: Theme.accentColor
-                                y: parent.height * (1 - parent.ratio) - height / 2
+                                y: (parent.height - height) * (1 - parent.ratio)
                             }
                         }
 
                         Text {
-                            Layout.alignment: Qt.AlignHCenter
+                            Layout.fillWidth: true
+                            horizontalAlignment: Text.AlignHCenter
                             text: band.modelData.label
+                            font.family: SettingsStyle.family
                             font.pixelSize: 11
-                            color: Theme.fgTertiary
+                            color: SettingsStyle.description
                         }
                     }
                 }
             }
 
-            // .eq-preamp: label, slider, value, Reset; 14px apart.
+            // Preamp, 64px wide; the slider; the value, 44px; Reset.
             RowLayout {
                 Layout.fillWidth: true
-                spacing: 14
+                spacing: 16
 
                 Text {
+                    Layout.preferredWidth: 64
                     text: qsTr("Preamp")
-                    font.pixelSize: 12
-                    color: Theme.fgTertiary
+                    font.family: SettingsStyle.family
+                    font.pixelSize: 13
+                    color: Theme.fgSecondary
                 }
 
                 AppSlider {
@@ -177,17 +135,21 @@ SettingsSection {
                     to: 12
                     stepSize: 0.5
                     sourceValue: App.equalizer.preamp
+                    trackColor: SettingsStyle.controlBorder
                     Accessible.name: qsTr("Preamp")
                     onMoved: App.equalizer.setPreamp(preamp.value)
                 }
 
                 Text {
+                    Layout.preferredWidth: 44
+                    horizontalAlignment: Text.AlignRight
                     text: App.equalizer.preampText
-                    font.pixelSize: 12
-                    color: Theme.fgTertiary
+                    font.family: SettingsStyle.family
+                    font.pointSize: 9.375
+                    color: SettingsStyle.description
                 }
 
-                AppButton {
+                SettingsButton {
                     text: qsTr("Reset")
                     onClicked: App.equalizer.reset()
                 }
