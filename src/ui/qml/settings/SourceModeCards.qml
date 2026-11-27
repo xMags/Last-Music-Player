@@ -10,18 +10,11 @@ import LastMusicPlayer
 // a badge (ACTIVE in the accent with a tick, else READY or SET UP), a line
 // about the source and its status beside a dot that is green when the
 // source is ready. The active card has an accent border. Picking a card asks
-// App.source to switch.
+// App.source to switch. The Settings group above names them.
 Column {
     id: root
 
     spacing: 12
-
-    SettingsSectionHead {
-        width: root.width
-        iconName: "music-note"
-        title: qsTr("Music source")
-        note: qsTr("One mode at a time. Local files stay playable in all three.")
-    }
 
     RowLayout {
         width: root.width

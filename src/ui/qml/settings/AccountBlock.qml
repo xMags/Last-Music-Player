@@ -5,16 +5,16 @@ import QtQuick.Effects
 import QtQuick.Layouts
 import LastMusicPlayer
 
-// The account (views/settings.ts render, .settings-hero; views.css
-// 1252-1289): a card without a heading, the avatar in an accent ring, the
+// The account (views/settings.ts render; views.css 1252-1289): a card
+// labelled Account, the avatar in an accent ring, the
 // name and the plan, Sign out (asked first), and a sign-out error under it.
 // Signed out, which the reference never shows, the same card says why and
 // offers Sign in, or Cancel while the browser is open. The music region is
 // with the languages (SettingsLanguagesSection).
-SettingsCard {
+SettingsSection {
     id: card
 
-    hero: true
+    title: qsTr("Account")
 
     signal signInRequested()
 

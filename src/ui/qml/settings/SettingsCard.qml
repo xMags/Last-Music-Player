@@ -14,6 +14,8 @@ Item {
     // fades down to the alternate surface, under a 1px accent highlight
     // along the top that fades out to both sides.
     property bool hero: false
+    // The card of what cannot be undone: a faint red wash and border.
+    property bool danger: false
 
     implicitHeight: column.implicitHeight + 2
 
@@ -28,10 +30,10 @@ Item {
 
         anchors.fill: parent
         radius: Theme.radiusLg
-        color: Theme.surface
+        color: card.danger ? Theme.mixSrgb(Theme.danger, Theme.surface, 0.05) : Theme.surface
         gradient: card.hero ? heroFill : null
         border.width: 1
-        border.color: Theme.stroke
+        border.color: card.danger ? Theme.mixSrgb(Theme.danger, "transparent", 0.35) : Theme.stroke
     }
 
     Gradient {

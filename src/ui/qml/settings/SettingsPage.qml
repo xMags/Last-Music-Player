@@ -68,7 +68,8 @@ Item {
 
             width: column.width
             opacity: sourceInView.inView ? 1 : 0
-            title: qsTr("Source and account")
+            title: qsTr("Music source")
+            note: qsTr("One source at a time. Songs on this PC and downloads play in all three.")
 
             SourceModeCards {
                 width: parent.width
@@ -150,7 +151,6 @@ Item {
 
             SettingsIntegrationsSection {
                 width: parent.width
-                title: ""
             }
         }
 
@@ -160,6 +160,7 @@ Item {
             width: column.width
             opacity: dataInView.inView ? 1 : 0
             title: qsTr("Privacy and data")
+            note: qsTr("Everything that removes something, in one place, mildest first.")
 
             SettingsDataSection {
                 width: parent.width

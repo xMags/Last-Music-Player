@@ -11,7 +11,7 @@ SettingsSection {
     id: section
 
     iconName: "library"
-    title: qsTr("Library")
+    title: qsTr("Music folder")
 
     SettingsRow {
         title: qsTr("Music folder")

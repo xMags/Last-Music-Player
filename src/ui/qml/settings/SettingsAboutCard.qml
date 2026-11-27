@@ -2,7 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import LastMusicPlayer
 
-// About: the app's mark, name and version with a count of the library, and
+// About: the app's mark, name and version with a count of the library, then
 // the licences (not written yet, so the button waits). What removes data is
 // in Privacy and data.
 SettingsSection {
@@ -62,11 +62,18 @@ SettingsSection {
                     elide: Text.ElideRight
                 }
             }
+        }
+    }
 
-            SettingsButton {
-                text: qsTr("Licenses and credits")
-                enabled: false
-            }
+    SettingsDivider {}
+
+    SettingsRow {
+        title: qsTr("Licenses and credits")
+        description: qsTr("The open-source parts this app is built with")
+
+        SettingsButton {
+            text: qsTr("View")
+            enabled: false
         }
     }
 }
