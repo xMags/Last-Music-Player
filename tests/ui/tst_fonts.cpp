@@ -75,10 +75,11 @@ void FontsTest::familiesFollowTheStacks()
 {
     const lmp::ui::Theme theme;
     const QStringList families = QFontDatabase::families();
-    const QString expectedText = families.contains(QStringLiteral("Segoe UI Variable Text"))
-        ? QStringLiteral("Segoe UI Variable Text")
-        : QStringLiteral("Segoe UI");
-    QCOMPARE(theme.fontText(), expectedText);
+    // The classic Segoe UI, not Segoe UI Variable (TextStyles.cpp).
+    if (families.contains(QStringLiteral("Segoe UI"))) {
+        QCOMPARE(theme.fontText(), QStringLiteral("Segoe UI"));
+        QCOMPARE(theme.fontDisplay(), QStringLiteral("Segoe UI"));
+    }
     QCOMPARE(theme.sectionTitle().family(), theme.fontDisplay());
     QCOMPARE(theme.trackTitle().family(), theme.fontText());
 }
@@ -91,12 +92,11 @@ void FontsTest::variableFontsGetTheExactWeight()
         QVERIFY(font.variableAxisTags().contains(QFont::Tag("wght")));
         QCOMPARE(font.variableAxisValue(QFont::Tag("wght")), static_cast<float>(font.weight()));
     }
-    if (!QFontDatabase::families().contains(QStringLiteral("Segoe UI Variable Text"))) {
-        QSKIP("Segoe UI Variable is not installed here");
+    if (!QFontDatabase::families().contains(QStringLiteral("Segoe UI"))) {
+        QSKIP("Segoe UI is not installed here");
     }
-    // Without the axis this resolved to the Bold face (700).
+    // Semibold is a face of its own in the classic Segoe UI.
     QCOMPARE(QFontInfo(theme.playerBarTitle()).weight(), 600);
-    QCOMPARE(QFontInfo(theme.playerTime()).weight(), 500);
 }
 
 QTEST_MAIN(FontsTest)

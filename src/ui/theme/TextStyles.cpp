@@ -55,16 +55,13 @@ TextStyle makeTextStyle(const TextStyleSpec& unscaled)
         font.setPointSizeF(spec.pixelSize * 0.75);
     }
     font.setWeight(static_cast<QFont::Weight>(spec.weight));
-    // The font's own hints in full (FreeType's interpreter 35, main.cpp), as
-    // Windows draws its UI text: stems and joins snap to whole pixels both
-    // ways, so text stays sharp at 125% and 150%. Vertical-only hinting left
-    // upright strokes between pixels: soft, and the thin shoulder of h, n
-    // and m at semibold faded until the letter looked broken.
-    font.setHintingPreference(QFont::PreferFullHinting);
-    // Segoe UI Variable keeps every weight in one variable font, and the font
-    // matcher only offers its Regular and Bold faces: weight 600 came out
-    // Bold and 500 Regular. Setting the weight axis draws the exact weight;
-    // fonts without that axis ignore it.
+    // Heights snap to the pixel grid, so horizontal strokes and baselines
+    // stay sharp at 125% and 150%; widths keep the font's design, so letters
+    // stay evenly spaced. Full hinting rounded every advance to a whole pixel
+    // and spaced letters unevenly.
+    font.setHintingPreference(QFont::PreferVerticalHinting);
+    // A variable font (the monospace ones) draws the exact weight from its
+    // axis where the engine applies it; fonts without the axis ignore it.
     font.setVariableAxis(QFont::Tag("wght"), static_cast<float>(spec.weight));
     if (spec.letterSpacingEm != 0) {
         font.setLetterSpacing(QFont::AbsoluteSpacing, spec.letterSpacingEm * spec.pixelSize);
@@ -81,10 +78,12 @@ TextStyle makeTextStyle(const TextStyleSpec& unscaled)
 FontFamilies FontFamilies::resolve()
 {
     return FontFamilies{
-        .text = FontLoader::firstAvailableFamily(
-            {QStringLiteral("Segoe UI Variable Text"), QStringLiteral("Segoe UI")}),
-        .display = FontLoader::firstAvailableFamily(
-            {QStringLiteral("Segoe UI Variable Display"), QStringLiteral("Segoe UI")}),
+        // The classic Segoe UI: a face of its own for each weight (Light to
+        // Black), hinted for grey, pixel-snapped text. Segoe UI Variable,
+        // under the FreeType engine (main.cpp), drew 600 as Bold or Regular
+        // and broke the thin joins of h, n and m.
+        .text = FontLoader::firstAvailableFamily({QStringLiteral("Segoe UI")}),
+        .display = FontLoader::firstAvailableFamily({QStringLiteral("Segoe UI")}),
         .expressive = FontLoader::firstAvailableFamily(
             {QStringLiteral("Mr De Haviland"), QStringLiteral("Segoe Script")}),
         .captionIcons = FontLoader::firstAvailableFamily(
