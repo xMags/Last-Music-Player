@@ -2,23 +2,23 @@
 # every QML file belong to this target.
 qt_add_library(lmp_ui STATIC)
 
-# Bundled fonts live in Assets/ with the other shipped files. The alias gives
+# Bundled fonts live in assets/ with the other shipped files. The alias gives
 # them a short path inside the module's resources (FontLoader reads it).
-set_source_files_properties("${CMAKE_SOURCE_DIR}/Assets/fonts/MrDeHaviland-Regular.ttf"
+set_source_files_properties("${CMAKE_SOURCE_DIR}/assets/fonts/MrDeHaviland-Regular.ttf"
     PROPERTIES QT_RESOURCE_ALIAS "fonts/MrDeHaviland-Regular.ttf")
-set_source_files_properties("${CMAKE_SOURCE_DIR}/Assets/fonts/ArchivoExpanded-Black.ttf"
+set_source_files_properties("${CMAKE_SOURCE_DIR}/assets/fonts/ArchivoExpanded-Black.ttf"
     PROPERTIES QT_RESOURCE_ALIAS "fonts/ArchivoExpanded-Black.ttf")
-set_source_files_properties("${CMAKE_SOURCE_DIR}/Assets/fonts/JetBrainsMono-Medium.ttf"
+set_source_files_properties("${CMAKE_SOURCE_DIR}/assets/fonts/JetBrainsMono-Medium.ttf"
     PROPERTIES QT_RESOURCE_ALIAS "fonts/JetBrainsMono-Medium.ttf")
 # The design gallery's sample cover: the application logo.
-set_source_files_properties("${CMAKE_SOURCE_DIR}/Assets/Square44x44Logo.targetsize-256.png"
+set_source_files_properties("${CMAKE_SOURCE_DIR}/assets/logo-256.png"
     PROPERTIES QT_RESOURCE_ALIAS "dev/sample-cover.png")
 # The account service's mark on the sign-in button (the reference's
 # magneto-mark.png).
-set_source_files_properties("${CMAKE_SOURCE_DIR}/Assets/SignInServiceMark.png"
+set_source_files_properties("${CMAKE_SOURCE_DIR}/assets/SignInServiceMark.png"
     PROPERTIES QT_RESOURCE_ALIAS "account/SignInServiceMark.png")
 # The stripes over a genre tile, from the current app.
-set_source_files_properties("${CMAKE_SOURCE_DIR}/Assets/LibraryStripeOverlay.svg"
+set_source_files_properties("${CMAKE_SOURCE_DIR}/assets/LibraryStripeOverlay.svg"
     PROPERTIES QT_RESOURCE_ALIAS "library/LibraryStripeOverlay.svg")
 
 # The Settings page's look and search, shared by all its parts.
@@ -423,12 +423,12 @@ qt_add_qml_module(lmp_ui
         tracks/QueryTrackSource.h
     QML_FILES ${LMP_UI_QML_FILES}
     RESOURCES
-        "${CMAKE_SOURCE_DIR}/Assets/fonts/MrDeHaviland-Regular.ttf"
-        "${CMAKE_SOURCE_DIR}/Assets/fonts/ArchivoExpanded-Black.ttf"
-        "${CMAKE_SOURCE_DIR}/Assets/fonts/JetBrainsMono-Medium.ttf"
-        "${CMAKE_SOURCE_DIR}/Assets/Square44x44Logo.targetsize-256.png"
-        "${CMAKE_SOURCE_DIR}/Assets/LibraryStripeOverlay.svg"
-        "${CMAKE_SOURCE_DIR}/Assets/SignInServiceMark.png")
+        "${CMAKE_SOURCE_DIR}/assets/fonts/MrDeHaviland-Regular.ttf"
+        "${CMAKE_SOURCE_DIR}/assets/fonts/ArchivoExpanded-Black.ttf"
+        "${CMAKE_SOURCE_DIR}/assets/fonts/JetBrainsMono-Medium.ttf"
+        "${CMAKE_SOURCE_DIR}/assets/logo-256.png"
+        "${CMAKE_SOURCE_DIR}/assets/LibraryStripeOverlay.svg"
+        "${CMAKE_SOURCE_DIR}/assets/SignInServiceMark.png")
 
 # Every folder that holds a header with a QML-registered type. The generated
 # registration code includes those headers by file name only, so each folder

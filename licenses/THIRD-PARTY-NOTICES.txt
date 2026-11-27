@@ -120,7 +120,7 @@ TagLib, which is compiled into the application. TagLib is offered under the
 GNU Lesser General Public License version 2.1 or the Mozilla Public License
 1.1; Last Music Player uses it under the LGPL-2.1. See
 licenses/third-party/taglib/COPYING.LGPL (and COPYING.MPL). Its source code,
-as built, is in ThirdParty/taglib/upstream/ of the Last Music Player source,
+as built, is in third_party/taglib/upstream/ of the Last Music Player source,
 and upstream at https://taglib.org/ and https://github.com/taglib/taglib.
 
 TagLib includes utfcpp 4.2.0 by Nemanja Trifunovic, under the Boost Software

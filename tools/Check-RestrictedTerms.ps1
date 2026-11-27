@@ -32,7 +32,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 # Folders whose content is third-party text that this project does not author.
-$excludedPathPattern = '^(licenses/|ThirdParty/)'
+$excludedPathPattern = '^(licenses/|third_party/)'
 
 $termsFile = if ($env:LMP_RESTRICTED_TERMS_FILE) {
     $env:LMP_RESTRICTED_TERMS_FILE

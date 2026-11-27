@@ -1116,7 +1116,7 @@
   <!-- Sidebar -->
   <aside id="sidebar-panel">
     <div class="sidebar-header">
-      <img src="../Assets/Square150x150Logo.scale-200.png" alt="Last Music Player Logo" class="sidebar-logo">
+      <img src="../assets/logo.png" alt="Last Music Player Logo" class="sidebar-logo">
       <div class="sidebar-title-container">
         <h1>Last Music Player</h1>
         <span>Docs Hub</span>
@@ -1193,7 +1193,7 @@
         </div>
 
         <div class="preview-box">
-          <img src="../Assets/LastMusicPlayerPreviewClean.png" alt="Last Music Player Home Screen showing music lists, custom local mixes, playback control, and library views.">
+          <img src="../assets/LastMusicPlayerPreviewClean.png" alt="Last Music Player Home Screen showing music lists, custom local mixes, playback control, and library views.">
         </div>
 
         <h4 style="margin-bottom: 12px; font-weight:600;">Core Highlights</h4>
@@ -1278,7 +1278,7 @@ ISCC.exe installer\LastMusicPlayer.iss</code></pre>
 
         <h4 style="margin-bottom: 12px; font-weight: 600;">Configuration Steps</h4>
         <ol class="custom-list">
-          <li style="padding-left: 8px;">Copy <code class="font-mono-tag">build/private-config.example.cmake</code> to <code class="font-mono-tag">build/private-config.local.cmake</code> (ignored by Git).</li>
+          <li style="padding-left: 8px;">Copy <code class="font-mono-tag">cmake/private-config.example.cmake</code> to <code class="font-mono-tag">cmake/private-config.local.cmake</code> (ignored by Git).</li>
           <li style="padding-left: 8px;">Fill in the values you need.</li>
           <li style="padding-left: 8px;">Rebuild with <code class="font-mono-tag">.\tools\build.ps1 -Reconfigure</code>.</li>
         </ol>
@@ -1404,7 +1404,7 @@ set(LMP_DISCORD_CLIENT_ID "your-discord-app-id-here")</code></pre>
               <td>Start-up: builds every service and connects them.</td>
             </tr>
             <tr>
-              <td><code class="font-mono-tag">ThirdParty/sqlite/</code></td>
+              <td><code class="font-mono-tag">third_party/sqlite/</code></td>
               <td>Vendored SQLite database engine (amalgamated source).</td>
             </tr>
             <tr>

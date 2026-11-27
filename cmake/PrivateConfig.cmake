@@ -1,7 +1,7 @@
 # Private build-time values.
 #
 # Values that must not be published (service origins, client ids, opaque tags)
-# are read from build/private-config.local.cmake, which git ignores. Without
+# are read from cmake/private-config.local.cmake, which git ignores. Without
 # that file every value is empty and the features that need them stay off.
 #
 # To add a value: append its name to LMP_PRIVATE_VALUE_NAMES, add a matching
@@ -31,7 +31,7 @@ foreach(name IN LISTS LMP_PRIVATE_VALUE_NAMES)
     set(${name} "")
 endforeach()
 
-set(_lmp_private_file "${CMAKE_SOURCE_DIR}/build/private-config.local.cmake")
+set(_lmp_private_file "${CMAKE_SOURCE_DIR}/cmake/private-config.local.cmake")
 if(EXISTS "${_lmp_private_file}")
     include("${_lmp_private_file}")
     message(STATUS "Private config: loaded")

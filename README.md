@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="Assets/Square150x150Logo.scale-200.png" alt="Last Music Player logo" width="150" height="150">
+  <img src="assets/logo.png" alt="Last Music Player logo" width="150" height="150">
 
   <h1>Last Music Player</h1>
 
@@ -21,7 +21,7 @@
 
   <p>
     <a href="../../releases/latest">
-      <img alt="Download latest release" src="Assets/DownloadLatestRelease.svg">
+      <img alt="Download latest release" src="assets/DownloadLatestRelease.svg">
     </a>
   </p>
 
@@ -37,7 +37,7 @@
 </div>
 
 <p align="center">
-  <img src="Assets/LastMusicPlayerPreviewClean.png" alt="Last Music Player home screen showing library mixes, the playback queue, and now-playing controls" width="100%">
+  <img src="assets/LastMusicPlayerPreviewClean.png" alt="Last Music Player home screen showing library mixes, the playback queue, and now-playing controls" width="100%">
 </p>
 
 > [!NOTE]
@@ -94,13 +94,13 @@ The project is a CMake project (`CMakePresets.json`, preset `windows`), so any I
 Values that are specific to a distributor (the account service's addresses, the Discord application id and a few catalogue settings) are not in the repository. To set them, copy
 
 ```text
-build/private-config.example.cmake
+cmake/private-config.example.cmake
 ```
 
 to
 
 ```text
-build/private-config.local.cmake
+cmake/private-config.local.cmake
 ```
 
 (ignored by git), fill in what you need and rebuild with `.\tools\build.ps1 -Reconfigure`. A value left empty keeps the feature that needs it switched off; a build without the file is a complete player for the files on your PC and for your own server. The values are compiled into the program and are not secrets: never put passwords, tokens or keys in this file.
@@ -136,8 +136,8 @@ src/app/         Start-up: builds every service and connects them (CompositionRo
 tests/           Tests for core, platform and ui, with shared fakes.
 tools/           Build, run, test, package and check scripts.
 installer/       Inno Setup script.
-Assets/          Icons and images.
-ThirdParty/      The vendored SQLite amalgamation.
+assets/          Icons, images and bundled fonts.
+third_party/     Vendored SQLite and TagLib.
 licenses/        End-user terms and third-party notices.
 ```
 

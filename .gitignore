@@ -1,6 +1,6 @@
 # Build outputs
 /.build/
-# Output of the 1.x Visual Studio build, still present in older checkouts.
+# The built program: x64/Debug and x64/Release (src/app/CMakeLists.txt).
 x64/
 
 # Compiled installer output (built by ISCC from installer/LastMusicPlayer.iss)
@@ -32,7 +32,7 @@ node_modules/
 # Local secrets / build-private config (Discord client id, provider auth tokens, etc.)
 .env
 .env.local
-build/*.local.*
+cmake/*.local.*
 # The 1.x private settings header, kept out of Git where it still exists.
 src/Backend/AppSecrets.local.h
 CMakeUserPresets.json

@@ -1,4 +1,4 @@
-# Copy to build/private-config.local.cmake (ignored by git) and fill in.
+# Copy to cmake/private-config.local.cmake (ignored by git) and fill in.
 # Leave a value empty to keep the feature that needs it switched off.
 
 # Account service origins: scheme and host only, https, no trailing slash.
