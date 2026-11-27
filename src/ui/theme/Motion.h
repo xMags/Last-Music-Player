@@ -127,7 +127,8 @@ class Motion : public QObject {
     // while the main window is dragged to another place, so no frame is drawn
     // while the system moves it (a resize redraws on every step anyway, so
     // the motions go on then), and while another window is in front, so a
-    // player left open behind other work draws nothing.
+    // player left open behind other work draws nothing. The endless spinners
+    // stop then too (they start from the top again).
     Q_PROPERTY(bool ambientHeld READ ambientHeld NOTIFY ambientHeldChanged FINAL)
 
 public:

@@ -83,7 +83,7 @@ Item {
             to: 360
             duration: 1100
             loops: Animation.Infinite
-            running: ring.spinning && !Motion.reduced && ring.visible
+            running: ring.spinning && !Motion.reduced && ring.visible && !Motion.ambientHeld
             onStopped: turn.angle = 0
         }
     }

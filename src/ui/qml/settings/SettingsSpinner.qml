@@ -55,7 +55,7 @@ Item {
             to: 360
             duration: 750
             loops: Animation.Infinite
-            running: spinner.visible && !Motion.reduced
+            running: spinner.visible && !Motion.reduced && !Motion.ambientHeld
         }
     }
 }

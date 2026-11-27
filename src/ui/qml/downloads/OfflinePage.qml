@@ -642,7 +642,7 @@ Item {
             }
 
             NumberAnimation on x {
-                running: line.indeterminate && !Motion.reduced && line.visible
+                running: line.indeterminate && !Motion.reduced && line.visible && !Motion.ambientHeld
                 from: -line.width * 0.35
                 to: line.width
                 duration: 1400

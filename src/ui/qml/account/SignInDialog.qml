@@ -246,7 +246,7 @@ T.Popup {
                                     to: 360
                                     duration: dialog.waiting ? 2400 : 8000
                                     loops: Animation.Infinite
-                                    running: dialog.visible && !Motion.reduced
+                                    running: dialog.visible && !Motion.reduced && !Motion.ambientHeld
                                 }
 
                                 // The grooves, the gaps between the tracks and the rim.
@@ -679,7 +679,7 @@ T.Popup {
                                             // auth-pulse: 1.6s, from half to full height and back,
                                             // each bar's start spread out.
                                             SequentialAnimation {
-                                                running: dialog.visible && !Motion.reduced
+                                                running: dialog.visible && !Motion.reduced && !Motion.ambientHeld
                                                 loops: Animation.Infinite
 
                                                 PauseAnimation { duration: (bar.index * 137) % 1600 }
@@ -884,7 +884,7 @@ T.Popup {
                                     color: dialog.waiting ? dialog.accent : dialog.label
 
                                     SequentialAnimation on opacity {
-                                        running: dialog.waiting && !Motion.reduced
+                                        running: dialog.waiting && !Motion.reduced && !Motion.ambientHeld
                                         loops: Animation.Infinite
                                         NumberAnimation { to: 0.25; duration: 600; easing.type: Easing.InOutQuad }
                                         NumberAnimation { to: 1; duration: 600; easing.type: Easing.InOutQuad }
