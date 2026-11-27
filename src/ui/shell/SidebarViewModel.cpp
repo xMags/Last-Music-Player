@@ -11,17 +11,19 @@ namespace lmp::ui {
 
 namespace {
 
-QList<SidebarNavListModel::Item> mainViews()
+QList<SidebarNavListModel::Item> mainViews(bool showsOffline)
 {
-    return {
+    QList<SidebarNavListModel::Item> views{
         {static_cast<int>(Route::Kind::Home), Navigator::tr("Home"), QStringLiteral("home")},
         {static_cast<int>(Route::Kind::Browse), Navigator::tr("Browse"), QStringLiteral("browse")},
         {static_cast<int>(Route::Kind::Library), Navigator::tr("Library"), QStringLiteral("library")},
-        // The Windows app's Offline page: the songs downloaded on this PC.
-        {static_cast<int>(Route::Kind::Offline), Navigator::tr("Offline"), QStringLiteral("download")},
-        {static_cast<int>(Route::Kind::Settings), Navigator::tr("Settings"),
-         QStringLiteral("settings")},
     };
+    if (showsOffline) {
+        // The Windows app's Offline page: the songs downloaded on this PC.
+        views.append({static_cast<int>(Route::Kind::Offline), Navigator::tr("Offline"), QStringLiteral("download")});
+    }
+    views.append({static_cast<int>(Route::Kind::Settings), Navigator::tr("Settings"), QStringLiteral("settings")});
+    return views;
 }
 
 } // namespace
@@ -31,7 +33,7 @@ SidebarViewModel::SidebarViewModel(Parts parts, QObject* parent)
     , m_navigator(parts.navigator)
     , m_reader(parts.reader)
     , m_actions(parts.actions)
-    , m_navItems(mainViews())
+    , m_navItems(mainViews(true))
     , m_activeKind(static_cast<int>(Route::Kind::Home))
 {
     connect(&m_navigator, &Navigator::currentChanged, this, &SidebarViewModel::followNavigator);
@@ -41,6 +43,11 @@ SidebarViewModel::SidebarViewModel(Parts parts, QObject* parent)
     // A playlist's songs changed: its cover may have.
     connect(&m_actions, &core::TrackActions::playlistChanged, this, &SidebarViewModel::refreshPlaylists);
     followNavigator();
+}
+
+void SidebarViewModel::setShowsOffline(bool shows)
+{
+    m_navItems.setItems(mainViews(shows));
 }
 
 void SidebarViewModel::refreshPlaylists()

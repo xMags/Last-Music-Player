@@ -383,6 +383,10 @@ CompositionRoot::CompositionRoot()
                                     && m_resolver.localFile(*current) == filePath;
                             },
                         .write = {}})
+    , m_downloadIndex({.downloads = m_downloads,
+                       .tags = m_tagReader,
+                       .tracks = m_tracks,
+                       .gate = m_userDataGate})
     , m_autoplayQueue(m_player)
     , m_autoplay(m_autoplayQueue,
                  {.related =
@@ -741,6 +745,10 @@ CompositionRoot::CompositionRoot()
                          }
                      });
     m_downloadExtras.start();
+    // Library lists the downloads while the source is this PC.
+    QObject::connect(&m_downloadIndex, &core::downloads::DownloadLibraryIndex::indexed, &m_downloadIndex,
+                     [this]() { refreshLibraryViewsSoon(); });
+    m_downloadIndex.start();
     QObject::connect(&m_offline, &ui::OfflineViewModel::changed, &m_downloadArtwork,
                      [this]() { m_downloadArtwork.setExtraPictures(m_offline.artistPhotoUrls()); });
     m_downloadArtwork.setExtraPictures(m_offline.artistPhotoUrls());
@@ -965,6 +973,8 @@ CompositionRoot::CompositionRoot()
 
     // After "Delete all data" every view reads its (now empty) data again.
     QObject::connect(&m_cleanup, &core::UserDataCleanup::cleared, &m_cleanup, [this]() {
+        // The downloads stay on this PC: their songs come back.
+        m_downloadIndex.reindex();
         refreshLibraryViews();
         m_settingsAbout.refresh();
         m_navigator.openView(static_cast<int>(ui::Route::Kind::Home));
@@ -984,10 +994,21 @@ CompositionRoot::CompositionRoot()
     // the library holds.
     QObject::connect(&m_sync, &core::account::MusicSyncService::libraryChanged, &m_sync,
                      [this]() { refreshLibraryViewsSoon(); });
+    // Library lists the downloads while the source is this PC, so Offline
+    // leaves the sidebar then.
+    m_sidebar.setShowsOffline(m_mode.mode() != core::mode::SourceMode::LocalOnly);
     QObject::connect(&m_mode, &core::mode::ModeService::changed, &m_mode,
                      [this, shown = m_mode.mode()]() mutable {
                          if (m_mode.mode() != shown) {
                              shown = m_mode.mode();
+                             const bool thisPc = shown == core::mode::SourceMode::LocalOnly;
+                             m_sidebar.setShowsOffline(!thisPc);
+                             // The Offline page gives way to Library, which
+                             // now lists the downloads (and stays the only
+                             // page once the history starts over).
+                             if (thisPc && m_navigator.currentKind() == static_cast<int>(ui::Route::Kind::Offline)) {
+                                 m_navigator.openView(static_cast<int>(ui::Route::Kind::Library));
+                             }
                              leaveOldSource();
                              refreshLibraryViewsSoon();
                          }

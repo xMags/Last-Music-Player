@@ -10,6 +10,16 @@ SidebarNavListModel::SidebarNavListModel(QList<Item> items, QObject* parent)
 {
 }
 
+void SidebarNavListModel::setItems(QList<Item> items)
+{
+    if (items == m_items) {
+        return;
+    }
+    beginResetModel();
+    m_items = std::move(items);
+    endResetModel();
+}
+
 int SidebarNavListModel::rowCount(const QModelIndex& parent) const
 {
     return parent.isValid() ? 0 : static_cast<int>(m_items.size());

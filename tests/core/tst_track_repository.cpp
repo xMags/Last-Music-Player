@@ -1,3 +1,4 @@
+#include <QByteArray>
 #include <QList>
 #include <QObject>
 #include <QString>
@@ -55,6 +56,8 @@ private slots:
     void likedFlagRoundTrips();
     void resumePositionIsStoredAndCleared();
     void clearAllUserDataEmptiesEverything();
+    void downloadedSongsShowOnlyWhileTheSourceIsThisPc();
+    void downloadedSongsFollowTheDownloadsNotTheScan();
 };
 
 void TrackRepositoryTest::insertReturnsIdAndReadsBack()
@@ -312,6 +315,76 @@ void TrackRepositoryTest::clearAllUserDataEmptiesEverything()
     const auto again = tracks.upsertLocalTrack(localTrack(QStringLiteral("Fresh")), QStringLiteral("local|fresh"));
     QVERIFY(again.isOk());
     QCOMPARE(again.value(), qint64{1});
+}
+
+namespace {
+
+Track downloaded(const QString& title)
+{
+    Track track = localTrack(title);
+    track.filePath = QStringLiteral("C:/Offline/") + title + QStringLiteral(".m4a");
+    track.sourceUrl = QStringLiteral("https://music.example.test/") + title;
+    return track;
+}
+
+} // namespace
+
+void TrackRepositoryTest::downloadedSongsShowOnlyWhileTheSourceIsThisPc()
+{
+    TempLibrary library;
+    QVERIFY(library.ok());
+    TrackRepository tracks(library.database());
+    QVERIFY(tracks.upsertLocalTrack(localTrack(QStringLiteral("Folder")), QStringLiteral("local|folder")).isOk());
+    QVERIFY(tracks.syncDownloadTracks({downloaded(QStringLiteral("Down"))}).isOk());
+    QCOMPARE(library.text("SELECT Provider FROM Tracks WHERE Title='Down';"), QStringLiteral("download"));
+
+    LibraryQueries queries(library.database());
+    // This PC: both, as local songs.
+    QCOMPARE(titles(queries.loadTracks(false, true)).size(), 2);
+    const QList<Track> all = queries.loadTracks();
+    QCOMPARE(all.size(), 2);
+    for (const Track& track : all) {
+        QVERIFY(!track.isRemote());
+    }
+
+    // Another source lists those songs itself: only the folder's song.
+    for (const char* mode : {"ApiKey", "Account"}) {
+        QVERIFY(library.connection()
+                    .exec(QByteArray("UPDATE ActiveAccountContext SET RemoteMode='") + mode
+                          + "', AccountId='account-a' WHERE SingletonId=1;")
+                    .isOk());
+        QCOMPARE(titles(queries.loadTracks()), QStringList({QStringLiteral("Folder")}));
+    }
+}
+
+void TrackRepositoryTest::downloadedSongsFollowTheDownloadsNotTheScan()
+{
+    TempLibrary library;
+    QVERIFY(library.ok());
+    TrackRepository tracks(library.database());
+    QVERIFY(tracks.syncDownloadTracks({downloaded(QStringLiteral("A")), downloaded(QStringLiteral("B"))}).isOk());
+    QVERIFY(tracks.setLiked(QStringLiteral("local|c:/offline/a.m4a"), true).isOk());
+    QCOMPARE(tracks.downloadTrackDurations().value(QStringLiteral("local|c:/offline/b.m4a")), 200.0);
+
+    // A folder scan that did not see them leaves them be.
+    QVERIFY(tracks.completeLocalScan({}).isOk());
+    QCOMPARE(library.number("SELECT COUNT(*) FROM Tracks WHERE IsActive=1;"), 2);
+
+    // B is no longer downloaded; A keeps its like.
+    QVERIFY(tracks.syncDownloadTracks({downloaded(QStringLiteral("A"))}).isOk());
+    QCOMPARE(library.number("SELECT IsActive FROM Tracks WHERE Title='B';"), 0);
+    QCOMPARE(library.number("SELECT IsLiked FROM Tracks WHERE Title='A';"), 1);
+
+    // A file the music folder holds too stays the scan's song.
+    Track scanned = downloaded(QStringLiteral("A"));
+    scanned.sourceUrl.clear();
+    scanned.title = QStringLiteral("Scanned A");
+    QVERIFY(tracks.upsertLocalTrack(scanned, QStringLiteral("local|c:/offline/a.m4a")).isOk());
+    QVERIFY(tracks.syncDownloadTracks({downloaded(QStringLiteral("A"))}).isOk());
+    QCOMPARE(library.text("SELECT Title FROM Tracks WHERE SourceKey='local|c:/offline/a.m4a';"),
+             QStringLiteral("Scanned A"));
+    QCOMPARE(library.text("SELECT Provider FROM Tracks WHERE SourceKey='local|c:/offline/a.m4a';"), QString());
+    QCOMPARE(library.number("SELECT IsActive FROM Tracks WHERE SourceKey='local|c:/offline/a.m4a';"), 1);
 }
 
 QTEST_GUILESS_MAIN(TrackRepositoryTest)

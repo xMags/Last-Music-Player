@@ -28,9 +28,14 @@ public:
         // Base icon name; the outlined glyph is "nav-<name>", the filled one
         // for the active item "nav-<name>-active".
         QString iconName;
+
+        friend bool operator==(const Item&, const Item&) = default;
     };
 
     explicit SidebarNavListModel(QList<Item> items, QObject* parent = nullptr);
+
+    // Shows these items instead (nothing happens when they are the same).
+    void setItems(QList<Item> items);
 
     [[nodiscard]] int rowCount(const QModelIndex& parent = {}) const override;
     [[nodiscard]] QVariant data(const QModelIndex& index, int role) const override;

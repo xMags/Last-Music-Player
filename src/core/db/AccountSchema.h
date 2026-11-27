@@ -198,8 +198,15 @@ namespace lmp::core::db::account_schema {
         "COALESCE(t.LastPositionSeconds,0) AS LastPositionSeconds, "
         "'' AS RemoteProvider, COALESCE(t.RemoteCatalogId,'') AS RemoteCatalogId, "
         "COALESCE(t.AlbumCatalogId,'') AS AlbumCatalogId, COALESCE(t.ArtistCatalogId,'') AS ArtistCatalogId "
-        "FROM Tracks t WHERE t.SourceKind<>'remote' OR EXISTS ("
+        // Remote rows show in API key mode, and downloaded songs' rows
+        // (Provider 'download') only while the source is this PC: in the
+        // other modes the account or provider lists those songs itself.
+        "FROM Tracks t WHERE CASE "
+        "WHEN t.SourceKind='remote' THEN EXISTS ("
         "SELECT 1 FROM ActiveAccountContext c WHERE c.SingletonId=1 AND c.RemoteMode='ApiKey') "
+        "WHEN COALESCE(t.Provider,'')='download' THEN EXISTS ("
+        "SELECT 1 FROM ActiveAccountContext c WHERE c.SingletonId=1 AND c.RemoteMode='LocalOnly') "
+        "ELSE 1 END "
         "UNION ALL "
         "SELECT -a.rowid, 'account|' || a.AccountId || '|' || a.RemoteId, 'remote', 'account', "
         "a.SourceUrl, '', a.Title, a.Artist, a.Album, a.Genre, a.DurationSeconds, a.ArtworkUrl, "

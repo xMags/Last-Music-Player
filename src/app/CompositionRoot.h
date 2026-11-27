@@ -40,6 +40,7 @@
 #include "core/library/HomeMixService.h"
 #include "core/downloads/DownloadArtworkKeeper.h"
 #include "core/downloads/DownloadExtrasService.h"
+#include "core/downloads/DownloadLibraryIndex.h"
 #include "core/downloads/DownloadManager.h"
 #include "core/downloads/HttpDownloadFetcher.h"
 #include "core/library/LibraryScanner.h"
@@ -348,6 +349,9 @@ private:
     // written into its file.
     core::downloads::PendingExtrasStore m_pendingExtras;
     core::downloads::DownloadExtrasService m_downloadExtras;
+    // The downloads as songs of this PC, for Library while the source is
+    // this PC.
+    core::downloads::DownloadLibraryIndex m_downloadIndex;
     // Autoplay's top-up and "Start mix", over the player's queue.
     core::PlayerAutoplayQueue m_autoplayQueue;
     core::AutoplayService m_autoplay;

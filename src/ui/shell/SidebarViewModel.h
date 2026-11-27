@@ -63,6 +63,11 @@ public:
     [[nodiscard]] int activeKind() const { return m_activeKind; }
 
 
+    // Whether Offline is among the main views. While the music source is
+    // this PC, Library lists the downloads and Offline is left out (Settings
+    // still opens it).
+    void setShowsOffline(bool shows);
+
     Q_INVOKABLE void openView(int kind);
     Q_INVOKABLE void openPlaylist(int row);
     // Liked Songs: the Favourites playlist.

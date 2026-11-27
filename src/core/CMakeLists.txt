@@ -154,6 +154,8 @@ qt_add_library(lmp_core STATIC
     downloads/DownloadArtworkKeeper.h
     downloads/DownloadExtrasService.cpp
     downloads/DownloadExtrasService.h
+    downloads/DownloadLibraryIndex.cpp
+    downloads/DownloadLibraryIndex.h
     downloads/DownloadManager.cpp
     downloads/DownloadManager.h
     downloads/DownloadPolicy.cpp

@@ -21,7 +21,12 @@
 #include <memory>
 #include <vector>
 
+#include "TempLibrary.h"
+#include "FakeTagReader.h"
+#include "core/db/LibraryQueries.h"
+#include "core/db/TrackRepository.h"
 #include "core/downloads/DownloadExtrasService.h"
+#include "core/downloads/DownloadLibraryIndex.h"
 #include "core/downloads/DownloadManager.h"
 #include "core/downloads/PendingExtrasStore.h"
 #include "core/downloads/SongFileExtras.h"
@@ -174,6 +179,7 @@ private slots:
     void extrasAreWrittenOnceForEverySong();
     void extrasOfAPlayingSongAreKeptAndWrittenOffline();
     void aFailedFetchKeepsNothingAndWaits();
+    void downloadsBecomeSongsOfThisPc();
 };
 
 void DownloadManagerTest::removeAllDeletesFilesAndDropsTransfers()
@@ -784,6 +790,56 @@ void DownloadManagerTest::aFailedFetchKeepsNothingAndWaits()
     QCOMPARE(extras.coverAsks, 1);
     QVERIFY(extras.written.isEmpty());
     QVERIFY(!extras.pending.contains(one));
+}
+
+void DownloadManagerTest::downloadsBecomeSongsOfThisPc()
+{
+    Fixture fixture;
+    fixture.manager.initialize();
+    finishSongs(fixture, {QStringLiteral("One"), QStringLiteral("Two")});
+    TempLibrary library;
+    QVERIFY(library.ok());
+    lmp::core::db::TrackRepository tracks(library.database());
+    lmp::test::FakeTagReader tags;
+    lmp::core::downloads::DownloadLibraryIndex index(
+        {.downloads = fixture.manager, .tags = tags, .tracks = tracks, .gate = fixture.gate, .settleMs = 10});
+    QSignalSpy indexed(&index, &lmp::core::downloads::DownloadLibraryIndex::indexed);
+    index.start();
+    QTRY_COMPARE(indexed.size(), 1);
+
+    lmp::core::db::LibraryQueries queries(library.database());
+    const QList<lmp::core::Track> songs = queries.loadTracks(false, true);
+    QCOMPARE(songs.size(), 2);
+    for (const lmp::core::Track& song : songs) {
+        QVERIFY(!song.isRemote());
+        QVERIFY(QFileInfo::exists(song.filePath));
+        QCOMPARE(song.artist, QStringLiteral("Artist"));
+        QCOMPARE(song.durationSeconds, 125.4);
+        QCOMPARE(song.sourceUrl, QStringLiteral("https://music.example.test/") + song.title);
+        QCOMPARE(song.artworkUrl, QStringLiteral("https://art.example.test/") + song.title);
+        QVERIFY(song.dateAddedSortKey > 0);
+    }
+    QCOMPARE(tags.reads.load(), 2);
+
+    // A change that leaves the songs as they are writes nothing.
+    fixture.manager.setExtrasWritten(songs.front().filePath, 1);
+    QTest::qWait(60);
+    QCOMPARE(indexed.size(), 1);
+
+    // After the library is emptied they come back, lengths read again.
+    QVERIFY(tracks.clearAllUserData().isOk());
+    index.reindex();
+    QTRY_COMPARE(indexed.size(), 2);
+    QCOMPARE(queries.loadTracks(false, true).size(), 2);
+    QCOMPARE(tags.reads.load(), 4);
+
+    // A removed download leaves Library; the other's length is not read again.
+    QVERIFY(fixture.manager.removeSong(fixture.scope + QStringLiteral("One")));
+    QTRY_COMPARE(indexed.size(), 3);
+    const QList<lmp::core::Track> left = queries.loadTracks(false, true);
+    QCOMPARE(left.size(), 1);
+    QCOMPARE(left.front().title, QStringLiteral("Two"));
+    QCOMPARE(tags.reads.load(), 4);
 }
 
 QTEST_GUILESS_MAIN(DownloadManagerTest)

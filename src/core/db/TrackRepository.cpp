@@ -4,6 +4,7 @@
 
 #include "core/db/SqlTransaction.h"
 #include "core/db/TrackRows.h"
+#include "core/model/CatalogSourceKey.h"
 #include "core/net/RemoteUrlPolicy.h"
 
 #include <QLatin1StringView>
@@ -36,7 +37,9 @@ constexpr std::array<const char*, 14> kClearAllSteps{
     "DELETE FROM Tracks;",
 };
 
-constexpr char kUpsertTrackSql[] =
+// The upsert without its end: every upsert ends it, and a downloaded song's
+// adds the condition that leaves a folder scan's row alone.
+constexpr char kUpsertTrackBody[] =
     "INSERT INTO Tracks (SourceKey, SourceKind, Provider, SourceUrl, FilePath, Title, Artist, Album, Genre, DurationSeconds, ArtworkUrl, DateAddedSortKey, DateAddedText, DurationText, IsActive, RemoteId, RemoteCatalogId, AlbumCatalogId, ArtistCatalogId, UpdatedAt) "
     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, strftime('%s','now')) "
     "ON CONFLICT(SourceKey) DO UPDATE SET "
@@ -47,7 +50,8 @@ constexpr char kUpsertTrackSql[] =
     "RemoteCatalogId=CASE WHEN excluded.RemoteCatalogId<>'' THEN excluded.RemoteCatalogId ELSE Tracks.RemoteCatalogId END, "
     "AlbumCatalogId=CASE WHEN excluded.AlbumCatalogId<>'' THEN excluded.AlbumCatalogId ELSE Tracks.AlbumCatalogId END, "
     "ArtistCatalogId=CASE WHEN excluded.ArtistCatalogId<>'' THEN excluded.ArtistCatalogId ELSE Tracks.ArtistCatalogId END, "
-    "UpdatedAt=excluded.UpdatedAt;";
+    "UpdatedAt=excluded.UpdatedAt";
+constexpr char kUpsertDownloadCondition[] = " WHERE COALESCE(Tracks.Provider,'')='download' OR Tracks.IsActive=0";
 
 constexpr char kMergePlaybackStatsSql[] =
     "UPDATE Tracks SET "
@@ -104,12 +108,14 @@ Result<void> TrackRepository::completeLocalScan(const QStringList& activeSourceK
     if (const Result<void> begun = m_connection.exec("BEGIN IMMEDIATE;"); !begun) {
         return begun;
     }
-    if (const Result<void> cleared = m_connection.exec("UPDATE Tracks SET IsActive=0 WHERE SourceKind='local';");
+    if (const Result<void> cleared = m_connection.exec(
+            "UPDATE Tracks SET IsActive=0 WHERE SourceKind='local' AND COALESCE(Provider,'')<>'download';");
         !cleared) {
         return tx::rollbackWith(m_connection, cleared.failure());
     }
 
-    auto statement = m_connection.prepare("UPDATE Tracks SET IsActive=1 WHERE SourceKind='local' AND SourceKey=?;");
+    auto statement = m_connection.prepare(
+        "UPDATE Tracks SET IsActive=1 WHERE SourceKind='local' AND COALESCE(Provider,'')<>'download' AND SourceKey=?;");
     if (!statement) {
         return tx::rollbackWith(m_connection, statement.failure());
     }
@@ -132,22 +138,67 @@ Result<void> TrackRepository::completeLocalScan(const QStringList& activeSourceK
     return Result<void>::success();
 }
 
+Result<void> TrackRepository::syncDownloadTracks(const QList<Track>& tracks)
+{
+    if (const Result<void> begun = m_connection.exec("BEGIN IMMEDIATE;"); !begun) {
+        return begun;
+    }
+    // Every downloaded song's row goes inactive; each song still downloaded
+    // comes back active with its upsert.
+    if (const Result<void> cleared =
+            m_connection.exec("UPDATE Tracks SET IsActive=0 WHERE SourceKind='local' AND Provider='download';");
+        !cleared) {
+        return tx::rollbackWith(m_connection, cleared.failure());
+    }
+    const QByteArray sql = QByteArray(kUpsertTrackBody) + kUpsertDownloadCondition + ';';
+    for (const Track& track : tracks) {
+        const Result<qint64> written =
+            upsertTrack(track, QStringLiteral("local"), QString(DownloadProvider), catalogSourceKey(track), true, sql);
+        // A song without a usable key is left out; a refused write undoes all.
+        if (!written && written.failure().kind != FailureKind::NotFound) {
+            return tx::rollbackWith(m_connection, written.failure());
+        }
+    }
+    if (const Result<void> committed = m_connection.exec("COMMIT;"); !committed) {
+        return tx::rollbackWith(m_connection, committed.failure());
+    }
+    return Result<void>::success();
+}
+
+QHash<QString, double> TrackRepository::downloadTrackDurations()
+{
+    QHash<QString, double> durations;
+    auto statement = m_connection.prepare(
+        "SELECT SourceKey, DurationSeconds FROM Tracks WHERE SourceKind='local' AND Provider='download' "
+        "AND COALESCE(DurationSeconds,0)>0;");
+    if (!statement) {
+        return durations;
+    }
+    while (statement.value().step().valueOr(false)) {
+        durations.insert(statement.value().columnText(0), statement.value().columnDouble(1));
+    }
+    return durations;
+}
+
 Result<qint64> TrackRepository::upsertLocalTrack(const Track& track, const QString& sourceKey)
 {
-    return upsertTrack(track, QStringLiteral("local"), QString(), sourceKey, true);
+    return upsertTrack(track, QStringLiteral("local"), QString(), sourceKey, true,
+                       QByteArray(kUpsertTrackBody) + ';');
 }
 
 Result<qint64> TrackRepository::upsertRemoteTrack(const Track& track, const QString& sourceKey)
 {
     const QString provider = track.origin.isEmpty() ? QStringLiteral("remote") : track.origin;
-    return upsertTrack(track, QStringLiteral("remote"), provider, sourceKey, true);
+    return upsertTrack(track, QStringLiteral("remote"), provider, sourceKey, true,
+                       QByteArray(kUpsertTrackBody) + ';');
 }
 
 Result<qint64> TrackRepository::upsertTrack(const Track& track,
                                              const QString& sourceKind,
                                              const QString& provider,
                                              const QString& sourceKey,
-                                             bool active)
+                                             bool active,
+                                             const QByteArray& sql)
 {
     if (sourceKey.isEmpty()) {
         return tx::notFound(QStringLiteral("empty source key"));
@@ -159,7 +210,7 @@ Result<qint64> TrackRepository::upsertTrack(const Track& track,
         return tx::notFound(QStringLiteral("source key is not valid text"));
     }
 
-    auto prepared = m_connection.prepare(kUpsertTrackSql);
+    auto prepared = m_connection.prepare(sql);
     if (!prepared) {
         return prepared.failure();
     }

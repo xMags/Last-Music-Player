@@ -4,6 +4,10 @@
 #include "core/db/Database.h"
 #include "core/model/Track.h"
 
+#include <QByteArray>
+#include <QHash>
+#include <QLatin1StringView>
+#include <QList>
 #include <QString>
 #include <QStringList>
 #include <QtGlobal>
@@ -24,6 +28,11 @@ namespace lmp::core::db {
 // versions skipped silently on an empty key still succeeds without writing.
 class TrackRepository {
 public:
+    // The Provider of a downloaded song's row: a "local" row the download
+    // index owns (syncDownloadTracks), shown only while the music source is
+    // this PC (the EffectiveTracks view) and left alone by folder scans.
+    static constexpr QLatin1StringView DownloadProvider{"download"};
+
     explicit TrackRepository(Database& database);
 
     // Removes every library, collection and account row, then truncates the
@@ -35,8 +44,19 @@ public:
     // completes, so an interrupted scan keeps the old local library visible.
     void beginLocalScan();
     // Marks every local row inactive except those whose source key is in
-    // `activeSourceKeys`, in one transaction.
+    // `activeSourceKeys`, in one transaction. Downloaded songs' rows are not
+    // the scan's and are left as they are.
     [[nodiscard]] Result<void> completeLocalScan(const QStringList& activeSourceKeys);
+
+    // Makes the downloaded songs' rows these songs (local rows with
+    // DownloadProvider, keyed by catalogSourceKey): each is written and
+    // active, every other downloaded song's row goes inactive. A row that a
+    // folder scan keeps active for the same file stays the scan's. Likes and
+    // plays stay on the rows. One transaction; a song without a usable key
+    // is left out.
+    [[nodiscard]] Result<void> syncDownloadTracks(const QList<Track>& tracks);
+    // Downloaded songs' rows that know their length: source key to seconds.
+    [[nodiscard]] QHash<QString, double> downloadTrackDurations();
 
     // Inserts or updates the row with this source key and returns its id.
     // Catalogue ids already stored survive an update that brings none.
@@ -65,7 +85,8 @@ private:
                                              const QString& sourceKind,
                                              const QString& provider,
                                              const QString& sourceKey,
-                                             bool active);
+                                             bool active,
+                                             const QByteArray& sql);
 
     SqliteConnection& m_connection;
 };
