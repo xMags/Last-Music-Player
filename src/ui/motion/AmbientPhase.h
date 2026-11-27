@@ -63,7 +63,7 @@ public:
     void setResume(bool resume);
     [[nodiscard]] bool held() const { return m_held; }
     void setHeld(bool held);
-    [[nodiscard]] int stepInterval() const { return m_timer.interval(); }
+    [[nodiscard]] int stepInterval() const { return m_stepInterval; }
     // Clamped to at least one millisecond.
     void setStepInterval(int milliseconds);
     [[nodiscard]] bool active() const { return m_active; }
@@ -74,6 +74,8 @@ public:
     void setClock(std::function<qint64()> nowNs);
     // Whether the step timer is running.
     [[nodiscard]] bool stepping() const { return m_timer.isActive(); }
+    // Milliseconds until the next step, or -1 without one.
+    [[nodiscard]] int nextStepInMs() const { return m_timer.remainingTime(); }
     // Reads the clock and moves the phase on; the timer calls it.
     void step();
 
@@ -90,6 +92,8 @@ private:
     [[nodiscard]] qint64 nowNs() const;
     // Starts or stops the motion after `running` or `period` changed.
     void updateActive();
+    // Starts the timer for the next step.
+    void scheduleStep();
 
     QTimer m_timer;
     QElapsedTimer m_steady;
@@ -97,6 +101,7 @@ private:
     qint64 m_startNs = 0;
     qreal m_elapsedMs = 0;
     int m_period = 0;
+    int m_stepInterval = StepIntervalMs;
     bool m_running = false;
     bool m_resume = false;
     bool m_held = false;

@@ -1,6 +1,7 @@
 #include "ui/motion/AmbientPhase.h"
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <utility>
 
@@ -17,8 +18,11 @@ AmbientPhase::AmbientPhase(QObject* parent)
 {
     m_steady.start();
     m_timer.setTimerType(Qt::PreciseTimer);
-    m_timer.setInterval(StepIntervalMs);
-    connect(&m_timer, &QTimer::timeout, this, &AmbientPhase::step);
+    m_timer.setSingleShot(true);
+    connect(&m_timer, &QTimer::timeout, this, [this]() {
+        step();
+        scheduleStep();
+    });
 }
 
 void AmbientPhase::setRunning(bool running)
@@ -56,12 +60,14 @@ void AmbientPhase::setResume(bool resume)
 void AmbientPhase::setStepInterval(int milliseconds)
 {
     const int interval = std::max(1, milliseconds);
-    if (interval == m_timer.interval()) {
+    if (interval == m_stepInterval) {
         return;
     }
-    // A running timer restarts with the new interval; steps read real time,
-    // so the motion keeps its pace.
-    m_timer.setInterval(interval);
+    // Steps read real time, so the motion keeps its pace.
+    m_stepInterval = interval;
+    if (m_timer.isActive()) {
+        scheduleStep();
+    }
     emit stepIntervalChanged();
 }
 
@@ -81,7 +87,7 @@ void AmbientPhase::setHeld(bool held)
     }
     // The held time does not count: the motion goes on from where it stopped.
     m_startNs = nowNs() - static_cast<qint64>(m_elapsedMs * NsPerMs);
-    m_timer.start();
+    scheduleStep();
 }
 
 qreal AmbientPhase::phase() const
@@ -116,6 +122,20 @@ qint64 AmbientPhase::nowNs() const
     return m_clock ? m_clock() : m_steady.nsecsElapsed();
 }
 
+// Every motion steps on the same grid of the steady clock (whole multiples
+// of its interval since the clock's start), not at its own start time plus
+// whole intervals: motions with the same interval, or intervals that divide
+// each other, then change in the same frame instead of each asking for a
+// frame of its own between the others'.
+void AmbientPhase::scheduleStep()
+{
+    const auto nowMs = std::chrono::duration_cast<std::chrono::milliseconds>(
+                           std::chrono::steady_clock::now().time_since_epoch())
+                           .count();
+    const qint64 next = (nowMs / m_stepInterval + 1) * m_stepInterval;
+    m_timer.start(static_cast<int>(std::max<qint64>(1, next - nowMs)));
+}
+
 void AmbientPhase::updateActive()
 {
     const bool active = m_running && m_period > 0;
@@ -135,7 +155,7 @@ void AmbientPhase::updateActive()
     m_startNs = nowNs() - static_cast<qint64>(m_elapsedMs * NsPerMs);
     m_active = true;
     if (!m_held) {
-        m_timer.start();
+        scheduleStep();
     }
     emit activeChanged();
 }

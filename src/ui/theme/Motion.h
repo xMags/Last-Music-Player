@@ -4,6 +4,8 @@
 #include <QObject>
 #include <QtQml/qqmlregistration.h>
 
+#include "ui/motion/AmbientPhase.h"
+
 namespace lmp::ui {
 
 // Easing curves and durations of every animation, and whether the user asked
@@ -112,7 +114,8 @@ class Motion : public QObject {
     Q_PROPERTY(qreal glowRestOpacity READ glowRestOpacity CONSTANT FINAL)
     // Milliseconds between steps of the slowest endless motions (the hero
     // field's breath, the playing glow, the ambient drift): about 30 a
-    // second, as they move well under a pixel a step (AmbientPhase).
+    // second, as they move well under a pixel a step. Twice the default
+    // step, so their steps fall in the same frames (AmbientPhase).
     Q_PROPERTY(int ambientSlowStep READ ambientSlowStep CONSTANT FINAL)
 
     Q_PROPERTY(bool reduced READ reduced WRITE setReduced NOTIFY reducedChanged FINAL)
@@ -198,7 +201,7 @@ public:
     [[nodiscard]] int nowPlayingBreathe() const { return 6500; }
     [[nodiscard]] qreal glowRestScale() const { return 0.96; }
     [[nodiscard]] qreal glowRestOpacity() const { return 0.7; }
-    [[nodiscard]] int ambientSlowStep() const { return 33; }
+    [[nodiscard]] int ambientSlowStep() const { return 2 * AmbientPhase::StepIntervalMs; }
 
     [[nodiscard]] bool reduced() const { return m_reduced; }
     void setReduced(bool reduced);

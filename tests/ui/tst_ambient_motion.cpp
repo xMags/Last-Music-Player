@@ -1,13 +1,16 @@
 #include <QEasingCurve>
 #include <QSignalSpy>
 #include <QTest>
+#include <QThread>
 
 #include "ui/motion/AmbientBounce.h"
 #include "ui/motion/AmbientDrift.h"
 #include "ui/motion/AmbientPhase.h"
 #include "ui/theme/Motion.h"
 
+#include <chrono>
 #include <cmath>
+#include <cstdlib>
 
 using lmp::ui::AmbientBounce;
 using lmp::ui::AmbientDrift;
@@ -205,8 +208,8 @@ private slots:
         phase.setPeriod(1000);
         phase.setRunning(true);
         QSignalSpy changes(&phase, &AmbientPhase::stepIntervalChanged);
-        phase.setStepInterval(33);
-        QCOMPARE(phase.stepInterval(), 33);
+        phase.setStepInterval(32);
+        QCOMPARE(phase.stepInterval(), 32);
         QCOMPARE(changes.count(), 1);
         QVERIFY(phase.stepping());
         // Fewer steps, same time: each lands where real time says.
@@ -216,6 +219,35 @@ private slots:
         // No interval below a millisecond.
         phase.setStepInterval(0);
         QCOMPARE(phase.stepInterval(), 1);
+    }
+
+    void motionsStartedApartStepTogether()
+    {
+        // Each next step lands on the shared grid of the steady clock (a
+        // whole multiple of its interval), whenever the motion started, so
+        // motions started apart step in the same frames.
+        const auto onGrid = [](const AmbientPhase& phase) {
+            const qint64 nowMs = std::chrono::duration_cast<std::chrono::milliseconds>(
+                                     std::chrono::steady_clock::now().time_since_epoch())
+                                     .count();
+            const qint64 off = (nowMs + phase.nextStepInMs()) % phase.stepInterval();
+            return off <= 1 || off >= phase.stepInterval() - 1;
+        };
+        AmbientPhase first;
+        first.setPeriod(1000);
+        first.setRunning(true);
+        QVERIFY(onGrid(first));
+        QThread::msleep(7);
+        AmbientPhase second;
+        second.setPeriod(1000);
+        second.setStepInterval(2 * AmbientPhase::StepIntervalMs);
+        second.setRunning(true);
+        QVERIFY(onGrid(second));
+        // Released from a hold, it rejoins the grid.
+        QThread::msleep(5);
+        second.setHeld(true);
+        second.setHeld(false);
+        QVERIFY(onGrid(second));
     }
 
     void theMotionsHoldWhileDraggedOrBehindAnotherWindow()
